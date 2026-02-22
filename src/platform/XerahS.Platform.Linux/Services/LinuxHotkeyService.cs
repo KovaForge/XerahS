@@ -321,55 +321,97 @@ public sealed class LinuxHotkeyService : IHotkeyService
 
     private int GetKeycode(Key key)
     {
-        var keysym = ConvertKeyToKeysym(key);
-        if (keysym == IntPtr.Zero)
+        foreach (var keysym in GetCandidateKeysyms(key))
         {
-            return 0;
+            if (keysym == IntPtr.Zero)
+            {
+                continue;
+            }
+
+            int keycode = NativeMethods.XKeysymToKeycode(_display, keysym);
+            if (keycode != 0)
+            {
+                return keycode;
+            }
         }
 
-        var keycode = NativeMethods.XKeysymToKeycode(_display, keysym);
-        if (keycode == 0)
-        {
-            return 0;
-        }
-
-        return keycode;
+        return 0;
     }
 
-    private static IntPtr ConvertKeyToKeysym(Key key)
+    private static IEnumerable<IntPtr> GetCandidateKeysyms(Key key)
     {
-        // Avalonia can report the physical PrintScreen key as "Print" on Linux/X11 backends.
-        if (key.ToString() == "Print")
+        foreach (string keysymName in GetCandidateKeysymNames(key))
         {
-            return NativeMethods.XStringToKeysym("Print");
+            yield return NativeMethods.XStringToKeysym(keysymName);
+        }
+
+        // Numeric fallback for XK_Print.
+        if (IsPrintLikeKey(key))
+        {
+            yield return new IntPtr(0xFF61);
+        }
+    }
+
+    internal static IReadOnlyList<string> GetCandidateKeysymNames(Key key)
+    {
+        var names = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        static void AddUnique(List<string> list, HashSet<string> set, string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value) && set.Add(value))
+            {
+                list.Add(value);
+            }
+        }
+
+        // Avalonia can report the physical PrintScreen key as "Print" or "Snapshot"
+        // depending on backend and event phase. Try common aliases before failing.
+        if (IsPrintLikeKey(key))
+        {
+            AddUnique(names, seen, "Print");
+            AddUnique(names, seen, "Sys_Req");
         }
 
         if (SpecialKeyNames.TryGetValue(key, out var symbol))
         {
-            return NativeMethods.XStringToKeysym(symbol);
+            AddUnique(names, seen, symbol);
+            return names;
         }
 
         if (key >= Key.A && key <= Key.Z)
         {
-            return NativeMethods.XStringToKeysym(key.ToString());
+            AddUnique(names, seen, key.ToString());
+            return names;
         }
 
         if (key >= Key.D0 && key <= Key.D9)
         {
-            return NativeMethods.XStringToKeysym($"{(int)(key - Key.D0)}");
+            AddUnique(names, seen, $"{(int)(key - Key.D0)}");
+            return names;
         }
 
         if (key >= Key.F1 && key <= Key.F24)
         {
-            return NativeMethods.XStringToKeysym(key.ToString());
+            AddUnique(names, seen, key.ToString());
+            return names;
         }
 
         if (key >= Key.NumPad0 && key <= Key.NumPad9)
         {
-            return NativeMethods.XStringToKeysym("KP_" + (int)(key - Key.NumPad0));
+            AddUnique(names, seen, "KP_" + (int)(key - Key.NumPad0));
+            return names;
         }
 
-        return IntPtr.Zero;
+        AddUnique(names, seen, key.ToString());
+        return names;
+    }
+
+    private static bool IsPrintLikeKey(Key key)
+    {
+        return key == Key.PrintScreen ||
+               key == Key.Snapshot ||
+               key.ToString() == "Print";
     }
 
     private static readonly Dictionary<Key, string> SpecialKeyNames = new()

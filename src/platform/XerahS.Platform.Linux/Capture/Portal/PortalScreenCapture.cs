@@ -146,7 +146,13 @@ internal static class PortalScreenCapture
             }
         }
 
-        if (response != 0)
+        if (response == PortalResponseCancelled)
+        {
+            DebugHelper.WriteLine("LinuxScreenCaptureService: Portal screenshot request was cancelled by user.");
+            return (null, response);
+        }
+
+        if (ShouldTryFallbackLookup(response))
         {
             var fallbackBitmap = await PortalScreenshotFallback
                 .TryFindScreenshotAsync(requestStartUtc, TimeSpan.FromSeconds(2), "LinuxScreenCaptureService")
@@ -210,6 +216,11 @@ internal static class PortalScreenCapture
         var bitmap = SKBitmap.Decode(stream);
         try { File.Delete(uri.LocalPath); } catch { }
         return (bitmap, response);
+    }
+
+    internal static bool ShouldTryFallbackLookup(uint response)
+    {
+        return response != PortalResponseSuccess && response != PortalResponseCancelled;
     }
 
     private static void LogPortalEnvironment()

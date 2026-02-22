@@ -30,6 +30,7 @@ using SkiaSharp;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Contracts;
 using XerahS.Platform.Linux.Capture.Orchestration;
+using XerahS.Platform.Linux.Capture.Portal;
 using XerahS.Platform.Linux.Capture.Providers;
 
 namespace XerahS.Tests.Platform.Linux;
@@ -155,17 +156,91 @@ public class LinuxCaptureOrchestrationTests
             "Portal should not force-accept on X11 when UseModernCapture=false");
     }
 
+    [Test]
+    public async Task Coordinator_CancelledProvider_StopsFurtherFallback()
+    {
+        int portalCalls = 0;
+        int x11Calls = 0;
+
+        var providers = new ILinuxCaptureProvider[]
+        {
+            new TestProvider(
+                "portal-cancel",
+                LinuxCaptureStage.Portal,
+                canHandle: true,
+                resultFactory: () => LinuxCaptureResult.Cancelled("portal-cancel"),
+                onTryCapture: () => portalCalls++),
+            new TestProvider(
+                "x11-success",
+                LinuxCaptureStage.X11,
+                canHandle: true,
+                resultFactory: () => LinuxCaptureResult.Success("x11-success", new SKBitmap(1, 1)),
+                onTryCapture: () => x11Calls++)
+        };
+
+        var coordinator = new LinuxCaptureCoordinator(providers, new WaterfallCapturePolicy());
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "KDE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+
+        var execution = await coordinator.CaptureWithTraceAsync(request, context, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(execution.Result.IsCancelled, Is.True);
+            Assert.That(execution.Result.ProviderId, Is.EqualTo("portal-cancel"));
+            Assert.That(execution.Trace.FinalOutcome, Is.EqualTo(CaptureDecisionOutcome.Cancelled));
+            Assert.That(portalCalls, Is.EqualTo(1));
+            Assert.That(x11Calls, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task PortalProvider_WhenRuntimeReturnsCancelled_ResponseIsCancelled()
+    {
+        var runtime = new PortalRuntime(response: 1);
+        var provider = new PortalCaptureProvider(runtime);
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "KDE", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+
+        var result = await provider.TryCaptureAsync(request, context, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsCancelled, Is.True);
+            Assert.That(result.Bitmap, Is.Null);
+            Assert.That(result.ProviderId, Is.EqualTo("portal"));
+        });
+    }
+
+    [Test]
+    public void PortalScreenCapture_FallbackDecision_RespectsCancelResponse()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseSuccess), Is.False);
+            Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseCancelled), Is.False);
+            Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseFailed), Is.True);
+        });
+    }
+
     private sealed class TestProvider : ILinuxCaptureProvider
     {
         private readonly bool _canHandle;
         private readonly System.Func<LinuxCaptureResult> _resultFactory;
+        private readonly System.Action? _onTryCapture;
 
-        public TestProvider(string providerId, LinuxCaptureStage stage, bool canHandle, System.Func<LinuxCaptureResult> resultFactory)
+        public TestProvider(
+            string providerId,
+            LinuxCaptureStage stage,
+            bool canHandle,
+            System.Func<LinuxCaptureResult> resultFactory,
+            System.Action? onTryCapture = null)
         {
             ProviderId = providerId;
             Stage = stage;
             _canHandle = canHandle;
             _resultFactory = resultFactory;
+            _onTryCapture = onTryCapture;
         }
 
         public string ProviderId { get; }
@@ -182,6 +257,7 @@ public class LinuxCaptureOrchestrationTests
             ILinuxCaptureContext context,
             CancellationToken cancellationToken = default)
         {
+            _onTryCapture?.Invoke();
             return Task.FromResult(_resultFactory());
         }
     }
@@ -193,6 +269,52 @@ public class LinuxCaptureOrchestrationTests
         public Task<(SKBitmap? bitmap, uint response)> TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
         {
             return Task.FromResult<(SKBitmap?, uint)>((null, 2));
+        }
+
+        public Task<SKBitmap?> TryKdeDbusCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
+        {
+            return Task.FromResult<SKBitmap?>(null);
+        }
+
+        public Task<SKBitmap?> TryGnomeDbusCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
+        {
+            return Task.FromResult<SKBitmap?>(null);
+        }
+
+        public Task<SKBitmap?> TryWlrootsCaptureAsync(LinuxCaptureKind kind, string? desktop, CaptureOptions? options)
+        {
+            return Task.FromResult<SKBitmap?>(null);
+        }
+
+        public Task<SKBitmap?> TryX11NativeCaptureAsync(LinuxCaptureKind kind, IWindowService? windowService, CaptureOptions? options)
+        {
+            return Task.FromResult<SKBitmap?>(null);
+        }
+
+        public Task<SKBitmap?> TryCliCaptureAsync(
+            LinuxCaptureKind kind,
+            string? desktop,
+            IWindowService? windowService,
+            CaptureOptions? options)
+        {
+            return Task.FromResult<SKBitmap?>(null);
+        }
+    }
+
+    private sealed class PortalRuntime : ILinuxCaptureRuntime
+    {
+        private readonly uint _response;
+
+        public PortalRuntime(uint response)
+        {
+            _response = response;
+        }
+
+        public uint PortalCancelledResponseCode => 1;
+
+        public Task<(SKBitmap? bitmap, uint response)> TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
+        {
+            return Task.FromResult<(SKBitmap?, uint)>((null, _response));
         }
 
         public Task<SKBitmap?> TryKdeDbusCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
