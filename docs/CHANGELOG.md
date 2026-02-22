@@ -10,6 +10,25 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ## Unreleased
 
+## v0.16.4
+
+### Features
+- **Mobile**: Add active upload destination selector and in-app destination label on Android and iOS `(0b42d73, ccfa4ea)`
+- **Mobile**: Use desktop-compatible upload filename pattern on Android and iOS `(357188f, c0af5d6)`
+- **Mobile**: Add broad share-intent support for arbitrary file types on Android and iOS `(dbb6633, 7292102)`
+
+### Fixes
+- **iOS**: Use App Group settings so Share Extension can read Amazon S3 configuration `(42a1033)`
+
+### Refactor
+- **Core**: Split large ViewModels, extract WatchFolder daemon base service, and consolidate ScreenRecordingManager startup flow `(86286af, 315549a, 1160519)`
+
+### Build
+- **Infrastructure**: Add all-platform release workflow and repository sync helper script `(2fbe5ee, bd8d0d3)`
+
+### Documentation
+- **Maintenance**: Simplify mobile README and move refactor/hardening notes into documentation archives `(ad719c9, c9ebe39, 72f2e55, c043844)`
+
 ## v0.16.2
 
 ### Fixes
