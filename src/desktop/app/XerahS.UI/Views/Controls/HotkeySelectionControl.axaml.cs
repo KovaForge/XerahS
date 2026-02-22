@@ -76,6 +76,7 @@ public partial class HotkeySelectionControl : UserControl
     private IBrush? _originalBackground;
     private Key _previousKey;
     private KeyModifiers _previousModifiers;
+    private bool _handlersAttached;
 
     // Visual feedback colors
     private static readonly IBrush RecordingBackground = new SolidColorBrush(Color.FromRgb(255, 235, 120));
@@ -110,24 +111,27 @@ public partial class HotkeySelectionControl : UserControl
             Log("Debug logger initialized (check Debug output and static _debugMessages)");
         }
 
-        // CRITICAL FIX: Add handlers directly to HotkeyButton (where focus is)
-        // Use both Tunnel and Bubble strategies to catch events in all phases
-        HotkeyButton.AddHandler(
-            KeyDownEvent,
-            OnPreviewKeyDown,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
-            handledEventsToo: true);
+        if (!_handlersAttached)
+        {
+            // Attach once and use only tunnel routing to avoid duplicate key events.
+            HotkeyButton.AddHandler(
+                KeyDownEvent,
+                OnPreviewKeyDown,
+                RoutingStrategies.Tunnel,
+                handledEventsToo: true);
 
-        HotkeyButton.AddHandler(
-            KeyUpEvent,
-            OnPreviewKeyUp,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
-            handledEventsToo: true);
+            HotkeyButton.AddHandler(
+                KeyUpEvent,
+                OnPreviewKeyUp,
+                RoutingStrategies.Tunnel,
+                handledEventsToo: true);
+
+            // Handle selection even if children (Buttons) handle the event.
+            this.AddHandler(PointerPressedEvent, OnControlPointerPressed, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+            _handlersAttached = true;
+        }
 
         Log($"OnLoaded: END - HotkeyButton={HotkeyButton != null}");
-
-        // Handle selection even if children (Buttons) handle the event
-        this.AddHandler(PointerPressedEvent, OnControlPointerPressed, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
     }
 
     private void OnControlPointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)

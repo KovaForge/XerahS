@@ -200,9 +200,6 @@ namespace XerahS.Core.Tasks.Processors
             {
                 info.FilePath = filePath;
                 DebugHelper.WriteLine($"Image saved: {filePath}");
-
-                info.FilePath = filePath;
-                DebugHelper.WriteLine($"Image saved: {filePath}");
             }
             else
             {
