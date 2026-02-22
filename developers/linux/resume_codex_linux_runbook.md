@@ -1,6 +1,6 @@
 # Resume Runbook (Linux + Codex)
 
-Use this on the Linux machine to resume verification/fixes for commit `44f2408`.
+Use this on the Linux machine to resume verification/fixes from the latest `HEAD` on `develop`.
 
 ## Prerequisites
 
@@ -18,11 +18,13 @@ set -euo pipefail
 REPO="/path/to/XerahS"
 cd "$REPO"
 
-echo "== 1) Sync and confirm fix commit =="
+echo "== 1) Sync and confirm current HEAD commit =="
 git fetch origin
 git checkout develop
 git pull --ff-only
-git show --name-only --oneline 44f2408
+CURRENT_COMMIT="$(git rev-parse --short=7 HEAD)"
+echo "Using current commit: $CURRENT_COMMIT"
+git show --name-only --oneline "$CURRENT_COMMIT"
 
 echo "== 2) Build + Linux test smoke =="
 dotnet --info
@@ -63,7 +65,7 @@ echo "== Done =="
 Run the following in Codex after the run above:
 
 ```text
-Continue Linux verification for commit 44f2408 on this Wayland KDE machine.
+Continue Linux verification for the latest HEAD commit on develop on this Wayland KDE machine.
 Validate Print/Ctrl+Print/Shift+Print registration and portal-cancel behavior end-to-end using current logs.
 If issues remain, fix only relevant Linux classes (especially src/platform/XerahS.Platform.Linux/Capture and Services), run:
 - dotnet build src/desktop/XerahS.sln -m:1
