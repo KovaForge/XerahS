@@ -72,52 +72,76 @@ namespace XerahS.Uploaders.TextUploaders
 
         public override UploadResult UploadText(string text, string fileName)
         {
-            UploadResult result = new UploadResult();
             CustomUploaderInput input = new CustomUploaderInput(fileName, text);
-
-            if (uploader.Body == CustomUploaderBody.None)
+            var handlers = new CustomUploaderRequestHandlers
             {
-                result.Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), null, uploader.GetHeaders(input));
-            }
-            else if (uploader.Body == CustomUploaderBody.MultipartFormData)
-            {
-                if (string.IsNullOrEmpty(uploader.FileFormName))
+                None = () => new UploadResult
                 {
-                    result.Response = SendRequestMultiPart(uploader.GetRequestURL(input), uploader.GetArguments(input), uploader.GetHeaders(input),
-                        null, uploader.RequestMethod);
-                }
-                else
+                    Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), null, uploader.GetHeaders(input))
+                },
+                MultipartFormData = () =>
+                {
+                    if (string.IsNullOrEmpty(uploader.FileFormName))
+                    {
+                        return new UploadResult
+                        {
+                            Response = SendRequestMultiPart(
+                                uploader.GetRequestURL(input),
+                                uploader.GetArguments(input),
+                                uploader.GetHeaders(input),
+                                null,
+                                uploader.RequestMethod)
+                        };
+                    }
+
+                    byte[] bytes = Encoding.UTF8.GetBytes(text);
+                    using MemoryStream stream = new MemoryStream(bytes);
+                    return SendRequestFile(
+                        uploader.GetRequestURL(input),
+                        stream,
+                        fileName,
+                        uploader.GetFileFormName(),
+                        uploader.GetArguments(input),
+                        uploader.GetHeaders(input),
+                        null,
+                        uploader.RequestMethod);
+                },
+                FormUrlEncoded = () => new UploadResult
+                {
+                    Response = SendRequestURLEncoded(
+                        uploader.RequestMethod,
+                        uploader.GetRequestURL(input),
+                        uploader.GetArguments(input),
+                        uploader.GetHeaders(input))
+                },
+                JsonOrXml = () => new UploadResult
+                {
+                    Response = SendRequest(
+                        uploader.RequestMethod,
+                        uploader.GetRequestURL(input),
+                        uploader.GetData(input),
+                        uploader.GetContentType(),
+                        null,
+                        uploader.GetHeaders(input))
+                },
+                Binary = () =>
                 {
                     byte[] bytes = Encoding.UTF8.GetBytes(text);
-                    using (MemoryStream stream = new MemoryStream(bytes))
+                    using MemoryStream stream = new MemoryStream(bytes);
+                    return new UploadResult
                     {
-                        result = SendRequestFile(uploader.GetRequestURL(input), stream, fileName, uploader.GetFileFormName(), uploader.GetArguments(input),
-                            uploader.GetHeaders(input), null, uploader.RequestMethod);
-                    }
+                        Response = SendRequest(
+                            uploader.RequestMethod,
+                            uploader.GetRequestURL(input),
+                            stream,
+                            MimeTypes.GetMimeTypeFromFileName(fileName),
+                            null,
+                            uploader.GetHeaders(input))
+                    };
                 }
-            }
-            else if (uploader.Body == CustomUploaderBody.FormURLEncoded)
-            {
-                result.Response = SendRequestURLEncoded(uploader.RequestMethod, uploader.GetRequestURL(input), uploader.GetArguments(input), uploader.GetHeaders(input));
-            }
-            else if (uploader.Body == CustomUploaderBody.JSON || uploader.Body == CustomUploaderBody.XML)
-            {
-                result.Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), uploader.GetData(input), uploader.GetContentType(),
-                    null, uploader.GetHeaders(input));
-            }
-            else if (uploader.Body == CustomUploaderBody.Binary)
-            {
-                byte[] bytes = Encoding.UTF8.GetBytes(text);
-                using (MemoryStream stream = new MemoryStream(bytes))
-                {
-                    result.Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), stream, MimeTypes.GetMimeTypeFromFileName(fileName),
-                        null, uploader.GetHeaders(input));
-                }
-            }
-            else
-            {
-                throw new Exception("Unsupported request format: " + uploader.Body);
-            }
+            };
+
+            UploadResult result = CustomUploaderRequestExecutor.Execute(uploader.Body, handlers);
 
             uploader.TryParseResponse(result, LastResponseInfo, Errors, input);
 

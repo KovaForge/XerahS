@@ -71,23 +71,35 @@ namespace XerahS.Uploaders.ImageUploaders
 
         public override UploadResult Upload(Stream stream, string fileName)
         {
-            UploadResult result = new UploadResult();
             CustomUploaderInput input = new CustomUploaderInput(fileName, "");
+            var handlers = new CustomUploaderRequestHandlers
+            {
+                MultipartFormData = () => SendRequestFile(
+                    uploader.GetRequestURL(input),
+                    stream,
+                    fileName,
+                    uploader.GetFileFormName(),
+                    uploader.GetArguments(input),
+                    uploader.GetHeaders(input),
+                    null,
+                    uploader.RequestMethod),
+                Binary = () =>
+                {
+                    var result = new UploadResult
+                    {
+                        Response = SendRequest(
+                            uploader.RequestMethod,
+                            uploader.GetRequestURL(input),
+                            stream,
+                            MimeTypes.GetMimeTypeFromFileName(fileName),
+                            null,
+                            uploader.GetHeaders(input))
+                    };
+                    return result;
+                }
+            };
 
-            if (uploader.Body == CustomUploaderBody.MultipartFormData)
-            {
-                result = SendRequestFile(uploader.GetRequestURL(input), stream, fileName, uploader.GetFileFormName(), uploader.GetArguments(input),
-                    uploader.GetHeaders(input), null, uploader.RequestMethod);
-            }
-            else if (uploader.Body == CustomUploaderBody.Binary)
-            {
-                result.Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), stream, MimeTypes.GetMimeTypeFromFileName(fileName),
-                    null, uploader.GetHeaders(input));
-            }
-            else
-            {
-                throw new Exception("Unsupported request format: " + uploader.Body);
-            }
+            UploadResult result = CustomUploaderRequestExecutor.Execute(uploader.Body, handlers);
 
             uploader.TryParseResponse(result, LastResponseInfo, Errors, input);
 
