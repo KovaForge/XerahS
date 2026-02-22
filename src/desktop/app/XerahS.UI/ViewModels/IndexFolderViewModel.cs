@@ -390,11 +390,11 @@ public partial class IndexFolderViewModel : ViewModelBase
 
     public bool HasOutput => !string.IsNullOrWhiteSpace(OutputText);
 
-    public bool CanUpload => HasOutput && !string.IsNullOrEmpty(GeneratedFilePath) && !IsBusy;
+    public bool CanUpload => !string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath) && !IsBusy;
 
-    public bool CanSave => HasOutput && !IsBusy;
+    public bool CanSave => (HasOutput || (!string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath))) && !IsBusy;
 
-    public bool CanRenderHtml => IsHtmlOutput && HasOutput;
+    public bool CanRenderHtml => IsHtmlOutput && (HasOutput || (!string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath)));
     
     public bool CanStartIndexing => !IsBusy;
     
@@ -500,7 +500,8 @@ public partial class IndexFolderViewModel : ViewModelBase
             var indexerSettings = BuildIndexerSettings(_taskSettings.ToolsSettings.IndexerSettings);
             
             // Use async indexer with progress reporting and cancellation support
-            var outputPath = Path.Combine(Path.GetTempPath(), $"xerahs_index_{Guid.NewGuid():N}.txt");
+            string outputExtension = GetOutputExtension(Output);
+            string outputPath = Path.Combine(Path.GetTempPath(), $"xerahs_index_{Guid.NewGuid():N}.{outputExtension}");
             var result = await XerahS.Indexer.IndexerAsync.IndexWithPreviewAsync(
                 FolderPath, 
                 outputPath,
@@ -508,10 +509,19 @@ public partial class IndexFolderViewModel : ViewModelBase
                 maxPreviewLines: 10000,
                 _indexerProgress,
                 _indexingCancellationTokenSource.Token);
-            string output = result.Preview;
 
-            GeneratedFilePath = WriteIndexOutput(_taskSettings, output);
-            OutputText = output;
+            if (!result.Result.Success)
+            {
+                throw new InvalidOperationException(result.Result.ErrorMessage ?? "Indexer returned an unknown error.");
+            }
+
+            if (string.IsNullOrWhiteSpace(result.Result.OutputFilePath) || !File.Exists(result.Result.OutputFilePath))
+            {
+                throw new IOException("Indexer completed without producing an output file.");
+            }
+
+            GeneratedFilePath = WriteIndexOutput(_taskSettings, result.Result.OutputFilePath, result.Preview);
+            OutputText = result.Preview;
             StatusMessage = $"Index generated: {GeneratedFilePath}";
             SaveWorkflowSettingsIfAvailable();
         }
@@ -565,6 +575,7 @@ public partial class IndexFolderViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(CanUpload));
         OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanRenderHtml));
     }
 
     private void OnOutputChanged(IndexerOutput value)
@@ -621,7 +632,15 @@ public partial class IndexFolderViewModel : ViewModelBase
             return;
         }
 
-        await File.WriteAllTextAsync(file.Path.LocalPath, OutputText);
+        if (!string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath))
+        {
+            File.Copy(GeneratedFilePath, file.Path.LocalPath, overwrite: true);
+        }
+        else
+        {
+            await File.WriteAllTextAsync(file.Path.LocalPath, OutputText);
+        }
+
         StatusMessage = $"Saved to {file.Path.LocalPath}";
     }
 
@@ -640,16 +659,25 @@ public partial class IndexFolderViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRenderHtml))]
     private void RenderHtmlPreview()
     {
-        if (!CanRenderHtml || string.IsNullOrWhiteSpace(OutputText))
+        bool hasGeneratedHtml = !string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath);
+        if (!CanRenderHtml || (!hasGeneratedHtml && string.IsNullOrWhiteSpace(OutputText)))
         {
             return;
         }
 
         try
         {
-            // Write HTML to temp file and open in system default browser
-            File.WriteAllText(_tempHtmlPath, OutputText);
-            OpenInSystemBrowser(_tempHtmlPath);
+            string htmlPath = !string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath)
+                ? GeneratedFilePath
+                : _tempHtmlPath;
+
+            if (string.Equals(htmlPath, _tempHtmlPath, StringComparison.Ordinal))
+            {
+                // Fallback for non-generated output states.
+                File.WriteAllText(_tempHtmlPath, OutputText);
+            }
+
+            OpenInSystemBrowser(htmlPath);
         }
         catch (Exception ex)
         {
@@ -697,14 +725,16 @@ public partial class IndexFolderViewModel : ViewModelBase
             DisplayPathLimited = settings.DisplayPathLimited,
             CustomCSSFilePath = settings.CustomCSSFilePath,
             UseAttribute = settings.UseAttribute,
-            CreateParseableJson = settings.CreateParseableJson
+            CreateParseableJson = settings.CreateParseableJson,
+            IncludedFileExtensions = settings.IncludedFileExtensions != null ? new List<string>(settings.IncludedFileExtensions) : null,
+            ExcludedFileExtensions = settings.ExcludedFileExtensions != null ? new List<string>(settings.ExcludedFileExtensions) : null
         };
 
         indexerSettings.BinaryUnits = settings.BinaryUnits;
         return indexerSettings;
     }
 
-    private string WriteIndexOutput(TaskSettings taskSettings, string output)
+    private string WriteIndexOutput(TaskSettings taskSettings, string sourceOutputFilePath, string fallbackOutput)
     {
         string extension = GetOutputExtension(Output);
         string screenshotsFolder = TaskHelpers.GetScreenshotsFolder(taskSettings);
@@ -712,7 +742,16 @@ public partial class IndexFolderViewModel : ViewModelBase
 
         string fileName = TaskHelpers.GetFileName(taskSettings, extension);
         string resolvedPath = TaskHelpers.HandleExistsFile(screenshotsFolder, fileName, taskSettings);
-        File.WriteAllText(resolvedPath, output);
+
+        if (!string.IsNullOrWhiteSpace(sourceOutputFilePath) && File.Exists(sourceOutputFilePath))
+        {
+            File.Copy(sourceOutputFilePath, resolvedPath, overwrite: true);
+        }
+        else
+        {
+            File.WriteAllText(resolvedPath, fallbackOutput);
+        }
+
         return resolvedPath;
     }
 
