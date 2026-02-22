@@ -176,19 +176,6 @@ public static partial class TaskHelpers
     /// </remarks>
     private static bool IsCaptureWorkflow(WorkflowType job)
     {
-        return job switch
-        {
-            WorkflowType.PrintScreen => true,
-            WorkflowType.ActiveWindow => true,
-            WorkflowType.RectangleRegion => true,
-            WorkflowType.RectangleTransparent => true,
-            WorkflowType.CustomWindow => true,
-            WorkflowType.ScrollingCapture => true,
-            WorkflowType.OCR => true,
-            WorkflowType.ActiveMonitor => true,
-            WorkflowType.CustomRegion => true,
-            WorkflowType.LastRegion => true,
-            _ => false
-        };
+        return WorkflowCatalog.RequiresHideMainWindowForCapture(job);
     }
 }
