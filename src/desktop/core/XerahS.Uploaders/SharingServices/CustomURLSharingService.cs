@@ -71,30 +71,51 @@ namespace XerahS.Uploaders.SharingServices
 
         public override UploadResult ShareURL(string url)
         {
-            UploadResult result = new UploadResult { URL = url, IsURLExpected = false };
             CustomUploaderInput input = new CustomUploaderInput("", url);
+            var handlers = new CustomUploaderRequestHandlers
+            {
+                None = () => new UploadResult
+                {
+                    URL = url,
+                    IsURLExpected = false,
+                    Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), null, uploader.GetHeaders(input))
+                },
+                MultipartFormData = () => new UploadResult
+                {
+                    URL = url,
+                    IsURLExpected = false,
+                    Response = SendRequestMultiPart(
+                        uploader.GetRequestURL(input),
+                        uploader.GetArguments(input),
+                        uploader.GetHeaders(input),
+                        null,
+                        uploader.RequestMethod)
+                },
+                FormUrlEncoded = () => new UploadResult
+                {
+                    URL = url,
+                    IsURLExpected = false,
+                    Response = SendRequestURLEncoded(
+                        uploader.RequestMethod,
+                        uploader.GetRequestURL(input),
+                        uploader.GetArguments(input),
+                        uploader.GetHeaders(input))
+                },
+                JsonOrXml = () => new UploadResult
+                {
+                    URL = url,
+                    IsURLExpected = false,
+                    Response = SendRequest(
+                        uploader.RequestMethod,
+                        uploader.GetRequestURL(input),
+                        uploader.GetData(input),
+                        uploader.GetContentType(),
+                        null,
+                        uploader.GetHeaders(input))
+                }
+            };
 
-            if (uploader.Body == CustomUploaderBody.None)
-            {
-                result.Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), null, uploader.GetHeaders(input));
-            }
-            else if (uploader.Body == CustomUploaderBody.MultipartFormData)
-            {
-                result.Response = SendRequestMultiPart(uploader.GetRequestURL(input), uploader.GetArguments(input), uploader.GetHeaders(input), null, uploader.RequestMethod);
-            }
-            else if (uploader.Body == CustomUploaderBody.FormURLEncoded)
-            {
-                result.Response = SendRequestURLEncoded(uploader.RequestMethod, uploader.GetRequestURL(input), uploader.GetArguments(input), uploader.GetHeaders(input));
-            }
-            else if (uploader.Body == CustomUploaderBody.JSON || uploader.Body == CustomUploaderBody.XML)
-            {
-                result.Response = SendRequest(uploader.RequestMethod, uploader.GetRequestURL(input), uploader.GetData(input), uploader.GetContentType(), null,
-                    uploader.GetHeaders(input));
-            }
-            else
-            {
-                throw new Exception("Unsupported request format: " + uploader.Body);
-            }
+            UploadResult result = CustomUploaderRequestExecutor.Execute(uploader.Body, handlers);
 
             uploader.TryParseResponse(result, LastResponseInfo, Errors, input);
 
