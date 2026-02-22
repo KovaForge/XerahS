@@ -247,6 +247,12 @@ namespace XerahS.Core.Tasks
                     WorkflowCategory = workflowCategory
                 };
 
+                if (WorkflowCatalog.IsToolWorkflow(taskSettings.Job))
+                {
+                    await HandleToolWorkflowAsync(token);
+                    return;
+                }
+
                 switch (taskSettings.Job)
                 {
                     case WorkflowType.ClipboardUpload:
@@ -664,36 +670,6 @@ namespace XerahS.Core.Tasks
 
                     case WorkflowType.AbortScreenRecording:
                         await HandleAbortRecordingAsync();
-                        return;
-
-                    // Tool Workflows
-                    case WorkflowType.ColorPicker:
-                    case WorkflowType.ScreenColorPicker:
-                    case WorkflowType.QRCode:
-                    case WorkflowType.QRCodeDecodeFromScreen:
-                    case WorkflowType.QRCodeScanRegion:
-                    case WorkflowType.ScrollingCapture:
-                    case WorkflowType.OCR:
-                    case WorkflowType.ImageEditor:
-                    case WorkflowType.HashCheck:
-                    case WorkflowType.PinToScreen:
-                    case WorkflowType.PinToScreenFromScreen:
-                    case WorkflowType.PinToScreenFromClipboard:
-                    case WorkflowType.PinToScreenFromFile:
-                    case WorkflowType.PinToScreenCloseAll:
-                    case WorkflowType.AutoCapture:
-                    case WorkflowType.StartAutoCapture:
-                    case WorkflowType.StopAutoCapture:
-                    case WorkflowType.ImageCombiner:
-                    case WorkflowType.ImageSplitter:
-                    case WorkflowType.ImageThumbnailer:
-                    case WorkflowType.VideoConverter:
-                    case WorkflowType.VideoThumbnailer:
-                    case WorkflowType.AnalyzeImage:
-                    case WorkflowType.ClipboardViewer:
-                    case WorkflowType.MonitorTest:
-                    case WorkflowType.Ruler:
-                        await HandleToolWorkflowAsync(token);
                         return;
 
                     // Quick-win capture workflows

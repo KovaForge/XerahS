@@ -174,72 +174,13 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         {
             var owner = _desktop?.MainWindow;
 
-            if (workflowType is WorkflowType.ColorPicker or WorkflowType.ScreenColorPicker)
+            if (ToolWorkflowDispatcher.TryDispatch(workflowType, owner, taskSettings, out var dispatchTask))
             {
-                await ColorPickerToolService.HandleWorkflowAsync(workflowType, owner);
+                await dispatchTask;
+                return;
             }
-            else if (workflowType == WorkflowType.OCR)
-            {
-                await OcrToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType == WorkflowType.ScrollingCapture)
-            {
-                await ScrollingCaptureToolService.HandleWorkflowAsync(workflowType, owner, taskSettings);
-            }
-            else if (workflowType == WorkflowType.ImageEditor)
-            {
-                await OpenImageEditorAsync(owner);
-            }
-            else if (workflowType == WorkflowType.HashCheck)
-            {
-                await HashCheckToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType is WorkflowType.PinToScreen
-                or WorkflowType.PinToScreenFromScreen
-                or WorkflowType.PinToScreenFromClipboard
-                or WorkflowType.PinToScreenFromFile
-                or WorkflowType.PinToScreenCloseAll)
-            {
-                await PinToScreenToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType == WorkflowType.MonitorTest)
-            {
-                await MonitorTestToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType == WorkflowType.Ruler)
-            {
-                await RulerToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType is WorkflowType.AutoCapture
-                or WorkflowType.StartAutoCapture
-                or WorkflowType.StopAutoCapture)
-            {
-                await AutoCaptureToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType is WorkflowType.ClipboardUploadWithContentViewer
-                or WorkflowType.ClipboardViewer)
-            {
-                await UploadContentToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType is WorkflowType.ImageCombiner
-                or WorkflowType.ImageSplitter
-                or WorkflowType.ImageThumbnailer
-                or WorkflowType.VideoConverter
-                or WorkflowType.VideoThumbnailer
-                or WorkflowType.AnalyzeImage)
-            {
-                await MediaToolsToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else if (workflowType is WorkflowType.QRCode
-                or WorkflowType.QRCodeDecodeFromScreen
-                or WorkflowType.QRCodeScanRegion)
-            {
-                await QrCodeToolService.HandleWorkflowAsync(workflowType, owner);
-            }
-            else
-            {
-                DebugHelper.WriteLine($"Unhandled tool workflow callback: {workflowType}");
-            }
+
+            DebugHelper.WriteLine($"Unhandled tool workflow callback: {workflowType}");
         });
     }
 
@@ -614,54 +555,4 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         });
     }
 
-    private static async Task OpenImageEditorAsync(Window? owner)
-    {
-        try
-        {
-            var topLevel = owner != null ? TopLevel.GetTopLevel(owner) : null;
-            if (topLevel == null)
-            {
-                return;
-            }
-
-            var options = new FilePickerOpenOptions
-            {
-                Title = "Open Image in Editor",
-                AllowMultiple = false,
-                FileTypeFilter = new[]
-                {
-                    new FilePickerFileType("Image Files")
-                    {
-                        Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp", "*.tiff", "*.tif" }
-                    },
-                    FilePickerFileTypes.All
-                }
-            };
-
-            var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
-            if (files.Count < 1)
-            {
-                return;
-            }
-
-            var path = files[0].TryGetLocalPath();
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
-            {
-                return;
-            }
-
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-            var skBitmap = SkiaSharp.SKBitmap.Decode(fs);
-            if (skBitmap == null)
-            {
-                return;
-            }
-
-            await PlatformServices.UI.ShowEditorAsync(skBitmap);
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.WriteException(ex, "Failed to open image in editor");
-        }
-    }
 }

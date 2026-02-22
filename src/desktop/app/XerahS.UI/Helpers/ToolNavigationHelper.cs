@@ -55,69 +55,26 @@ public static class ToolNavigationHelper
             case "Tools_IndexFolder":
                 ShowIndexFolderWindow(owner);
                 return true;
-            case "Tools_ColorPicker":
-                _ = ColorPickerToolService.HandleWorkflowAsync(WorkflowType.ColorPicker, owner);
-                return true;
-            case "Tools_ScreenColorPicker":
-                _ = ColorPickerToolService.HandleWorkflowAsync(WorkflowType.ScreenColorPicker, owner);
-                return true;
-            case "Tools_QrGenerator":
-                _ = QrCodeToolService.HandleWorkflowAsync(WorkflowType.QRCode, owner);
-                return true;
-            case "Tools_QrScanScreen":
-                _ = QrCodeToolService.HandleWorkflowAsync(WorkflowType.QRCodeDecodeFromScreen, owner);
-                return true;
-            case "Tools_QrScanRegion":
-                _ = QrCodeToolService.HandleWorkflowAsync(WorkflowType.QRCodeScanRegion, owner);
-                return true;
-            case "Tools_ImageCombiner":
-                _ = MediaToolsToolService.HandleWorkflowAsync(WorkflowType.ImageCombiner, owner);
-                return true;
-            case "Tools_ImageSplitter":
-                _ = MediaToolsToolService.HandleWorkflowAsync(WorkflowType.ImageSplitter, owner);
-                return true;
-            case "Tools_ImageThumbnailer":
-                _ = MediaToolsToolService.HandleWorkflowAsync(WorkflowType.ImageThumbnailer, owner);
-                return true;
-            case "Tools_VideoConverter":
-                _ = MediaToolsToolService.HandleWorkflowAsync(WorkflowType.VideoConverter, owner);
-                return true;
-            case "Tools_VideoThumbnailer":
-                _ = MediaToolsToolService.HandleWorkflowAsync(WorkflowType.VideoThumbnailer, owner);
-                return true;
-            case "Tools_AnalyzeImage":
-                _ = MediaToolsToolService.HandleWorkflowAsync(WorkflowType.AnalyzeImage, owner);
-                return true;
-            case "Tools_Ruler":
-                _ = RulerToolService.HandleWorkflowAsync(WorkflowType.Ruler, owner);
-                return true;
-            case "Tools_PinToScreenFromScreen":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.PinToScreenFromScreen);
-                return true;
-            case "Tools_PinToScreenFromClipboard":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.PinToScreenFromClipboard);
-                return true;
-            case "Tools_PinToScreenFromFile":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.PinToScreenFromFile);
-                return true;
-            case "Tools_PinToScreenCloseAll":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.PinToScreenCloseAll);
-                return true;
-            case "Tools_OCR":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.OCR);
-                return true;
-            case "Tools_HashCheck":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.HashCheck);
-                return true;
-            case "Tools_ClipboardViewer":
-                _ = executeWorkflowFromNavigationAsync(WorkflowType.ClipboardViewer);
-                return true;
-            case "Tools_MonitorTest":
-                _ = MonitorTestToolService.HandleWorkflowAsync(WorkflowType.MonitorTest, owner);
-                return true;
-            default:
-                return false;
         }
+
+        if (!ToolNavigationRegistry.TryResolve(tag, out var route))
+        {
+            return false;
+        }
+
+        if (route.DispatchMode == ToolNavigationDispatchMode.ExecuteWorkflow)
+        {
+            _ = executeWorkflowFromNavigationAsync(route.WorkflowType);
+            return true;
+        }
+
+        if (ToolWorkflowDispatcher.TryDispatch(route.WorkflowType, owner, null, out var dispatchTask))
+        {
+            _ = dispatchTask;
+            return true;
+        }
+
+        return false;
     }
 
     private static void ShowIndexFolderWindow(Window? owner)
