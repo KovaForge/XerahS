@@ -307,20 +307,4 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
-## Version Summary
-
-- **v0.14.0**: Monitor Test and Ruler workflows, ShareX.ImageEditor submodule integration, indexer improvements, cross-compilation support
-- **v0.7.5**: Custom Uploaders, Task Settings redesign, Linux/Wayland fixes, WebP/AVIF support
-- **v0.7.0**: Annotation overlays in region capture, transparent capture, macOS .app bundles
-- **v0.6.0**: Complete UI Redesign, Auto-Update system, After Upload window
-- **v0.5.1**: verify-recording CLI, editor improvements
-- **v0.5.0**: Core capture fixes, region capture magnifier
-- **v0.4.0**: Image effects, QR codes, Color picker, Watch folders
-- **v0.3.1**: DXGI capture crash fix
-- **v0.3.0**: Modern capture architecture, screen recording, workflow system, toast notifications
-- **v0.2.0**: macOS support, plugin system, SQLite history, editor extraction
-- **v0.1.0**: Initial implementation
-
----
-
 *This changelog follows Semantic Versioning while the project remains in pre-release (0.x.x).*
