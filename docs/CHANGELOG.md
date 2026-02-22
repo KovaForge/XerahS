@@ -16,32 +16,6 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Mobile**: Add active upload destination selector and in-app destination label on Android and iOS `(0b42d73, ccfa4ea)`
 - **Mobile**: Use desktop-compatible upload filename pattern on Android and iOS `(357188f, c0af5d6)`
 - **Mobile**: Add broad share-intent support for arbitrary file types on Android and iOS `(dbb6633, 7292102)`
-
-### Fixes
-- **iOS**: Use App Group settings so Share Extension can read Amazon S3 configuration `(42a1033)`
-
-### Refactor
-- **Core**: Split large ViewModels, extract WatchFolder daemon base service, and consolidate ScreenRecordingManager startup flow `(86286af, 315549a, 1160519)`
-
-### Build
-- **Infrastructure**: Add all-platform release workflow and repository sync helper script `(2fbe5ee, bd8d0d3)`
-
-### Documentation
-- **Maintenance**: Simplify mobile README and move refactor/hardening notes into documentation archives `(ad719c9, c9ebe39, 72f2e55, c043844)`
-
-## v0.16.2
-
-### Fixes
-- **ImageEditor**: Fix critical startup crash (`XamlLoadException: No precompiled XAML found for XerahS.UI.App`) caused by incompatible `MultiBinding` on `Bounds` in precompiled Avalonia XAML
-
-## v0.16.1
-
-### Fixes
-- **ImageEditor**: Optimize Black & White filter, Smart Eraser, and canvas zooming performance
-
-## v0.16.0
-
-### Features
 - **Media Explorer**: Implement provider file browsing with S3 and Imgur support, including navigation, search, filtering, and CDN thumbnail optimization `(9deedf9, e374160)`
 - **Watch Folder**: Add watch-folder daemon with lifecycle hooks, runtime policy controls, and tests `(79c1292, 2b94600, 4265528, 992c41b)`
 - **Mobile**: Add adaptive theming infrastructure with native styling polish `(4b79ddb, a7cfb22, 1e5f9eb, 30bbe98)`
@@ -49,6 +23,9 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **UI**: Add Copy Errors to UI (HistoryView, AfterUploadWindow, Toast) `(5c08812)`
 
 ### Fixes
+- **iOS**: Use App Group settings so Share Extension can read Amazon S3 configuration `(42a1033)`
+- **ImageEditor**: Fix critical startup crash (`XamlLoadException: No precompiled XAML found for XerahS.UI.App`) caused by incompatible `MultiBinding` on `Bounds` in precompiled Avalonia XAML
+- **ImageEditor**: Optimize Black & White filter, Smart Eraser, and canvas zooming performance
 - **Scrolling Capture**: Improve auto-scroll behavior and workflow settings integration `(1fa45f2, 971219c, 8ac2c8b)`
 - **Workflows**: Allow OCR and scrolling workflows from tray `(4e07852)`
 - **Media Explorer**: Harden listing, normalize URLs, and improve error handling `(9bab13e, e1a5d59, 6b2b8d6, f4e796b)`
@@ -60,17 +37,20 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Infrastructure**: Integrate update-changelog skill into maintenance-chores workflow `(5ade43b)`
 
 ### Refactor
+- **Core**: Split large ViewModels, extract WatchFolder daemon base service, and consolidate ScreenRecordingManager startup flow `(86286af, 315549a, 1160519)`
 - **Core**: Remove WindowState naming collisions `(506072e)`
 - **Core**: Split GeneralHelpers into utility classes `(78214dd)`
 - **Upload**: Add polymorphic uploader config pilot `(7f2815d)`
 - **Workflows**: Extract app workflow orchestration services `(4ee8ab9)`
 
 ### Build
+- **Infrastructure**: Add all-platform release workflow and repository sync helper script `(2fbe5ee, bd8d0d3)`
 - **Android**: Add Android mobile build infrastructure `(3952287)`
 - **Linux**: Harden plugin packaging, RPM strip behavior, and display diagnostics `(817d83a, 0723b45, 1c79a94)`
 - **Hooks**: Add cross-platform ImageEditor recovery and auto-push on pre-push `(3098824, 899e8f1)`
 
 ### Documentation
+- **Maintenance**: Simplify mobile README and move refactor/hardening notes into documentation archives `(ad719c9, c9ebe39, 72f2e55, c043844)`
 - **Planning**: Update task planning docs and move completed XIP0033 `(caeaae1, e3f37e3, 04cf9cf, 168b2ea)`
 - **Plugins**: Consolidate plugin documentation into 'developers/plugins' and standardize on .xsdp extension `(b78882f, 41702bd, 21927b4)`
 - **Developer**: Consolidate developer documentation into 'developers' root folder `(1f17491)`
