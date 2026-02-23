@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShareX.Imgur.Plugin.ViewModels"
+             xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
+             x:Class="ShareX.Imgur.Plugin.Views.ImgurConfigView"
+             x:DataType="vm:ImgurConfigViewModel">
+    
+    <StackPanel Spacing="15">
+        <TextBlock Text="Imgur Configuration" 
+                   FontSize="18" 
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,10"/>
+
+        <!-- Client ID -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Client ID *" FontWeight="Medium"/>
+            <TextBox Text="{Binding ClientId}" 
+                     Watermark="Enter Imgur Client ID"
+                     Width="400"
+                     HorizontalAlignment="Left"/>
+            <TextBlock Text="Get your Client ID from https://api.imgur.com/oauth2/addclient" 
+                       FontSize="11"
+                       Foreground="{DynamicResource SystemAccentColor}"
+                       TextWrapping="Wrap"
+                       MaxWidth="400"
+                       HorizontalAlignment="Left"/>
+        </StackPanel>
+
+        <!-- Account Type -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Account Type" FontWeight="Medium"/>
+            <ComboBox SelectedIndex="{Binding AccountTypeIndex}"
+                       Width="200"
+                       HorizontalAlignment="Left">
+                <ComboBoxItem Content="Anonymous"/>
+                <ComboBoxItem Content="User Account"/>
+            </ComboBox>
+        </StackPanel>
+
+        <!-- OAuth Login (Only visible for User Account) -->
+        <Border Background="{DynamicResource SystemFillColorSecondaryBackground}"
+                Padding="15"
+                CornerRadius="4"
+                IsVisible="{Binding AccountTypeIndex}">
+            <StackPanel Spacing="10">
+                <TextBlock Text="Account Login" FontWeight="SemiBold"/>
+                
+                <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding !IsLoggedIn}">
+                    <Button Content="Step 1: Open Login URL" 
+                            Command="{Binding OpenLoginUrlCommand}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="5" IsVisible="{Binding !IsLoggedIn}">
+                    <TextBlock Text="Step 2: Enter PIN from Imgur" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox Text="{Binding Pin}" 
+                                 Watermark="Enter PIN" 
+                                 Width="150"/>
+                        <Button Content="Complete Login" 
+                                Command="{Binding CompleteLoginCommand}"
+                                Classes="accent"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsLoggedIn}">
+                    <TextBlock Text="✓ Logged in" Foreground="Green" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Album Selection (Only visible for User Account mode) -->
+        <StackPanel Spacing="10" IsVisible="{Binding AccountTypeIndex}">
+            <Border Background="{DynamicResource SystemFillColorSecondaryBackground}"
+                    Padding="15"
+                    CornerRadius="4">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Album Selection" FontWeight="SemiBold"/>
+                    
+                    <!-- Upload to Album Checkbox -->
+                    <CheckBox Content="Upload to selected album"
+                              IsChecked="{Binding UploadToSelectedAlbum}"/>
+                    
+                    <!-- Album List -->
+                    <StackPanel Spacing="5" IsVisible="{Binding UploadToSelectedAlbum}">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="Available Albums" 
+                                       FontWeight="Medium"
+                                       VerticalAlignment="Center"/>
+                            <Button Content="Refresh"
+                                    Command="{Binding FetchAlbumsCommand}"
+                                    IsEnabled="{Binding IsLoggedIn}"/>
+                        </StackPanel>
+                        
+                        <!-- Album DataGrid -->
+                        <dg:DataGrid ItemsSource="{Binding Albums}"
+                                     SelectedItem="{Binding SelectedAlbum}"
+                                     Height="200"
+                                     AutoGenerateColumns="False"
+                                     IsReadOnly="True"
+                                     GridLinesVisibility="All">
+                            <dg:DataGrid.Columns>
+                                <dg:DataGridTextColumn Header="ID" 
+                                                       Binding="{Binding id}" 
+                                                       Width="120"/>
+                                <dg:DataGridTextColumn Header="Title" 
+                                                       Binding="{Binding title}" 
+                                                       Width="*"/>
+                                <dg:DataGridTextColumn Header="Description" 
+                                                       Binding="{Binding description}" 
+                                                       Width="2*"/>
+                            </dg:DataGrid.Columns>
+                        </dg:DataGrid>
+                        
+                        <TextBlock Text="{Binding AlbumStatusMessage}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemAccentColor}"
+                                   IsVisible="{Binding !!AlbumStatusMessage}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Thumbnail Type -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Thumbnail Type" FontWeight="Medium"/>
+            <ComboBox SelectedIndex="{Binding ThumbnailTypeIndex}"
+                      Width="200"
+                      HorizontalAlignment="Left">
+                <ComboBoxItem Content="Small Square (90x90)"/>
+                <ComboBoxItem Content="Big Square (160x160)"/>
+                <ComboBoxItem Content="Small Thumbnail (160xH)"/>
+                <ComboBoxItem Content="Medium Thumbnail (320xH)"/>
+                <ComboBoxItem Content="Large Thumbnail (640xH)"/>
+                <ComboBoxItem Content="Huge Thumbnail (1024xH)"/>
+            </ComboBox>
+        </StackPanel>
+
+        <!-- Use Direct Link -->
+        <CheckBox Content="Use direct link (recommended)"
+                  IsChecked="{Binding UseDirectLink}"
+                  Margin="0,5,0,0"/>
+
+        <!-- Use GIFV -->
+        <CheckBox Content="Use GIFV for GIF images (convert to MP4)"
+                  IsChecked="{Binding UseGifv}"  
+                  Margin="0,5,0,0">
+            <ToolTip.Tip>
+                <TextBlock Text="Convert GIF images to GIFV (MP4 video) for better performance and smaller file sizes"
+                           TextWrapping="Wrap"
+                           MaxWidth="300"/>
+            </ToolTip.Tip>
+        </CheckBox>
+
+        <!-- Status Message -->
+        <Border Background="{DynamicResource SystemFillColorAttentionBackground}"
+                Padding="10"
+                CornerRadius="4"
+                IsVisible="{Binding !!StatusMessage}">
+            <TextBlock Text="{Binding StatusMessage}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource SystemFillColorAttention}"/>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>XerahS.Mobile.Maui</RootNamespace>
+    <!-- On macOS build both Android and iOS, on Linux only Android -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">net10.0-android;net10.0-ios</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('osx'))">net10.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- App identifiers -->
+    <ApplicationTitle>XerahS</ApplicationTitle>
+    <ApplicationId>com.getsharex.xerahs</ApplicationId>
+    <ApplicationDisplayVersion>0.16.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <!-- Platform minimum versions -->
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21</SupportedOSPlatformVersion>
+
+    <!-- Android: embed assemblies in APK so adb install works (Debug default uses Fast Deployment and omits them) -->
+    <EmbedAssembliesIntoApk Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
+
+  <!-- Splash Screen -->
+  <ItemGroup>
+    <MauiSplashScreen Include="Resources\Splash\splash.png" Color="#FFFFFF" BaseSize="128,128" />
+  </ItemGroup>
+
+  <!-- Images -->
+  <ItemGroup>
+    <MauiImage Include="Resources\Images\**" />
+  </ItemGroup>
+
+  <!-- NuGet Packages -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.30" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CommunityToolkit.Maui" Version="14.0.0" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\XerahS.Mobile.Core\XerahS.Mobile.Core.csproj" />
+    <ProjectReference Include="..\..\platform\XerahS.Platform.Mobile\XerahS.Platform.Mobile.csproj" />
+    <ProjectReference Include="..\..\desktop\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\desktop\core\XerahS.Common\XerahS.Common.csproj" />
+    <ProjectReference Include="..\..\desktop\core\XerahS.Uploaders\XerahS.Uploaders.csproj" />
+    <ProjectReference Include="..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
+    <ProjectReference Include="..\..\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
+  </ItemGroup>
+
+  <!-- iOS Share Extension -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+    <ProjectReference Include="..\XerahS.Mobile.iOS.ShareExtension\XerahS.Mobile.iOS.ShareExtension.csproj">
+      <IsAppExtension>true</IsAppExtension>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

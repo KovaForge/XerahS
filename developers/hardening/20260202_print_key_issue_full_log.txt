@@ -1,0 +1,314 @@
+Using launch settings from src/XerahS.App/Properties/launchSettings.json...
+2026-02-02 18:41:16.389 - 2026-02-02 18:41:16.388 - XerahS starting.
+2026-02-02 18:41:16.396 - Running as first instance (single instance mode enabled).
+2026-02-02 18:41:16.396 - Version: 0.7.7
+2026-02-02 18:41:16.396 - Build: Debug
+2026-02-02 18:41:16.396 - Command line: "/home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/XerahS"
+2026-02-02 18:41:16.396 - Personal path: /home/mathew/Documents/XerahS/Logs/2026-02
+2026-02-02 18:41:16.398 - Operating system: EndeavourOS (X64)
+2026-02-02 18:41:16.399 - .NET version: 10.0.0
+2026-02-02 18:41:16.399 - Running as elevated process: False
+2026-02-02 18:41:16.399 - Flags: Debug
+2026-02-02 18:41:16.401 - === LinuxPlatform.Initialize START ===
+2026-02-02 18:41:16.401 - Environment: WAYLAND_DISPLAY=wayland-0, XDG_SESSION_TYPE=wayland, DISPLAY=:1
+2026-02-02 18:41:16.401 - Linux: Running on Wayland. Using LinuxScreenCaptureService with XDG Portal support.
+2026-02-02 18:41:16.401 - Wayland detection result: True
+2026-02-02 18:41:16.401 - Checking XDG Portal interface availability...
+2026-02-02 18:41:16.480 - Portal interfaces: GlobalShortcuts=False, InputCapture=False, OpenURI=False
+2026-02-02 18:41:16.480 - Selecting HotkeyService: LinuxHotkeyService (X11)
+2026-02-02 18:41:16.483 - Selecting InputService: LinuxInputService
+2026-02-02 18:41:16.483 - Selecting SystemService: LinuxSystemService
+2026-02-02 18:41:16.483 - Initializing PlatformServices...
+2026-02-02 18:41:16.517 - Linux: Theme service initialized. Dark mode preferred: True
+2026-02-02 18:41:16.517 - === LinuxPlatform.Initialize COMPLETE ===
+2026-02-02 18:41:16.518 - ApplicationConfig load started: /home/mathew/Documents/XerahS/Settings/ApplicationConfig.json
+2026-02-02 18:41:16.649 - ApplicationConfig load finished: /home/mathew/Documents/XerahS/Settings/ApplicationConfig.json
+2026-02-02 18:41:16.650 - UploadersConfig load started: /home/mathew/Documents/XerahS/Settings/UploadersConfig-mathew-endeavouros.json
+2026-02-02 18:41:16.699 - UploadersConfig load finished: /home/mathew/Documents/XerahS/Settings/UploadersConfig-mathew-endeavouros.json
+2026-02-02 18:41:16.699 - WorkflowsConfig load started: /home/mathew/Documents/XerahS/Settings/WorkflowsConfig-mathew-endeavouros.json
+2026-02-02 18:41:16.775 - WorkflowsConfig load finished: /home/mathew/Documents/XerahS/Settings/WorkflowsConfig-mathew-endeavouros.json
+2026-02-02 18:41:17.408 - Applied theme mode: System (Dark: True)
+2026-02-02 18:41:17.821 - LinuxHotkeyService: Unable to map key Print
+2026-02-02 18:41:17.823 - Initialized hotkey manager with 2 hotkeys from configuration
+[18:41:17.825] PROGRAM      | === InitializeBackgroundServicesAsync() CALLED ===
+[18:41:17.826] PROGRAM      | Background task started
+2026-02-02 18:41:17.826 - Starting async services initialization...
+2026-02-02 18:41:17.826 - Initializing Plugins...
+2026-02-02 18:41:17.827 - UpdateService: Auto-update enabled and configured.
+2026-02-02 18:41:17.829 - Scanning for plugins in: /home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/Plugins
+2026-02-02 18:41:17.830 - Checking for updates at: https://api.github.com/repos/ShareX/XerahS/releases/latest
+2026-02-02 18:41:17.830 - [Plugins] ========================================
+2026-02-02 18:41:17.830 - [Plugins] Scanning directory: /home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/Plugins
+2026-02-02 18:41:17.835 - Discovered plugin: Imgur Uploader v1.0.0 (imgur)
+2026-02-02 18:41:17.836 - Discovered plugin: Amazon S3 Uploader v1.0.0 (amazons3)
+2026-02-02 18:41:17.836 - [Plugins] Discovered 2 plugin(s) in /home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/Plugins
+2026-02-02 18:41:17.836 - [Plugins] Total plugins discovered: 2
+2026-02-02 18:41:17.836 - [Plugins] Attempting to load: Imgur Uploader (id: imgur)
+2026-02-02 18:41:17.836 - Loading plugin: imgur from /home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/Plugins/imgur/XerahS.Imgur.Plugin.dll
+2026-02-02 18:41:17.838 - Successfully loaded plugin: Imgur Uploader v1.0.0 (imgur)
+2026-02-02 18:41:17.840 - [Plugins] ✓ SUCCESS: Imgur Uploader (categories: Image)
+2026-02-02 18:41:17.840 - [Plugins] Attempting to load: Amazon S3 Uploader (id: amazons3)
+2026-02-02 18:41:17.840 - Loading plugin: amazons3 from /home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/Plugins/amazons3/XerahS.AmazonS3.Plugin.dll
+2026-02-02 18:41:17.841 - Successfully loaded plugin: Amazon S3 Uploader v1.0.0 (amazons3)
+2026-02-02 18:41:17.841 - [Plugins] ✓ SUCCESS: Amazon S3 Uploader (categories: Image, Text, File)
+2026-02-02 18:41:17.842 - [Plugins] Complete: 2 succeeded, 0 failed
+2026-02-02 18:41:17.843 - [CustomUploader] Discovered 0 valid uploader(s) from /home/mathew/Documents/GitHub/ShareX Team/XerahS/src/XerahS.App/bin/Debug/net10.0/Plugins
+2026-02-02 18:41:17.843 - [Plugins] Custom uploaders loaded: 0
+2026-02-02 18:41:17.843 - [Plugins] Total providers in catalog: 2
+2026-02-02 18:41:17.843 - [Plugins] ========================================
+2026-02-02 18:41:17.843 - Plugins initialized. Total providers: 2
+[18:41:17.843] PROGRAM      | Platform is Linux, calling LinuxPlatform.InitializeRecording()
+2026-02-02 18:41:17.844 - Linux: ScreenCast portal not available. Using FFmpeg backend.
+2026-02-02 18:41:17.844 - Linux: Screen recording initialized successfully
+[18:41:17.844] PROGRAM      | Background task completed successfully
+2026-02-02 18:41:17.844 -   - Recording backend: FFmpeg (x11grab/Wayland)
+2026-02-02 18:41:17.844 -   - Supported modes: Screen, Window, Region
+2026-02-02 18:41:17.844 -   - Codecs: H.264, HEVC, VP9, AV1 (depends on FFmpeg build)
+2026-02-02 18:41:17.845 - Async services initialization completed successfully
+2026-02-02 18:41:17.851 - Startup time: 1533 ms (+ 18 ms async init)
+2026-02-02 18:41:18.088 - Found release: 0.6.2 (prerelease: False)
+2026-02-02 18:41:18.090 - Current: 0.7.7, Latest: 0.6.2, Status: UpToDate
+2026-02-02 18:41:39.155 - [WorkflowsView] ctor start
+2026-02-02 18:41:39.156 - [WorkflowsVM] ctor start
+2026-02-02 18:41:39.156 - [WorkflowsVM] LoadWorkflows start
+2026-02-02 18:41:39.159 - [WorkflowsVM] LoadWorkflows end. Count=1
+2026-02-02 18:41:39.159 - [WorkflowsVM] ctor end. Workflows=1
+2026-02-02 18:41:39.163 - [WorkflowsView] DataContext set: WorkflowsViewModel, Workflows=1
+2026-02-02 18:41:39.215 - [Hotkey] HotkeySelectionControl: Constructor called
+2026-02-02 18:41:39.236 - [Hotkey] OnLoaded: START
+2026-02-02 18:41:39.236 - [Hotkey] Debug logger initialized (check Debug output and static _debugMessages)
+2026-02-02 18:41:39.236 - [Hotkey] OnLoaded: END - HotkeyButton=True
+2026-02-02 18:42:52.209 - [WorkflowsVM] SelectedWorkflow changed: 5e9ce2f6-546d-4c1d-bcaa-594bef5c8589
+2026-02-02 18:42:52.288 - [Hotkey] HotkeyButton_Click: FIRED - current mode=Normal
+2026-02-02 18:42:52.288 - [Hotkey] HotkeyButton_Click: Starting recording
+2026-02-02 18:42:52.289 - [Hotkey] StartRecording: ENTERED
+2026-02-02 18:42:52.289 - [Hotkey] StartRecording: Mode set to Recording
+2026-02-02 18:42:52.289 - [Hotkey] StartRecording: Visual feedback set (yellow)
+2026-02-02 18:42:52.289 - [Hotkey] StartRecording: Focus set, IsFocused=True
+2026-02-02 18:42:52.290 - [Hotkey] StartRecording: Saved previous key=Print, mods=None
+2026-02-02 18:42:52.291 - [Hotkey] StartRecording: Global hotkeys disabled
+2026-02-02 18:42:52.291 - [Hotkey] StartRecording: COMPLETED
+2026-02-02 18:42:54.272 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Recording
+2026-02-02 18:42:54.273 - [Hotkey] StopRecording: ENTERED
+2026-02-02 18:42:54.273 - [Hotkey] StopRecording: Mode set to Normal
+2026-02-02 18:42:54.273 - [Hotkey] StopRecording: Global hotkeys re-enabled
+2026-02-02 18:42:54.273 - [Hotkey] StopRecording: Attempting to register hotkey: Print
+2026-02-02 18:42:54.273 - [Hotkey] StopRecording: Details - Key=Print, Modifiers=None, Id=1
+2026-02-02 18:42:54.274 - LinuxHotkeyService: Unable to map key Print
+2026-02-02 18:42:54.275 - [Hotkey] StopRecording: RegisterHotkey returned: False, Status: Failed
+2026-02-02 18:42:54.275 - [Hotkey] StopRecording: Button content updated to: Print
+2026-02-02 18:42:54.275 - [Hotkey] StopRecording: COMPLETED
+2026-02-02 18:42:54.275 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:54.275 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:55.693 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:55.693 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:55.693 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:55.693 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:55.926 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:55.926 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:55.926 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:55.926 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:56.112 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:56.112 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:56.113 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:56.113 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:56.284 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:56.285 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:42:56.285 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:42:56.285 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:29.058 - [Hotkey] HotkeyButton_Click: FIRED - current mode=Normal
+2026-02-02 18:43:29.058 - [Hotkey] HotkeyButton_Click: Starting recording
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: ENTERED
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: Mode set to Recording
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: Visual feedback set (yellow)
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: Focus set, IsFocused=True
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: Saved previous key=Print, mods=None
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: Global hotkeys disabled
+2026-02-02 18:43:29.058 - [Hotkey] StartRecording: COMPLETED
+2026-02-02 18:43:29.849 - [Hotkey] OnPreviewKeyDown: Key=LeftCtrl, Mods=None, Mode=Recording
+2026-02-02 18:43:29.849 - [Hotkey] OnPreviewKeyDown: Key=LeftCtrl, Mods=None, Mode=Recording
+2026-02-02 18:43:30.077 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Recording
+2026-02-02 18:43:30.077 - [Hotkey] StopRecording: ENTERED
+2026-02-02 18:43:30.077 - [Hotkey] StopRecording: Mode set to Normal
+2026-02-02 18:43:30.077 - [Hotkey] StopRecording: Global hotkeys re-enabled
+2026-02-02 18:43:30.077 - [Hotkey] StopRecording: Attempting to register hotkey: Ctrl + Print
+2026-02-02 18:43:30.077 - [Hotkey] StopRecording: Details - Key=Print, Modifiers=Control, Id=1
+2026-02-02 18:43:30.077 - LinuxHotkeyService: Unable to map key Print
+2026-02-02 18:43:30.077 - [Hotkey] StopRecording: RegisterHotkey returned: False, Status: Failed
+2026-02-02 18:43:30.078 - [Hotkey] StopRecording: Button content updated to: Ctrl + Print
+2026-02-02 18:43:30.078 - [Hotkey] StopRecording: COMPLETED
+2026-02-02 18:43:30.078 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:30.078 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.405 - [Hotkey] OnPreviewKeyDown: Key=LeftCtrl, Mods=None, Mode=Normal
+2026-02-02 18:43:31.405 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.405 - [Hotkey] OnPreviewKeyDown: Key=LeftCtrl, Mods=None, Mode=Normal
+2026-02-02 18:43:31.405 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.603 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:31.603 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.603 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:31.603 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.732 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:31.732 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.732 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:31.732 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.890 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:31.890 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:31.890 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Control, Mode=Normal
+2026-02-02 18:43:31.890 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:34.112 - [Hotkey] HotkeyButton_Click: FIRED - current mode=Normal
+2026-02-02 18:43:34.112 - [Hotkey] HotkeyButton_Click: Starting recording
+2026-02-02 18:43:34.112 - [Hotkey] StartRecording: ENTERED
+2026-02-02 18:43:34.112 - [Hotkey] StartRecording: Mode set to Recording
+2026-02-02 18:43:34.112 - [Hotkey] StartRecording: Visual feedback set (yellow)
+2026-02-02 18:43:34.112 - [Hotkey] StartRecording: Focus set, IsFocused=True
+2026-02-02 18:43:34.113 - [Hotkey] StartRecording: Saved previous key=Print, mods=Control
+2026-02-02 18:43:34.113 - [Hotkey] StartRecording: Global hotkeys disabled
+2026-02-02 18:43:34.113 - [Hotkey] StartRecording: COMPLETED
+2026-02-02 18:43:34.956 - [Hotkey] OnPreviewKeyDown: Key=LeftShift, Mods=None, Mode=Recording
+2026-02-02 18:43:34.956 - [Hotkey] OnPreviewKeyDown: Key=LeftShift, Mods=None, Mode=Recording
+2026-02-02 18:43:35.144 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Recording
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: ENTERED
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: Mode set to Normal
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: Global hotkeys re-enabled
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: Attempting to register hotkey: Shift + Print
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: Details - Key=Print, Modifiers=Shift, Id=1
+2026-02-02 18:43:35.144 - LinuxHotkeyService: Unable to map key Print
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: RegisterHotkey returned: False, Status: Failed
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: Button content updated to: Shift + Print
+2026-02-02 18:43:35.144 - [Hotkey] StopRecording: COMPLETED
+2026-02-02 18:43:35.144 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:35.144 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.018 - [Hotkey] OnPreviewKeyDown: Key=LeftShift, Mods=None, Mode=Normal
+2026-02-02 18:43:36.018 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.018 - [Hotkey] OnPreviewKeyDown: Key=LeftShift, Mods=None, Mode=Normal
+2026-02-02 18:43:36.018 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.129 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.129 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.129 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.129 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.273 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.273 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.273 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.273 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.413 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.413 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.413 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.413 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.563 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.563 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.563 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.563 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.703 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.703 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:43:36.703 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=Shift, Mode=Normal
+2026-02-02 18:43:36.703 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:44:34.969 - [Hotkey] HotkeyButton_Click: FIRED - current mode=Normal
+2026-02-02 18:44:34.969 - [Hotkey] HotkeyButton_Click: Starting recording
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: ENTERED
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: Mode set to Recording
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: Visual feedback set (yellow)
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: Focus set, IsFocused=True
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: Saved previous key=Print, mods=Shift
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: Global hotkeys disabled
+2026-02-02 18:44:34.969 - [Hotkey] StartRecording: COMPLETED
+2026-02-02 18:44:37.047 - [Hotkey] OnPreviewKeyDown: Key=Scroll, Mods=None, Mode=Recording
+2026-02-02 18:44:37.047 - [Hotkey] StopRecording: ENTERED
+2026-02-02 18:44:37.047 - [Hotkey] StopRecording: Mode set to Normal
+2026-02-02 18:44:37.047 - [Hotkey] StopRecording: Global hotkeys re-enabled
+2026-02-02 18:44:37.047 - [Hotkey] StopRecording: Attempting to register hotkey: Scroll Lock
+2026-02-02 18:44:37.047 - [Hotkey] StopRecording: Details - Key=Scroll, Modifiers=None, Id=1
+2026-02-02 18:44:37.051 - Hotkey registered: Capture region: Scroll Lock
+2026-02-02 18:44:37.051 - [Hotkey] StopRecording: RegisterHotkey returned: True, Status: Registered
+2026-02-02 18:44:37.051 - [Hotkey] StopRecording: Button content updated to: Scroll Lock
+2026-02-02 18:44:37.051 - [Hotkey] StopRecording: COMPLETED
+2026-02-02 18:44:37.051 - [Hotkey] OnPreviewKeyDown: Key=Scroll, Mods=None, Mode=Normal
+2026-02-02 18:44:37.051 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+2026-02-02 18:44:38.924 - Hotkey triggered: Capture region: Scroll Lock (ID: 5e9ce2f6-546d-4c1d-bcaa-594bef5c8589)
+[18:44:38.925] EXECUTE_WORKFLOW | Entry: workflowId=5e9ce2f6-546d-4c1d-bcaa-594bef5c8589, workflow=, Job=RectangleRegion
+[18:44:38.925] EXECUTE_WORKFLOW | Calling ExecuteJob, TaskSettings=True
+[18:44:38.926] EXECUTE_JOB  | Entry: workflowId=5e9ce2f6-546d-4c1d-bcaa-594bef5c8589, taskSettings=True
+2026-02-02 18:44:38.926 - Executing job: RectangleRegion
+[18:44:38.927] EXECUTE_JOB  | Calling TaskManager.StartTask
+2026-02-02 18:44:38.927 - Task settings: AfterCaptureJob=CopyImageToClipboard, SaveImageToFile, UploadImageToHost=False
+[18:44:38.928] TASK_MANAGER | StartTask Entry
+[18:44:38.929] TASK_MANAGER | Task created
+[18:44:38.930] TASK_MANAGER | Calling task.StartAsync...
+2026-02-02 18:44:38.931 - Task started: Job=RectangleRegion
+2026-02-02 18:44:38.931 - Task Status: Preparing
+[18:44:38.936] WORKER_TASK  | DoWorkAsync Entry
+2026-02-02 18:44:38.936 - Task Status: Working
+[18:44:38.936] WORKER_TASK  | Entering capture phase
+2026-02-02 18:44:38.936 - Capture start: Job=RectangleRegion
+2026-02-02 18:44:38.938 - LinuxScreenCaptureService: CaptureRegionAsync - using interactive region selection
+2026-02-02 18:44:38.938 - LinuxScreenCaptureService: Detected desktop environment: KDE, Wayland: True
+2026-02-02 18:44:38.938 - LinuxScreenCaptureService: Trying XDG Portal for interactive region capture
+[XDG Portal] SIGNAL RECEIVED: Response=1, Count=0
+2026-02-02 18:44:41.156 - [Hotkey] HotkeyButton_Click: FIRED - current mode=Normal
+2026-02-02 18:44:41.156 - [Hotkey] HotkeyButton_Click: Starting recording
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: ENTERED
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: Mode set to Recording
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: Visual feedback set (yellow)
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: Focus set, IsFocused=True
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: Saved previous key=Scroll, mods=None
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: Global hotkeys disabled
+2026-02-02 18:44:41.156 - [Hotkey] StartRecording: COMPLETED
+2026-02-02 18:44:42.084 - LinuxScreenCaptureService: Portal fallback did not find a screenshot file.
+2026-02-02 18:44:42.085 - LinuxScreenCaptureService: Portal environment:
+2026-02-02 18:44:42.085 -   - XDG_SESSION_TYPE: wayland
+2026-02-02 18:44:42.085 -   - XDG_CURRENT_DESKTOP: KDE
+2026-02-02 18:44:42.085 -   - XDG_SESSION_DESKTOP: KDE
+2026-02-02 18:44:42.085 - LinuxScreenCaptureService: Portal request options:
+2026-02-02 18:44:42.085 -   - interactive: True
+2026-02-02 18:44:42.085 -   - modal: False
+2026-02-02 18:44:42.085 -   - handle_token: xerahs_8920089090b043d2a5d42440e8d0524c
+2026-02-02 18:44:42.085 - LinuxScreenCaptureService: Portal request failed with response 1
+2026-02-02 18:44:42.085 - LinuxScreenCaptureService: Portal response results:
+2026-02-02 18:44:42.085 - LinuxScreenCaptureService: Portal screenshot cancelled or failed (response=1)
+2026-02-02 18:44:42.093 - LinuxScreenCaptureService: No region capture tool available, falling back to fullscreen
+2026-02-02 18:44:42.094 - LinuxScreenCaptureService: Attempting capture (Modern=True)...
+2026-02-02 18:44:42.094 - LinuxScreenCaptureService: Wayland detected, trying XDG Portal...
+2026-02-02 18:44:42.127 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Recording
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: ENTERED
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: Mode set to Normal
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: Global hotkeys re-enabled
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: Attempting to register hotkey: Print
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: Details - Key=Print, Modifiers=None, Id=1
+2026-02-02 18:44:42.127 - LinuxHotkeyService: Unable to map key Print
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: RegisterHotkey returned: False, Status: Failed
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: Button content updated to: Print
+2026-02-02 18:44:42.127 - [Hotkey] StopRecording: COMPLETED
+2026-02-02 18:44:42.127 - [Hotkey] OnPreviewKeyDown: Key=Print, Mods=None, Mode=Normal
+2026-02-02 18:44:42.127 - [Hotkey] OnPreviewKeyDown: Ignoring - not in recording mode or viewModel null
+[XDG Portal] SIGNAL RECEIVED: Response=0, Count=1
+2026-02-02 18:44:43.270 - LinuxScreenCaptureService: XDG Portal capture succeeded.
+2026-02-02 18:44:43.271 - Captured image: 5120x1440 in 4333ms
+2026-02-02 18:44:43.273 - AfterCaptureJob=CopyImageToClipboard, SaveImageToFile, UploadImageToHost=False
+2026-02-02 18:44:44.336 - [PathTrace 4c3c7acb65da4e949e2ddc713608b8b8] SaveImageToFile: dir="/home/mathew/Documents/XerahS/Screenshots/2026-02", fileName="20260202T1844_6euFAOom2M.png", ext=".png", fullPath="/home/mathew/Documents/XerahS/Screenshots/2026-02/20260202T1844_6euFAOom2M.png"
+2026-02-02 18:44:44.336 - Image saved: /home/mathew/Documents/XerahS/Screenshots/2026-02/20260202T1844_6euFAOom2M.png
+2026-02-02 18:44:44.336 - Image saved: /home/mathew/Documents/XerahS/Screenshots/2026-02/20260202T1844_6euFAOom2M.png
+2026-02-02 18:44:45.356 - Image copied to clipboard.
+2026-02-02 18:44:45.356 - UploadImageToHost flag not set; skipping upload.
+2026-02-02 18:44:45.356 - Trace: History pipeline - Starting history item creation.
+2026-02-02 18:44:45.356 - History file path: /home/mathew/Documents/XerahS/History/History.db (exists=True)
+2026-02-02 18:44:45.356 - Trace: History pipeline - History file path: /home/mathew/Documents/XerahS/History/History.db
+2026-02-02 18:44:45.419 - Trace: History pipeline - AppendHistoryItem called for: 20260202T1844_6euFAOom2M.png (URL: )
+2026-02-02 18:44:45.419 - Added to history: 20260202T1844_6euFAOom2M.png
+2026-02-02 18:44:45.452 - Updated preview from task completion: 5120x1440
+[DEBUG EditorView] LoadImageFromViewModel called, PreviewImage: SET
+[DEBUG EditorView] Loading SKBitmap 5120x1440 into EditorCore
+[DEBUG EditorCore] LoadImage called with 5120x1440 bitmap
+[DEBUG EditorCore] SourceImage set, CanvasSize: {Width=5120, Height=1440}
+2026-02-02 18:44:45.529 - Task Status: Completed
+[18:44:45.529] TASK_MANAGER | task.StartAsync completed
+[18:44:45.530] EXECUTE_JOB  | TaskManager.StartTask completed
+2026-02-02 18:44:45.550 - Showing toast: Task Completed - 20260202T1844_6euFAOom2M.png
+2026-02-02 18:44:45.631 - Toast displayed: Task Completed
+2026-02-02 18:44:51.383 - [WorkflowsView] ctor start
+2026-02-02 18:44:51.383 - [WorkflowsVM] ctor start
+2026-02-02 18:44:51.383 - [WorkflowsVM] LoadWorkflows start
+2026-02-02 18:44:51.383 - [WorkflowsVM] LoadWorkflows end. Count=1
+2026-02-02 18:44:51.383 - [WorkflowsVM] ctor end. Workflows=1
+2026-02-02 18:44:51.384 - [WorkflowsView] DataContext set: WorkflowsViewModel, Workflows=1
+2026-02-02 18:44:51.394 - [Hotkey] HotkeySelectionControl: Constructor called
+2026-02-02 18:44:51.397 - [Hotkey] OnLoaded: START
+2026-02-02 18:44:51.397 - [Hotkey] OnLoaded: END - HotkeyButton=True

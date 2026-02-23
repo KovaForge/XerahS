@@ -1,3 +1,5 @@
-[submodule "XerahS.Editor"]
-	path = XerahS.Editor
-	url = https://github.com/ShareX/XerahS.Editor.git
+[submodule "ImageEditor"]
+	path = ImageEditor
+	url = https://github.com/ShareX/ImageEditor.git
+	branch = develop
+	update = rebase

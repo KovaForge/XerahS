@@ -25,7 +25,7 @@
 
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using XerahS.Editor.ImageEffects.Adjustments;
+using ShareX.ImageEditor.ImageEffects.Adjustments;
 using SkiaSharp;
 using System.IO.Compression;
 using XerahS.Common.Helpers;
@@ -120,4 +120,53 @@ public class ImageEffectPresetSerializerTests
             }
         }
     }
+
+    [TestCase(".xsie", "ShareX.Editor.ImageEffects.Adjustments.BrightnessImageEffect, ShareX.Editor")]
+    [TestCase(".sxie", "XerahS.Editor.ImageEffects.Adjustments.BrightnessImageEffect, XerahS.Editor")]
+    public void LoadXsie_AcceptsLegacyEditorNamespaces(string extension, string serializedType)
+    {
+        var config = new JObject
+        {
+            ["Version"] = 1,
+            ["Name"] = "NamespacePreset",
+            ["Effects"] = new JArray
+            {
+                new JObject
+                {
+                    ["$type"] = serializedType,
+                    ["Amount"] = 37
+                }
+            }
+        };
+
+        var path = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}{extension}");
+
+        try
+        {
+            WriteConfigArchive(path, config);
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+
+            Assert.That(loaded, Is.Not.Null);
+            Assert.That(loaded!.Name, Is.EqualTo("NamespacePreset"));
+            Assert.That(loaded.Effects.Count, Is.EqualTo(1));
+            Assert.That(loaded.Effects[0], Is.TypeOf<BrightnessImageEffect>());
+            Assert.That(((BrightnessImageEffect)loaded.Effects[0]).Amount, Is.EqualTo(37).Within(0.01));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    private static void WriteConfigArchive(string filePath, JObject config)
+    {
+        using var archive = ZipFile.Open(filePath, ZipArchiveMode.Create);
+        var entry = archive.CreateEntry("Config.json");
+        using var writer = new StreamWriter(entry.Open());
+        writer.Write(config.ToString());
+    }
 }
+

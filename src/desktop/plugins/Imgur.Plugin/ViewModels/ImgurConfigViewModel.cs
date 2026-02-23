@@ -1,0 +1,312 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
+using XerahS.Uploaders;
+using XerahS.Uploaders.PluginSystem;
+using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+namespace ShareX.Imgur.Plugin.ViewModels;
+
+/// <summary>
+/// ViewModel for Imgur configuration
+/// </summary>
+public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigViewModel, IProviderContextAware
+{
+    [ObservableProperty]
+    private string _clientId = "30d41ft9z9r8jtt"; // Default ShareX client ID
+
+    [ObservableProperty]
+    private int _accountTypeIndex = 0;
+
+    [ObservableProperty]
+    private string _albumId = string.Empty;
+
+    [ObservableProperty]
+    private int _thumbnailTypeIndex = 4; // Large thumbnail default
+
+    [ObservableProperty]
+    private bool _useDirectLink = true;
+
+    [ObservableProperty]
+    private bool _useGifv = true;
+
+    [ObservableProperty]
+    private bool _uploadToSelectedAlbum = false;
+
+    [ObservableProperty]
+    private ObservableCollection<ImgurAlbumData> _albums = new();
+
+    [ObservableProperty]
+    private ImgurAlbumData? _selectedAlbum;
+
+    [ObservableProperty]
+    private string? _albumStatusMessage;
+
+    [ObservableProperty]
+    private string? _statusMessage;
+
+    [ObservableProperty]
+    private string _pin = string.Empty;
+
+    [ObservableProperty]
+    private bool _isLoggedIn;
+
+    private ImgurUploader? _uploader;
+    private ImgurConfigModel _config = new();
+    private string _secretKey = Guid.NewGuid().ToString("N");
+    private ISecretStore? _secrets;
+
+    public ImgurConfigViewModel()
+    {
+        _uploader = null;
+    }
+
+    [RelayCommand]
+    private void OpenLoginUrl()
+    {
+        EnsureUploader();
+        if (_uploader == null) return;
+        string url = _uploader.GetAuthorizationURL();
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Failed to open browser: " + ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void CompleteLogin()
+    {
+        EnsureUploader();
+        if (_uploader == null || string.IsNullOrWhiteSpace(Pin))
+        {
+            StatusMessage = "Please enter the PIN from Imgur";
+            return;
+        }
+
+        if (_uploader.GetAccessToken(Pin))
+        {
+            IsLoggedIn = true;
+            StatusMessage = "Logged in successfully!";
+            Pin = string.Empty;
+            PersistToken();
+        }
+        else
+        {
+            StatusMessage = "Login failed. Please check the PIN.";
+        }
+    }
+
+    [RelayCommand]
+    private void FetchAlbums()
+    {
+        if (_uploader == null || !IsLoggedIn)
+        {
+            AlbumStatusMessage = "You must be logged in to fetch albums";
+            return;
+        }
+
+        try
+        {
+            var albumList = _uploader.GetAlbums();
+            if (albumList != null && albumList.Count > 0)
+            {
+                Albums.Clear();
+                foreach (var album in albumList)
+                {
+                    Albums.Add(album);
+                }
+                AlbumStatusMessage = $"Loaded {albumList.Count} albums";
+            }
+            else
+            {
+                Albums.Clear();
+                AlbumStatusMessage = "No albums found or failed to fetch";
+            }
+        }
+        catch (Exception ex)
+        {
+            AlbumStatusMessage = $"Error fetching albums: {ex.Message}";
+        }
+    }
+
+    public void LoadFromJson(string json)
+    {
+        try
+        {
+            var config = JsonConvert.DeserializeObject<ImgurConfigModel>(json);
+            if (config != null)
+            {
+                _config = config;
+                _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
+                _uploader = BuildUploader();
+
+                ClientId = _config.ClientId ?? "30d41ft9z9r8jtt";
+                AccountTypeIndex = (int)_config.AccountType;
+                ThumbnailTypeIndex = (int)_config.ThumbnailType;
+                UseDirectLink = _config.DirectLink;
+                UseGifv = _config.UseGIFV;
+                UploadToSelectedAlbum = _config.UploadToSelectedAlbum;
+                IsLoggedIn = HasToken();
+
+                // Load selected album if exists
+                if (_config.SelectedAlbum != null)
+                {
+                    SelectedAlbum = _config.SelectedAlbum;
+                }
+            }
+        }
+        catch
+        {
+            StatusMessage = "Failed to load configuration";
+        }
+    }
+
+    public string ToJson()
+    {
+        _config.ClientId = ClientId;
+        _config.AccountType = (AccountType)AccountTypeIndex;
+        _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
+        _config.DirectLink = UseDirectLink;
+        _config.UseGIFV = UseGifv;
+        _config.UploadToSelectedAlbum = UploadToSelectedAlbum;
+        _config.SecretKey = _secretKey;
+
+        // Save selected album
+        if (UploadToSelectedAlbum && SelectedAlbum != null)
+        {
+            _config.SelectedAlbum = SelectedAlbum;
+        }
+        else
+        {
+            _config.SelectedAlbum = null;
+        }
+
+        PersistCredentials();
+        return JsonConvert.SerializeObject(_config, Formatting.Indented);
+    }
+
+    public bool Validate()
+    {
+        if (string.IsNullOrWhiteSpace(ClientId))
+        {
+            StatusMessage = "Client ID is required";
+            return false;
+        }
+
+        if (AccountTypeIndex == (int)AccountType.User && !IsLoggedIn)
+        {
+            StatusMessage = "Login is required for User Account type";
+            return false;
+        }
+
+        PersistCredentials();
+        StatusMessage = null;
+        return true;
+    }
+
+    public void SetContext(IProviderContext context)
+    {
+        _secrets = context.Secrets;
+    }
+
+    private ImgurUploader BuildUploader()
+    {
+        var clientSecret = _secrets?.GetSecret("imgur", _secretKey, "clientSecret")
+            ?? "98871f37e179e496a0149e9c8558487779d424ft";
+        var authInfo = new OAuth2Info(ClientId, clientSecret);
+        var tokenJson = _secrets?.GetSecret("imgur", _secretKey, "oauthToken");
+        if (!string.IsNullOrWhiteSpace(tokenJson))
+        {
+            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+            if (token != null)
+            {
+                authInfo.Token = token;
+            }
+        }
+
+        return new ImgurUploader(_config, authInfo);
+    }
+
+    private void EnsureUploader()
+    {
+        if (_uploader == null)
+        {
+            _uploader = BuildUploader();
+        }
+    }
+
+    private void PersistCredentials()
+    {
+        if (_secrets == null)
+        {
+            return;
+        }
+
+        _secrets.SetSecret("imgur", _secretKey, "clientSecret", "98871f37e179e496a0149e9c8558487779d424ft");
+    }
+
+    private void PersistToken()
+    {
+        if (_secrets == null || _uploader == null)
+        {
+            return;
+        }
+
+        if (_uploader.AuthInfo.Token != null && !string.IsNullOrEmpty(_uploader.AuthInfo.Token.access_token))
+        {
+            var json = JsonConvert.SerializeObject(_uploader.AuthInfo.Token, Formatting.None);
+            _secrets.SetSecret("imgur", _secretKey, "oauthToken", json);
+        }
+    }
+
+    private bool HasToken()
+    {
+        if (_secrets == null)
+        {
+            return false;
+        }
+
+        var tokenJson = _secrets.GetSecret("imgur", _secretKey, "oauthToken");
+        if (string.IsNullOrWhiteSpace(tokenJson))
+        {
+            return false;
+        }
+
+        var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+        return token != null && !string.IsNullOrEmpty(token.access_token);
+    }
+}

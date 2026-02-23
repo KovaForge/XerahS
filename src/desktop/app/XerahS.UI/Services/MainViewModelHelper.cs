@@ -1,0 +1,153 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+using ShareX.ImageEditor.ViewModels;
+using XerahS.Common;
+using XerahS.Core;
+using XerahS.Uploaders.PluginSystem;
+
+namespace XerahS.UI.Services;
+
+/// <summary>
+/// Helper class for wiring up MainViewModel events to host application infrastructure.
+/// </summary>
+public static class MainViewModelHelper
+{
+    /// <summary>
+    /// Wires up the UploadRequested event to the XerahS upload pipeline.
+    /// </summary>
+    public static void WireUploadRequested(MainViewModel viewModel)
+    {
+        viewModel.UploadRequested += () =>
+        {
+            _ = HandleUploadRequestedAsync(viewModel);
+        };
+    }
+
+    /// <summary>
+    /// Wires up the CopyRequested event to copy the image to the system clipboard.
+    /// </summary>
+    public static void WireCopyRequested(MainViewModel viewModel)
+    {
+        viewModel.CopyRequested += () =>
+        {
+            HandleCopyRequested(viewModel);
+        };
+    }
+
+    private static async Task HandleUploadRequestedAsync(MainViewModel viewModel)
+    {
+        DebugHelper.WriteLine("MainViewModelHelper: UploadRequested received");
+
+        try
+        {
+            if (viewModel.PreviewImage == null)
+            {
+                DebugHelper.WriteLine("MainViewModelHelper: UploadRequested ignored because PreviewImage is null.");
+                return;
+            }
+
+            // Convert Avalonia Bitmap to SKBitmap for upload pipeline.
+            using var skBitmap = ShareX.ImageEditor.Helpers.BitmapConversionHelpers.ToSKBitmap(viewModel.PreviewImage);
+            DebugHelper.WriteLine($"MainViewModelHelper: Converted bitmap {skBitmap.Width}x{skBitmap.Height}");
+
+            // Get the default image uploader instance, or first available.
+            string? destinationInstanceId = null;
+            var defaultInstance = InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image);
+            if (defaultInstance != null)
+            {
+                destinationInstanceId = defaultInstance.InstanceId;
+                DebugHelper.WriteLine($"MainViewModelHelper: Using default instance: {defaultInstance.DisplayName} ({destinationInstanceId})");
+            }
+            else
+            {
+                // Fall back to first available image uploader.
+                var imageInstances = InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.Image);
+                var firstInstance = imageInstances.FirstOrDefault();
+                if (firstInstance != null)
+                {
+                    destinationInstanceId = firstInstance.InstanceId;
+                    DebugHelper.WriteLine($"MainViewModelHelper: Using first instance: {firstInstance.DisplayName} ({destinationInstanceId})");
+                }
+                else
+                {
+                    DebugHelper.WriteLine("MainViewModelHelper: No image uploader instances available.");
+                }
+            }
+
+            var taskSettings = new TaskSettings
+            {
+                Job = WorkflowType.None,
+                AfterCaptureJob = AfterCaptureTasks.UploadImageToHost,
+                AfterUploadJob = AfterUploadTasks.CopyURLToClipboard,
+                DestinationInstanceId = destinationInstanceId
+            };
+
+            DebugHelper.WriteLine($"MainViewModelHelper: TaskSettings created - Job={taskSettings.Job}, AfterCapture={taskSettings.AfterCaptureJob}, AfterUpload={taskSettings.AfterUploadJob}, DestId={taskSettings.DestinationInstanceId}");
+
+            DebugHelper.WriteLine("MainViewModelHelper: Calling TaskManager.StartTask...");
+            await Core.Managers.TaskManager.Instance.StartTask(taskSettings, skBitmap.Copy());
+            DebugHelper.WriteLine("MainViewModelHelper: TaskManager.StartTask completed");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"Editor upload failed: {ex.Message}");
+            DebugHelper.WriteException(ex);
+        }
+    }
+
+    private static void HandleCopyRequested(MainViewModel viewModel)
+    {
+        DebugHelper.WriteLine("MainViewModelHelper: CopyRequested received");
+
+        try
+        {
+            if (viewModel.PreviewImage == null)
+            {
+                DebugHelper.WriteLine("MainViewModelHelper: CopyRequested ignored because PreviewImage is null.");
+                return;
+            }
+
+            // Convert Avalonia Bitmap to SKBitmap for clipboard.
+            using var skBitmap = ShareX.ImageEditor.Helpers.BitmapConversionHelpers.ToSKBitmap(viewModel.PreviewImage);
+            DebugHelper.WriteLine($"MainViewModelHelper: Converted bitmap {skBitmap.Width}x{skBitmap.Height} for clipboard");
+
+            // Use the platform clipboard service (set up via EditorClipboardAdapter).
+            if (Platform.Abstractions.PlatformServices.IsInitialized)
+            {
+                Platform.Abstractions.PlatformServices.Clipboard.SetImage(skBitmap.Copy());
+                DebugHelper.WriteLine("MainViewModelHelper: Image copied to clipboard");
+            }
+            else
+            {
+                DebugHelper.WriteLine("MainViewModelHelper: Platform clipboard not initialized");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"Editor copy to clipboard failed: {ex.Message}");
+            DebugHelper.WriteException(ex);
+        }
+    }
+}

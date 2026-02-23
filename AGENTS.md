@@ -9,15 +9,19 @@
 1. **Build Integrity**:
    - `dotnet build` must pass with **0 errors** before any push.
    - **NEVER** disable `<TreatWarningsAsErrors>`. Fix the warnings.
-   - **Target Framework**: `net10.0-windows10.0.19041.0` (Do NOT use `net10.0-windows` alone).
+   - **Target Framework**: `net10.0-windows10.0.26100.0` (Do NOT use `net10.0-windows` alone).
    - **SkiaSharp**: Must use **2.88.9** (Do NOT upgrade to 3.x).
 
-2. **Shell Best Practices**:
+2. **Build timeouts**:
+   - **Never wait more than 5 minutes** for a single build (e.g. Android MAUI/Avalonia, or any `dotnet build`). If the build has not completed in 5 minutes, something is wrong (file locks, lingering processes, or parallelism). Stop the build, fix the cause (release locks, use `-m:1`, kill stale `dotnet`), then retry. Do not increase timeout to 10+ minutes.
+   - See [Building Android](.ai/skills/build-android/SKILL.md) for lock handling and single-node builds.
+
+3. **Shell Best Practices**:
    - **No `&&` Chaining**: The agent's PowerShell environment does not support `&&`.
    - **Correct**: Use `;` (unconditional) or `if ($?) { ... }` (conditional).
    - **Example**: `git add .; if ($?) { git commit -m "..." }`
 
-3. **Git Workflow**:
+4. **Git Workflow**:
    - **Steps**: Stage (`git add .`) -> Commit -> Push.
    - **Commit Format**: `[vX.Y.Z] [Type] Use concise description`.
    - **Autonomous Execution**: If build passes, **EXECUTE** without asking for permission.
@@ -48,7 +52,9 @@ When a bug or feature is identified or provided by user, follow this process:
 
 ### Development
 - [Coding Standards & License Headers](docs/development/CODING_STANDARDS.md) (Strict Nullability)
-- [Release & Versioning](docs/development/RELEASE_PROCESS.md)
+- [Release & Versioning](.ai/skills/xerahs-workflow/SKILL.md)
+- [Building Windows Executables](.ai/skills/build-windows-exe/SKILL.md)
+- [Building Android (MAUI / Avalonia, adb deploy)](.ai/skills/build-android/SKILL.md)
 - [Testing Guidelines](docs/development/TESTING.md)
 - [Documentation Standards](docs/development/DOCUMENTATION_STANDARDS.md)
 

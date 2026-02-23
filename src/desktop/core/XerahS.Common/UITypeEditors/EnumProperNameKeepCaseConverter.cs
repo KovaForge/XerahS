@@ -1,0 +1,108 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
+using XerahS.Common.Utilities;
+
+using System;
+using System.ComponentModel;
+using System.Globalization;
+
+namespace XerahS.Common
+{
+    public class EnumProperNameKeepCaseConverter : EnumConverter
+    {
+        private readonly Type enumType;
+
+        public EnumProperNameKeepCaseConverter(Type type) : base(type)
+        {
+            enumType = type;
+        }
+
+        public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destType)
+        {
+            if (destType == typeof(string))
+            {
+                return true;
+            }
+
+            if (destType is null)
+            {
+                return false;
+            }
+
+            return base.CanConvertTo(context, destType);
+        }
+
+        public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destType)
+        {
+            if (destType == typeof(string) && value is not null)
+            {
+                string? valueName = value.ToString();
+
+                if (!string.IsNullOrEmpty(valueName))
+                {
+                    return StringUtils.GetProperName(valueName, true);
+                }
+            }
+
+            return base.ConvertTo(context, culture, value, destType);
+        }
+
+        public override bool CanConvertFrom(ITypeDescriptorContext? context, Type? srcType)
+        {
+            if (srcType == typeof(string))
+            {
+                return true;
+            }
+
+            if (srcType is null)
+            {
+                return false;
+            }
+
+            return base.CanConvertFrom(context, srcType);
+        }
+
+        public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object? value)
+        {
+            if (value is string stringValue)
+            {
+                foreach (Enum e in Enum.GetValues(enumType).OfType<Enum>())
+                {
+                    if (StringUtils.GetProperName(e.ToString(), true) == stringValue)
+                    {
+                        return e;
+                    }
+                }
+
+                return Enum.Parse(enumType, stringValue);
+            }
+
+            return base.ConvertFrom(context, culture, value ?? throw new ArgumentNullException(nameof(value)));
+        }
+    }
+}
+
+

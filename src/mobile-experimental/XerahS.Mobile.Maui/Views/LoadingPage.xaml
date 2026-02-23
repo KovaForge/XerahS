@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="XerahS.Mobile.Maui.Views.LoadingPage"
+             Title="XerahS"
+             BackgroundColor="White">
+    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="20">
+        <Image Source="splash.png" HeightRequest="100" WidthRequest="100" HorizontalOptions="Center" />
+        <ActivityIndicator IsRunning="True" Color="{StaticResource Primary}"/>
+        <Label Text="Initializing XerahS..." HorizontalOptions="Center" TextColor="#888888"/>
+        <Label x:Name="BuildIdLabel" HorizontalOptions="Center" FontSize="32" FontAttributes="Bold" TextColor="#333333"/>
+    </VerticalStackLayout>
+</ContentPage>

@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:ShareX.ImageEditor.Views;assembly=ShareX.ImageEditor"
+        xmlns:vm="using:XerahS.UI.ViewModels"
+        xmlns:editvm="clr-namespace:ShareX.ImageEditor.ViewModels;assembly=ShareX.ImageEditor"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="XerahS.UI.Views.EditorWindow"
+        x:DataType="editvm:MainViewModel"
+        Title="{Binding EditorTitle}"
+        Icon="/Assets/Logo.ico"
+        WindowStartupLocation="CenterScreen">
+    
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ShareX.ImageEditor/UI/Themes/ShareXTheme.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <views:EditorView Name="EditorViewControl"/>
+    
+</Window>
+

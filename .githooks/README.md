@@ -6,17 +6,56 @@ This directory contains Git hooks for the XerahS project to enforce code quality
 
 ### pre-commit
 
-Validates GPL v3 license headers in all staged C# files before allowing a commit.
+Validates **GPL v3** license headers in all staged **C#**, **Swift**, and **Kotlin** source files. All require the **full GPL v3 license text** (same as C#), not just a short copyright line.
 
-**What it checks:**
+**C# (`.cs`):**
 - Presence of `#region License Information (GPL v3)` tag
 - Correct project name: "XerahS - The Avalonia UI implementation of ShareX"
-- Current copyright year: "Copyright (c) 2007-2026 ShareX Team"
-- GPL v3 license text
+- Current copyright year: "Copyright (c) 2007-YYYY ShareX Team"
+- Full GPL v3 license text
+
+**Swift (`.swift`), e.g. `src/mobile/ios`:**
+- Line with "XerahS Mobile (Swift)"
+- Current copyright and **full GPL v3 license text** (as `//` line comments)
+
+**Kotlin (`.kt`), e.g. `src/mobile/android`:**
+- Block comment at top with project name, copyright, and **full GPL v3 license text**
+- Must appear before the `package` declaration
+
+See `developers/guidelines/CODING_STANDARDS.md` for exact header formats.
 
 **Supported platforms:**
 - Linux/macOS: Uses bash script (`pre-commit.bash`) via launcher (`pre-commit`)
 - Windows: Uses PowerShell script (`pre-commit.ps1`) via launcher (`pre-commit`)
+
+### pre-push
+
+Ensures `ImageEditor` is attached to a branch and auto-pushes branch commits before pushing the superproject.
+
+**What it does:**
+- Runs the same detached `HEAD` recovery logic used by `post-checkout`/`post-merge`
+- If `ImageEditor` is ahead of its upstream, pushes those commits automatically
+- Sets upstream to `origin/<branch>` when possible
+
+### post-checkout
+
+Ensures `ImageEditor` is not left detached after checkout operations.
+
+**What it does:**
+- Detects detached `HEAD` in `ImageEditor`
+- Resolves default branch from `origin/HEAD` (fallback: `develop`, `main`, `master`)
+- Checks out the default branch locally
+- Attempts fast-forward to upstream when available
+- Optional auto-push support when `xerahs.hooks.imageeditorautopush=true`
+
+**Cross-platform execution:**
+- Launcher: `.githooks/sync-imageeditor-head`
+- Linux/macOS: delegates to `.githooks/sync-imageeditor-head.bash`
+- Windows: delegates to `.githooks/sync-imageeditor-head.ps1` (with bash fallback)
+
+### post-merge
+
+Runs the same detached-HEAD recovery logic as `post-checkout` after merges.
 
 ## Installation
 
@@ -49,7 +88,17 @@ New-Item -ItemType SymbolicLink -Path ".git\hooks\pre-commit" -Target "..\..\. g
 
 ## Usage
 
-Once installed, the hooks run automatically on `git commit`.
+Once installed, hooks run automatically on:
+- `git commit` (`pre-commit`)
+- `git push` (`pre-push`)
+- `git checkout`/branch switches (`post-checkout`)
+- `git merge` (`post-merge`)
+
+Optional auto-push on checkout/merge as well:
+
+```bash
+git config xerahs.hooks.imageeditorautopush true
+```
 
 ### Bypassing Hooks (Not Recommended)
 
@@ -65,24 +114,11 @@ git commit --no-verify
 
 If the pre-commit hook detects violations:
 
-### Option 1: Automatic Fix
+### C# files
 
-Run the license header fix script:
+**Option 1 – Automatic:** Run `pwsh docs/scripts/fix_license_headers.ps1`, then re-stage and commit.
 
-```powershell
-pwsh docs/scripts/fix_license_headers.ps1
-```
-
-Then re-stage the fixed files:
-
-```bash
-git add <files>
-git commit
-```
-
-### Option 2: Manual Fix
-
-Update the file headers to match the expected format:
+**Option 2 – Manual:** Update the file headers to match the expected format:
 
 ```csharp
 #region License Information (GPL v3)
@@ -111,6 +147,10 @@ Update the file headers to match the expected format:
 #endregion License Information (GPL v3)
 ```
 
+### Swift / Kotlin files
+
+Add the **full GPL v3 license text** at the top of each `.swift` or `.kt` file (see `developers/guidelines/CODING_STANDARDS.md` for the exact block). Swift uses `//` line comments; Kotlin uses a `/* ... */` block comment before the `package` line. Then re-stage and commit: `git add <files>` and `git commit`.
+
 ## Troubleshooting
 
 ### Hook Not Running
@@ -123,6 +163,7 @@ Update the file headers to match the expected format:
 2. Check file permissions (Linux/macOS):
    ```bash
    ls -la .githooks/pre-commit
+   ls -la .githooks/pre-push .githooks/post-checkout .githooks/post-merge .githooks/sync-imageeditor-head.bash
    chmod +x .githooks/pre-commit  # If not executable
    ```
 
@@ -191,5 +232,5 @@ The same validation runs in CI/CD pipelines. See `.github/workflows/` for integr
 
 ---
 
-**Last Updated:** 2026-01-18
+**Last Updated:** 2026-02-18
 **Maintainer:** XerahS Development Team
