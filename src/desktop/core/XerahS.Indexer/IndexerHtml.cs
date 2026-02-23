@@ -32,16 +32,7 @@ namespace XerahS.Indexer
     public class IndexerHtml : Indexer
     {
         private const string DefaultCss = @":root {
-    color-scheme: light;
-    --bg: #f3f6fb;
-    --surface: #ffffff;
-    --surface-soft: #f8faff;
-    --border: #d7deea;
-    --text: #1b2430;
-    --muted: #566277;
-    --brand: #0c6cf2;
-    --brand-soft: #dbe8ff;
-    --shadow: 0 14px 34px -22px rgba(9, 29, 57, 0.45);
+    color-scheme: dark;
 }
 
 * {
@@ -57,12 +48,20 @@ body {
 body {
     min-height: 100vh;
     font-family: ""Segoe UI"", ""Helvetica Neue"", Arial, sans-serif;
-    color: var(--text);
+    color: #e8f0ff;
+    background:
+        radial-gradient(circle at 10% -8%, #1a2b45 0, rgba(26, 43, 69, 0) 42%),
+        radial-gradient(circle at 100% 16%, #132238 0, rgba(19, 34, 56, 0) 40%),
+        linear-gradient(180deg, #0d1522 0%, #080e18 100%);
+    line-height: 1.45;
+}
+
+body:has(#theme-toggle:checked) {
+    color: #1b2430;
     background:
         radial-gradient(circle at 8% 0%, #e6f0ff 0, rgba(230, 240, 255, 0) 40%),
         radial-gradient(circle at 100% 18%, #edf5ff 0, rgba(237, 245, 255, 0) 36%),
-        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
-    line-height: 1.45;
+        linear-gradient(180deg, #f8fbff 0%, #f3f6fb 100%);
 }
 
 a {
@@ -80,12 +79,134 @@ a:hover {
     padding: clamp(20px, 4vw, 36px);
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+.ThemeToggleInput {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ThemeToggleLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    margin: 0 0 14px auto;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #304562;
+    background: rgba(13, 24, 39, 0.78);
+    color: #dbe8ff;
+    font-size: 12px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.ThemeToggleSwitch {
+    position: relative;
+    width: 38px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid #3b5a81;
+    background: #203551;
+}
+
+.ThemeToggleSwitch::after {
+    content: """";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #cddfff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
+    transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.ThemeToggleText::before {
+    content: ""Dark mode"";
+}
+
+.ThemeToggleInput:focus-visible + .ThemeToggleLabel {
+    outline: 2px solid #7eb7ff;
+    outline-offset: 2px;
+}
+
+.ThemeToggleInput:checked + .ThemeToggleLabel {
+    border-color: #cedbf1;
+    background: rgba(255, 255, 255, 0.9);
+    color: #27384f;
+}
+
+.ThemeToggleInput:checked + .ThemeToggleLabel .ThemeToggleSwitch {
+    border-color: #b8ceef;
+    background: #d7e8ff;
+}
+
+.ThemeToggleInput:checked + .ThemeToggleLabel .ThemeToggleSwitch::after {
+    transform: translateX(18px);
+    background: #1d4d8f;
+}
+
+.ThemeToggleInput:checked + .ThemeToggleLabel .ThemeToggleText::before {
+    content: ""Light mode"";
+}
+
+.IndexContent {
+    --bg: #0a111c;
+    --surface: #111b2a;
+    --surface-soft: #162335;
+    --border: #27384f;
+    --text: #e8f0ff;
+    --muted: #9db0ca;
+    --brand: #70b1ff;
+    --brand-soft: #21486f;
+    --heading-top: #1a2a44;
+    --heading-bottom: #122338;
+    --badge-bg: #1a2b42;
+    --badge-border: #294b73;
+    --row-hover: #1c2c44;
+    --footer-bg: rgba(16, 26, 40, 0.78);
+    --shadow: 0 16px 40px -26px rgba(0, 0, 0, 0.72);
+    color-scheme: dark;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: clamp(14px, 2.4vw, 24px);
+    background:
+        radial-gradient(circle at 8% -2%, #172942 0, rgba(23, 41, 66, 0) 38%),
+        radial-gradient(circle at 100% 14%, #142338 0, rgba(20, 35, 56, 0) 34%),
+        linear-gradient(180deg, #0f1726 0%, var(--bg) 100%);
+}
+
+#theme-toggle:checked ~ .IndexContent {
+    --bg: #f3f6fb;
+    --surface: #ffffff;
+    --surface-soft: #f8faff;
+    --border: #d7deea;
+    --text: #1b2430;
+    --muted: #566277;
+    --brand: #0c6cf2;
+    --brand-soft: #dbe8ff;
+    --heading-top: #ffffff;
+    --heading-bottom: #eef4ff;
+    --badge-bg: #edf3ff;
+    --badge-border: #d6e4ff;
+    --row-hover: #f1f6ff;
+    --footer-bg: rgba(255, 255, 255, 0.72);
+    --shadow: 0 14px 34px -22px rgba(9, 29, 57, 0.45);
+    color-scheme: light;
+}
+
+.IndexContent h1,
+.IndexContent h2,
+.IndexContent h3,
+.IndexContent h4,
+.IndexContent h5,
+.IndexContent h6 {
     margin: 0;
     padding: 12px 14px;
     border: 1px solid var(--border);
@@ -96,32 +217,33 @@ h6 {
     align-items: center;
     gap: 10px;
     justify-content: space-between;
-    background: linear-gradient(140deg, #ffffff 0%, #eef4ff 100%);
+    background: linear-gradient(140deg, var(--heading-top) 0%, var(--heading-bottom) 100%);
+    color: var(--text);
     font-weight: 650;
     letter-spacing: 0.01em;
     overflow-wrap: anywhere;
 }
 
-h1 {
+.IndexContent h1 {
     font-size: clamp(1.1rem, 1.7vw, 1.35rem);
 }
 
-h2 {
+.IndexContent h2 {
     font-size: 1.03rem;
 }
 
-h3 {
+.IndexContent h3 {
     font-size: 0.98rem;
 }
 
-h4,
-h5,
-h6 {
+.IndexContent h4,
+.IndexContent h5,
+.IndexContent h6 {
     font-size: 0.94rem;
 }
 
-.MainFolderBorder,
-.FolderBorder {
+.IndexContent .MainFolderBorder,
+.IndexContent .FolderBorder {
     background: var(--surface);
     border: 1px solid var(--border);
     border-top: none;
@@ -130,40 +252,40 @@ h6 {
     box-shadow: var(--shadow);
 }
 
-.MainFolderBorder {
+.IndexContent .MainFolderBorder {
     margin: 0 0 18px 0;
 }
 
-.FolderBorder {
+.IndexContent .FolderBorder {
     margin: 12px 0 0 0;
     border-left: 3px solid var(--brand-soft);
 }
 
-.FileList,
-ul {
+.IndexContent .FileList,
+.IndexContent ul {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-li {
+.IndexContent li {
     margin: 0;
 }
 
-.FolderInfo {
+.IndexContent .FolderInfo {
     margin-left: auto;
     padding: 3px 10px;
     border-radius: 999px;
-    background: #edf3ff;
-    border: 1px solid #d6e4ff;
+    background: var(--badge-bg);
+    border: 1px solid var(--badge-border);
     color: var(--muted);
     font-size: 0.78rem;
     font-weight: 600;
     white-space: nowrap;
 }
 
-.FileRow,
-ul > li {
+.IndexContent .FileRow,
+.IndexContent ul > li {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -174,40 +296,40 @@ ul > li {
     transition: background-color 120ms ease, border-color 120ms ease;
 }
 
-.FileRow:nth-child(odd),
-ul > li:nth-child(odd) {
+.IndexContent .FileRow:nth-child(odd),
+.IndexContent ul > li:nth-child(odd) {
     background: var(--surface-soft);
 }
 
-.FileRow:hover,
-ul > li:hover {
-    border-color: #d2def5;
-    background: #f1f6ff;
+.IndexContent .FileRow:hover,
+.IndexContent ul > li:hover {
+    border-color: var(--border);
+    background: var(--row-hover);
 }
 
-.FileName {
+.IndexContent .FileName {
     overflow-wrap: anywhere;
 }
 
-.FileSize {
+.IndexContent .FileSize {
     color: var(--muted);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
-.EmptyFolder {
+.IndexContent .EmptyFolder {
     margin: 0;
     padding: 8px 10px;
     color: var(--muted);
     font-style: italic;
 }
 
-footer {
+.IndexContent footer {
     margin-top: 22px;
     padding: 10px 12px;
     border-radius: 10px;
     color: var(--muted);
-    background: rgba(255, 255, 255, 0.68);
+    background: var(--footer-bg);
     border: 1px solid var(--border);
     font-size: 12px;
 }
@@ -217,28 +339,32 @@ footer {
         padding: 16px;
     }
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
+    .ThemeToggleLabel {
+        margin-bottom: 12px;
+    }
+
+    .IndexContent h1,
+    .IndexContent h2,
+    .IndexContent h3,
+    .IndexContent h4,
+    .IndexContent h5,
+    .IndexContent h6 {
         align-items: flex-start;
         flex-direction: column;
     }
 
-    .FolderInfo {
+    .IndexContent .FolderInfo {
         margin-left: 0;
         white-space: normal;
     }
 
-    .FileRow,
-    ul > li {
+    .IndexContent .FileRow,
+    .IndexContent ul > li {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .FileSize {
+    .IndexContent .FileSize {
         font-size: 0.82rem;
     }
 }";
@@ -266,6 +392,9 @@ footer {
             AppendHtmlLine(sbHtmlIndex, 1, HtmlHelper.EndTag("head"));
             AppendHtmlLine(sbHtmlIndex, 1, HtmlHelper.StartTag("body"));
             AppendHtmlLine(sbHtmlIndex, 2, HtmlHelper.StartTag("div", "", "class=\"container\""));
+            AppendHtmlLine(sbHtmlIndex, 3, "<input type=\"checkbox\" id=\"theme-toggle\" class=\"ThemeToggleInput\" aria-label=\"Toggle color theme\">");
+            AppendHtmlLine(sbHtmlIndex, 3, "<label for=\"theme-toggle\" class=\"ThemeToggleLabel\"><span class=\"ThemeToggleSwitch\" aria-hidden=\"true\"></span><span class=\"ThemeToggleText\"></span></label>");
+            AppendHtmlLine(sbHtmlIndex, 3, HtmlHelper.StartTag("div", "", "class=\"IndexContent\""));
 
             rootFolderPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folderPath));
 
@@ -274,12 +403,13 @@ footer {
 
             IndexFolder(folderInfo);
             string index = sbContent.ToString().TrimEnd();
-            AppendHtmlBlock(sbHtmlIndex, 0, index);
+            AppendHtmlBlock(sbHtmlIndex, 1, index);
             if (settings.AddFooter)
             {
-                AppendHtmlLine(sbHtmlIndex, ContentBaseIndent, HtmlHelper.StartTag("footer") + GetFooter() + HtmlHelper.EndTag("footer"));
+                AppendHtmlLine(sbHtmlIndex, ContentBaseIndent + 1, HtmlHelper.StartTag("footer") + GetFooter() + HtmlHelper.EndTag("footer"));
             }
 
+            AppendHtmlLine(sbHtmlIndex, 3, HtmlHelper.EndTag("div"));
             AppendHtmlLine(sbHtmlIndex, 2, HtmlHelper.EndTag("div"));
             AppendHtmlLine(sbHtmlIndex, 1, HtmlHelper.EndTag("body"));
             AppendHtmlLine(sbHtmlIndex, 0, HtmlHelper.EndTag("html"));
