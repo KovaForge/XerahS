@@ -135,3 +135,4 @@ SwiftPackageManager.build/
 /build/tmp-deb-check
 /build/logs
 /build/r2r-eval-no-r2r
+/build/r2r-eval-r2r
