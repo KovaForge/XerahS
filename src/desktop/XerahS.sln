@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.2.11415.280
@@ -82,6 +82,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XerahS.Dropbox.Plugin", "plugins\Dropbox.Plugin\XerahS.Dropbox.Plugin.csproj", "{A2482D3A-63C9-4462-BB8B-3AC8C2CEAB58}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XerahS.Bitly.Plugin", "plugins\Bitly.Plugin\XerahS.Bitly.Plugin.csproj", "{B4D5E6F7-A8B9-40C1-D3E4-5F6A7B8C9D0E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ShareX.VideoEditor", "ShareX.VideoEditor", "{D11D01EB-7B8F-3246-317D-EC0310EB12D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.VideoEditor", "..\..\ShareX.VideoEditor\src\ShareX.VideoEditor\ShareX.VideoEditor.csproj", "{26E776B0-562A-4ECD-93B3-4AAE901086C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -489,6 +493,18 @@ Global
 		{B4D5E6F7-A8B9-40C1-D3E4-5F6A7B8C9D0E}.Release|x64.Build.0 = Release|Any CPU
 		{B4D5E6F7-A8B9-40C1-D3E4-5F6A7B8C9D0E}.Release|x86.ActiveCfg = Release|Any CPU
 		{B4D5E6F7-A8B9-40C1-D3E4-5F6A7B8C9D0E}.Release|x86.Build.0 = Release|Any CPU
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Debug|Any CPU.Build.0 = Debug|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Debug|x64.ActiveCfg = Debug|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Debug|x64.Build.0 = Debug|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Debug|x86.ActiveCfg = Debug|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Debug|x86.Build.0 = Debug|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Release|Any CPU.ActiveCfg = Release|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Release|Any CPU.Build.0 = Release|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Release|x64.ActiveCfg = Release|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Release|x64.Build.0 = Release|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Release|x86.ActiveCfg = Release|x64
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -531,6 +547,7 @@ Global
 		{D26098F8-6C21-5B24-61C6-2D6B7CBD65FC} = {58D3A2C3-F96F-5E57-2C6B-ECE59D6A18FC}
 		{A2482D3A-63C9-4462-BB8B-3AC8C2CEAB58} = {58D3A2C3-F96F-5E57-2C6B-ECE59D6A18FC}
 		{B4D5E6F7-A8B9-40C1-D3E4-5F6A7B8C9D0E} = {58D3A2C3-F96F-5E57-2C6B-ECE59D6A18FC}
+		{26E776B0-562A-4ECD-93B3-4AAE901086C2} = {D11D01EB-7B8F-3246-317D-EC0310EB12D2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F0A091F-7E5D-481D-8E95-59D51B437C9B}
