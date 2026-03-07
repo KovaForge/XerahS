@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using XerahS.Platform.Abstractions;
+using XerahS.Common;
 using SkiaSharp;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
@@ -104,14 +105,16 @@ namespace XerahS.Platform.Windows
                 ? XerahS.Core.SettingsManager.GetWorkflowTaskSettings(options.WorkflowId)?.CaptureSettings 
                 : XerahS.Core.SettingsManager.DefaultTaskSettings.CaptureSettings;
 
-            bool useModern = options?.UseModernCapture ?? captureSettings?.UseModernCapture ?? false;
+            // Default true to match TaskSettingsCapture.UseModernCapture and CaptureOptions; prefer DXGI over GDI.
+            bool useModern = options?.UseModernCapture ?? captureSettings?.UseModernCapture ?? true;
 
             if (!IsSupported || !useModern)
             {
+                XerahS.Common.DebugHelper.WriteLine("Screen capture: using GDI fallback (UseModernCapture=false or DXGI unavailable)");
                 return await _fallbackService.CaptureRectAsync(rect, options);
             }
 
-            return await Task.Run(() =>
+            var result = await Task.Run(() =>
             {
                 try
                 {
@@ -151,7 +154,13 @@ namespace XerahS.Platform.Windows
                     // Fall back to GDI+ on error
                     return null;
                 }
-            }) ?? await _fallbackService.CaptureRectAsync(rect, options);
+            });
+            if (result == null)
+            {
+                XerahS.Common.DebugHelper.WriteLine("Screen capture: DXGI returned null; using GDI fallback");
+                return await _fallbackService.CaptureRectAsync(rect, options);
+            }
+            return result;
         }
 
         public async Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
@@ -160,14 +169,16 @@ namespace XerahS.Platform.Windows
                 ? XerahS.Core.SettingsManager.GetWorkflowTaskSettings(options.WorkflowId)?.CaptureSettings 
                 : XerahS.Core.SettingsManager.DefaultTaskSettings.CaptureSettings;
 
-            bool useModern = options?.UseModernCapture ?? captureSettings?.UseModernCapture ?? false;
+            // Default true to match TaskSettingsCapture.UseModernCapture and CaptureOptions; prefer DXGI over GDI.
+            bool useModern = options?.UseModernCapture ?? captureSettings?.UseModernCapture ?? true;
 
             if (!IsSupported || !useModern)
             {
+                XerahS.Common.DebugHelper.WriteLine("Screen capture: using GDI fallback (UseModernCapture=false or DXGI unavailable)");
                 return await _fallbackService.CaptureFullScreenAsync(options);
             }
 
-            return await Task.Run(() =>
+            var fullResult = await Task.Run(() =>
             {
                 try
                 {
@@ -177,7 +188,13 @@ namespace XerahS.Platform.Windows
                 {
                     return null;
                 }
-            }) ?? await _fallbackService.CaptureFullScreenAsync(options);
+            });
+            if (fullResult == null)
+            {
+                XerahS.Common.DebugHelper.WriteLine("Screen capture: DXGI returned null; using GDI fallback");
+                return await _fallbackService.CaptureFullScreenAsync(options);
+            }
+            return fullResult;
         }
 
         public async Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
@@ -270,7 +287,7 @@ namespace XerahS.Platform.Windows
             int minX = int.MaxValue, minY = int.MaxValue;
             int maxX = int.MinValue, maxY = int.MinValue;
 
-            foreach (var (output, adapter, bounds) in outputs)
+            foreach (var (output, adapter, bounds, _, _, _) in outputs)
             {
                 minX = Math.Min(minX, bounds.Left);
                 minY = Math.Min(minY, bounds.Top);
@@ -292,7 +309,13 @@ namespace XerahS.Platform.Windows
             var outputsByAdapter = outputs.GroupBy(x => x.Adapter).ToList();
 
             // Track resources for batch processing
-            var activeDuplications = new List<(IDXGIOutputDuplication Duplication, ID3D11Device Device, ID3D11Texture2D Staging, System.Drawing.Rectangle Bounds)>();
+            var activeDuplications = new List<(
+                IDXGIOutputDuplication Duplication,
+                ID3D11Device Device,
+                System.Drawing.Rectangle Bounds,
+                ModeRotation Rotation,
+                string DeviceName,
+                ModeRotation DxgiRotation)>();
             var devicesToDispose = new List<ID3D11Device>();
 
             try
@@ -312,30 +335,13 @@ namespace XerahS.Platform.Windows
 
                     // using var deviceContext = device.ImmediateContext; // REMOVED: Premature disposal causes NRE later
 
-                    foreach (var (output, _, bounds) in group)
+                    foreach (var (output, _, bounds, rotation, deviceName, dxgiRotation) in group)
                     {
                         try
                         {
                             // Duplicate output
                             var duplication = output.DuplicateOutput(device);
-
-                            // Create staging texture for CPU access
-                            var textureDesc = new Texture2DDescription
-                            {
-                                Width = (uint)bounds.Width,
-                                Height = (uint)bounds.Height,
-                                MipLevels = 1,
-                                ArraySize = 1,
-                                Format = Format.B8G8R8A8_UNorm,
-                                SampleDescription = new SampleDescription(1, 0),
-                                Usage = ResourceUsage.Staging,
-                                BindFlags = BindFlags.None,
-                                CPUAccessFlags = CpuAccessFlags.Read,
-                                MiscFlags = ResourceOptionFlags.None
-                            };
-                            var staging = device.CreateTexture2D(textureDesc);
-
-                            activeDuplications.Add((duplication, device, staging, bounds));
+                            activeDuplications.Add((duplication, device, bounds, rotation, deviceName, dxgiRotation));
                         }
                         catch (Exception ex)
                         {
@@ -357,8 +363,9 @@ namespace XerahS.Platform.Windows
                 }
 
                 // 3. Acquire & Process Frames
-                foreach (var (duplication, device, staging, bounds) in activeDuplications)
+                foreach (var (duplication, device, bounds, rotation, deviceName, dxgiRotation) in activeDuplications)
                 {
+                    bool frameAcquired = false;
                     try
                     {
                         // Acquire frame
@@ -366,23 +373,53 @@ namespace XerahS.Platform.Windows
 
                         if (acquireResult.Success && desktopResource != null)
                         {
+                            frameAcquired = true;
                             using (desktopResource)
                             {
                                 using var desktopTex = desktopResource.QueryInterface<ID3D11Texture2D>();
-                                device.ImmediateContext.CopyResource(staging, desktopTex);
-                            }
-                            duplication.ReleaseFrame();
+                                var sourceDesc = desktopTex.Description;
+                                XerahS.Common.DebugHelper.WriteLine(
+                                    $"CaptureFullScreenDxgi: Output {deviceName} frame source={sourceDesc.Width}x{sourceDesc.Height}, target={bounds.Width}x{bounds.Height}, rotation={rotation}, dxgiRotation={dxgiRotation}");
 
-                            // Map staging texture
-                            var dataBox = device.ImmediateContext.Map(staging, 0, MapMode.Read);
-                            try
-                            {
-                                // Draw to combined bitmap
-                                DrawMappedTextureToCanvas(dataBox, bounds.Width, bounds.Height, bounds.Left - minX, bounds.Top - minY, canvas);
-                            }
-                            finally
-                            {
-                                device.ImmediateContext.Unmap(staging, 0);
+                                // For rotated outputs, Desktop Duplication can return an unrotated surface
+                                // whose dimensions differ from desktop bounds. Always match staging to source.
+                                var stagingDesc = new Texture2DDescription
+                                {
+                                    Width = sourceDesc.Width,
+                                    Height = sourceDesc.Height,
+                                    MipLevels = 1,
+                                    ArraySize = 1,
+                                    Format = sourceDesc.Format,
+                                    SampleDescription = new SampleDescription(1, 0),
+                                    Usage = ResourceUsage.Staging,
+                                    BindFlags = BindFlags.None,
+                                    CPUAccessFlags = CpuAccessFlags.Read,
+                                    MiscFlags = ResourceOptionFlags.None
+                                };
+
+                                using var staging = device.CreateTexture2D(stagingDesc);
+                                device.ImmediateContext.CopyResource(staging, desktopTex);
+
+                                // Map staging texture
+                                var dataBox = device.ImmediateContext.Map(staging, 0, MapMode.Read);
+                                try
+                                {
+                                    // Draw to combined bitmap, applying output rotation correction.
+                                    DrawMappedTextureToCanvas(
+                                        dataBox,
+                                        (int)sourceDesc.Width,
+                                        (int)sourceDesc.Height,
+                                        bounds.Left - minX,
+                                        bounds.Top - minY,
+                                        bounds.Width,
+                                        bounds.Height,
+                                        rotation,
+                                        canvas);
+                                }
+                                finally
+                                {
+                                    device.ImmediateContext.Unmap(staging, 0);
+                                }
                             }
                         }
                         else
@@ -396,8 +433,19 @@ namespace XerahS.Platform.Windows
                     }
                     finally
                     {
+                        if (frameAcquired)
+                        {
+                            try
+                            {
+                                duplication.ReleaseFrame();
+                            }
+                            catch
+                            {
+                                // Ignore frame release failures during cleanup.
+                            }
+                        }
+
                         duplication.Dispose();
-                        staging.Dispose();
                     }
                 }
             }
@@ -411,6 +459,9 @@ namespace XerahS.Platform.Windows
                     group.Key.Dispose();
                 }
             }
+
+            // Log success so the log file verifies DXGI (Vortice.Direct3D11/DXGI) was actually used
+            XerahS.Common.DebugHelper.WriteLine($"Screen capture: DXGI Output Duplication succeeded ({combinedBitmap.Width}x{combinedBitmap.Height})");
 
             // Draw cursor if requested (after DXGI capture which doesn't include cursor)
             if (drawCursor)
@@ -464,38 +515,83 @@ namespace XerahS.Platform.Windows
             }
         }
 
-        private void DrawMappedTextureToCanvas(MappedSubresource dataBox, int width, int height, int destX, int destY, SKCanvas canvas)
+        private void DrawMappedTextureToCanvas(
+            MappedSubresource dataBox,
+            int sourceWidth,
+            int sourceHeight,
+            int destX,
+            int destY,
+            int destWidth,
+            int destHeight,
+            ModeRotation rotation,
+            SKCanvas canvas)
         {
             // Create a temporary SKBitmap wrapping the data
             // Note: We cannot wrap directly because SKBitmap doesn't support strided data easily without copy or specialized installPixels
             // For simplicity and safety (handling pitch), we copy row by row to a temp bitmap
 
-            using var tempBitmap = new SKBitmap(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-            var destPixels = tempBitmap.GetPixels();
+            using var sourceBitmap = new SKBitmap(sourceWidth, sourceHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
+            var destPixels = sourceBitmap.GetPixels();
             int srcPitch = (int)dataBox.RowPitch;
-            int destPitch = width * 4;
+            int sourcePitch = sourceWidth * 4;
 
             unsafe
             {
-                for (int y = 0; y < height; y++)
+                for (int y = 0; y < sourceHeight; y++)
                 {
                     IntPtr srcRow = IntPtr.Add(dataBox.DataPointer, y * srcPitch);
-                    IntPtr destRow = IntPtr.Add(destPixels, y * destPitch);
+                    IntPtr destRow = IntPtr.Add(destPixels, y * sourcePitch);
 
-                    Buffer.MemoryCopy((void*)srcRow, (void*)destRow, destPitch, destPitch);
+                    Buffer.MemoryCopy((void*)srcRow, (void*)destRow, sourcePitch, sourcePitch);
                 }
             }
 
-            canvas.DrawBitmap(tempBitmap, destX, destY);
+            using SKBitmap bitmapToDraw = RotateBitmapForDesktop(sourceBitmap, rotation);
+            var destRect = new SKRect(destX, destY, destX + destWidth, destY + destHeight);
+            canvas.DrawBitmap(bitmapToDraw, destRect);
+        }
+
+        /// <summary>
+        /// Rotates an output frame back into desktop orientation when DXGI provides unrotated output.
+        /// Delegates to <see cref="BitmapRotationHelper.RotateClockwise"/> for cross-platform testability.
+        /// </summary>
+        private static SKBitmap RotateBitmapForDesktop(SKBitmap sourceBitmap, ModeRotation rotation)
+        {
+            // Map ModeRotation (Vortice.DXGI enum) → clockwise degrees for BitmapRotationHelper.
+            // ModeRotation.Rotate90 = display is physically rotated 90° CW → frame needs 90° CW correction.
+            // ModeRotation.Rotate270 = display is physically rotated 270° CW → frame needs 270° CW correction.
+            // Issue #148: DMDO_90/DMDO_270 were previously swapped in TryGetDisplaySettingsRotation,
+            // causing the wrong ModeRotation to reach here and producing a black/inverted image on rotated monitors.
+            int degrees = rotation switch
+            {
+                ModeRotation.Rotate90 => 90,
+                ModeRotation.Rotate180 => 180,
+                ModeRotation.Rotate270 => 270,
+                _ => 0  // Identity / Unspecified
+            };
+
+            return BitmapRotationHelper.RotateClockwise(sourceBitmap, degrees);
         }
 
         /// <summary>
         /// Enumerates all DXGI outputs from all adapters
         /// </summary>
-        private System.Collections.Generic.List<(IDXGIOutput1 Output, IDXGIAdapter1 Adapter, System.Drawing.Rectangle Bounds)>
+        private System.Collections.Generic.List<(
+            IDXGIOutput1 Output,
+            IDXGIAdapter1 Adapter,
+            System.Drawing.Rectangle Bounds,
+            ModeRotation Rotation,
+            string DeviceName,
+            ModeRotation DxgiRotation)>
             EnumerateOutputs(IDXGIFactory1 factory)
         {
-            var outputs = new System.Collections.Generic.List<(IDXGIOutput1, IDXGIAdapter1, System.Drawing.Rectangle)>();
+            var outputs = new System.Collections.Generic.List<(
+                IDXGIOutput1,
+                IDXGIAdapter1,
+                System.Drawing.Rectangle,
+                ModeRotation,
+                string,
+                ModeRotation)>();
 
             for (uint adapterIndex = 0; factory.EnumAdapters1(adapterIndex, out var adapter).Success; adapterIndex++)
             {
@@ -522,7 +618,18 @@ namespace XerahS.Platform.Windows
                         rect.Bottom - rect.Top
                     );
 
-                    outputs.Add((output1, adapter, bounds));
+                    var dxgiRotation = outputDesc.Rotation;
+                    var effectiveRotation = TryGetDisplaySettingsRotation(outputDesc.DeviceName, out var displayRotation)
+                        ? displayRotation
+                        : dxgiRotation;
+
+                    if (effectiveRotation != dxgiRotation)
+                    {
+                        XerahS.Common.DebugHelper.WriteLine(
+                            $"CaptureFullScreenDxgi: Rotation override for {outputDesc.DeviceName}. DisplaySettings={effectiveRotation}, DXGI={dxgiRotation}");
+                    }
+
+                    outputs.Add((output1, adapter, bounds, effectiveRotation, outputDesc.DeviceName, dxgiRotation));
                     output.Dispose();
                 }
 
@@ -534,6 +641,90 @@ namespace XerahS.Platform.Windows
             }
 
             return outputs;
+        }
+
+        private static bool TryGetDisplaySettingsRotation(string deviceName, out ModeRotation rotation)
+        {
+            rotation = ModeRotation.Unspecified;
+
+            var devMode = new NativeMethods.DEVMODE
+            {
+                dmSize = (short)Marshal.SizeOf(typeof(NativeMethods.DEVMODE))
+            };
+
+            if (!NativeMethods.EnumDisplaySettings(deviceName, NativeMethods.ENUM_CURRENT_SETTINGS, ref devMode))
+            {
+                return false;
+            }
+
+            // Issue #148 regression guard: DEVMODE and DXGI both use CLOCKWISE degrees.
+            // DMDO_90 (1) = 90° CW  → ModeRotation.Rotate90   (NOT Rotate270)
+            // DMDO_270 (3) = 270° CW → ModeRotation.Rotate270  (NOT Rotate90)
+            // Previously these were swapped, causing black screens on portrait/flipped monitors.
+            // See also: BitmapRotationHelperTests for cross-platform regression coverage.
+            rotation = devMode.dmDisplayOrientation switch
+            {
+                NativeMethods.DMDO_DEFAULT => ModeRotation.Identity,
+                NativeMethods.DMDO_90 => ModeRotation.Rotate90,    // 90° CW
+                NativeMethods.DMDO_180 => ModeRotation.Rotate180,  // 180°
+                NativeMethods.DMDO_270 => ModeRotation.Rotate270,  // 270° CW
+                _ => ModeRotation.Unspecified
+            };
+
+            XerahS.Common.DebugHelper.WriteLine(
+                $"CaptureFullScreenDxgi: EnumDisplaySettings orientation for {deviceName} => dmDisplayOrientation={devMode.dmDisplayOrientation}, mappedRotation={rotation}");
+
+            return true;
+        }
+
+        private static class NativeMethods
+        {
+            public const int ENUM_CURRENT_SETTINGS = -1;
+
+            public const int DMDO_DEFAULT = 0;
+            public const int DMDO_90 = 1;
+            public const int DMDO_180 = 2;
+            public const int DMDO_270 = 3;
+
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+            public struct DEVMODE
+            {
+                [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+                public string dmDeviceName;
+                public short dmSpecVersion;
+                public short dmDriverVersion;
+                public short dmSize;
+                public short dmDriverExtra;
+                public int dmFields;
+                public int dmPositionX;
+                public int dmPositionY;
+                public int dmDisplayOrientation;
+                public int dmDisplayFixedOutput;
+                public short dmColor;
+                public short dmDuplex;
+                public short dmYResolution;
+                public short dmTTOption;
+                public short dmCollate;
+                [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+                public string dmFormName;
+                public short dmLogPixels;
+                public int dmBitsPerPel;
+                public int dmPelsWidth;
+                public int dmPelsHeight;
+                public int dmDisplayFlags;
+                public int dmDisplayFrequency;
+                public int dmICMMethod;
+                public int dmICMIntent;
+                public int dmMediaType;
+                public int dmDitherType;
+                public int dmReserved1;
+                public int dmReserved2;
+                public int dmPanningWidth;
+                public int dmPanningHeight;
+            }
+
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+            public static extern bool EnumDisplaySettings(string lpszDeviceName, int iModeNum, ref DEVMODE lpDevMode);
         }
     }
 #pragma warning restore CA1416

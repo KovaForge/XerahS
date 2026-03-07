@@ -56,11 +56,39 @@ namespace XerahS.Common
         public static string ScreenshotsFolder => Path.Combine(PersonalFolder, AppResources.ScreenshotsFolderName);
         public static string ScreencastsFolder => Path.Combine(PersonalFolder, AppResources.ScreencastsFolderName);
         public static string FrameDumpsFolder => Path.Combine(ScreencastsFolder, "FrameDumps");
-        
+
+        /// <summary>Base folder for all log files (e.g. PersonalFolder/Logs).</summary>
+        public static string LogsFolderBase => Path.Combine(PersonalFolder, "Logs");
+
+        /// <summary>Logs subfolder for the given month (e.g. Logs/yyyy-MM). Uses current date if null.</summary>
+        public static string GetLogsFolderForMonth(DateTime? date = null) =>
+            Path.Combine(LogsFolderBase, (date ?? DateTime.Now).ToString("yyyy-MM"));
+
+        /// <summary>Filename prefix for the dedicated error log (full name: XerahS-errors-yyyyMMdd.log).</summary>
+        public const string ErrorLogFileNamePrefix = "XerahS-errors";
+
+        /// <summary>Full path to the error log file for today: Logs/yyyy-MM/XerahS-errors-yyyyMMdd.log.</summary>
+        public static string GetErrorLogFilePath()
+        {
+            var date = DateTime.Now;
+            return Path.Combine(GetLogsFolderForMonth(date), $"{ErrorLogFileNamePrefix}-{date:yyyyMMdd}.log");
+        }
+
+        /// <summary>Full path to the main log file for today: Logs/yyyy-MM/AppName-yyyyMMdd.log.</summary>
+        public static string GetMainLogFilePath()
+        {
+            var date = DateTime.Now;
+            return Path.Combine(GetLogsFolderForMonth(date), $"{AppResources.AppName}-{date:yyyyMMdd}.log");
+        }
+
         public static string SettingsFolder => Path.Combine(PersonalFolder, AppResources.SettingsFolderName);
         public static string HistoryFolder => Path.Combine(PersonalFolder, AppResources.HistoryFolderName);
         public static string BackupFolder => Path.Combine(SettingsFolder, AppResources.BackupFolderName);
         public static string HistoryBackupFolder => Path.Combine(HistoryFolder, AppResources.BackupFolderName);
+        /// <summary>Folder for troubleshooting / diagnostic logs (e.g. DPI, capture).</summary>
+        public static string TroubleshootingFolder => Path.Combine(PersonalFolder, "Troubleshooting");
+        /// <summary>Base folder for capture verification outputs (region/recording verify).</summary>
+        public static string CaptureTroubleshootingFolder => Path.Combine(PersonalFolder, "CaptureTroubleshooting");
         public static string ToolsFolder => Path.Combine(PersonalFolder, "Tools");
         public static string ToolsArchitectureFolder => Path.Combine(ToolsFolder, GetArchitectureFolderName());
         public static string PluginsFolder
@@ -72,7 +100,12 @@ namespace XerahS.Common
                     return Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
                 return Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
 #else
-                return Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
+                string personalPlugins = Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
+                if (Directory.Exists(personalPlugins) && Directory.GetFileSystemEntries(personalPlugins).Length > 0)
+                {
+                    return personalPlugins;
+                }
+                return Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
 #endif
             }
         }
@@ -186,10 +219,11 @@ namespace XerahS.Common
             }
 
             // 2. Check Common System Locations
+            string appToolsDir = GetAppToolsDirectory();
             string[] commonPaths = new[]
             {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "ffmpeg.exe"),
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg"),
+                Path.Combine(appToolsDir, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg"),
+                Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "FFmpeg", "bin", "ffmpeg.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "FFmpeg", "bin", "ffmpeg.exe"),
                 "/opt/homebrew/bin/ffmpeg",
@@ -227,6 +261,10 @@ namespace XerahS.Common
             DebugHelper.WriteLine("[FFmpeg] FFmpeg not found in any standard location.");
             return string.Empty;
         }
+
+        /// <summary>App-bundled tools directory (BaseDirectory/Tools). Used for FFmpeg lookup and path consistency.</summary>
+        private static string GetAppToolsDirectory() =>
+            Path.Combine(AppContext.BaseDirectory, "Tools");
 
         private static string GetArchitectureFolderName()
         {

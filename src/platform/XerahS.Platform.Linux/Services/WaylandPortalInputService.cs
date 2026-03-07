@@ -100,10 +100,10 @@ public sealed class WaylandPortalInputService : IInputService
         ObjectPath sessionHandle = (ObjectPath)_sessionHandle!;
         _sessionProxy = _connection?.CreateProxy<IPortalSession>(PortalBusName, sessionHandle);
 
-        _activatedSubscription = await _portal.WatchActivatedAsync(OnActivated).ConfigureAwait(false);
-        _deactivatedSubscription = await _portal.WatchDeactivatedAsync(OnDeactivated).ConfigureAwait(false);
-        _zonesChangedSubscription = await _portal.WatchZonesChangedAsync(OnZonesChanged).ConfigureAwait(false);
-        _disabledSubscription = await _portal.WatchDisabledAsync(OnDisabled).ConfigureAwait(false);
+        _activatedSubscription = await _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).ConfigureAwait(false);
+        _deactivatedSubscription = await _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).ConfigureAwait(false);
+        _zonesChangedSubscription = await _portal.WatchZonesChangedAsync(OnZonesChanged, OnPortalWatchError).ConfigureAwait(false);
+        _disabledSubscription = await _portal.WatchDisabledAsync(OnDisabled, OnPortalWatchError).ConfigureAwait(false);
 
         await RefreshZonesAsync().ConfigureAwait(false);
         await EnableAsync().ConfigureAwait(false);
@@ -162,7 +162,9 @@ public sealed class WaylandPortalInputService : IInputService
 
         if (response != 0)
         {
-            DebugHelper.WriteLine($"WaylandPortalInputService: CreateSession failed ({response})");
+            DebugHelper.WriteLine($"WaylandPortalInputService: CreateSession rejected by portal backend (response={response}). " +
+                "This is expected on some compositors (e.g. KDE Plasma) where InputCapture is not fully supported. " +
+                "Cursor tracking will use fallback.");
             return null;
         }
 
@@ -387,6 +389,11 @@ public sealed class WaylandPortalInputService : IInputService
     private bool SessionMatches(ObjectPath sessionHandle)
     {
         return _sessionHandle != null && _sessionHandle.Equals(sessionHandle);
+    }
+
+    private static void OnPortalWatchError(Exception ex)
+    {
+        DebugHelper.WriteException(ex, "WaylandPortalInputService: Portal watch error (e.g. service gone).");
     }
 
     private void OnActivated((ObjectPath sessionHandle, IDictionary<string, object> options) data)

@@ -55,17 +55,15 @@ namespace XerahS.App
                 // Subscribe to receive arguments from subsequent instances
                 _singleInstanceManager.ArgumentsReceived += OnArgumentsReceived;
 
-                // Initialize logging with datestamped file in Logs/yyyy-mm folder structure
-                var baseFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), XerahS.Core.SettingsManager.AppName);
-                var logsFolder = System.IO.Path.Combine(baseFolder, "Logs", DateTime.Now.ToString("yyyy-MM"));
-                var logPath = System.IO.Path.Combine(logsFolder, $"{XerahS.Common.AppResources.AppName}-{DateTime.Now:yyyyMMdd}.log");
+                // Initialize logging (path from PathsManager: LogsFolderBase / GetMainLogFilePath)
+                var logPath = XerahS.Common.PathsManager.GetMainLogFilePath();
                 XerahS.Common.DebugHelper.Init(logPath);
                 RegisterGlobalExceptionHandlers();
 
                 var dh = XerahS.Common.DebugHelper.Logger ?? throw new InvalidOperationException("Logger not initialised");
                 dh.AsyncWrite = false; // Synchronous for startup
 
-                dh.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {XerahS.Common.AppResources.AppName} starting.");
+                dh.WriteLine($"{XerahS.Common.AppResources.AppName} starting.");
                 dh.WriteLine("Running as first instance (single instance mode enabled).");
 
                 var version = XerahS.Common.AppResources.Version;
@@ -78,7 +76,7 @@ namespace XerahS.App
 #endif
 
                 dh.WriteLine($"Command line: \"{Environment.ProcessPath}\"");
-                dh.WriteLine($"Personal path: {logsFolder}");
+                dh.WriteLine($"Personal path: {XerahS.Common.PathsManager.GetLogsFolderForMonth()}");
                 dh.WriteLine($"Operating system: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})");
                 dh.WriteLine($".NET version: {System.Environment.Version}");
 
@@ -107,6 +105,7 @@ namespace XerahS.App
                 if (OperatingSystem.IsLinux())
                 {
                     ValidateLinuxDisplayEnvironment();
+                    ClearX11SessionManagement();
                 }
 
                 // Initialize settings first (UseModernCapture must be available for platform init)
@@ -188,6 +187,27 @@ namespace XerahS.App
             return ex.Message.Contains("XOpenDisplay", StringComparison.OrdinalIgnoreCase) ||
                    ex.Message.Contains("display", StringComparison.OrdinalIgnoreCase) ||
                    ex.ToString().Contains("Avalonia.X11", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Unsets X11 session management environment variables to prevent Avalonia from registering
+        /// with XSMP (X Session Management Protocol). Without this, ksmserver (KDE) may receive a
+        /// "cancel shutdown" signal from XerahS because Avalonia connects to the session manager but
+        /// does not implement the SaveYourself/Die callback sequence. XerahS does not support session
+        /// restore, so dropping the XSMP connection has no functional impact. Fixes issue #169.
+        /// </summary>
+        private static void ClearX11SessionManagement()
+        {
+            var sessionManager = Environment.GetEnvironmentVariable("SESSION_MANAGER");
+            var smClientId = Environment.GetEnvironmentVariable("SM_CLIENT_ID");
+
+            if (sessionManager != null || smClientId != null)
+            {
+                Environment.SetEnvironmentVariable("SESSION_MANAGER", null);
+                Environment.SetEnvironmentVariable("SM_CLIENT_ID", null);
+                XerahS.Common.DebugHelper.WriteLine(
+                    "Linux X11: Cleared SESSION_MANAGER and SM_CLIENT_ID to prevent XSMP shutdown interference (issue #169).");
+            }
         }
 
         /// <summary>
@@ -488,17 +508,11 @@ namespace XerahS.App
                     // 1. Initialize Plugins (ProviderCatalog)
                     try
                     {
-                        XerahS.Common.DebugHelper.WriteLine("Initializing Plugins...");
                         XerahS.Core.Uploaders.ProviderContextManager.EnsureProviderContext();
                         XerahS.Uploaders.PluginSystem.ProviderCatalog.InitializeBuiltInProviders(); // Ensure built-ins
-                        
-                        var pluginPaths = XerahS.Common.PathsManager.GetPluginDirectories();
-                        XerahS.Common.DebugHelper.WriteLine($"Scanning for plugins in: {string.Join(", ", pluginPaths)}");
-                        
-                        XerahS.Uploaders.PluginSystem.ProviderCatalog.LoadPlugins(pluginPaths);
-                        
+                        XerahS.Uploaders.PluginSystem.ProviderCatalog.LoadPlugins(XerahS.Common.PathsManager.GetPluginDirectories());
                         int pluginCount = XerahS.Uploaders.PluginSystem.ProviderCatalog.GetAllProviders().Count;
-                        XerahS.Common.DebugHelper.WriteLine($"Plugins initialized. Total providers: {pluginCount}");
+                        XerahS.Common.DebugHelper.WriteLine($"Plugins: {pluginCount} loaded");
                     }
                     catch (Exception ex)
                     {

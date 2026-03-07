@@ -26,14 +26,17 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json.Linq;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.Views;
 using XerahS.Uploaders;
 using XerahS.Uploaders.CustomUploader;
+using XerahS.Uploaders.LegacySupport;
 using XerahS.Uploaders.PluginSystem;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text;
 
 namespace XerahS.UI.ViewModels;
 
@@ -174,7 +177,7 @@ public partial class DestinationSettingsViewModel : ViewModelBase
                     AllowMultiple = false,
                     FileTypeFilter = new[]
                     {
-                        new FilePickerFileType("ShareX Config") { Patterns = new[] { "UploadersConfig.json" } },
+                        new FilePickerFileType("ShareX Config") { Patterns = new[] { "*UploadersConfig*.json" } },
                         new FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } }
                     }
                 });
@@ -190,9 +193,41 @@ public partial class DestinationSettingsViewModel : ViewModelBase
             var result = UploadersConfigImporter.ImportFromFile(configPath, SettingsManager.UploadersConfig);
             SettingsManager.SaveUploadersConfig();
 
-            OnPropertyChanged(string.Empty);
+            var customUploaderExport = ExportImportedCustomUploaders(result.ImportedCustomUploaders);
 
-            await ShowMessageDialogAsync("Import Complete", result.GetSummary());
+            if (customUploaderExport.ExportedCount > 0 || customUploaderExport.SkippedCount > 0)
+            {
+                ProviderCatalog.LoadCustomUploaders(customUploaderExport.PluginsPath);
+
+                // Auto-create instances for newly exported custom uploaders
+                foreach (var filePath in customUploaderExport.ExportedFilePaths)
+                {
+                    AutoCreateCustomUploaderInstances(filePath, customUploaderExport);
+                }
+
+                foreach (var category in Categories)
+                {
+                    category.LoadInstances();
+                }
+            }
+
+            // Migrate built-in provider settings (S3, FTP, Pastebin, Imgur)
+            var builtinMigration = BuiltinInstanceMigrator.Migrate(SettingsManager.UploadersConfig);
+
+            if (builtinMigration.TotalCreated + builtinMigration.TotalUpdated > 0)
+            {
+                foreach (var category in Categories)
+                {
+                    category.LoadInstances();
+                }
+            }
+
+            string title = customUploaderExport.FailedCount > 0
+                ? "Import Complete (With Warnings)"
+                : "Import Complete";
+
+            string summary = BuildImportSummary(configPath, result, customUploaderExport, builtinMigration);
+            await ShowMessageDialogAsync(title, summary);
         }
         catch (Exception ex)
         {
@@ -260,13 +295,14 @@ public partial class DestinationSettingsViewModel : ViewModelBase
                     Directory.CreateDirectory(pluginsPath);
                 }
 
-                var filePath = Path.Combine(pluginsPath, $"{safeName}.sxcu");
+                // Ensure unique filename (with duplicate detection)
+                var filePath = ResolveCustomUploaderFilePath(pluginsPath, safeName, item, out bool isDuplicate);
 
-                // Ensure unique filename
-                int counter = 1;
-                while (File.Exists(filePath))
+                if (isDuplicate)
                 {
-                    filePath = Path.Combine(pluginsPath, $"{safeName}_{counter++}.sxcu");
+                    await ShowMessageDialogAsync("Custom Uploader Already Exists",
+                        $"A custom uploader with identical configuration as '{item.Name}' already exists.");
+                    return;
                 }
 
                 if (CustomUploaderRepository.SaveToFile(item, filePath))
@@ -297,6 +333,48 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         }
     }
 
+    private static void AutoCreateCustomUploaderInstances(string filePath, CustomUploaderExportResult exportResult)
+    {
+        string baseName = Path.GetFileNameWithoutExtension(filePath);
+        string slug = System.Text.RegularExpressions.Regex.Replace(
+            baseName.ToLowerInvariant(), @"[^a-z0-9]+", "_").Trim('_');
+        if (string.IsNullOrEmpty(slug)) slug = "unknown";
+        string providerId = $"custom_{slug}";
+
+        var provider = ProviderCatalog.GetProvider(providerId);
+        if (provider == null) return;
+
+        foreach (var category in provider.SupportedCategories)
+        {
+            bool alreadyExists = InstanceManager.Instance
+                .GetInstancesByCategory(category)
+                .Any(i => string.Equals(i.ProviderId, providerId, StringComparison.OrdinalIgnoreCase));
+
+            if (alreadyExists)
+            {
+                exportResult.InstancesSkipped++;
+                continue;
+            }
+
+            try
+            {
+                InstanceManager.Instance.AddInstance(new UploaderInstance
+                {
+                    ProviderId = providerId,
+                    Category = category,
+                    DisplayName = provider.Name,
+                    SettingsJson = provider.GetDefaultSettings(category),
+                    FileTypeRouting = new FileTypeScope { AllFileTypes = true }
+                });
+                exportResult.InstancesCreated++;
+            }
+            catch (Exception ex)
+            {
+                Common.DebugHelper.WriteException(ex, $"[DestinationSettings] Failed to auto-create instance for {providerId}/{category}");
+            }
+        }
+    }
+
     private static string MakeSafeFileName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -310,6 +388,174 @@ public partial class DestinationSettingsViewModel : ViewModelBase
 
         // Ensure not empty after sanitization
         return string.IsNullOrWhiteSpace(safeName) ? "CustomUploader" : safeName;
+    }
+
+    private CustomUploaderExportResult ExportImportedCustomUploaders(IReadOnlyCollection<CustomUploaderItem> customUploaders)
+    {
+        var result = new CustomUploaderExportResult
+        {
+            PluginsPath = PathsManager.PluginsFolder
+        };
+
+        if (customUploaders.Count == 0)
+        {
+            return result;
+        }
+
+        try
+        {
+            if (!Directory.Exists(result.PluginsPath))
+            {
+                Directory.CreateDirectory(result.PluginsPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            result.FailedCount = customUploaders.Count;
+            DebugHelper.WriteException(ex, "Failed to prepare plugins directory for custom uploader import");
+            return result;
+        }
+
+        foreach (var customUploader in customUploaders)
+        {
+            if (customUploader == null)
+            {
+                result.FailedCount++;
+                continue;
+            }
+
+            string suggestedName = !string.IsNullOrWhiteSpace(customUploader.Name)
+                ? customUploader.Name
+                : customUploader.ToString();
+
+            string safeName = MakeSafeFileName(suggestedName);
+            string filePath = ResolveCustomUploaderFilePath(result.PluginsPath, safeName, customUploader, out bool isDuplicate);
+
+            if (isDuplicate)
+            {
+                result.SkippedCount++;
+                continue;
+            }
+
+            if (CustomUploaderRepository.SaveToFile(customUploader, filePath))
+            {
+                result.ExportedCount++;
+                result.ExportedFilePaths.Add(filePath);
+            }
+            else
+            {
+                result.FailedCount++;
+            }
+        }
+
+        return result;
+    }
+
+    private static string ResolveCustomUploaderFilePath(
+        string pluginsPath,
+        string safeName,
+        CustomUploaderItem customUploader,
+        out bool isDuplicate)
+    {
+        int counter = 0;
+
+        while (true)
+        {
+            string fileName = counter == 0 ? $"{safeName}.sxcu" : $"{safeName}_{counter}.sxcu";
+            string filePath = Path.Combine(pluginsPath, fileName);
+
+            if (!File.Exists(filePath))
+            {
+                isDuplicate = false;
+                return filePath;
+            }
+
+            if (IsEquivalentCustomUploaderFile(filePath, customUploader))
+            {
+                isDuplicate = true;
+                return filePath;
+            }
+
+            counter++;
+        }
+    }
+
+    private static bool IsEquivalentCustomUploaderFile(string filePath, CustomUploaderItem customUploader)
+    {
+        try
+        {
+            var existing = CustomUploaderRepository.LoadFromFile(filePath);
+            if (!existing.IsValid)
+            {
+                return false;
+            }
+
+            JToken existingToken = JToken.FromObject(existing.Item);
+            JToken incomingToken = JToken.FromObject(customUploader);
+
+            return JToken.DeepEquals(existingToken, incomingToken);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, $"Failed to compare custom uploader file: {filePath}");
+            return false;
+        }
+    }
+
+    private static string BuildImportSummary(
+        string sourceConfigPath,
+        ImportResult importResult,
+        CustomUploaderExportResult customUploaderExport,
+        BuiltinMigrationResult builtinMigration)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine($"Source: {sourceConfigPath}");
+        builder.AppendLine();
+        builder.Append(importResult.GetSummary());
+
+        if (importResult.TotalImportedCustomUploaders > 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+            builder.AppendLine("Custom uploader export:");
+            builder.AppendLine($"- Imported from config: {importResult.TotalImportedCustomUploaders}");
+            builder.AppendLine($"- Created .sxcu files: {customUploaderExport.ExportedCount}");
+            builder.AppendLine($"- Skipped duplicates: {customUploaderExport.SkippedCount}");
+            builder.AppendLine($"- Failed exports: {customUploaderExport.FailedCount}");
+            builder.AppendLine($"- Plugins folder: {customUploaderExport.PluginsPath}");
+
+            if (customUploaderExport.InstancesCreated > 0)
+            {
+                builder.AppendLine();
+                builder.Append($"Auto-created {customUploaderExport.InstancesCreated} destination instance(s) — ready to use.");
+            }
+            else if (customUploaderExport.ExportedCount > 0)
+            {
+                builder.AppendLine();
+                builder.Append("Next step: use \"Add from Catalog\" to create destination instances from imported custom uploaders.");
+            }
+        }
+
+        if (builtinMigration.HasAnything)
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+            builder.AppendLine("Built-in provider migration:");
+            builder.Append(builtinMigration.GetSummary());
+        }
+
+        return builder.ToString();
+    }
+
+    private sealed class CustomUploaderExportResult
+    {
+        public string PluginsPath { get; init; } = string.Empty;
+        public int ExportedCount { get; set; }
+        public int SkippedCount { get; set; }
+        public int FailedCount { get; set; }
+        public List<string> ExportedFilePaths { get; } = new();
+        public int InstancesCreated { get; set; }
+        public int InstancesSkipped { get; set; }
     }
 
     private async Task ShowMessageDialogAsync(string title, string message)

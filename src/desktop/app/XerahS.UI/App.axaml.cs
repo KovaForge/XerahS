@@ -26,7 +26,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using ShareX.ImageEditor.ViewModels;
+using ShareX.ImageEditor.Hosting;
+using ShareX.ImageEditor.Presentation.ViewModels;
+using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Media.Encoders;
@@ -46,6 +48,13 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        // Set the Wayland xdg_toplevel app_id to match the installed xerahs.desktop filename.
+        // Without this, Avalonia defaults to the process name ("XerahS" with capital X), which
+        // does not match "xerahs.desktop", so xdg-desktop-portal cannot identify the app and
+        // GNOME's GlobalShortcuts portal backend returns response=2 (Failed) immediately,
+        // forcing an X11 fallback that does not work under XWayland.
+        Name = "xerahs";
 
         // Initialize theme based on user preference (System/Light/Dark)
         // This handles Linux properly where Avalonia's default detection doesn't work
@@ -75,8 +84,31 @@ public partial class App : Application
             // Wire up UploadRequested for embedded editor in MainWindow
             Services.MainViewModelHelper.WireUploadRequested(mainViewModel);
 
-            // Wire up CopyRequested for embedded editor in MainWindow
-            Services.MainViewModelHelper.WireCopyRequested(mainViewModel);
+            // Wire up CopyRequested for embedded editor in MainWindow (use edited snapshot when on Editor tab)
+            Services.MainViewModelHelper.WireCopyRequested(mainViewModel, () =>
+            {
+                if (desktop.MainWindow is Views.MainWindow mw)
+                {
+                    var contentFrame = mw.FindControl<ContentControl>("ContentFrame");
+                    if (contentFrame?.Content is EditorView ev)
+                        return ev.GetSnapshot();
+                }
+                return null;
+            });
+
+            // Wire up SaveRequested / SaveAsRequested for embedded editor in MainWindow
+            Func<SkiaSharp.SKBitmap?> getEmbeddedSnapshot = () =>
+            {
+                if (desktop.MainWindow is Views.MainWindow mw)
+                {
+                    var contentFrame = mw.FindControl<ContentControl>("ContentFrame");
+                    if (contentFrame?.Content is EditorView ev)
+                        return ev.GetSnapshot();
+                }
+                return null;
+            };
+            Services.MainViewModelHelper.WireSaveRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
+            Services.MainViewModelHelper.WireSaveAsRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
 
             // Prepare for Silent Run
             bool silentRun = XerahS.Core.SettingsManager.Settings.SilentRun;
@@ -96,6 +128,11 @@ public partial class App : Application
                 DataContext = mainViewModel,
             };
             _baseTitle = desktop.MainWindow.Title ?? AppResources.ProductNameWithVersion;
+
+            // Use Avalonia's built-in clipboard (replaces Windows Forms clipboard for desktop app)
+            PlatformServices.Clipboard = new Services.AvaloniaClipboardService(
+                desktop.MainWindow.Clipboard!,
+                desktop.MainWindow.StorageProvider);
 
             // Apply window state based on SilentRun.
             // We avoid starting minimized because some Windows setups can leave a minimized
@@ -141,7 +178,7 @@ public partial class App : Application
                 ImageEncoderService.CreateDefault(() => PathsManager.GetFFmpegPath()));
 
             // Wire up Editor clipboard to platform implementation
-            ShareX.ImageEditor.Services.EditorServices.Clipboard = new Services.EditorClipboardAdapter();
+            EditorServices.Clipboard = new Services.EditorClipboardAdapter();
 
             // Build DI container from platform and app services (single composition root)
             Services.CompositionRoot.BuildAndSetRootProvider();

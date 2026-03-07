@@ -7,14 +7,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.12" />
-    <PackageReference Include="Avalonia.Controls.ColorPicker" Version="11.3.12" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
-    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.1.1" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="FluentAvaloniaUI" Version="2.4.1" />
-    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="FluentAvaloniaUI" />
+    <PackageReference Include="SkiaSharp" />
 
   </ItemGroup>
   <ItemGroup>
@@ -28,7 +28,8 @@
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Linux\XerahS.Platform.Linux.csproj" Condition="$(RuntimeIdentifier.StartsWith('linux'))" />
     <ProjectReference Include="..\..\core\XerahS.Services.Abstractions\XerahS.Services.Abstractions.csproj" />
     <ProjectReference Include="..\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
-    <ProjectReference Include="..\..\..\..\ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS;Platform" />
+    <ProjectReference Include="..\..\..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS;Platform" />
+    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\src\ShareX.VideoEditor\ShareX.VideoEditor.csproj" GlobalPropertiesToRemove="OS;Platform" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />

@@ -52,7 +52,7 @@ namespace XerahS.Common
         private readonly object loggerLock = new object();
         private ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
         private StringBuilder sbMessages = new StringBuilder();
-        private string _currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+        private string _currentDate = DateTime.Now.ToString("yyyyMMdd");
         private string _baseFileName = string.Empty;
         private bool _disposed = false;
         private int _consecutiveFileWriteFailures = 0;
@@ -70,7 +70,7 @@ namespace XerahS.Common
                 FileWrite = true;
                 LogFilePathTemplate = logFilePath;
                 LogFilePath = logFilePath;
-                _currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+                _currentDate = DateTime.Now.ToString("yyyyMMdd");
 
                 // Extract base filename without date suffix (e.g., "XerahS-20260209" -> "XerahS")
                 string filename = Path.GetFileNameWithoutExtension(logFilePath);
@@ -92,34 +92,20 @@ namespace XerahS.Common
 
         private string GetCurrentLogFilePath()
         {
-            // Check if we need to rotate to a new date
-            string today = DateTime.Now.ToString("yyyy-MM-dd");
+            // Check if we need to rotate to a new date (use yyyyMMdd to match main log naming)
+            string today = DateTime.Now.ToString("yyyyMMdd");
             if (today != _currentDate)
             {
                 _currentDate = today;
 
-                // Build the path with yyyy-MM folder structure
-                string baseTemplate = LogFilePathTemplate;
-                string? directory = Path.GetDirectoryName(baseTemplate);
-                string extension = Path.GetExtension(baseTemplate);
+                string extension = Path.GetExtension(LogFilePathTemplate);
 
-                // Extract the base directory (before Logs folder)
-                string currentMonthFolder = DateTime.Now.ToString("yyyy-MM");
+                // Use PathsManager for logs folder so we never re-create Logs path elsewhere
+                string? directory = Path.GetDirectoryName(LogFilePathTemplate);
+                string logDirectory = (!string.IsNullOrEmpty(directory) && directory.Contains("Logs"))
+                    ? PathsManager.GetLogsFolderForMonth()
+                    : (directory ?? string.Empty);
 
-                // Reconstruct path: replace the date in the directory structure
-                if (!string.IsNullOrEmpty(directory) && directory.Contains("Logs"))
-                {
-                    // Find the Logs folder in the path
-                    int logsIndex = directory.LastIndexOf("Logs");
-                    if (logsIndex >= 0)
-                    {
-                        string baseDir = directory.Substring(0, logsIndex);
-                        directory = Path.Combine(baseDir, "Logs", currentMonthFolder);
-                    }
-                }
-
-                string logDirectory = directory ?? string.Empty;
-                // Use _baseFileName (without date suffix) to avoid duplicate dates like "XerahS-20260209-2026-02-10.log"
                 LogFilePath = Path.Combine(logDirectory, $"{_baseFileName}-{today}{extension}");
             }
 

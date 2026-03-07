@@ -6,7 +6,6 @@
     <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UseWindowsForms Condition="'$(OS)' == 'Windows_NT'">true</UseWindowsForms>
     <EnableWindowsTargeting Condition="'$(OS)' == 'Windows_NT'">true</EnableWindowsTargeting>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SkipNonWindowsBuild Condition="'$(OS)' != 'Windows_NT'">true</SkipNonWindowsBuild>
@@ -30,10 +29,10 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <PackageReference Include="SkiaSharp" Version="2.88.9" />
-    <PackageReference Include="Vortice.Direct3D11" Version="3.8.2" />
-    <PackageReference Include="Vortice.DXGI" Version="3.8.2" />
-    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Vortice.Direct3D11" />
+    <PackageReference Include="Vortice.DXGI" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" />
   </ItemGroup>
 
 </Project>

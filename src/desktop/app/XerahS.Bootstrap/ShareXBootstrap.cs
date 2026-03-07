@@ -102,12 +102,7 @@ namespace XerahS.Bootstrap
             }
             else
             {
-                var now = DateTime.Now;
-                var baseFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    SettingsManager.AppName);
-                var logsFolder = Path.Combine(baseFolder, "Logs", now.ToString("yyyy-MM"));
-                logPath = Path.Combine(logsFolder, $"ShareX-{now:yyyy-MM-dd}.log");
+                logPath = PathsManager.GetMainLogFilePath();
             }
 
             string? logDirectory = Path.GetDirectoryName(logPath);
@@ -123,7 +118,7 @@ namespace XerahS.Bootstrap
             if (dh == null) return;
             dh.AsyncWrite = false; // Synchronous for startup
 
-            dh.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - ShareX starting.");
+            dh.WriteLine("ShareX starting.");
 
             var version = Assembly.GetEntryAssembly()?.GetName().Version;
             dh.WriteLine($"Version: {version} Dev");
@@ -135,7 +130,7 @@ namespace XerahS.Bootstrap
 #endif
 
             dh.WriteLine($"Command line: \"{Environment.ProcessPath}\"");
-            dh.WriteLine($"Personal path: {Path.GetDirectoryName(logPath)}");
+            dh.WriteLine($"Personal path: {PathsManager.GetLogsFolderForMonth()}");
             dh.WriteLine($"Operating system: {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})");
             dh.WriteLine($".NET version: {Environment.Version}");
 

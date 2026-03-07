@@ -36,6 +36,7 @@ using XerahS.RegionCapture.ScreenRecording;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using RecordingCaptureMode = XerahS.RegionCapture.ScreenRecording.CaptureMode;
 
 namespace XerahS.UI;
 
@@ -80,6 +81,8 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     // Tray icon paths for different recording states
     private const string DefaultIconPath = "avares://XerahS.UI/Assets/ShareX.iconset/icon_16x16.png";
+    // White/monochrome icon for dark panels (macOS menu bar, GNOME top bar via AppIndicator)
+    private const string WhiteIconPath = "avares://XerahS.UI/Assets/tray-default-white.png";
     private const string RecordingIconPath = "avares://XerahS.UI/Assets/tray-recording.png";
     private const string PausedIconPath = "avares://XerahS.UI/Assets/tray-recording-paused.png";
 
@@ -98,11 +101,12 @@ public class TrayIconHelper : INotifyPropertyChanged
     {
         get
         {
+            string idleIconPath = GetIdleIconPath();
             string iconPath = _currentRecordingStatus switch
             {
                 RecordingStatus.Recording or RecordingStatus.Initializing => RecordingIconPath,
                 RecordingStatus.Paused or RecordingStatus.Finalizing => PausedIconPath,
-                _ => DefaultIconPath
+                _ => idleIconPath
             };
 
             try
@@ -117,7 +121,7 @@ public class TrayIconHelper : INotifyPropertyChanged
                 // Fallback to default icon
                 try
                 {
-                    var uri = new Uri(DefaultIconPath);
+                    var uri = new Uri(idleIconPath);
                     var assets = Avalonia.Platform.AssetLoader.Open(uri);
                     return new WindowIcon(assets);
                 }
@@ -127,6 +131,16 @@ public class TrayIconHelper : INotifyPropertyChanged
                 }
             }
         }
+    }
+
+    private static string GetIdleIconPath()
+    {
+        // Use the white/monochrome icon on macOS (menu bar) and Linux (GNOME/KDE top panel)
+        // when the user has opted in. Both environments use dark system panels where a white
+        // icon matches the look of built-in indicators (WiFi, volume, battery).
+        bool useWhite = SettingsManager.Settings.UseWhiteShareXIcon &&
+                        (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux());
+        return useWhite ? WhiteIconPath : DefaultIconPath;
     }
 
     /// <summary>
@@ -209,8 +223,10 @@ public class TrayIconHelper : INotifyPropertyChanged
             // when pause/resume changes the menu items (status category changes)
             bool stateChanged = wasActive != isNowActive;
             bool pauseToggled = (previousStatus == RecordingStatus.Paused) != (e.Status == RecordingStatus.Paused);
+            // Initializing→Recording: both are "active" so stateChanged=false, but Stop becomes available now
+            bool stopBecameAvailable = e.Status == RecordingStatus.Recording && previousStatus == RecordingStatus.Initializing;
 
-            if (stateChanged || pauseToggled)
+            if (stateChanged || pauseToggled || stopBecameAvailable)
             {
                 DebugHelper.WriteLine($"TrayIconHelper: Recording state changed from {previousStatus} to {e.Status}, rebuilding menu");
                 OnPropertyChanged(nameof(IsRecordingActive));
@@ -294,11 +310,11 @@ public class TrayIconHelper : INotifyPropertyChanged
     {
         switch (options.Mode)
         {
-            case CaptureMode.Region:
+            case RecordingCaptureMode.Region:
                 // Use the specified region
                 return options.Region;
 
-            case CaptureMode.Window:
+            case RecordingCaptureMode.Window:
                 // Get window bounds from platform services
                 if (options.TargetWindowHandle != IntPtr.Zero)
                 {
@@ -312,9 +328,9 @@ public class TrayIconHelper : INotifyPropertyChanged
                     }
                 }
                 // Fall through to screen mode if window bounds fail
-                goto case CaptureMode.Screen;
+                goto case RecordingCaptureMode.Screen;
 
-            case CaptureMode.Screen:
+            case RecordingCaptureMode.Screen:
             default:
                 // Get primary screen bounds
                 var screens = Platform.Abstractions.PlatformServices.Screen.GetAllScreens();
@@ -401,6 +417,7 @@ public class TrayIconHelper : INotifyPropertyChanged
     {
         // Update ShowTray when settings change
         ShowTray = SettingsManager.Settings.ShowTray;
+        OnPropertyChanged(nameof(CurrentTrayIcon));
         // Rebuild menu on settings change (e.g. workflows changed)
         BuildTrayMenu();
     }
@@ -622,6 +639,22 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     public void OnTrayClick()
     {
+        // When recording is active, tray click honours the tooltip promise:
+        // "Recording (click tray to stop)" / "Paused (click tray to resume)"
+        if (_currentRecordingStatus == RecordingStatus.Recording)
+        {
+            DebugHelper.WriteLine("Tray click: Recording active, stopping recording");
+            _ = StopRecordingAsync();
+            return;
+        }
+
+        if (_currentRecordingStatus == RecordingStatus.Paused)
+        {
+            DebugHelper.WriteLine("Tray click: Recording paused, resuming");
+            _ = PauseResumeRecordingAsync();
+            return;
+        }
+
         // Execute the configured left-click action
         var action = SettingsManager.Settings.TrayLeftClickAction;
         DebugHelper.WriteLine($"Tray click: {action}");

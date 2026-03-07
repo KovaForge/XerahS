@@ -182,6 +182,12 @@ namespace XerahS.UI.ViewModels
             TaskbarProgressEnabled = settings.TaskbarProgressEnabled;
             AutoCheckUpdate = settings.AutoCheckUpdate;
             UpdateChannel = settings.UpdateChannel;
+            // Migrate legacy Dev channel to PreRelease (Dev was removed)
+            if ((int)UpdateChannel >= 2)
+            {
+                UpdateChannel = UpdateChannel.PreRelease;
+                settings.UpdateChannel = UpdateChannel.PreRelease;
+            }
 
             // Proxy Settings
             ProxyMethod = settings.ProxySettings.ProxyMethod;
@@ -320,7 +326,7 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private void ResetToDefaults()
         {
-            ScreenshotsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ShareX");
+            ScreenshotsFolder = PathsManager.ScreenshotsFolder;
             SaveImageSubFolderPattern = "%y-%mo";
             UseCustomScreenshotsPath = false;
             ShowTray = true;

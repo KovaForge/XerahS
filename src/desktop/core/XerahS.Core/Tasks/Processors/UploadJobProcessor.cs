@@ -188,12 +188,45 @@ namespace XerahS.Core.Tasks.Processors
 
             if (targetInstance == null)
             {
+                // No instance found for the requested category.
+                // For Image uploads, fall back to File-category instances (multi-category providers
+                // like Amazon S3 support both Image and File even when configured as a File uploader).
+                if (category == UploaderCategory.Image)
+                {
+                    DebugHelper.WriteLine("No Image uploader configured; falling back to File-category instances.");
+                    return TryUploadWithFallback(instanceManager, category, info, null);
+                }
+
                 var errorMsg = $"No uploader instance configured (plugin system) for category {category}.";
                 DebugHelper.WriteLine(errorMsg);
                 return new UploadResult { IsSuccess = false, Response = errorMsg };
             }
 
-            return TryUploadWithInstance(targetInstance, info);
+            var primaryResult = TryUploadWithInstance(targetInstance, info);
+
+            if (IsSuccessfulUploadResult(primaryResult) || category != UploaderCategory.Image)
+            {
+                return primaryResult;
+            }
+
+            var primaryError = primaryResult?.Errors?.ToString() ?? primaryResult?.Response ?? "Unknown error";
+            DebugHelper.WriteLine(
+                $"Primary image uploader '{targetInstance.DisplayName}' failed ({primaryError}). " +
+                "Trying fallback uploaders.");
+
+            var attemptedInstanceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                targetInstance.InstanceId
+            };
+
+            var fallbackResult = TryUploadWithFallback(
+                instanceManager,
+                category,
+                info,
+                targetInstance.InstanceId,
+                attemptedInstanceIds);
+
+            return IsSuccessfulUploadResult(fallbackResult) ? fallbackResult : fallbackResult ?? primaryResult;
         }
 
         private static UploaderInstance? EnsureAutoFileDestinationInstance(InstanceManager instanceManager)
@@ -256,7 +289,7 @@ namespace XerahS.Core.Tasks.Processors
             DebugHelper.WriteLine($"Auto destination selected; trying uploaders with fallback for category {category}.");
 
             // Get all available instances for this category that haven't been attempted yet
-            var allInstances = GetPrioritizedInstances(instanceManager, category, excludeInstanceId)
+            var allInstances = GetPrioritizedInstances(instanceManager, category, excludeInstanceId, info.FileName)
                 .Where(i => !attemptedInstanceIds.Contains(i.InstanceId))
                 .ToList();
 
@@ -314,22 +347,45 @@ namespace XerahS.Core.Tasks.Processors
         /// 1. Default instance first
         /// 2. Other instances sorted by creation time (newest first)
         /// </summary>
-        private static List<UploaderInstance> GetPrioritizedInstances(InstanceManager instanceManager, UploaderCategory category, string? excludeInstanceId)
+        private static List<UploaderInstance> GetPrioritizedInstances(InstanceManager instanceManager, UploaderCategory category, string? excludeInstanceId, string? fileName)
         {
             var allInstances = instanceManager.GetInstancesByCategory(category)
                 .Where(i => !InstanceManager.IsAutoProvider(i.ProviderId))
                 .Where(i => excludeInstanceId == null || !string.Equals(i.InstanceId, excludeInstanceId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var defaultInstance = instanceManager.GetDefaultInstance(category);
+            var preferredInstance = ResolvePreferredInstance(instanceManager, category, fileName);
 
             // Sort: default first, then by creation time (newest first)
             var ordered = allInstances
-                .OrderByDescending(i => defaultInstance != null && i.InstanceId == defaultInstance.InstanceId)
+                .OrderByDescending(i => preferredInstance != null && i.InstanceId == preferredInstance.InstanceId)
                 .ThenByDescending(i => i.CreatedAt)
                 .ToList();
 
             return ordered;
+        }
+
+        private static UploaderInstance? ResolvePreferredInstance(InstanceManager instanceManager, UploaderCategory category, string? fileName)
+        {
+            UploaderInstance? preferredInstance = null;
+
+            string? extension = string.IsNullOrWhiteSpace(fileName) ? null : Path.GetExtension(fileName);
+            if (!string.IsNullOrWhiteSpace(extension))
+            {
+                preferredInstance = instanceManager.GetDestinationForFile(category, extension);
+                if (preferredInstance != null && InstanceManager.IsAutoProvider(preferredInstance.ProviderId))
+                {
+                    preferredInstance = instanceManager.ResolveAutoInstance(category, preferredInstance.InstanceId);
+                }
+            }
+
+            preferredInstance ??= instanceManager.GetDefaultInstance(category);
+            if (preferredInstance != null && InstanceManager.IsAutoProvider(preferredInstance.ProviderId))
+            {
+                preferredInstance = instanceManager.ResolveAutoInstance(category, preferredInstance.InstanceId);
+            }
+
+            return preferredInstance;
         }
 
         /// <summary>
@@ -347,7 +403,7 @@ namespace XerahS.Core.Tasks.Processors
             Uploader uploader;
             try
             {
-                uploader = provider.CreateInstance(instance.SettingsJson);
+                uploader = (Uploader)provider.CreateInstance(instance.SettingsJson);
             }
             catch (Exception ex)
             {
@@ -424,6 +480,11 @@ namespace XerahS.Core.Tasks.Processors
         {
             using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return uploader.Upload(stream, Path.GetFileName(filePath));
+        }
+
+        private static bool IsSuccessfulUploadResult(UploadResult? result)
+        {
+            return result != null && (result.IsSuccess || (!result.IsError && !string.IsNullOrWhiteSpace(result.URL)));
         }
 
         private static void EnsurePluginsLoaded()

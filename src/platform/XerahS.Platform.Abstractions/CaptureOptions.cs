@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Drawing;
 using System.Threading;
 
 namespace XerahS.Platform.Abstractions
@@ -39,6 +40,7 @@ namespace XerahS.Platform.Abstractions
 
         /// <summary>
         /// For region captures: use transparent overlay (live desktop visible) vs frozen screenshot background.
+        /// When true, the overlay is shown immediately without waiting for full-screen capture (faster on Linux).
         /// True for RectangleTransparent workflow, false for other region capture workflows.
         /// </summary>
         public bool UseTransparentOverlay { get; set; } = false;
@@ -65,5 +67,27 @@ namespace XerahS.Platform.Abstractions
         /// Cancellation token used during capture start delay.
         /// </summary>
         public CancellationToken CaptureStartDelayCancellationToken { get; set; } = CancellationToken.None;
+
+        /// <summary>
+        /// When set, the capture backend may use this to map the crop rect from app virtual screen
+        /// coordinates to the actual capture bitmap size (e.g. when portal returns different resolution).
+        /// Used on Linux when cropping a full-screen portal capture to the selected region.
+        /// Coordinates are in logical (compositor) pixels — matches the logical overlay layout.
+        /// </summary>
+        public Rectangle? VirtualScreenBoundsForCrop { get; set; }
+
+        /// <summary>
+        /// Physical (device-pixel) virtual screen bounds. Set alongside <see cref="VirtualScreenBoundsForCrop"/>
+        /// on Linux so <c>LinuxScreenCaptureService</c> can detect whether the portal screenshot is in
+        /// physical or logical pixel space and choose the correct crop mapping.
+        /// </summary>
+        public Rectangle? PhysicalVirtualScreenBoundsForCrop { get; set; }
+
+        /// <summary>
+        /// Selection rectangle in physical (device) pixel coordinates.
+        /// Used together with <see cref="PhysicalVirtualScreenBoundsForCrop"/> when the portal
+        /// screenshot is detected to be in physical pixel space (e.g. KDE Plasma portal).
+        /// </summary>
+        public Rectangle? PhysicalRectForCrop { get; set; }
     }
 }

@@ -29,6 +29,7 @@ using System.ComponentModel;
 using System.Drawing;
 using Newtonsoft.Json;
 using XerahS.Common;
+using XerahS.Indexer;
 using XerahS.Services.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
@@ -58,11 +59,15 @@ public class TaskSettings
 
     public WorkflowType Job = WorkflowType.None;
 
-    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
+    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.AnnotateMedia | AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
 
     public AfterUploadTasks AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
 
+    /// <summary>Legacy; not used by runtime. Use UrlShortenerDestinationInstanceId (plugin system). Kept for config serialization.</summary>
+    [Obsolete("Legacy; use UrlShortenerDestinationInstanceId (plugin system). Kept for config serialization.")]
     public UrlShortenerType URLShortenerDestination = UrlShortenerType.BITLY;
+    /// <summary>Legacy; not used by runtime. Kept for config serialization.</summary>
+    [Obsolete("Legacy; runtime uses plugin system. Kept for config serialization.")]
     public URLSharingServices URLSharingServiceDestination = URLSharingServices.Email;
 
     /// <summary>
@@ -209,7 +214,7 @@ public class TaskSettingsGeneral
     public SizeI ToastWindowSize = new SizeI(400, 300);
     public ToastClickAction ToastWindowLeftClickAction = ToastClickAction.OpenUrl;
     public ToastClickAction ToastWindowRightClickAction = ToastClickAction.CloseNotification;
-    public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateImage;
+    public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateMedia;
     public bool ToastWindowAutoHide = true;
     public bool DisableNotificationsOnFullscreen = false;
     public bool UseCustomCaptureSound = false;

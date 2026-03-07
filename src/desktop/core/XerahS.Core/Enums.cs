@@ -40,8 +40,7 @@ public enum ShareXBuild
 public enum UpdateChannel // Localized
 {
     Release,
-    PreRelease,
-    Dev
+    PreRelease
 }
 
 public enum SupportedLanguage
@@ -255,6 +254,9 @@ public enum WorkflowType // Localized
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Image editor")]
     ImageEditor,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Video editor")]
+    VideoEditor,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Image combiner")]
     ImageCombiner,

@@ -31,12 +31,14 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using ShareX.ImageEditor;
-using ShareX.ImageEditor.Annotations;
+using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Core.Editor;
+using ShareX.ImageEditor.Presentation.Rendering;
 using XerahS.RegionCapture.UI.Controls;
 using SkiaSharp;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using XerahS.Common;
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture.Services;
 using XerahS.RegionCapture.ViewModels;
@@ -76,6 +78,10 @@ public partial class OverlayWindow : Window
 
     // CTRL modifier state for toggling between drawing and region selection
     private bool _ctrlPressed;
+
+    // Delayed focus retries to work around Linux/Wayland compositor not granting focus immediately (reduces "first pointer moved" delay)
+    private static readonly int[] FocusRetryDelayMs = [50, 200, 500];
+    private bool _windowClosed;
 
     public OverlayWindow()
     {
@@ -128,10 +134,23 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
 
-        // Position window to cover the entire monitor
-        Position = new AvPixelPoint((int)monitor.PhysicalBounds.X, (int)monitor.PhysicalBounds.Y);
-        Width = monitor.PhysicalBounds.Width / monitor.ScaleFactor;
-        Height = monitor.PhysicalBounds.Height / monitor.ScaleFactor;
+        // Position window to cover the entire monitor.
+        // Use PhysicalBounds for Window.Position on X11 (physical pixel coordinates).
+        // Use OverlayBounds for Window.Position on Wayland native (compositor logical coordinates).
+        // The distinction is made via IsAvaloniaWaylandBackend(), NOT IsWaylandSession(), because
+        // the app may be running via XWayland (XDG_SESSION_TYPE=wayland but Avalonia X11 backend).
+#if !WINDOWS
+        bool isAvaloniaWayland = MonitorEnumerationService.IsAvaloniaWaylandBackend();
+        bool usePhysicalPosition = OperatingSystem.IsLinux() && !isAvaloniaWayland;
+        var posX = usePhysicalPosition ? monitor.PhysicalBounds.X : monitor.OverlayBounds.X;
+        var posY = usePhysicalPosition ? monitor.PhysicalBounds.Y : monitor.OverlayBounds.Y;
+        Position = new AvPixelPoint((int)posX, (int)posY);
+        DebugHelper.WriteLine($"[OverlayWindow] {monitor.DeviceName}: isAvaloniaWayland={isAvaloniaWayland} usePhysicalPos={usePhysicalPosition} Position=({(int)posX},{(int)posY}) Width={monitor.OverlayBounds.Width:F1} Height={monitor.OverlayBounds.Height:F1} PhysicalBounds=({monitor.PhysicalBounds.X:F1},{monitor.PhysicalBounds.Y:F1},{monitor.PhysicalBounds.Width:F1},{monitor.PhysicalBounds.Height:F1})");
+#else
+        Position = new AvPixelPoint((int)monitor.OverlayBounds.X, (int)monitor.OverlayBounds.Y);
+#endif
+        Width = monitor.OverlayBounds.Width;
+        Height = monitor.OverlayBounds.Height;
 
         // Create and add the capture control
         _captureControl = new RegionCaptureControl(_monitor, options, initialCursor);
@@ -161,11 +180,66 @@ public partial class OverlayWindow : Window
         WireUpToolbarEvents();
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        _windowClosed = true;
+        base.OnClosed(e);
+    }
+
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        // Focus the capture control so it receives keyboard events
+        // Focus the capture control so it receives keyboard and pointer events
+        this.Focus();
         _captureControl.Focus();
+        // On Linux/Wayland the compositor often grants focus with delay; retry focus a few times so pointer events (crosshair) start sooner
+        ScheduleDelayedFocusRetries();
+
+        // Diagnostic: log actual window geometry after opening to verify physical pixel sizing
+        try
+        {
+            var topLeftPhysical = this.PointToScreen(new Avalonia.Point(0, 0));
+            var bottomRightPhysical = this.PointToScreen(new Avalonia.Point(Width, Height));
+            int physicalWindowW = bottomRightPhysical.X - topLeftPhysical.X;
+            int physicalWindowH = bottomRightPhysical.Y - topLeftPhysical.Y;
+
+            // Screen info at window position
+            var screenAtWindow = Screens?.ScreenFromPoint(Position);
+            string screenInfo = screenAtWindow != null
+                ? $"ScreenAt={screenAtWindow.Bounds.Width}x{screenAtWindow.Bounds.Height} Scale={screenAtWindow.Scaling:F4} IsPrimary={screenAtWindow.IsPrimary}"
+                : "ScreenAt=null";
+
+            DebugHelper.WriteLine($"[OverlayWindow.OnOpened] {_monitor.DeviceName}: Logical=({Width:F1}x{Height:F1}) Position={Position} PhysicalTopLeft=({topLeftPhysical.X},{topLeftPhysical.Y}) PhysicalSize=({physicalWindowW}x{physicalWindowH}) MonitorPhysical=({_monitor.PhysicalBounds.Width:F0}x{_monitor.PhysicalBounds.Height:F0}) {screenInfo}");
+            DebugHelper.WriteLine($"[OverlayWindow.OnOpened] {_monitor.DeviceName}: FillsMonitor={physicalWindowW >= (int)_monitor.PhysicalBounds.Width && physicalWindowH >= (int)_monitor.PhysicalBounds.Height} (physW={physicalWindowW} >= monW={(int)_monitor.PhysicalBounds.Width}, physH={physicalWindowH} >= monH={(int)_monitor.PhysicalBounds.Height})");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"[OverlayWindow.OnOpened] {_monitor.DeviceName}: Diagnostic failed: {ex.Message}");
+        }
+    }
+
+    private async void ScheduleDelayedFocusRetries()
+    {
+        foreach (int delayMs in FocusRetryDelayMs)
+        {
+            await Task.Delay(delayMs);
+            if (_windowClosed)
+                return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_windowClosed)
+                    return;
+                try
+                {
+                    this.Focus();
+                    _captureControl.Focus();
+                }
+                catch
+                {
+                    // Window may be closing
+                }
+            }, DispatcherPriority.Input);
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -837,15 +911,20 @@ public partial class OverlayWindow : Window
         var coordinateService = new CoordinateTranslationService();
         var virtualBounds = coordinateService.GetVirtualScreenBounds();
 
+        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: fullBitmap={fullBackground.Width}x{fullBackground.Height} virtualBounds=({virtualBounds.X:F0},{virtualBounds.Y:F0},{virtualBounds.Width:F0},{virtualBounds.Height:F0}) PhysicalBounds=({monitor.PhysicalBounds.X:F0},{monitor.PhysicalBounds.Y:F0},{monitor.PhysicalBounds.Width:F0},{monitor.PhysicalBounds.Height:F0}) Scale={monitor.ScaleFactor:F4}");
+
         int sourceX = (int)Math.Round(monitor.PhysicalBounds.X - virtualBounds.X);
         int sourceY = (int)Math.Round(monitor.PhysicalBounds.Y - virtualBounds.Y);
         int sourceWidth = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Width));
         int sourceHeight = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Height));
 
         var sourceRect = new SKRectI(sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight);
+        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: physicalSourceRect=({sourceRect.Left},{sourceRect.Top},{sourceRect.Width}x{sourceRect.Height}) before clamp");
         sourceRect.Intersect(new SKRectI(0, 0, fullBackground.Width, fullBackground.Height));
+        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: clampedSourceRect=({sourceRect.Left},{sourceRect.Top},{sourceRect.Width}x{sourceRect.Height}) valid={sourceRect.Width > 0 && sourceRect.Height > 0}");
         if (sourceRect.Width <= 0 || sourceRect.Height <= 0)
         {
+            DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: sourceRect empty after clamp — returning null");
             return null;
         }
 
@@ -861,18 +940,22 @@ public partial class OverlayWindow : Window
 
         int logicalWidth = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Width / monitor.ScaleFactor));
         int logicalHeight = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Height / monitor.ScaleFactor));
+        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: extracted={monitorBitmap.Width}x{monitorBitmap.Height} targetLogical={logicalWidth}x{logicalHeight}");
         if (monitorBitmap.Width == logicalWidth && monitorBitmap.Height == logicalHeight)
         {
+            DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: no resize needed → {monitorBitmap.Width}x{monitorBitmap.Height}");
             return monitorBitmap;
         }
 
         var logicalBitmap = monitorBitmap.Resize(new SKImageInfo(logicalWidth, logicalHeight), SKFilterQuality.High);
         if (logicalBitmap != null)
         {
+            DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: resized {monitorBitmap.Width}x{monitorBitmap.Height} → {logicalBitmap.Width}x{logicalBitmap.Height}");
             monitorBitmap.Dispose();
             return logicalBitmap;
         }
 
+        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: resize failed, returning extracted {monitorBitmap.Width}x{monitorBitmap.Height}");
         return monitorBitmap;
     }
 
@@ -1025,4 +1108,3 @@ internal static class SKColorExtensions
         return Color.FromArgb(color.Alpha, color.Red, color.Green, color.Blue);
     }
 }
-

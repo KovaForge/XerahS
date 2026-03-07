@@ -29,6 +29,25 @@ namespace XerahS.UI.ViewModels
 {
     public partial class SettingsViewModel
     {
+        public bool IsMacOS => OperatingSystem.IsMacOS();
+
+        // True on platforms where system panels use dark backgrounds (macOS menu bar, GNOME/KDE top bar).
+        // Controls visibility of the white tray icon option.
+        public bool IsLinuxOrMacOS => OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
+
+        public bool UseWhiteShareXIcon
+        {
+            get => SettingsManager.Settings.UseWhiteShareXIcon;
+            set
+            {
+                if (SettingsManager.Settings.UseWhiteShareXIcon != value)
+                {
+                    SettingsManager.Settings.UseWhiteShareXIcon = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // Tray Click Actions
         public WorkflowType TrayLeftClickAction
         {

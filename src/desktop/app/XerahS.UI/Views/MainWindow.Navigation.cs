@@ -30,7 +30,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using FluentAvalonia.UI.Controls;
-using ShareX.ImageEditor.Views;
+using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
@@ -67,7 +67,56 @@ namespace XerahS.UI.Views
                 return;
             }
 
-            HandleNavigationTag(selectedItem.Tag?.ToString(), contentFrame);
+            // Skip items handled by OnNavItemInvoked (action items with SelectsOnInvoked=False
+            // may still raise SelectionChanged in some FluentAvalonia builds — guard here).
+            var tag = selectedItem.Tag?.ToString();
+            if (IsActionOnlyNavTag(tag))
+            {
+                return;
+            }
+
+            HandleNavigationTag(tag, contentFrame);
+        }
+
+        /// <summary>
+        /// Fires on every click/tap of a nav item, even when the item is already selected.
+        /// Used for action-only items (Upload, Capture workflows) so that re-clicking them
+        /// always re-triggers their associated action (fixes issue #170).
+        /// </summary>
+        private void OnNavItemInvoked(object? sender, NavigationViewItemInvokedEventArgs e)
+        {
+            var invokedItem = e.InvokedItemContainer as NavigationViewItem;
+            var tag = invokedItem?.Tag?.ToString();
+
+            if (!IsActionOnlyNavTag(tag))
+            {
+                return;
+            }
+
+            var contentFrame = this.FindControl<ContentControl>("ContentFrame");
+            if (contentFrame != null)
+            {
+                HandleNavigationTag(tag, contentFrame);
+            }
+        }
+
+        /// <summary>
+        /// Returns true for nav tags that map to immediate actions (dialogs, tool windows, workflows)
+        /// rather than page navigation. These items use ItemInvoked instead of SelectionChanged.
+        /// </summary>
+        private static bool IsActionOnlyNavTag(string? tag)
+        {
+            if (string.IsNullOrEmpty(tag))
+            {
+                return false;
+            }
+
+            // "Tools" (no underscore) navigates to ToolsView page; "Tools_*" sub-items open dialogs/windows.
+            return tag.StartsWith("Capture_", StringComparison.Ordinal)
+                || tag.StartsWith("Workflow_", StringComparison.Ordinal)
+                || tag.StartsWith("Tools_", StringComparison.Ordinal)
+                || tag == "Upload_FileUpload"
+                || tag == "Upload_ClipboardUploadWithContentViewer";
         }
 
         private bool HandleNavigationTag(string? tag, ContentControl contentFrame)
@@ -201,7 +250,15 @@ namespace XerahS.UI.Views
                 var navItem = FindNavigationItemByTag(navView.MenuItems, navTag);
                 if (navItem != null)
                 {
-                    if (!ReferenceEquals(navView.SelectedItem, navItem))
+                    if (IsActionOnlyNavTag(navTag))
+                    {
+                        // Action-only items must not change nav selection — execute directly.
+                        if (contentFrame != null)
+                        {
+                            handled = HandleNavigationTag(navTag, contentFrame);
+                        }
+                    }
+                    else if (!ReferenceEquals(navView.SelectedItem, navItem))
                     {
                         navView.SelectedItem = navItem;
                         handled = true;

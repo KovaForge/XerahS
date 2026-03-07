@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release_title: ${{ steps.version.outputs.release_title }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,13 +28,26 @@ jobs:
             exit 1
           fi
 
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [[ "${GITHUB_REF_TYPE}" == "tag" && "$VERSION" != "$TAG_VERSION" ]]; then
-            echo "Tag version '$TAG_VERSION' does not match Directory.Build.props version '$VERSION'"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version '$VERSION' must follow x.y.z format."
             exit 1
           fi
 
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Tag '${GITHUB_REF_NAME}' must follow vX.Y.Z format."
+              exit 1
+            fi
+
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$VERSION" != "$TAG_VERSION" ]]; then
+              echo "Tag version '$TAG_VERSION' does not match Directory.Build.props version '$VERSION'"
+              exit 1
+            fi
+          fi
+
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_title=XerahS $VERSION" >> "$GITHUB_OUTPUT"
 
   build-windows:
     needs: validate-version
@@ -112,6 +126,20 @@ jobs:
           chmod +x ./build/macos/package-mac.sh
           ./build/macos/package-mac.sh 2>&1 | tee build/logs/macos-build.log
 
+      - name: Validate macOS archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          for ARCH in arm64 x64; do
+            ARCHIVE="dist/XerahS-${VERSION}-mac-${ARCH}.tar.gz"
+            ARCHIVE_LIST="$(mktemp)"
+            tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
+            grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon" "$ARCHIVE_LIST"
+            grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json" "$ARCHIVE_LIST"
+            rm -f "$ARCHIVE_LIST"
+          done
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -167,6 +195,18 @@ jobs:
           chmod +x ./build/linux/package-linux.sh
           XERAHS_ARCHITECTURES="${{ matrix.rid }}" ./build/linux/package-linux.sh 2>&1 | tee "build/logs/linux-${{ matrix.rid }}-build.log"
 
+      - name: Validate Linux archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          ARCHIVE="dist/XerahS-${VERSION}-${{ matrix.rid }}.tar.gz"
+          ARCHIVE_LIST="$(mktemp)"
+          tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
+          grep -Eq '(^|/)xerahs-watchfolder-daemon$' "$ARCHIVE_LIST"
+          grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
+          rm -f "$ARCHIVE_LIST"
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -194,16 +234,28 @@ jobs:
       - build-linux
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: release-assets
           merge-multiple: true
 
+      - name: Validate release matrix and generate metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          python3 build/ci/validate_release_assets.py \
+            --assets-dir release-assets \
+            --version "$VERSION" \
+            --metadata-output release-assets/release-metadata.json
+
       - name: Upload assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: XerahS ${{ needs.validate-version.outputs.version }}
+          name: ${{ needs.validate-version.outputs.release_title }}
           files: |
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe

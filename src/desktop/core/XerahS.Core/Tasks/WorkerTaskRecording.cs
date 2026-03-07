@@ -97,6 +97,8 @@ namespace XerahS.Core.Tasks
 
                 // 1. Start recording
                 await ScreenRecordingManager.Instance.StartRecordingAsync(recordingOptions);
+                recordingOptions.OutputPath = ScreenRecordingManager.Instance.PlannedOutputPath ?? recordingOptions.OutputPath;
+                Info.FilePath = recordingOptions.OutputPath;
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
 
                 // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
@@ -209,6 +211,20 @@ namespace XerahS.Core.Tasks
                          {
                              TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Conversion failed. Keeping MP4.");
                          }
+                    }
+
+                    // Open VideoEditor when AnnotateMedia is checked, mirroring how AnnotateMedia opens ImageEditor for images
+                    if (taskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia)
+                        && PlatformServices.IsInitialized && PlatformServices.UI != null)
+                    {
+                        string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
+                        string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
+                        if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
+                        {
+                            outputPath = editedPath;
+                            Info.FilePath = outputPath;
+                            DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
+                        }
                     }
 
                     // Handle After Capture tasks for recordings (manual handling since CaptureJobProcessor is for images)

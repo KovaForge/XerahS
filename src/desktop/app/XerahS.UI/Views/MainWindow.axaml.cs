@@ -35,7 +35,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using SkiaSharp;
 using XerahS.Core;
@@ -44,9 +43,10 @@ using XerahS.Core.Hotkeys;
 using Avalonia; // For Application.Current
 using XerahS.Core.Tasks;
 using XerahS.Core.Managers;
-using ShareX.ImageEditor.Annotations;
-using ShareX.ImageEditor.ViewModels;
-using ShareX.ImageEditor.Views;
+using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Presentation.Theming;
+using ShareX.ImageEditor.Presentation.ViewModels;
+using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI.Helpers;
 using XerahS.UI.Views.Dialogs;
 
@@ -67,9 +67,19 @@ namespace XerahS.UI.Views
             InitializeComponent();
             KeyDown += OnKeyDown;
 
+#if !DEBUG
+            // Video Editor is a work-in-progress; hide it in release builds.
+            var menuItemVideoEditor = this.FindControl<MenuItem>("MenuItemVideoEditor");
+            if (menuItemVideoEditor != null)
+                menuItemVideoEditor.IsVisible = false;
+            var navItemVideoEditor = this.FindControl<NavigationViewItem>("NavItemVideoEditor");
+            if (navItemVideoEditor != null)
+                navItemVideoEditor.IsVisible = false;
+#endif
+
             // Set initial theme and subscribe to changes
-            RequestedThemeVariant = ShareX.ImageEditor.Helpers.ThemeManager.GetCurrentTheme();
-            ShareX.ImageEditor.Helpers.ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
+            RequestedThemeVariant = ThemeManager.GetCurrentTheme();
+            ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
 
             // Initial Navigation
             var navView = this.FindControl<NavigationView>("NavView");
@@ -221,6 +231,7 @@ namespace XerahS.UI.Views
 
                 // Ownership of bitmap is transferred to ViewModel.
                 vm.UpdatePreview(bitmap, clearAnnotations: true);
+                vm.LastSavedPath = path;
                 bitmap = null;
             }
             catch (Exception ex)
@@ -241,19 +252,8 @@ namespace XerahS.UI.Views
                     return;
                 }
 
-                var insertMethod = typeof(EditorView).GetMethod(
-                    "InsertImageAnnotation",
-                    BindingFlags.Instance | BindingFlags.NonPublic,
-                    binder: null,
-                    types: new[] { typeof(SKBitmap), typeof(global::Avalonia.Point?) },
-                    modifiers: null);
-
-                if (insertMethod == null)
-                {
-                    XerahS.Common.DebugHelper.WriteLine("OpenImage: InsertImageAnnotation method was not found on EditorView.");
-                    return;
-                }
-
+                // XIP0039 Guardrail 6: Call the now-public InsertImageAnnotation directly
+                // instead of using reflection (BindingFlags.NonPublic).
                 var bitmap = SKBitmap.Decode(path);
                 if (bitmap == null || bitmap.Handle == IntPtr.Zero)
                 {
@@ -263,7 +263,7 @@ namespace XerahS.UI.Views
 
                 try
                 {
-                    insertMethod.Invoke(_editorView, new object?[] { bitmap, null });
+                    _editorView.InsertImageAnnotation(bitmap, dropPosition: null);
                     bitmap = null; // Ownership transferred to inserted image annotation.
                 }
                 finally
@@ -353,6 +353,37 @@ namespace XerahS.UI.Views
 
         private void OnWindowOpened(object? sender, EventArgs e)
         {
+            // Provide the native window handle to platform services so the Wayland GlobalShortcuts
+            // portal can display a transient permissions dialog (GNOME returns response=2 without it).
+            // On X11/XWayland the descriptor is "XID"; on native Wayland it is "wl_surface"
+            // (xdg-foreign export not yet implemented, so that path still passes empty string).
+            var platformHandle = TryGetPlatformHandle();
+            XerahS.Common.DebugHelper.WriteLine(
+                $"MainWindow: OnWindowOpened — platform handle descriptor={platformHandle?.HandleDescriptor ?? "<null>"}, handle={platformHandle?.Handle}");
+
+            if (platformHandle != null)
+            {
+                XerahS.Platform.Abstractions.PlatformServices.NativeWindowHandleProvider = () =>
+                    platformHandle.HandleDescriptor == "XID"
+                        ? $"x11:0x{platformHandle.Handle:x}"
+                        : null;
+            }
+
+            // Notify the hotkey service that the window is ready and the native window handle is
+            // now available via NativeWindowHandleProvider. If the portal BindShortcuts call at
+            // startup ran before this point (e.g. the 100ms debounce fired while the window was
+            // still initialising — in debug builds startup can take 40+ seconds) and received
+            // parentWindow="" which caused a response=2 failure, this triggers a portal retry so
+            // hotkeys work globally without needing an app restart.
+            try
+            {
+                XerahS.Platform.Abstractions.PlatformServices.Hotkey.NotifyWindowReady();
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
+            }
+
             // Only maximize if we are NOT in silent run mode
             if (!SettingsManager.Settings.SilentRun)
             {
@@ -388,13 +419,21 @@ namespace XerahS.UI.Views
 
         protected override void OnClosing(WindowClosingEventArgs e)
         {
-            // If SilentRun is enabled and we are not explicitly exiting via Tray/Menu,
-            // we should hide the window to tray instead of closing it.
+            // If SilentRun ("Start minimized to tray") is enabled and we are not explicitly
+            // exiting via Tray → Exit, hide the window to tray instead of closing the app.
+            // This works on all platforms (Windows, Linux, macOS); no OS-specific logic.
             bool silentRun = SettingsManager.Settings.SilentRun;
-            
+
             if (silentRun && !App.IsExiting)
             {
                 e.Cancel = true;
+                // Ensure tray icon is visible so user can restore or exit (handles edge case
+                // where config had SilentRun true but ShowTray false, e.g. from another machine).
+                if (!SettingsManager.Settings.ShowTray)
+                {
+                    SettingsManager.Settings.ShowTray = true;
+                    TrayIconHelper.Instance.RefreshFromSettings();
+                }
                 this.Hide();
                 this.ShowInTaskbar = false;
                 return;
@@ -532,4 +571,3 @@ namespace XerahS.UI.Views
 
     }
 }
-

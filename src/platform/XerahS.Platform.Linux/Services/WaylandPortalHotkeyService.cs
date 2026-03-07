@@ -54,11 +54,14 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private IPortalSession? _sessionProxy;
     private IDisposable? _activatedSubscription;
     private IDisposable? _deactivatedSubscription;
+    private IDisposable? _shortcutsChangedSubscription;
     private IHotkeyService? _fallbackHotkeyService;
     private bool _portalUnavailableForSession;
     private bool _fallbackActivationLogged;
     private bool _isSuspended;
     private bool _disposed;
+    private CancellationTokenSource? _rebindDebounceCts;
+    private string[] _lastBoundIds = Array.Empty<string>();
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
     public bool IsSuspended
@@ -81,14 +84,59 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             _connection = new Connection(Address.Session);
             _connection.ConnectAsync().GetAwaiter().GetResult();
             _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
-            _activatedSubscription = _portal.WatchActivatedAsync(OnActivated).GetAwaiter().GetResult();
-            _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated).GetAwaiter().GetResult();
+            _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
+            _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
+            _shortcutsChangedSubscription = _portal.WatchShortcutsChangedAsync(OnShortcutsChanged, OnPortalWatchError).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
             DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Unable to initialize portal");
             _portal = null;
             _connection?.Dispose();
+        }
+    }
+
+    public void NotifyWindowReady()
+    {
+        if (_disposed || _portal == null)
+            return;
+
+        // The portal BindShortcuts call at startup may have received parentWindow="" because
+        // NativeWindowHandleProvider was not yet set (window hadn't opened yet).
+        // Now that the window is open and the handle is available, reset any response=2
+        // failure and retry the portal path.
+        if (_portalUnavailableForSession)
+        {
+            DebugHelper.WriteLine("WaylandPortalHotkeyService: NotifyWindowReady — window handle now available; resetting portal-unavailable flag and retrying bind.");
+            _portalUnavailableForSession = false;
+            _fallbackActivationLogged = false;
+            ScheduleRebind();
+        }
+        else if (_sessionHandle == null && _registered.Count > 0)
+        {
+            // No session established yet (startup race where first bind hasn't completed) — kick off bind now.
+            DebugHelper.WriteLine("WaylandPortalHotkeyService: NotifyWindowReady — no portal session yet; scheduling bind now that window handle is available.");
+            ScheduleRebind();
+        }
+    }
+
+    public async Task<bool> ShowInteractiveConfigurationAsync()
+    {
+        if (_portal == null || _sessionHandle == null || ShouldUseFallbackHotkeys())
+            return false;
+
+        try
+        {
+            var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
+            var requestPath = await _portal.ConfigureShortcutsAsync((ObjectPath)_sessionHandle, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
+            var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
+            var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
+            return response == 0; // Success
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: ConfigureShortcuts failed, fallback to native app UI.");
+            return false;
         }
     }
 
@@ -118,26 +166,9 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return isRegistered;
         }
 
-        try
-        {
-            RebindShortcutsAsync().GetAwaiter().GetResult();
-            hotkeyInfo.Status = PlatformHotkeyStatus.Registered;
-            return true;
-        }
-        catch (PortalBindFailedException ex) when (ex.ResponseCode == 2)
-        {
-            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind failed with non-recoverable response (2); enabling X11 fallback");
-            bool fallbackReady = ActivateFallbackHotkeys("portal BindShortcuts failed with response=2");
-            bool isRegistered = fallbackReady && _fallbackHotkeyService != null && _fallbackHotkeyService.IsRegistered(hotkeyInfo);
-            hotkeyInfo.Status = isRegistered ? PlatformHotkeyStatus.Registered : PlatformHotkeyStatus.Failed;
-            return isRegistered;
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Failed to register hotkey");
-            hotkeyInfo.Status = PlatformHotkeyStatus.Failed;
-            return false;
-        }
+        hotkeyInfo.Status = PlatformHotkeyStatus.Registered;
+        ScheduleRebind();
+        return true;
     }
 
     public bool UnregisterHotkey(HotkeyInfo hotkeyInfo)
@@ -171,30 +202,9 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return true;
         }
 
-        try
-        {
-            RebindShortcutsAsync().GetAwaiter().GetResult();
-            hotkeyInfo.Status = PlatformHotkeyStatus.NotConfigured;
-            return true;
-        }
-        catch (PortalBindFailedException ex) when (ex.ResponseCode == 2)
-        {
-            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind failed during unregister; enabling X11 fallback");
-            bool fallbackReady = ActivateFallbackHotkeys("portal BindShortcuts failed during unregister with response=2");
-            if (fallbackReady && _fallbackHotkeyService != null)
-            {
-                _fallbackHotkeyService.UnregisterHotkey(hotkeyInfo);
-            }
-
-            hotkeyInfo.Status = PlatformHotkeyStatus.NotConfigured;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Failed to unregister hotkey");
-            hotkeyInfo.Status = PlatformHotkeyStatus.Failed;
-            return false;
-        }
+        hotkeyInfo.Status = PlatformHotkeyStatus.NotConfigured;
+        ScheduleRebind();
+        return true;
     }
 
     public void UnregisterAll()
@@ -210,22 +220,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
         }
 
-        try
-        {
-            RebindShortcutsAsync().GetAwaiter().GetResult();
-        }
-        catch (PortalBindFailedException ex) when (ex.ResponseCode == 2)
-        {
-            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind failed during unregister-all; enabling X11 fallback");
-            if (ActivateFallbackHotkeys("portal BindShortcuts failed during unregister-all with response=2"))
-            {
-                _fallbackHotkeyService?.UnregisterAll();
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Failed to unregister all hotkeys");
-        }
+        ScheduleRebind();
     }
 
     public bool IsRegistered(HotkeyInfo hotkeyInfo)
@@ -248,8 +243,13 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
         }
 
+        var debounceCts = Interlocked.Exchange(ref _rebindDebounceCts, null);
+        debounceCts?.Cancel();
+        debounceCts?.Dispose();
+
         _activatedSubscription?.Dispose();
         _deactivatedSubscription?.Dispose();
+        _shortcutsChangedSubscription?.Dispose();
         CloseSessionAsync().GetAwaiter().GetResult();
         _connection?.Dispose();
         if (_fallbackHotkeyService != null)
@@ -263,6 +263,46 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         GC.SuppressFinalize(this);
     }
 
+    private void ScheduleRebind()
+    {
+        var cts = new CancellationTokenSource();
+        var old = Interlocked.Exchange(ref _rebindDebounceCts, cts);
+        // Cancel only — do not dispose here. The old task's lambda may not have started yet
+        // and still holds a reference to old's CTS; disposing it synchronously would cause
+        // ObjectDisposedException when the lambda accesses cts.Token inside Task.Delay.
+        // The old CTS is either disposed by its own lambda's finally block (if it ran first
+        // and its CompareExchange still matched) or collected by GC otherwise.
+        old?.Cancel();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(100, cts.Token).ConfigureAwait(false);
+                if (_disposed) return;
+                await RebindShortcutsAsync().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { }
+            catch (PortalBindFailedException ex) when (ex.ResponseCode == 2)
+            {
+                DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind failed with non-recoverable response (2); enabling X11 fallback");
+                ActivateFallbackHotkeys("portal BindShortcuts failed with response=2");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Failed to rebind shortcuts");
+            }
+            finally
+            {
+                var current = Interlocked.CompareExchange(ref _rebindDebounceCts, null, cts);
+                if (ReferenceEquals(current, cts))
+                {
+                    cts.Dispose();
+                }
+            }
+        });
+    }
+
     private async Task RebindShortcutsAsync()
     {
         if (_portal == null)
@@ -274,10 +314,22 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         try
         {
             var (bindings, map) = BuildShortcutBindings();
+            
+            // Fix 4: Session Persistence. Do not recreate session if the set of shortcut IDs hasn't changed.
+            // (Recreating forces a new permission dialog and loses user UI config state).
+            var currentIds = map.Keys.OrderBy(x => x).ToArray();
+            if (_sessionHandle != null && _lastBoundIds.SequenceEqual(currentIds))
+            {
+                DebugHelper.WriteLine("WaylandPortalHotkeyService: Shortcut set unchanged. Preserving session.");
+                _shortcutMap = map;
+                return;
+            }
+
             if (bindings.Length == 0)
             {
                 await CloseSessionAsync().ConfigureAwait(false);
                 _shortcutMap.Clear();
+                _lastBoundIds = Array.Empty<string>();
                 return;
             }
 
@@ -288,6 +340,20 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             DebugHelper.WriteLine($"WaylandPortalHotkeyService: Binding {bindings.Length} shortcut(s) to portal session {sessionHandle}");
             await BindShortcutsAsync(bindings).ConfigureAwait(false);
             _shortcutMap = map;
+            _lastBoundIds = currentIds;
+
+            // Portal bind succeeded. If we previously activated the X11 fallback (e.g. because
+            // the initial bind ran before the window handle was available and got response=2),
+            // release it now so the portal is the sole delivery path.
+            if (_fallbackHotkeyService != null)
+            {
+                DebugHelper.WriteLine("WaylandPortalHotkeyService: Portal bind succeeded; releasing X11 fallback hotkeys.");
+                var fallback = _fallbackHotkeyService;
+                _fallbackHotkeyService = null;
+                fallback.UnregisterAll();
+                fallback.HotkeyTriggered -= OnFallbackHotkeyTriggered;
+                fallback.Dispose();
+            }
         }
         finally
         {
@@ -358,8 +424,10 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
                 string trigger = binding.Item2.TryGetValue("preferred_trigger", out var value) ? value?.ToString() ?? "<null>" : "<missing>";
                 return $"{binding.Item1}:{trigger}";
             }));
-        DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts payload: [{payload}]");
-        var requestPath = await _portal!.BindShortcutsAsync(sessionHandle, bindings, string.Empty, new Dictionary<string, object>()).ConfigureAwait(false);
+        var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
+        var appName = global::Avalonia.Application.Current?.Name ?? "<null>";
+        DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts payload: [{payload}], parentWindow={(string.IsNullOrEmpty(parentWindow) ? "<empty>" : parentWindow)}, app_id={appName}");
+        var requestPath = await _portal!.BindShortcutsAsync(sessionHandle, bindings, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
         var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
         var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts response={response} ({DescribePortalResponse(response)})");
@@ -422,6 +490,21 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private void OnDeactivated((ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options) data)
     {
         // Portal currently only triggers once per activation; no action needed.
+    }
+
+    private void OnShortcutsChanged((ObjectPath sessionHandle, ValueTuple<string, IDictionary<string, object>>[] shortcuts) data)
+    {
+        if (_sessionHandle == null || !_sessionHandle.Equals(data.sessionHandle) || IsSuspended)
+            return;
+
+        DebugHelper.WriteLine("WaylandPortalHotkeyService: ShortcutsChanged signal received. DE updated bindings.");
+        // Synchronizing back to Avalonia Key representations is complex. We rely on the DE for now, 
+        // but UI could be notified here to refresh via ListShortcuts if needed.
+    }
+
+    private static void OnPortalWatchError(Exception ex)
+    {
+        DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal watch error (e.g. service gone); hotkeys may use X11 fallback.");
     }
 
     private void OnFallbackHotkeyTriggered(object? sender, HotkeyTriggeredEventArgs e)
@@ -525,25 +608,28 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
     private static string BuildPreferredTrigger(HotkeyInfo hotkeyInfo)
     {
-        var parts = new List<string>(4);
+        // XDG GlobalShortcuts portal uses GLib/GTK accelerator format:
+        // modifiers are <Primary>, <Alt>, <Shift>, <Super> with no separator,
+        // followed by the lowercase key name. E.g. "<Primary><Shift>f", not "Ctrl+Shift+F".
+        var parts = new List<string>(5);
         if (hotkeyInfo.HasControl)
         {
-            parts.Add("Ctrl");
+            parts.Add("<Primary>");
         }
 
         if (hotkeyInfo.HasAlt)
         {
-            parts.Add("Alt");
+            parts.Add("<Alt>");
         }
 
         if (hotkeyInfo.HasShift)
         {
-            parts.Add("Shift");
+            parts.Add("<Shift>");
         }
 
         if (hotkeyInfo.HasMeta)
         {
-            parts.Add("Meta");
+            parts.Add("<Super>");
         }
 
         var keyName = MapKeyName(hotkeyInfo.Key);
@@ -552,7 +638,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             parts.Add(keyName);
         }
 
-        return string.Join("+", parts);
+        return string.Concat(parts);
     }
 
     private static string MapKeyName(Key key)
@@ -564,7 +650,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
         if (key >= Key.A && key <= Key.Z)
         {
-            return key.ToString();
+            return key.ToString().ToLowerInvariant();
         }
 
         if (key >= Key.D0 && key <= Key.D9)
@@ -638,9 +724,11 @@ public interface IGlobalShortcuts : IDBusObject
 
     Task<ObjectPath> ListShortcutsAsync(ObjectPath sessionHandle, IDictionary<string, object> options);
 
-    Task ConfigureShortcutsAsync(ObjectPath sessionHandle, string parentWindow, IDictionary<string, object> options);
+    Task<ObjectPath> ConfigureShortcutsAsync(ObjectPath sessionHandle, string parentWindow, IDictionary<string, object> options);
 
     Task<IDisposable> WatchActivatedAsync(Action<(ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options)> handler, Action<Exception>? error = null);
 
     Task<IDisposable> WatchDeactivatedAsync(Action<(ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options)> handler, Action<Exception>? error = null);
+
+    Task<IDisposable> WatchShortcutsChangedAsync(Action<(ObjectPath sessionHandle, ValueTuple<string, IDictionary<string, object>>[] shortcuts)> handler, Action<Exception>? error = null);
 }

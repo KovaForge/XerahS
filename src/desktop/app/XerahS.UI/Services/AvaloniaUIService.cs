@@ -30,7 +30,9 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
-using ShareX.ImageEditor.ViewModels;
+using ShareX.ImageEditor.Presentation.ViewModels;
+using ShareX.ImageEditor.Presentation.Views;
+using ShareX.VideoEditor.Hosting;
 using SkiaSharp;
 
 namespace XerahS.UI.Services
@@ -103,8 +105,18 @@ namespace XerahS.UI.Services
                 // Wire up UploadRequested to trigger host app upload workflow
                 MainViewModelHelper.WireUploadRequested(editorViewModel);
 
-                // Wire up CopyRequested to copy image to clipboard
-                MainViewModelHelper.WireCopyRequested(editorViewModel);
+                // Wire up CopyRequested to copy edited image (with annotations) to clipboard
+                MainViewModelHelper.WireCopyRequested(editorViewModel, () =>
+                {
+                    var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                    return editorView?.GetSnapshot();
+                });
+
+                // Wire up SaveRequested / SaveAsRequested for standalone editor window
+                Func<SkiaSharp.SKBitmap?> getSnapshot = () =>
+                    editorWindow.FindControl<EditorView>("EditorViewControl")?.GetSnapshot();
+                MainViewModelHelper.WireSaveRequested(editorViewModel, getSnapshot, () => editorWindow);
+                MainViewModelHelper.WireSaveAsRequested(editorViewModel, getSnapshot, () => editorWindow);
 
                 // Set DataContext BEFORE initializing preview so bindings update correctly
                 editorWindow.DataContext = editorViewModel;
@@ -117,7 +129,7 @@ namespace XerahS.UI.Services
                 {
                     try
                     {
-                        var editorView = editorWindow.FindControl<ShareX.ImageEditor.Views.EditorView>("EditorViewControl");
+                        var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
                         if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
@@ -140,6 +152,19 @@ namespace XerahS.UI.Services
             });
 
             return await tcs.Task;
+        }
+
+        public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
+        {
+            return await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var options = new VideoEditorOptions
+                {
+                    VideoPath = videoPath,
+                    FFmpegPath = ffmpegPath ?? string.Empty
+                };
+                return AvaloniaIntegration.ShowEditorDialog(options);
+            });
         }
 
         public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(

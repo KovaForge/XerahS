@@ -31,6 +31,7 @@ using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
 using SkiaSharp;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using XerahS.History;
 using Avalonia.Threading;
@@ -529,9 +530,31 @@ namespace XerahS.Core.Tasks
                             WorkflowId = Info.TaskSettings.WorkflowId
                         };
 
-                        SKRectI selection;
                         bool isLinuxWayland = OperatingSystem.IsLinux() &&
                             Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
+
+                        // When the XDG ScreenCast portal is available it presents its own source/region
+                        // picker during recording initialisation. Showing XerahS's crosshair selector
+                        // first would force the user to select a region twice, so skip it entirely.
+                        bool portalHandlesSourceSelection = isLinuxWayland &&
+                            ScreenRecorderService.NativeRecordingServiceFactory != null;
+
+                        if (portalHandlesSourceSelection)
+                        {
+                            TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "WORKER_TASK",
+                                "Linux Wayland with portal: skipping pre-recording region selection (portal handles it)");
+
+                            if (isScreenRecordDelay && !await ApplyCaptureStartDelayAsync(taskSettings, workflowCategory, captureDelaySeconds, token))
+                            {
+                                return;
+                            }
+
+                            await HandleStartRecordingAsync(CaptureMode.Screen);
+                            TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "WORKER_TASK", "HandleStartRecordingAsync completed");
+                            return;
+                        }
+
+                        SKRectI selection;
 
                         if (isLinuxWayland)
                         {
@@ -843,13 +866,27 @@ namespace XerahS.Core.Tasks
         /// Select a region using slurp (Linux Wayland native tool).
         /// Returns the selected region, or empty if cancelled/failed.
         /// </summary>
+        private static string GetSlurpExecutablePath()
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                var candidates = new[] { "/usr/bin/slurp", "/usr/local/bin/slurp" };
+                foreach (var path in candidates)
+                {
+                    if (File.Exists(path))
+                        return path;
+                }
+            }
+            return "slurp";
+        }
+
         private static async Task<(SKRectI Region, bool WasCancelled)> SelectRegionWithSlurpAsync()
         {
             try
             {
                 var slurpStartInfo = new ProcessStartInfo
                 {
-                    FileName = "slurp",
+                    FileName = GetSlurpExecutablePath(),
                     Arguments = "-f \"%x %y %w %h\"",  // Output format: x y width height
                     CreateNoWindow = true,
                     UseShellExecute = false,

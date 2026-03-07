@@ -31,7 +31,7 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Desktop" />
   </ItemGroup>
   <ItemGroup>
     <!-- Audits tool is only needed for Debug builds (development/auditing) -->
@@ -92,10 +92,46 @@
 
   <Target Name="PublishWatchFolderDaemon" AfterTargets="Publish">
     <Message Text="Publishing watch folder daemon..." Importance="High" />
+    <PropertyGroup>
+      <_WatchFolderDaemonPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)watchfolder-daemon-publish/'))</_WatchFolderDaemonPublishDir>
+      <_WatchFolderDaemonPublishDir Condition="'$(RuntimeIdentifier)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)watchfolder-daemon-publish/$(RuntimeIdentifier)/'))</_WatchFolderDaemonPublishDir>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(_WatchFolderDaemonPublishDir)" />
+    <MakeDir Directories="$(_WatchFolderDaemonPublishDir)" />
+
     <MSBuild Projects="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
              Targets="Restore;Publish"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);OS=$(OS);CrossCompile=$(CrossCompile);SelfContained=$(SelfContained);PublishSingleFile=true;PublishDir=$(PublishDir);EnableWindowsTargeting=$(EnableWindowsTargeting);UseSharedCompilation=false;BuildInParallel=false;nodeReuse=false" />
+             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);OS=$(OS);CrossCompile=$(CrossCompile);SelfContained=$(SelfContained);PublishSingleFile=true;PublishDir=$(_WatchFolderDaemonPublishDir);EnableWindowsTargeting=$(EnableWindowsTargeting);UseSharedCompilation=false;BuildInParallel=false;nodeReuse=false" />
+
+    <ItemGroup>
+      <_WatchFolderDaemonPublishedFiles Include="$(_WatchFolderDaemonPublishDir)**/xerahs-watchfolder-daemon*"
+                                        Exclude="$(_WatchFolderDaemonPublishDir)**/*.pdb;$(_WatchFolderDaemonPublishDir)**/*.xml" />
+    </ItemGroup>
+
+    <Error Condition="'@(_WatchFolderDaemonPublishedFiles)' == ''"
+           Text="Watch folder daemon publish output is empty: $(_WatchFolderDaemonPublishDir)" />
+
+    <Copy SourceFiles="@(_WatchFolderDaemonPublishedFiles)"
+          DestinationFiles="@(_WatchFolderDaemonPublishedFiles->'$(PublishDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="ValidatePublishedWatchFolderDaemon" AfterTargets="PublishWatchFolderDaemon">
+    <PropertyGroup>
+      <_WatchFolderDaemonExecutableName>xerahs-watchfolder-daemon</_WatchFolderDaemonExecutableName>
+      <_WatchFolderDaemonExecutableName Condition="$(RuntimeIdentifier.StartsWith('win'))">xerahs-watchfolder-daemon.exe</_WatchFolderDaemonExecutableName>
+      <_WatchFolderDaemonExecutableName Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">xerahs-watchfolder-daemon.exe</_WatchFolderDaemonExecutableName>
+      <_WatchFolderDaemonRequireRuntimeConfig>true</_WatchFolderDaemonRequireRuntimeConfig>
+      <_WatchFolderDaemonRequireRuntimeConfig Condition="$(RuntimeIdentifier.StartsWith('win'))">false</_WatchFolderDaemonRequireRuntimeConfig>
+      <_WatchFolderDaemonRequireRuntimeConfig Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">false</_WatchFolderDaemonRequireRuntimeConfig>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(PublishDir)$(_WatchFolderDaemonExecutableName)')"
+           Text="Missing watch folder daemon executable in publish output: $(PublishDir)$(_WatchFolderDaemonExecutableName)" />
+    <Error Condition="'$(_WatchFolderDaemonRequireRuntimeConfig)' == 'true' and !Exists('$(PublishDir)xerahs-watchfolder-daemon.runtimeconfig.json')"
+           Text="Missing watch folder daemon runtimeconfig in publish output: $(PublishDir)xerahs-watchfolder-daemon.runtimeconfig.json" />
   </Target>
 
   <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build">
@@ -117,22 +153,26 @@
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
   </Target>
 
-  <!-- Bundle Default Plugins -->
+  <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/            -->
+  <!-- Each plugin csproj must define <PluginId> (e.g. <PluginId>imgur</PluginId>).  -->
+  <!-- To add a new bundled plugin: create its folder, csproj, and plugin.json.      -->
+  <!-- No edits to this file or to XerahS.sln are needed.                            -->
   <ItemGroup>
-    <_DefaultPlugins Include="..\..\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" PluginId="amazons3" />
-    <_DefaultPlugins Include="..\..\plugins\Imgur.Plugin\XerahS.Imgur.Plugin.csproj" PluginId="imgur" />
-    <_DefaultPlugins Include="..\..\plugins\Paste2.Plugin\XerahS.Paste2.Plugin.csproj" PluginId="paste2" />
-    <_DefaultPlugins Include="..\..\plugins\GitHubGist.Plugin\XerahS.GitHubGist.Plugin.csproj" PluginId="gist" />
-    <_DefaultPlugins Include="..\..\plugins\Auto.Plugin\XerahS.Auto.Plugin.csproj" PluginId="auto" />
+    <_DiscoveredPluginProjects Include="..\..\plugins\*\*.csproj" />
   </ItemGroup>
 
-  <Target Name="BundlePlugins" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true'">
-    <Message Text="Bundling default plugin: %(_DefaultPlugins.PluginId)" Importance="High" />
-    <MSBuild Projects="%(_DefaultPlugins.Identity)" Targets="Restore;Publish" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=false;PublishSingleFile=false;PublishDir=$(PublishDir)Plugins/%(_DefaultPlugins.PluginId)/" />
+  <PropertyGroup>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(BuildingSolutionFile)' == 'true'">false</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">true</EnableAppDrivenPluginBuild>
+  </PropertyGroup>
+
+  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
+    <Message Text="[Plugins] Auto-building discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
   </Target>
 
-  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true'">
-    <Message Text="Building default plugin for dev: %(_DefaultPlugins.PluginId)" Importance="High" />
-    <MSBuild Projects="%(_DefaultPlugins.Identity)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
+  <Target Name="BundlePlugins" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true'">
+    <Message Text="[Plugins] Auto-publishing discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Publish" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=false;PublishSingleFile=false;PluginPublishBaseDir=$(PublishDir)Plugins/" />
   </Target>
 </Project>

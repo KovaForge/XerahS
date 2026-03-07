@@ -25,6 +25,7 @@
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture;
 using XerahS.RegionCapture.UI;
+using XerahS.Common;
 
 namespace XerahS.RegionCapture.Services;
 
@@ -83,12 +84,42 @@ public sealed class OverlayManager : IDisposable
                 _overlays.Add(overlay);
             }
 
-            // Show all overlays simultaneously
+            // Determine primary overlay first so we can show and focus it before others (helps Linux/Wayland grant focus sooner)
+            int primaryIndex = -1;
+            for (int i = 0; i < monitors.Count; i++)
+            {
+                if (monitors[i].IsPrimary)
+                {
+                    primaryIndex = i;
+                    break;
+                }
+            }
+
+            var primaryOverlay = primaryIndex >= 0 && primaryIndex < _overlays.Count
+                ? _overlays[primaryIndex]
+                : null;
+
+            // Show primary overlay first and focus it immediately so compositor has one clear focus target (reduces pointer-event delay on Wayland)
+            if (primaryOverlay != null)
+            {
+                primaryOverlay.Show();
+                primaryOverlay.Activate();
+                primaryOverlay.Focus();
+#if WINDOWS
+                if (primaryOverlay.TryGetPlatformHandle()?.Handle is { } primaryHandle)
+                {
+                    Platform.Windows.NativeWindowService.ExcludeHandle(primaryHandle);
+                }
+#endif
+            }
+
+            // Show remaining overlays
             foreach (var overlay in _overlays)
             {
+                if (overlay == primaryOverlay)
+                    continue;
                 overlay.Show();
                 overlay.Activate();
-
 #if WINDOWS
                 if (overlay.TryGetPlatformHandle()?.Handle is { } handle)
                 {
@@ -97,11 +128,11 @@ public sealed class OverlayManager : IDisposable
 #endif
             }
 
-            // Focus the primary monitor's overlay
-            var primaryOverlay = _overlays.FirstOrDefault(o =>
-                monitors.FirstOrDefault(m => m.IsPrimary)?.PhysicalBounds == GetOverlayMonitorBounds(o));
-
-            primaryOverlay?.Focus();
+            if (options?.SessionStartUtc is { } start)
+            {
+                double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                DebugHelper.WriteLine($"[RegionCapture] Milestone: overlay displayed (+{elapsedMs:F0} ms)");
+            }
 
             // Wait for result
             return await _completionSource.Task;
@@ -110,11 +141,6 @@ public sealed class OverlayManager : IDisposable
         {
             CloseAllOverlays();
         }
-    }
-
-    private static PixelRect GetOverlayMonitorBounds(OverlayWindow overlay)
-    {
-        return new PixelRect(overlay.Position.X, overlay.Position.Y, overlay.Width, overlay.Height);
     }
 
     private void CloseAllOverlays()

@@ -27,6 +27,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using XerahS.Common;
 
 namespace XerahS.Indexer
 {
@@ -51,27 +52,34 @@ namespace XerahS.Indexer
         }
 
         /// <summary>
+        /// Creates the appropriate IndexerAsync for the given settings.
+        /// </summary>
+        private static IndexerAsync CreateIndexer(IndexerSettings settings, IProgress<IndexerProgress>? progress, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(settings);
+
+            return settings.Output switch
+            {
+                IndexerOutput.Html => new IndexerSyncAdapter<IndexerHtml>(settings, progress, cancellationToken),
+                IndexerOutput.Txt => new IndexerTextAsync(settings, progress, cancellationToken),
+                IndexerOutput.Xml => new IndexerSyncAdapter<IndexerXml>(settings, progress, cancellationToken),
+                IndexerOutput.Json => new IndexerSyncAdapter<IndexerJson>(settings, progress, cancellationToken),
+                _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
+            };
+        }
+
+        /// <summary>
         /// Indexes a folder and writes output directly to a file.
         /// Uses streaming to minimize memory usage for large directories.
         /// </summary>
         public static async Task<IndexResult> IndexToFileAsync(
-            string folderPath, 
+            string folderPath,
             string outputFilePath,
             IndexerSettings settings,
             IProgress<IndexerProgress>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(settings);
-            
-            IndexerAsync indexer = settings.Output switch
-            {
-                IndexerOutput.Html => new IndexerHtmlAsync(settings, progress, cancellationToken),
-                IndexerOutput.Txt => new IndexerTextAsync(settings, progress, cancellationToken),
-                IndexerOutput.Xml => new IndexerXmlAsync(settings, progress, cancellationToken),
-                IndexerOutput.Json => new IndexerJsonAsync(settings, progress, cancellationToken),
-                _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
-            };
-
+            IndexerAsync indexer = CreateIndexer(settings, progress, cancellationToken);
             return await indexer.IndexToFileAsync(folderPath, outputFilePath);
         }
 
@@ -88,16 +96,8 @@ namespace XerahS.Indexer
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(settings);
-            
-            IndexerAsync indexer = settings.Output switch
-            {
-                IndexerOutput.Html => new IndexerHtmlAsync(settings, progress, cancellationToken),
-                IndexerOutput.Txt => new IndexerTextAsync(settings, progress, cancellationToken),
-                IndexerOutput.Xml => new IndexerXmlAsync(settings, progress, cancellationToken),
-                IndexerOutput.Json => new IndexerJsonAsync(settings, progress, cancellationToken),
-                _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
-            };
 
+            IndexerAsync indexer = CreateIndexer(settings, progress, cancellationToken);
             return await indexer.IndexWithPreviewAsync(folderPath, outputFilePath, maxPreviewLines);
         }
 
@@ -108,7 +108,7 @@ namespace XerahS.Indexer
         protected async Task<FolderInfo> GetFolderInfoAsync(string folderPath, int level = 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             FolderInfo folderInfo = new FolderInfo(folderPath);
 
             if (settings.MaxDepthLevel == 0 || level < settings.MaxDepthLevel)
@@ -129,9 +129,9 @@ namespace XerahS.Indexer
                         FolderInfo subFolderInfo = await GetFolderInfoAsync(directoryInfo.FullName, level + 1);
                         folderInfo.Folders.Add(subFolderInfo);
                         subFolderInfo.Parent = folderInfo;
-                        
+
                         totalFoldersProcessed++;
-                        
+
                         // Report progress every 10 folders to avoid overwhelming the UI
                         if (totalFoldersProcessed % 10 == 0)
                         {
@@ -155,7 +155,7 @@ namespace XerahS.Indexer
                             if (settings.IncludedFileExtensions != null && settings.IncludedFileExtensions.Count > 0)
                             {
                                 string ext = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                                bool isIncluded = settings.IncludedFileExtensions.Any(inc => 
+                                bool isIncluded = settings.IncludedFileExtensions.Any(inc =>
                                     inc.TrimStart('.').Equals(ext, StringComparison.OrdinalIgnoreCase));
                                 if (!isIncluded)
                                 {
@@ -167,7 +167,7 @@ namespace XerahS.Indexer
                             if (settings.ExcludedFileExtensions != null && settings.ExcludedFileExtensions.Count > 0)
                             {
                                 string ext = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                                bool isExcluded = settings.ExcludedFileExtensions.Any(exc => 
+                                bool isExcluded = settings.ExcludedFileExtensions.Any(exc =>
                                     exc.TrimStart('.').Equals(ext, StringComparison.OrdinalIgnoreCase));
                                 if (isExcluded)
                                 {
@@ -183,8 +183,9 @@ namespace XerahS.Indexer
                         folderInfo.Files.Sort((x, y) => x.Name.CompareTo(y.Name));
                     }
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException ex)
                 {
+                    DebugHelper.WriteException(ex, $"Access denied: {folderPath}");
                 }
             }
 
@@ -215,32 +216,5 @@ namespace XerahS.Indexer
                 OutputFilePath = outputPath
             });
         }
-    }
-
-    /// <summary>
-    /// Progress information for indexer operations.
-    /// </summary>
-    public class IndexerProgress
-    {
-        public string CurrentItem { get; set; } = string.Empty;
-        public long FilesProcessed { get; set; }
-        public long FoldersProcessed { get; set; }
-        public long TotalBytesProcessed { get; set; }
-        public int? PercentComplete { get; set; }
-        public string? OutputFilePath { get; set; }
-    }
-
-    /// <summary>
-    /// Result of an indexing operation.
-    /// </summary>
-    public class IndexResult
-    {
-        public bool Success { get; set; }
-        public string OutputFilePath { get; set; } = string.Empty;
-        public long TotalFiles { get; set; }
-        public long TotalFolders { get; set; }
-        public long TotalBytes { get; set; }
-        public TimeSpan Duration { get; set; }
-        public string? ErrorMessage { get; set; }
     }
 }
