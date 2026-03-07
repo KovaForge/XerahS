@@ -5,8 +5,10 @@
     <version>0.19.9</version>
     <title>XerahS</title>
     <authors>ShareX Team</authors>
-    <projectUrl>https://github.com/ShareX/XerahS</projectUrl>
-    <packageSourceUrl>https://github.com/ShareX/XerahS/tree/develop/build/windows/chocolatey</packageSourceUrl>
+    <projectUrl>https://xerahs.com/</projectUrl>
+    <projectSourceUrl>https://github.com/ShareX/XerahS</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/ShareX/XerahS/issues</bugTrackerUrl>
+    <packageSourceUrl>https://github.com/ShareX/XerahS/tree/v0.19.9/build/windows/chocolatey</packageSourceUrl>
     <licenseUrl>https://www.gnu.org/licenses/gpl-3.0-standalone.html</licenseUrl>
     <iconUrl>https://xerahs.com/assets/Logo.png</iconUrl>
     <releaseNotes>https://github.com/ShareX/XerahS/releases/tag/v0.19.9</releaseNotes>

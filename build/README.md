@@ -90,7 +90,10 @@ The `build/windows` directory also contains resources for submitting XerahS to p
 - **WinGet**: `build/windows/winget/generate-winget.ps1` (Generates manifests to `manifests/` subdir)
 - **Chocolatey**: `build/windows/chocolatey/`
   - `Sync-ChocolateyPackage.ps1` updates nuspec metadata, installer checksums, and `VERIFICATION.txt` from an existing GitHub release.
+  - `Test-ChocolateyPackage.ps1` smoke-tests the generated package with local `choco install` and `choco uninstall`.
+  - `tools/chocolateyBeforeModify.ps1` stops running XerahS processes before upgrade or uninstall.
   - Add `-Pack` to generate `xerahs.<version>.nupkg`.
+  - Tag releases automatically build, smoke-test, and attach the `.nupkg` to the GitHub release in `release-build-all-platforms.yml`.
 
 ---
 

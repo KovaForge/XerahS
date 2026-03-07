@@ -117,11 +117,30 @@ function Get-Sha256Digest {
         [object]$Asset
     )
 
-    if ([string]::IsNullOrWhiteSpace($Asset.digest) -or -not $Asset.digest.StartsWith('sha256:')) {
-        throw "Release asset digest is missing or is not SHA256 for $($Asset.name)."
+    if (-not [string]::IsNullOrWhiteSpace($Asset.digest) -and $Asset.digest.StartsWith('sha256:')) {
+        return $Asset.digest.Substring(7).ToLowerInvariant()
     }
 
-    return $Asset.digest.Substring(7).ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($Asset.browser_download_url)) {
+        throw "Release asset digest is missing and browser_download_url is unavailable for $($Asset.name)."
+    }
+
+    Write-Warning "Release asset digest was unavailable for $($Asset.name); downloading asset to calculate SHA256."
+
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('xerahs-choco-' + [Guid]::NewGuid().ToString('N'))
+    $tempAssetPath = Join-Path $tempRoot $Asset.name
+
+    New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
+
+    try {
+        Invoke-WebRequest -Uri $Asset.browser_download_url `
+                          -Headers @{ 'User-Agent' = 'XerahS-Chocolatey-Sync' } `
+                          -OutFile $tempAssetPath
+
+        return (Get-FileHash -Path $tempAssetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    } finally {
+        Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Set-NuspecMetadataValue {
@@ -191,16 +210,23 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
 
 $release = Get-ReleaseMetadata -Owner $RepositoryOwner -Name $RepositoryName -ReleaseVersion $Version
 $tag = "v$Version"
+$websiteUrl = 'https://xerahs.com/'
 $releaseUrl = $release.html_url
 $repoUrl = "https://github.com/$RepositoryOwner/$RepositoryName"
-$packageSourceUrl = "$repoUrl/tree/develop/build/windows/chocolatey"
+$projectSourceUrl = $repoUrl
+$bugTrackerUrl = "$repoUrl/issues"
+$packageSourceUrl = "$repoUrl/tree/$tag/build/windows/chocolatey"
 $x64AssetName = "XerahS-$Version-win-x64.exe"
 $arm64AssetName = "XerahS-$Version-win-arm64.exe"
 $x64Asset = Get-RequiredAsset -Assets $release.assets -AssetName $x64AssetName
 $arm64Asset = Get-RequiredAsset -Assets $release.assets -AssetName $arm64AssetName
 $x64Checksum = Get-Sha256Digest -Asset $x64Asset
 $arm64Checksum = Get-Sha256Digest -Asset $arm64Asset
-$currentYear = [DateTime]::UtcNow.Year
+$currentYear = if ($null -ne $release.published_at) {
+    ([DateTime]$release.published_at).Year
+} else {
+    [DateTime]::UtcNow.Year
+}
 
 $nuspec = [xml](Get-Content -Path $nuspecPath)
 $namespaceManager = New-Object System.Xml.XmlNamespaceManager($nuspec.NameTable)
@@ -211,7 +237,9 @@ if ($null -eq $metadataNode) {
 }
 
 Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'version' -Value $Version
-Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'projectUrl' -Value $repoUrl
+Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'projectUrl' -Value $websiteUrl
+Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'projectSourceUrl' -Value $projectSourceUrl
+Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'bugTrackerUrl' -Value $bugTrackerUrl
 Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'packageSourceUrl' -Value $packageSourceUrl
 Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'licenseUrl' -Value 'https://www.gnu.org/licenses/gpl-3.0-standalone.html'
 Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'iconUrl' -Value 'https://xerahs.com/assets/Logo.png'

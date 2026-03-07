@@ -20,6 +20,7 @@ This supersedes the retired `docs/development/RELEASE_PROCESS.md`.
 3. When bumping version, update every tracked `Directory.Build.props` in the repository so values match.
 4. Derived release metadata files, such as `build/windows/chocolatey/xerahs.nuspec`, must be synchronized from the root version during release automation.
 5. Read current version from the root `Directory.Build.props` first.
+6. Tagged releases also generate and smoke-test the Chocolatey `.nupkg`, so release metadata under `build/windows/chocolatey/` must stay automation-friendly.
 
 ## Version Bump Policy
 

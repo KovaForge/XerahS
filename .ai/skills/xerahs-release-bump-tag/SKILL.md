@@ -39,7 +39,8 @@ Step 6 performs:
   - `Change log:`
   - `https://xerahs.com/changelog.html`
   - `### macOS Troubleshooting ("App is damaged")` section with Gatekeeper `xattr -cr` guidance.
-- After the release is published, Chocolatey checksums can be synchronized with `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z`.
+- After the release is published, the tag workflow also builds, smoke-tests, and attaches `xerahs.X.Y.Z.nupkg` to the GitHub release.
+- `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z` remains the manual recovery path for re-syncing checksums or repacking.
 
 ## Primary Command
 
@@ -129,8 +130,10 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - `gh release edit v<new-version> --prerelease`
    - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
 
-8. Optional post-release Chocolatey sync
-   - `powershell -File build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version <new-version> -Pack`
+8. Optional post-release Chocolatey maintenance
+   - The tag workflow should already have produced and smoke-tested `xerahs.<new-version>.nupkg`.
+   - Manual repack/re-sync: `powershell -File build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version <new-version> -Pack`
+   - Manual smoke test: `powershell -File build/windows/chocolatey/Test-ChocolateyPackage.ps1 -Version <new-version> -SourceDirectory dist\chocolatey`
    - Optionally push after review: `powershell -File build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version <new-version> -Pack -Push -ApiKey <key>`
 
 Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
@@ -182,5 +185,5 @@ When executing this skill:
 - Changelog optional: do not block if `CHANGELOG.md` does not exist unless user requires it.
 - Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
 - Chocolatey asset naming: `build/windows/chocolatey/tools/chocolateyInstall.ps1` resolves `XerahS-<version>-win-x64.exe` or `XerahS-<version>-win-arm64.exe` from `ChocolateyPackageVersion`, so release bumps should not hardcode installer filenames there.
-- Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. Use `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` after the release is live.
+- Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.
