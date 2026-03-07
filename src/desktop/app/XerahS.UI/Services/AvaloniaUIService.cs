@@ -161,13 +161,39 @@ namespace XerahS.UI.Services
             // don't block the Avalonia UI thread.
             return Task.Run(() =>
             {
-                var options = new VideoEditorOptions
+                try
                 {
-                    VideoPath = videoPath,
-                    FFmpegPath = ffmpegPath ?? string.Empty,
-                    Theme = ResolveTheme(),
-                };
-                return VideoEditorHost.ShowEditorDialog(options);
+                    var options = new VideoEditorOptions
+                    {
+                        VideoPath = videoPath,
+                        FFmpegPath = ffmpegPath ?? string.Empty,
+                        Theme = ResolveTheme(),
+                    };
+
+                    var events = new VideoEditorEvents
+                    {
+                        DiagnosticReported = diagnosticEvent =>
+                        {
+                            string message = $"[VideoEditor:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
+
+                            if (diagnosticEvent.Exception != null)
+                            {
+                                DebugHelper.WriteException(diagnosticEvent.Exception, message);
+                            }
+                            else
+                            {
+                                DebugHelper.WriteLine(message);
+                            }
+                        }
+                    };
+
+                    return VideoEditorHost.ShowEditorDialog(options, events);
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "Failed to open video editor");
+                    return null;
+                }
             });
         }
 

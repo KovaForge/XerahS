@@ -153,6 +153,40 @@
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
   </Target>
 
+  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
+    <PropertyGroup>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\src\WebUI\dist\</_VideoEditorWebUiDistDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_VideoEditorWebUiBuildFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
+    </ItemGroup>
+
+    <Error Condition="'@(_VideoEditorWebUiBuildFiles)' == ''"
+           Text="Missing ShareX.VideoEditor WebUI build output: $(_VideoEditorWebUiDistDir)" />
+
+    <Copy SourceFiles="@(_VideoEditorWebUiBuildFiles)"
+          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)WebUI\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\src\WebUI\dist\</_VideoEditorWebUiDistDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_VideoEditorWebUiPublishFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
+    </ItemGroup>
+
+    <Error Condition="'@(_VideoEditorWebUiPublishFiles)' == ''"
+           Text="Missing ShareX.VideoEditor WebUI build output: $(_VideoEditorWebUiDistDir)" />
+
+    <Copy SourceFiles="@(_VideoEditorWebUiPublishFiles)"
+          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)WebUI\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
   <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/            -->
   <!-- Each plugin csproj must define <PluginId> (e.g. <PluginId>imgur</PluginId>).  -->
   <!-- To add a new bundled plugin: create its folder, csproj, and plugin.json.      -->
