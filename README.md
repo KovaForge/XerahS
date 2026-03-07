@@ -95,11 +95,20 @@ XerahS requires the `ShareX.ImageEditor` and `ShareX.VideoEditor` submodules. Cl
 git clone --recursive https://github.com/ShareX/XerahS.git
 ```
 
-If you already cloned without `--recursive`, initialize the submodule:
+If you already cloned without `--recursive`, initialize the submodules:
 ```bash
 cd XerahS
 git submodule update --init --recursive
 ```
+
+### Desktop Quick Start (Windows)
+On Windows, the fastest verified first-run path is:
+```powershell
+.\init-submodules.ps1
+dotnet build src/desktop/XerahS.sln -m:1 -p:nodeReuse=false -p:UseSharedCompilation=false
+```
+
+If you skip submodule initialization and run `dotnet build src/desktop/XerahS.sln` immediately after a plain `git clone`, the build fails with `MSB3202` because `ShareX.ImageEditor` and `ShareX.VideoEditor` are checked out as Git submodules.
 
 ### Prerequisites
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)

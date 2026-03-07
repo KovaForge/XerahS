@@ -92,7 +92,7 @@ try {
     }
 
     Write-Host "`nSubmodules are ready for src\desktop\XerahS.sln."
-    Write-Host "Build with: dotnet build src\desktop\XerahS.sln -m:1 -p:nodeReuse=false"
+    Write-Host "Build with: dotnet build src\desktop\XerahS.sln -m:1 -p:nodeReuse=false -p:UseSharedCompilation=false"
 } finally {
     Pop-Location
 }
