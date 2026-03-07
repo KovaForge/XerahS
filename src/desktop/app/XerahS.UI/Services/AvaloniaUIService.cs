@@ -163,10 +163,23 @@ namespace XerahS.UI.Services
             {
                 try
                 {
+                    // Resolve FFmpeg: prefer the path provided by the caller (from
+                    // PathsManager.GetFFmpegPath() in ToolWorkflowDispatcher); fall
+                    // back to a fresh PathsManager lookup so any direct callers that
+                    // pass null still get the correct FFmpeg binary.
+                    string resolvedFfmpeg = !string.IsNullOrEmpty(ffmpegPath)
+                        ? ffmpegPath
+                        : PathsManager.GetFFmpegPath();
+
+                    if (string.IsNullOrEmpty(resolvedFfmpeg))
+                    {
+                        DebugHelper.WriteLine("[VideoEditor] FFmpeg path could not be resolved — editor will open without export support.");
+                    }
+
                     var options = new VideoEditorOptions
                     {
                         VideoPath = videoPath,
-                        FFmpegPath = ffmpegPath ?? string.Empty,
+                        FFmpegPath = resolvedFfmpeg,
                         Theme = ResolveTheme(),
                     };
 
