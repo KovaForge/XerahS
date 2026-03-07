@@ -154,17 +154,32 @@ namespace XerahS.UI.Services
             return await tcs.Task;
         }
 
-        public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
+        public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
-            return await Dispatcher.UIThread.InvokeAsync(() =>
+            // VideoEditorHost.ShowEditorDialog spins up its own STA thread and blocks
+            // until the Photino window closes — run it on a thread-pool thread so we
+            // don't block the Avalonia UI thread.
+            return Task.Run(() =>
             {
                 var options = new VideoEditorOptions
                 {
                     VideoPath = videoPath,
-                    FFmpegPath = ffmpegPath ?? string.Empty
+                    FFmpegPath = ffmpegPath ?? string.Empty,
+                    Theme = ResolveTheme(),
                 };
-                return AvaloniaIntegration.ShowEditorDialog(options);
+                return VideoEditorHost.ShowEditorDialog(options);
             });
+        }
+
+        private static string ResolveTheme()
+        {
+            // Map the XerahS theme setting to the VideoEditorOptions theme string.
+            return XerahS.Core.SettingsManager.Settings?.ThemeMode switch
+            {
+                XerahS.Core.AppThemeMode.Light  => "Light",
+                XerahS.Core.AppThemeMode.System => "System",
+                _                               => "Dark",
+            };
         }
 
         public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
