@@ -90,7 +90,7 @@ dotnet run --project src/XerahS.Mobile.Maui/XerahS.Mobile.Maui.csproj -f net10.0
 ## 🚀 Getting Started
 
 ### Cloning the Repository
-XerahS requires the XerahS.Editor submodule. Clone with:
+XerahS requires the `ShareX.ImageEditor` and `ShareX.VideoEditor` submodules. Clone with:
 ```bash
 git clone --recursive https://github.com/ShareX/XerahS.git
 ```
