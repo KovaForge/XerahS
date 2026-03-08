@@ -163,17 +163,31 @@ namespace XerahS.UI.Services
             {
                 try
                 {
-                    // Resolve FFmpeg: prefer the path provided by the caller (from
-                    // PathsManager.GetFFmpegPath() in ToolWorkflowDispatcher); fall
-                    // back to a fresh PathsManager lookup so any direct callers that
-                    // pass null still get the correct FFmpeg binary.
-                    string resolvedFfmpeg = !string.IsNullOrEmpty(ffmpegPath)
+                    // Resolve FFmpeg: use caller path only if non-empty and the file exists;
+                    // otherwise use PathsManager.GetFFmpegPath() so the editor always gets
+                    // the same path XerahS uses (Tools folder, PATH, etc.).
+                    string resolvedFfmpeg = !string.IsNullOrWhiteSpace(ffmpegPath) && File.Exists(ffmpegPath)
                         ? ffmpegPath
                         : PathsManager.GetFFmpegPath();
 
-                    if (string.IsNullOrEmpty(resolvedFfmpeg))
+                    // Normalize to absolute path so File.Exists in VideoEditorHost (running
+                    // on a different thread, possibly different working directory) works reliably.
+                    if (!string.IsNullOrWhiteSpace(resolvedFfmpeg))
+                    {
+                        try
+                        {
+                            resolvedFfmpeg = Path.GetFullPath(resolvedFfmpeg);
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.WriteLine($"[VideoEditor] Could not normalize FFmpeg path: {ex.Message}");
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(resolvedFfmpeg) || !File.Exists(resolvedFfmpeg))
                     {
                         DebugHelper.WriteLine("[VideoEditor] FFmpeg path could not be resolved — editor will open without export support.");
+                        resolvedFfmpeg = string.Empty;
                     }
 
                     var options = new VideoEditorOptions
