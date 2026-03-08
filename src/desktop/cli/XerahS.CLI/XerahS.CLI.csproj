@@ -20,7 +20,7 @@
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
-    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\ShareX.VideoEditor\ShareX.VideoEditor.csproj"
+    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
                       GlobalPropertiesToRemove="OS;Platform"
                       AdditionalProperties="BuildWebUI=false" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
@@ -57,7 +57,7 @@
 
   <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
     <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\WebUI\dist\</_VideoEditorWebUiDistDir>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
     </PropertyGroup>
 
     <ItemGroup>
@@ -65,16 +65,16 @@
     </ItemGroup>
 
     <Error Condition="'@(_VideoEditorWebUiBuildFiles)' == ''"
-           Text="Missing ShareX.VideoEditor WebUI build output: $(_VideoEditorWebUiDistDir)" />
+           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
 
     <Copy SourceFiles="@(_VideoEditorWebUiBuildFiles)"
-          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)WebUI\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
     <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\WebUI\dist\</_VideoEditorWebUiDistDir>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
     </PropertyGroup>
 
     <ItemGroup>
@@ -82,10 +82,10 @@
     </ItemGroup>
 
     <Error Condition="'@(_VideoEditorWebUiPublishFiles)' == ''"
-           Text="Missing ShareX.VideoEditor WebUI build output: $(_VideoEditorWebUiDistDir)" />
+           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
 
     <Copy SourceFiles="@(_VideoEditorWebUiPublishFiles)"
-          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)WebUI\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>

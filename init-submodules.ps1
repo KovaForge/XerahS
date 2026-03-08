@@ -77,7 +77,7 @@ try {
         },
         @{
             Name = "ShareX.VideoEditor"
-            Path = Join-Path $repoRoot "ShareX.VideoEditor\ShareX.VideoEditor\ShareX.VideoEditor.csproj"
+            Path = Join-Path $repoRoot "ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
         }
     )
 
