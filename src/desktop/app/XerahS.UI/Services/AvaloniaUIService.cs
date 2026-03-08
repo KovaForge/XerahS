@@ -23,9 +23,13 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
+using Avalonia.Layout;
+using Avalonia.Media;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -158,10 +162,11 @@ namespace XerahS.UI.Services
         {
             string detectedFfmpegPath = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
 
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 try
                 {
+                    Exception? startupFailure = null;
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
@@ -186,14 +191,29 @@ namespace XerahS.UI.Services
                             {
                                 DebugHelper.WriteLine(message);
                             }
+
+                            if (startupFailure == null &&
+                                diagnosticEvent.Source == nameof(VideoEditorHost) &&
+                                diagnosticEvent.Exception != null)
+                            {
+                                startupFailure = diagnosticEvent.Exception;
+                            }
                         }
                     };
 
-                    return VideoEditorHost.ShowEditorDialog(options, events);
+                    string? result = VideoEditorHost.ShowEditorDialog(options, events);
+
+                    if (startupFailure != null)
+                    {
+                        await ShowVideoEditorStartupErrorAsync(startupFailure.Message);
+                    }
+
+                    return result;
                 }
                 catch (Exception ex)
                 {
                     DebugHelper.WriteException(ex, "Failed to open video editor");
+                    await ShowVideoEditorStartupErrorAsync(ex.Message);
                     return null;
                 }
             });
@@ -232,6 +252,88 @@ namespace XerahS.UI.Services
                 _                               => "Dark",
             };
         }
+
+        private static async Task ShowVideoEditorStartupErrorAsync(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var dialog = new Window
+                {
+                    Title = "Video Editor Unavailable",
+                    Width = 680,
+                    Height = 280,
+                    MinWidth = 560,
+                    MinHeight = 220,
+                    CanResize = true,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                var closeButton = new Button
+                {
+                    Content = "Close",
+                    MinWidth = 100,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+
+                closeButton.Click += (_, _) => dialog.Close();
+
+                dialog.Content = new StackPanel
+                {
+                    Margin = new Thickness(20),
+                    Spacing = 16,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "The video editor could not start.",
+                            FontWeight = FontWeight.SemiBold
+                        },
+                        new ScrollViewer
+                        {
+                            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                            Content = new TextBlock
+                            {
+                                Text = message,
+                                TextWrapping = TextWrapping.Wrap
+                            }
+                        },
+                        closeButton
+                    }
+                };
+
+                Window? owner = TryGetDialogOwner();
+
+                if (CanUseDialogOwner(owner))
+                {
+                    _ = dialog.ShowDialog(owner!);
+                }
+                else
+                {
+                    dialog.Show();
+                }
+            });
+        }
+
+        private static Window? TryGetDialogOwner()
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                return desktop.MainWindow;
+            }
+
+            return null;
+        }
+
+        private static bool CanUseDialogOwner(Window? owner) =>
+            owner != null &&
+            owner.IsVisible &&
+            owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+            owner.ShowInTaskbar;
 
         public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
@@ -309,4 +411,3 @@ namespace XerahS.UI.Services
         }
     }
 }
-
