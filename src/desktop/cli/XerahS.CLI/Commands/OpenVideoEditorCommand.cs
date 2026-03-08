@@ -241,19 +241,25 @@ public static class OpenVideoEditorCommand
         FFmpegDownloadResult downloadResult = await FFmpegDownloader.DownloadLatestAsync(downloadFolder);
         if (!downloadResult.Success)
         {
-            string errorMessage = string.IsNullOrWhiteSpace(downloadResult.ErrorMessage)
-                ? "FFprobe download failed."
-                : downloadResult.ErrorMessage;
-            throw new InvalidOperationException(errorMessage);
+            Console.WriteLine(
+                $"Primary FFmpeg package download did not complete cleanly: {downloadResult.ErrorMessage ?? "unknown error"}");
         }
 
         string downloadedProbePath = ResolveFFprobePath(ffmpegPath);
-        if (string.IsNullOrWhiteSpace(downloadedProbePath))
+        if (!string.IsNullOrWhiteSpace(downloadedProbePath))
         {
-            throw new InvalidOperationException("FFprobe was downloaded but could not be located.");
+            return downloadedProbePath;
         }
 
-        return downloadedProbePath;
+        Console.WriteLine("Primary FFmpeg package did not contain ffprobe. Downloading ffprobe from the online fallback source...");
+
+        string? fallbackProbePath = await FFmpegDownloader.DownloadFFprobeFallbackAsync(downloadFolder);
+        if (!string.IsNullOrWhiteSpace(fallbackProbePath))
+        {
+            return fallbackProbePath;
+        }
+
+        throw new InvalidOperationException("FFprobe was downloaded but could not be located.");
     }
 
     private static string ResolveFFprobePath(string ffmpegPath)
