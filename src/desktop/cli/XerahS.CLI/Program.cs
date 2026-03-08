@@ -77,6 +77,7 @@ namespace XerahS.CLI
                 rootCommand.Add(VerifyRecordingCommand.Create());
                 rootCommand.Add(VerifyGifRecordingCommand.Create());
                 rootCommand.Add(VerifyVideoEditorCommand.Create());
+                rootCommand.Add(OpenVideoEditorCommand.Create());
                 rootCommand.Add(WatchFolderDaemonCommand.Create());
 
                 // Execute
