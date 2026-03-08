@@ -155,7 +155,7 @@
 
   <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
     <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\src\WebUI\dist\</_VideoEditorWebUiDistDir>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\WebUI\dist\</_VideoEditorWebUiDistDir>
     </PropertyGroup>
 
     <ItemGroup>
@@ -172,7 +172,7 @@
 
   <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
     <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\src\WebUI\dist\</_VideoEditorWebUiDistDir>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\WebUI\dist\</_VideoEditorWebUiDistDir>
     </PropertyGroup>
 
     <ItemGroup>
