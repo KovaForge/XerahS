@@ -60,7 +60,7 @@ namespace XerahS.CLI.Services
         {
             string detectedFfmpegPath = PathsManager.GetFFmpegPath();
 
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 try
                 {
@@ -69,10 +69,32 @@ namespace XerahS.CLI.Services
 
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
+                    string ffprobePath = string.Empty;
+                    if (ffmpegResolution.IsAvailable)
+                    {
+                        try
+                        {
+                            ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
+                                ffmpegResolution.ConfiguredPath,
+                                message =>
+                                {
+                                    string logMessage = $"[VideoEditor] {message}";
+                                    Console.WriteLine(logMessage);
+                                    DebugHelper.WriteLine(logMessage);
+                                });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.Error.WriteLine($"[VideoEditor] FFprobe unavailable: {ex.Message}");
+                            DebugHelper.WriteException(ex, "Failed to resolve FFprobe for video editor");
+                        }
+                    }
+
                     var options = new VideoEditorOptions
                     {
                         VideoPath = resolvedVideoPath,
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
+                        FFprobePath = ffprobePath,
                         Theme = ResolveTheme()
                     };
 

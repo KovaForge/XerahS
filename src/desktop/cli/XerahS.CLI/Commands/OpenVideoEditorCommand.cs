@@ -172,7 +172,9 @@ public static class OpenVideoEditorCommand
                 return 2;
             }
 
-            string ffprobePath = await EnsureFFprobeAvailableAsync(resolution.ConfiguredPath);
+            string ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
+                resolution.ConfiguredPath,
+                Console.WriteLine);
             string resolvedOutputPath = !string.IsNullOrWhiteSpace(outputPath)
                 ? Path.GetFullPath(outputPath)
                 : Path.Combine(
@@ -227,52 +229,4 @@ public static class OpenVideoEditorCommand
         }
     }
 
-    private static async Task<string> EnsureFFprobeAvailableAsync(string ffmpegPath)
-    {
-        string existingProbePath = ResolveFFprobePath(ffmpegPath);
-        if (!string.IsNullOrWhiteSpace(existingProbePath))
-        {
-            return existingProbePath;
-        }
-
-        string downloadFolder = Path.GetDirectoryName(ffmpegPath) ?? PathsManager.ToolsArchitectureFolder;
-        Console.WriteLine($"FFprobe missing. Downloading tools package to: {downloadFolder}");
-
-        FFmpegDownloadResult downloadResult = await FFmpegDownloader.DownloadLatestAsync(downloadFolder);
-        if (!downloadResult.Success)
-        {
-            Console.WriteLine(
-                $"Primary FFmpeg package download did not complete cleanly: {downloadResult.ErrorMessage ?? "unknown error"}");
-        }
-
-        string downloadedProbePath = ResolveFFprobePath(ffmpegPath);
-        if (!string.IsNullOrWhiteSpace(downloadedProbePath))
-        {
-            return downloadedProbePath;
-        }
-
-        Console.WriteLine("Primary FFmpeg package did not contain ffprobe. Downloading ffprobe from the online fallback source...");
-
-        string? fallbackProbePath = await FFmpegDownloader.DownloadFFprobeFallbackAsync(downloadFolder);
-        if (!string.IsNullOrWhiteSpace(fallbackProbePath))
-        {
-            return fallbackProbePath;
-        }
-
-        throw new InvalidOperationException("FFprobe was downloaded but could not be located.");
-    }
-
-    private static string ResolveFFprobePath(string ffmpegPath)
-    {
-        string siblingProbePath = Path.Combine(
-            Path.GetDirectoryName(ffmpegPath) ?? string.Empty,
-            OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe");
-        if (File.Exists(siblingProbePath))
-        {
-            return siblingProbePath;
-        }
-
-        string detectedProbePath = PathsManager.GetFFprobePath();
-        return string.IsNullOrWhiteSpace(detectedProbePath) ? string.Empty : detectedProbePath;
-    }
 }

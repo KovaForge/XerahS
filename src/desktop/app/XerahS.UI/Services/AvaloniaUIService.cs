@@ -170,10 +170,31 @@ namespace XerahS.UI.Services
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
+                    string ffprobePath = string.Empty;
+                    if (ffmpegResolution.IsAvailable)
+                    {
+                        try
+                        {
+                            ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
+                                ffmpegResolution.ConfiguredPath,
+                                message => DebugHelper.WriteLine($"[VideoEditor] {message}"));
+
+                            if (!string.IsNullOrWhiteSpace(ffprobePath))
+                            {
+                                DebugHelper.WriteLine($"[VideoEditor] Using FFprobe at: {ffprobePath}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.WriteException(ex, "Failed to resolve FFprobe for video editor");
+                        }
+                    }
+
                     var options = new VideoEditorOptions
                     {
                         VideoPath = videoPath,
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
+                        FFprobePath = ffprobePath,
                         Theme = ResolveTheme(),
                     };
 
