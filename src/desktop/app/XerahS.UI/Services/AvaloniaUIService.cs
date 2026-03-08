@@ -154,24 +154,35 @@ namespace XerahS.UI.Services
             return await tcs.Task;
         }
 
-        public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
+        public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
-            // VideoEditorHost.ShowEditorDialog spins up its own STA thread and blocks
-            // until the Photino window closes — run it on a thread-pool thread so we
-            // don't block the Avalonia UI thread.
-            return Task.Run(() =>
+            // Resolve FFmpeg on the UI thread so we use the same context as the rest of the app
+            // (PathsManager, PersonalFolder, etc.). This avoids "(not set)" when the thread-pool
+            // thread would otherwise resolve in a different context.
+            string resolvedOnUiThread = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
+            if (!string.IsNullOrWhiteSpace(resolvedOnUiThread))
             {
                 try
                 {
-                    // Resolve FFmpeg: use caller path only if non-empty and the file exists;
-                    // otherwise use PathsManager.GetFFmpegPath() so the editor always gets
-                    // the same path XerahS uses (Tools folder, PATH, etc.).
+                    resolvedOnUiThread = Path.GetFullPath(resolvedOnUiThread);
+                }
+                catch
+                {
+                    // keep as-is if normalization fails
+                }
+            }
+
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Prefer: caller path (if file exists) → UI-thread resolution → PathsManager again on this thread.
                     string resolvedFfmpeg = !string.IsNullOrWhiteSpace(ffmpegPath) && File.Exists(ffmpegPath)
                         ? ffmpegPath
-                        : PathsManager.GetFFmpegPath();
+                        : !string.IsNullOrWhiteSpace(resolvedOnUiThread) && File.Exists(resolvedOnUiThread)
+                            ? resolvedOnUiThread
+                            : PathsManager.GetFFmpegPath();
 
-                    // Normalize to absolute path so File.Exists in VideoEditorHost (running
-                    // on a different thread, possibly different working directory) works reliably.
                     if (!string.IsNullOrWhiteSpace(resolvedFfmpeg))
                     {
                         try
@@ -186,8 +197,12 @@ namespace XerahS.UI.Services
 
                     if (string.IsNullOrWhiteSpace(resolvedFfmpeg) || !File.Exists(resolvedFfmpeg))
                     {
-                        DebugHelper.WriteLine("[VideoEditor] FFmpeg path could not be resolved — editor will open without export support.");
+                        DebugHelper.WriteLine("[VideoEditor] FFmpeg path could not be resolved — editor will open without export support. Expected path (for debugging): empty or missing file.");
                         resolvedFfmpeg = string.Empty;
+                    }
+                    else
+                    {
+                        DebugHelper.WriteLine($"[VideoEditor] Using FFmpeg at: {resolvedFfmpeg}");
                     }
 
                     var options = new VideoEditorOptions
