@@ -162,7 +162,7 @@ namespace XerahS.UI.Services
             {
                 try
                 {
-                    var ffmpegResolution = ResolveVideoEditorFfmpegPath(ffmpegPath, detectedFfmpegPath);
+                    var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
                     var options = new VideoEditorOptions
@@ -199,35 +199,6 @@ namespace XerahS.UI.Services
             });
         }
 
-        private static (string ConfiguredPath, bool IsAvailable, string Source) ResolveVideoEditorFfmpegPath(
-            string? hostPath,
-            string? detectedPath)
-        {
-            string normalizedHostPath = NormalizeVideoEditorPath(hostPath);
-            if (!string.IsNullOrWhiteSpace(normalizedHostPath) && File.Exists(normalizedHostPath))
-            {
-                return (normalizedHostPath, true, "host");
-            }
-
-            string normalizedDetectedPath = NormalizeVideoEditorPath(detectedPath);
-            if (!string.IsNullOrWhiteSpace(normalizedDetectedPath) && File.Exists(normalizedDetectedPath))
-            {
-                string source = string.IsNullOrWhiteSpace(normalizedHostPath)
-                    ? "PathsManager"
-                    : "PathsManager fallback";
-                return (normalizedDetectedPath, true, source);
-            }
-
-            string displayPath = !string.IsNullOrWhiteSpace(normalizedHostPath)
-                ? normalizedHostPath
-                : normalizedDetectedPath;
-            string missingSource = string.IsNullOrWhiteSpace(displayPath)
-                ? "none"
-                : string.IsNullOrWhiteSpace(normalizedHostPath) ? "PathsManager missing" : "host missing";
-
-            return (displayPath, false, missingSource);
-        }
-
         private static void LogVideoEditorFfmpegResolution(
             string? hostPath,
             string? detectedPath,
@@ -248,30 +219,6 @@ namespace XerahS.UI.Services
             {
                 DebugHelper.WriteLine(
                     $"[VideoEditor] FFmpeg unavailable. Source={resolution.Source}, hostCandidate={hostCandidate}, detectedCandidate={detectedCandidate}, configuredPath={configuredPath}");
-            }
-        }
-
-        private static string NormalizeVideoEditorPath(string? path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return string.Empty;
-            }
-
-            string normalizedPath = path.Trim().Trim('"', '\'');
-            if (string.IsNullOrWhiteSpace(normalizedPath))
-            {
-                return string.Empty;
-            }
-
-            try
-            {
-                return FileHelpers.GetAbsolutePath(normalizedPath);
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteLine($"[VideoEditor] Could not normalize FFmpeg path '{path}': {ex.Message}");
-                return normalizedPath;
             }
         }
 

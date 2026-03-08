@@ -20,6 +20,9 @@
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
+    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\src\ShareX.VideoEditor\ShareX.VideoEditor.csproj"
+                      GlobalPropertiesToRemove="OS;Platform"
+                      AdditionalProperties="BuildWebUI=false" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="'$(OS)' == 'Windows_NT'" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="'$(OS)' != 'Windows_NT'" />
@@ -50,6 +53,40 @@
           DestinationFiles="@(_WatchFolderDaemonBuildFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true"
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
+  </Target>
+
+  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
+    <PropertyGroup>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\src\WebUI\dist\</_VideoEditorWebUiDistDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_VideoEditorWebUiBuildFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
+    </ItemGroup>
+
+    <Error Condition="'@(_VideoEditorWebUiBuildFiles)' == ''"
+           Text="Missing ShareX.VideoEditor WebUI build output: $(_VideoEditorWebUiDistDir)" />
+
+    <Copy SourceFiles="@(_VideoEditorWebUiBuildFiles)"
+          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)WebUI\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\src\WebUI\dist\</_VideoEditorWebUiDistDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_VideoEditorWebUiPublishFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
+    </ItemGroup>
+
+    <Error Condition="'@(_VideoEditorWebUiPublishFiles)' == ''"
+           Text="Missing ShareX.VideoEditor WebUI build output: $(_VideoEditorWebUiDistDir)" />
+
+    <Copy SourceFiles="@(_VideoEditorWebUiPublishFiles)"
+          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)WebUI\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
   </Target>
 </Project>
 
