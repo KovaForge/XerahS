@@ -171,49 +171,59 @@ namespace XerahS.Common
 
         public static string GetFFmpegPath()
         {
+            return GetToolPath("FFmpeg", OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
+        }
+
+        public static string GetFFprobePath()
+        {
+            return GetToolPath("FFprobe", OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe");
+        }
+
+        private static string GetToolPath(string toolName, string executableName)
+        {
             // 1. Check Personal Tools Architecture Folder (Prioritized)
-            string toolsFFmpeg = Path.Combine(ToolsArchitectureFolder, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
-            DebugHelper.WriteLine($"[FFmpeg] Checking architecture tools path: {toolsFFmpeg}");
-            if (File.Exists(toolsFFmpeg))
+            string toolsExecutablePath = Path.Combine(ToolsArchitectureFolder, executableName);
+            DebugHelper.WriteLine($"[{toolName}] Checking architecture tools path: {toolsExecutablePath}");
+            if (File.Exists(toolsExecutablePath))
             {
-                DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at: {toolsFFmpeg}");
-                return toolsFFmpeg;
+                DebugHelper.WriteLine($"[{toolName}] Found {toolName} at: {toolsExecutablePath}");
+                return toolsExecutablePath;
             }
 
             // Check without extension on macOS/Linux if strict naming is used
             if (!OperatingSystem.IsWindows())
             {
-                string toolsFFmpegNoExt = Path.Combine(ToolsArchitectureFolder, "ffmpeg");
-                if (toolsFFmpeg != toolsFFmpegNoExt)
+                string toolsExecutableNoExt = Path.Combine(ToolsArchitectureFolder, Path.GetFileNameWithoutExtension(executableName));
+                if (toolsExecutablePath != toolsExecutableNoExt)
                 {
-                    DebugHelper.WriteLine($"[FFmpeg] Checking architecture tools path: {toolsFFmpegNoExt}");
-                    if (File.Exists(toolsFFmpegNoExt))
+                    DebugHelper.WriteLine($"[{toolName}] Checking architecture tools path: {toolsExecutableNoExt}");
+                    if (File.Exists(toolsExecutableNoExt))
                     {
-                        DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at: {toolsFFmpegNoExt}");
-                        return toolsFFmpegNoExt;
+                        DebugHelper.WriteLine($"[{toolName}] Found {toolName} at: {toolsExecutableNoExt}");
+                        return toolsExecutableNoExt;
                     }
                 }
             }
 
             // 1b. Check legacy Personal Tools Folder
-            string legacyToolsFFmpeg = Path.Combine(ToolsFolder, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
-            DebugHelper.WriteLine($"[FFmpeg] Checking legacy tools path: {legacyToolsFFmpeg}");
-            if (File.Exists(legacyToolsFFmpeg))
+            string legacyToolsExecutablePath = Path.Combine(ToolsFolder, executableName);
+            DebugHelper.WriteLine($"[{toolName}] Checking legacy tools path: {legacyToolsExecutablePath}");
+            if (File.Exists(legacyToolsExecutablePath))
             {
-                DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at: {legacyToolsFFmpeg}");
-                return legacyToolsFFmpeg;
+                DebugHelper.WriteLine($"[{toolName}] Found {toolName} at: {legacyToolsExecutablePath}");
+                return legacyToolsExecutablePath;
             }
 
             if (!OperatingSystem.IsWindows())
             {
-                string legacyToolsFFmpegNoExt = Path.Combine(ToolsFolder, "ffmpeg");
-                if (legacyToolsFFmpeg != legacyToolsFFmpegNoExt)
+                string legacyToolsExecutableNoExt = Path.Combine(ToolsFolder, Path.GetFileNameWithoutExtension(executableName));
+                if (legacyToolsExecutablePath != legacyToolsExecutableNoExt)
                 {
-                    DebugHelper.WriteLine($"[FFmpeg] Checking legacy tools path: {legacyToolsFFmpegNoExt}");
-                    if (File.Exists(legacyToolsFFmpegNoExt))
+                    DebugHelper.WriteLine($"[{toolName}] Checking legacy tools path: {legacyToolsExecutableNoExt}");
+                    if (File.Exists(legacyToolsExecutableNoExt))
                     {
-                        DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at: {legacyToolsFFmpegNoExt}");
-                        return legacyToolsFFmpegNoExt;
+                        DebugHelper.WriteLine($"[{toolName}] Found {toolName} at: {legacyToolsExecutableNoExt}");
+                        return legacyToolsExecutableNoExt;
                     }
                 }
             }
@@ -222,43 +232,42 @@ namespace XerahS.Common
             string appToolsDir = GetAppToolsDirectory();
             string[] commonPaths = new[]
             {
-                Path.Combine(appToolsDir, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg"),
-                Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "FFmpeg", "bin", "ffmpeg.exe"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "FFmpeg", "bin", "ffmpeg.exe"),
-                "/opt/homebrew/bin/ffmpeg",
-                "/usr/local/bin/ffmpeg",
-                "/usr/bin/ffmpeg"
+                Path.Combine(appToolsDir, executableName),
+                Path.Combine(AppContext.BaseDirectory, executableName),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "FFmpeg", "bin", executableName),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "FFmpeg", "bin", executableName),
+                $"/opt/homebrew/bin/{Path.GetFileNameWithoutExtension(executableName)}",
+                $"/usr/local/bin/{Path.GetFileNameWithoutExtension(executableName)}",
+                $"/usr/bin/{Path.GetFileNameWithoutExtension(executableName)}"
             };
 
             foreach (var path in commonPaths)
             {
-                DebugHelper.WriteLine($"[FFmpeg] Checking common path: {path}");
+                DebugHelper.WriteLine($"[{toolName}] Checking common path: {path}");
                 if (File.Exists(path))
                 {
-                    DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at: {path}");
+                    DebugHelper.WriteLine($"[{toolName}] Found {toolName} at: {path}");
                     return path;
                 }
             }
 
             // 3. Check PATH Environment Variable
-            DebugHelper.WriteLine("[FFmpeg] Searching PATH environment variable...");
+            DebugHelper.WriteLine($"[{toolName}] Searching PATH environment variable...");
             var pathEnv = Environment.GetEnvironmentVariable("PATH");
             if (pathEnv != null)
             {
                 foreach (var dir in pathEnv.Split(Path.PathSeparator))
                 {
-                    var ffmpegExecutable = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
-                    var ffmpegPath = Path.Combine(dir, ffmpegExecutable);
-                    if (File.Exists(ffmpegPath))
+                    var toolPath = Path.Combine(dir, executableName);
+                    if (File.Exists(toolPath))
                     {
-                        DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg in PATH at: {ffmpegPath}");
-                        return ffmpegPath;
+                        DebugHelper.WriteLine($"[{toolName}] Found {toolName} in PATH at: {toolPath}");
+                        return toolPath;
                     }
                 }
             }
 
-            DebugHelper.WriteLine("[FFmpeg] FFmpeg not found in any standard location.");
+            DebugHelper.WriteLine($"[{toolName}] {toolName} not found in any standard location.");
             return string.Empty;
         }
 
