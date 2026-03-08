@@ -376,9 +376,22 @@ namespace XerahS.Core.Tasks
 
         private static string? ResolveGifFFmpegPath(FFmpegOptions? ffmpegOptions)
         {
-            if (ffmpegOptions != null && !string.IsNullOrWhiteSpace(ffmpegOptions.CLIPath))
+            if (ffmpegOptions?.OverrideCLIPath == true && !string.IsNullOrWhiteSpace(ffmpegOptions.CLIPath))
             {
-                return ffmpegOptions.CLIPath;
+                string configuredPath = ffmpegOptions.CLIPath.Trim().Trim('"', '\'');
+                if (!string.IsNullOrWhiteSpace(configuredPath))
+                {
+                    try
+                    {
+                        configuredPath = FileHelpers.GetAbsolutePath(configuredPath);
+                    }
+                    catch
+                    {
+                        // Keep the user-provided value for diagnostics if normalization fails.
+                    }
+
+                    return configuredPath;
+                }
             }
 
             string detectedPath = PathsManager.GetFFmpegPath();

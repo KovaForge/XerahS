@@ -156,59 +156,19 @@ namespace XerahS.UI.Services
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
-            // Resolve FFmpeg on the UI thread so we use the same context as the rest of the app
-            // (PathsManager, PersonalFolder, etc.). This avoids "(not set)" when the thread-pool
-            // thread would otherwise resolve in a different context.
-            string resolvedOnUiThread = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
-            if (!string.IsNullOrWhiteSpace(resolvedOnUiThread))
-            {
-                try
-                {
-                    resolvedOnUiThread = Path.GetFullPath(resolvedOnUiThread);
-                }
-                catch
-                {
-                    // keep as-is if normalization fails
-                }
-            }
+            string detectedFfmpegPath = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
 
             return await Task.Run(() =>
             {
                 try
                 {
-                    // Prefer: caller path (if file exists) → UI-thread resolution → PathsManager again on this thread.
-                    string resolvedFfmpeg = !string.IsNullOrWhiteSpace(ffmpegPath) && File.Exists(ffmpegPath)
-                        ? ffmpegPath
-                        : !string.IsNullOrWhiteSpace(resolvedOnUiThread) && File.Exists(resolvedOnUiThread)
-                            ? resolvedOnUiThread
-                            : PathsManager.GetFFmpegPath();
-
-                    if (!string.IsNullOrWhiteSpace(resolvedFfmpeg))
-                    {
-                        try
-                        {
-                            resolvedFfmpeg = Path.GetFullPath(resolvedFfmpeg);
-                        }
-                        catch (Exception ex)
-                        {
-                            DebugHelper.WriteLine($"[VideoEditor] Could not normalize FFmpeg path: {ex.Message}");
-                        }
-                    }
-
-                    if (string.IsNullOrWhiteSpace(resolvedFfmpeg) || !File.Exists(resolvedFfmpeg))
-                    {
-                        DebugHelper.WriteLine("[VideoEditor] FFmpeg path could not be resolved — editor will open without export support. Expected path (for debugging): empty or missing file.");
-                        resolvedFfmpeg = string.Empty;
-                    }
-                    else
-                    {
-                        DebugHelper.WriteLine($"[VideoEditor] Using FFmpeg at: {resolvedFfmpeg}");
-                    }
+                    var ffmpegResolution = ResolveVideoEditorFfmpegPath(ffmpegPath, detectedFfmpegPath);
+                    LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
                     var options = new VideoEditorOptions
                     {
                         VideoPath = videoPath,
-                        FFmpegPath = resolvedFfmpeg,
+                        FFmpegPath = ffmpegResolution.ConfiguredPath,
                         Theme = ResolveTheme(),
                     };
 
@@ -237,6 +197,82 @@ namespace XerahS.UI.Services
                     return null;
                 }
             });
+        }
+
+        private static (string ConfiguredPath, bool IsAvailable, string Source) ResolveVideoEditorFfmpegPath(
+            string? hostPath,
+            string? detectedPath)
+        {
+            string normalizedHostPath = NormalizeVideoEditorPath(hostPath);
+            if (!string.IsNullOrWhiteSpace(normalizedHostPath) && File.Exists(normalizedHostPath))
+            {
+                return (normalizedHostPath, true, "host");
+            }
+
+            string normalizedDetectedPath = NormalizeVideoEditorPath(detectedPath);
+            if (!string.IsNullOrWhiteSpace(normalizedDetectedPath) && File.Exists(normalizedDetectedPath))
+            {
+                string source = string.IsNullOrWhiteSpace(normalizedHostPath)
+                    ? "PathsManager"
+                    : "PathsManager fallback";
+                return (normalizedDetectedPath, true, source);
+            }
+
+            string displayPath = !string.IsNullOrWhiteSpace(normalizedHostPath)
+                ? normalizedHostPath
+                : normalizedDetectedPath;
+            string missingSource = string.IsNullOrWhiteSpace(displayPath)
+                ? "none"
+                : string.IsNullOrWhiteSpace(normalizedHostPath) ? "PathsManager missing" : "host missing";
+
+            return (displayPath, false, missingSource);
+        }
+
+        private static void LogVideoEditorFfmpegResolution(
+            string? hostPath,
+            string? detectedPath,
+            (string ConfiguredPath, bool IsAvailable, string Source) resolution)
+        {
+            string hostCandidate = string.IsNullOrWhiteSpace(hostPath) ? "(empty)" : hostPath;
+            string detectedCandidate = string.IsNullOrWhiteSpace(detectedPath) ? "(empty)" : detectedPath;
+            string configuredPath = string.IsNullOrWhiteSpace(resolution.ConfiguredPath)
+                ? "(not set)"
+                : resolution.ConfiguredPath;
+
+            if (resolution.IsAvailable)
+            {
+                DebugHelper.WriteLine(
+                    $"[VideoEditor] Using FFmpeg at: {configuredPath} (source: {resolution.Source}, hostCandidate: {hostCandidate}, detectedCandidate: {detectedCandidate})");
+            }
+            else
+            {
+                DebugHelper.WriteLine(
+                    $"[VideoEditor] FFmpeg unavailable. Source={resolution.Source}, hostCandidate={hostCandidate}, detectedCandidate={detectedCandidate}, configuredPath={configuredPath}");
+            }
+        }
+
+        private static string NormalizeVideoEditorPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
+
+            string normalizedPath = path.Trim().Trim('"', '\'');
+            if (string.IsNullOrWhiteSpace(normalizedPath))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                return FileHelpers.GetAbsolutePath(normalizedPath);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"[VideoEditor] Could not normalize FFmpeg path '{path}': {ex.Message}");
+                return normalizedPath;
+            }
         }
 
         private static string ResolveTheme()
