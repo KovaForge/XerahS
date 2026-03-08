@@ -20,7 +20,7 @@
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
-    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\src\ShareX.VideoEditor\ShareX.VideoEditor.csproj"
+    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\ShareX.VideoEditor\ShareX.VideoEditor.csproj"
                       GlobalPropertiesToRemove="OS;Platform"
                       AdditionalProperties="BuildWebUI=false" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />

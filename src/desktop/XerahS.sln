@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.2.11415.280
@@ -85,7 +85,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XerahS.Bitly.Plugin", "plug
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ShareX.VideoEditor", "ShareX.VideoEditor", "{D11D01EB-7B8F-3246-317D-EC0310EB12D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.VideoEditor", "..\..\ShareX.VideoEditor\src\ShareX.VideoEditor\ShareX.VideoEditor.csproj", "{26E776B0-562A-4ECD-93B3-4AAE901086C2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.VideoEditor", "..\..\ShareX.VideoEditor\ShareX.VideoEditor\ShareX.VideoEditor.csproj", "{26E776B0-562A-4ECD-93B3-4AAE901086C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
