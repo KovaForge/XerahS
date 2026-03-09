@@ -2,6 +2,14 @@
 
 This document serves as a centralized knowledge base for technical challenges, architectural decisions, and platform-specific quirks encountered during the development of XerahS.
 
+When a task produces a durable correction or preventive rule, capture it here or in the closest topic-specific lessons file using this format:
+
+```md
+- Never ...; always ... because ...
+```
+
+Promote only repository-wide policy changes to `AGENTS.md`.
+
 ## table of Contents
 
 1.  [UI & FluentAvalonia](#ui--fluentavalonia)
