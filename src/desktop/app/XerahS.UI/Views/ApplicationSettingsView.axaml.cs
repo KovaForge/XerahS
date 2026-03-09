@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using XerahS.Core;
 using XerahS.UI.Controls;
@@ -78,6 +79,8 @@ namespace XerahS.UI.Views
                 return false;
             };
 
+            vm.BrowseScreenshotsFolderRequester = BrowseScreenshotsFolderAsync;
+
             // Find debug TextBox and connect it to the HotkeySelectionControl's static debug log
             Loaded += (s, e) =>
             {
@@ -102,6 +105,24 @@ namespace XerahS.UI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        private async Task<string?> BrowseScreenshotsFolderAsync()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null)
+            {
+                return null;
+            }
+
+            var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Select Screenshots Folder",
+                AllowMultiple = false,
+                SuggestedStartLocation = await topLevel.StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Pictures)
+            });
+
+            return folders.Count > 0 ? folders[0].Path.LocalPath : null;
         }
     }
 }

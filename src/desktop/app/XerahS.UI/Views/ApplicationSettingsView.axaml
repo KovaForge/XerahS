@@ -164,7 +164,14 @@
                                     <CheckBox IsChecked="{Binding UseCustomScreenshotsPath}" Content="Use custom screenshots path" AutomationProperties.Name="Use Custom Screenshots Path"/>
                                     <Grid ColumnDefinitions="*, 16, Auto" IsEnabled="{Binding UseCustomScreenshotsPath}">
                                         <TextBox Grid.Column="0" Text="{Binding ScreenshotsFolder}" Watermark="Path to screenshots folder" AutomationProperties.Name="Screenshots Folder Path"/>
-                                        <Button Grid.Column="2" Content="Browse..." Command="{Binding BrowseFolderCommand}" AutomationProperties.Name="Browse Screenshots Folder"/>
+                                        <Button Grid.Column="2"
+                                                Width="36"
+                                                MinWidth="36"
+                                                Padding="0"
+                                                Content="..."
+                                                ToolTip.Tip="Browse for screenshots folder"
+                                                Command="{Binding BrowseFolderCommand}"
+                                                AutomationProperties.Name="Browse Screenshots Folder"/>
                                     </Grid>
                                 </StackPanel>
                             </Border>

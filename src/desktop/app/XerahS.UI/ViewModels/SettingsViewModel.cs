@@ -121,6 +121,7 @@ namespace XerahS.UI.ViewModels
         }
 
         public Func<WatchFolderEditViewModel, Task<bool>>? EditWatchFolderRequester { get; set; }
+        public Func<Task<string?>>? BrowseScreenshotsFolderRequester { get; set; }
 
         public SettingsViewModel()
         {
@@ -318,9 +319,18 @@ namespace XerahS.UI.ViewModels
         }
 
         [RelayCommand]
-        private void BrowseFolder()
+        private async Task BrowseFolder()
         {
-            // TODO: Implement folder picker dialog
+            if (BrowseScreenshotsFolderRequester == null)
+            {
+                return;
+            }
+
+            string? path = await BrowseScreenshotsFolderRequester();
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                ScreenshotsFolder = path;
+            }
         }
 
         [RelayCommand]

@@ -283,6 +283,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     [Category("Paths"), Description("Custom workflows config path.")]
     public string CustomWorkflowsConfigPath { get; set; } = "";
 
+    [Browsable(false)]
     [Category("Paths"), Description("Secondary custom screenshots path.")]
     public string CustomScreenshotsPath2 { get; set; } = "";
 
