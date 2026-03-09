@@ -134,23 +134,18 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
 
-        // Position window to cover the entire monitor.
-        // Use PhysicalBounds for Window.Position on X11 (physical pixel coordinates).
-        // Use OverlayBounds for Window.Position on Wayland native (compositor logical coordinates).
-        // The distinction is made via IsAvaloniaWaylandBackend(), NOT IsWaylandSession(), because
-        // the app may be running via XWayland (XDG_SESSION_TYPE=wayland but Avalonia X11 backend).
-#if !WINDOWS
+        bool isWindows = OperatingSystem.IsWindows();
+        bool isLinux = OperatingSystem.IsLinux();
         bool isAvaloniaWayland = MonitorEnumerationService.IsAvaloniaWaylandBackend();
-        bool usePhysicalPosition = OperatingSystem.IsLinux() && !isAvaloniaWayland;
-        var posX = usePhysicalPosition ? monitor.PhysicalBounds.X : monitor.OverlayBounds.X;
-        var posY = usePhysicalPosition ? monitor.PhysicalBounds.Y : monitor.OverlayBounds.Y;
-        Position = new AvPixelPoint((int)posX, (int)posY);
-        DebugHelper.WriteLine($"[OverlayWindow] {monitor.DeviceName}: isAvaloniaWayland={isAvaloniaWayland} usePhysicalPos={usePhysicalPosition} Position=({(int)posX},{(int)posY}) Width={monitor.OverlayBounds.Width:F1} Height={monitor.OverlayBounds.Height:F1} PhysicalBounds=({monitor.PhysicalBounds.X:F1},{monitor.PhysicalBounds.Y:F1},{monitor.PhysicalBounds.Width:F1},{monitor.PhysicalBounds.Height:F1})");
-#else
-        Position = new AvPixelPoint((int)monitor.OverlayBounds.X, (int)monitor.OverlayBounds.Y);
-#endif
-        Width = monitor.OverlayBounds.Width;
-        Height = monitor.OverlayBounds.Height;
+        var windowLayout = OverlayWindowLayoutCalculator.Calculate(monitor, isWindows, isLinux, isAvaloniaWayland);
+
+        // Window origin and size do not share one coordinate space on every backend:
+        // Windows and X11 use physical origin with logical size, while native Wayland/macOS use logical coordinates throughout.
+        Position = new AvPixelPoint((int)windowLayout.Position.X, (int)windowLayout.Position.Y);
+        Width = windowLayout.Width;
+        Height = windowLayout.Height;
+
+        DebugHelper.WriteLine($"[OverlayWindow] {monitor.DeviceName}: isWindows={isWindows} isAvaloniaWayland={isAvaloniaWayland} Position=({(int)windowLayout.Position.X},{(int)windowLayout.Position.Y}) Width={windowLayout.Width:F1} Height={windowLayout.Height:F1} PhysicalBounds=({monitor.PhysicalBounds.X:F1},{monitor.PhysicalBounds.Y:F1},{monitor.PhysicalBounds.Width:F1},{monitor.PhysicalBounds.Height:F1}) OverlayBounds=({monitor.OverlayBounds.X:F1},{monitor.OverlayBounds.Y:F1},{monitor.OverlayBounds.Width:F1},{monitor.OverlayBounds.Height:F1})");
 
         // Create and add the capture control
         _captureControl = new RegionCaptureControl(_monitor, options, initialCursor);
