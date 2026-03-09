@@ -25,45 +25,18 @@
 
 namespace ShareX.Immich.Plugin;
 
-public enum ImmichAuthMode
+public sealed class ImmichServerProfile
 {
-    ApiKey,
-    BootstrapApiKey
-}
-
-public enum ImmichShareMode
-{
-    None,
-    Asset,
-    Album
-}
-
-public class ImmichConfigModel
-{
-    public string SecretKey { get; set; } = Guid.NewGuid().ToString("N");
     public string ServerUrl { get; set; } = string.Empty;
-    public ImmichAuthMode AuthMode { get; set; } = ImmichAuthMode.ApiKey;
-    public string ApiKeyName { get; set; } = "XerahS Uploads";
+    public string ServerVersion { get; set; } = string.Empty;
+    public string ExternalDomain { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string UserEmail { get; set; } = string.Empty;
-    public string ServerVersion { get; set; } = string.Empty;
-    public string ExternalDomain { get; set; } = string.Empty;
+    public string ApiKeyName { get; set; } = string.Empty;
     public bool PasswordLoginEnabled { get; set; } = true;
     public bool OAuthEnabled { get; set; }
     public bool SearchEnabled { get; set; }
     public bool DuplicateDetectionEnabled { get; set; } = true;
     public bool SidecarSupported { get; set; }
-    public bool AddToAlbum { get; set; }
-    public string AlbumId { get; set; } = string.Empty;
-    public string AlbumName { get; set; } = "ShareX Uploads";
-    public bool AutoCreateAlbum { get; set; } = true;
-    public bool UseDuplicateCheck { get; set; } = true;
-    public ImmichShareMode ShareMode { get; set; } = ImmichShareMode.None;
-    public string ShareSlug { get; set; } = string.Empty;
-    public bool UseShareExpiry { get; set; }
-    public int ExpireAfterDays { get; set; } = 7;
-    public bool AllowShareDownload { get; set; } = true;
-    public bool AllowShareUpload { get; set; }
-    public bool ShowMetadata { get; set; } = true;
 }

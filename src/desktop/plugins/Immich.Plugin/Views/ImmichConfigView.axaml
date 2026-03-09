@@ -4,45 +4,362 @@
              x:Class="ShareX.Immich.Plugin.Views.ImmichConfigView"
              x:DataType="vm:ImmichConfigViewModel">
 
-    <StackPanel Spacing="14">
-        <TextBlock Text="Immich Uploader"
-                   FontSize="18"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,8"/>
+    <UserControl.Styles>
+        <Style Selector="Border.heroCard">
+            <Setter Property="Background" Value="#241A13"/>
+            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="Padding" Value="22"/>
+            <Setter Property="BorderBrush" Value="#7A4E24"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
 
-        <TextBlock Text="This scaffold gives you a working config view, secret-store wiring, and provider shape. Replace the generic fields with service-specific settings."
-                   TextWrapping="Wrap"
-                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#16110D"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="BorderBrush" Value="#3B2A1D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
 
-        <StackPanel Spacing="5">
-            <TextBlock Text="Base URL *" FontWeight="Medium"/>
-            <TextBox Text="{Binding BaseUrl, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="https://api.example.com"/>
+        <Style Selector="Border.pill">
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Background" Value="#312115"/>
+            <Setter Property="BorderBrush" Value="#A0662F"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.statusBanner">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="Background" Value="#1E1712"/>
+            <Setter Property="BorderBrush" Value="#5D3A1C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="TextBlock.sectionTitle">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.helper">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18">
+            <Border Classes="heroCard">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="18" RowSpacing="14">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8">
+                        <TextBlock Text="Immich Native Plugin"
+                                   FontSize="24"
+                                   FontWeight="Bold"/>
+                        <TextBlock Text="An album-first Immich destination built around API keys, duplicate-aware uploads, and native shared-link creation instead of generic file storage semantics."
+                                   TextWrapping="Wrap"
+                                   Foreground="#E4C7A6"
+                                   MaxWidth="640"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8" HorizontalAlignment="Right">
+                        <Border Classes="pill">
+                            <TextBlock Text="Native API"/>
+                        </Border>
+                        <Border Classes="pill">
+                            <TextBlock Text="Duplicate Check"/>
+                        </Border>
+                        <Border Classes="pill">
+                            <TextBlock Text="Albums + Shares"/>
+                        </Border>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1"
+                          Grid.ColumnSpan="2"
+                          ColumnDefinitions="*,*"
+                          ColumnSpacing="12">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Connection" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ConnectionSummary}"
+                                       TextWrapping="Wrap"
+                                       Foreground="#E4C7A6"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Capabilities" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding CapabilitiesSummary}"
+                                       TextWrapping="Wrap"
+                                       Foreground="#E4C7A6"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ProgressBar Grid.Row="2"
+                                 Grid.ColumnSpan="2"
+                                 Height="6"
+                                 IsIndeterminate="True"
+                                 IsVisible="{Binding IsBusy}"/>
+                </Grid>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                <Border Grid.Column="0" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="1. Connect To Immich"/>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Server URL *"/>
+                            <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="https://photos.example.com or https://photos.example.com/api"/>
+                            <TextBlock Classes="helper"
+                                       Text="The plugin accepts a base URL or an /api URL and normalizes it to the correct Immich server root."/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Authentication"/>
+                            <ComboBox ItemsSource="{Binding AuthModes}"
+                                      SelectedIndex="{Binding AuthModeIndex}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="10"
+                                    IsVisible="{Binding IsApiKeyMode}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="API Key Name"/>
+                                <TextBox Text="{Binding ApiKeyName, UpdateSourceTrigger=PropertyChanged}"
+                                         Watermark="XerahS Uploads"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="API Key *"/>
+                                <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
+                                         PasswordChar="*"
+                                         Watermark="Stored securely in the secret store"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="10"
+                                    IsVisible="{Binding IsBootstrapMode}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="Immich Email *"/>
+                                <TextBox Text="{Binding BootstrapEmail, UpdateSourceTrigger=PropertyChanged}"
+                                         Watermark="name@example.com"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="Immich Password *"/>
+                                <TextBox Text="{Binding BootstrapPassword, UpdateSourceTrigger=PropertyChanged}"
+                                         PasswordChar="*"
+                                         Watermark="Used once to mint a scoped API key"/>
+                            </StackPanel>
+
+                            <TextBlock Classes="helper"
+                                       Text="Bootstrap mode signs in once, creates a scoped API key with the required uploader permissions, stores only the API key, and clears the password field."/>
+                        </StackPanel>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Button Grid.Column="0"
+                                    Content="Verify Connection"
+                                    Command="{Binding VerifyConnectionCommand}"
+                                    Classes="accent"/>
+                            <Button Grid.Column="1"
+                                    Content="Create Scoped API Key"
+                                    Command="{Binding CreateScopedApiKeyCommand}"
+                                    IsEnabled="{Binding CanCreateApiKey}"/>
+                        </Grid>
+
+                        <Button Content="Open Server"
+                                Command="{Binding OpenServerCommand}"
+                                HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="2. Server Profile"/>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="User Name"/>
+                                <TextBox Text="{Binding UserName}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="User Email"/>
+                                <TextBox Text="{Binding UserEmail}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="User ID"/>
+                                <TextBox Text="{Binding UserId}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="Version"/>
+                                <TextBox Text="{Binding ServerVersion}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="External Domain"/>
+                            <TextBox Text="{Binding ExternalDomain}"
+                                     IsReadOnly="True"/>
+                        </StackPanel>
+
+                        <Border Classes="statusBanner">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Detected capability flags"
+                                           FontWeight="SemiBold"/>
+                                <WrapPanel ItemWidth="150" ItemHeight="36">
+                                    <CheckBox Content="Password login"
+                                              IsChecked="{Binding PasswordLoginEnabled}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="OAuth"
+                                              IsChecked="{Binding OAuthEnabled}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Search"
+                                              IsChecked="{Binding SearchEnabled}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Duplicate detection"
+                                              IsChecked="{Binding DuplicateDetectionEnabled}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Sidecar support"
+                                              IsChecked="{Binding SidecarSupported}"
+                                              IsEnabled="False"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                <Border Grid.Column="0" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="3. Upload Destination"/>
+
+                        <CheckBox Content="Run duplicate check before upload"
+                                  IsChecked="{Binding UseDuplicateCheck}"/>
+
+                        <CheckBox Content="Add uploaded assets to an album"
+                                  IsChecked="{Binding AddToAlbum}"/>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding CanEditAlbumPicker}">
+                            <TextBlock Classes="fieldLabel" Text="Album Picker"/>
+                            <ComboBox ItemsSource="{Binding Albums}"
+                                      SelectedItem="{Binding SelectedAlbum}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Classes="helper"
+                                       Text="Load albums from Immich to target an existing destination, or leave this empty and rely on auto-create."/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding CanEditAlbumPicker}">
+                            <TextBlock Classes="fieldLabel" Text="Album Name"/>
+                            <TextBox Text="{Binding AlbumName, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="ShareX Uploads"/>
+                            <TextBlock Classes="helper"
+                                       Text="Used for album creation and supports ShareX pattern variables if you want dated or project-based upload buckets."/>
+                        </StackPanel>
+
+                        <CheckBox Content="Create the album automatically if it does not exist"
+                                  IsChecked="{Binding AutoCreateAlbum}"
+                                  IsEnabled="{Binding CanEditAlbumPicker}"/>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Button Grid.Column="0"
+                                    Content="Refresh Albums"
+                                    Command="{Binding RefreshAlbumsCommand}"
+                                    IsEnabled="{Binding IsConnected}"/>
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       Text="Immich is album-oriented, so the explorer uses albums as folders rather than generic remote paths."
+                                       TextWrapping="Wrap"
+                                       Classes="helper"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="4. Share Link Policy"/>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Share Mode"/>
+                            <ComboBox ItemsSource="{Binding ShareModes}"
+                                      SelectedIndex="{Binding ShareModeIndex}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding IsShareEnabled}">
+                            <TextBlock Classes="fieldLabel" Text="Custom Slug"/>
+                            <TextBox Text="{Binding ShareSlug, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="optional public short name"/>
+                        </StackPanel>
+
+                        <CheckBox Content="Expire shared link automatically"
+                                  IsChecked="{Binding UseShareExpiry}"
+                                  IsEnabled="{Binding IsShareEnabled}"/>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding IsShareEnabled}">
+                            <TextBlock Classes="fieldLabel" Text="Expire After (Days)"/>
+                            <NumericUpDown Value="{Binding ExpireAfterDays}"
+                                           Minimum="1"
+                                           Maximum="365"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding IsShareEnabled}">
+                            <TextBlock Classes="fieldLabel" Text="Share Password"/>
+                            <TextBox Text="{Binding SharePassword, UpdateSourceTrigger=PropertyChanged}"
+                                     PasswordChar="*"
+                                     Watermark="Stored securely if provided"/>
+                        </StackPanel>
+
+                        <WrapPanel ItemWidth="180" ItemHeight="36"
+                                   IsEnabled="{Binding IsShareEnabled}">
+                            <CheckBox Content="Allow downloads"
+                                      IsChecked="{Binding AllowShareDownload}"/>
+                            <CheckBox Content="Allow uploads"
+                                      IsChecked="{Binding AllowShareUpload}"/>
+                            <CheckBox Content="Show metadata"
+                                      IsChecked="{Binding ShowMetadata}"/>
+                        </WrapPanel>
+
+                        <TextBlock Classes="helper"
+                                   Text="Album sharing reuses the destination album link when one already exists; asset sharing creates a dedicated native Immich shared link for the uploaded asset."/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Classes="statusBanner"
+                    IsVisible="{Binding !!StatusMessage}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Status"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               TextWrapping="Wrap"/>
+                    <Button Content="Clear Stored Credentials"
+                            Command="{Binding ClearStoredCredentialsCommand}"
+                            HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
         </StackPanel>
-
-        <StackPanel Spacing="5">
-            <TextBlock Text="Upload Path" FontWeight="Medium"/>
-            <TextBox Text="{Binding UploadPath, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="uploads/%y/%mo"/>
-        </StackPanel>
-
-        <CheckBox Content="Create shareable link after upload"
-                  IsChecked="{Binding CreateShareableLink}"/>
-
-        <StackPanel Spacing="5">
-            <TextBlock Text="API Token *" FontWeight="Medium"/>
-            <TextBox Text="{Binding ApiToken, UpdateSourceTrigger=PropertyChanged}"
-                     PasswordChar="*"
-                     Watermark="Stored in the secret store"/>
-        </StackPanel>
-
-        <Border Background="{DynamicResource SystemFillColorAttentionBackground}"
-                Padding="10"
-                CornerRadius="4"
-                IsVisible="{Binding !!StatusMessage}">
-            <TextBlock Text="{Binding StatusMessage}"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource SystemFillColorAttention}"/>
-        </Border>
-    </StackPanel>
+    </ScrollViewer>
 </UserControl>
