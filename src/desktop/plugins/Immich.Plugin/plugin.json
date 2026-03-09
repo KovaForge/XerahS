@@ -1,0 +1,15 @@
+{
+  "pluginId": "immich",
+  "name": "Immich Uploader",
+  "version": "1.0.0",
+  "author": "ShareX Team",
+  "description": "Upload files to Immich Uploader",
+  "apiVersion": "1.0",
+  "entryPoint": "ShareX.Immich.Plugin.ImmichProvider",
+  "assemblyFileName": "XerahS.Immich.Plugin.dll",
+  "supportedCategories": ["Image", "Text", "File"],
+  "supportsExplorer": false,
+  "configViewId": "immich",
+  "dependencies": [],
+  "homepageUrl": "https://example.com/"
+}
