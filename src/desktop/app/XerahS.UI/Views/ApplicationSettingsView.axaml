@@ -31,6 +31,12 @@
                                     <CheckBox IsChecked="{Binding ShowTray}" Content="Show tray icon" AutomationProperties.Name="Show Tray Icon"/>
                                     <CheckBox IsChecked="{Binding SilentRun}" Content="Start minimized to tray" 
                                               IsEnabled="{Binding ShowTray}" AutomationProperties.Name="Start Minimized"/>
+                                    <CheckBox IsChecked="{Binding RememberMainWindowSize}"
+                                              Content="Remember main window size"
+                                              AutomationProperties.Name="Remember Main Window Size"/>
+                                    <CheckBox IsChecked="{Binding RememberMainWindowPosition}"
+                                              Content="Remember main window position"
+                                              AutomationProperties.Name="Remember Main Window Position"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

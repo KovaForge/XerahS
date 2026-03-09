@@ -162,6 +162,32 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool RememberMainWindowSize
+        {
+            get => SettingsManager.Settings.RememberMainFormSize;
+            set
+            {
+                if (SettingsManager.Settings.RememberMainFormSize != value)
+                {
+                    SettingsManager.Settings.RememberMainFormSize = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RememberMainWindowPosition
+        {
+            get => SettingsManager.Settings.RememberMainFormPosition;
+            set
+            {
+                if (SettingsManager.Settings.RememberMainFormPosition != value)
+                {
+                    SettingsManager.Settings.RememberMainFormPosition = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // OS Integration Settings
         public bool RunAtStartup
         {

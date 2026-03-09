@@ -164,10 +164,6 @@ public partial class App : Application
 
                 desktop.MainWindow.Opened += hideOnFirstOpen;
             }
-            else
-            {
-                desktop.MainWindow.WindowState = Avalonia.Controls.WindowState.Maximized;
-            }
 
             // Register UI Service
             Platform.Abstractions.PlatformServices.RegisterUIService(new Services.AvaloniaUIService());

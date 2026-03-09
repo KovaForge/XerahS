@@ -54,6 +54,10 @@ namespace XerahS.UI.Views
 {
     public partial class MainWindow : Window
     {
+        private const double DefaultWindowWidth = 1100;
+        private const double DefaultWindowHeight = 650;
+        private const int MinimumPersistedWindowDimension = 200;
+
         private EditorView? _editorView = null;
         private bool _isOpenImageInProgress;
 
@@ -66,6 +70,7 @@ namespace XerahS.UI.Views
         {
             InitializeComponent();
             KeyDown += OnKeyDown;
+            ApplyInitialWindowPlacement();
 
 #if !DEBUG
             // Video Editor is a work-in-progress; hide it in release builds.
@@ -384,13 +389,6 @@ namespace XerahS.UI.Views
                 XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
             }
 
-            // Only maximize if we are NOT in silent run mode
-            if (!SettingsManager.Settings.SilentRun)
-            {
-                // Maximize window and center it on screen
-                this.WindowState = Avalonia.Controls.WindowState.Maximized;
-            }
-
             // Update navigation items after settings are loaded
             var navView = this.FindControl<NavigationView>("NavView");
             if (navView != null)
@@ -419,6 +417,8 @@ namespace XerahS.UI.Views
 
         protected override void OnClosing(WindowClosingEventArgs e)
         {
+            PersistWindowPlacement();
+
             // If SilentRun ("Start minimized to tray") is enabled and we are not explicitly
             // exiting via Tray → Exit, hide the window to tray instead of closing the app.
             // This works on all platforms (Windows, Linux, macOS); no OS-specific logic.
@@ -440,6 +440,88 @@ namespace XerahS.UI.Views
             }
 
             base.OnClosing(e);
+        }
+
+        private void ApplyInitialWindowPlacement()
+        {
+            ApplicationConfig settings = SettingsManager.Settings;
+            bool rememberSize = settings.RememberMainFormSize;
+            bool rememberPosition = settings.RememberMainFormPosition;
+            bool appliedSize = false;
+
+            if (rememberSize &&
+                settings.MainFormSize.Width >= MinimumPersistedWindowDimension &&
+                settings.MainFormSize.Height >= MinimumPersistedWindowDimension)
+            {
+                Width = settings.MainFormSize.Width;
+                Height = settings.MainFormSize.Height;
+                appliedSize = true;
+            }
+
+            if (!appliedSize && (rememberSize || rememberPosition))
+            {
+                Width = DefaultWindowWidth;
+                Height = DefaultWindowHeight;
+            }
+
+            if (rememberPosition && settings.MainFormPosition != System.Drawing.Point.Empty)
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Position = new PixelPoint(settings.MainFormPosition.X, settings.MainFormPosition.Y);
+            }
+
+            if (!settings.SilentRun && !rememberSize && !rememberPosition)
+            {
+                WindowState = Avalonia.Controls.WindowState.Maximized;
+            }
+        }
+
+        private void PersistWindowPlacement()
+        {
+            ApplicationConfig settings = SettingsManager.Settings;
+            if (!settings.RememberMainFormSize && !settings.RememberMainFormPosition)
+            {
+                return;
+            }
+
+            if (WindowState != Avalonia.Controls.WindowState.Normal)
+            {
+                return;
+            }
+
+            bool settingsChanged = false;
+
+            if (settings.RememberMainFormSize)
+            {
+                int width = (int)Math.Round(Width);
+                int height = (int)Math.Round(Height);
+
+                if (width >= MinimumPersistedWindowDimension &&
+                    height >= MinimumPersistedWindowDimension)
+                {
+                    var size = new System.Drawing.Size(width, height);
+                    if (settings.MainFormSize != size)
+                    {
+                        settings.MainFormSize = size;
+                        settingsChanged = true;
+                    }
+                }
+            }
+
+            if (settings.RememberMainFormPosition)
+            {
+                var position = new System.Drawing.Point(Position.X, Position.Y);
+                if (settings.MainFormPosition != position)
+                {
+                    settings.MainFormPosition = position;
+                    settingsChanged = true;
+                }
+            }
+
+            if (settingsChanged)
+            {
+                SettingsManager.SaveApplicationConfig();
+            }
         }
 
         private void InitializeComponent()
