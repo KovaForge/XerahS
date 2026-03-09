@@ -1,0 +1,15 @@
+{
+  "pluginId": "nextcloud",
+  "name": "Nextcloud Uploader",
+  "version": "1.0.0",
+  "author": "ShareX Team",
+  "description": "Upload files to Nextcloud using Login Flow v2, WebDAV, and the OCS Share API",
+  "apiVersion": "1.0",
+  "entryPoint": "ShareX.Nextcloud.Plugin.NextcloudProvider",
+  "assemblyFileName": "XerahS.Nextcloud.Plugin.dll",
+  "supportedCategories": ["Image", "Text", "File"],
+  "supportsExplorer": true,
+  "configViewId": "nextcloud",
+  "dependencies": [],
+  "homepageUrl": "https://nextcloud.com/"
+}

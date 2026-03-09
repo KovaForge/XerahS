@@ -1,0 +1,312 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShareX.Nextcloud.Plugin.ViewModels"
+             x:Class="ShareX.Nextcloud.Plugin.Views.NextcloudConfigView"
+             x:DataType="vm:NextcloudConfigViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.heroCard">
+            <Setter Property="Background" Value="#0F2940"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="Padding" Value="22"/>
+            <Setter Property="BorderBrush" Value="#2B5C88"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#121C28"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="BorderBrush" Value="#223244"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="TextBlock.sectionTitle">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.helper">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+        </Style>
+
+        <Style Selector="Border.pill">
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Background" Value="#163652"/>
+            <Setter Property="BorderBrush" Value="#2C6598"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.statusBanner">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="Background" Value="#1D2936"/>
+            <Setter Property="BorderBrush" Value="#34495E"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18">
+            <Border Classes="heroCard">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="18" RowSpacing="14">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8">
+                        <TextBlock Text="Nextcloud Native Plugin"
+                                   FontSize="24"
+                                   FontWeight="Bold"/>
+                        <TextBlock Text="A dedicated Nextcloud destination built around browser login, app passwords, WebDAV transport, and OCS share creation."
+                                   TextWrapping="Wrap"
+                                   Foreground="#C7D8E8"
+                                   MaxWidth="620"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8" HorizontalAlignment="Right">
+                        <Border Classes="pill">
+                            <TextBlock Text="Login Flow v2"/>
+                        </Border>
+                        <Border Classes="pill">
+                            <TextBlock Text="WebDAV + OCS"/>
+                        </Border>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1"
+                          Grid.ColumnSpan="2"
+                          ColumnDefinitions="*,*"
+                          ColumnSpacing="12">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Connection" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ConnectionSummary}"
+                                       TextWrapping="Wrap"
+                                       Foreground="#C7D8E8"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Capabilities" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding CapabilitiesSummary}"
+                                       TextWrapping="Wrap"
+                                       Foreground="#C7D8E8"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ProgressBar Grid.Row="2"
+                                 Grid.ColumnSpan="2"
+                                 Height="6"
+                                 IsIndeterminate="True"
+                                 IsVisible="{Binding IsBusy}"/>
+                </Grid>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                <Border Grid.Column="0" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="1. Connect To Server"/>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Server URL *"/>
+                            <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="https://cloud.example.com"/>
+                            <TextBlock Classes="helper"
+                                       Text="Use your full Nextcloud base URL. If you omit a scheme, the plugin assumes https."/>
+                        </StackPanel>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Button Grid.Column="0"
+                                    Content="Start Browser Login"
+                                    Command="{Binding StartBrowserLoginCommand}"
+                                    Classes="accent"/>
+                            <Button Grid.Column="1"
+                                    Content="Finish Browser Login"
+                                    Command="{Binding FinishBrowserLoginCommand}"
+                                    IsEnabled="{Binding HasPendingLoginFlow}"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Button Grid.Column="0"
+                                    Content="Open Browser Again"
+                                    Command="{Binding OpenBrowserAgainCommand}"
+                                    IsEnabled="{Binding HasPendingLoginFlow}"/>
+                            <Button Grid.Column="1"
+                                    Content="Refresh Profile"
+                                    Command="{Binding RefreshServerProfileCommand}"/>
+                        </Grid>
+
+                        <TextBlock Classes="helper"
+                                   Text="Browser login follows Nextcloud Login Flow v2 and stores the returned app password in XerahS's secret store."/>
+
+                        <Expander Header="Manual app password fallback">
+                            <StackPanel Margin="0,10,0,0" Spacing="10">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="fieldLabel" Text="Login Name *"/>
+                                    <TextBox Text="{Binding LoginName, UpdateSourceTrigger=PropertyChanged}"
+                                             Watermark="username or email used to sign in"/>
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="fieldLabel" Text="App Password *"/>
+                                    <TextBox Text="{Binding AppPassword, UpdateSourceTrigger=PropertyChanged}"
+                                             PasswordChar="*"
+                                             Watermark="Paste a Nextcloud app password"/>
+                                </StackPanel>
+
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                    <Button Grid.Column="0"
+                                            Content="Open Server"
+                                            Command="{Binding OpenServerCommand}"/>
+                                    <Button Grid.Column="1"
+                                            Content="Security Settings"
+                                            Command="{Binding OpenSecuritySettingsCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="2. Server Profile"/>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="Display Name"/>
+                                <TextBox Text="{Binding DisplayName}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="User ID"/>
+                                <TextBox Text="{Binding UserId}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="Server Product"/>
+                                <TextBox Text="{Binding ServerProductName}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="Version"/>
+                                <TextBox Text="{Binding ServerVersion}"
+                                         IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Theme Identity"/>
+                            <TextBox Text="{Binding ThemingName}"
+                                     IsReadOnly="True"/>
+                        </StackPanel>
+
+                        <Border Classes="statusBanner">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Detected capability flags"
+                                           FontWeight="SemiBold"/>
+                                <WrapPanel ItemWidth="120" ItemHeight="36">
+                                    <CheckBox Content="Public links"
+                                              IsChecked="{Binding SupportsPublicShares}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Share passwords"
+                                              IsChecked="{Binding SupportsSharePasswords}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Share expiry"
+                                              IsChecked="{Binding SupportsExpireDate}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Chunked upload"
+                                              IsChecked="{Binding SupportsChunking}"
+                                              IsEnabled="False"/>
+                                    <CheckBox Content="Search"
+                                              IsChecked="{Binding SupportsSearch}"
+                                              IsEnabled="False"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                <Border Grid.Column="0" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="3. Upload Destination"/>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Remote Path"/>
+                            <TextBox Text="{Binding RemotePath, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="ShareX/%y/%mo"/>
+                            <TextBlock Classes="helper"
+                                       Text="Supports ShareX pattern variables so uploads can land in dated folders without manual path edits."/>
+                        </StackPanel>
+
+                        <CheckBox Content="Use chunked upload when the server advertises support"
+                                  IsChecked="{Binding UseChunkedUpload}"/>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="Chunk Size (MiB)"/>
+                            <NumericUpDown Value="{Binding ChunkSizeMiB}"
+                                           Minimum="5"
+                                           Maximum="512"
+                                           Increment="5"/>
+                            <TextBlock Classes="helper"
+                                       Text="Nextcloud's chunked upload v2 is better for large files and unstable links. 10 MiB is the default starting point."/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card">
+                    <StackPanel Spacing="14">
+                        <TextBlock Classes="sectionTitle" Text="4. Share Link Policy"/>
+
+                        <CheckBox Content="Create public share after upload"
+                                  IsChecked="{Binding CreatePublicShare}"/>
+
+                        <CheckBox Content="Auto-expire public share"
+                                  IsChecked="{Binding AutoExpireShare}"
+                                  IsEnabled="{Binding CreatePublicShare}"/>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding CreatePublicShare}">
+                            <TextBlock Classes="fieldLabel" Text="Expire After (Days)"/>
+                            <NumericUpDown Value="{Binding ExpireAfterDays}"
+                                           Minimum="1"
+                                           Maximum="365"/>
+                            <TextBlock Classes="helper"
+                                       Text="The server may override this if an admin-enforced policy is active."/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6"
+                                    IsEnabled="{Binding CreatePublicShare}">
+                            <TextBlock Classes="fieldLabel" Text="Share Password (Optional)"/>
+                            <TextBox Text="{Binding SharePassword, UpdateSourceTrigger=PropertyChanged}"
+                                     PasswordChar="*"
+                                     Watermark="Stored securely if provided"/>
+                            <TextBlock Classes="helper"
+                                       Text="Use only if your Nextcloud policy or workflow needs password-protected public links."/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Classes="statusBanner"
+                    IsVisible="{Binding !!StatusMessage}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Status"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               TextWrapping="Wrap"/>
+                    <Button Content="Clear Stored Credentials"
+                            Command="{Binding ClearStoredCredentialsCommand}"
+                            HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
