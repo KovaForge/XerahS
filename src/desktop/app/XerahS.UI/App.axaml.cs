@@ -26,6 +26,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Controls.Primitives;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
@@ -34,6 +35,7 @@ using XerahS.Core;
 using XerahS.Media.Encoders;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Services;
+using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
 namespace XerahS.UI;
@@ -233,6 +235,37 @@ public partial class App : Application
             desktop.MainWindow is Views.MainWindow mainWindow)
         {
             mainWindow.NavigateToSettings();
+        }
+    }
+
+    private void OnHistoryItemMenuFlyoutOpened(object? sender, EventArgs e)
+    {
+        if (sender is not MenuFlyout menuFlyout)
+        {
+            return;
+        }
+
+        if (menuFlyout.Target is not Control target || target.Tag is not IHistoryItemMenuContext context)
+        {
+            return;
+        }
+
+        ApplyMenuContext(menuFlyout.Items, context);
+    }
+
+    private static void ApplyMenuContext(IEnumerable<object?> items, IHistoryItemMenuContext context)
+    {
+        foreach (object? item in items)
+        {
+            if (item is MenuItem menuItem)
+            {
+                menuItem.DataContext = context;
+
+                if (menuItem.Items.Count > 0)
+                {
+                    ApplyMenuContext(menuItem.Items, context);
+                }
+            }
         }
     }
 

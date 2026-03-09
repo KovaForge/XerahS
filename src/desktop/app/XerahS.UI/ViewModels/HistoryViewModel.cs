@@ -34,6 +34,7 @@ using XerahS.Common.Converters;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.History;
+using XerahS.Platform.Abstractions;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -436,6 +437,26 @@ namespace XerahS.UI.ViewModels
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to copy markdown image: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private void CopyImageToClipboard(HistoryItem? item)
+        {
+            if (item == null || string.IsNullOrEmpty(item.FilePath) || !File.Exists(item.FilePath)) return;
+
+            try
+            {
+                using var bitmap = SKBitmap.Decode(item.FilePath);
+                if (bitmap != null)
+                {
+                    PlatformServices.Clipboard.SetImage(bitmap);
+                    DebugHelper.WriteLine($"Copied image to clipboard: {item.FilePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Failed to copy image to clipboard from history");
             }
         }
 

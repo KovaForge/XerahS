@@ -45,6 +45,7 @@ public partial class ToastWindow : Window
     private bool _isDragging;
     private Avalonia.Point _dragStart;
     private Border? _urlOverlay;
+    private Border? _flyoutHost;
 
     public ToastWindow()
     {
@@ -61,6 +62,16 @@ public partial class ToastWindow : Window
     {
         base.OnLoaded(e);
         _urlOverlay = this.FindControl<Border>("UrlOverlay");
+        _flyoutHost = this.FindControl<Border>("FlyoutHost");
+        if (_flyoutHost != null && _viewModel != null)
+        {
+            _flyoutHost.Tag = new ToastMenuContext(_viewModel);
+            if (_flyoutHost.ContextFlyout is MenuFlyout menuFlyout)
+            {
+                menuFlyout.Opened += OnFlyoutOpened;
+                menuFlyout.Closed += OnFlyoutClosed;
+            }
+        }
     }
 
     public void Initialize(ToastConfig config)
@@ -240,12 +251,18 @@ public partial class ToastWindow : Window
 
     private void OnFlyoutOpened(object? sender, EventArgs e)
     {
-        _viewModel?.OnMenuOpened();
+        if (sender is MenuFlyout mf && mf.Target == _flyoutHost)
+        {
+            _viewModel?.OnMenuOpened();
+        }
     }
 
     private void OnFlyoutClosed(object? sender, EventArgs e)
     {
-        _viewModel?.OnMenuClosed();
+        if (sender is MenuFlyout mf && mf.Target == _flyoutHost)
+        {
+            _viewModel?.OnMenuClosed();
+        }
     }
 
     private void OnCloseRequested(object? sender, EventArgs e)
@@ -260,6 +277,12 @@ public partial class ToastWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        if (_flyoutHost?.ContextFlyout is MenuFlyout menuFlyout)
+        {
+            menuFlyout.Opened -= OnFlyoutOpened;
+            menuFlyout.Closed -= OnFlyoutClosed;
+        }
+
         if (_viewModel != null)
         {
             _viewModel.CloseRequested -= OnCloseRequested;
