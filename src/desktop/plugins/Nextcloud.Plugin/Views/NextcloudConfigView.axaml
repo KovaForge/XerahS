@@ -6,18 +6,18 @@
 
     <UserControl.Styles>
         <Style Selector="Border.heroCard">
-            <Setter Property="Background" Value="#0F2940"/>
+            <Setter Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}"/>
             <Setter Property="CornerRadius" Value="18"/>
             <Setter Property="Padding" Value="22"/>
-            <Setter Property="BorderBrush" Value="#2B5C88"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="#121C28"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
             <Setter Property="CornerRadius" Value="14"/>
             <Setter Property="Padding" Value="18"/>
-            <Setter Property="BorderBrush" Value="#223244"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
@@ -33,22 +33,22 @@
         <Style Selector="TextBlock.helper">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
         </Style>
 
         <Style Selector="Border.pill">
             <Setter Property="CornerRadius" Value="999"/>
             <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Background" Value="#163652"/>
-            <Setter Property="BorderBrush" Value="#2C6598"/>
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style Selector="Border.statusBanner">
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="14"/>
-            <Setter Property="Background" Value="#1D2936"/>
-            <Setter Property="BorderBrush" Value="#34495E"/>
+            <Setter Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
     </UserControl.Styles>
@@ -63,7 +63,7 @@
                                    FontWeight="Bold"/>
                         <TextBlock Text="A dedicated Nextcloud destination built around browser login, app passwords, WebDAV transport, and OCS share creation."
                                    TextWrapping="Wrap"
-                                   Foreground="#C7D8E8"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    MaxWidth="620"/>
                     </StackPanel>
 
@@ -84,14 +84,14 @@
                             <TextBlock Text="Connection" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding ConnectionSummary}"
                                        TextWrapping="Wrap"
-                                       Foreground="#C7D8E8"/>
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Spacing="4">
                             <TextBlock Text="Capabilities" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding CapabilitiesSummary}"
                                        TextWrapping="Wrap"
-                                       Foreground="#C7D8E8"/>
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                     </Grid>
 

@@ -6,34 +6,34 @@
 
     <UserControl.Styles>
         <Style Selector="Border.heroCard">
-            <Setter Property="Background" Value="#241A13"/>
+            <Setter Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}"/>
             <Setter Property="CornerRadius" Value="20"/>
             <Setter Property="Padding" Value="22"/>
-            <Setter Property="BorderBrush" Value="#7A4E24"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="#16110D"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
             <Setter Property="CornerRadius" Value="14"/>
             <Setter Property="Padding" Value="18"/>
-            <Setter Property="BorderBrush" Value="#3B2A1D"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style Selector="Border.pill">
             <Setter Property="CornerRadius" Value="999"/>
             <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Background" Value="#312115"/>
-            <Setter Property="BorderBrush" Value="#A0662F"/>
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
         <Style Selector="Border.statusBanner">
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="14"/>
-            <Setter Property="Background" Value="#1E1712"/>
-            <Setter Property="BorderBrush" Value="#5D3A1C"/>
+            <Setter Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
@@ -49,7 +49,7 @@
         <Style Selector="TextBlock.helper">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
         </Style>
     </UserControl.Styles>
 
@@ -63,7 +63,7 @@
                                    FontWeight="Bold"/>
                         <TextBlock Text="An album-first Immich destination built around API keys, duplicate-aware uploads, and native shared-link creation instead of generic file storage semantics."
                                    TextWrapping="Wrap"
-                                   Foreground="#E4C7A6"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    MaxWidth="640"/>
                     </StackPanel>
 
@@ -87,14 +87,14 @@
                             <TextBlock Text="Connection" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding ConnectionSummary}"
                                        TextWrapping="Wrap"
-                                       Foreground="#E4C7A6"/>
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Spacing="4">
                             <TextBlock Text="Capabilities" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding CapabilitiesSummary}"
                                        TextWrapping="Wrap"
-                                       Foreground="#E4C7A6"/>
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                     </Grid>
 
