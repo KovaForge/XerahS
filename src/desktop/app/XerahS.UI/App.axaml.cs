@@ -111,6 +111,7 @@ public partial class App : Application
             };
             Services.MainViewModelHelper.WireSaveRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
             Services.MainViewModelHelper.WireSaveAsRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
+            Services.MainViewModelHelper.WirePinRequested(mainViewModel, getEmbeddedSnapshot);
 
             // Prepare for Silent Run
             bool silentRun = XerahS.Core.SettingsManager.Settings.SilentRun;

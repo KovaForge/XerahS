@@ -121,6 +121,7 @@ namespace XerahS.UI.Services
                     editorWindow.FindControl<EditorView>("EditorViewControl")?.GetSnapshot();
                 MainViewModelHelper.WireSaveRequested(editorViewModel, getSnapshot, () => editorWindow);
                 MainViewModelHelper.WireSaveAsRequested(editorViewModel, getSnapshot, () => editorWindow);
+                MainViewModelHelper.WirePinRequested(editorViewModel, getSnapshot);
 
                 // Set DataContext BEFORE initializing preview so bindings update correctly
                 editorWindow.DataContext = editorViewModel;

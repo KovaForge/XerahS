@@ -171,3 +171,7 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: `ShareX.ImageEditor.Presentation.ViewModels.MainViewModel.UpdatePreview` is used to show captured task images in the desktop editor surface.
 
 **Lesson**: Treat `UpdatePreview` as an ownership transfer. Do not read from or keep sharing the same `SKBitmap` after calling it. `UpdatePreview` can trigger property-change flows that dispose or replace the supplied bitmap during the same call. When the source bitmap still belongs to a task or another component, clone it first and hand the clone to the view model.
+
+### ImageEditor Host Export Wiring
+
+- Never partially wire a hosted component's host-facing commands/events; always audit the full host contract and connect every supported action because UI enablement and behavior can depend on subscriber presence, making omissions look like broken features instead of integration gaps.
