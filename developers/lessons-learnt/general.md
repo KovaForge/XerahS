@@ -161,3 +161,13 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Lesson**: Do **not** clear the content of the control that hosts `ISingleViewApplicationLifetime.MainView`. If the app seems stuck on loading or blank but logs show init and navigation completing, look for platform code (e.g. in the Activity) that modifies the host's `Content`.
 
 **MAUI**: MAUI has no equivalent host-Content bug. For MAUI white screen / loading not visible, defer starting `InitializeCoreAsync` by ~150 ms in `MainActivity.OnCreate` so the loading page can render before background init runs. See [android_avalonia_init_fix.md](android_avalonia_init_fix.md#maui-equivalent-no-host-content-bug).
+
+---
+
+## Image / Preview Ownership
+
+### Clone Task Bitmaps Before `UpdatePreview`
+
+**Context**: `ShareX.ImageEditor.Presentation.ViewModels.MainViewModel.UpdatePreview` is used to show captured task images in the desktop editor surface.
+
+**Lesson**: Treat `UpdatePreview` as an ownership transfer. Do not read from or keep sharing the same `SKBitmap` after calling it. `UpdatePreview` can trigger property-change flows that dispose or replace the supplied bitmap during the same call. When the source bitmap still belongs to a task or another component, clone it first and hand the clone to the view model.

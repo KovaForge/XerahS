@@ -594,9 +594,21 @@ namespace XerahS.UI.Views
             {
                 TaskManager.Instance.TaskCompleted -= HandleTaskCompleted;
 
-                if (task.Info?.Metadata?.Image != null && DataContext is MainViewModel vm)
+                if (task.Info?.Metadata?.Image is { } image && DataContext is MainViewModel vm)
                 {
-                    vm.UpdatePreview(task.Info.Metadata.Image);
+                    int width = image.Width;
+                    int height = image.Height;
+                    SKBitmap? previewCopy = image.Copy();
+                    if (previewCopy == null || previewCopy.Handle == IntPtr.Zero)
+                    {
+                        previewCopy?.Dispose();
+                        XerahS.Common.DebugHelper.WriteLine("Skipped preview update from navbar task completion: failed to clone bitmap.");
+                        return;
+                    }
+
+                    // UpdatePreview takes ownership and can dispose the supplied bitmap during property-change handling.
+                    vm.UpdatePreview(previewCopy);
+                    XerahS.Common.DebugHelper.WriteLine($"Updated preview from navbar task completion: {width}x{height}");
                 }
             }
 
