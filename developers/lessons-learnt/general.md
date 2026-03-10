@@ -94,6 +94,11 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 Without the `.Desktop` package, the `WebView` control may fail to initialize or render, often silently or with generic "type not found" errors when using reflection to locate it.
 
+### RegionCapture and ImageEditor Resource Contracts
+
+- Never leave RegionCapture UI smoke coverage at compile-only; always load `AnnotationToolbar` and `OverlayWindow` in Avalonia headless tests because ImageEditor submodule updates can break icon/font resources at runtime without breaking the build.
+- Never use Avalonia's fake headless drawing for icon-font smoke tests; always use Skia-backed headless mode (`UseSkia()` and `UseHeadlessDrawing = false`) because glyph resource failures only surface when the font pipeline is actually exercised.
+
 
 ---
 
