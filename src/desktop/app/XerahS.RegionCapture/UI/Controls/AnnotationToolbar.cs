@@ -33,7 +33,8 @@ namespace XerahS.RegionCapture.UI.Controls;
 
 /// <summary>
 /// Minimal toolbar surface used by RegionCapture overlay.
-/// Upstream ShareX.ImageEditor currently does not provide AnnotationToolbar.
+/// This control remains XerahS-specific, but it consumes ShareX.ImageEditor's
+/// shared icon and control resources so icon/font updates do not drift.
 /// </summary>
 public partial class AnnotationToolbar : UserControl
 {
