@@ -26,6 +26,7 @@
 using System.Diagnostics;
 using System.Text;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Linux.Capture.Detection;
 
 namespace XerahS.Platform.Linux.Services
 {
@@ -43,7 +44,9 @@ namespace XerahS.Platform.Linux.Services
             Cinnamon,
             Mate,
             Xfce,
-            Kde
+            Kde,
+            Lxqt,
+            Lxde
         }
 
         public static bool IsSupported
@@ -75,35 +78,8 @@ namespace XerahS.Platform.Linux.Services
 
         private static IEnumerable<Provider> GetPreferredProviders()
         {
-            string desktopHint = GetDesktopHint();
             List<Provider> providers = new List<Provider>();
-
-            if (desktopHint.Contains("gnome", StringComparison.OrdinalIgnoreCase) ||
-                desktopHint.Contains("ubuntu", StringComparison.OrdinalIgnoreCase))
-            {
-                providers.Add(Provider.Gnome);
-            }
-
-            if (desktopHint.Contains("cinnamon", StringComparison.OrdinalIgnoreCase))
-            {
-                providers.Add(Provider.Cinnamon);
-            }
-
-            if (desktopHint.Contains("mate", StringComparison.OrdinalIgnoreCase))
-            {
-                providers.Add(Provider.Mate);
-            }
-
-            if (desktopHint.Contains("xfce", StringComparison.OrdinalIgnoreCase))
-            {
-                providers.Add(Provider.Xfce);
-            }
-
-            if (desktopHint.Contains("kde", StringComparison.OrdinalIgnoreCase) ||
-                desktopHint.Contains("plasma", StringComparison.OrdinalIgnoreCase))
-            {
-                providers.Add(Provider.Kde);
-            }
+            AddDetectedProvider(providers, DesktopEnvironmentDetector.Detect());
 
             Provider[] fallbackOrder =
             [
@@ -111,35 +87,54 @@ namespace XerahS.Platform.Linux.Services
                 Provider.Cinnamon,
                 Provider.Mate,
                 Provider.Xfce,
-                Provider.Kde
+                Provider.Kde,
+                Provider.Lxqt,
+                Provider.Lxde
             ];
 
             foreach (Provider provider in fallbackOrder)
             {
-                if (!providers.Contains(provider))
-                {
-                    providers.Add(provider);
-                }
+                AddProvider(providers, provider);
             }
 
             return providers;
         }
 
-        private static string GetDesktopHint()
+        private static void AddDetectedProvider(List<Provider> providers, string? desktop)
         {
-            string? currentDesktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP");
-            if (!string.IsNullOrWhiteSpace(currentDesktop))
+            switch (desktop)
             {
-                return currentDesktop;
+                case "GNOME":
+                    AddProvider(providers, Provider.Gnome);
+                    break;
+                case "CINNAMON":
+                    AddProvider(providers, Provider.Cinnamon);
+                    AddProvider(providers, Provider.Gnome);
+                    break;
+                case "MATE":
+                    AddProvider(providers, Provider.Mate);
+                    break;
+                case "XFCE":
+                    AddProvider(providers, Provider.Xfce);
+                    break;
+                case "KDE":
+                    AddProvider(providers, Provider.Kde);
+                    break;
+                case "LXQT":
+                    AddProvider(providers, Provider.Lxqt);
+                    break;
+                case "LXDE":
+                    AddProvider(providers, Provider.Lxde);
+                    break;
             }
+        }
 
-            string? desktopSession = Environment.GetEnvironmentVariable("DESKTOP_SESSION");
-            if (!string.IsNullOrWhiteSpace(desktopSession))
+        private static void AddProvider(List<Provider> providers, Provider provider)
+        {
+            if (!providers.Contains(provider))
             {
-                return desktopSession;
+                providers.Add(provider);
             }
-
-            return string.Empty;
         }
 
         private static bool IsAvailable(Provider provider)
@@ -151,6 +146,8 @@ namespace XerahS.Platform.Linux.Services
                 Provider.Mate => CommandExists("gsettings") && GSettingsSchemaExists("org.mate.background"),
                 Provider.Xfce => CommandExists("xfconf-query"),
                 Provider.Kde => File.Exists(GetKdeWallpaperConfigPath()),
+                Provider.Lxqt => HasPcmanfmConfigDirectory("pcmanfm-qt"),
+                Provider.Lxde => HasPcmanfmConfigDirectory("pcmanfm"),
                 _ => false
             };
         }
@@ -164,6 +161,8 @@ namespace XerahS.Platform.Linux.Services
                 Provider.Mate => TryGetMateWallpaper(out wallpaper),
                 Provider.Xfce => TryGetXfceWallpaper(out wallpaper),
                 Provider.Kde => TryGetKdeWallpaper(out wallpaper),
+                Provider.Lxqt => TryGetPcmanfmWallpaper("pcmanfm-qt", new[] { "lxqt", "default" }, new[] { "settings.conf" }, out wallpaper),
+                Provider.Lxde => TryGetPcmanfmWallpaper("pcmanfm", new[] { "LXDE", "default", "lxde" }, new[] { "pcmanfm.conf", "desktop-items-0.conf" }, out wallpaper),
                 _ => ReturnFalse(out wallpaper)
             };
         }
@@ -277,7 +276,7 @@ namespace XerahS.Platform.Linux.Services
 
                 wallpaper = new DesktopWallpaperInfo
                 {
-                    Path = path,
+                    Path = path!,
                     Layout = layout
                 };
 
@@ -361,6 +360,33 @@ namespace XerahS.Platform.Linux.Services
             };
 
             return true;
+        }
+
+        private static bool TryGetPcmanfmWallpaper(
+            string appDirectoryName,
+            IReadOnlyList<string> preferredProfiles,
+            IReadOnlyList<string> configFileNames,
+            out DesktopWallpaperInfo? wallpaper)
+        {
+            wallpaper = null;
+
+            foreach (string configFile in EnumeratePcmanfmConfigFiles(appDirectoryName, preferredProfiles, configFileNames))
+            {
+                if (!TryReadPcmanfmWallpaper(configFile, out string? path, out DesktopWallpaperLayout layout))
+                {
+                    continue;
+                }
+
+                wallpaper = new DesktopWallpaperInfo
+                {
+                    Path = path!,
+                    Layout = layout
+                };
+
+                return true;
+            }
+
+            return false;
         }
 
         private static bool IsDarkWallpaperPreferred()
@@ -466,6 +492,19 @@ namespace XerahS.Platform.Linux.Services
             return value;
         }
 
+        private static bool HasPcmanfmConfigDirectory(string appDirectoryName)
+        {
+            foreach (string rootDirectory in EnumeratePcmanfmRoots(appDirectoryName))
+            {
+                if (Directory.Exists(rootDirectory))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         internal static IEnumerable<string> GetAccessiblePathCandidates(string path)
         {
             yield return path;
@@ -515,6 +554,113 @@ namespace XerahS.Platform.Linux.Services
             }
 
             return false;
+        }
+
+        private static IEnumerable<string> EnumeratePcmanfmConfigFiles(
+            string appDirectoryName,
+            IReadOnlyList<string> preferredProfiles,
+            IReadOnlyList<string> configFileNames)
+        {
+            HashSet<string> yieldedFiles = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (string rootDirectory in EnumeratePcmanfmRoots(appDirectoryName))
+            {
+                if (!Directory.Exists(rootDirectory))
+                {
+                    continue;
+                }
+
+                foreach (string preferredProfile in preferredProfiles)
+                {
+                    foreach (string configFileName in configFileNames)
+                    {
+                        string candidateFile = Path.Combine(rootDirectory, preferredProfile, configFileName);
+                        if (File.Exists(candidateFile) && yieldedFiles.Add(candidateFile))
+                        {
+                            yield return candidateFile;
+                        }
+                    }
+                }
+
+                foreach (string profileDirectory in Directory.EnumerateDirectories(rootDirectory).OrderBy(path => path, StringComparer.Ordinal))
+                {
+                    foreach (string configFileName in configFileNames)
+                    {
+                        string candidateFile = Path.Combine(profileDirectory, configFileName);
+                        if (File.Exists(candidateFile) && yieldedFiles.Add(candidateFile))
+                        {
+                            yield return candidateFile;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumeratePcmanfmRoots(string appDirectoryName)
+        {
+            string userConfigRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), appDirectoryName);
+            yield return userConfigRoot;
+            yield return Path.Combine("/etc/xdg", appDirectoryName);
+            yield return Path.Combine("/run/host/etc/xdg", appDirectoryName);
+            yield return Path.Combine("/var/run/host/etc/xdg", appDirectoryName);
+        }
+
+        private static bool TryReadPcmanfmWallpaper(string configFile, out string? path, out DesktopWallpaperLayout layout)
+        {
+            path = null;
+            layout = DesktopWallpaperLayout.Fill;
+            string? rawPath = null;
+            string? rawLayout = null;
+
+            foreach (string rawLine in File.ReadLines(configFile))
+            {
+                string line = rawLine.Trim();
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#') || line.StartsWith(';') || line.StartsWith('['))
+                {
+                    continue;
+                }
+
+                int separatorIndex = line.IndexOf('=');
+                if (separatorIndex <= 0)
+                {
+                    continue;
+                }
+
+                string key = line.Substring(0, separatorIndex).Trim();
+                string value = line.Substring(separatorIndex + 1).Trim();
+
+                if (key.Equals("wallpaper", StringComparison.OrdinalIgnoreCase))
+                {
+                    rawPath = value;
+                }
+                else if (key.Equals("wallpaper_mode", StringComparison.OrdinalIgnoreCase) ||
+                         key.Equals("wallpapermode", StringComparison.OrdinalIgnoreCase))
+                {
+                    rawLayout = value;
+                }
+            }
+
+            path = ResolveAccessibleWallpaperPath(ParseWallpaperPath(rawPath));
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            layout = MapPcmanfmWallpaperMode(rawLayout);
+            return true;
+        }
+
+        private static DesktopWallpaperLayout MapPcmanfmWallpaperMode(string? mode)
+        {
+            return mode?.Trim().Trim('\'', '"').ToLowerInvariant() switch
+            {
+                "center" or "centered" => DesktopWallpaperLayout.Center,
+                "tile" or "tiled" => DesktopWallpaperLayout.Tile,
+                "stretch" or "stretched" => DesktopWallpaperLayout.Stretch,
+                "fit" or "scaled" => DesktopWallpaperLayout.Fit,
+                "crop" or "zoom" or "fill" => DesktopWallpaperLayout.Fill,
+                _ => DesktopWallpaperLayout.Fill
+            };
         }
 
         private static bool GSettingsSchemaExists(string schema)

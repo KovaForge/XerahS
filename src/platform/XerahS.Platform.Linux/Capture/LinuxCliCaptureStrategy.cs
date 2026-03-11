@@ -29,6 +29,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
+using XerahS.Platform.Linux.Capture.Detection;
 
 namespace XerahS.Platform.Linux.Capture;
 
@@ -182,20 +183,7 @@ internal sealed class LinuxCliCaptureStrategy : ICaptureStrategy
 
     private static string? GetCurrentDesktop()
     {
-        var desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP");
-        if (!string.IsNullOrEmpty(desktop))
-        {
-            var normalized = desktop.ToUpperInvariant();
-            if (normalized.Contains("GNOME")) return "GNOME";
-            if (normalized.Contains("KDE") || normalized.Contains("PLASMA")) return "KDE";
-            if (normalized.Contains("XFCE")) return "XFCE";
-            if (normalized.Contains("HYPRLAND")) return "HYPRLAND";
-            if (normalized.Contains("SWAY")) return "SWAY";
-            if (normalized.Contains("MATE")) return "MATE";
-            if (normalized.Contains("CINNAMON")) return "CINNAMON";
-            if (normalized.Contains("LXQT")) return "LXQT";
-        }
-        return null;
+        return DesktopEnvironmentDetector.Detect();
     }
 
     private static string? GetNativeToolForDesktop(string? desktop)
