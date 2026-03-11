@@ -612,6 +612,7 @@ namespace XerahS.Platform.Linux.Services
 
             LogTrace($"Converting wallpaper '{sourcePath}' to cached PNG '{cachePath}'.");
             if (TryConvertWallpaperWithFfmpeg(sourcePath, cachePath) ||
+                TryConvertWallpaperWithGlycin(sourcePath, cachePath) ||
                 TryConvertWallpaperWithGdkPixbuf(sourcePath, cachePath))
             {
                 LogTrace($"Converted wallpaper '{sourcePath}' -> '{cachePath}'.");
@@ -625,7 +626,7 @@ namespace XerahS.Platform.Linux.Services
 
         private static bool TryConvertWallpaperWithFfmpeg(string sourcePath, string outputPath)
         {
-            if (!TryResolveCommandPath("ffmpeg", out string? ffmpegPath))
+            if (!TryResolveFfmpegPath(out string? ffmpegPath))
             {
                 LogTrace("Wallpaper converter 'ffmpeg' is not available.");
                 return false;
@@ -650,6 +651,22 @@ namespace XerahS.Platform.Linux.Services
             return TryRunWallpaperConverter(
                 thumbnailerPath!,
                 $"-s {GdkPixbufWallpaperSize} {QuoteArgument(sourcePath)} {QuoteArgument(GetTemporaryConvertedWallpaperPath(outputPath))}",
+                outputPath);
+        }
+
+        private static bool TryConvertWallpaperWithGlycin(string sourcePath, string outputPath)
+        {
+            if (!TryResolveCommandPath("glycin-thumbnailer", out string? thumbnailerPath))
+            {
+                LogTrace("Wallpaper converter 'glycin-thumbnailer' is not available.");
+                return false;
+            }
+
+            string inputUri = PathToFileUri(sourcePath);
+            LogTrace($"Attempting wallpaper conversion with glycin-thumbnailer at '{thumbnailerPath}'.");
+            return TryRunWallpaperConverter(
+                thumbnailerPath!,
+                $"--input {QuoteArgument(inputUri)} --output {QuoteArgument(GetTemporaryConvertedWallpaperPath(outputPath))} --size {GdkPixbufWallpaperSize}",
                 outputPath);
         }
 
@@ -903,6 +920,25 @@ namespace XerahS.Platform.Linux.Services
             return TryResolveCommandPath(command, out _);
         }
 
+        private static bool TryResolveFfmpegPath(out string? resolvedPath)
+        {
+            string configuredPath = PathsManager.GetFFmpegPath();
+            if (!string.IsNullOrWhiteSpace(configuredPath) && File.Exists(configuredPath))
+            {
+                resolvedPath = configuredPath;
+                LogTrace($"Resolved wallpaper converter 'ffmpeg' via PathsManager: '{resolvedPath}'.");
+                return true;
+            }
+
+            bool resolved = TryResolveCommandPath("ffmpeg", out resolvedPath);
+            if (resolved && !string.IsNullOrWhiteSpace(resolvedPath))
+            {
+                LogTrace($"Resolved wallpaper converter 'ffmpeg' via shell lookup: '{resolvedPath}'.");
+            }
+
+            return resolved;
+        }
+
         private static bool TryResolveCommandPath(string command, out string? resolvedPath)
         {
             resolvedPath = null;
@@ -993,6 +1029,11 @@ namespace XerahS.Platform.Linux.Services
         private static string QuoteArgument(string value)
         {
             return "\"" + value.Replace("\"", "\\\"") + "\"";
+        }
+
+        private static string PathToFileUri(string path)
+        {
+            return new Uri(path).AbsoluteUri;
         }
 
         private static void LogTrace(string message)
