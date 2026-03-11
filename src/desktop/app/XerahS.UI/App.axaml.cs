@@ -80,6 +80,9 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Register host-level editor services before creating any editor view models.
+            EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
+
             var mainViewModel = new MainViewModel();
             mainViewModel.ApplicationName = AppResources.AppName;
 
@@ -125,9 +128,6 @@ public partial class App : Application
                 // If starting silently, we don't want the last window closing to shut down the app
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             }
-
-            // Register host-level editor services that do not depend on the main window.
-            EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
 
             desktop.MainWindow = new Views.MainWindow
             {
