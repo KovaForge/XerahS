@@ -31,6 +31,12 @@ namespace XerahS.Platform.Linux.Services
 {
     internal static class LinuxDesktopWallpaperProvider
     {
+        private static readonly string[] SandboxHostRootPrefixes =
+        [
+            "/run/host",
+            "/var/run/host"
+        ];
+
         private enum Provider
         {
             Gnome,
@@ -44,15 +50,7 @@ namespace XerahS.Platform.Linux.Services
         {
             get
             {
-                foreach (Provider provider in GetPreferredProviders())
-                {
-                    if (IsAvailable(provider))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return TryGetDesktopWallpaper(out _);
             }
         }
 
@@ -187,8 +185,8 @@ namespace XerahS.Platform.Linux.Services
                 return false;
             }
 
-            string? path = ParseWallpaperPath(pictureValue);
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            string? path = ResolveAccessibleWallpaperPath(ParseWallpaperPath(pictureValue));
+            if (string.IsNullOrWhiteSpace(path))
             {
                 return false;
             }
@@ -217,8 +215,8 @@ namespace XerahS.Platform.Linux.Services
                 return false;
             }
 
-            string? path = ParseWallpaperPath(pictureValue);
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            string? path = ResolveAccessibleWallpaperPath(ParseWallpaperPath(pictureValue));
+            if (string.IsNullOrWhiteSpace(path))
             {
                 return false;
             }
@@ -261,8 +259,8 @@ namespace XerahS.Platform.Linux.Services
                     continue;
                 }
 
-                string? path = ParseWallpaperPath(pictureValue);
-                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                string? path = ResolveAccessibleWallpaperPath(ParseWallpaperPath(pictureValue));
+                if (string.IsNullOrWhiteSpace(path))
                 {
                     continue;
                 }
@@ -338,7 +336,7 @@ namespace XerahS.Platform.Linux.Services
 
                 if (key.Equals("Image", StringComparison.Ordinal))
                 {
-                    string? candidatePath = ParseWallpaperPath(value);
+                    string? candidatePath = ResolveAccessibleWallpaperPath(ParseWallpaperPath(value));
                     if (!string.IsNullOrWhiteSpace(candidatePath))
                     {
                         path = candidatePath;
@@ -350,7 +348,8 @@ namespace XerahS.Platform.Linux.Services
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            path = ResolveAccessibleWallpaperPath(path);
+            if (string.IsNullOrWhiteSpace(path))
             {
                 return false;
             }
@@ -465,6 +464,57 @@ namespace XerahS.Platform.Linux.Services
             }
 
             return value;
+        }
+
+        internal static IEnumerable<string> GetAccessiblePathCandidates(string path)
+        {
+            yield return path;
+
+            if (string.IsNullOrWhiteSpace(path) ||
+                !Path.IsPathRooted(path) ||
+                IsSandboxHostMirrorPath(path))
+            {
+                yield break;
+            }
+
+            string relativePath = path.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            foreach (string hostRootPrefix in SandboxHostRootPrefixes)
+            {
+                yield return Path.Combine(hostRootPrefix, relativePath);
+            }
+        }
+
+        internal static string? ResolveAccessibleWallpaperPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            foreach (string candidatePath in GetAccessiblePathCandidates(path))
+            {
+                if (File.Exists(candidatePath))
+                {
+                    return candidatePath;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsSandboxHostMirrorPath(string path)
+        {
+            foreach (string hostRootPrefix in SandboxHostRootPrefixes)
+            {
+                if (path.Equals(hostRootPrefix, StringComparison.Ordinal) ||
+                    path.StartsWith(hostRootPrefix + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                    path.StartsWith(hostRootPrefix + Path.AltDirectorySeparatorChar, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool GSettingsSchemaExists(string schema)
