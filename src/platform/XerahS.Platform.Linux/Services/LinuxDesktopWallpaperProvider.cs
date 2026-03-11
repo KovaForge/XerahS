@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -50,6 +51,7 @@ namespace XerahS.Platform.Linux.Services
         private const string WallpaperConversionCacheDirectoryName = "xerahs-wallpaper-cache";
         private const int WallpaperConverterTimeoutMilliseconds = 15000;
         private const int GdkPixbufWallpaperSize = 4096;
+        private static readonly ConcurrentDictionary<string, object> WallpaperConversionLocks = new(StringComparer.Ordinal);
 
         private enum Provider
         {
@@ -603,25 +605,30 @@ namespace XerahS.Platform.Linux.Services
             convertedPath = null;
 
             string cachePath = GetWallpaperConversionCachePath(sourcePath);
-            if (File.Exists(cachePath))
-            {
-                LogTrace($"Using cached converted wallpaper '{cachePath}' for source '{sourcePath}'.");
-                convertedPath = cachePath;
-                return true;
-            }
+            object conversionLock = WallpaperConversionLocks.GetOrAdd(cachePath, static _ => new object());
 
-            LogTrace($"Converting wallpaper '{sourcePath}' to cached PNG '{cachePath}'.");
-            if (TryConvertWallpaperWithFfmpeg(sourcePath, cachePath) ||
-                TryConvertWallpaperWithGlycin(sourcePath, cachePath) ||
-                TryConvertWallpaperWithGdkPixbuf(sourcePath, cachePath))
+            lock (conversionLock)
             {
-                LogTrace($"Converted wallpaper '{sourcePath}' -> '{cachePath}'.");
-                convertedPath = cachePath;
-                return true;
-            }
+                if (File.Exists(cachePath))
+                {
+                    LogTrace($"Using cached converted wallpaper '{cachePath}' for source '{sourcePath}'.");
+                    convertedPath = cachePath;
+                    return true;
+                }
 
-            LogTrace($"Failed to convert wallpaper '{sourcePath}' to a supported image format.");
-            return false;
+                LogTrace($"Converting wallpaper '{sourcePath}' to cached PNG '{cachePath}'.");
+                if (TryConvertWallpaperWithFfmpeg(sourcePath, cachePath) ||
+                    TryConvertWallpaperWithGlycin(sourcePath, cachePath) ||
+                    TryConvertWallpaperWithGdkPixbuf(sourcePath, cachePath))
+                {
+                    LogTrace($"Converted wallpaper '{sourcePath}' -> '{cachePath}'.");
+                    convertedPath = cachePath;
+                    return true;
+                }
+
+                LogTrace($"Failed to convert wallpaper '{sourcePath}' to a supported image format.");
+                return false;
+            }
         }
 
         private static bool TryConvertWallpaperWithFfmpeg(string sourcePath, string outputPath)
