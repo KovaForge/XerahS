@@ -31,6 +31,22 @@ namespace XerahS.Tests.Platform.Linux;
 public class LinuxDesktopWallpaperProviderTests
 {
     [Test]
+    public void RequiresWallpaperConversion_JpegXlWallpaper_ReturnsTrue()
+    {
+        Assert.That(
+            LinuxDesktopWallpaperProvider.RequiresWallpaperConversion("/usr/share/backgrounds/gnome/adwaita-l.jxl"),
+            Is.True);
+    }
+
+    [Test]
+    public void RequiresWallpaperConversion_PngWallpaper_ReturnsFalse()
+    {
+        Assert.That(
+            LinuxDesktopWallpaperProvider.RequiresWallpaperConversion("/usr/share/backgrounds/custom.png"),
+            Is.False);
+    }
+
+    [Test]
     public void AccessiblePathCandidates_AbsolutePath_IncludeSandboxHostMirrors()
     {
         const string path = "/usr/share/backgrounds/gnome/adwaita-l.jxl";
@@ -63,5 +79,28 @@ public class LinuxDesktopWallpaperProviderTests
         string[] candidates = LinuxDesktopWallpaperProvider.GetAccessiblePathCandidates(path).ToArray();
 
         Assert.That(candidates, Is.EqualTo(new[] { path }));
+    }
+
+    [Test]
+    public void WallpaperConversionCachePath_JpegXlWallpaper_UsesPngCacheFile()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string sourcePath = Path.Combine(tempDirectory, "wallpaper.jxl");
+            File.WriteAllBytes(sourcePath, [1, 2, 3, 4]);
+
+            string cachePath = LinuxDesktopWallpaperProvider.GetWallpaperConversionCachePath(sourcePath);
+
+            Assert.That(Path.GetExtension(cachePath), Is.EqualTo(".png"));
+            Assert.That(Path.GetDirectoryName(cachePath), Is.EqualTo(Path.Combine(Path.GetTempPath(), "xerahs-wallpaper-cache")));
+            Assert.That(Path.GetFileName(cachePath), Does.StartWith("wallpaper-"));
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 }

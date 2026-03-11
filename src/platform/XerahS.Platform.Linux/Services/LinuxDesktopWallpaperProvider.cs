@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Detection;
@@ -37,6 +38,10 @@ namespace XerahS.Platform.Linux.Services
             "/run/host",
             "/var/run/host"
         ];
+
+        private const string WallpaperConversionCacheDirectoryName = "xerahs-wallpaper-cache";
+        private const int WallpaperConverterTimeoutMilliseconds = 15000;
+        private const int GdkPixbufWallpaperSize = 4096;
 
         private enum Provider
         {
@@ -534,11 +539,200 @@ namespace XerahS.Platform.Linux.Services
             {
                 if (File.Exists(candidatePath))
                 {
-                    return candidatePath;
+                    return ResolveCompatibleWallpaperPath(candidatePath);
                 }
             }
 
             return null;
+        }
+
+        private static string? ResolveCompatibleWallpaperPath(string candidatePath)
+        {
+            if (!RequiresWallpaperConversion(candidatePath))
+            {
+                return candidatePath;
+            }
+
+            return TryConvertWallpaper(candidatePath, out string? convertedPath) ? convertedPath : null;
+        }
+
+        internal static bool RequiresWallpaperConversion(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            return Path.GetExtension(path).Equals(".jxl", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static string GetWallpaperConversionCachePath(string sourcePath)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+
+            string cacheDirectory = Path.Combine(Path.GetTempPath(), WallpaperConversionCacheDirectoryName);
+            Directory.CreateDirectory(cacheDirectory);
+
+            FileInfo sourceInfo = new FileInfo(sourcePath);
+            string cacheKey = string.Concat(sourcePath, "|", sourceInfo.Length, "|", sourceInfo.LastWriteTimeUtc.Ticks);
+            string cacheHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey))).ToLowerInvariant();
+            string cacheFileNameBase = Path.GetFileNameWithoutExtension(sourcePath);
+            if (string.IsNullOrWhiteSpace(cacheFileNameBase))
+            {
+                cacheFileNameBase = "wallpaper";
+            }
+
+            return Path.Combine(cacheDirectory, $"{cacheFileNameBase}-{cacheHash}.png");
+        }
+
+        private static bool TryConvertWallpaper(string sourcePath, out string? convertedPath)
+        {
+            convertedPath = null;
+
+            string cachePath = GetWallpaperConversionCachePath(sourcePath);
+            if (File.Exists(cachePath))
+            {
+                convertedPath = cachePath;
+                return true;
+            }
+
+            if (TryConvertWallpaperWithFfmpeg(sourcePath, cachePath) ||
+                TryConvertWallpaperWithGdkPixbuf(sourcePath, cachePath))
+            {
+                convertedPath = cachePath;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryConvertWallpaperWithFfmpeg(string sourcePath, string outputPath)
+        {
+            if (!CommandExists("ffmpeg"))
+            {
+                return false;
+            }
+
+            return TryRunWallpaperConverter(
+                "ffmpeg",
+                $"-hide_banner -loglevel error -y -i {QuoteArgument(sourcePath)} -frames:v 1 {QuoteArgument(GetTemporaryConvertedWallpaperPath(outputPath))}",
+                outputPath);
+        }
+
+        private static bool TryConvertWallpaperWithGdkPixbuf(string sourcePath, string outputPath)
+        {
+            if (!CommandExists("gdk-pixbuf-thumbnailer"))
+            {
+                return false;
+            }
+
+            return TryRunWallpaperConverter(
+                "gdk-pixbuf-thumbnailer",
+                $"-s {GdkPixbufWallpaperSize} {QuoteArgument(sourcePath)} {QuoteArgument(GetTemporaryConvertedWallpaperPath(outputPath))}",
+                outputPath);
+        }
+
+        private static bool TryRunWallpaperConverter(string fileName, string arguments, string outputPath)
+        {
+            string tempOutputPath = GetTemporaryConvertedWallpaperPath(outputPath);
+
+            try
+            {
+                string? outputDirectory = Path.GetDirectoryName(outputPath);
+                if (string.IsNullOrWhiteSpace(outputDirectory))
+                {
+                    return false;
+                }
+
+                Directory.CreateDirectory(outputDirectory);
+
+                if (File.Exists(tempOutputPath))
+                {
+                    File.Delete(tempOutputPath);
+                }
+
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                if (process == null)
+                {
+                    return false;
+                }
+
+                process.WaitForExit(WallpaperConverterTimeoutMilliseconds);
+
+                if (!process.HasExited)
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
+                    }
+
+                    return false;
+                }
+
+                if (process.ExitCode != 0 || !File.Exists(tempOutputPath))
+                {
+                    string errorOutput = process.StandardError.ReadToEnd();
+                    if (!string.IsNullOrWhiteSpace(errorOutput))
+                    {
+                        Debug.WriteLine(errorOutput);
+                    }
+
+                    return false;
+                }
+
+                File.Move(tempOutputPath, outputPath, overwrite: true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                return false;
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempOutputPath))
+                    {
+                        File.Delete(tempOutputPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                }
+            }
+        }
+
+        private static string GetTemporaryConvertedWallpaperPath(string outputPath)
+        {
+            string? directory = Path.GetDirectoryName(outputPath);
+            string fileName = Path.GetFileNameWithoutExtension(outputPath);
+
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                directory = Path.GetTempPath();
+            }
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = "wallpaper";
+            }
+
+            return Path.Combine(directory, fileName + ".tmp.png");
         }
 
         private static bool IsSandboxHostMirrorPath(string path)
