@@ -23,39 +23,26 @@
 
 #endregion License Information (GPL v3)
 
-using System.Diagnostics;
-using XerahS.Common;
+using ShareX.ImageEditor.Hosting;
 using XerahS.Platform.Abstractions;
 
-namespace XerahS.Platform.Mobile;
+namespace XerahS.UI.Services;
 
-public class MobileSystemService : ISystemService
+/// <summary>
+/// Adapts the editor wallpaper contract to XerahS platform services.
+/// </summary>
+public sealed class EditorDesktopWallpaperAdapter : IDesktopWallpaperService
 {
-    public bool ShowFileInExplorer(string filePath) => false;
-
-    public bool OpenUrl(string url)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = url,
-                UseShellExecute = true
-            });
-            return true;
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.WriteException(ex, "MobileSystemService.OpenUrl");
-            return false;
-        }
-    }
-
-    public bool OpenFile(string filePath) => false;
+    public bool IsSupported => PlatformServices.IsInitialized && PlatformServices.PlatformInfo.IsWindows;
 
     public bool TryGetDesktopWallpaperPath(out string? path)
     {
-        path = null;
-        return false;
+        if (!PlatformServices.IsInitialized)
+        {
+            path = null;
+            return false;
+        }
+
+        return PlatformServices.System.TryGetDesktopWallpaperPath(out path);
     }
 }

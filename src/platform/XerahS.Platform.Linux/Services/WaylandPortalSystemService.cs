@@ -135,6 +135,11 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         return _fallback.OpenFile(filePath);
     }
 
+    public bool TryGetDesktopWallpaperPath(out string? path)
+    {
+        return _fallback.TryGetDesktopWallpaperPath(out path);
+    }
+
     private bool TryPortalRequest(Func<Task<ObjectPath>> requestFactory)
     {
         if (_connection == null)

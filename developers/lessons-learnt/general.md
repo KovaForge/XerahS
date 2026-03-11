@@ -175,3 +175,4 @@ This forces the build system to include the correct Windows SDK reference assemb
 ### ImageEditor Host Export Wiring
 
 - Never partially wire a hosted component's host-facing commands/events; always audit the full host contract and connect every supported action because UI enablement and behavior can depend on subscriber presence, making omissions look like broken features instead of integration gaps.
+- Never put OS-specific wallpaper lookup inside `ShareX.ImageEditor` view models; always expose it through `ShareX.ImageEditor.Hosting` and implement the real lookup in `XerahS.Platform.Abstractions` because the editor is shared across hosts and platforms.

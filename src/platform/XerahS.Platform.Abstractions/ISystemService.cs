@@ -50,5 +50,12 @@ namespace XerahS.Platform.Abstractions
         /// <param name="filePath">The path to the file or folder.</param>
         /// <returns>True if successful, false otherwise.</returns>
         bool OpenFile(string filePath);
+
+        /// <summary>
+        /// Tries to resolve the current desktop wallpaper file path.
+        /// </summary>
+        /// <param name="path">The wallpaper path when available.</param>
+        /// <returns>True if the wallpaper path could be resolved; otherwise false.</returns>
+        bool TryGetDesktopWallpaperPath(out string? path);
     }
 }

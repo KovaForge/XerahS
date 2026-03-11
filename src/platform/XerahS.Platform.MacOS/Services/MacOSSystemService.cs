@@ -82,5 +82,11 @@ namespace XerahS.Platform.MacOS.Services
             }
             return false;
         }
+
+        public bool TryGetDesktopWallpaperPath(out string? path)
+        {
+            path = null;
+            return false;
+        }
     }
 }

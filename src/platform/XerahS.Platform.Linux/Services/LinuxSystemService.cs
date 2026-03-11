@@ -96,6 +96,12 @@ namespace XerahS.Platform.Linux.Services
              return false;
          }
 
+        public bool TryGetDesktopWallpaperPath(out string? path)
+        {
+            path = null;
+            return false;
+        }
+
         private static bool TryShowItemsViaDbus(string fileUri)
         {
             try

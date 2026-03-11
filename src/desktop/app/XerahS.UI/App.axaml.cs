@@ -126,6 +126,9 @@ public partial class App : Application
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             }
 
+            // Register host-level editor services that do not depend on the main window.
+            EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
+
             desktop.MainWindow = new Views.MainWindow
             {
                 DataContext = mainViewModel,
