@@ -31,6 +31,8 @@ namespace XerahS.Platform.Linux.Services
 {
     public class LinuxSystemService : ISystemService
     {
+        public bool IsDesktopWallpaperSupported => false;
+
         public bool ShowFileInExplorer(string filePath)
         {
              if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
@@ -95,6 +97,12 @@ namespace XerahS.Platform.Linux.Services
              }
              return false;
          }
+
+        public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
+        {
+            wallpaper = null;
+            return false;
+        }
 
         public bool TryGetDesktopWallpaperPath(out string? path)
         {

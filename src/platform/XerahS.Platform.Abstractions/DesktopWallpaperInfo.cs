@@ -23,47 +23,21 @@
 
 #endregion License Information (GPL v3)
 
-using System.Diagnostics;
-using XerahS.Common;
-using XerahS.Platform.Abstractions;
-
-namespace XerahS.Platform.Mobile;
-
-public class MobileSystemService : ISystemService
+namespace XerahS.Platform.Abstractions
 {
-    public bool IsDesktopWallpaperSupported => false;
-
-    public bool ShowFileInExplorer(string filePath) => false;
-
-    public bool OpenUrl(string url)
+    /// <summary>
+    /// Resolved wallpaper metadata for the current desktop environment.
+    /// </summary>
+    public sealed class DesktopWallpaperInfo
     {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = url,
-                UseShellExecute = true
-            });
-            return true;
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.WriteException(ex, "MobileSystemService.OpenUrl");
-            return false;
-        }
-    }
+        /// <summary>
+        /// Absolute path to the wallpaper image file.
+        /// </summary>
+        public required string Path { get; init; }
 
-    public bool OpenFile(string filePath) => false;
-
-    public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
-    {
-        wallpaper = null;
-        return false;
-    }
-
-    public bool TryGetDesktopWallpaperPath(out string? path)
-    {
-        path = null;
-        return false;
+        /// <summary>
+        /// Presentation mode configured by the desktop environment.
+        /// </summary>
+        public DesktopWallpaperLayout Layout { get; init; } = DesktopWallpaperLayout.Fill;
     }
 }

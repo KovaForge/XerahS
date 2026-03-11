@@ -24,9 +24,11 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
+using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Text;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Windows;
 
 namespace XerahS.Platform.Windows.Services
 {
@@ -34,6 +36,8 @@ namespace XerahS.Platform.Windows.Services
     {
         private const int SpiGetDesktopWallpaper = 0x0073;
         private const int MaxWallpaperPath = 260;
+
+        public bool IsDesktopWallpaperSupported => true;
 
         public bool ShowFileInExplorer(string filePath)
         {
@@ -89,6 +93,24 @@ namespace XerahS.Platform.Windows.Services
              return false;
         }
 
+        public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
+        {
+            wallpaper = null;
+
+            if (!TryGetDesktopWallpaperPath(out string? path))
+            {
+                return false;
+            }
+
+            wallpaper = new DesktopWallpaperInfo
+            {
+                Path = path!,
+                Layout = GetDesktopWallpaperLayout()
+            };
+
+            return true;
+        }
+
         public bool TryGetDesktopWallpaperPath(out string? path)
         {
             path = null;
@@ -107,6 +129,26 @@ namespace XerahS.Platform.Windows.Services
 
             path = wallpaperPath;
             return true;
+        }
+
+        private static DesktopWallpaperLayout GetDesktopWallpaperLayout()
+        {
+            string? tileWallpaper = RegistryHelpers.GetValueString(@"Control Panel\Desktop", "TileWallpaper", RegistryHive.CurrentUser);
+            if (string.Equals(tileWallpaper, "1", StringComparison.Ordinal))
+            {
+                return DesktopWallpaperLayout.Tile;
+            }
+
+            string? wallpaperStyle = RegistryHelpers.GetValueString(@"Control Panel\Desktop", "WallpaperStyle", RegistryHive.CurrentUser);
+            return wallpaperStyle switch
+            {
+                "0" => DesktopWallpaperLayout.Center,
+                "2" => DesktopWallpaperLayout.Stretch,
+                "6" => DesktopWallpaperLayout.Fit,
+                "10" => DesktopWallpaperLayout.Fill,
+                "22" => DesktopWallpaperLayout.Span,
+                _ => DesktopWallpaperLayout.Fill
+            };
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

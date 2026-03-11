@@ -31,6 +31,11 @@ namespace XerahS.Platform.Abstractions
     public interface ISystemService
     {
         /// <summary>
+        /// Gets whether the current platform implementation can resolve desktop wallpaper metadata.
+        /// </summary>
+        bool IsDesktopWallpaperSupported { get; }
+
+        /// <summary>
         /// Opens the file explorer with the specified file selected.
         /// </summary>
         /// <param name="filePath">The full path to the file.</param>
@@ -50,6 +55,13 @@ namespace XerahS.Platform.Abstractions
         /// <param name="filePath">The path to the file or folder.</param>
         /// <returns>True if successful, false otherwise.</returns>
         bool OpenFile(string filePath);
+
+        /// <summary>
+        /// Tries to resolve the current desktop wallpaper metadata.
+        /// </summary>
+        /// <param name="wallpaper">Resolved wallpaper metadata when available.</param>
+        /// <returns>True if the wallpaper metadata could be resolved; otherwise false.</returns>
+        bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper);
 
         /// <summary>
         /// Tries to resolve the current desktop wallpaper file path.

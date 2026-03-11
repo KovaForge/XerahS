@@ -25,6 +25,10 @@
 
 using ShareX.ImageEditor.Hosting;
 using XerahS.Platform.Abstractions;
+using EditorWallpaperInfo = ShareX.ImageEditor.Hosting.DesktopWallpaperInfo;
+using EditorWallpaperLayout = ShareX.ImageEditor.Hosting.DesktopWallpaperLayout;
+using PlatformWallpaperInfo = XerahS.Platform.Abstractions.DesktopWallpaperInfo;
+using PlatformWallpaperLayout = XerahS.Platform.Abstractions.DesktopWallpaperLayout;
 
 namespace XerahS.UI.Services;
 
@@ -33,16 +37,43 @@ namespace XerahS.UI.Services;
 /// </summary>
 public sealed class EditorDesktopWallpaperAdapter : IDesktopWallpaperService
 {
-    public bool IsSupported => PlatformServices.IsInitialized && PlatformServices.PlatformInfo.IsWindows;
+    public bool IsSupported => PlatformServices.IsInitialized && PlatformServices.System.IsDesktopWallpaperSupported;
 
-    public bool TryGetDesktopWallpaperPath(out string? path)
+    public bool TryGetDesktopWallpaper(out EditorWallpaperInfo? wallpaper)
     {
         if (!PlatformServices.IsInitialized)
         {
-            path = null;
+            wallpaper = null;
             return false;
         }
 
-        return PlatformServices.System.TryGetDesktopWallpaperPath(out path);
+        if (!PlatformServices.System.TryGetDesktopWallpaper(out PlatformWallpaperInfo? platformWallpaper) ||
+            platformWallpaper == null)
+        {
+            wallpaper = null;
+            return false;
+        }
+
+        wallpaper = new EditorWallpaperInfo
+        {
+            Path = platformWallpaper.Path,
+            Layout = MapLayout(platformWallpaper.Layout)
+        };
+
+        return true;
+    }
+
+    private static EditorWallpaperLayout MapLayout(PlatformWallpaperLayout layout)
+    {
+        return layout switch
+        {
+            PlatformWallpaperLayout.Fill => EditorWallpaperLayout.Fill,
+            PlatformWallpaperLayout.Fit => EditorWallpaperLayout.Fit,
+            PlatformWallpaperLayout.Stretch => EditorWallpaperLayout.Stretch,
+            PlatformWallpaperLayout.Center => EditorWallpaperLayout.Center,
+            PlatformWallpaperLayout.Tile => EditorWallpaperLayout.Tile,
+            PlatformWallpaperLayout.Span => EditorWallpaperLayout.Span,
+            _ => EditorWallpaperLayout.Fill
+        };
     }
 }
