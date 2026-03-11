@@ -26,6 +26,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Detection;
 
@@ -37,6 +38,13 @@ namespace XerahS.Platform.Linux.Services
         [
             "/run/host",
             "/var/run/host"
+        ];
+
+        private static readonly string[] CommonExecutableDirectories =
+        [
+            "/usr/bin",
+            "/bin",
+            "/usr/local/bin"
         ];
 
         private const string WallpaperConversionCacheDirectoryName = "xerahs-wallpaper-cache";
@@ -58,7 +66,7 @@ namespace XerahS.Platform.Linux.Services
         {
             get
             {
-                return TryGetDesktopWallpaper(out _);
+                return GetPreferredProviders().Any(IsAvailable);
             }
         }
 
@@ -73,10 +81,12 @@ namespace XerahS.Platform.Linux.Services
 
                 if (TryGetDesktopWallpaper(provider, out wallpaper))
                 {
+                    LogTrace($"Resolved wallpaper using {provider}: path='{wallpaper?.Path}', layout={wallpaper?.Layout}.");
                     return true;
                 }
             }
 
+            LogTrace("Failed to resolve wallpaper from all available Linux providers.");
             wallpaper = null;
             return false;
         }
@@ -539,10 +549,13 @@ namespace XerahS.Platform.Linux.Services
             {
                 if (File.Exists(candidatePath))
                 {
-                    return ResolveCompatibleWallpaperPath(candidatePath);
+                    string? resolvedPath = ResolveCompatibleWallpaperPath(candidatePath);
+                    LogTrace($"Resolved accessible wallpaper path '{path}' -> '{resolvedPath ?? "<null>"}'.");
+                    return resolvedPath;
                 }
             }
 
+            LogTrace($"No accessible wallpaper path found for '{path}'.");
             return null;
         }
 
@@ -592,42 +605,50 @@ namespace XerahS.Platform.Linux.Services
             string cachePath = GetWallpaperConversionCachePath(sourcePath);
             if (File.Exists(cachePath))
             {
+                LogTrace($"Using cached converted wallpaper '{cachePath}' for source '{sourcePath}'.");
                 convertedPath = cachePath;
                 return true;
             }
 
+            LogTrace($"Converting wallpaper '{sourcePath}' to cached PNG '{cachePath}'.");
             if (TryConvertWallpaperWithFfmpeg(sourcePath, cachePath) ||
                 TryConvertWallpaperWithGdkPixbuf(sourcePath, cachePath))
             {
+                LogTrace($"Converted wallpaper '{sourcePath}' -> '{cachePath}'.");
                 convertedPath = cachePath;
                 return true;
             }
 
+            LogTrace($"Failed to convert wallpaper '{sourcePath}' to a supported image format.");
             return false;
         }
 
         private static bool TryConvertWallpaperWithFfmpeg(string sourcePath, string outputPath)
         {
-            if (!CommandExists("ffmpeg"))
+            if (!TryResolveCommandPath("ffmpeg", out string? ffmpegPath))
             {
+                LogTrace("Wallpaper converter 'ffmpeg' is not available.");
                 return false;
             }
 
+            LogTrace($"Attempting wallpaper conversion with ffmpeg at '{ffmpegPath}'.");
             return TryRunWallpaperConverter(
-                "ffmpeg",
+                ffmpegPath!,
                 $"-hide_banner -loglevel error -y -i {QuoteArgument(sourcePath)} -frames:v 1 {QuoteArgument(GetTemporaryConvertedWallpaperPath(outputPath))}",
                 outputPath);
         }
 
         private static bool TryConvertWallpaperWithGdkPixbuf(string sourcePath, string outputPath)
         {
-            if (!CommandExists("gdk-pixbuf-thumbnailer"))
+            if (!TryResolveCommandPath("gdk-pixbuf-thumbnailer", out string? thumbnailerPath))
             {
+                LogTrace("Wallpaper converter 'gdk-pixbuf-thumbnailer' is not available.");
                 return false;
             }
 
+            LogTrace($"Attempting wallpaper conversion with gdk-pixbuf-thumbnailer at '{thumbnailerPath}'.");
             return TryRunWallpaperConverter(
-                "gdk-pixbuf-thumbnailer",
+                thumbnailerPath!,
                 $"-s {GdkPixbufWallpaperSize} {QuoteArgument(sourcePath)} {QuoteArgument(GetTemporaryConvertedWallpaperPath(outputPath))}",
                 outputPath);
         }
@@ -663,6 +684,7 @@ namespace XerahS.Platform.Linux.Services
 
                 if (process == null)
                 {
+                    LogTrace($"Wallpaper converter '{fileName}' could not be started.");
                     return false;
                 }
 
@@ -679,6 +701,7 @@ namespace XerahS.Platform.Linux.Services
                         Debug.WriteLine(ex);
                     }
 
+                    LogTrace($"Wallpaper converter '{fileName}' timed out after {WallpaperConverterTimeoutMilliseconds}ms.");
                     return false;
                 }
 
@@ -690,15 +713,18 @@ namespace XerahS.Platform.Linux.Services
                         Debug.WriteLine(errorOutput);
                     }
 
+                    LogTrace($"Wallpaper converter '{fileName}' failed with exit code {process.ExitCode}.");
                     return false;
                 }
 
+                LogTrace($"Wallpaper converter '{fileName}' produced '{tempOutputPath}'.");
                 File.Move(tempOutputPath, outputPath, overwrite: true);
                 return true;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex);
+                LogTrace($"Wallpaper converter '{fileName}' threw: {ex.Message}");
                 return false;
             }
             finally
@@ -874,7 +900,62 @@ namespace XerahS.Platform.Linux.Services
 
         private static bool CommandExists(string command)
         {
-            return TryReadCommandOutput("sh", $"-lc {QuoteArgument($"command -v {command}")}", out _);
+            return TryResolveCommandPath(command, out _);
+        }
+
+        private static bool TryResolveCommandPath(string command, out string? resolvedPath)
+        {
+            resolvedPath = null;
+
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                return false;
+            }
+
+            if (Path.IsPathRooted(command))
+            {
+                resolvedPath = File.Exists(command) ? command : null;
+                return resolvedPath != null;
+            }
+
+            if (TryReadCommandOutput("sh", $"-lc {QuoteArgument($"command -v {command}")}", out string shellResolvedPath) &&
+                !string.IsNullOrWhiteSpace(shellResolvedPath))
+            {
+                resolvedPath = shellResolvedPath
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .FirstOrDefault();
+
+                if (!string.IsNullOrWhiteSpace(resolvedPath))
+                {
+                    return true;
+                }
+            }
+
+            string? pathEnvironment = Environment.GetEnvironmentVariable("PATH");
+            if (!string.IsNullOrWhiteSpace(pathEnvironment))
+            {
+                foreach (string directory in pathEnvironment.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    string candidatePath = Path.Combine(directory, command);
+                    if (File.Exists(candidatePath))
+                    {
+                        resolvedPath = candidatePath;
+                        return true;
+                    }
+                }
+            }
+
+            foreach (string directory in CommonExecutableDirectories)
+            {
+                string candidatePath = Path.Combine(directory, command);
+                if (File.Exists(candidatePath))
+                {
+                    resolvedPath = candidatePath;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryReadCommandOutput(string fileName, string arguments, out string output)
@@ -912,6 +993,11 @@ namespace XerahS.Platform.Linux.Services
         private static string QuoteArgument(string value)
         {
             return "\"" + value.Replace("\"", "\\\"") + "\"";
+        }
+
+        private static void LogTrace(string message)
+        {
+            DebugHelper.WriteLine($"LinuxDesktopWallpaperProvider: {message}");
         }
 
         private static bool ReturnFalse(out DesktopWallpaperInfo? wallpaper)

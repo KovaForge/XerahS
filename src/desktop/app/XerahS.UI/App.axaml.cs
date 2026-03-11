@@ -28,6 +28,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Controls.Primitives;
 using ShareX.ImageEditor.Hosting;
+using ShareX.ImageEditor.Hosting.Diagnostics;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Common;
@@ -81,6 +82,16 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Register host-level editor services before creating any editor view models.
+            EditorServices.Diagnostics = new DelegateEditorDiagnosticsSink(diagnosticEvent =>
+            {
+                string prefix = $"[ImageEditor:{diagnosticEvent.Level}:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
+                Common.DebugHelper.WriteLine(prefix);
+
+                if (!string.IsNullOrWhiteSpace(diagnosticEvent.ExceptionText))
+                {
+                    Common.DebugHelper.WriteLine(diagnosticEvent.ExceptionText!);
+                }
+            });
             EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
 
             var mainViewModel = new MainViewModel();
@@ -270,4 +281,3 @@ public partial class App : Application
     }
 
 }
-
