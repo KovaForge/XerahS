@@ -25,6 +25,7 @@
 4. **Git Workflow**
    - Sequence: stage (`git add .`) -> commit -> push.
    - Commit format: `[vX.Y.Z] [Type] Use concise description`.
+   - Exception: when committing inside shared library repos/submodules such as `ShareX.ImageEditor` (and other libraries shared with ShareX), omit the version prefix and use `[Type] Use concise description` because those commits must not carry the XerahS app version.
    - If verification passes and the user did not ask to pause, execute the workflow without waiting for extra permission.
 
 5. **Agent Workflow**
