@@ -8,6 +8,7 @@
         xmlns:views="using:XerahS.UI.Views"
         xmlns:common="clr-namespace:XerahS.Common;assembly=XerahS.Common"
         xmlns:editvm="clr-namespace:ShareX.ImageEditor.Presentation.ViewModels;assembly=ShareX.ImageEditor"
+        xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="650"
         x:Class="XerahS.UI.Views.MainWindow"
         x:DataType="editvm:MainViewModel"
@@ -144,37 +145,55 @@
                 <ui:NavigationViewItem Content="Capture" Tag="Capture" SelectsOnInvoked="False" IsExpanded="True" Name="CaptureNavItem"
                                        AutomationProperties.Name="Capture Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Camera"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Camera}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="Recording" Tag="Recording" AutomationProperties.Name="Recording View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Video"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Film}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="Editor" Tag="Editor" IsSelected="True" AutomationProperties.Name="Editor View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Edit"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Pencil}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="History" Tag="History" AutomationProperties.Name="History View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Clock"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.HardDrive}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="Workflows" Tag="Workflows" AutomationProperties.Name="Workflows View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="List"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Combine}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem Content="Upload" Tag="Upload" SelectsOnInvoked="False" IsExpanded="False" AutomationProperties.Name="Upload Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Upload"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.CloudUpload}"/>
                     </ui:NavigationViewItem.IconSource>
                     <ui:NavigationViewItem.MenuItems>
                         <ui:NavigationViewItem Content="Upload File..."
@@ -190,7 +209,10 @@
                 
                 <ui:NavigationViewItem Content="Tools" Tag="Tools" SelectsOnInvoked="True" IsExpanded="False" AutomationProperties.Name="Tools Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Folder"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Wand2}"/>
                     </ui:NavigationViewItem.IconSource>
                     <ui:NavigationViewItem.MenuItems>
                         <ui:NavigationViewItem Content="Color Picker..." Tag="Tools_ColorPicker" SelectsOnInvoked="False" AutomationProperties.Name="Color Picker Tool"/>
@@ -217,7 +239,10 @@
                 
                 <ui:NavigationViewItem Content="Settings" Tag="Settings" SelectsOnInvoked="True" IsExpanded="True" AutomationProperties.Name="Settings Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Settings"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.SlidersVertical}"/>
                     </ui:NavigationViewItem.IconSource>
                     <ui:NavigationViewItem.MenuItems>
                         <ui:NavigationViewItem Content="Application Settings" Tag="Settings_App" AutomationProperties.Name="Application Settings"/>
@@ -228,13 +253,19 @@
                  <ui:NavigationViewItem Content="Debug" Tag="Debug" AutomationProperties.Name="Debug View"
                                         AutomationProperties.HelpText="Opens developer debug tools">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Code"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Terminal}"/>
                     </ui:NavigationViewItem.IconSource>
                  </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem Content="About" Tag="About" AutomationProperties.Name="About View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Important"/>
+                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                                           FontSize="18"
+                                           FontWeight="Normal"
+                                           Glyph="{x:Static theming:LucideIcons.Aperture}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>

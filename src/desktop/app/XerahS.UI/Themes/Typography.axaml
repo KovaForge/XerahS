@@ -1,0 +1,19 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <FontFamily x:Key="XerahS.FontFamily.Default">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+    <FontFamily x:Key="XerahS.FontFamily.Icon">avares://ShareX.ImageEditor/Assets#lucide</FontFamily>
+
+    <!-- Preserve existing resource consumers while moving the app to a shared typography layer. -->
+    <FontFamily x:Key="AppFontFamily">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+    <FontFamily x:Key="ShareX.FontFamily.Icon">avares://ShareX.ImageEditor/Assets#lucide</FontFamily>
+  </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{DynamicResource XerahS.FontFamily.Default}" />
+  </Style>
+
+  <Style Selector="UserControl">
+    <Setter Property="FontFamily" Value="{DynamicResource XerahS.FontFamily.Default}" />
+  </Style>
+</Styles>

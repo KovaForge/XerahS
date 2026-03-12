@@ -621,7 +621,7 @@ namespace XerahS.App
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
-
+                .WithInterFont()
                 .LogToTrace();
 
         /// <summary>
