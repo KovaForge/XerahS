@@ -62,100 +62,145 @@
         </Border>
 
         <!-- Grid View -->
-        <ScrollViewer Grid.Row="2" IsVisible="{Binding IsGridView}" IsEnabled="{Binding !IsLoading}" Padding="16">
-            <ItemsControl ItemsSource="{Binding HistoryItems}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="history:HistoryItem">
-                        <Border Margin="8" Width="200"
-                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
-                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4" 
-                                Padding="12"
-                                Cursor="Hand"
-                                PointerPressed="OnItemPointerPressed"
-                                ContextFlyout="{StaticResource HistoryItemMenuFlyout}"
-                                AutomationProperties.Name="{Binding FileName, StringFormat='History Item: {0}'}">
-                            <Border.Tag>
-                                <MultiBinding Converter="{x:Static uiconverters:HistoryItemMenuContextConverter.Instance}">
-                                    <Binding/>
-                                    <Binding ElementName="Root" Path="DataContext"/>
-                                </MultiBinding>
-                            </Border.Tag>
-                            <StackPanel Spacing="12">
-                                <!-- Thumbnail -->
-                                <Border Height="140" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
-                                    <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
-                                           Stretch="Uniform"/>
-                                </Border>
-                                <!-- Info -->
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding DateTime, StringFormat='yyyy-MM-dd HH:mm'}" 
-                                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                </StackPanel>
+        <ListBox x:Name="GridHistoryListBox"
+                 Grid.Row="2"
+                 IsVisible="{Binding IsGridView}"
+                 IsEnabled="{Binding !IsLoading}"
+                 Margin="16"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 SelectionMode="Multiple"
+                 SelectionChanged="OnHistorySelectionChanged"
+                 AutomationProperties.Name="History Grid">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="history:HistoryItem">
+                    <Border Classes="history-grid-item"
+                            Margin="8" Width="200"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4" 
+                            Padding="12"
+                            Cursor="Hand"
+                            DoubleTapped="OnItemDoubleTapped"
+                            ContextFlyout="{StaticResource HistoryItemMenuFlyout}"
+                            AutomationProperties.Name="{Binding FileName, StringFormat='History Item: {0}'}">
+                        <Border.Tag>
+                            <MultiBinding Converter="{x:Static uiconverters:HistoryItemMenuContextConverter.Instance}">
+                                <Binding/>
+                                <Binding ElementName="Root" Path="DataContext"/>
+                            </MultiBinding>
+                        </Border.Tag>
+                        <StackPanel Spacing="12">
+                            <!-- Thumbnail -->
+                            <Border Height="140" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
+                                <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
+                                       Stretch="Uniform"/>
+                            </Border>
+                            <!-- Info -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding DateTime, StringFormat='yyyy-MM-dd HH:mm'}" 
+                                           FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.Styles>
+                <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+                <Style Selector="ListBoxItem:selected Border.history-grid-item">
+                    <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                </Style>
+            </ListBox.Styles>
+        </ListBox>
         
         <!-- List View -->
-        <ScrollViewer Grid.Row="2" IsVisible="{Binding !IsGridView}" IsEnabled="{Binding !IsLoading}" Padding="0,8">
-            <ItemsControl ItemsSource="{Binding HistoryItems}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Spacing="2"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="history:HistoryItem">
-                        <Border Padding="16,8" Background="Transparent" Cursor="Hand"
-                                PointerPressed="OnItemPointerPressed"
-                                ContextFlyout="{StaticResource HistoryItemMenuFlyout}"
-                                AutomationProperties.Name="{Binding FileName, StringFormat='History Item: {0}'}">
-                            <Border.Tag>
-                                <MultiBinding Converter="{x:Static uiconverters:HistoryItemMenuContextConverter.Instance}">
-                                    <Binding/>
-                                    <Binding ElementName="Root" Path="DataContext"/>
-                                </MultiBinding>
-                            </Border.Tag>
-                            <Border.Styles>
-                                <Style Selector="Border:pointerover">
-                                    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
-                                </Style>
-                            </Border.Styles>
-                            <Grid ColumnDefinitions="48, *, 160, 220">
-                                <!-- Thumbnail -->
-                                <Border Grid.Column="0" Width="36" Height="36" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
-                                    <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
-                                           Stretch="UniformToFill"/>
-                                </Border>
-                                <!-- Filename -->
-                                <TextBlock Grid.Column="1" Text="{Binding FileName}" 
-                                           VerticalAlignment="Center" Margin="16,0"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <!-- Type/Host -->
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                                    <TextBlock Text="{Binding Type}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                    <TextBlock Text="{Binding Host}" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                               IsVisible="{Binding Host, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                </StackPanel>
-                                <!-- DateTime -->
-                                <TextBlock Grid.Column="3" Text="{Binding DateTime, StringFormat='yyyy-MM-dd HH:mm:ss'}" 
-                                           VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+        <ListBox x:Name="ListHistoryListBox"
+                 Grid.Row="2"
+                 IsVisible="{Binding !IsGridView}"
+                 IsEnabled="{Binding !IsLoading}"
+                 Padding="0,8"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 SelectionMode="Multiple"
+                 SelectionChanged="OnHistorySelectionChanged"
+                 AutomationProperties.Name="History List">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="2"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="history:HistoryItem">
+                    <Border Classes="history-list-item"
+                            Padding="16,8" Background="Transparent" Cursor="Hand"
+                            DoubleTapped="OnItemDoubleTapped"
+                            ContextFlyout="{StaticResource HistoryItemMenuFlyout}"
+                            AutomationProperties.Name="{Binding FileName, StringFormat='History Item: {0}'}">
+                        <Border.Tag>
+                            <MultiBinding Converter="{x:Static uiconverters:HistoryItemMenuContextConverter.Instance}">
+                                <Binding/>
+                                <Binding ElementName="Root" Path="DataContext"/>
+                            </MultiBinding>
+                        </Border.Tag>
+                        <Border.Styles>
+                            <Style Selector="Border:pointerover">
+                                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                            </Style>
+                        </Border.Styles>
+                        <Grid ColumnDefinitions="48, *, 160, 220">
+                            <!-- Thumbnail -->
+                            <Border Grid.Column="0" Width="36" Height="36" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
+                                <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
+                                       Stretch="UniformToFill"/>
+                            </Border>
+                            <!-- Filename -->
+                            <TextBlock Grid.Column="1" Text="{Binding FileName}" 
+                                       VerticalAlignment="Center" Margin="16,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <!-- Type/Host -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                <TextBlock Text="{Binding Type}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{Binding Host}" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                           IsVisible="{Binding Host, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            </StackPanel>
+                            <!-- DateTime -->
+                            <TextBlock Grid.Column="3" Text="{Binding DateTime, StringFormat='yyyy-MM-dd HH:mm:ss'}" 
+                                       VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.Styles>
+                <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+                <Style Selector="ListBoxItem:selected Border.history-list-item">
+                    <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+                </Style>
+            </ListBox.Styles>
+        </ListBox>
 
         <!-- Pagination Footer -->
         <Border Grid.Row="3" Padding="16" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" 

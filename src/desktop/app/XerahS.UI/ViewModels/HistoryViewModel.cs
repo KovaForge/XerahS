@@ -43,6 +43,19 @@ namespace XerahS.UI.ViewModels
 {
     public partial class HistoryViewModel : ViewModelBase, IDisposable
     {
+        private static readonly HashSet<string> CombinableImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".bmp",
+            ".webp",
+            ".ico",
+            ".tif",
+            ".tiff"
+        };
+
         // Converter for view toggle button text
         public static IValueConverter ViewToggleConverter { get; } = new FuncValueConverter<bool, string>(
             isGrid => isGrid ? "📋 List View" : "🔲 Grid View");
@@ -83,6 +96,21 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private bool _isLoadingThumbnails = false;
 
+        [ObservableProperty]
+        private bool _isCombiningSelection = false;
+
+        public ObservableCollection<HistoryItem> SelectedHistoryItems { get; } = new();
+
+        public bool CanCombineSelectedImages => GetSelectedCombinableHistoryItems().Count >= 2;
+
+        public bool ShowCombineActions => CanCombineSelectedImages;
+
+        public int SelectedImageCount => GetSelectedCombinableHistoryItems().Count;
+
+        public string CombineSelectionSummary => SelectedImageCount == 1
+            ? "1 image selected"
+            : $"{SelectedImageCount} images selected";
+
 
 
         // Pagination Properties
@@ -115,6 +143,7 @@ namespace XerahS.UI.ViewModels
         public HistoryViewModel()
         {
             HistoryItems = new ObservableCollection<HistoryItem>();
+            SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
             // Create history manager with centralized path
             var historyPath = SettingsManager.GetHistoryFilePath();
@@ -172,6 +201,7 @@ namespace XerahS.UI.ViewModels
                 var items = await _historyManager.GetHistoryItemsAsync(offset, PageSize);
 
                 // Clear and populate on UI thread
+                ClearSelectedHistoryItems();
                 HistoryItems.Clear();
                 foreach (var item in items)
                 {
@@ -645,6 +675,59 @@ namespace XerahS.UI.ViewModels
 
             var json = JsonConvert.SerializeObject(source, jsonSettings);
             return JsonConvert.DeserializeObject<TaskSettings>(json, jsonSettings) ?? new TaskSettings();
+        }
+
+        public void SetSelectedHistoryItems(IEnumerable<HistoryItem> items)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+
+            var selectedSet = new HashSet<HistoryItem>(items);
+
+            SelectedHistoryItems.Clear();
+
+            foreach (var item in HistoryItems)
+            {
+                if (selectedSet.Contains(item))
+                {
+                    SelectedHistoryItems.Add(item);
+                }
+            }
+        }
+
+        public void ClearSelectedHistoryItems()
+        {
+            if (SelectedHistoryItems.Count == 0)
+            {
+                return;
+            }
+
+            SelectedHistoryItems.Clear();
+        }
+
+        private void NotifySelectionStateChanged()
+        {
+            OnPropertyChanged(nameof(CanCombineSelectedImages));
+            OnPropertyChanged(nameof(ShowCombineActions));
+            OnPropertyChanged(nameof(SelectedImageCount));
+            OnPropertyChanged(nameof(CombineSelectionSummary));
+        }
+
+        private List<HistoryItem> GetSelectedCombinableHistoryItems()
+        {
+            return SelectedHistoryItems
+                .Where(CanCombineHistoryItem)
+                .ToList();
+        }
+
+        private static bool CanCombineHistoryItem(HistoryItem? item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+            {
+                return false;
+            }
+
+            var extension = Path.GetExtension(item.FilePath);
+            return !string.IsNullOrWhiteSpace(extension) && CombinableImageExtensions.Contains(extension);
         }
 
         public void Dispose()
