@@ -224,6 +224,8 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
             {
                 customUploaderConfigViewModel.SetFallbackName(provider?.Name);
+                customUploaderConfigViewModel.IsNameReadOnly = true;
+                customUploaderConfigViewModel.ReadOnlyName = DisplayName;
             }
 
             ConfigViewModel.LoadFromJson(SettingsJson);
@@ -371,9 +373,21 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
         {
             customUploaderConfigViewModel.SetFallbackName(ProviderCatalog.GetProvider(ProviderId)?.Name);
+            customUploaderConfigViewModel.ReadOnlyName = DisplayName;
         }
 
         ConfigViewModel?.LoadFromJson(SettingsJson);
+    }
+
+    partial void OnDisplayNameChanged(string value)
+    {
+        Instance.DisplayName = value;
+        InstanceManager.Instance.UpdateInstance(Instance);
+
+        if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel && customUploaderConfigViewModel.IsNameReadOnly)
+        {
+            customUploaderConfigViewModel.ReadOnlyName = value;
+        }
     }
 
     [RelayCommand]

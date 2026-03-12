@@ -16,7 +16,14 @@
                 <TextBlock Text="Name *" Theme="{StaticResource CaptionTextBlockStyle}"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          Watermark="My Custom Uploader"
+                         IsVisible="{Binding !IsNameReadOnly}"
                          AutomationProperties.Name="Uploader Name"/>
+                <TextBox Text="{Binding ReadOnlyName}"
+                         Watermark="My Custom Uploader"
+                         IsReadOnly="True"
+                         IsVisible="{Binding IsNameReadOnly}"
+                         Background="{DynamicResource ControlAltFillColorDefaultBrush}"
+                         AutomationProperties.Name="Uploader Name (Read Only)"/>
                 <TextBlock Text="{Binding NameError}"
                            Foreground="{DynamicResource SystemFillColorCriticalBrush}"
                            Theme="{StaticResource CaptionTextBlockStyle}"
