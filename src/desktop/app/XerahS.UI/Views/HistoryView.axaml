@@ -82,6 +82,7 @@
         <!-- Grid View -->
         <ListBox x:Name="GridHistoryListBox"
                  Grid.Row="2"
+                 ItemsSource="{Binding HistoryItems}"
                  IsVisible="{Binding IsGridView}"
                  IsEnabled="{Binding !IsLoading}"
                  Margin="16"
@@ -150,6 +151,7 @@
         <!-- List View -->
         <ListBox x:Name="ListHistoryListBox"
                  Grid.Row="2"
+                 ItemsSource="{Binding HistoryItems}"
                  IsVisible="{Binding !IsGridView}"
                  IsEnabled="{Binding !IsLoading}"
                  Padding="0,8"
