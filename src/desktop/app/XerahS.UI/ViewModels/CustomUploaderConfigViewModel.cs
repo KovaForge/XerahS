@@ -27,6 +27,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using XerahS.Uploaders;
+using XerahS.Uploaders.CustomUploader;
 using XerahS.Uploaders.PluginSystem;
 using System.Collections.ObjectModel;
 
@@ -38,6 +39,7 @@ namespace XerahS.UI.ViewModels;
 public partial class CustomUploaderConfigViewModel : ObservableObject, IUploaderConfigViewModel
 {
     private CustomUploaderItem _item = CustomUploaderItem.Init();
+    private string _fallbackName = string.Empty;
 
     [ObservableProperty]
     private string _requestUrl = string.Empty;
@@ -67,6 +69,12 @@ public partial class CustomUploaderConfigViewModel : ObservableObject, IUploader
     {
     }
 
+    public void SetFallbackName(string? fallbackName)
+    {
+        _fallbackName = fallbackName ?? string.Empty;
+        ApplyFallbackName();
+    }
+
     public void LoadFromJson(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -86,16 +94,13 @@ public partial class CustomUploaderConfigViewModel : ObservableObject, IUploader
             }
         }
 
+        ApplyFallbackName();
         UpdatePropertiesFromItem();
     }
 
     public string ToJson()
     {
-        return JsonConvert.SerializeObject(_item, Formatting.Indented, new JsonSerializerSettings
-        {
-            DefaultValueHandling = DefaultValueHandling.Ignore,
-            NullValueHandling = NullValueHandling.Ignore
-        });
+        return CustomUploaderSettingsSerializer.SerializeForInstance(_item, _fallbackName);
     }
 
     public bool Validate()
@@ -141,6 +146,14 @@ public partial class CustomUploaderConfigViewModel : ObservableObject, IUploader
         HeaderCount = _item.Headers?.Count ?? 0;
         ParameterCount = _item.Parameters?.Count ?? 0;
         ArgumentCount = _item.Arguments?.Count ?? 0;
+    }
+
+    private void ApplyFallbackName()
+    {
+        if (string.IsNullOrWhiteSpace(_item.Name) && !string.IsNullOrWhiteSpace(_fallbackName))
+        {
+            _item.Name = _fallbackName;
+        }
     }
 
     public CustomUploaderItem GetItem() => _item;

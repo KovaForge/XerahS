@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using Newtonsoft.Json.Linq;
 using XerahS.Uploaders;
 using XerahS.Uploaders.CustomUploader;
 using XerahS.Uploaders.PluginSystem;
@@ -127,6 +128,43 @@ public class CustomUploaderRepositoryTests
         Assert.That(provider.Name, Is.EqualTo("Imgur (Anonymous)"));
         Assert.That(provider.SupportedCategories, Does.Contain(UploaderCategory.Image));
         Assert.That(provider.ConfigModelType, Is.EqualTo(typeof(CustomUploaderItem)));
+    }
+
+    [Test]
+    public void CustomUploaderProvider_GetDefaultSettings_PreservesNameWhenItMatchesRequestHost()
+    {
+        // Arrange
+        var item = CustomUploaderItem.Init();
+        item.Name = "example.com";
+        item.DestinationType = CustomUploaderDestinationType.FileUploader;
+        item.RequestURL = "https://example.com/upload";
+
+        var provider = new CustomUploaderProvider(item, Path.Combine(_sampleUploadersPath, "example.sxcu"));
+
+        // Act
+        var json = provider.GetDefaultSettings(UploaderCategory.File);
+        var token = JObject.Parse(json);
+
+        // Assert
+        Assert.That(token.Value<string>(nameof(CustomUploaderItem.Name)), Is.EqualTo("example.com"));
+    }
+
+    [Test]
+    public void CustomUploaderProvider_GetDefaultSettings_UsesProviderNameWhenItemNameIsMissing()
+    {
+        // Arrange
+        var item = CustomUploaderItem.Init();
+        item.DestinationType = CustomUploaderDestinationType.FileUploader;
+        item.RequestURL = "https://example.com/upload";
+
+        var provider = new CustomUploaderProvider(item, Path.Combine(_sampleUploadersPath, "MyUploader.sxcu"));
+
+        // Act
+        var json = provider.GetDefaultSettings(UploaderCategory.File);
+        var token = JObject.Parse(json);
+
+        // Assert
+        Assert.That(token.Value<string>(nameof(CustomUploaderItem.Name)), Is.EqualTo("MyUploader"));
     }
 
     [Test]

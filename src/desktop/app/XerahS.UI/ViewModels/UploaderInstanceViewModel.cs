@@ -220,6 +220,12 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         if (ConfigViewModel != null)
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Loading settings from JSON for {ProviderId}");
+
+            if (ConfigViewModel is CustomUploaderConfigViewModel customUploaderConfigViewModel)
+            {
+                customUploaderConfigViewModel.SetFallbackName(provider?.Name);
+            }
+
             ConfigViewModel.LoadFromJson(SettingsJson);
 
             if (ConfigViewModel is ObservableObject obs)
@@ -361,6 +367,11 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         DisplayName = instance.DisplayName;
         SettingsJson = instance.SettingsJson;
         IsAvailable = instance.IsAvailable;
+
+        if (ConfigViewModel is CustomUploaderConfigViewModel customUploaderConfigViewModel)
+        {
+            customUploaderConfigViewModel.SetFallbackName(ProviderCatalog.GetProvider(ProviderId)?.Name);
+        }
 
         ConfigViewModel?.LoadFromJson(SettingsJson);
     }
