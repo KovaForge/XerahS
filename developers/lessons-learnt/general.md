@@ -98,6 +98,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 - Never leave RegionCapture UI smoke coverage at compile-only; always load `AnnotationToolbar` and `OverlayWindow` in Avalonia headless tests because ImageEditor submodule updates can break icon/font resources at runtime without breaking the build.
 - Never use Avalonia's fake headless drawing for icon-font smoke tests; always use Skia-backed headless mode (`UseSkia()` and `UseHeadlessDrawing = false`) because glyph resource failures only surface when the font pipeline is actually exercised.
+- Never let feature work alter or bypass existing `ShareX.ImageEditor` theme resources, variants, or bindings unless the task explicitly targets them; always treat theme behavior and visual resource contracts as non-regression requirements because unrelated UI changes can silently break dark/light presentation across the editor.
 
 
 ---
