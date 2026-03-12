@@ -33,23 +33,9 @@
    - Do not create competing instruction sets. Keep shared workflow rules in [Universal Agent Workflow](developers/guidelines/AGENT_WORKFLOW.md) and keep compatibility shims thin.
    - Record durable lessons in [Lessons Learnt](developers/lessons-learnt/general.md) or the nearest topic-specific lessons file.
 
-## GitHub Issue Creation Workflow
-When a bug or feature is identified or provided by the user, follow this process:
-
-1. **Inspect** the relevant code files, classes, components, and functions.
-2. **Identify** the most important affected class names, file paths, and component names.
-3. **Classify**
-   - Broken, incorrect, error, crash -> **BUG** -> Type `Fix` -> label `bug`
-   - New feature, missing capability, improvement -> **FEATURE REQUEST** -> Type `Feature` -> label `enhancement`
-4. **Create a GitHub issue using `gh` CLI**
-   - Title: `[BUG] ...` or `[FEATURE] ...`
-   - Body: real multi-line Markdown with reproduction or use case, expected vs actual where relevant, bolded affected **ClassName**, **FilePath**, **Component**, and any logs or errors.
-   - Use a PowerShell here-string or a file for the body. Do not embed `\n` escape sequences inside a single-line body string.
-   - Example: `gh issue create --title "[BUG] ..." --body $body --label bug`
-5. **Report back**
-   - The exact `gh` command that was run
-   - The created issue URL
-   - The final classification and labels
+## GitHub Issues
+- Do not create GitHub issues automatically when a bug or feature is discussed.
+- Create or update GitHub issues only when the user explicitly asks for it.
 
 ## Documentation Index
 
