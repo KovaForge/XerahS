@@ -315,6 +315,7 @@ See also: [Destination Plugin Development Guide](plugins-destinations/README.md)
 ### Prerequisites
 Ensure you have the following installed:
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Node.js `^20.19.0 || >=22.12.0` for the `ShareX.VideoEditor` frontend build
 - `ShareX.ImageEditor` and `ShareX.VideoEditor` submodules (initialized as described above)
 
 ### Clone Repositories

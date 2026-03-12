@@ -112,6 +112,7 @@ If you skip submodule initialization and run `dotnet build src/desktop/XerahS.sl
 
 ### Prerequisites
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Node.js `^20.19.0 || >=22.12.0` for the `ShareX.VideoEditor` frontend build
 
 ### Arch Linux (AUR)
 Arch Linux users can install the latest development version via the community-maintained AUR package [`xerahs-git`](https://aur.archlinux.org/packages/xerahs-git) (maintained by @unicxrn).

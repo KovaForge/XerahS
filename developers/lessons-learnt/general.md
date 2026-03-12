@@ -126,6 +126,8 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 This forces the build system to include the correct Windows SDK reference assemblies natively, avoiding the metadata resolution failure. This is required for reliable solution-wide builds when using WinRT APIs like `Windows.Graphics.Capture`.
 
+- Never assume `npm ci` can always clear `ShareX.VideoEditor/frontend/node_modules` on Windows; always delete that folder and rerun the build when `ENOTEMPTY` appears because file locks in `node_modules` can make the first clean fail even though the project itself is valid.
+
 ---
 
 ## Plugin System
