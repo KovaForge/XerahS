@@ -9,14 +9,18 @@ $ErrorActionPreference = "Stop"
 $dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
 
 if (-not $dotnet) {
-    $userDotnet = Join-Path $HOME ".dotnet\dotnet.exe"
+    $userDotnet = Join-Path (Join-Path $HOME ".dotnet") "dotnet"
+    if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)) {
+        $userDotnet = "$userDotnet.exe"
+    }
+
     if (Test-Path $userDotnet) {
         $dotnet = $userDotnet
     }
 }
 
 if (-not $dotnet) {
-    Write-Error "dotnet not found in PATH or at $HOME\.dotnet\dotnet.exe"
+    Write-Error "dotnet not found in PATH or at $HOME/.dotnet/dotnet"
     exit 1
 }
 
