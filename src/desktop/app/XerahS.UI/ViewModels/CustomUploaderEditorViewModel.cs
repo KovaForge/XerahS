@@ -70,9 +70,6 @@ public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataE
     private bool _isNameReadOnly;
 
     [ObservableProperty]
-    private string _readOnlyName = string.Empty;
-
-    [ObservableProperty]
     private bool _isImageUploader;
 
     [ObservableProperty]
