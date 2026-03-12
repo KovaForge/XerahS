@@ -27,9 +27,9 @@ using Avalonia.Controls;
 
 namespace XerahS.UI.Views;
 
-public partial class CustomUploaderConfigView : UserControl
+public partial class CustomUploaderEditorFormView : UserControl
 {
-    public CustomUploaderConfigView()
+    public CustomUploaderEditorFormView()
     {
         InitializeComponent();
     }

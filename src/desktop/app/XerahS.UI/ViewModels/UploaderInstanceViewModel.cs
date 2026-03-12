@@ -189,12 +189,12 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             ConfigViewModel = provider.CreateConfigViewModel();
             ConfigView = provider.CreateConfigView();
 
-            // Special handling for custom uploaders
+            // Custom uploaders use the full editor form inline in the provider settings area.
             if (ConfigViewModel == null && ConfigView == null && ProviderId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase))
             {
-                Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Creating custom uploader config view/viewmodel");
-                ConfigViewModel = new CustomUploaderConfigViewModel();
-                ConfigView = new Views.CustomUploaderConfigView();
+                Common.DebugHelper.WriteLine("[UploaderInstanceVM] Creating inline custom uploader editor view/viewmodel");
+                ConfigViewModel = new CustomUploaderEditorViewModel();
+                ConfigView = new Views.CustomUploaderEditorFormView();
             }
 
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] ConfigViewModel created: {ConfigViewModel?.GetType().Name ?? "null"}");
@@ -221,7 +221,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Loading settings from JSON for {ProviderId}");
 
-            if (ConfigViewModel is CustomUploaderConfigViewModel customUploaderConfigViewModel)
+            if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
             {
                 customUploaderConfigViewModel.SetFallbackName(provider?.Name);
             }
@@ -368,7 +368,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         SettingsJson = instance.SettingsJson;
         IsAvailable = instance.IsAvailable;
 
-        if (ConfigViewModel is CustomUploaderConfigViewModel customUploaderConfigViewModel)
+        if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
         {
             customUploaderConfigViewModel.SetFallbackName(ProviderCatalog.GetProvider(ProviderId)?.Name);
         }

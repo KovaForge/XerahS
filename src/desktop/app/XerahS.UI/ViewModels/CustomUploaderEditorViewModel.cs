@@ -35,15 +35,18 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using XerahS.Uploaders;
+using XerahS.Uploaders.CustomUploader;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.UI.ViewModels;
 
 /// <summary>
 /// ViewModel for editing custom uploader configurations (.sxcu files).
 /// </summary>
-public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataErrorInfo
+public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataErrorInfo, IUploaderConfigViewModel
 {
     private readonly Dictionary<string, List<string>> _errors = new(StringComparer.OrdinalIgnoreCase);
+    private string _fallbackName = string.Empty;
 
     #region Title and Mode
 
@@ -189,6 +192,12 @@ public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataE
     public Action<bool>? CloseRequested { get; set; }
 
     #endregion
+
+    public void SetFallbackName(string? fallbackName)
+    {
+        _fallbackName = fallbackName ?? string.Empty;
+        ApplyFallbackName();
+    }
 
     #region Validation
 
@@ -508,6 +517,8 @@ public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataE
                 Arguments.Add(new KeyValuePairViewModel { Key = kvp.Key, Value = kvp.Value });
             }
         }
+
+        ApplyFallbackName();
     }
 
     public CustomUploaderItem ToItem()
@@ -562,9 +573,47 @@ public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataE
         return item;
     }
 
+    public void LoadFromJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            LoadFromItem(CustomUploaderItem.Init());
+            return;
+        }
+
+        try
+        {
+            var item = JsonConvert.DeserializeObject<CustomUploaderItem>(json) ?? CustomUploaderItem.Init();
+            LoadFromItem(item);
+        }
+        catch
+        {
+            LoadFromItem(CustomUploaderItem.Init());
+        }
+    }
+
+    public string ToJson()
+    {
+        return CustomUploaderSettingsSerializer.SerializeForInstance(ToItem(), _fallbackName);
+    }
+
+    public bool Validate()
+    {
+        ValidateAll();
+        return !HasErrors;
+    }
+
     #endregion
 
     #region Helpers
+
+    private void ApplyFallbackName()
+    {
+        if (string.IsNullOrWhiteSpace(Name) && !string.IsNullOrWhiteSpace(_fallbackName))
+        {
+            Name = _fallbackName;
+        }
+    }
 
     private void SetStatus(string message, bool isError)
     {
