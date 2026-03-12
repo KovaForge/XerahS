@@ -34,6 +34,7 @@ using XerahS.Common.Converters;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.History;
+using XerahS.Media;
 using XerahS.Platform.Abstractions;
 using SkiaSharp;
 using System.Collections.ObjectModel;
@@ -324,6 +325,18 @@ namespace XerahS.UI.ViewModels
             // Cancel any ongoing thumbnail loading
             _thumbnailCancellationTokenSource?.Cancel();
             await LoadHistoryAsync();
+        }
+
+        [RelayCommand]
+        private Task CombineHorizontalAsync()
+        {
+            return CombineSelectedImagesAsync(ImageCombinerOrientation.Horizontal);
+        }
+
+        [RelayCommand]
+        private Task CombineVerticalAsync()
+        {
+            return CombineSelectedImagesAsync(ImageCombinerOrientation.Vertical);
         }
 
         [RelayCommand]
@@ -675,6 +688,111 @@ namespace XerahS.UI.ViewModels
 
             var json = JsonConvert.SerializeObject(source, jsonSettings);
             return JsonConvert.DeserializeObject<TaskSettings>(json, jsonSettings) ?? new TaskSettings();
+        }
+
+        private async Task CombineSelectedImagesAsync(ImageCombinerOrientation orientation)
+        {
+            if (IsCombiningSelection)
+            {
+                return;
+            }
+
+            var selectedItems = GetSelectedCombinableHistoryItems();
+            if (selectedItems.Count < 2)
+            {
+                return;
+            }
+
+            IsCombiningSelection = true;
+
+            try
+            {
+                var combinedHistoryItem = await Task.Run(() => CreateCombinedHistoryItem(selectedItems, orientation));
+                if (combinedHistoryItem == null)
+                {
+                    return;
+                }
+
+                if (!_historyManager.AppendHistoryItem(combinedHistoryItem))
+                {
+                    DebugHelper.WriteLine($"HistoryViewModel - Failed to append combined history item: {combinedHistoryItem.FilePath}");
+                    return;
+                }
+
+                ClearSelectedHistoryItems();
+                CurrentPage = 1;
+                await LoadHistoryAsync();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "HistoryViewModel - CombineSelectedImages failed");
+            }
+            finally
+            {
+                IsCombiningSelection = false;
+            }
+        }
+
+        private static HistoryItem? CreateCombinedHistoryItem(IReadOnlyList<HistoryItem> selectedItems, ImageCombinerOrientation orientation)
+        {
+            var filePaths = selectedItems
+                .Select(item => item.FilePath)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToList();
+
+            if (filePaths.Count < 2)
+            {
+                return null;
+            }
+
+            var bitmaps = new List<SKBitmap>();
+
+            try
+            {
+                foreach (var filePath in filePaths)
+                {
+                    var bitmap = ImageHelpers.LoadBitmap(filePath);
+                    if (bitmap != null)
+                    {
+                        bitmaps.Add(bitmap);
+                    }
+                }
+
+                if (bitmaps.Count < 2)
+                {
+                    return null;
+                }
+
+                var combiner = new ImageCombiner();
+                using var combinedBitmap = combiner.Combine(bitmaps, orientation);
+                if (combinedBitmap == null)
+                {
+                    return null;
+                }
+
+                var outputFolder = TaskHelpers.GetScreenshotsFolder();
+                FileHelpers.CreateDirectory(outputFolder);
+
+                var outputPath = FileHelpers.GetUniqueFilePath(
+                    Path.Combine(outputFolder, $"Combined_{DateTime.Now:yyyyMMdd_HHmmss}.png"));
+
+                ImageHelpers.SaveBitmap(combinedBitmap, outputPath);
+
+                return new HistoryItem
+                {
+                    FilePath = outputPath,
+                    FileName = Path.GetFileName(outputPath),
+                    DateTime = DateTime.Now,
+                    Type = "Image"
+                };
+            }
+            finally
+            {
+                foreach (var bitmap in bitmaps)
+                {
+                    bitmap.Dispose();
+                }
+            }
         }
 
         public void SetSelectedHistoryItems(IEnumerable<HistoryItem> items)

@@ -19,26 +19,44 @@
         <!-- Toolbar -->
         <Border Grid.Row="0" Padding="16" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Horizontal" Spacing="16">
-                <Button Content="Refresh" Command="{Binding RefreshHistoryCommand}" 
-                        IsEnabled="{Binding !IsLoading}"
-                        AutomationProperties.Name="Refresh History"/>
-                <Button Content="{Binding IsGridView, Converter={x:Static vm:HistoryViewModel.ViewToggleConverter}}" 
-                        Command="{Binding ToggleViewCommand}"
-                        IsEnabled="{Binding !IsLoading}"
-                        AutomationProperties.Name="Toggle View Mode"/>
-                
-                <Separator Classes="vertical" Height="20"/>
+            <StackPanel Spacing="12">
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Button Content="Refresh" Command="{Binding RefreshHistoryCommand}" 
+                            IsEnabled="{Binding !IsLoading}"
+                            AutomationProperties.Name="Refresh History"/>
+                    <Button Content="{Binding IsGridView, Converter={x:Static vm:HistoryViewModel.ViewToggleConverter}}" 
+                            Command="{Binding ToggleViewCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            AutomationProperties.Name="Toggle View Mode"/>
+                    
+                    <Separator Classes="vertical" Height="20"/>
 
-                <TextBlock Text="{Binding HistoryItems.Count, StringFormat='{}{0} items'}" 
-                           VerticalAlignment="Center" 
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                
-                <ProgressBar IsIndeterminate="True" 
-                             Width="100" Height="2" 
-                             IsVisible="{Binding IsLoadingThumbnails}"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name="Loading Thumbnails"/>
+                    <TextBlock Text="{Binding HistoryItems.Count, StringFormat='{}{0} items'}" 
+                               VerticalAlignment="Center" 
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="100" Height="2" 
+                                 IsVisible="{Binding IsLoadingThumbnails}"
+                                 VerticalAlignment="Center"
+                                 AutomationProperties.Name="Loading Thumbnails"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="12"
+                            IsVisible="{Binding ShowCombineActions}">
+                    <TextBlock Text="{Binding CombineSelectionSummary}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    <Button Content="Combine Horizontal"
+                            Command="{Binding CombineHorizontalCommand}"
+                            IsEnabled="{Binding !IsCombiningSelection}"
+                            AutomationProperties.Name="Combine images horizontally"/>
+                    <Button Content="Combine Vertical"
+                            Command="{Binding CombineVerticalCommand}"
+                            IsEnabled="{Binding !IsCombiningSelection}"
+                            AutomationProperties.Name="Combine images vertically"/>
+                </StackPanel>
             </StackPanel>
         </Border>
         
