@@ -31,7 +31,7 @@ using XerahS.UI.Controls;
 
 namespace XerahS.UI.Views
 {
-    public partial class ApplicationSettingsView : UserControl
+    public partial class ApplicationSettingsView : PageView
     {
         private TextBox? _debugTextBox;
 

@@ -28,7 +28,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
 {
-    public partial class DebugView : UserControl
+    public partial class DebugView : PageView
     {
         public DebugView()
         {

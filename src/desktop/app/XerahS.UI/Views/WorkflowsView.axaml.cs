@@ -26,10 +26,11 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using XerahS.Common;
 using XerahS.UI.ViewModels;
+using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI.Views;
 
-public partial class WorkflowsView : UserControl
+public partial class WorkflowsView : PageView
 {
     public WorkflowsView()
     {
@@ -63,19 +64,10 @@ public partial class WorkflowsView : UserControl
         vm.ConfirmByUi = async (title, message) =>
         {
             DebugHelper.WriteLine($"[WorkflowsView] ConfirmByUi called. Title={title}");
-            var dialog = new FluentAvalonia.UI.Controls.ContentDialog
-            {
-                Title = title,
-                Content = message,
-                PrimaryButtonText = "Yes",
-                CloseButtonText = "No",
-                DefaultButton = FluentAvalonia.UI.Controls.ContentDialogButton.Close
-            };
-
             if (VisualRoot is Window window)
             {
-                var result = await dialog.ShowAsync();
-                return result == FluentAvalonia.UI.Controls.ContentDialogResult.Primary;
+                var dialog = new ConfirmationDialog(title, message);
+                return await dialog.ShowDialog<bool>(window);
             }
 
             return false;

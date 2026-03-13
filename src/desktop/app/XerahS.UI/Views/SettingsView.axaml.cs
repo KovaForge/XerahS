@@ -27,7 +27,7 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views
 {
-    public partial class SettingsView : UserControl
+    public partial class SettingsView : PageView
     {
         public SettingsView()
         {

@@ -3,7 +3,6 @@
         xmlns:vm="using:XerahS.UI.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ui="using:FluentAvalonia.UI.Controls"
         xmlns:hotkeys="using:XerahS.Core.Hotkeys"
         xmlns:views="using:XerahS.UI.Views"
         xmlns:common="clr-namespace:XerahS.Common;assembly=XerahS.Common"
@@ -132,148 +131,60 @@
         </Border>
 
         <!-- Main Navigation Shell -->
-        <ui:NavigationView Grid.Row="1"
-                           Name="NavView"
-                           PaneDisplayMode="Left"
-                           IsPaneOpen="True"
-                           IsSettingsVisible="False"
-                           SelectionChanged="OnNavSelectionChanged"
-                           ItemInvoked="OnNavItemInvoked"
-                           AutomationProperties.Name="Main Navigation">
-            <ui:NavigationView.MenuItems>
-                <!-- Capture Section - Items populated dynamically from first 3 workflows -->
-                <ui:NavigationViewItem Content="Capture" Tag="Capture" SelectsOnInvoked="False" IsExpanded="True" Name="CaptureNavItem"
-                                       AutomationProperties.Name="Capture Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationCapture}"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Recording" Tag="Recording" AutomationProperties.Name="Recording View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationRecording}"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Editor" Tag="Editor" IsSelected="True" AutomationProperties.Name="Editor View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationEditor}"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="History" Tag="History" AutomationProperties.Name="History View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationHistory}"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Workflows" Tag="Workflows" AutomationProperties.Name="Workflows View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationWorkflows}"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
+        <SplitView Grid.Row="1"
+                   DisplayMode="Inline"
+                   IsPaneOpen="True"
+                   CompactPaneLength="0"
+                   OpenPaneLength="300">
+            <SplitView.Pane>
+                <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,1,0">
+                    <TreeView Name="NavigationTree"
+                              Margin="12"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              SelectionChanged="OnNavSelectionChanged"
+                              KeyDown="OnNavigationTreeKeyDown"
+                              AutomationProperties.Name="Main Navigation">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate ItemsSource="{Binding Children}">
+                                <Border Background="Transparent"
+                                        CornerRadius="8"
+                                        Padding="10,8"
+                                        Tapped="OnNavigationNodeTapped"
+                                        AutomationProperties.Name="{Binding Text}">
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="12">
+                                        <TextBlock Text="{Binding Glyph}"
+                                                   FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                   FontSize="18"
+                                                   FontWeight="Normal"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding HasGlyph}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Text}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Border>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                        <TreeView.Styles>
+                            <Style Selector="TreeView#NavigationTree TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.Styles>
+                    </TreeView>
+                </Border>
+            </SplitView.Pane>
 
-                <ui:NavigationViewItem Content="Upload" Tag="Upload" SelectsOnInvoked="False" IsExpanded="False" AutomationProperties.Name="Upload Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationUpload}"/>
-                    </ui:NavigationViewItem.IconSource>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="Upload File..."
-                                               Tag="Upload_FileUpload"
-                                               SelectsOnInvoked="False"
-                                               AutomationProperties.Name="File Upload"/>
-                        <ui:NavigationViewItem Content="Upload Content..."
-                                               Tag="Upload_ClipboardUploadWithContentViewer"
-                                               SelectsOnInvoked="False"
-                                               AutomationProperties.Name="Upload Content"/>
-                    </ui:NavigationViewItem.MenuItems>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Tools" Tag="Tools" SelectsOnInvoked="True" IsExpanded="False" AutomationProperties.Name="Tools Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationTools}"/>
-                    </ui:NavigationViewItem.IconSource>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="Color Picker..." Tag="Tools_ColorPicker" SelectsOnInvoked="False" AutomationProperties.Name="Color Picker Tool"/>
-                        <ui:NavigationViewItem Content="Pick From Screen" Tag="Tools_ScreenColorPicker" SelectsOnInvoked="False" AutomationProperties.Name="Screen Color Picker Tool"/>
-                        <ui:NavigationViewItem Content="Ruler" Tag="Tools_Ruler" SelectsOnInvoked="False" AutomationProperties.Name="Ruler Tool"/>
-                        <ui:NavigationViewItem Content="Index Folder..." Tag="Tools_IndexFolder" SelectsOnInvoked="False" AutomationProperties.Name="Index Folder Tool"/>
-                        <ui:NavigationViewItem Content="QR Code" SelectsOnInvoked="False" AutomationProperties.Name="QR Code Tools">
-                            <ui:NavigationViewItem.MenuItems>
-                                <ui:NavigationViewItem Content="Generator..." Tag="Tools_QrGenerator" SelectsOnInvoked="False" AutomationProperties.Name="QR Code Generator"/>
-                                <ui:NavigationViewItem Content="Scan from screen" Tag="Tools_QrScanScreen" SelectsOnInvoked="False" AutomationProperties.Name="Scan QR from Screen"/>
-                                <ui:NavigationViewItem Content="Scan from region" Tag="Tools_QrScanRegion" SelectsOnInvoked="False" AutomationProperties.Name="Scan QR from Region"/>
-                            </ui:NavigationViewItem.MenuItems>
-                        </ui:NavigationViewItem>
-                        <ui:NavigationViewItem Content="Image Combiner..." Tag="Tools_ImageCombiner" SelectsOnInvoked="False" AutomationProperties.Name="Image Combiner Tool"/>
-                        <ui:NavigationViewItem Content="Image Splitter..." Tag="Tools_ImageSplitter" SelectsOnInvoked="False" AutomationProperties.Name="Image Splitter Tool"/>
-                        <ui:NavigationViewItem Content="Image Thumbnailer..." Tag="Tools_ImageThumbnailer" SelectsOnInvoked="False" AutomationProperties.Name="Image Thumbnailer Tool"/>
-                        <ui:NavigationViewItem Name="NavItemVideoEditor" Content="Video Editor..." Tag="Tools_VideoEditor" SelectsOnInvoked="False" AutomationProperties.Name="Video Editor Tool"/>
-                        <ui:NavigationViewItem Content="Video Converter..." Tag="Tools_VideoConverter" SelectsOnInvoked="False" AutomationProperties.Name="Video Converter Tool"/>
-                        <ui:NavigationViewItem Content="Video Thumbnailer..." Tag="Tools_VideoThumbnailer" SelectsOnInvoked="False" AutomationProperties.Name="Video Thumbnailer Tool"/>
-                        <ui:NavigationViewItem Content="Analyze Image..." Tag="Tools_AnalyzeImage" SelectsOnInvoked="False" AutomationProperties.Name="Image Analyzer Tool"/>
-                        <ui:NavigationViewItem Content="Monitor Test" Tag="Tools_MonitorTest" SelectsOnInvoked="False" AutomationProperties.Name="Monitor Test Tool"/>
-                    </ui:NavigationViewItem.MenuItems>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Settings" Tag="Settings" SelectsOnInvoked="True" IsExpanded="True" AutomationProperties.Name="Settings Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationSettings}"/>
-                    </ui:NavigationViewItem.IconSource>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="Application Settings" Tag="Settings_App" AutomationProperties.Name="Application Settings"/>
-                        <ui:NavigationViewItem Content="Destination Settings" Tag="Settings_Dest" AutomationProperties.Name="Destination Settings"/>
-                    </ui:NavigationViewItem.MenuItems>
-                 </ui:NavigationViewItem>
-                 
-                 <ui:NavigationViewItem Content="Debug" Tag="Debug" AutomationProperties.Name="Debug View"
-                                        AutomationProperties.HelpText="Opens developer debug tools">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationDebug}"/>
-                    </ui:NavigationViewItem.IconSource>
-                 </ui:NavigationViewItem>
-
-                <ui:NavigationViewItem Content="About" Tag="About" AutomationProperties.Name="About View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                           FontSize="18"
-                                           FontWeight="Normal"
-                                           Glyph="{x:Static theming:HostIcons.NavigationAbout}"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-            </ui:NavigationView.MenuItems>
-            
-            <ui:NavigationView.Content>
-                 <ContentControl Name="ContentFrame" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-            </ui:NavigationView.Content>
-        </ui:NavigationView>
+            <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <TransitioningContentControl Name="ContentFrame"
+                                             HorizontalContentAlignment="Stretch"
+                                             VerticalContentAlignment="Stretch" />
+            </Border>
+        </SplitView>
 
         <!-- Modal Overlay Layer (Bootstrap Style) -->
         <Grid Grid.Row="0" Grid.RowSpan="2" 

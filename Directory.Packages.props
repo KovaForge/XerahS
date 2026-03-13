@@ -19,7 +19,6 @@
     <PackageVersion Include="CommunityToolkit.Maui" Version="14.0.0" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
-    <PackageVersion Include="FluentAvaloniaUI" Version="2.4.1" />
     <PackageVersion Include="FluentFTP" Version="53.0.2" />
     <PackageVersion Include="Material.Avalonia" Version="3.7.4" />
     <PackageVersion Include="Material.Icons.Avalonia" Version="2.1.10" />

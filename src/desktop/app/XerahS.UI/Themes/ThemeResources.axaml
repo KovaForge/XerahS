@@ -1,0 +1,63 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:XerahS.UI.Views">
+  <Styles.Resources>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Main}" />
+    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="TextFillColorSecondaryBrush"
+                     Color="{DynamicResource ShareX.Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush"
+                     Color="{DynamicResource ShareX.Color.Border}" />
+
+    <LinearGradientBrush x:Key="AccentFillColorDefaultBrush"
+                         StartPoint="0%,0%"
+                         EndPoint="100%,100%">
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
+    </LinearGradientBrush>
+
+    <ControlTheme x:Key="CardBorderTheme" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+    </ControlTheme>
+  </Styles.Resources>
+
+  <Style Selector="TextBlock.IconGlyph">
+    <Setter Property="FontFamily" Value="{DynamicResource ShareX.FontFamily.Icon}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="views|PageView">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="Separator.ToolbarSeparator">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Margin" Value="4,0" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.SettingsRow">
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="Button.SettingsRow:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="Button.SettingsRow:pressed">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+  </Style>
+</Styles>

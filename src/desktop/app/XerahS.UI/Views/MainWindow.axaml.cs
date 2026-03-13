@@ -26,7 +26,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
-using FluentAvalonia.UI.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -65,6 +64,7 @@ namespace XerahS.UI.Views
         /// Collection of user-configured workflows for menu binding.
         /// </summary>
         public ObservableCollection<WorkflowSettings> UserWorkflows { get; } = new ObservableCollection<WorkflowSettings>();
+        public ObservableCollection<NavigationNode> NavigationNodes { get; } = new ObservableCollection<NavigationNode>();
 
         public MainWindow()
         {
@@ -77,28 +77,22 @@ namespace XerahS.UI.Views
             var menuItemVideoEditor = this.FindControl<MenuItem>("MenuItemVideoEditor");
             if (menuItemVideoEditor != null)
                 menuItemVideoEditor.IsVisible = false;
-            var navItemVideoEditor = this.FindControl<NavigationViewItem>("NavItemVideoEditor");
-            if (navItemVideoEditor != null)
-                navItemVideoEditor.IsVisible = false;
 #endif
 
             // Set initial theme and subscribe to changes
             RequestedThemeVariant = ThemeManager.GetCurrentTheme();
             ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
 
-            // Initial Navigation
-            var navView = this.FindControl<NavigationView>("NavView");
-            if (navView != null)
+            BuildNavigationNodes();
+
+            var navigationTree = this.FindControl<TreeView>("NavigationTree");
+            if (navigationTree != null)
             {
-                // Force selection of first item
-                if (navView.MenuItems[0] is NavigationViewItem item)
-                {
-                    navView.SelectedItem = item;
-                    OnNavSelectionChanged(navView, new NavigationViewSelectionChangedEventArgs());
-                }
+                navigationTree.ItemsSource = NavigationNodes;
             }
 
             LoadUserWorkflows();
+            NavigateTo("Editor");
         }
 
         protected override void OnDataContextChanged(EventArgs e)
@@ -389,12 +383,7 @@ namespace XerahS.UI.Views
                 XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
             }
 
-            // Update navigation items after settings are loaded
-            var navView = this.FindControl<NavigationView>("NavView");
-            if (navView != null)
-            {
-                UpdateNavigationItems(navView);
-            }
+            UpdateNavigationItems();
 
             LoadUserWorkflows();
 
@@ -406,10 +395,7 @@ namespace XerahS.UI.Views
                     {
                         LoadUserWorkflows();
 
-                        if (navView != null)
-                        {
-                            UpdateNavigationItems(navView);
-                        }
+                        UpdateNavigationItems();
                     });
                 };
             }

@@ -1,19 +1,23 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:views="using:XerahS.UI.Views.Controls"
-             xmlns:controls="using:XerahS.UI.Controls"
-             x:Class="XerahS.UI.Views.ApplicationSettingsView"
-             x:DataType="vm:SettingsViewModel">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:viewcontrols="using:XerahS.UI.Views.Controls"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:controls="using:XerahS.UI.Controls"
+                x:Class="XerahS.UI.Views.ApplicationSettingsView"
+                x:DataType="vm:SettingsViewModel">
 
     <Design.DataContext>
         <vm:SettingsViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto, *" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid RowDefinitions="Auto, *"
+          Margin="0"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
         <TabControl Grid.Row="1">
             <!-- General Tab -->
             <TabItem Header="General">
@@ -526,4 +530,4 @@
             </TabItem>
         </TabControl>
     </Grid>
-</UserControl>
+</views:PageView>

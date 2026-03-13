@@ -111,11 +111,28 @@ sudo dnf install ffmpeg
 
 **Ubuntu / Debian**
 
-Ubuntu 22.04+ and Debian 12+ include PipeWire in their default FFmpeg package. If yours doesn't, use a PPA with full codec support:
+On recent Ubuntu (22.04+) and Debian (12+) releases, the **default** `ffmpeg` package usually includes PipeWire input support:
 
 ```sh
-sudo add-apt-repository ppa:savoury1/ffmpeg4
-sudo apt update && sudo apt install ffmpeg
+sudo apt update
+sudo apt install ffmpeg
+```
+
+After installing, verify PipeWire support again:
+
+```sh
+ffmpeg -devices 2>&1 | grep pipewire
+```
+
+- If you now see a `pipewire` device, you are done.
+- If you still do **not** see `pipewire`, your distro build of FFmpeg is missing PipeWire support. In that case:
+  - Prefer upgrading to a newer Ubuntu/Debian release or enabling your distro's official PipeWire / FFmpeg backports if available.
+  - Avoid relying on specific third‑party PPAs (such as older `savoury1/ffmpeg4`), as they change over time, can return 404s on newer Ubuntu versions, and may break upgrades.
+
+On Ubuntu, if you are only missing some codecs (e.g. H.264/MP3 playback) rather than PipeWire itself, you can optionally install:
+
+```sh
+sudo apt install ubuntu-restricted-extras
 ```
 
 **Arch Linux**
