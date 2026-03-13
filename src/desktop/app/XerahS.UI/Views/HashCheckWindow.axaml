@@ -78,7 +78,7 @@
       <TextBox Grid.Row="1"
                Text="{Binding ResultHash}"
                IsReadOnly="True"
-               FontFamily="Consolas, Courier New, monospace"
+               FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                AutomationProperties.Name="Hash result" />
     </Grid>
 
@@ -96,7 +96,7 @@
       <TextBox Grid.Row="1"
                Text="{Binding TargetHash, Mode=TwoWay}"
                Watermark="Paste expected hash here to verify..."
-               FontFamily="Consolas, Courier New, monospace"
+               FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                AutomationProperties.Name="Target hash for comparison" />
     </Grid>
 

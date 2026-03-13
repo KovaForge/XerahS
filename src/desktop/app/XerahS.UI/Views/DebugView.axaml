@@ -39,7 +39,7 @@
         <TextBox Grid.Row="2" 
                  Text="{Binding LogText}"
                  IsReadOnly="True"
-                 FontFamily="Consolas, Monospace"
+                 FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                  TextWrapping="Wrap"
                  AcceptsReturn="True"
                  ScrollViewer.VerticalScrollBarVisibility="Auto"

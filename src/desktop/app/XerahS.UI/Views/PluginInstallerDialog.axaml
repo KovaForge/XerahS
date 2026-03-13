@@ -51,7 +51,7 @@
                     
                     <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto" RowSpacing="4" ColumnSpacing="12">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manifest.PluginId}" FontFamily="Consolas"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manifest.PluginId}" FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"/>
                         
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="API:" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Manifest.ApiVersion}"/>

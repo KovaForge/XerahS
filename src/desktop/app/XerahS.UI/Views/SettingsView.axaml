@@ -16,11 +16,11 @@
 
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24" MaxWidth="420">
-            <ui:FontIcon FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+            <ui:FontIcon FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                          FontSize="64"
                          FontWeight="Normal"
                          Foreground="{DynamicResource AccentFillColorDefaultBrush}"
-                         Glyph="{x:Static theming:LucideIcons.SlidersVertical}"/>
+                         Glyph="{x:Static theming:HostIcons.NavigationSettings}"/>
             
             <StackPanel Spacing="8">
                 <TextBlock Text="{Binding Source={x:Static common:AppResources.AppName}, StringFormat='{}{0} Settings'}" 

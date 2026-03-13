@@ -101,7 +101,7 @@
              IsReadOnly="True"
              Watermark="FFmpeg arguments preview"
              Margin="0,0,0,12"
-             FontFamily="Consolas"
+             FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
              FontSize="11"
              AutomationProperties.Name="Arguments preview" />
 

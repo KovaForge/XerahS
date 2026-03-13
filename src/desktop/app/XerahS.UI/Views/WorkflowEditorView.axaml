@@ -25,7 +25,7 @@
                             <TextBlock Text="Workflow ID" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
                             <TextBox Text="{Binding WorkflowId}"
                                      IsReadOnly="True"
-                                     FontFamily="Consolas, Monospace"
+                                     FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                      Theme="{StaticResource SimpleTextBoxStyle}"
                                      AutomationProperties.Name="Workflow ID (ReadOnly)"/>
                         </StackPanel>
@@ -82,7 +82,7 @@
                                             Content="{Binding KeyText}"
                                             Background="Transparent"
                                             BorderThickness="0"
-                                            FontFamily="Consolas, Monospace"
+                                            FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                             HorizontalContentAlignment="Center"
                                             VerticalContentAlignment="Center"
                                             Padding="10,6"

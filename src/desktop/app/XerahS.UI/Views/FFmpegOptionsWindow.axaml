@@ -46,7 +46,7 @@
             </Grid>
             
             <TextBlock Text="{Binding EffectiveFFmpegPath}"
-                       FontFamily="Consolas, monospace"
+                       FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                        FontSize="12"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                        IsVisible="{Binding EffectiveFFmpegPath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>

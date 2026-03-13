@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:common="using:XerahS.Common"
+             xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="XerahS.UI.Views.AboutView">
 
@@ -21,7 +22,13 @@
                             HorizontalAlignment="Center" Opacity="0.6"/>
             </StackPanel>
 
-            <ui:SettingsExpander Header="Links" IsExpanded="True" IconSource="Link">
+            <ui:SettingsExpander Header="Links" IsExpanded="True">
+                 <ui:SettingsExpander.IconSource>
+                     <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                        FontSize="16"
+                                        FontWeight="Normal"
+                                        Glyph="{x:Static theming:HostIcons.SectionLinks}"/>
+                 </ui:SettingsExpander.IconSource>
                  <ui:SettingsExpander.Items>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.XerahSWebsite}">
                          <ui:SettingsExpanderItem.Content>
@@ -35,7 +42,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.GitHub}">
@@ -50,7 +60,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="https://github.com/ShareX/XerahS/issues/">
@@ -65,7 +78,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Contributors}">
@@ -80,7 +96,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Changelog}">
@@ -95,7 +114,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.PrivacyPolicy}">
@@ -110,7 +132,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Donate}">
@@ -125,13 +150,22 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                  </ui:SettingsExpander.Items>
             </ui:SettingsExpander>
 
-            <ui:SettingsExpander Header="Social" IsExpanded="True" IconSource="People">
+            <ui:SettingsExpander Header="Social" IsExpanded="True">
+                 <ui:SettingsExpander.IconSource>
+                     <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                        FontSize="16"
+                                        FontWeight="Normal"
+                                        Glyph="{x:Static theming:HostIcons.SectionSocial}"/>
+                 </ui:SettingsExpander.IconSource>
                  <ui:SettingsExpander.Items>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.X}">
                          <ui:SettingsExpanderItem.Content>
@@ -145,7 +179,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Discord}">
@@ -160,7 +197,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                      <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Reddit}">
@@ -175,7 +215,10 @@
                              </Grid>
                          </ui:SettingsExpanderItem.Content>
                          <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:SymbolIconSource Symbol="Link"/>
+                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                FontSize="14"
+                                                FontWeight="Normal"
+                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
                          </ui:SettingsExpanderItem.ActionIconSource>
                      </ui:SettingsExpanderItem>
                  </ui:SettingsExpander.Items>

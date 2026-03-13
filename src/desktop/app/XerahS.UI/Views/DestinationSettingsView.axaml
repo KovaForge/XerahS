@@ -174,7 +174,7 @@
 
                                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Instance ID:" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="4" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.InstanceId}"
-                                             IsReadOnly="True" FontFamily="Consolas, Monospace" 
+                                             IsReadOnly="True" FontFamily="{DynamicResource ShareX.FontFamily.Monospace}" 
                                              Background="{DynamicResource ControlAltFillColorDefaultBrush}"
                                              AutomationProperties.Name="Instance ID"/>
                                 </Grid>

@@ -66,85 +66,85 @@
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Select}"
                         ToolTip.Tip="Select (V)"
-                        Content="{x:Static theming:LucideIcons.MousePointer2}"/>
+                        Content="{x:Static theming:EditorIcons.ToolSelect}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Rectangle}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Rectangle}"
                         ToolTip.Tip="Rectangle (R)"
-                        Content="{x:Static theming:LucideIcons.Square}"/>
+                        Content="{x:Static theming:EditorIcons.ToolRectangle}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Ellipse}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Ellipse}"
                         ToolTip.Tip="Ellipse (E)"
-                        Content="{x:Static theming:LucideIcons.Circle}"/>
+                        Content="{x:Static theming:EditorIcons.ToolEllipse}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Line}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Line}"
                         ToolTip.Tip="Line (L)"
-                        Content="{x:Static theming:LucideIcons.Minus}"/>
+                        Content="{x:Static theming:EditorIcons.ToolLine}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Arrow}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Arrow}"
                         ToolTip.Tip="Arrow (A)"
-                        Content="{x:Static theming:LucideIcons.ArrowRight}"/>
+                        Content="{x:Static theming:EditorIcons.ToolArrow}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Freehand}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Freehand}"
                         ToolTip.Tip="Freehand (P)"
-                        Content="{x:Static theming:LucideIcons.Pencil}"/>
+                        Content="{x:Static theming:EditorIcons.ToolFreehand}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Text}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Text}"
                         ToolTip.Tip="Text (T)"
-                        Content="{x:Static theming:LucideIcons.Type}"/>
+                        Content="{x:Static theming:EditorIcons.ToolText}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Step}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Step}"
                         ToolTip.Tip="Step"
-                        Content="{x:Static theming:LucideIcons.Hash}"/>
+                        Content="{x:Static theming:EditorIcons.ToolStep}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=SmartEraser}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.SmartEraser}"
                         ToolTip.Tip="Smart Eraser"
-                        Content="{x:Static theming:LucideIcons.Eraser}"/>
+                        Content="{x:Static theming:EditorIcons.ToolSmartEraser}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Blur}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Blur}"
                         ToolTip.Tip="Blur"
-                        Content="{x:Static theming:LucideIcons.Droplet}"/>
+                        Content="{x:Static theming:EditorIcons.ToolBlur}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Pixelate}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Pixelate}"
                         ToolTip.Tip="Pixelate"
-                        Content="{x:Static theming:LucideIcons.Grid2X2}"/>
+                        Content="{x:Static theming:EditorIcons.ToolPixelate}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Magnify}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Magnify}"
                         ToolTip.Tip="Magnify"
-                        Content="{x:Static theming:LucideIcons.Search}"/>
+                        Content="{x:Static theming:EditorIcons.ToolMagnify}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Highlight}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Highlight}"
                         ToolTip.Tip="Highlight (H)"
-                        Content="{x:Static theming:LucideIcons.Highlighter}"/>
+                        Content="{x:Static theming:EditorIcons.ToolHighlight}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Spotlight}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Spotlight}"
                         ToolTip.Tip="Spotlight"
-                        Content="{x:Static theming:LucideIcons.Lightbulb}"/>
+                        Content="{x:Static theming:EditorIcons.ToolSpotlight}"/>
 
                 <Border Width="1" Margin="4,0" Background="#FF3B3B3B"/>
 
@@ -152,22 +152,22 @@
                         MinWidth="44"
                         Command="{Binding UndoCommand}"
                         ToolTip.Tip="Undo (Ctrl+Z)"
-                        Content="{x:Static theming:LucideIcons.Undo2}"/>
+                        Content="{x:Static theming:EditorIcons.ActionUndo}"/>
                 <Button Classes="toolbar-button"
                         MinWidth="44"
                         Command="{Binding RedoCommand}"
                         ToolTip.Tip="Redo (Ctrl+Y)"
-                        Content="{x:Static theming:LucideIcons.Redo2}"/>
+                        Content="{x:Static theming:EditorIcons.ActionRedo}"/>
                 <Button Classes="toolbar-button"
                         MinWidth="44"
                         Command="{Binding DeleteSelectedCommand}"
                         ToolTip.Tip="Delete selected"
-                        Content="{x:Static theming:LucideIcons.Trash2}"/>
+                        Content="{x:Static theming:EditorIcons.ActionDelete}"/>
                 <Button Classes="toolbar-button"
                         MinWidth="44"
                         Command="{Binding ClearAnnotationsCommand}"
                         ToolTip.Tip="Clear all"
-                        Content="{x:Static theming:LucideIcons.Trash2}"/>
+                        Content="{x:Static theming:EditorIcons.ActionClearAll}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -206,7 +206,7 @@
                         Classes.active="{Binding ShadowEnabled}"
                         IsVisible="{Binding ShowShadow}"
                         ToolTip.Tip="Toggle shadow"
-                        Content="{x:Static theming:LucideIcons.MoonStar}"/>
+                        Content="{x:Static theming:EditorIcons.MenuTheme}"/>
             </StackPanel>
         </StackPanel>
     </Border>

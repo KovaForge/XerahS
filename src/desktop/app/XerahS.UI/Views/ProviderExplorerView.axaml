@@ -357,7 +357,7 @@
                      Background="#FFF4CC"
                      Foreground="#6E1E1E"
                      BorderThickness="0"
-                     FontFamily="Consolas, Menlo, monospace"
+                     FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                      FontSize="12"
                      ToolTip.Tip="Copy the error details and share with support."/>
         </Border>

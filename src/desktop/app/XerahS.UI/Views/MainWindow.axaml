@@ -145,55 +145,55 @@
                 <ui:NavigationViewItem Content="Capture" Tag="Capture" SelectsOnInvoked="False" IsExpanded="True" Name="CaptureNavItem"
                                        AutomationProperties.Name="Capture Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Camera}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationCapture}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="Recording" Tag="Recording" AutomationProperties.Name="Recording View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Film}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationRecording}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="Editor" Tag="Editor" IsSelected="True" AutomationProperties.Name="Editor View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Pencil}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationEditor}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="History" Tag="History" AutomationProperties.Name="History View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.HardDrive}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationHistory}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem Content="Workflows" Tag="Workflows" AutomationProperties.Name="Workflows View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Combine}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationWorkflows}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem Content="Upload" Tag="Upload" SelectsOnInvoked="False" IsExpanded="False" AutomationProperties.Name="Upload Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.CloudUpload}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationUpload}"/>
                     </ui:NavigationViewItem.IconSource>
                     <ui:NavigationViewItem.MenuItems>
                         <ui:NavigationViewItem Content="Upload File..."
@@ -209,10 +209,10 @@
                 
                 <ui:NavigationViewItem Content="Tools" Tag="Tools" SelectsOnInvoked="True" IsExpanded="False" AutomationProperties.Name="Tools Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Wand2}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationTools}"/>
                     </ui:NavigationViewItem.IconSource>
                     <ui:NavigationViewItem.MenuItems>
                         <ui:NavigationViewItem Content="Color Picker..." Tag="Tools_ColorPicker" SelectsOnInvoked="False" AutomationProperties.Name="Color Picker Tool"/>
@@ -239,10 +239,10 @@
                 
                 <ui:NavigationViewItem Content="Settings" Tag="Settings" SelectsOnInvoked="True" IsExpanded="True" AutomationProperties.Name="Settings Menu">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.SlidersVertical}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationSettings}"/>
                     </ui:NavigationViewItem.IconSource>
                     <ui:NavigationViewItem.MenuItems>
                         <ui:NavigationViewItem Content="Application Settings" Tag="Settings_App" AutomationProperties.Name="Application Settings"/>
@@ -253,19 +253,19 @@
                  <ui:NavigationViewItem Content="Debug" Tag="Debug" AutomationProperties.Name="Debug View"
                                         AutomationProperties.HelpText="Opens developer debug tools">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Terminal}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationDebug}"/>
                     </ui:NavigationViewItem.IconSource>
                  </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem Content="About" Tag="About" AutomationProperties.Name="About View">
                     <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource FontFamily="{DynamicResource XerahS.FontFamily.Icon}"
+                        <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                            FontSize="18"
                                            FontWeight="Normal"
-                                           Glyph="{x:Static theming:LucideIcons.Aperture}"/>
+                                           Glyph="{x:Static theming:HostIcons.NavigationAbout}"/>
                     </ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
