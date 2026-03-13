@@ -10,6 +10,38 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ## Unreleased
 
+### Build
+- **Chocolatey**: Fix CRLF checksum replacement and normalize pack output paths in release sync so recovery packaging can find generated packages `(16af5a18, 075be629)`
+
+
+## v0.20.2
+
+### Features
+- **VideoEditor**: Integrate ShareX.VideoEditor into the desktop app with host wiring, `open-video-editor` CLI support, diagnostics, packaged WebUI assets, and FFmpeg/ffprobe-backed UI and headless trim flows `(267351e8, 1e345954, e81f1671, 9e2b917a, f0d954bc, f645d0f8, cbfc28d6, 2f684a0e, 9637f7fe, 45f16227)`
+- **Uploaders**: Add Nextcloud and native Immich uploader plugins, plus scaffolding and design notes for future uploader extensions `(bea34b98, b8bbfc15, a531c6a0, 5b112930, 4164b5c5)`
+- **History**: Add image combine actions and lay groundwork for history multi-selection workflows `(e52d4311, 9da0b6b2, a662c8ac)`
+
+### Fixes
+- **VideoEditor**: Harden startup, dependency resolution, repo layout, and packaged WebUI/bootstrap handling across submodule updates `(7a814699, adcbec9a, d4e1a449, 6be3f5b1, aaeee1de, bff513c2, f181f624, ec098878, 450ed938, 294b338b, 935a1ea3, c02c7bd0, 75f34059, 1fa78e6a, 39a0e65d, 451699c2, 5da69b45, 9ec27e11)`
+- **Custom Uploaders**: Inline the editor in settings while preserving names, hiding duplicate labels, and making inline names read-only `(75701a4c, d3a67428, af4635a3, 95325504)`
+- **Linux/Desktop**: Detect wallpaper providers across desktop environments, preload and normalize wallpaper sources, and restore ImageEditor wallpaper backgrounds through platform abstractions `(3401968f, 4b12b6df, f59aa050, 551b1967, 4e6528d3, ee3c3981, 85fe2871, 5a131ce1, 43907c07, bc12e966)`
+- **UI/ImageEditor**: Restore overlay theming and capture polish, including region capture toolbar icons, uploader theme inheritance, preview bitmap cloning, screenshots path picker, remembered window size, editor upload routing, Windows overlay alignment, pin export, pinned-window drag, and ShareX.ImageEditor background/context updates `(e1606785, 4d71abc5, 60629966, 794dcaee, eb7f99fd, a2b49176, fa6fda17, 79b62291, 6e8441c0, 3ce020e4, 8f9d8be4, 93fe5f0e, d2d95606, 9f691ab6, 735f08b7, bfb3f5bc, c98458dc, e133763c)`
+- **Build Targets**: Fix Windows-to-macOS packaging cross-compilation and Linux desktop build targeting `(501ebaaa, f466d80a)`
+
+### Refactor
+- **Core/UI**: Share history and toast context menus and align app typography and theme contracts with refreshed ImageEditor styling `(20739eea, 6f4a0e69, ae27f5eb)`
+
+### Build
+- **Release Automation**: Normalize editor projects to Any CPU, automate and harden Chocolatey release sync, and add desktop bootstrap helpers for fresh clones and arm64 toolchain detection `(c4c0ed5d, 7c6cb235, 07282313, bf240e76, 41834128)`
+- **VideoEditor**: Update the hybrid web/native toolchain requirements for the WebUI build `(1383ccfa)`
+
+### Documentation
+- **Developer Workflow**: Document fresh-clone setup, shared agent workflow, shared-library commit conventions, explicit GitHub issue handling, and FFmpeg Ubuntu PipeWire guidance `(e577b3fe, 8ba6112a, 975ac87d, 00f5c095, 5d10aabe, ffac673b)`
+- **Architecture**: Rework VEIP0001 for the hybrid web/native VideoEditor direction, add the Immich uploader design XIP, and refresh FAQ/theme guidance `(bbed6737, 4164b5c5, 82c2274a, c5d50d61)`
+
+### Testing
+- **Region Capture**: Add UI smoke tests for region capture flows `(d293e5b2)`
+
 
 ## v0.19.9
 
