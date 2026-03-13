@@ -4,7 +4,6 @@
              xmlns:views="using:XerahS.UI.Views"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
              x:Class="XerahS.UI.Views.RecordingView"
@@ -143,11 +142,10 @@
                                 CornerRadius="4"
                                 Padding="12,8">
                             <StackPanel Spacing="8" Orientation="Horizontal">
-                                <ui:FontIcon FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                             FontSize="16"
-                                             FontWeight="Normal"
-                                             Foreground="{DynamicResource SystemFillColorAttentionBrush}"
-                                             Glyph="{x:Static theming:HostIcons.StatusWarning}"/>
+                                <TextBlock Classes="IconGlyph"
+                                           FontSize="16"
+                                           Foreground="{DynamicResource SystemFillColorAttentionBrush}"
+                                           Text="{x:Static theming:HostIcons.StatusWarning}"/>
                                 <TextBlock Text="{Binding EncoderInfo}"
                                            Theme="{StaticResource CaptionTextBlockStyle}"
                                            TextWrapping="Wrap"

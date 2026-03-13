@@ -12,20 +12,20 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 ## table of Contents
 
-1.  [UI & FluentAvalonia](#ui--fluentavalonia)
+1.  [UI & Theming](#ui--theming)
 2.  [Build & Configuration](#build--configuration)
 3.  [Plugin System](#plugin-system)
 4.  [Android / Avalonia](#android--avalonia)
 
 ---
 
-## UI & FluentAvalonia
+## UI & Theming
 
 ### ContextMenu vs. ContextFlyout
 
-**Issue**: Standard `ContextMenu` controls do not render correctly with `FluentAvaloniaTheme`. They utilize legacy Popup windows which are not fully styled by the theme and may appear unstyled or invisible.
+**Issue**: The old warning against `ContextMenu` was specific to `FluentAvaloniaTheme`. XerahS now uses the official Avalonia `FluentTheme`, so standard `ContextMenu` rendering is no longer blocked by that theme-specific limitation.
 
-**Solution**: Always use `ContextFlyout` with `MenuFlyout` instead of `ContextMenu`.
+**Solution**: Use `ContextMenu` for ordinary context menus. Keep `ContextFlyout` with `MenuFlyout` for cases that need richer flyout behavior, shared popup content, or a flyout attached to a non-standard host.
 
 **❌ Incorrect**:
 ```xml

@@ -24,9 +24,9 @@
 #endregion License Information (GPL v3)
 
 using Avalonia;
-using FluentAvalonia.UI.Controls;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Helpers
 {
@@ -66,32 +66,20 @@ namespace XerahS.UI.Helpers
         }
 
         /// <summary>
-        /// Update navigation menu items for capture workflows.
-        /// This method is used by MainWindow to populate the Capture submenu.
+        /// Build navigation nodes for the first 3 capture workflows.
         /// </summary>
-        /// <param name="captureItem">The parent navigation item for capture</param>
-        public static void UpdateCaptureNavigationItems(NavigationViewItem captureItem)
+        public static IEnumerable<NavigationNode> CreateCaptureNavigationNodes()
         {
-            if (captureItem == null) return;
-
-            // Clear existing items
-            captureItem.MenuItems.Clear();
-
-            // Get first 3 workflows
             var workflows = GetTop3Workflows();
+            var navigationItems = new List<NavigationNode>(workflows.Count);
 
             for (int i = 0; i < workflows.Count; i++)
             {
                 var (id, displayName) = workflows[i];
-                var navItem = new NavigationViewItem
-                {
-                    Content = displayName,
-                    Tag = $"Capture_{id}", // Use ID-based tag instead of index
-                    SelectsOnInvoked = false  // Re-invocation always re-triggers the capture action (#170)
-                };
-
-                captureItem.MenuItems.Add(navItem);
+                navigationItems.Add(new NavigationNode(displayName, $"Capture_{id}", null, NavigationNodeKind.Action));
             }
+
+            return navigationItems;
         }
     }
 }

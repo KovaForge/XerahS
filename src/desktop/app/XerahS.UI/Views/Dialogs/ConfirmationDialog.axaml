@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="XerahS.UI.Views.Dialogs.ConfirmationDialog"
+        Width="420"
+        SizeToContent="Height"
+        MinWidth="420"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            Padding="16">
+        <StackPanel Spacing="12">
+            <TextBlock x:Name="DialogTitleText"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+            <TextBlock x:Name="DialogMessageText"
+                       TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+                <Button x:Name="CancelButton"
+                        Click="OnCancelClick" />
+                <Button x:Name="ConfirmButton"
+                        Classes="accent"
+                        Click="OnConfirmClick" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
