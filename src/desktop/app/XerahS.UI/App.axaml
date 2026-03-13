@@ -88,7 +88,7 @@
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <StyleInclude Source="avares://XerahS.UI/Themes/Typography.axaml" />
-        <StyleInclude Source="avares://XerahS.UI/Themes/Compatibility.axaml" />
+        <StyleInclude Source="avares://XerahS.UI/Themes/ThemeResources.axaml" />
         <Style Selector="Button.DarkButton">
             <Setter Property="Background" Value="#25263A"/>
             <Setter Property="Foreground" Value="#E2E8F0"/>
