@@ -208,6 +208,12 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = Join-Path $repoRoot 'dist\chocolatey'
 }
 
+if (-not [System.IO.Path]::IsPathRooted($OutputDirectory)) {
+    $OutputDirectory = Join-Path $repoRoot $OutputDirectory
+}
+
+$OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+
 $release = Get-ReleaseMetadata -Owner $RepositoryOwner -Name $RepositoryName -ReleaseVersion $Version
 $tag = "v$Version"
 $websiteUrl = 'https://xerahs.com/'
