@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class VideoThumbnailerWindow : Window
+public partial class VideoThumbnailerWindow : SurfaceWindow
 {
     private VideoThumbnailerViewModel? _viewModel;
 

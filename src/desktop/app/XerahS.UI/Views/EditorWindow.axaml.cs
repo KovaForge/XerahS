@@ -28,7 +28,7 @@ using ShareX.ImageEditor.Presentation.Theming;
 
 namespace XerahS.UI.Views
 {
-    public partial class EditorWindow : Window
+    public partial class EditorWindow : SurfaceWindow
     {
         public EditorWindow()
         {

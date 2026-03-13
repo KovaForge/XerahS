@@ -24,52 +24,13 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
-using XerahS.Common;
-using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class DownloaderWindow : SurfaceWindow
+/// <summary>
+/// Shared top-level surface for standard windows and dialogs so the default
+/// content background lives in theme resources instead of individual XAML files.
+/// </summary>
+public class SurfaceWindow : Window
 {
-    private DownloaderWindowViewModel? _viewModel;
-
-    public DownloaderWindow()
-    {
-        InitializeComponent();
-    }
-
-    public DownloaderWindow(UpdateChecker updateChecker) : this()
-    {
-        _viewModel = new DownloaderWindowViewModel(updateChecker);
-        DataContext = _viewModel;
-
-        _viewModel.RequestClose = result =>
-        {
-            Dispatcher.UIThread.Post(() => Close(result ?? false));
-        };
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
-
-    protected override async void OnOpened(EventArgs e)
-    {
-        base.OnOpened(e);
-
-        if (_viewModel != null)
-        {
-            await _viewModel.StartDownloadAsync();
-        }
-    }
-
-    protected override void OnClosed(EventArgs e)
-    {
-        base.OnClosed(e);
-
-        _viewModel?.Dispose();
-    }
 }

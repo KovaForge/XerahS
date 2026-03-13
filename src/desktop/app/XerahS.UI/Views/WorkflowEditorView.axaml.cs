@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class WorkflowEditorView : Window
+public partial class WorkflowEditorView : SurfaceWindow
 {
     public WorkflowEditorView()
     {

@@ -29,7 +29,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class IndexFolderView : Window
+public partial class IndexFolderView : SurfaceWindow
 {
     public IndexFolderView()
     {

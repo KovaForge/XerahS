@@ -34,7 +34,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class PinnedImageWindow : Window
+public partial class PinnedImageWindow : SurfaceWindow
 {
     private PinnedImageViewModel? _viewModel;
     private PinToScreenOptions? _options;

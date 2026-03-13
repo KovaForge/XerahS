@@ -31,7 +31,7 @@ using Avalonia.Platform.Storage;
 
 namespace XerahS.UI.Views;
 
-public partial class FFmpegOptionsWindow : Window
+public partial class FFmpegOptionsWindow : SurfaceWindow
 {
     public FFmpegOptionsWindow()
     {

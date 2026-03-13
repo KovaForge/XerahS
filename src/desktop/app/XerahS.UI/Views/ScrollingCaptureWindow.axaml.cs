@@ -33,7 +33,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class ScrollingCaptureWindow : Window
+public partial class ScrollingCaptureWindow : SurfaceWindow
 {
     private static readonly HotkeyInfo s_escapeStopHotkey = new(Key.Escape);
     private bool _escapeHotkeyRegistered;

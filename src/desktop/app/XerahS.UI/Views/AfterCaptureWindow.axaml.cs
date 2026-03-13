@@ -28,7 +28,7 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views;
 
-public partial class AfterCaptureWindow : Window
+public partial class AfterCaptureWindow : SurfaceWindow
 {
     public AfterCaptureWindow()
     {

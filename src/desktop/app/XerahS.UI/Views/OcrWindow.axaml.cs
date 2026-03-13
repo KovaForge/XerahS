@@ -28,7 +28,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class OcrWindow : Window
+public partial class OcrWindow : SurfaceWindow
 {
     public OcrWindow()
     {

@@ -36,6 +36,10 @@
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
+  <Style Selector="views|SurfaceWindow">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
   <Style Selector="Separator.ToolbarSeparator">
     <Setter Property="Width" Value="1" />
     <Setter Property="MinHeight" Value="24" />

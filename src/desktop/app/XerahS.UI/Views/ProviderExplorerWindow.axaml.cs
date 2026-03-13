@@ -28,7 +28,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class ProviderExplorerWindow : Window
+public partial class ProviderExplorerWindow : SurfaceWindow
 {
     public ProviderExplorerWindow()
     {

@@ -1,5 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
         x:Class="XerahS.UI.Views.PinToScreenStartupDialog"
         Title="Pin to Screen"
         Width="320" Height="240"
@@ -41,4 +42,4 @@
             HorizontalContentAlignment="Center"
             AutomationProperties.Name="Cancel" />
   </StackPanel>
-</Window>
+</ui:SurfaceWindow>

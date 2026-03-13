@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class ImageSplitterWindow : Window
+public partial class ImageSplitterWindow : SurfaceWindow
 {
     private ImageSplitterViewModel? _viewModel;
 

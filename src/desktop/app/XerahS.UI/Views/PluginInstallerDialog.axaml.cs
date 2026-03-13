@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class PluginInstallerDialog : Window
+public partial class PluginInstallerDialog : SurfaceWindow
 {
     public PluginInstallerDialog()
     {
