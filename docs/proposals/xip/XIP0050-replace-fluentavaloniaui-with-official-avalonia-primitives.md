@@ -1,287 +1,376 @@
-# XIP0050 Replace FluentAvaloniaUI with Official Avalonia Primitives
+# XIP0050 Remove FluentAvaloniaUI via Official Avalonia Replacements
 
-XIP0050: Replace FluentAvaloniaUI with Official Avalonia Primitives
-
-## Goal
-Reduce or remove `FluentAvaloniaUI` from `XerahS.UI` by replacing the current shell and small-control usages with official Avalonia APIs, while keeping the supported official `Avalonia.Themes.Fluent` package.
+XIP0050: Remove FluentAvaloniaUI via Official Avalonia Replacements
 
 ## Summary
-The current dependency is not purely a `NavigationView` dependency.
 
-`XerahS.UI` uses `FluentAvaloniaUI` for:
+This XIP is a concrete migration plan to remove the third-party `FluentAvaloniaUI` dependency from `XerahS.UI` and replace its current usages with official Avalonia controls, local styles, and a small amount of first-party glue code.
 
-1. the application theme root
-2. the main left navigation shell
-3. settings-style expandable sections
-4. icon controls and icon sources
-5. command separators
-6. one confirmation dialog path
+The goal is not to redesign the app. The goal is to find the closest official Avalonia replacements, preserve current behavior, and then delete the third-party package only after parity is proven.
 
-The main finding from local inspection plus official Avalonia docs is:
+## Why This XIP Exists
 
-1. official Avalonia does not provide a direct `NavigationView`, `SettingsExpander`, or `ContentDialog` equivalent in `Avalonia.Controls`
-2. official Avalonia does provide the primitives needed to recreate the shell behavior:
-   - `SplitView`
-   - `TreeView`
-   - `Expander`
-   - `Separator`
-   - `PathIcon`
-   - icon-font rendering via `TextBlock`
-   - `TransitioningContentControl`
-   - modal dialogs via `Window.ShowDialog`
+Current local evidence shows that `XerahS.UI` depends on `FluentAvaloniaUI` in several places:
 
-Therefore, replacing `FluentAvaloniaUI` is feasible, but it is a small shell migration, not a package-reference cleanup.
+1. package reference in [src/desktop/app/XerahS.UI/XerahS.UI.csproj](../../../../src/desktop/app/XerahS.UI/XerahS.UI.csproj)
+2. app theme root in [src/desktop/app/XerahS.UI/App.axaml](../../../../src/desktop/app/XerahS.UI/App.axaml)
+3. main shell navigation in [src/desktop/app/XerahS.UI/Views/MainWindow.axaml](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.axaml)
+4. navigation logic in [src/desktop/app/XerahS.UI/Views/MainWindow.Navigation.cs](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.Navigation.cs)
+5. dynamic capture submenu generation in [src/desktop/app/XerahS.UI/Helpers/NavigationItemsHelper.cs](../../../../src/desktop/app/XerahS.UI/Helpers/NavigationItemsHelper.cs)
+6. settings-style grouped rows in [src/desktop/app/XerahS.UI/Views/AboutView.axaml](../../../../src/desktop/app/XerahS.UI/Views/AboutView.axaml)
+7. icon controls in multiple views
+8. one confirmation dialog in [src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml.cs](../../../../src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml.cs)
 
-## Local Findings
+There is also a dependency-version concern:
 
-### Current package and theme usage
+1. the repo pins Avalonia `11.3.12` in [Directory.Packages.props](../../../../Directory.Packages.props)
+2. the installed `FluentAvaloniaUI 2.4.1` package metadata targets Avalonia `11.2.5`
 
-1. `FluentAvaloniaUI` is referenced in [src/desktop/app/XerahS.UI/XerahS.UI.csproj](../../../../src/desktop/app/XerahS.UI/XerahS.UI.csproj).
-2. The app theme root is `sty:FluentAvaloniaTheme` in [src/desktop/app/XerahS.UI/App.axaml](../../../../src/desktop/app/XerahS.UI/App.axaml).
-3. The repo otherwise already uses official Avalonia packages, including `Avalonia`, `Avalonia.Controls.ColorPicker`, and `Avalonia.Themes.Fluent`, pinned in [Directory.Packages.props](../../../../Directory.Packages.props).
+That version skew is a valid maintenance reason to remove the package if first-party replacements are practical.
 
-### Main navigation usage
+## Goals
 
-The primary `FluentAvaloniaUI` dependency is the main shell in [src/desktop/app/XerahS.UI/Views/MainWindow.axaml](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.axaml):
+1. Remove `FluentAvaloniaUI` from `XerahS.UI`.
+2. Keep `Avalonia.Themes.Fluent` as the supported official theme package.
+3. Replace each current `FluentAvaloniaUI` usage with the closest official Avalonia control or a small first-party composite control.
+4. Preserve current information architecture, menu structure, and navigation behavior.
+5. Keep the main shell visually close to the current app.
+6. End with a clean codebase that has no `FluentAvalonia.*` namespaces, XAML namespaces, or package references in `XerahS.UI`.
 
-1. `ui:NavigationView`
-2. nested `ui:NavigationViewItem`
-3. `ui:FontIconSource`
-4. always-open left pane behavior
-5. dynamic population of `Capture` submenu items
+## Non-Goals
 
-Supporting code lives in:
+1. No redesign of app navigation structure.
+2. No switch to `SimpleTheme`, `Material.Avalonia`, or another theme system.
+3. No rewrite of page routing architecture beyond what is required to leave `NavigationView`.
+4. No speculative UI cleanup unrelated to package removal.
 
-1. [src/desktop/app/XerahS.UI/Views/MainWindow.Navigation.cs](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.Navigation.cs)
-2. [src/desktop/app/XerahS.UI/Helpers/NavigationItemsHelper.cs](../../../../src/desktop/app/XerahS.UI/Helpers/NavigationItemsHelper.cs)
+## Execution Rules
 
-Behavior currently implemented:
+1. Implementation for this XIP must happen on a branch other than `develop`. Do not implement this work directly on `develop`.
+2. Git commits must be made frequently as work progresses. Prefer small, logical commits for each completed step rather than a single large commit at the end.
 
-1. static top-level sections
-2. nested menu items
-3. dynamic workflow-driven capture submenu
-4. selection-driven page navigation
-5. invoke-driven action items that can be re-triggered without changing selection
-6. a plain `ContentControl` page host
+## Current Dependency Inventory
 
-This is functionally simple enough to recreate with official Avalonia controls.
+### Direct control/theme usages
 
-### Additional FluentAvaloniaUI usages
-
-`FluentAvaloniaUI` is also used outside the main shell:
-
-1. `SettingsExpander` and `SettingsExpanderItem` in [src/desktop/app/XerahS.UI/Views/AboutView.axaml](../../../../src/desktop/app/XerahS.UI/Views/AboutView.axaml)
-2. `FontIcon` in:
+1. `FluentAvaloniaTheme` in [src/desktop/app/XerahS.UI/App.axaml](../../../../src/desktop/app/XerahS.UI/App.axaml)
+2. `NavigationView` and `NavigationViewItem` in [src/desktop/app/XerahS.UI/Views/MainWindow.axaml](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.axaml)
+3. `FontIconSource` in [src/desktop/app/XerahS.UI/Views/MainWindow.axaml](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.axaml)
+4. `SettingsExpander` and `SettingsExpanderItem` in [src/desktop/app/XerahS.UI/Views/AboutView.axaml](../../../../src/desktop/app/XerahS.UI/Views/AboutView.axaml)
+5. `FontIcon` in:
    - [src/desktop/app/XerahS.UI/Views/SettingsView.axaml](../../../../src/desktop/app/XerahS.UI/Views/SettingsView.axaml)
    - [src/desktop/app/XerahS.UI/Views/ToolsView.axaml](../../../../src/desktop/app/XerahS.UI/Views/ToolsView.axaml)
    - [src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml](../../../../src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml)
-   - other views using icon glyphs
-3. `CommandBarSeparator` in [src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml](../../../../src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml)
-4. `ContentDialog` in [src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml.cs](../../../../src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml.cs)
+   - other icon-bearing views
+6. `CommandBarSeparator` in [src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml](../../../../src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml)
+7. `ContentDialog` in [src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml.cs](../../../../src/desktop/app/XerahS.UI/Views/WorkflowsView.axaml.cs)
 
-This means package removal requires a broader migration plan than only swapping out the navigation control.
+### Behaviors that must survive the migration
 
-### Version-skew concern
+1. always-open left pane shell
+2. nested navigation items
+3. dynamic `Capture` submenu items from workflows
+4. action-only items that re-trigger on repeated click without relying on selection changes
+5. page-host swapping inside `ContentFrame`
+6. settings-style grouped rows in `AboutView`
+7. icon-font-based rendering using existing glyph constants
+8. modal confirmation for workflow operations
 
-The repo pins Avalonia `11.3.12` in [Directory.Packages.props](../../../../Directory.Packages.props), while the installed `FluentAvaloniaUI 2.4.1` package metadata declares Avalonia `11.2.5` dependencies.
+## Closest Official Avalonia Replacement Matrix
 
-That version skew is a legitimate reason to reduce or remove the package if official Avalonia primitives can cover the required behavior.
+| Current FluentAvalonia usage | Current role in XerahS | Primary official replacement | Secondary fallback | Decision criteria |
+| --- | --- | --- | --- | --- |
+| `NavigationView` | Main shell container with left navigation and content host | `SplitView` + `TreeView` + `TransitioningContentControl` | `Grid` + `ScrollViewer` + custom nested `Expander`/`ItemsControl` | Hierarchical items, stable selection, easy styling, keyboard support, low code complexity |
+| `NavigationViewItem` | Hierarchical nav item with icon, tag, children, selection | `TreeViewItem` via `TreeDataTemplate` and a `NavigationNode` model | Local `NavigationPaneItem` user control | Child items, selected state, action-only node support |
+| `FontIconSource` | Nav icons | `TextBlock` using icon font | `PathIcon` | Lowest migration cost and reuse of existing glyph constants |
+| `FontIcon` | Page/header icons | `TextBlock` using icon font | `PathIcon` | Keep glyph constants and visual parity |
+| `SettingsExpander` | Grouped settings-like sections | `Expander` with custom header template | local `SettingsSection` control | Header icon, row layout, expand/collapse visuals |
+| `SettingsExpanderItem` | Clickable row with trailing action icon | `Button` or `Border` + `Grid` row template | local `SettingsRow` control | Click affordance, alignment, reuse |
+| `CommandBarSeparator` | Toolbar separator | `Separator` with toolbar style | styled `Border` | Visual parity only |
+| `ContentDialog` | One confirmation dialog | modal `Window.ShowDialog<TResult>` | existing modal overlay host in `MainWindow` | Simplicity, testability, no global infra |
+| `FluentAvaloniaTheme` | App-level theme/resource source | official `FluentTheme` + local compatibility resources and control themes | official `FluentTheme` + more aggressive local restyling | Resource compatibility, startup stability, smallest regression surface |
 
-## Official Avalonia Findings
+## Workstream A: Produce a complete parity checklist before coding
 
-The official Avalonia docs and API reference confirm the following:
+Before replacing anything, capture what the current UI is relying on.
 
-1. `SplitView` is an official control suitable for a collapsible or fixed left pane shell.
-2. `TreeView` is an official control for hierarchical, selectable navigation data.
-3. `Expander` is an official control for collapsible sections.
-4. `TransitioningContentControl` is an official control for animated page/content swaps.
-5. `PathIcon` is an official icon control.
-6. official docs also recommend icon fonts as a standard approach, which matches XerahS's existing icon-font usage.
-7. `Separator` is an official control and can replace `CommandBarSeparator`.
-8. `Window.ShowDialog` is available officially and can replace the one `ContentDialog` usage with a small custom dialog window.
+### A1. Inventory all remaining package usages
 
-During official API inspection of the `Avalonia.Controls` namespace, no `NavigationView`, `ContentDialog`, `SettingsExpander`, or `FontIcon` entry was found.
+Enumerate all of the following under `src/desktop/app/XerahS.UI`:
 
-Inference:
+1. `using FluentAvalonia`
+2. `xmlns:ui="using:FluentAvalonia.UI.Controls"`
+3. `xmlns:sty="using:FluentAvalonia.Styling"`
+4. `FluentAvaloniaTheme`
+5. `NavigationView`
+6. `SettingsExpander`
+7. `FontIcon`
+8. `FontIconSource`
+9. `CommandBarSeparator`
+10. `ContentDialog`
 
-1. official Avalonia can reproduce the behavior
-2. official Avalonia does not provide WinUI-style 1:1 shell controls for this specific UI
-3. the migration should be approached as composition plus theming, not as a direct type rename
+### A2. Inventory resource-key dependencies
 
-## Proposed Replacement Architecture
+Audit `XerahS.UI` XAML for theme keys that may currently come from `FluentAvaloniaTheme`.
 
-### Main shell
+At minimum, verify the source and replacement plan for keys/styles such as:
 
-Replace `NavigationView` with:
+1. `SolidBackgroundFillColorBaseBrush`
+2. `TextFillColorSecondaryBrush`
+3. `AccentFillColorDefaultBrush`
+4. `SurfaceStrokeColorDefaultBrush`
+5. `TitleTextBlockStyle`
+6. `BodyTextBlockStyle`
+7. `CaptionTextBlockStyle`
+8. `SubtitleTextBlockStyle`
+9. `CardBorderTheme`
 
-1. `SplitView` as the top-level shell container
-2. a styled `TreeView` for the hierarchical left navigation
-3. a `TransitioningContentControl` or `ContentControl` for the page host
+### A3. Record parity targets
 
-Recommended model:
+For each migrated area, record expected behavior before edits:
 
-1. create a `NavigationNode` view model type
-2. bind the left pane to a hierarchical node collection
-3. use `TreeDataTemplate` for nested items
-4. store:
-   - display text
-   - icon glyph or icon geometry
-   - navigation tag
-   - child items
-   - `IsActionOnly`
-5. keep current routing logic in `MainWindow.Navigation.cs`, but make it `TreeView`-based instead of `NavigationView`-based
+1. what the user can click
+2. what expands and collapses
+3. what selects
+4. what opens a page
+5. what launches an action
+6. what styles must remain recognizable
 
-This preserves:
+This checklist becomes the acceptance contract for the migration.
 
-1. current tag-driven routing
-2. dynamic workflow menu population
-3. action re-invocation semantics
-4. current content-host model
+## Workstream B: Prototype the shell and choose the replacement
 
-### Icons
+The highest-risk change is the main shell. Do not commit to package removal before the shell candidate is proven.
 
-Replace `FontIcon` and `FontIconSource` with one of these official approaches:
+### B1. Build the primary shell prototype
 
-1. `TextBlock` bound to the existing icon font and glyph constants
-2. `PathIcon` if the project later wants geometry-based icons
+Prototype:
 
-For XerahS, the first option is the lower-risk migration because the existing icon font and glyph constants are already established.
+1. `SplitView` as shell frame
+2. left pane with `TreeView`
+3. `TransitioningContentControl` or `ContentControl` as page host
+4. `NavigationNode` view model backing hierarchical items
 
-### Settings-style sections
+### B2. Reproduce these exact shell requirements
 
-Replace `SettingsExpander` with:
+The prototype must support:
+
+1. static sections like `Recording`, `Editor`, `History`, `Workflows`, `About`
+2. nested sections like `Upload`, `Tools`, and `Settings`
+3. dynamic `Capture` child items from workflows
+4. selected-item navigation for page nodes
+5. explicit invoke handling for action-only nodes
+6. always-open left pane
+7. icon rendering using existing glyph constants
+
+### B3. Use fallback only if the primary prototype fails a hard requirement
+
+Fallback shell:
+
+1. `Grid` or `SplitView`
+2. `ScrollViewer`
+3. custom `ItemsControl` hierarchy
+4. nested `Expander`
+5. local selected-row logic
+
+Fallback is allowed only if `TreeView` styling or behavior proves too costly relative to the parity goal.
+
+### B4. Shell selection criteria
+
+Pick the implementation that gives the best balance of:
+
+1. behavioral parity
+2. lowest code volume
+3. clearest styling model
+4. lowest event-handling complexity
+5. best keyboard and focus behavior
+
+## Workstream C: Replace shell code with first-party navigation model
+
+Once the shell candidate is selected:
+
+1. introduce a reusable `NavigationNode` model
+2. move nav hierarchy into a first-party model or local declarative structure
+3. replace `NavigationView` event handling in [src/desktop/app/XerahS.UI/Views/MainWindow.Navigation.cs](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.Navigation.cs)
+4. preserve tag-driven routing so the rest of `HandleNavigationTag` remains stable
+5. preserve `NavigationItemsHelper` behavior for dynamic capture items
+
+### C1. Action-only navigation requirement
+
+The replacement must preserve a key current behavior:
+
+1. some nodes trigger actions immediately
+2. those nodes must be re-invokable even when the page selection does not change
+
+This means the replacement cannot rely on selection alone. It must have explicit invoke handling for action nodes.
+
+## Workstream D: Replace small control usages
+
+After the shell is stable, replace the lower-risk package usages.
+
+### D1. Replace icon controls
+
+Replace `FontIcon` and `FontIconSource` with:
+
+1. `TextBlock`
+2. existing icon font
+3. existing glyph constants
+
+This is the lowest-risk path and keeps icon authoring consistent across the app.
+
+### D2. Replace settings sections
+
+Replace `SettingsExpander` and `SettingsExpanderItem` with:
 
 1. `Expander`
-2. custom header templates
-3. styled clickable rows built from `Button`, `Border`, `Grid`, and `TextBlock`
+2. custom header template
+3. styled row buttons or borders
+4. reusable local styles for trailing action icons and row spacing
 
-The current `AboutView` usage is a good fit for this because it is structurally simple:
+### D3. Replace command separators
 
-1. section header
-2. section icon
-3. repeated clickable rows
-4. optional trailing action icon
+Replace `CommandBarSeparator` with:
 
-### Confirmation dialog
+1. `Separator`
+2. local toolbar separator style
 
-Replace the single `ContentDialog` usage with:
+### D4. Replace confirmation dialog
 
-1. a lightweight custom `Window` using `ShowDialog<TResult>`
-2. or reuse the existing modal overlay pattern already present in [src/desktop/app/XerahS.UI/Views/MainWindow.axaml](../../../../src/desktop/app/XerahS.UI/Views/MainWindow.axaml)
+Replace `ContentDialog` with:
 
-Because there is currently only one direct `ContentDialog` call site, this part is low risk.
+1. a small modal `Window`
+2. `ShowDialog<bool>` or equivalent result mapping
 
-## Migration Plan
+If a reusable dialog pattern is needed later, build that after the first replacement works.
 
-### Stage 1: Replace shell controls first
+## Workstream E: Replace theme root and add local resource compatibility
 
-1. add a custom navigation model for hierarchical items
-2. replace `NavigationView` in `MainWindow`
-3. restyle `TreeView` and `TreeViewItem` to match the existing left pane
-4. preserve current `Tag`-based routing and dynamic workflow submenu behavior
+Do not remove the theme root early. Replace controls first, then resolve theme dependencies.
 
-Expected result:
+### E1. Switch to official theme root
 
-1. the largest `FluentAvaloniaUI` dependency is removed first
-2. routing logic remains mostly intact
-3. package removal is not yet attempted
+Replace:
 
-### Stage 2: Replace small remaining controls
+1. `sty:FluentAvaloniaTheme`
 
-1. replace `FontIcon` and `FontIconSource`
-2. replace `SettingsExpander`
-3. replace `CommandBarSeparator`
-4. replace `ContentDialog`
+With:
 
-Expected result:
+1. official `FluentTheme`
 
-1. no control-level dependency on `FluentAvalonia.UI.Controls`
+### E2. Add local compatibility resources if needed
 
-### Stage 3: Theme audit
+If official `FluentTheme` does not expose every resource/style key currently used by `XerahS.UI`, add first-party compatibility aliases or styles in local theme dictionaries.
 
-Audit `XerahS.UI` for theme/resource keys currently expected from `FluentAvaloniaTheme`.
+Expected outputs:
 
-Important note:
+1. local brush aliases
+2. local text styles
+3. local card/control themes
 
-The current investigation verified the explicit `FluentAvaloniaTheme` usage, but it did not prove that every current brush/style key has an equivalent in official Avalonia Fluent without compatibility work.
+This keeps the app visually stable without keeping the third-party package.
 
-That means theme removal should happen only after a resource audit.
+## Workstream F: Remove package and namespaces
 
-### Stage 4: Remove package
+Only after workstreams A through E are complete:
 
-Only after the control migration and resource audit:
+1. remove `FluentAvaloniaUI` from [Directory.Packages.props](../../../../Directory.Packages.props)
+2. remove `PackageReference Include="FluentAvaloniaUI"` from [src/desktop/app/XerahS.UI/XerahS.UI.csproj](../../../../src/desktop/app/XerahS.UI/XerahS.UI.csproj)
+3. remove all `using FluentAvalonia.*`
+4. remove all `xmlns:ui="using:FluentAvalonia.UI.Controls"`
+5. remove all `xmlns:sty="using:FluentAvalonia.Styling"`
 
-1. remove `FluentAvaloniaUI` package reference
-2. replace `sty:FluentAvaloniaTheme` with official Fluent theme configuration
-3. run full UI regression checks
+The build should compile with no source dependency on the package before the reference is deleted.
 
-## Risks
+## Implementation Order
 
-1. The biggest risk is theme/resource compatibility, not navigation behavior.
-2. The current shell depends on hierarchical selection, expansion, and action re-invocation. Those behaviors are straightforward to recreate, but they will need explicit code instead of built-in `NavigationView` events.
-3. `AboutView` currently benefits from `SettingsExpander` convenience templates, so some styling work will move into local XAML themes.
-4. If `FluentAvaloniaTheme` currently provides resource keys used widely across the app, removing it before the audit will cause visual regressions.
+1. Workstream A: audit and parity checklist
+2. Workstream B: shell prototype and replacement decision
+3. Workstream C: first-party shell implementation
+4. Workstream D: remaining small control replacements
+5. Workstream E: theme replacement and local compatibility layer
+6. Workstream F: package removal
 
-## Recommendation
+This order minimizes churn and avoids deleting the package before a working replacement exists.
 
-Proceed if the goal is:
+## Acceptance Criteria
 
-1. removing the unofficial dependency
-2. reducing Avalonia version-skew risk
-3. owning the app shell in first-party XAML and code
+The migration is complete only when all of the following are true:
 
-Do not frame this as "replace one nav control and delete a package."
+1. `FluentAvaloniaUI` is no longer referenced in [Directory.Packages.props](../../../../Directory.Packages.props).
+2. `XerahS.UI.csproj` contains no `PackageReference` to `FluentAvaloniaUI`.
+3. `src/desktop/app/XerahS.UI` contains no:
+   - `using FluentAvalonia`
+   - `xmlns:ui="using:FluentAvalonia.UI.Controls"`
+   - `xmlns:sty="using:FluentAvalonia.Styling"`
+4. the app uses official `FluentTheme`
+5. the main shell still supports:
+   - nested navigation
+   - dynamic capture items
+   - action-only invocations
+   - page navigation
+6. `AboutView` still presents grouped expandable sections with clickable rows
+7. workflow confirmation dialog still works
+8. `dotnet build` passes with `0` errors and warnings treated as errors
 
-The correct framing is:
+## Verification Matrix
 
-1. replace the shell with official Avalonia primitives
-2. replace a handful of convenience controls
-3. audit theme dependencies
-4. remove the package last
-
-## Verification Plan
+### Build verification
 
 1. `dotnet build src\\desktop\\app\\XerahS.UI\\XerahS.UI.csproj -m:1`
 2. `dotnet build src\\desktop\\XerahS.sln -m:1`
-3. manual verification:
-   - left navigation selection
-   - expand/collapse behavior
-   - capture submenu population
-   - repeated invoke behavior for action items
-   - page host switching
-   - `AboutView` expandable link sections
-   - workflow confirmation dialog
 
-## Official Sources Used For This XIP
+### Manual verification
+
+1. launch app and verify startup without resource-resolution exceptions
+2. verify main navigation renders and left pane is usable
+3. verify `Capture` dynamic submenu population
+4. verify repeated invocation for action-only items
+5. verify page switching for `Editor`, `Recording`, `History`, `Workflows`, `Settings`, `About`
+6. verify `AboutView` sections expand and row clicks still open links
+7. verify workflow delete/reset confirmation still appears and returns the correct result
+8. verify icon glyphs still render correctly in navigation and page headers
+
+## Risks and Mitigations
+
+1. Risk: `TreeView` may require more styling work than expected to feel like the current shell.
+   Mitigation: prototype before committing to the implementation; allow a custom hierarchical pane fallback.
+2. Risk: current theme resource keys may not all come from official Avalonia Fluent.
+   Mitigation: audit first; add local compatibility resources instead of keeping the package.
+3. Risk: action-only nav behavior may regress if implemented as selection-only.
+   Mitigation: make invoke semantics a hard acceptance criterion for the shell workstream.
+4. Risk: the migration may drift into a redesign.
+   Mitigation: keep current routing tags, content host, and information architecture intact.
+
+## Recommended Deliverables
+
+1. updated `XIP0050`
+2. first-party navigation shell implementation in `XerahS.UI`
+3. local theme compatibility resources if required
+4. no `FluentAvaloniaUI` package reference
+5. optional follow-up audit doc if theme compatibility turns out to be larger than expected
+
+## Official Sources Used For This Plan
 
 1. Avalonia themes overview
    - <https://docs.avaloniaui.net/docs/basics/user-interface/styling/themes/>
-   - key finding: official Avalonia ships built-in Fluent and Simple themes
 2. Avalonia `SplitView`
    - <https://docs.avaloniaui.net/docs/reference/controls/splitview>
-   - key finding: official `SplitView` supports collapsible left-pane layouts and compact pane patterns
 3. Avalonia `TreeView`
    - <https://docs.avaloniaui.net/docs/reference/controls/treeview-1>
    - <https://api-docs.avaloniaui.net/docs/T_Avalonia_Controls_TreeView>
-   - key finding: official `TreeView` supports hierarchical items, templating, and selection
 4. Avalonia `Expander`
    - <https://docs.avaloniaui.net/docs/reference/controls/expander>
    - <https://api-docs.avaloniaui.net/docs/T_Avalonia_Controls_Expander>
-   - key finding: official `Expander` covers collapsible grouped sections
 5. Avalonia `TransitioningContentControl`
    - <https://api-docs.avaloniaui.net/docs/T_Avalonia_Controls_TransitioningContentControl>
-   - key finding: official animated content switching is available without third-party controls
-6. Avalonia icon guidance and `PathIcon`
+6. Avalonia icon guidance
    - <https://docs.avaloniaui.net/docs/guides/graphics-and-animation/how-to-use-icons>
+7. Avalonia `PathIcon`
    - <https://docs.avaloniaui.net/docs/reference/controls/path-icon>
-   - key finding: official guidance supports icon fonts and `PathIcon`
-7. Avalonia `Separator`
+8. Avalonia `Separator`
    - <https://api-docs.avaloniaui.net/docs/T_Avalonia_Controls_Separator>
-   - key finding: official separator support is available for toolbar-style grouping
-8. Avalonia modal dialogs via `Window.ShowDialog`
-   - <https://api-docs.avaloniaui.net/docs/M_Avalonia_Controls_Window_ShowDialog__1>
+9. Avalonia `Window` and `ShowDialog`
    - <https://api-docs.avaloniaui.net/docs/T_Avalonia_Controls_Window>
-   - key finding: official modal dialog windows are available without `ContentDialog`
-9. Avalonia controls namespace inventory
-   - <https://api-docs.avaloniaui.net/docs/N_Avalonia_Controls>
-   - key finding: no `NavigationView`, `ContentDialog`, `SettingsExpander`, or `FontIcon` entry was found in the official `Avalonia.Controls` namespace during this investigation
+   - <https://api-docs.avaloniaui.net/docs/M_Avalonia_Controls_Window_ShowDialog__1>
+10. Avalonia controls namespace inventory
+    - <https://api-docs.avaloniaui.net/docs/N_Avalonia_Controls>
