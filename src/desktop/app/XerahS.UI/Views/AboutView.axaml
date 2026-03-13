@@ -1,14 +1,14 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:common="using:XerahS.Common"
-             xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-             x:Class="XerahS.UI.Views.AboutView">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:common="using:XerahS.Common"
+                xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+                x:Class="XerahS.UI.Views.AboutView">
 
-    <ScrollViewer Padding="24"
-                  Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+    <ScrollViewer Padding="24">
         <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Center">
             <StackPanel Spacing="16" HorizontalAlignment="Center" Margin="0,32,0,32">
                 <Image Source="/Assets/Logo.png" Height="128" Width="128" />
@@ -206,4 +206,4 @@
             </Border>
         </StackPanel>
     </ScrollViewer>
-</UserControl>
+</views:PageView>

@@ -22,23 +22,15 @@
 */
 
 #endregion License Information (GPL v3)
+
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
-using XerahS.UI.ViewModels;
 
-namespace XerahS.UI.Views
+namespace XerahS.UI.Views;
+
+/// <summary>
+/// Shared root container for routed shell pages so the default content surface
+/// is defined in one theme style instead of repeated across individual views.
+/// </summary>
+public class PageView : Border
 {
-    public partial class DebugView : PageView
-    {
-        public DebugView()
-        {
-            InitializeComponent();
-            DataContext = new DebugViewModel();
-        }
-
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
-    }
 }

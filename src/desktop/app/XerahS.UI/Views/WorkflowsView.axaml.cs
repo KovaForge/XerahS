@@ -30,7 +30,7 @@ using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI.Views;
 
-public partial class WorkflowsView : UserControl
+public partial class WorkflowsView : PageView
 {
     public WorkflowsView()
     {

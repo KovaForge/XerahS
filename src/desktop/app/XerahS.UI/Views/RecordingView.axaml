@@ -1,21 +1,20 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:views="using:XerahS.UI.Views"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
-             x:Class="XerahS.UI.Views.RecordingView"
-             x:DataType="vm:RecordingViewModel">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
+                x:Class="XerahS.UI.Views.RecordingView"
+                x:DataType="vm:RecordingViewModel">
     
     <Design.DataContext>
         <vm:RecordingViewModel/>
     </Design.DataContext>
     
     <Grid RowDefinitions="Auto,*"
-          Margin="24"
-          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+          Margin="24">
         
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
@@ -199,4 +198,4 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
-</UserControl>
+</views:PageView>

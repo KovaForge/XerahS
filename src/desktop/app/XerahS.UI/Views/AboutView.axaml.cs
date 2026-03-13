@@ -26,7 +26,7 @@ using XerahS.Common;
 
 namespace XerahS.UI.Views
 {
-    public partial class AboutView : UserControl
+    public partial class AboutView : PageView
     {
         public AboutView()
         {

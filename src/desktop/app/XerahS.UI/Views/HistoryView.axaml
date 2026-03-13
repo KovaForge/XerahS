@@ -1,22 +1,22 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:uiconverters="clr-namespace:XerahS.UI.Converters"
-             xmlns:history="using:XerahS.History"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-             x:Class="XerahS.UI.Views.HistoryView"
-             x:DataType="vm:HistoryViewModel"
-             x:Name="Root"
-             Cursor="Arrow">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:uiconverters="clr-namespace:XerahS.UI.Converters"
+                xmlns:history="using:XerahS.History"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+                x:Class="XerahS.UI.Views.HistoryView"
+                x:DataType="vm:HistoryViewModel"
+                x:Name="Root"
+                Cursor="Arrow">
     
     <Design.DataContext>
         <vm:HistoryViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto, Auto, *, Auto"
-          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+    <Grid RowDefinitions="Auto, Auto, *, Auto">
         <!-- Toolbar -->
         <Border Grid.Row="0" Padding="16" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
@@ -240,4 +240,4 @@
             </StackPanel>
         </Border>
     </Grid>
-</UserControl>
+</views:PageView>

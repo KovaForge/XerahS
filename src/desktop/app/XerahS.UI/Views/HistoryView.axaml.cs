@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
 {
-    public partial class HistoryView : UserControl
+    public partial class HistoryView : PageView
     {
         private readonly ListBox? _gridHistoryListBox;
         private readonly ListBox? _listHistoryListBox;

@@ -1,15 +1,16 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:controls="using:XerahS.UI.Views.Controls"
-             xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
-             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
-             x:Class="XerahS.UI.Views.WorkflowsView"
-             x:DataType="vm:WorkflowsViewModel">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:controls="using:XerahS.UI.Views.Controls"
+                xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+                mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+                x:Class="XerahS.UI.Views.WorkflowsView"
+                x:DataType="vm:WorkflowsViewModel">
 
-    <Grid Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+    <Grid>
         <!-- Main Content -->
         <Grid RowDefinitions="Auto, *">
             
@@ -91,4 +92,4 @@
             </Border>
         </Grid>
     </Grid>
-</UserControl>
+</views:PageView>
