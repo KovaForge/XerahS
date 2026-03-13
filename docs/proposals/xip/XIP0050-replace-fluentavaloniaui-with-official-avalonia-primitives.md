@@ -8,6 +8,12 @@ This XIP is a concrete migration plan to remove the third-party `FluentAvaloniaU
 
 The goal is not to redesign the app. The goal is to find the closest official Avalonia replacements, preserve current behavior, and then delete the third-party package only after parity is proven.
 
+## Secondary Benefits
+
+1. Standard `ContextMenu` becomes viable again where a plain context menu is sufficient.
+2. The current lesson in [developers/lessons-learnt/general.md](../../../../developers/lessons-learnt/general.md) that says `ContextMenu` does not render correctly with `FluentAvaloniaTheme` should become obsolete after this migration is complete.
+3. `MenuFlyout` and `ContextFlyout` can then be reserved for cases that actually need flyout behavior, richer shared popup content, or button-attached flyouts rather than being required as a theme workaround.
+
 ## Why This XIP Exists
 
 Current local evidence shows that `XerahS.UI` depends on `FluentAvaloniaUI` in several places:
@@ -137,6 +143,16 @@ For each migrated area, record expected behavior before edits:
 6. what styles must remain recognizable
 
 This checklist becomes the acceptance contract for the migration.
+
+### A4. Record flyout and context-menu cleanup opportunities
+
+As part of the audit, identify where `MenuFlyout` or `ContextFlyout` is being used only because of the current `FluentAvaloniaTheme` limitation documented in [developers/lessons-learnt/general.md](../../../../developers/lessons-learnt/general.md).
+
+For each occurrence, classify it as one of:
+
+1. must remain a flyout because it is attached to a button or uses richer popup behavior
+2. can stay as a flyout because reuse/shared binding behavior is still useful
+3. can be simplified to a standard `ContextMenu` after migration to official Avalonia theme resources
 
 ## Workstream B: Prototype the shell and choose the replacement
 
@@ -311,6 +327,7 @@ The migration is complete only when all of the following are true:
 6. `AboutView` still presents grouped expandable sections with clickable rows
 7. workflow confirmation dialog still works
 8. `dotnet build` passes with `0` errors and warnings treated as errors
+9. the `ContextMenu vs. ContextFlyout` lesson in [developers/lessons-learnt/general.md](../../../../developers/lessons-learnt/general.md) is reviewed and either removed or rewritten once the migration proves that `ContextMenu` no longer requires a FluentAvalonia-specific workaround
 
 ## Verification Matrix
 
@@ -372,5 +389,11 @@ The migration is complete only when all of the following are true:
 9. Avalonia `Window` and `ShowDialog`
    - <https://api-docs.avaloniaui.net/docs/T_Avalonia_Controls_Window>
    - <https://api-docs.avaloniaui.net/docs/M_Avalonia_Controls_Window_ShowDialog__1>
-10. Avalonia controls namespace inventory
+10. Avalonia `ContextMenu`
+    - <https://docs.avaloniaui.net/docs/reference/controls/contextmenu>
+    - key finding: official Avalonia presents `ContextMenu` as a standard control and `ContextFlyout` as an alternative for richer or sharable UI, not as a mandatory workaround
+11. Avalonia `MenuFlyout`
+    - <https://docs.avaloniaui.net/docs/reference/controls/menu-flyout>
+    - key finding: official Avalonia documents `MenuFlyout` as an alternative to context menus, which supports treating current forced `MenuFlyout` usage as a FluentAvalonia-specific workaround rather than a permanent architectural requirement
+12. Avalonia controls namespace inventory
     - <https://api-docs.avaloniaui.net/docs/N_Avalonia_Controls>
