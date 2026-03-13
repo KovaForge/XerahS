@@ -250,8 +250,8 @@ Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -M
 Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'description' -Value 'XerahS is a cross-platform ShareX-compatible screen capture and file sharing tool built with Avalonia UI and .NET 10.'
 
 $installScriptContent = Get-Content -Path $installScriptPath -Raw
-$installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$x64Checksum\s*=\s*''[^'']*''$' -Replacement ('$x64Checksum  = ''{0}''' -f $x64Checksum)
-$installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$arm64Checksum\s*=\s*''[^'']*''$' -Replacement ('$arm64Checksum = ''{0}''' -f $arm64Checksum)
+$installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$x64Checksum\s*=\s*''[^'']*''\r?$' -Replacement ('$x64Checksum  = ''{0}''' -f $x64Checksum)
+$installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$arm64Checksum\s*=\s*''[^'']*''\r?$' -Replacement ('$arm64Checksum = ''{0}''' -f $arm64Checksum)
 
 $verificationContent = @"
 VERIFICATION
