@@ -13,7 +13,11 @@
         <vm:SettingsViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto, *" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid RowDefinitions="Auto, *"
+          Margin="0"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
         <TabControl Grid.Row="1">
             <!-- General Tab -->
             <TabItem Header="General">

@@ -9,7 +9,7 @@
              x:Class="XerahS.UI.Views.WorkflowsView"
              x:DataType="vm:WorkflowsViewModel">
 
-    <Grid>
+    <Grid Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
         <!-- Main Content -->
         <Grid RowDefinitions="Auto, *">
             

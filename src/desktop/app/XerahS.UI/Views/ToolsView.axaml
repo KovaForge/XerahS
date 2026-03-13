@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="XerahS.UI.Views.ToolsView">
 
-    <Grid>
+    <Grid Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
             <TextBlock Classes="IconGlyph"
                        FontSize="64"

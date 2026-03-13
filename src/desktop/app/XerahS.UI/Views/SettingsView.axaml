@@ -13,7 +13,9 @@
         <vm:SettingsViewModel/>
     </Design.DataContext>
 
-    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24" MaxWidth="420">
             <TextBlock Classes="IconGlyph"
                        FontSize="64"
