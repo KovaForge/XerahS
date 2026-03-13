@@ -179,9 +179,11 @@
                 </Border>
             </SplitView.Pane>
 
-            <TransitioningContentControl Name="ContentFrame"
-                                         HorizontalContentAlignment="Stretch"
-                                         VerticalContentAlignment="Stretch" />
+            <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <TransitioningContentControl Name="ContentFrame"
+                                             HorizontalContentAlignment="Stretch"
+                                             VerticalContentAlignment="Stretch" />
+            </Border>
         </SplitView>
 
         <!-- Modal Overlay Layer (Bootstrap Style) -->
