@@ -20,7 +20,6 @@
 
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using FluentAvalonia.UI.Controls;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using XerahS.Common;
@@ -36,7 +35,7 @@ namespace XerahS.UI.Views
 
         private void OnLinkClick(object sender, RoutedEventArgs e)
         {
-            if (sender is SettingsExpanderItem item && item.Tag is string url)
+            if (sender is Control { Tag: string url })
             {
                 OpenUrl(url);
             }

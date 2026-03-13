@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:common="using:XerahS.Common"
              xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
@@ -10,220 +9,200 @@
 
     <ScrollViewer Padding="24">
         <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Center">
-            
-            <!-- Header -->
             <StackPanel Spacing="16" HorizontalAlignment="Center" Margin="0,32,0,32">
                 <Image Source="/Assets/Logo.png" Height="128" Width="128" />
-                <TextBlock Text="{x:Static common:AppResources.ProductNameWithVersion}" 
-                           Theme="{StaticResource TitleTextBlockStyle}" 
+                <TextBlock Text="{x:Static common:AppResources.ProductNameWithVersion}"
+                           Theme="{StaticResource TitleTextBlockStyle}"
                            HorizontalAlignment="Center" />
-                 <TextBlock Text="Copyright (c) 2007-2026 ShareX Team" 
-                            Theme="{StaticResource CaptionTextBlockStyle}" 
-                            HorizontalAlignment="Center" Opacity="0.6"/>
+                <TextBlock Text="Copyright (c) 2007-2026 ShareX Team"
+                           Theme="{StaticResource CaptionTextBlockStyle}"
+                           HorizontalAlignment="Center"
+                           Opacity="0.6" />
             </StackPanel>
 
-            <ui:SettingsExpander Header="Links" IsExpanded="True">
-                 <ui:SettingsExpander.IconSource>
-                     <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                        FontSize="16"
-                                        FontWeight="Normal"
-                                        Glyph="{x:Static theming:HostIcons.SectionLinks}"/>
-                 </ui:SettingsExpander.IconSource>
-                 <ui:SettingsExpander.Items>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.XerahSWebsite}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Website" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.GitHub}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="GitHub Project" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="https://github.com/ShareX/XerahS/issues/">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Issues" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Contributors}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Contributors" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Changelog}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Changelog" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.PrivacyPolicy}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Privacy Policy" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Donate}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Donate" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                 </ui:SettingsExpander.Items>
-            </ui:SettingsExpander>
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="16">
+                <Expander Header="Links" IsExpanded="True">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <TextBlock Classes="IconGlyph"
+                                       FontSize="16"
+                                       Text="{x:Static theming:HostIcons.SectionLinks}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="Links"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Expander.Header>
 
-            <ui:SettingsExpander Header="Social" IsExpanded="True">
-                 <ui:SettingsExpander.IconSource>
-                     <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                        FontSize="16"
-                                        FontWeight="Normal"
-                                        Glyph="{x:Static theming:HostIcons.SectionSocial}"/>
-                 </ui:SettingsExpander.IconSource>
-                 <ui:SettingsExpander.Items>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.X}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="X" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Discord}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Discord" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                     <ui:SettingsExpanderItem HorizontalContentAlignment="Stretch" MinWidth="720" IsClickEnabled="True" Cursor="Hand" Click="OnLinkClick" Tag="{x:Static common:Links.Reddit}">
-                         <ui:SettingsExpanderItem.Content>
-                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,8,0">
-                                 <TextBlock Text="Reddit" VerticalAlignment="Center" />
-                                 <TextBlock Grid.Column="1"
-                                            Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:SettingsExpanderItem}}"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Right"
-                                            Opacity="0.75" />
-                             </Grid>
-                         </ui:SettingsExpanderItem.Content>
-                         <ui:SettingsExpanderItem.ActionIconSource>
-                             <ui:FontIconSource FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                FontSize="14"
-                                                FontWeight="Normal"
-                                                Glyph="{x:Static theming:HostIcons.ActionOpenLink}"/>
-                         </ui:SettingsExpanderItem.ActionIconSource>
-                     </ui:SettingsExpanderItem>
-                 </ui:SettingsExpander.Items>
-            </ui:SettingsExpander>
+                    <StackPanel Margin="0,16,0,0" Spacing="8">
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.XerahSWebsite}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Website" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
 
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.GitHub}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="GitHub Project" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="https://github.com/ShareX/XerahS/issues/">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Issues" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.Contributors}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Contributors" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.Changelog}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Changelog" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.PrivacyPolicy}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Privacy Policy" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.Donate}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Donate" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="16">
+                <Expander Header="Social" IsExpanded="True">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <TextBlock Classes="IconGlyph"
+                                       FontSize="16"
+                                       Text="{x:Static theming:HostIcons.SectionSocial}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="Social"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Margin="0,16,0,0" Spacing="8">
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.X}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="X" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.Discord}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Discord" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="SettingsRow" Click="OnLinkClick" Tag="{x:Static common:Links.Reddit}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                                <TextBlock Text="Reddit" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right"
+                                           Opacity="0.75" />
+                                <TextBlock Grid.Column="2"
+                                           Classes="IconGlyph"
+                                           FontSize="14"
+                                           Text="{x:Static theming:HostIcons.ActionOpenLink}" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Expander>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
