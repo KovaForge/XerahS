@@ -34,11 +34,11 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="views|PageView">
+  <Style Selector=":is(views|PageView)">
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
-  <Style Selector="views|SurfaceWindow">
+  <Style Selector=":is(views|SurfaceWindow)">
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
