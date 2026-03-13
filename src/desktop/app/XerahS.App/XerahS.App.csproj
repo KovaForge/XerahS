@@ -196,6 +196,13 @@
           SkipUnchangedFiles="true" />
   </Target>
 
+  <Target Name="RemoveTransitiveVideoEditorWebUiPublishItems" BeforeTargets="_HandleFileConflictsForPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\','/').StartsWith('frontend/dist/'))" />
+    </ItemGroup>
+  </Target>
+
   <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/            -->
   <!-- Each plugin csproj must define <PluginId> (e.g. <PluginId>imgur</PluginId>).  -->
   <!-- To add a new bundled plugin: create its folder, csproj, and plugin.json.      -->

@@ -103,5 +103,12 @@
           DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
+
+  <Target Name="RemoveTransitiveVideoEditorWebUiPublishItems" BeforeTargets="_HandleFileConflictsForPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\','/').StartsWith('frontend/dist/'))" />
+    </ItemGroup>
+  </Target>
 </Project>
 
