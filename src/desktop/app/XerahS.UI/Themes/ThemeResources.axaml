@@ -6,6 +6,8 @@
                      Color="{DynamicResource ShareX.Color.Background.Main}" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"
                      Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
     <SolidColorBrush x:Key="TextFillColorSecondaryBrush"
                      Color="{DynamicResource ShareX.Color.Text.Secondary}" />
     <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush"
