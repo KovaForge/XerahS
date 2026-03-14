@@ -24,6 +24,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 - Never fix post-migration dark-surface regressions one view at a time; always start by fixing the first painted host surface (`SurfaceWindow` / `PageView`) and use a separate `OverlayWindow` base for transparent cases, then extend `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` only for missing neutral compatibility brushes because Avalonia templates can still fall back to black even when child layouts look correct.
 - Never assume explicit `TextBox.Background` is enough for read-only previews; always map the `TextControl*ReadOnly` and related Fluent resource keys in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` because Avalonia's read-only text templates can bypass the normal editable text brushes and fall back to black.
 - Never use outer `Margin` on the first child of a `UserControl` to create themed gutters; always use a painted root `Border` with `Padding` because `UserControl` itself does not own a background and transparent gutter space will fall through to the host surface.
+- Never rely on `VerticalScrollBarVisibility="Visible"` by itself when a scrollbar must stay fully shown; always pair it with `AllowAutoHide="False"` because the Fluent `ScrollViewer` template can still collapse the bar until hover.
 
 ### ContextMenu vs. ContextFlyout
 

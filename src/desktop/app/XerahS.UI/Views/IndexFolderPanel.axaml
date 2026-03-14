@@ -31,6 +31,7 @@
                 <ScrollViewer Grid.Column="0"
                               Padding="0,0,24,0"
                               Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                              AllowAutoHide="False"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Visible">
                     <StackPanel Spacing="16">
@@ -43,6 +44,8 @@
                                 <TextBox Grid.Column="0" Text="{Binding FolderPath}" Watermark="Select folder to index..."
                                          AutomationProperties.Name="Folder Path"/>
                                 <Button Grid.Column="1" Content="Browse" Command="{Binding BrowseFolderCommand}" Margin="8,0,0,0"
+                                        MinWidth="90"
+                                        Classes="accent"
                                         AutomationProperties.Name="Browse Folder"/>
                             </Grid>
                             <TextBlock Text="{Binding FolderPathError}"
@@ -120,6 +123,8 @@
                                 <TextBox Grid.Column="0" Text="{Binding CustomCssFilePath}" Watermark="Path to CSS file"
                                          AutomationProperties.Name="Custom CSS Path"/>
                                 <Button Grid.Column="1" Content="Browse" Command="{Binding BrowseCssCommand}" Margin="8,0,0,0"
+                                        MinWidth="90"
+                                        Classes="accent"
                                         AutomationProperties.Name="Browse CSS File"/>
                             </Grid>
                             <CheckBox IsChecked="{Binding DisplayPath}" Content="Display path for subfolders" AutomationProperties.Name="Display Path for Subfolders"/>
