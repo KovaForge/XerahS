@@ -47,23 +47,23 @@
         <WrapPanel Grid.Row="1"
                    Orientation="Horizontal">
           <Button Content="Clipboard"
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding LoadFromClipboardCommand}"
                   AutomationProperties.Name="Load content from clipboard" />
           <Button Content="Files..."
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddFilesCommand}"
                   AutomationProperties.Name="Add files to upload queue" />
           <Button Content="Folder..."
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddFolderCommand}"
                   AutomationProperties.Name="Add folder contents to upload queue" />
           <Button Content="Text"
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddTextCommand}"
                   AutomationProperties.Name="Add text content to upload queue" />
           <Button Content="URL"
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddURLCommand}"
                   AutomationProperties.Name="Add URL to upload queue" />
         </WrapPanel>
@@ -87,6 +87,7 @@
             <Button Grid.Column="1"
                     Content="Clear Completed"
                     Command="{Binding ClearCompletedCommand}"
+                    Classes="accent"
                     MinHeight="28"
                     Padding="10,4"
                     AutomationProperties.Name="Clear completed and failed items from queue" />
@@ -172,6 +173,7 @@
                           <Button Content="Retry"
                                   Command="{Binding $parent[Window].DataContext.RetryItemCommand}"
                                   CommandParameter="{Binding}"
+                                  Classes="accent"
                                   IsVisible="{Binding IsFailed}"
                                   FontSize="11"
                                   Padding="8,3"
@@ -179,6 +181,7 @@
                           <Button Content="Remove"
                                   Command="{Binding $parent[Window].DataContext.RemoveItemCommand}"
                                   CommandParameter="{Binding}"
+                                  Classes="accent"
                                   IsVisible="{Binding IsPending}"
                                   FontSize="11"
                                   Padding="8,3"
@@ -290,7 +293,7 @@
                       HorizontalAlignment="Right"
                       Spacing="8">
             <Button Content="Cancel"
-                    Classes="footer-button"
+                    Classes="footer-button accent"
                     Command="{Binding CancelUploadCommand}"
                     IsVisible="{Binding IsUploading}"
                     AutomationProperties.Name="Cancel current upload" />
@@ -302,7 +305,7 @@
                     MinWidth="108"
                     AutomationProperties.Name="Upload all pending items" />
             <Button Content="Close"
-                    Classes="footer-button"
+                    Classes="footer-button accent"
                     x:Name="CloseButton"
                     Click="OnCloseClick"
                     AutomationProperties.Name="Close upload window" />
