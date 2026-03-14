@@ -5,6 +5,7 @@
              xmlns:vm="using:XerahS.UI.ViewModels"
              xmlns:views="using:XerahS.UI.Views"
              xmlns:controls="using:XerahS.UI.Controls"
+             xmlns:converters="using:XerahS.UI.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
              x:Class="XerahS.UI.Views.TaskSettingsPanel"
              x:DataType="vm:TaskSettingsViewModel">
@@ -12,6 +13,10 @@
     <Design.DataContext>
         <vm:TaskSettingsViewModel/>
     </Design.DataContext>
+
+    <UserControl.Resources>
+        <converters:EnumToDescriptionConverter x:Key="EnumToDescriptionConverter"/>
+    </UserControl.Resources>
 
     <Grid RowDefinitions="*" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <TabControl Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="300">
@@ -26,6 +31,24 @@
                             <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding UseModernCapture}" Content="Use modern screen capture (Direct3D11)"/>
+                                    <StackPanel Spacing="10" IsVisible="{Binding IsLinuxPlatform}">
+                                        <TextBlock Text="Preferred Linux region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox ItemsSource="{Binding LinuxRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding LinuxRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Preferred Linux Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Automatic keeps the current safe Linux fallback behavior and only prefers a specific native selector when requested."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
                                     <CheckBox IsChecked="{Binding ShowCursor}" Content="Show cursor in screenshots"/>
                                     
                                     <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, Auto, Auto">

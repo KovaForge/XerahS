@@ -153,6 +153,10 @@ namespace XerahS.UI.ViewModels
             nameof(WatchFolderDaemonStatusText),
             nameof(WatchFolderDaemonButtonText),
             nameof(WatchFolderDaemonLastError),
+            nameof(LinuxRegionSelectorCurrentSessionText),
+            nameof(LinuxRegionSelectorPortalBackendText),
+            nameof(LinuxRegionSelectorAvailableText),
+            nameof(LinuxRegionSelectorAutomaticText),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -209,6 +213,8 @@ namespace XerahS.UI.ViewModels
             CaptureShadow = taskSettings.CaptureSettings.CaptureShadow;
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
+            LinuxRegionSelectorPreference = taskSettings.CaptureSettings.LinuxRegionSelectorPreference;
+            RefreshLinuxRegionSelectorDiagnostics();
 
             // Task Settings - File Naming Defaults
             NameFormatPattern = taskSettings.UploadSettings.NameFormatPattern;
@@ -289,6 +295,7 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.CaptureShadow = CaptureShadow;
             taskSettings.CaptureSettings.CaptureClientArea = CaptureClientArea;
             taskSettings.CaptureSettings.UseModernCapture = UseModernCapture;
+            taskSettings.CaptureSettings.LinuxRegionSelectorPreference = LinuxRegionSelectorPreference;
 
             taskSettings.UploadSettings.NameFormatPattern = NameFormatPattern;
             taskSettings.UploadSettings.NameFormatPatternActiveWindow = NameFormatPatternActiveWindow;
@@ -342,6 +349,7 @@ namespace XerahS.UI.ViewModels
             ShowTray = true;
             SilentRun = false;
             SelectedTheme = 0;
+            LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.Automatic;
         }
 
         private static string BuildWatchFolderConfigurationSignature(bool watchFolderEnabled, List<WatchFolderSettings> watchFolderSettings)

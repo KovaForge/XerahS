@@ -7,12 +7,17 @@
                 xmlns:viewcontrols="using:XerahS.UI.Views.Controls"
                 xmlns:vm="using:XerahS.UI.ViewModels"
                 xmlns:controls="using:XerahS.UI.Controls"
+                xmlns:converters="using:XerahS.UI.Converters"
                 x:Class="XerahS.UI.Views.ApplicationSettingsView"
                 x:DataType="vm:SettingsViewModel">
 
     <Design.DataContext>
         <vm:SettingsViewModel/>
     </Design.DataContext>
+
+    <views:PageView.Resources>
+        <converters:EnumToDescriptionConverter x:Key="EnumToDescriptionConverter"/>
+    </views:PageView.Resources>
 
     <Grid RowDefinitions="Auto, *"
           Margin="0"
@@ -510,6 +515,52 @@
                                     CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding UseModernCapture}" Content="Use Modern Screen Capture (Direct3D11 on Windows, XDG Portal on Linux). Requires restart." AutomationProperties.Name="Use Modern Capture"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Linux Region Selector" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Choose which selector XerahS should prefer for Linux interactive region selection."
+                                               TextWrapping="Wrap"/>
+                                    <Grid ColumnDefinitions="120, 16, *">
+                                        <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding LinuxRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding LinuxRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Linux Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding LinuxRegionSelectorCurrentSessionText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorPortalBackendText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorAvailableText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorAutomaticText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
