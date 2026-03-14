@@ -185,3 +185,18 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never partially wire a hosted component's host-facing commands/events; always audit the full host contract and connect every supported action because UI enablement and behavior can depend on subscriber presence, making omissions look like broken features instead of integration gaps.
 - Never put OS-specific wallpaper lookup inside `ShareX.ImageEditor` view models; always expose it through `ShareX.ImageEditor.Hosting` and implement the real lookup in `XerahS.Platform.Abstractions` because the editor is shared across hosts and platforms.
 - Never use the XerahS `[vX.Y.Z]` commit prefix when committing inside `ShareX.ImageEditor` or other shared library submodules; always use `[Type] Use concise description` there because those libraries are versioned independently of the XerahS app.
+
+---
+
+## Linux Capture UX
+
+### Separate Linux Selector Preference From `UseModernCapture`
+
+**Context**: Linux region capture can succeed through several different interactive selectors depending on the session stack: XerahS overlay, XDG portal, desktop-native D-Bus selectors, or `slurp`.
+
+**Lesson**: Do not treat `UseModernCapture` as the only Linux UX decision. Keep it as the broad capture-engine toggle, but layer any user-facing Linux selector choice on top as a more specific preference. Runtime code should:
+
+- allow explicit selector preferences to opt into a native selector even when `UseModernCapture` is off for the general workflow,
+- preserve safe overlay fallback on X11 when the chosen native path is unavailable or fails,
+- stamp overlay follow-up rect/fullscreen captures with `LinuxRegionSelectorPreference = XerahSOverlay` so later Linux crop steps stay on the legacy path instead of accidentally re-entering portal/native logic,
+- expose live diagnostics in the UI (`session`, `portal backend`, `available selectors`, `automatic will prefer`) so users can make informed choices without understanding the full Linux capture stack.
