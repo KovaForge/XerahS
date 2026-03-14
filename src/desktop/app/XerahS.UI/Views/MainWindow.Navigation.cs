@@ -204,7 +204,15 @@ namespace XerahS.UI.Views
         private EditorView CreateEditorView()
         {
             var editorView = new EditorView();
-            EditorTaskButtons.SetVisible(editorView, isVisible: false);
+            void hideTaskButtons()
+            {
+                EditorTaskButtons.SetVisible(editorView, isVisible: false);
+            }
+
+            editorView.DataContextChanged += (_, _) => hideTaskButtons();
+            editorView.AttachedToVisualTree += (_, _) => hideTaskButtons();
+            editorView.Loaded += (_, _) => hideTaskButtons();
+            hideTaskButtons();
             return editorView;
         }
 
