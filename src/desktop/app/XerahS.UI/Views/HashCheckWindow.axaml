@@ -15,7 +15,10 @@
         CanResize="True"
         DragDrop.AllowDrop="True">
 
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="16">
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
 
     <!-- Row 0: File Path -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -137,5 +140,6 @@
                  TextTrimming="CharacterEllipsis"
                  MaxWidth="220" />
     </Grid>
-  </Grid>
+    </Grid>
+  </Border>
 </ui:SurfaceWindow>
