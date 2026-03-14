@@ -48,7 +48,10 @@ namespace XerahS.UI.Services
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            return _platformImpl.CaptureRectAsync(rect, options);
+            var effectiveOptions = NormalizeLinuxOverlayCaptureOptions(
+                options,
+                logPrefix: "[RegionCapture] CaptureRectAsync");
+            return _platformImpl.CaptureRectAsync(rect, effectiveOptions);
         }
 
         public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
@@ -173,30 +176,75 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            var linuxCapability = GetLinuxRegionCaptureCapability(options);
+            var shouldTryLinuxNativeRegionCapture =
+                OperatingSystem.IsLinux() &&
+                (options?.UseModernCapture ?? true) &&
+                (linuxCapability?.SupportsNativeRegionCapture ?? true);
+
             // On Linux, when UseModernCapture is true use the XDG Portal / system dialog for region capture
             // (behaviour prior to commit 58283cb). When false, use in-app overlay with crosshair.
-            if (OperatingSystem.IsLinux() && (options?.UseModernCapture ?? true))
+            if (shouldTryLinuxNativeRegionCapture)
             {
                 try
                 {
                     var portalBitmap = await _platformImpl.CaptureRegionAsync(options);
                     if (portalBitmap != null)
+                    {
                         DebugHelper.WriteLine("[RegionCapture] Region captured via platform (XDG Portal / system dialog).");
-                    return portalBitmap;
+                        return portalBitmap;
+                    }
+
+                    if (linuxCapability?.SupportsLegacyOverlayCapture != true)
+                    {
+                        DebugHelper.WriteLine("[RegionCapture] Platform region capture returned null and overlay fallback is unavailable.");
+                        return null;
+                    }
+
+                    DebugHelper.WriteLine("[RegionCapture] Platform region capture returned null; falling back to XerahS overlay.");
+                }
+                catch (OperationCanceledException)
+                {
+                    DebugHelper.WriteLine("[RegionCapture] Platform region capture cancelled by user.");
+                    return null;
                 }
                 catch (Exception ex)
                 {
+                    if (linuxCapability?.SupportsLegacyOverlayCapture != true)
+                    {
+                        DebugHelper.WriteLine($"[RegionCapture] Platform region capture failed ({ex.Message}) and overlay fallback is unavailable.");
+                        return null;
+                    }
+
                     DebugHelper.WriteLine($"[RegionCapture] Platform region capture failed ({ex.Message}); falling back to overlay.");
-                    // Fall through to overlay path
                 }
             }
+            else if (OperatingSystem.IsLinux() && (options?.UseModernCapture ?? true))
+            {
+                if (linuxCapability?.SupportsLegacyOverlayCapture == true)
+                {
+                    DebugHelper.WriteLine(
+                        $"[RegionCapture] Linux modern region capture unavailable on this system; using overlay fallback. Reason={linuxCapability.Value.Reason}");
+                }
+                else
+                {
+                    DebugHelper.WriteLine(
+                        $"[RegionCapture] Linux modern region capture unavailable and overlay fallback is unsupported. Reason={linuxCapability?.Reason ?? "Unknown"}");
+                    return null;
+                }
+            }
+
+            var effectiveOptions = NormalizeLinuxOverlayCaptureOptions(
+                options,
+                linuxCapability,
+                "[RegionCapture] CaptureRegionAsync");
 
             DateTime sessionStartUtc = DateTime.UtcNow;
             DebugHelper.WriteLine($"[RegionCapture] Milestone: region capture started (+0 ms)");
 
             // 1. Capture cursor BEFORE showing overlay (if ShowCursor is enabled)
             XerahS.Platform.Abstractions.CursorInfo? ghostCursor = null;
-            if (options?.ShowCursor == true)
+            if (effectiveOptions?.ShowCursor == true)
             {
                 try
                 {
@@ -211,7 +259,7 @@ namespace XerahS.UI.Services
             // 2. Capture background for frozen overlay and magnifier BEFORE showing overlay
             // When UseTransparentOverlay is true, or on Linux (slow full-screen capture), skip so overlay appears immediately.
             // After selection we use CaptureRectAsync when fullScreenBitmap is null.
-            bool useFastOverlay = OperatingSystem.IsLinux() || (options?.UseTransparentOverlay ?? false);
+            bool useFastOverlay = OperatingSystem.IsLinux() || (effectiveOptions?.UseTransparentOverlay ?? false);
             SKBitmap? fullScreenBitmap = null;
             if (!useFastOverlay)
             {
@@ -220,7 +268,7 @@ namespace XerahS.UI.Services
                     fullScreenBitmap = await _platformImpl.CaptureFullScreenAsync(new CaptureOptions
                     {
                         ShowCursor = false,
-                        UseModernCapture = options?.UseModernCapture ?? true
+                        UseModernCapture = effectiveOptions?.UseModernCapture ?? true
                     });
                     if (fullScreenBitmap != null)
                     {
@@ -250,10 +298,10 @@ namespace XerahS.UI.Services
                     {
                         Options = new XerahS.RegionCapture.RegionCaptureOptions
                         {
-                            ShowCursor = options?.ShowCursor ?? false,
+                            ShowCursor = effectiveOptions?.ShowCursor ?? false,
                             BackgroundImage = fullScreenBitmap,
                             UseTransparentOverlay = useFastOverlay,
-                            EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(options?.WorkflowId),
+                            EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(effectiveOptions?.WorkflowId),
                             SessionStartUtc = sessionStartUtc,
                         }
                     };
@@ -291,19 +339,19 @@ namespace XerahS.UI.Services
                 return null;
             }
 
-            bool showCursor = options?.ShowCursor == true;
+            bool showCursor = effectiveOptions?.ShowCursor == true;
 
             // 3. Optional delay before capture starts (cancellable)
-            if (options?.CaptureStartDelaySeconds > 0)
+            if (effectiveOptions?.CaptureStartDelaySeconds > 0)
             {
-                var delayMs = (int)Math.Round(options.CaptureStartDelaySeconds * 1000, MidpointRounding.AwayFromZero);
-                var workflowId = string.IsNullOrWhiteSpace(options.WorkflowId) ? "none" : options.WorkflowId;
-                var workflowCategory = string.IsNullOrWhiteSpace(options.WorkflowCategory) ? "Unknown" : options.WorkflowCategory;
-                TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelaySeconds={options.CaptureStartDelaySeconds:F3}, DelayMs={delayMs}");
+                var delayMs = (int)Math.Round(effectiveOptions.CaptureStartDelaySeconds * 1000, MidpointRounding.AwayFromZero);
+                var workflowId = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowId) ? "none" : effectiveOptions.WorkflowId;
+                var workflowCategory = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowCategory) ? "Unknown" : effectiveOptions.WorkflowCategory;
+                TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelaySeconds={effectiveOptions.CaptureStartDelaySeconds:F3}, DelayMs={delayMs}");
 
                 try
                 {
-                    await Task.Delay(delayMs, options.CaptureStartDelayCancellationToken);
+                    await Task.Delay(delayMs, effectiveOptions.CaptureStartDelayCancellationToken);
                     TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelayCompleted=true");
                 }
                 catch (OperationCanceledException)
@@ -325,9 +373,9 @@ namespace XerahS.UI.Services
             var captureOptions = new CaptureOptions
             {
                 ShowCursor = false,
-                UseModernCapture = options?.UseModernCapture ?? true,
-                WorkflowId = options?.WorkflowId,
-                WorkflowCategory = options?.WorkflowCategory
+                UseModernCapture = effectiveOptions?.UseModernCapture ?? true,
+                WorkflowId = effectiveOptions?.WorkflowId,
+                WorkflowCategory = effectiveOptions?.WorkflowCategory
             };
 
             SKBitmap? bitmap = null;
@@ -574,6 +622,62 @@ namespace XerahS.UI.Services
         {
             return OperatingSystem.IsLinux() &&
                    Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        private LinuxRegionCaptureCapability? GetLinuxRegionCaptureCapability(CaptureOptions? options)
+        {
+            if (_platformImpl is ILinuxRegionCaptureCapabilityProvider provider)
+            {
+                return provider.GetLinuxRegionCaptureCapability(options);
+            }
+
+            return null;
+        }
+
+        private CaptureOptions? NormalizeLinuxOverlayCaptureOptions(
+            CaptureOptions? options,
+            string logPrefix)
+        {
+            return NormalizeLinuxOverlayCaptureOptions(options, GetLinuxRegionCaptureCapability(options), logPrefix);
+        }
+
+        private static CaptureOptions? NormalizeLinuxOverlayCaptureOptions(
+            CaptureOptions? options,
+            LinuxRegionCaptureCapability? linuxCapability,
+            string logPrefix)
+        {
+            if (!OperatingSystem.IsLinux() || !(options?.UseModernCapture ?? true))
+            {
+                return options;
+            }
+
+            if (linuxCapability is not { SupportsLegacyOverlayCapture: true } capability)
+            {
+                return options;
+            }
+
+            DebugHelper.WriteLine($"{logPrefix}: forcing UseModernCapture=false. Reason={capability.Reason}");
+            return CloneCaptureOptions(options, useModernCapture: false);
+        }
+
+        private static CaptureOptions CloneCaptureOptions(CaptureOptions? options, bool useModernCapture)
+        {
+            return new CaptureOptions
+            {
+                UseModernCapture = useModernCapture,
+                ShowCursor = options?.ShowCursor ?? true,
+                CaptureTransparent = options?.CaptureTransparent ?? false,
+                UseTransparentOverlay = options?.UseTransparentOverlay ?? false,
+                CaptureShadow = options?.CaptureShadow ?? true,
+                CaptureClientArea = options?.CaptureClientArea ?? false,
+                WorkflowId = options?.WorkflowId,
+                WorkflowCategory = options?.WorkflowCategory,
+                CaptureStartDelaySeconds = options?.CaptureStartDelaySeconds ?? 0,
+                CaptureStartDelayCancellationToken = options?.CaptureStartDelayCancellationToken ?? default,
+                VirtualScreenBoundsForCrop = options?.VirtualScreenBoundsForCrop,
+                PhysicalVirtualScreenBoundsForCrop = options?.PhysicalVirtualScreenBoundsForCrop,
+                PhysicalRectForCrop = options?.PhysicalRectForCrop
+            };
         }
     }
 }

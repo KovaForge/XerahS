@@ -43,11 +43,23 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.X11
     };
 
+    private static readonly LinuxCaptureStage[] X11RegionOrder =
+    {
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.X11,
+        LinuxCaptureStage.Portal
+    };
+
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
         if (context.IsSandboxed)
         {
             return SandboxedOrder;
+        }
+
+        if (!context.IsWayland && request.Kind == LinuxCaptureKind.Region)
+        {
+            return X11RegionOrder;
         }
 
         return DefaultOrder;

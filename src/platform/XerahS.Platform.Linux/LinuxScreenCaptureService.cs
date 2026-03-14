@@ -44,7 +44,7 @@ namespace XerahS.Platform.Linux
     /// Linux screen capture service with multiple fallback methods.
     /// Supports gnome-screenshot, spectacle (KDE), scrot, and import (ImageMagick).
     /// </summary>
-    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime
+    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime, ILinuxRegionCaptureCapabilityProvider
     {
         private readonly LinuxCaptureCoordinator _captureCoordinator;
 
@@ -68,6 +68,11 @@ namespace XerahS.Platform.Linux
         /// </summary>
         public static bool IsWayland =>
             Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
+
+        public LinuxRegionCaptureCapability GetLinuxRegionCaptureCapability(CaptureOptions? options = null)
+        {
+            return LinuxRegionCaptureCapabilityDetector.Detect();
+        }
 
         public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
@@ -164,7 +169,7 @@ namespace XerahS.Platform.Linux
             if (result.IsCancelled)
             {
                 DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture cancelled by provider '{result.ProviderId}'.");
-                return null;
+                throw new OperationCanceledException($"Region capture cancelled by provider '{result.ProviderId}'.");
             }
 
             if (result.Bitmap != null)

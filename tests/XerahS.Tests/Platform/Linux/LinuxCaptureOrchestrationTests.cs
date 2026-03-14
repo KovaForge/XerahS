@@ -29,6 +29,7 @@ using NUnit.Framework;
 using SkiaSharp;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Contracts;
+using XerahS.Platform.Linux.Capture.Detection;
 using XerahS.Platform.Linux.Capture.Orchestration;
 using XerahS.Platform.Linux.Capture.Portal;
 using XerahS.Platform.Linux.Capture.Providers;
@@ -53,6 +54,23 @@ public class LinuxCaptureOrchestrationTests
             LinuxCaptureStage.DesktopDbus,
             LinuxCaptureStage.WaylandProtocol,
             LinuxCaptureStage.X11
+        }));
+    }
+
+    [Test]
+    public void WaterfallPolicy_X11Region_PrefersDesktopDbusAndX11BeforePortal()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "CINNAMON", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[]
+        {
+            LinuxCaptureStage.DesktopDbus,
+            LinuxCaptureStage.X11,
+            LinuxCaptureStage.Portal
         }));
     }
 
@@ -221,6 +239,63 @@ public class LinuxCaptureOrchestrationTests
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseSuccess), Is.False);
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseCancelled), Is.False);
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseFailed), Is.True);
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_X11WithoutNativeSelector_UsesOverlayFallback()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "XFCE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: false,
+                HasKdeScreenShot2: false,
+                HasSlurp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.False);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
+            Assert.That(capability.Reason, Does.Contain("overlay fallback"));
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_X11GnomeSelector_SupportsNativeAndOverlay()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "CINNAMON", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: true,
+                HasKdeScreenShot2: false,
+                HasSlurp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.True);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
+            Assert.That(capability.Reason, Does.Contain("org.gnome.Shell.Screenshot"));
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_RequiresNativePathOnly()
+    {
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: false,
+                HasKdeScreenShot2: false,
+                HasSlurp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.True);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.False);
+            Assert.That(capability.Reason, Does.Contain("XDG Screenshot portal"));
         });
     }
 
