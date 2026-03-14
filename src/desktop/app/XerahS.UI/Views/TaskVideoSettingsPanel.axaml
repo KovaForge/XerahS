@@ -4,9 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:XerahS.UI.ViewModels"
              xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:converters="using:XerahS.UI.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="XerahS.UI.Views.TaskVideoSettingsPanel"
              x:DataType="vm:TaskSettingsViewModel">
+
+    <UserControl.Resources>
+        <converters:EnumToDescriptionConverter x:Key="EnumToDescriptionConverter"/>
+    </UserControl.Resources>
 
     <ScrollViewer Padding="20">
         <StackPanel Spacing="24">
@@ -14,29 +19,50 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="Screen recorder" FontWeight="SemiBold"/>
                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
-                    <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto" RowSpacing="16">
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="FPS:" VerticalAlignment="Center"/>
-                        <NumericUpDown Grid.Row="0" Grid.Column="2" Value="{Binding ScreenRecordFPS}" Minimum="1" Maximum="144" Increment="1" MinWidth="120" HorizontalAlignment="Stretch" AutomationProperties.Name="FPS"/>
+                    <StackPanel Spacing="16">
+                        <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto" RowSpacing="16">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="FPS:" VerticalAlignment="Center"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="2" Value="{Binding ScreenRecordFPS}" Minimum="1" Maximum="144" Increment="1" MinWidth="120" HorizontalAlignment="Stretch" AutomationProperties.Name="FPS"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Duration:" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                            <NumericUpDown Value="{Binding ScreenRecordDuration}" Minimum="0" Maximum="3600" Increment="1" Width="120" AutomationProperties.Name="Recording Duration"/>
-                            <TextBlock Text="seconds (0 to disable)" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Duration:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                <NumericUpDown Value="{Binding ScreenRecordDuration}" Minimum="0" Maximum="3600" Increment="1" Width="120" AutomationProperties.Name="Recording Duration"/>
+                                <TextBlock Text="seconds (0 to disable)" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Start delay:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                <NumericUpDown Value="{Binding ScreenRecordStartDelay}" Minimum="0" Maximum="60" Increment="0.1" FormatString="0.0" Width="120" AutomationProperties.Name="Recording Start Delay"/>
+                                <TextBlock Text="seconds" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Recording intent:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="3" Grid.Column="2" ItemsSource="{Binding RecordingIntents}" SelectedItem="{Binding RecordingIntent}" HorizontalAlignment="Stretch" MinWidth="200" AutomationProperties.Name="Recording Intent"/>
+                            
+                            <!-- Video Codec Selector -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Video Codec:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="4" Grid.Column="2" ItemsSource="{Binding VideoCodecs}" SelectedItem="{Binding ScreenRecordVideoCodec}" HorizontalAlignment="Stretch" MinWidth="200" AutomationProperties.Name="Video Codec"/>
+                        </Grid>
+
+                        <StackPanel Spacing="10" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Preferred Linux recording backend:" VerticalAlignment="Center"/>
+                            <ComboBox ItemsSource="{Binding LinuxRecordingBackendPreferences}"
+                                      SelectedItem="{Binding LinuxRecordingBackendPreference}"
+                                      HorizontalAlignment="Stretch"
+                                      MinWidth="240"
+                                      AutomationProperties.Name="Preferred Linux Recording Backend">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Text="Automatic prefers native or portal-backed recording when available and falls back to FFmpeg when needed."
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Start delay:" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                            <NumericUpDown Value="{Binding ScreenRecordStartDelay}" Minimum="0" Maximum="60" Increment="0.1" FormatString="0.0" Width="120" AutomationProperties.Name="Recording Start Delay"/>
-                            <TextBlock Text="seconds" VerticalAlignment="Center"/>
-                        </StackPanel>
-
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Recording intent:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="3" Grid.Column="2" ItemsSource="{Binding RecordingIntents}" SelectedItem="{Binding RecordingIntent}" HorizontalAlignment="Stretch" MinWidth="200" AutomationProperties.Name="Recording Intent"/>
-                        
-                        <!-- Video Codec Selector -->
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Video Codec:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="4" Grid.Column="2" ItemsSource="{Binding VideoCodecs}" SelectedItem="{Binding ScreenRecordVideoCodec}" HorizontalAlignment="Stretch" MinWidth="200" AutomationProperties.Name="Video Codec"/>
-                    </Grid>
+                    </StackPanel>
                 </Border>
             </StackPanel>
 

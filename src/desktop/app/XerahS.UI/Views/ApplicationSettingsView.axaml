@@ -507,7 +507,7 @@
              <TabItem Header="Advanced">
                 <ScrollViewer Padding="24">
                     <StackPanel Spacing="24">
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" IsVisible="{Binding ShowUseModernCaptureSetting}">
                             <TextBlock Text="Capture Engine" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -561,6 +561,56 @@
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Linux Recording Backend" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Choose which recording backend XerahS should prefer for Linux screen recording workflows."
+                                               TextWrapping="Wrap"/>
+                                    <Grid ColumnDefinitions="120, 16, *">
+                                        <TextBlock Grid.Column="0" Text="Recording backend:" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding LinuxRecordingBackendPreferences}"
+                                                  SelectedItem="{Binding LinuxRecordingBackendPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Linux Recording Backend">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <TextBlock Text="Automatic prefers native or portal-backed recording when available and falls back to FFmpeg when needed."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Wayland Portal Services" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <CheckBox IsChecked="{Binding LinuxUseWaylandPortalServices}"
+                                              Content="Use Wayland portal services for hotkeys, input capture, and open-uri integration. Requires restart."
+                                              AutomationProperties.Name="Use Wayland Portal Services"/>
+                                    <TextBlock Text="This setting controls portal-backed desktop integration on Wayland. It does not choose the Linux screenshot region selector or recording backend."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
