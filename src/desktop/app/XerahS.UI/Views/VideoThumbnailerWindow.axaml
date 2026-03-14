@@ -26,6 +26,7 @@
       <Button Grid.Column="1"
               Content="Browse..."
               Command="{Binding BrowseInputCommand}"
+              Classes="accent"
               Margin="8,0,0,0"
               MinWidth="90"
               AutomationProperties.Name="Browse input file" />
@@ -81,6 +82,7 @@
       <Button Grid.Column="2"
               Content="Browse..."
               Command="{Binding BrowseOutputCommand}"
+              Classes="accent"
               Margin="8,0,0,0"
               MinWidth="90"
               AutomationProperties.Name="Browse output folder" />
@@ -108,6 +110,7 @@
               AutomationProperties.Name="Generate thumbnails" />
       <Button Content="Close"
               Click="OnCloseClick"
+              Classes="accent"
               MinWidth="80"
               AutomationProperties.Name="Close" />
     </StackPanel>
