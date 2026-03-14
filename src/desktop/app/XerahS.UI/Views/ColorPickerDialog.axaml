@@ -19,17 +19,24 @@
         <vm:ColorPickerViewModel />
     </Design.DataContext>
 
-    <Grid Margin="24" ColumnDefinitions="2*, 24, *" RowDefinitions="Auto, 24, *">
-        <!-- Header -->
-        <StackPanel Grid.ColumnSpan="3" Spacing="4">
-            <TextBlock Text="Color Picker" FontSize="26" FontWeight="SemiBold"/>
-            <TextBlock Text="Pick a color, edit values, or sample any pixel on screen."
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                       TextWrapping="Wrap"/>
-        </StackPanel>
+    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+            Padding="24">
+        <Grid ColumnDefinitions="2*, 24, *"
+              RowDefinitions="Auto, 24, *"
+              Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+            <!-- Header -->
+            <StackPanel Grid.ColumnSpan="3" Spacing="4">
+                <TextBlock Text="Color Picker" FontSize="26" FontWeight="SemiBold"/>
+                <TextBlock Text="Pick a color, edit values, or sample any pixel on screen."
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
 
-        <!-- Left Column: Spectrum & Palettes -->
-        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto, 24, *">
+            <!-- Left Column: Spectrum & Palettes -->
+            <Grid Grid.Row="2"
+                  Grid.Column="0"
+                  RowDefinitions="Auto, 24, *"
+                  Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
             
             <!-- Spectrum & Slider -->
             <Grid ColumnDefinitions="*, 16, Auto">
@@ -131,11 +138,14 @@
                     </ItemsControl>
                 </StackPanel>
             </StackPanel>
-        </Grid>
+            </Grid>
 
-        <!-- Right Column: Details -->
-        <ScrollViewer Grid.Row="2" Grid.Column="2" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Spacing="24">
+            <!-- Right Column: Details -->
+            <ScrollViewer Grid.Row="2"
+                          Grid.Column="2"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <StackPanel Spacing="24">
                 
                 <!-- Preview Card -->
                 <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -241,7 +251,8 @@
                         Padding="16">
                     <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" AutomationProperties.Name="Status Message"/>
                 </Border>
-            </StackPanel>
-        </ScrollViewer>
-    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
 </ui:SurfaceWindow>
