@@ -9,16 +9,6 @@
              x:Class="XerahS.UI.Views.HotkeySettingsView"
              x:DataType="vm:HotkeySettingsViewModel">
 
-    <UserControl.Styles>
-        <Style Selector="Button.hotkeyToolbarButton">
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
-        </Style>
-        <Style Selector="Button.hotkeyToolbarButton:disabled">
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-            <Setter Property="Opacity" Value="1" />
-        </Style>
-    </UserControl.Styles>
-
     <Design.DataContext>
         <vm:HotkeySettingsViewModel/>
     </Design.DataContext>

@@ -101,6 +101,37 @@
       <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
     </LinearGradientBrush>
 
+    <LinearGradientBrush x:Key="AccentButtonPointerOverBrush"
+                         StartPoint="0%,0%"
+                         EndPoint="100%,100%"
+                         Opacity="0.92">
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="AccentButtonPressedBrush"
+                         StartPoint="0%,0%"
+                         EndPoint="100%,100%"
+                         Opacity="0.82">
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="AccentButtonDisabledBrush"
+                         StartPoint="0%,0%"
+                         EndPoint="100%,100%"
+                         Opacity="0.55">
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
+      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="AccentButtonForegroundBrush"
+                     Color="White" />
+
+    <SolidColorBrush x:Key="AccentButtonForegroundDisabledBrush"
+                     Color="White"
+                     Opacity="0.78" />
+
     <ControlTheme x:Key="CardBorderTheme" TargetType="Border">
       <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
@@ -121,6 +152,34 @@
 
   <Style Selector=":is(views|SurfaceWindow)">
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <!-- Accent is the default button treatment app-wide. Buttons that intentionally
+       need a different presentation must opt out semantically instead of relying
+       on the stock Fluent default. -->
+  <Style Selector="Button:not(.SettingsRow):not(.ColorSwatchButton):not(.DarkButton):not(.NoAccent)">
+    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForegroundBrush}" />
+  </Style>
+
+  <Style Selector="Button:pointerover:not(.SettingsRow):not(.ColorSwatchButton):not(.DarkButton):not(.NoAccent)">
+    <Setter Property="Background" Value="{DynamicResource AccentButtonPointerOverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentButtonPointerOverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForegroundBrush}" />
+  </Style>
+
+  <Style Selector="Button:pressed:not(.SettingsRow):not(.ColorSwatchButton):not(.DarkButton):not(.NoAccent)">
+    <Setter Property="Background" Value="{DynamicResource AccentButtonPressedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentButtonPressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForegroundBrush}" />
+  </Style>
+
+  <Style Selector="Button:disabled:not(.SettingsRow):not(.ColorSwatchButton):not(.DarkButton):not(.NoAccent)">
+    <Setter Property="Background" Value="{DynamicResource AccentButtonDisabledBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentButtonDisabledBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForegroundDisabledBrush}" />
+    <Setter Property="Opacity" Value="1" />
   </Style>
 
   <Style Selector="ScrollBar /template/ Thumb">
