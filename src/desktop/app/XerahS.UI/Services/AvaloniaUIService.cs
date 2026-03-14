@@ -34,6 +34,7 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
+using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using ShareX.VideoEditor.Hosting;
@@ -99,12 +100,15 @@ namespace XerahS.UI.Services
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 // Create independent Editor Window
-                var editorWindow = new Views.EditorWindow();
+                var editorWindow = new Views.EditorWindow
+                {
+                    ShowTaskModeButtons = taskMode
+                };
 
                 // Create independent ViewModel for this editor instance
-                var editorViewModel = new MainViewModel();
+                var editorOptions = taskMode ? new ImageEditorOptions { ExitConfirmation = false } : null;
+                var editorViewModel = new MainViewModel(editorOptions);
                 editorViewModel.ShowCaptureToolbar = false;
-                editorViewModel.ShowTaskModeButtons = taskMode;
                 editorViewModel.TaskMode = taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 

@@ -163,7 +163,7 @@ namespace XerahS.UI.Views
             switch (tag)
             {
                 case "Editor":
-                    _editorView ??= new EditorView();
+                    _editorView ??= CreateEditorView();
                     contentFrame.Content = _editorView;
                     return true;
                 case "Recording":
@@ -199,6 +199,13 @@ namespace XerahS.UI.Views
                 default:
                     return false;
             }
+        }
+
+        private EditorView CreateEditorView()
+        {
+            var editorView = new EditorView();
+            EditorTaskButtons.SetVisible(editorView, isVisible: false);
+            return editorView;
         }
 
         private void BuildNavigationNodes()

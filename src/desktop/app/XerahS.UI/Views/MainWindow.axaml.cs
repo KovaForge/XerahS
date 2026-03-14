@@ -98,6 +98,11 @@ namespace XerahS.UI.Views
         protected override void OnDataContextChanged(EventArgs e)
         {
             base.OnDataContextChanged(e);
+
+            if (_editorView != null)
+            {
+                EditorTaskButtons.SetVisible(_editorView, isVisible: false);
+            }
         }
 
         private void OnExitClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
