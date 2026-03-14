@@ -21,7 +21,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 ## UI & Theming
 
-- Never fix post-migration dark-surface regressions one view at a time; always extend `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` with the missing neutral Fluent/WinUI compatibility brushes and shared control styles because Avalonia templates can still fall back to black even when windows already use `SurfaceWindow` or `PageView`.
+- Never fix post-migration dark-surface regressions one view at a time; always start by fixing the first painted host surface (`SurfaceWindow` / `PageView`) and use a separate `OverlayWindow` base for transparent cases, then extend `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` only for missing neutral compatibility brushes because Avalonia templates can still fall back to black even when child layouts look correct.
 
 ### ContextMenu vs. ContextFlyout
 

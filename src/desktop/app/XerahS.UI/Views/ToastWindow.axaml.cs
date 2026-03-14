@@ -38,7 +38,7 @@ namespace XerahS.UI.Views;
 /// <summary>
 /// Toast notification window
 /// </summary>
-public partial class ToastWindow : Window
+public partial class ToastWindow : OverlayWindow
 {
     private ToastViewModel? _viewModel;
     private ToastConfig? _config;

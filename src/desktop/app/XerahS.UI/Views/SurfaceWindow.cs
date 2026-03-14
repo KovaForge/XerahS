@@ -23,14 +23,81 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Controls;
+using System;
 
 namespace XerahS.UI.Views;
 
 /// <summary>
-/// Shared top-level surface for standard windows and dialogs so the default
-/// content background lives in theme resources instead of individual XAML files.
+/// Shared top-level surface for standard windows and dialogs. Owns the first
+/// painted client-area surface so transparent layout roots do not fall through
+/// to the stock Fluent window background.
 /// </summary>
 public class SurfaceWindow : Window
 {
+    private Border? _surfaceHost;
+    private bool _isWrappingContent;
+
+    public SurfaceWindow()
+    {
+        PropertyChanged += OnSurfaceWindowPropertyChanged;
+    }
+
+    protected override void OnOpened(EventArgs e)
+    {
+        EnsureSurfaceHost();
+        base.OnOpened(e);
+    }
+
+    private void OnSurfaceWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == ContentProperty)
+        {
+            EnsureSurfaceHost();
+            return;
+        }
+
+        if (e.Property == BackgroundProperty && _surfaceHost != null)
+        {
+            _surfaceHost.Background = Background;
+        }
+    }
+
+    private void EnsureSurfaceHost()
+    {
+        if (_isWrappingContent || Content is not Control content)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(content, _surfaceHost))
+        {
+            return;
+        }
+
+        if (_surfaceHost != null && ReferenceEquals(_surfaceHost.Child, content))
+        {
+            _surfaceHost.Background = Background;
+            return;
+        }
+
+        var host = new Border
+        {
+            Background = Background,
+            Child = content
+        };
+
+        _surfaceHost = host;
+        _isWrappingContent = true;
+
+        try
+        {
+            Content = host;
+        }
+        finally
+        {
+            _isWrappingContent = false;
+        }
+    }
 }

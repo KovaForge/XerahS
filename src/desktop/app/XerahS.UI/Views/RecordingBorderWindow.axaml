@@ -1,4 +1,4 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<ui:OverlayWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -24,4 +24,4 @@
             Background="Transparent"
             CornerRadius="0"/>
 
-</ui:SurfaceWindow>
+</ui:OverlayWindow>
