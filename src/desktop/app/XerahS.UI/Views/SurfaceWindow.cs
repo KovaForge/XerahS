@@ -82,17 +82,17 @@ public class SurfaceWindow : Window
             return;
         }
 
-        var host = new Border
-        {
-            Background = Background,
-            Child = content
-        };
-
-        _surfaceHost = host;
+        var host = _surfaceHost ?? new Border();
+        host.Background = Background;
         _isWrappingContent = true;
 
         try
         {
+            // Detach the XAML-assigned root from Window.Content before reparenting it
+            // into the shared surface host.
+            Content = null;
+            host.Child = content;
+            _surfaceHost = host;
             Content = host;
         }
         finally
