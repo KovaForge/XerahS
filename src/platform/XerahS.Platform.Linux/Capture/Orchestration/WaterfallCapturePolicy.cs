@@ -50,6 +50,13 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.Portal
     };
 
+    private static readonly LinuxCaptureStage[] X11PortalPreferredRegionOrder =
+    {
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.X11
+    };
+
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
         if (context.IsSandboxed)
@@ -59,6 +66,11 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
 
         if (!context.IsWayland && request.Kind == LinuxCaptureKind.Region)
         {
+            if (context.PrefersPortalForRegionCaptureOnX11)
+            {
+                return X11PortalPreferredRegionOrder;
+            }
+
             return X11RegionOrder;
         }
 

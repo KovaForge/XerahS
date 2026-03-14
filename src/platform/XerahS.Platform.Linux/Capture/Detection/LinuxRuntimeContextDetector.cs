@@ -37,7 +37,35 @@ internal static class LinuxRuntimeContextDetector
         string compositor = CompositorDetector.Detect(isWayland, desktop);
         bool isSandboxed = SandboxDetector.IsSandboxed();
         bool hasScreenshotPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Screenshot");
+        bool hasGnomeShellScreenshot = false;
+        bool hasKdeScreenShot2 = false;
 
-        return new LinuxCaptureContext(isWayland, desktop, compositor, isSandboxed, hasScreenshotPortal);
+        if (!isWayland && !isSandboxed)
+        {
+            switch (desktop)
+            {
+                case "GNOME":
+                case "CINNAMON":
+                case "MATE":
+                    hasGnomeShellScreenshot = DesktopCaptureInterfaceChecker.HasGnomeShellScreenshotInterface();
+                    break;
+                case "KDE":
+                case "LXQT":
+                    hasKdeScreenShot2 = DesktopCaptureInterfaceChecker.HasKdeScreenShot2Interface();
+                    break;
+            }
+        }
+
+        var x11PortalSupport = !isWayland && !isSandboxed
+            ? PortalBackendDetector.DetectX11RegionSupport(desktop, hasScreenshotPortal, hasGnomeShellScreenshot, hasKdeScreenShot2)
+            : default;
+
+        return new LinuxCaptureContext(
+            isWayland,
+            desktop,
+            compositor,
+            isSandboxed,
+            hasScreenshotPortal,
+            prefersPortalForRegionCaptureOnX11: x11PortalSupport.PrefersPortalForRegionCaptureOnX11);
     }
 }

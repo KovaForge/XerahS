@@ -75,6 +75,29 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void WaterfallPolicy_X11Region_WithDesktopNativePortal_PrefersPortalFirst()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(
+            isWayland: false,
+            desktop: "XFCE",
+            compositor: "X11",
+            isSandboxed: false,
+            hasScreenshotPortal: true,
+            prefersPortalForRegionCaptureOnX11: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[]
+        {
+            LinuxCaptureStage.Portal,
+            LinuxCaptureStage.DesktopDbus,
+            LinuxCaptureStage.X11
+        }));
+    }
+
+    [Test]
     public void WaterfallPolicy_Sandboxed_UsesPortalOnlyOrder()
     {
         var policy = new WaterfallCapturePolicy();
@@ -281,6 +304,29 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void LinuxRegionCaptureCapabilityDetector_X11DesktopNativePortal_SupportsNativeAndOverlay()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "XFCE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: false,
+                HasKdeScreenShot2: false,
+                HasSlurp: false,
+                HasKnownGoodX11PortalBackend: true,
+                PrefersPortalForRegionCaptureOnX11: true,
+                X11PortalBackendLabel: "xapp"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.True);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
+            Assert.That(capability.Reason, Does.Contain("xapp"));
+            Assert.That(capability.Reason, Does.Contain("XDG portal backend"));
+        });
+    }
+
+    [Test]
     public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_RequiresNativePathOnly()
     {
         var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
@@ -296,6 +342,56 @@ public class LinuxCaptureOrchestrationTests
             Assert.That(capability.SupportsNativeRegionCapture, Is.True);
             Assert.That(capability.SupportsLegacyOverlayCapture, Is.False);
             Assert.That(capability.Reason, Does.Contain("XDG Screenshot portal"));
+        });
+    }
+
+    [Test]
+    public void PortalBackendDetector_X11CinnamonWithXappBackend_PrefersPortal()
+    {
+        var support = PortalBackendDetector.DetectX11RegionSupport(
+            desktop: "CINNAMON",
+            hasScreenshotPortal: true,
+            hasGnomeShellScreenshot: false,
+            hasKdeScreenShot2: false,
+            backends: new PortalBackendSnapshot(
+                HasKde: false,
+                HasGnome: false,
+                HasGtk: false,
+                HasWlr: false,
+                HasHyprland: false,
+                HasLxqt: false,
+                HasXapp: true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(support.HasKnownGoodX11PortalBackend, Is.True);
+            Assert.That(support.PrefersPortalForRegionCaptureOnX11, Is.True);
+            Assert.That(support.BackendLabel, Is.EqualTo("xapp"));
+        });
+    }
+
+    [Test]
+    public void PortalBackendDetector_X11GtkBackendOnly_DoesNotTreatPortalAsKnownGood()
+    {
+        var support = PortalBackendDetector.DetectX11RegionSupport(
+            desktop: "CINNAMON",
+            hasScreenshotPortal: true,
+            hasGnomeShellScreenshot: false,
+            hasKdeScreenShot2: false,
+            backends: new PortalBackendSnapshot(
+                HasKde: false,
+                HasGnome: false,
+                HasGtk: true,
+                HasWlr: false,
+                HasHyprland: false,
+                HasLxqt: false,
+                HasXapp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(support.HasKnownGoodX11PortalBackend, Is.False);
+            Assert.That(support.PrefersPortalForRegionCaptureOnX11, Is.False);
+            Assert.That(support.BackendLabel, Is.Null);
         });
     }
 

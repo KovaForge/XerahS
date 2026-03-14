@@ -94,6 +94,11 @@ internal static class LinuxRegionCaptureCapabilityDetector
                     SupportsNativeRegionCapture: true,
                     SupportsLegacyOverlayCapture: true,
                     Reason: "X11 desktop exposes org.kde.KWin.ScreenShot2 for native region capture."),
+            _ when support.HasKnownGoodX11PortalBackend =>
+                new LinuxRegionCaptureCapability(
+                    SupportsNativeRegionCapture: true,
+                    SupportsLegacyOverlayCapture: true,
+                    Reason: $"X11 desktop can use the {support.X11PortalBackendLabel ?? "desktop-matched"} XDG portal backend for native region capture."),
             _ => new LinuxRegionCaptureCapability(
                 SupportsNativeRegionCapture: false,
                 SupportsLegacyOverlayCapture: true,
@@ -106,6 +111,7 @@ internal static class LinuxRegionCaptureCapabilityDetector
         bool hasGnomeShellScreenshot = false;
         bool hasKdeScreenShot2 = false;
         bool hasSlurp = false;
+        X11PortalRegionSupport x11PortalSupport = default;
 
         if (context.IsWayland)
         {
@@ -126,11 +132,26 @@ internal static class LinuxRegionCaptureCapabilityDetector
                 break;
         }
 
-        return new LinuxRegionCaptureSupportSnapshot(hasGnomeShellScreenshot, hasKdeScreenShot2, hasSlurp);
+        x11PortalSupport = PortalBackendDetector.DetectX11RegionSupport(
+            context.Desktop,
+            context.HasScreenshotPortal,
+            hasGnomeShellScreenshot,
+            hasKdeScreenShot2);
+
+        return new LinuxRegionCaptureSupportSnapshot(
+            hasGnomeShellScreenshot,
+            hasKdeScreenShot2,
+            hasSlurp,
+            HasKnownGoodX11PortalBackend: x11PortalSupport.HasKnownGoodX11PortalBackend,
+            PrefersPortalForRegionCaptureOnX11: x11PortalSupport.PrefersPortalForRegionCaptureOnX11,
+            X11PortalBackendLabel: x11PortalSupport.BackendLabel);
     }
 }
 
 internal readonly record struct LinuxRegionCaptureSupportSnapshot(
     bool HasGnomeShellScreenshot,
     bool HasKdeScreenShot2,
-    bool HasSlurp);
+    bool HasSlurp,
+    bool HasKnownGoodX11PortalBackend = false,
+    bool PrefersPortalForRegionCaptureOnX11 = false,
+    string? X11PortalBackendLabel = null);

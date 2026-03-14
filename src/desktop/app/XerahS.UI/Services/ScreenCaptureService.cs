@@ -48,10 +48,7 @@ namespace XerahS.UI.Services
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            var effectiveOptions = NormalizeLinuxOverlayCaptureOptions(
-                options,
-                logPrefix: "[RegionCapture] CaptureRectAsync");
-            return _platformImpl.CaptureRectAsync(rect, effectiveOptions);
+            return _platformImpl.CaptureRectAsync(rect, options);
         }
 
         public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)

@@ -38,4 +38,6 @@ internal interface ILinuxCaptureContext
     bool HasScreenshotPortal { get; }
 
     bool ShouldTryPortal { get; }
+
+    bool PrefersPortalForRegionCaptureOnX11 { get; }
 }
