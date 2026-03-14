@@ -44,6 +44,49 @@
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
+  <!-- Common container controls tend to fall back to opaque Fluent surfaces.
+       Scope them to shared page/window hosts so transparent gaps resolve to the
+       app surface instead of black. Local values in individual XAML files still win. -->
+  <Style Selector=":is(views|PageView) ScrollViewer">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) ScrollViewer">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|PageView) ListBox">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) ListBox">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|PageView) TabControl">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) TabControl">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|PageView) TreeView">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) TreeView">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|PageView) DataGrid">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) DataGrid">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
   <Style Selector="Separator.ToolbarSeparator">
     <Setter Property="Width" Value="1" />
     <Setter Property="MinHeight" Value="24" />
