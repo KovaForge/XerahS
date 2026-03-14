@@ -19,6 +19,12 @@
         <vm:ColorPickerViewModel />
     </Design.DataContext>
 
+    <ui:SurfaceWindow.Styles>
+        <Style Selector="Button.ColorSwatchButton">
+            <Setter Property="ToolTip.Placement" Value="Top" />
+        </Style>
+    </ui:SurfaceWindow.Styles>
+
     <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
             Padding="24">
         <Grid ColumnDefinitions="2*, 24, *"
@@ -86,6 +92,7 @@
                             <DataTemplate>
                                 <Button Command="{Binding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
+                                        Classes="ColorSwatchButton"
                                         Padding="0" Width="26" Height="26"
                                         Background="Transparent" BorderThickness="0"
                                         HorizontalContentAlignment="Stretch"
@@ -120,6 +127,7 @@
                             <DataTemplate>
                                 <Button Command="{Binding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
+                                        Classes="ColorSwatchButton"
                                         Padding="0" Width="26" Height="26"
                                         Background="Transparent" BorderThickness="0"
                                         HorizontalContentAlignment="Stretch"
