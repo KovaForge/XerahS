@@ -35,6 +35,9 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Media.Encoders;
 using XerahS.Platform.Abstractions;
+#if WINDOWS
+using XerahS.Platform.Windows;
+#endif
 using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
@@ -146,10 +149,14 @@ public partial class App : Application
             };
             _baseTitle = desktop.MainWindow.Title ?? AppResources.ProductNameWithVersion;
 
-            // Use Avalonia's built-in clipboard (replaces Windows Forms clipboard for desktop app)
+            // Use native Win32 clipboard on Windows so image formats are published explicitly.
+#if WINDOWS
+            PlatformServices.Clipboard = new WindowsClipboardService();
+#else
             PlatformServices.Clipboard = new Services.AvaloniaClipboardService(
                 desktop.MainWindow.Clipboard!,
                 desktop.MainWindow.StorageProvider);
+#endif
 
             // Apply window state based on SilentRun.
             // We avoid starting minimized because some Windows setups can leave a minimized
