@@ -30,6 +30,8 @@ namespace XerahS.UI.ViewModels
     public partial class SettingsViewModel
     {
         public bool IsMacOS => OperatingSystem.IsMacOS();
+        public bool IsWindowsPlatform => OperatingSystem.IsWindows();
+        public bool ShowUseModernCaptureSetting => OperatingSystem.IsWindows();
 
         // True on platforms where system panels use dark backgrounds (macOS menu bar, GNOME/KDE top bar).
         // Controls visibility of the white tray icon option.
@@ -43,6 +45,20 @@ namespace XerahS.UI.ViewModels
                 if (SettingsManager.Settings.UseWhiteShareXIcon != value)
                 {
                     SettingsManager.Settings.UseWhiteShareXIcon = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool LinuxUseWaylandPortalServices
+        {
+            get => SettingsManager.Settings.LinuxUseWaylandPortalServices ?? ResolveLegacyLinuxWaylandPortalServicesSetting();
+            set
+            {
+                bool currentValue = SettingsManager.Settings.LinuxUseWaylandPortalServices ?? ResolveLegacyLinuxWaylandPortalServicesSetting();
+                if (currentValue != value || SettingsManager.Settings.LinuxUseWaylandPortalServices == null)
+                {
+                    SettingsManager.Settings.LinuxUseWaylandPortalServices = value;
                     OnPropertyChanged();
                 }
             }
@@ -223,6 +239,11 @@ namespace XerahS.UI.ViewModels
                     // TODO: Call platform-specific context menu registration service
                 }
             }
+        }
+
+        private static bool ResolveLegacyLinuxWaylandPortalServicesSetting()
+        {
+            return SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
         }
 
         public bool EnableSendToIntegration

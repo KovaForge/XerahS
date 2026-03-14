@@ -55,13 +55,15 @@ namespace XerahS.UI.Services
         {
             LinuxRegionCaptureCapability? linuxCapability =
                 OperatingSystem.IsLinux() ? GetLinuxRegionCaptureCapability(options) : null;
+            var effectiveLinuxPreference = ResolveEffectiveLinuxRegionSelectorPreference(options, linuxCapability);
             bool canUseLinuxOverlayFallback = linuxCapability?.SupportsLegacyOverlayCapture == true;
-            bool shouldTryLinuxNativeSelection = ShouldTryLinuxNativeRegionCapture(options, linuxCapability);
+            bool shouldTryLinuxNativeSelection = ShouldTryLinuxNativeRegionCapture(effectiveLinuxPreference, linuxCapability);
 
             if (shouldTryLinuxNativeSelection)
             {
                 var nativeSelectionOptions = NormalizeLinuxNativeCaptureOptions(
                     options,
+                    effectiveLinuxPreference,
                     "[RegionSelection] SelectRegionAsync");
 
                 try
@@ -206,18 +208,19 @@ namespace XerahS.UI.Services
         {
             LinuxRegionCaptureCapability? linuxCapability =
                 OperatingSystem.IsLinux() ? GetLinuxRegionCaptureCapability(options) : null;
-            var linuxPreference = GetLinuxRegionSelectorPreference(options);
+            var effectiveLinuxPreference = ResolveEffectiveLinuxRegionSelectorPreference(options, linuxCapability);
             bool canUseLinuxOverlayFallback = linuxCapability?.SupportsLegacyOverlayCapture == true;
-            bool shouldTryLinuxNativeRegionCapture = ShouldTryLinuxNativeRegionCapture(options, linuxCapability);
+            bool shouldTryLinuxNativeRegionCapture = ShouldTryLinuxNativeRegionCapture(effectiveLinuxPreference, linuxCapability);
 
             if (shouldTryLinuxNativeRegionCapture)
             {
                 var nativeCaptureOptions = NormalizeLinuxNativeCaptureOptions(
                     options,
+                    effectiveLinuxPreference,
                     "[RegionCapture] CaptureRegionAsync");
 
                 if (OperatingSystem.IsLinux() &&
-                    linuxPreference == LinuxInteractiveRegionSelectorPreference.XerahSOverlay &&
+                    effectiveLinuxPreference == LinuxInteractiveRegionSelectorPreference.XerahSOverlay &&
                     !canUseLinuxOverlayFallback)
                 {
                     DebugHelper.WriteLine("[RegionCapture] XerahS overlay was requested but is unavailable; trying a native selector fallback.");
@@ -256,21 +259,17 @@ namespace XerahS.UI.Services
                     DebugHelper.WriteLine($"[RegionCapture] Platform region capture failed ({ex.Message}); falling back to overlay.");
                 }
             }
-            else if (OperatingSystem.IsLinux() && linuxPreference == LinuxInteractiveRegionSelectorPreference.XerahSOverlay && !canUseLinuxOverlayFallback)
-            {
-                DebugHelper.WriteLine("[RegionCapture] XerahS overlay was requested, but this Linux session does not support legacy overlay capture.");
-            }
-            else if (OperatingSystem.IsLinux() && (options?.UseModernCapture ?? true))
+            else if (OperatingSystem.IsLinux())
             {
                 if (canUseLinuxOverlayFallback)
                 {
                     DebugHelper.WriteLine(
-                        $"[RegionCapture] Linux modern region capture unavailable on this system; using overlay fallback. Reason={linuxCapability?.Reason ?? "Unknown"}");
+                        $"[RegionCapture] Linux region capture will use the XerahS overlay for selector '{effectiveLinuxPreference}'. Reason={linuxCapability?.Reason ?? "Unknown"}");
                 }
                 else
                 {
                     DebugHelper.WriteLine(
-                        $"[RegionCapture] Linux modern region capture unavailable and overlay fallback is unsupported. Reason={linuxCapability?.Reason ?? "Unknown"}");
+                        $"[RegionCapture] Linux selector '{effectiveLinuxPreference}' is unavailable and overlay fallback is unsupported. Reason={linuxCapability?.Reason ?? "Unknown"}");
                     return null;
                 }
             }
@@ -714,44 +713,51 @@ namespace XerahS.UI.Services
                 return options;
             }
 
-            bool useModernCapture = options?.UseModernCapture ?? true;
-            bool requiresSelectorOverride =
-                GetLinuxRegionSelectorPreference(options) != LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+            bool alreadyOnLegacyLinuxPath = options?.LinuxForceLegacyCapturePath == true &&
+                GetLinuxRegionSelectorPreference(options) == LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
 
-            if (!useModernCapture && !requiresSelectorOverride)
+            if (alreadyOnLegacyLinuxPath)
             {
                 return options;
             }
 
-            if (useModernCapture)
-            {
-                DebugHelper.WriteLine($"{logPrefix}: forcing UseModernCapture=false. Reason={capability.Reason}");
-            }
-            else
-            {
-                DebugHelper.WriteLine($"{logPrefix}: forcing Linux overlay follow-up capture to stay on the legacy path.");
-            }
+            DebugHelper.WriteLine($"{logPrefix}: forcing Linux overlay follow-up capture to stay on the legacy path. Reason={capability.Reason}");
 
             return CloneCaptureOptions(
                 options,
-                useModernCapture: false,
-                linuxRegionSelectorPreference: LinuxInteractiveRegionSelectorPreference.XerahSOverlay);
+                useModernCapture: options?.UseModernCapture ?? true,
+                linuxRegionSelectorPreference: LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+                linuxForceLegacyCapturePath: true);
         }
 
-        private static CaptureOptions? NormalizeLinuxNativeCaptureOptions(CaptureOptions? options, string logPrefix)
+        private static CaptureOptions? NormalizeLinuxNativeCaptureOptions(
+            CaptureOptions? options,
+            LinuxInteractiveRegionSelectorPreference effectivePreference,
+            string logPrefix)
         {
-            if (!OperatingSystem.IsLinux() || (options?.UseModernCapture ?? true))
+            if (!OperatingSystem.IsLinux())
             {
                 return options;
             }
 
-            DebugHelper.WriteLine(
-                $"{logPrefix}: forcing UseModernCapture=true for requested Linux selector '{GetLinuxRegionSelectorPreference(options)}'.");
-            return CloneCaptureOptions(options, useModernCapture: true);
+            bool needsClone = options?.LinuxForceLegacyCapturePath == true ||
+                GetLinuxRegionSelectorPreference(options) != effectivePreference;
+
+            if (!needsClone)
+            {
+                return options;
+            }
+
+            DebugHelper.WriteLine($"{logPrefix}: selecting Linux native selector '{effectivePreference}'.");
+            return CloneCaptureOptions(
+                options,
+                useModernCapture: options?.UseModernCapture ?? true,
+                linuxRegionSelectorPreference: effectivePreference,
+                linuxForceLegacyCapturePath: false);
         }
 
         private static bool ShouldTryLinuxNativeRegionCapture(
-            CaptureOptions? options,
+            LinuxInteractiveRegionSelectorPreference effectivePreference,
             LinuxRegionCaptureCapability? linuxCapability)
         {
             if (!OperatingSystem.IsLinux())
@@ -762,14 +768,46 @@ namespace XerahS.UI.Services
             bool canUseLinuxOverlayFallback = linuxCapability?.SupportsLegacyOverlayCapture == true;
             bool supportsNativeRegionCapture = linuxCapability?.SupportsNativeRegionCapture ?? true;
 
-            return GetLinuxRegionSelectorPreference(options) switch
+            return effectivePreference switch
             {
                 LinuxInteractiveRegionSelectorPreference.XerahSOverlay => !canUseLinuxOverlayFallback && supportsNativeRegionCapture,
                 LinuxInteractiveRegionSelectorPreference.PortalDialog or
                     LinuxInteractiveRegionSelectorPreference.DesktopNative or
                     LinuxInteractiveRegionSelectorPreference.Slurp => true,
-                _ => (options?.UseModernCapture ?? true) && supportsNativeRegionCapture
+                _ => supportsNativeRegionCapture
             };
+        }
+
+        private LinuxInteractiveRegionSelectorPreference ResolveEffectiveLinuxRegionSelectorPreference(
+            CaptureOptions? options,
+            LinuxRegionCaptureCapability? linuxCapability)
+        {
+            var preference = GetLinuxRegionSelectorPreference(options);
+            if (!OperatingSystem.IsLinux() || preference != LinuxInteractiveRegionSelectorPreference.Automatic)
+            {
+                return preference;
+            }
+
+            if ((options?.UseModernCapture == false) && linuxCapability?.SupportsLegacyOverlayCapture == true)
+            {
+                return LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+            }
+
+            var diagnostics = GetLinuxRegionSelectorDiagnostics();
+            if (diagnostics?.AutomaticPreference is { } automaticPreference &&
+                automaticPreference != LinuxInteractiveRegionSelectorPreference.Automatic)
+            {
+                return automaticPreference;
+            }
+
+            if (linuxCapability?.SupportsLegacyOverlayCapture == true)
+            {
+                return LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+            }
+
+            return linuxCapability?.SupportsNativeRegionCapture == true
+                ? LinuxInteractiveRegionSelectorPreference.PortalDialog
+                : LinuxInteractiveRegionSelectorPreference.Automatic;
         }
 
         private static LinuxInteractiveRegionSelectorPreference GetLinuxRegionSelectorPreference(CaptureOptions? options)
@@ -780,7 +818,8 @@ namespace XerahS.UI.Services
         private static CaptureOptions CloneCaptureOptions(
             CaptureOptions? options,
             bool useModernCapture,
-            LinuxInteractiveRegionSelectorPreference? linuxRegionSelectorPreference = null)
+            LinuxInteractiveRegionSelectorPreference? linuxRegionSelectorPreference = null,
+            bool? linuxForceLegacyCapturePath = null)
         {
             return new CaptureOptions
             {
@@ -788,6 +827,7 @@ namespace XerahS.UI.Services
                 LinuxRegionSelectorPreference =
                     linuxRegionSelectorPreference ?? options?.LinuxRegionSelectorPreference ??
                     LinuxInteractiveRegionSelectorPreference.Automatic,
+                LinuxForceLegacyCapturePath = linuxForceLegacyCapturePath ?? options?.LinuxForceLegacyCapturePath ?? false,
                 ShowCursor = options?.ShowCursor ?? true,
                 CaptureTransparent = options?.CaptureTransparent ?? false,
                 UseTransparentOverlay = options?.UseTransparentOverlay ?? false,

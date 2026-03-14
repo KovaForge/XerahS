@@ -214,6 +214,7 @@ namespace XerahS.UI.ViewModels
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
             LinuxRegionSelectorPreference = taskSettings.CaptureSettings.LinuxRegionSelectorPreference;
+            LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(taskSettings.CaptureSettings);
             RefreshLinuxRegionSelectorDiagnostics();
 
             // Task Settings - File Naming Defaults
@@ -296,6 +297,7 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.CaptureClientArea = CaptureClientArea;
             taskSettings.CaptureSettings.UseModernCapture = UseModernCapture;
             taskSettings.CaptureSettings.LinuxRegionSelectorPreference = LinuxRegionSelectorPreference;
+            taskSettings.CaptureSettings.LinuxRecordingBackendPreference = LinuxRecordingBackendPreference;
 
             taskSettings.UploadSettings.NameFormatPattern = NameFormatPattern;
             taskSettings.UploadSettings.NameFormatPatternActiveWindow = NameFormatPatternActiveWindow;
@@ -350,6 +352,15 @@ namespace XerahS.UI.ViewModels
             SilentRun = false;
             SelectedTheme = 0;
             LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.Automatic;
+            LinuxRecordingBackendPreference = XerahS.RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.Automatic;
+        }
+
+        private static RegionCapture.ScreenRecording.LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)
+        {
+            return captureSettings.LinuxRecordingBackendPreference ??
+                (captureSettings.UseModernCapture
+                    ? RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.Automatic
+                    : RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.FFmpeg);
         }
 
         private static string BuildWatchFolderConfigurationSignature(bool watchFolderEnabled, List<WatchFolderSettings> watchFolderSettings)

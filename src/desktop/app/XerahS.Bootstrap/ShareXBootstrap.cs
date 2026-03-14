@@ -54,7 +54,7 @@ namespace XerahS.Bootstrap
                     InitializeLogging(options.LogPath);
                 }
 
-                // 2. Load configuration (must be before platform init so UseModernCapture is available)
+                // 2. Load configuration (must be before platform init so Linux portal service preferences are available)
                 SettingsManager.LoadInitialSettings();
                 result.ConfigurationLoaded = true;
 
@@ -247,11 +247,22 @@ namespace XerahS.Bootstrap
         /// </summary>
         private static void InitializeLinuxPlatform()
         {
-            bool useModernCapture = Core.SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
-            DebugHelper.WriteLine($"Linux: UseModernCapture={useModernCapture}");
-            Platform.Linux.LinuxPlatform.Initialize(useModernCapture: useModernCapture);
+            bool useWaylandPortalServices = ResolveLinuxWaylandPortalServicesSetting();
+            DebugHelper.WriteLine($"Linux: UseWaylandPortalServices={useWaylandPortalServices}");
+            Platform.Linux.LinuxPlatform.Initialize(useWaylandPortalServices: useWaylandPortalServices);
         }
 #endif
+
+        private static bool ResolveLinuxWaylandPortalServicesSetting()
+        {
+            bool? explicitSetting = Core.SettingsManager.Settings?.LinuxUseWaylandPortalServices;
+            if (explicitSetting.HasValue)
+            {
+                return explicitSetting.Value;
+            }
+
+            return Core.SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
+        }
 
         /// <summary>
         /// Asynchronously initializes platform-specific recording capabilities.

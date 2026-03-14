@@ -32,6 +32,8 @@ namespace XerahS.UI.ViewModels
     {
         #region Capture Settings
 
+        public bool ShowUseModernCaptureSetting => OperatingSystem.IsWindows();
+
         public bool UseModernCapture
         {
             get => _settings.CaptureSettings.UseModernCapture;
@@ -60,6 +62,23 @@ namespace XerahS.UI.ViewModels
 
         public LinuxInteractiveRegionSelectorPreference[] LinuxRegionSelectorPreferences =>
             Enum.GetValues<LinuxInteractiveRegionSelectorPreference>();
+
+        public LinuxRecordingBackendPreference LinuxRecordingBackendPreference
+        {
+            get => ResolveLinuxRecordingBackendPreference(_settings.CaptureSettings);
+            set
+            {
+                if (ResolveLinuxRecordingBackendPreference(_settings.CaptureSettings) != value ||
+                    _settings.CaptureSettings.LinuxRecordingBackendPreference == null)
+                {
+                    _settings.CaptureSettings.LinuxRecordingBackendPreference = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public LinuxRecordingBackendPreference[] LinuxRecordingBackendPreferences =>
+            Enum.GetValues<LinuxRecordingBackendPreference>();
 
         public bool ShowCursor
         {
@@ -221,6 +240,14 @@ namespace XerahS.UI.ViewModels
                     OnPropertyChanged();
                 }
             }
+        }
+
+        private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)
+        {
+            return captureSettings.LinuxRecordingBackendPreference ??
+                (captureSettings.UseModernCapture
+                    ? LinuxRecordingBackendPreference.Automatic
+                    : LinuxRecordingBackendPreference.FFmpeg);
         }
 
         #endregion

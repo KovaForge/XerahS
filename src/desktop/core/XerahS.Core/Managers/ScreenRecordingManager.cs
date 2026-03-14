@@ -358,11 +358,43 @@ public class ScreenRecordingManager
         bool isWayland = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
         bool hasNativeFactory = ScreenRecorderService.NativeRecordingServiceFactory != null;
 
-        DebugHelper.WriteLine($"ShouldForceFallback: isWayland={isWayland}, hasNativeFactory={hasNativeFactory}, UseModernCapture={options.UseModernCapture}");
+        DebugHelper.WriteLine(
+            $"ShouldForceFallback: isWayland={isWayland}, hasNativeFactory={hasNativeFactory}, " +
+            $"UseModernCapture={options.UseModernCapture}, LinuxRecordingBackendPreference={options.LinuxRecordingBackendPreference}");
 
-        // Check UseModernCapture override: if false, force FFmpeg fallback
-        // BUT on Wayland, FFmpeg x11grab doesn't work, so prefer native recording if available
-        if (!options.UseModernCapture)
+        if (OperatingSystem.IsLinux())
+        {
+            switch (options.LinuxRecordingBackendPreference)
+            {
+                case LinuxRecordingBackendPreference.Native:
+                    if (hasNativeFactory)
+                    {
+                        TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux native recording backend requested -> using native backend");
+                        return false;
+                    }
+
+                    TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux native recording backend requested but unavailable -> using FFmpeg fallback");
+                    return true;
+                case LinuxRecordingBackendPreference.FFmpeg:
+                    if (isWayland && hasNativeFactory)
+                    {
+                        TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux FFmpeg fallback requested on Wayland -> using native backend because x11grab is unavailable");
+                        return false;
+                    }
+
+                    if (isWayland && !hasNativeFactory)
+                    {
+                        DebugHelper.WriteLine("WARNING: Linux FFmpeg fallback requested on Wayland but native recording is unavailable.");
+                    }
+
+                    TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux FFmpeg fallback backend requested -> using FFmpeg");
+                    return true;
+            }
+        }
+
+        // On non-Linux platforms, UseModernCapture still selects between native and fallback recording paths.
+        // Linux now uses LinuxRecordingBackendPreference instead.
+        if (!OperatingSystem.IsLinux() && !options.UseModernCapture)
         {
             if (isWayland && hasNativeFactory)
             {
@@ -885,7 +917,8 @@ public class ScreenRecordingManager
             Region = source.Region,
             OutputPath = outputPath ?? source.OutputPath,
             Settings = source.Settings,
-            UseModernCapture = source.UseModernCapture
+            UseModernCapture = source.UseModernCapture,
+            LinuxRecordingBackendPreference = source.LinuxRecordingBackendPreference
         };
     }
 

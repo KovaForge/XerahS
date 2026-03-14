@@ -27,6 +27,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
+using XerahS.RegionCapture.ScreenRecording;
 
 namespace XerahS.UI.ViewModels
 {
@@ -34,6 +35,9 @@ namespace XerahS.UI.ViewModels
     {
         [ObservableProperty]
         private LinuxInteractiveRegionSelectorPreference _linuxRegionSelectorPreference;
+
+        [ObservableProperty]
+        private LinuxRecordingBackendPreference _linuxRecordingBackendPreference;
 
         [ObservableProperty]
         private string _linuxRegionSelectorCurrentSessionText = string.Empty;
@@ -51,6 +55,9 @@ namespace XerahS.UI.ViewModels
 
         public LinuxInteractiveRegionSelectorPreference[] LinuxRegionSelectorPreferences =>
             Enum.GetValues<LinuxInteractiveRegionSelectorPreference>();
+
+        public LinuxRecordingBackendPreference[] LinuxRecordingBackendPreferences =>
+            Enum.GetValues<LinuxRecordingBackendPreference>();
 
         private void RefreshLinuxRegionSelectorDiagnostics()
         {

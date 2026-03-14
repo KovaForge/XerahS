@@ -279,6 +279,9 @@ public class TaskSettingsCapture
     public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
         LinuxInteractiveRegionSelectorPreference.Automatic;
 
+    [Category("Capture"), DefaultValue(null), Description("Preferred Linux screen recording backend.")]
+    public LinuxRecordingBackendPreference? LinuxRecordingBackendPreference { get; set; } = null;
+
     public bool ShowCursor = true;
     public decimal ScreenshotDelay = 0;
     public bool CaptureTransparent = false;

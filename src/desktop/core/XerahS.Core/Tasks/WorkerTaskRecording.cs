@@ -63,7 +63,8 @@ namespace XerahS.Core.Tasks
                     Mode = mode,
                     Settings = captureSettings.ScreenRecordingSettings,
                     TargetWindowHandle = windowHandle,
-                    UseModernCapture = captureSettings.UseModernCapture
+                    UseModernCapture = captureSettings.UseModernCapture,
+                    LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(captureSettings)
                 };
 
                 // Set region if provided (for Region mode)
@@ -396,6 +397,14 @@ namespace XerahS.Core.Tasks
 
             string detectedPath = PathsManager.GetFFmpegPath();
             return string.IsNullOrWhiteSpace(detectedPath) ? null : detectedPath;
+        }
+
+        private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)
+        {
+            return captureSettings.LinuxRecordingBackendPreference ??
+                (captureSettings.UseModernCapture
+                    ? LinuxRecordingBackendPreference.Automatic
+                    : LinuxRecordingBackendPreference.FFmpeg);
         }
 
         #endregion

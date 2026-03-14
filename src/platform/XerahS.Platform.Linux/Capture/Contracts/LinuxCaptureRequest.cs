@@ -42,7 +42,24 @@ internal sealed class LinuxCaptureRequest
 
     public IWindowService? WindowService { get; }
 
-    public bool UseModernCapture => Options?.UseModernCapture ?? true;
+    public bool UseModernCapture
+    {
+        get
+        {
+            if (!OperatingSystem.IsLinux())
+            {
+                return Options?.UseModernCapture ?? true;
+            }
+
+            if (Options?.LinuxForceLegacyCapturePath == true)
+            {
+                return false;
+            }
+
+            return Kind != LinuxCaptureKind.Region ||
+                   SelectorPreference != LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+        }
+    }
 
     public LinuxInteractiveRegionSelectorPreference SelectorPreference =>
         Options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
