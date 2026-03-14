@@ -30,7 +30,9 @@
                 <!-- Left Column: Settings -->
                 <ScrollViewer Grid.Column="0"
                               Padding="0,0,24,0"
-                              Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                              Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Visible">
                     <StackPanel Spacing="16">
                     
                     <!-- Folder Selection Card -->
