@@ -79,6 +79,49 @@
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
+  <!-- Most tool windows use a bare Grid/StackPanel (or a hosted UserControl with one)
+       as the root content. Paint that first layout surface automatically so tool
+       windows do not fall through to opaque default backgrounds. -->
+  <Style Selector=":is(views|SurfaceWindow) > Grid">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > StackPanel">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > WrapPanel">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > Border">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > ScrollViewer">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > UserControl > Grid">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > UserControl > StackPanel">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > UserControl > WrapPanel">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > UserControl > Border">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) > UserControl > ScrollViewer">
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
   <!-- Standard surface-owning controls should resolve to the app's shared panel/card
        palette instead of stock Fluent dark fills. Local values in individual XAML
        files still win when a specific screen needs a different surface. -->
@@ -100,6 +143,30 @@
 
   <Style Selector="Window DataGrid">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) ListBoxItem">
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) ListBoxItem:selected">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) DataGridColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) DataGridRow">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(views|SurfaceWindow) DataGridCell">
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="Window TextBox">
