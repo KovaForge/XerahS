@@ -104,6 +104,7 @@ public static class QrCodeToolService
         return new CaptureOptions
         {
             UseModernCapture = captureSettings.UseModernCapture,
+            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
             ShowCursor = captureSettings.ShowCursor,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,
@@ -194,4 +195,3 @@ public static class QrCodeToolService
         }
     }
 }
-

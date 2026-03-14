@@ -44,7 +44,7 @@ namespace XerahS.Platform.Linux
     /// Linux screen capture service with multiple fallback methods.
     /// Supports gnome-screenshot, spectacle (KDE), scrot, and import (ImageMagick).
     /// </summary>
-    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime, ILinuxRegionCaptureCapabilityProvider
+    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime, ILinuxRegionCaptureCapabilityProvider, ILinuxRegionSelectorDiagnosticsProvider
     {
         private readonly LinuxCaptureCoordinator _captureCoordinator;
 
@@ -71,7 +71,14 @@ namespace XerahS.Platform.Linux
 
         public LinuxRegionCaptureCapability GetLinuxRegionCaptureCapability(CaptureOptions? options = null)
         {
-            return LinuxRegionCaptureCapabilityDetector.Detect();
+            var context = LinuxRuntimeContextDetector.Detect();
+            var support = LinuxRegionCaptureCapabilityDetector.ProbeSupportSnapshot(context);
+            return LinuxRegionCaptureCapabilityDetector.Detect(context, support);
+        }
+
+        public LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics()
+        {
+            return LinuxRegionSelectorDiagnosticsDetector.Detect();
         }
 
         public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
@@ -162,6 +169,8 @@ namespace XerahS.Platform.Linux
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
             var context = LinuxRuntimeContextDetector.Detect();
+            var preference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture requested with selector preference '{preference}'.");
             var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options);
             var execution = await _captureCoordinator.CaptureWithTraceAsync(request, context).ConfigureAwait(false);
             var result = execution.Result;

@@ -275,6 +275,10 @@ public class TaskSettingsCapture
     [Category("Capture"), DefaultValue(true), Description("Use modern screen capture (Direct3D11) if available.")]
     public bool UseModernCapture { get; set; } = true;
 
+    [Category("Capture"), DefaultValue(LinuxInteractiveRegionSelectorPreference.Automatic), Description("Preferred Linux interactive region selector.")]
+    public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
+        LinuxInteractiveRegionSelectorPreference.Automatic;
+
     public bool ShowCursor = true;
     public decimal ScreenshotDelay = 0;
     public bool CaptureTransparent = false;

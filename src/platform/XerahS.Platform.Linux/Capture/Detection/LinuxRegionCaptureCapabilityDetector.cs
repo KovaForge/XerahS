@@ -38,7 +38,7 @@ internal static class LinuxRegionCaptureCapabilityDetector
 
     public static LinuxRegionCaptureCapability Detect(ILinuxCaptureContext context)
     {
-        return Detect(context, ProbeEnvironment(context));
+        return Detect(context, ProbeSupportSnapshot(context));
     }
 
     internal static LinuxRegionCaptureCapability Detect(
@@ -106,7 +106,7 @@ internal static class LinuxRegionCaptureCapabilityDetector
         };
     }
 
-    private static LinuxRegionCaptureSupportSnapshot ProbeEnvironment(ILinuxCaptureContext context)
+    internal static LinuxRegionCaptureSupportSnapshot ProbeSupportSnapshot(ILinuxCaptureContext context)
     {
         bool hasGnomeShellScreenshot = false;
         bool hasKdeScreenShot2 = false;

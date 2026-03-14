@@ -23,27 +23,19 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Platform.Abstractions;
+using System.Collections.Generic;
 
-namespace XerahS.Platform.Linux.Capture.Contracts;
+namespace XerahS.Platform.Abstractions;
 
-internal sealed class LinuxCaptureRequest
+public sealed record LinuxRegionSelectorDiagnostics(
+    string SessionType,
+    string Desktop,
+    string Compositor,
+    string PortalBackendSummary,
+    LinuxInteractiveRegionSelectorPreference AutomaticPreference,
+    IReadOnlyList<LinuxInteractiveRegionSelectorPreference> AvailablePreferences);
+
+public interface ILinuxRegionSelectorDiagnosticsProvider
 {
-    public LinuxCaptureRequest(LinuxCaptureKind kind, CaptureOptions? options, IWindowService? windowService = null)
-    {
-        Kind = kind;
-        Options = options;
-        WindowService = windowService;
-    }
-
-    public LinuxCaptureKind Kind { get; }
-
-    public CaptureOptions? Options { get; }
-
-    public IWindowService? WindowService { get; }
-
-    public bool UseModernCapture => Options?.UseModernCapture ?? true;
-
-    public LinuxInteractiveRegionSelectorPreference SelectorPreference =>
-        Options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
+    LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics();
 }

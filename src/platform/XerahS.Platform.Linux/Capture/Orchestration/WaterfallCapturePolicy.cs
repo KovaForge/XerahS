@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Collections.Generic;
+using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Contracts;
 
 namespace XerahS.Platform.Linux.Capture.Orchestration;
@@ -57,6 +58,29 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.X11
     };
 
+    private static readonly LinuxCaptureStage[] PortalFirstRegionOrder =
+    {
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.WaylandProtocol,
+        LinuxCaptureStage.X11
+    };
+
+    private static readonly LinuxCaptureStage[] DesktopNativeFirstRegionOrder =
+    {
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.X11,
+        LinuxCaptureStage.Portal
+    };
+
+    private static readonly LinuxCaptureStage[] SlurpFirstRegionOrder =
+    {
+        LinuxCaptureStage.WaylandProtocol,
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.X11
+    };
+
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
         if (context.IsSandboxed)
@@ -66,12 +90,30 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
 
         if (!context.IsWayland && request.Kind == LinuxCaptureKind.Region)
         {
+            switch (request.SelectorPreference)
+            {
+                case LinuxInteractiveRegionSelectorPreference.PortalDialog:
+                    return PortalFirstRegionOrder;
+                case LinuxInteractiveRegionSelectorPreference.DesktopNative:
+                    return DesktopNativeFirstRegionOrder;
+            }
+
             if (context.PrefersPortalForRegionCaptureOnX11)
             {
                 return X11PortalPreferredRegionOrder;
             }
 
             return X11RegionOrder;
+        }
+
+        if (context.IsWayland && request.Kind == LinuxCaptureKind.Region)
+        {
+            return request.SelectorPreference switch
+            {
+                LinuxInteractiveRegionSelectorPreference.Slurp => SlurpFirstRegionOrder,
+                LinuxInteractiveRegionSelectorPreference.PortalDialog => PortalFirstRegionOrder,
+                _ => DefaultOrder
+            };
         }
 
         return DefaultOrder;

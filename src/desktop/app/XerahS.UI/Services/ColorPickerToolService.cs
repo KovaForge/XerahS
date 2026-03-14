@@ -131,6 +131,7 @@ public static class ColorPickerToolService
         var captureOptions = new CaptureOptions
         {
             UseModernCapture = effectiveUseModernCapture,
+            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
             ShowCursor = false,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,
@@ -146,7 +147,8 @@ public static class ColorPickerToolService
             fullScreenBitmap = await PlatformServices.ScreenCapture.CaptureFullScreenAsync(new CaptureOptions
             {
                 ShowCursor = false,
-                UseModernCapture = effectiveUseModernCapture
+                UseModernCapture = effectiveUseModernCapture,
+                LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference
             });
             Console.WriteLine($"[ColorPicker] Initial capture finished. Bitmap: {(fullScreenBitmap != null ? $"{fullScreenBitmap.Width}x{fullScreenBitmap.Height}" : "NULL")}");
         }

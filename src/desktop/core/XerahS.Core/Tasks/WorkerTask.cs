@@ -240,6 +240,7 @@ namespace XerahS.Core.Tasks
                 var captureOptions = new CaptureOptions
                 {
                     UseModernCapture = captureSettings.UseModernCapture,
+                    LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
                     ShowCursor = captureSettings.ShowCursor,
                     UseTransparentOverlay = useTransparentOverlay,
                     CaptureShadow = captureSettings.CaptureShadow,
@@ -526,6 +527,7 @@ namespace XerahS.Core.Tasks
                         var regionCaptureOptions = new CaptureOptions
                         {
                             UseModernCapture = Info.TaskSettings.CaptureSettings.UseModernCapture,
+                            LinuxRegionSelectorPreference = Info.TaskSettings.CaptureSettings.LinuxRegionSelectorPreference,
                             ShowCursor = Info.TaskSettings.CaptureSettings.ShowCursor,
                             WorkflowId = Info.TaskSettings.WorkflowId
                         };
