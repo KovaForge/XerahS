@@ -92,7 +92,7 @@ namespace XerahS.UI.Services
             });
         }
 
-        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image)
+        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
         {
             var tcs = new TaskCompletionSource<SKBitmap?>();
 
@@ -104,6 +104,8 @@ namespace XerahS.UI.Services
                 // Create independent ViewModel for this editor instance
                 var editorViewModel = new MainViewModel();
                 editorViewModel.ShowCaptureToolbar = false;
+                editorViewModel.ShowTaskModeButtons = taskMode;
+                editorViewModel.TaskMode = taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
                 // Wire up UploadRequested to trigger host app upload workflow
@@ -135,7 +137,12 @@ namespace XerahS.UI.Services
                     try
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
-                        if (editorView != null)
+
+                        if (taskMode && editorViewModel.TaskResult == MainViewModel.EditorTaskResult.ContinueNoSave)
+                        {
+                            tcs.TrySetResult(null);
+                        }
+                        else if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
                             tcs.TrySetResult(snapshot);

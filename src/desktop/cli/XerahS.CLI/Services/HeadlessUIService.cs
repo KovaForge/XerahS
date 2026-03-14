@@ -49,7 +49,7 @@ namespace XerahS.CLI.Services
             return Task.CompletedTask;
         }
 
-        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image)
+        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
         {
             Console.Error.WriteLine("[WARNING] Image editor not available in CLI mode.");
             Console.Error.WriteLine("Image dimensions: {0}x{1}", image.Width, image.Height);

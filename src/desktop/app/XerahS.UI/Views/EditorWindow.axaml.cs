@@ -31,6 +31,8 @@ namespace XerahS.UI.Views
 {
     public partial class EditorWindow : SurfaceWindow
     {
+        private MainViewModel? _viewModel;
+
         public EditorWindow()
         {
             InitializeComponent();
@@ -46,12 +48,34 @@ namespace XerahS.UI.Views
 
         protected override void OnDataContextChanged(EventArgs e)
         {
+            if (_viewModel != null)
+            {
+                _viewModel.CloseRequested -= OnViewModelCloseRequested;
+            }
+
             base.OnDataContextChanged(e);
 
-            if (DataContext is MainViewModel viewModel)
+            _viewModel = DataContext as MainViewModel;
+            if (_viewModel != null)
             {
-                viewModel.ShowTaskModeButtons = false;
+                _viewModel.CloseRequested += OnViewModelCloseRequested;
             }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (_viewModel != null)
+            {
+                _viewModel.CloseRequested -= OnViewModelCloseRequested;
+                _viewModel = null;
+            }
+
+            base.OnClosed(e);
+        }
+
+        private void OnViewModelCloseRequested(object? sender, EventArgs e)
+        {
+            Close();
         }
     }
 }
