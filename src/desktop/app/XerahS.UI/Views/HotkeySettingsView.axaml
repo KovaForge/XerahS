@@ -9,6 +9,16 @@
              x:Class="XerahS.UI.Views.HotkeySettingsView"
              x:DataType="vm:HotkeySettingsViewModel">
 
+    <UserControl.Styles>
+        <Style Selector="Button.hotkeyToolbarButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+        <Style Selector="Button.hotkeyToolbarButton:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+    </UserControl.Styles>
+
     <Design.DataContext>
         <vm:HotkeySettingsViewModel/>
     </Design.DataContext>
@@ -23,14 +33,14 @@
             <Border Grid.Row="0" Padding="16" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,16">
                 <StackPanel Spacing="8" Orientation="Horizontal">
-                    <Button Content="Add" Command="{Binding AddCommand}" AutomationProperties.Name="Add Hotkey"/>
-                    <Button Content="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove Hotkey"/>
-                    <Button Content="Duplicate" Command="{Binding DuplicateCommand}" AutomationProperties.Name="Duplicate Hotkey"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Add" Command="{Binding AddCommand}" AutomationProperties.Name="Add Hotkey"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove Hotkey"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Duplicate" Command="{Binding DuplicateCommand}" AutomationProperties.Name="Duplicate Hotkey"/>
                     <Separator Classes="vertical" Height="20"/>
-                    <Button Content="Move Up" Command="{Binding MoveUpCommand}" AutomationProperties.Name="Move Hotkey Up"/>
-                    <Button Content="Move Down" Command="{Binding MoveDownCommand}" AutomationProperties.Name="Move Hotkey Down"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Move Up" Command="{Binding MoveUpCommand}" AutomationProperties.Name="Move Hotkey Up"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Move Down" Command="{Binding MoveDownCommand}" AutomationProperties.Name="Move Hotkey Down"/>
                     <Separator Classes="vertical" Height="20"/>
-                    <Button Content="Reset" Command="{Binding ResetCommand}" AutomationProperties.Name="Reset Hotkeys"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Reset" Command="{Binding ResetCommand}" AutomationProperties.Name="Reset Hotkeys"/>
                 </StackPanel>
             </Border>
 
