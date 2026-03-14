@@ -8,11 +8,46 @@
                      Color="{DynamicResource ShareX.Color.Background.Panel}" />
     <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"
                      Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Main}" />
+    <SolidColorBrush x:Key="LayerFillColorDefaultBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Main}" />
+    <SolidColorBrush x:Key="ControlAltFillColorDefaultBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="SystemControlBackgroundChromeMediumBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="SystemControlBackgroundAltHighBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="SystemControlBackgroundAltMediumBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="SystemControlBackgroundBaseLowBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
+    <SolidColorBrush x:Key="SystemControlBackgroundBaseMediumBrush"
+                     Color="{DynamicResource ShareX.Color.Background.Panel}" />
     <SolidColorBrush x:Key="TextFillColorPrimaryBrush"
                      Color="{DynamicResource ShareX.Color.Text}" />
     <SolidColorBrush x:Key="TextFillColorSecondaryBrush"
                      Color="{DynamicResource ShareX.Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="TextFillColorTertiaryBrush"
+                     Color="{DynamicResource ShareX.Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="TextFillColorDisabledBrush"
+                     Color="{DynamicResource ShareX.Color.Text.Secondary}"
+                     Opacity="0.6" />
+    <SolidColorBrush x:Key="SystemControlForegroundBaseMediumBrush"
+                     Color="{DynamicResource ShareX.Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="SystemControlForegroundBaseLowBrush"
+                     Color="{DynamicResource ShareX.Color.Border}" />
+    <SolidColorBrush x:Key="SystemControlForegroundBaseMediumLowBrush"
+                     Color="{DynamicResource ShareX.Color.Border}" />
     <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush"
+                     Color="{DynamicResource ShareX.Color.Border}" />
+    <SolidColorBrush x:Key="SystemBaseMediumColor"
+                     Color="{DynamicResource ShareX.Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="SystemBaseLowColor"
                      Color="{DynamicResource ShareX.Color.Border}" />
 
     <LinearGradientBrush x:Key="AccentFillColorDefaultBrush"
@@ -44,47 +79,51 @@
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
-  <!-- Common container controls tend to fall back to opaque Fluent surfaces.
-       Scope them to shared page/window hosts so transparent gaps resolve to the
-       app surface instead of black. Local values in individual XAML files still win. -->
-  <Style Selector=":is(views|PageView) ScrollViewer">
+  <!-- Standard surface-owning controls should resolve to the app's shared panel/card
+       palette instead of stock Fluent dark fills. Local values in individual XAML
+       files still win when a specific screen needs a different surface. -->
+  <Style Selector="Window ScrollViewer">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
   </Style>
 
-  <Style Selector=":is(views|SurfaceWindow) ScrollViewer">
+  <Style Selector="Window ListBox">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
   </Style>
 
-  <Style Selector=":is(views|PageView) ListBox">
+  <Style Selector="Window TabControl">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
   </Style>
 
-  <Style Selector=":is(views|SurfaceWindow) ListBox">
+  <Style Selector="Window TreeView">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
   </Style>
 
-  <Style Selector=":is(views|PageView) TabControl">
+  <Style Selector="Window DataGrid">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
   </Style>
 
-  <Style Selector=":is(views|SurfaceWindow) TabControl">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  <Style Selector="Window TextBox">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
-  <Style Selector=":is(views|PageView) TreeView">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  <Style Selector="Window ComboBox">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
-  <Style Selector=":is(views|SurfaceWindow) TreeView">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  <Style Selector="Window NumericUpDown">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
-  <Style Selector=":is(views|PageView) DataGrid">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
-  </Style>
-
-  <Style Selector=":is(views|SurfaceWindow) DataGrid">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+  <Style Selector="Window AutoCompleteBox">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="Separator.ToolbarSeparator">

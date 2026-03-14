@@ -21,6 +21,8 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 ## UI & Theming
 
+- Never fix post-migration dark-surface regressions one view at a time; always extend `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` with the missing neutral Fluent/WinUI compatibility brushes and shared control styles because Avalonia templates can still fall back to black even when windows already use `SurfaceWindow` or `PageView`.
+
 ### ContextMenu vs. ContextFlyout
 
 **Issue**: The old warning against `ContextMenu` was specific to `FluentAvaloniaTheme`. XerahS now uses the official Avalonia `FluentTheme`, so standard `ContextMenu` rendering is no longer blocked by that theme-specific limitation.
