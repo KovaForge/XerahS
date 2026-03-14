@@ -27,6 +27,7 @@
       <Button Grid.Column="1"
               Content="Browse..."
               Command="{Binding BrowseInputCommand}"
+              Classes="accent"
               Margin="8,0,0,0"
               MinWidth="90"
               AutomationProperties.Name="Browse input file" />
@@ -116,6 +117,7 @@
       <Button Grid.Column="2"
               Content="Browse..."
               Command="{Binding BrowseOutputCommand}"
+              Classes="accent"
               Margin="8,0,0,0"
               MinWidth="90"
               AutomationProperties.Name="Browse output folder" />
@@ -142,11 +144,13 @@
               AutomationProperties.Name="Convert video" />
       <Button Content="Stop"
               Command="{Binding StopCommand}"
+              Classes="accent"
               MinWidth="100"
               IsVisible="{Binding IsConverting}"
               AutomationProperties.Name="Stop conversion" />
       <Button Content="Close"
               Click="OnCloseClick"
+              Classes="accent"
               MinWidth="80"
               AutomationProperties.Name="Close" />
     </StackPanel>
