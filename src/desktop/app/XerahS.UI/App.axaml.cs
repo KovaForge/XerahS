@@ -99,6 +99,7 @@ public partial class App : Application
 
             var mainViewModel = new MainViewModel();
             mainViewModel.ApplicationName = AppResources.AppName;
+            mainViewModel.ShowTaskModeButtons = false;
 
             // Wire up UploadRequested for embedded editor in MainWindow
             Services.MainViewModelHelper.WireUploadRequested(mainViewModel);

@@ -25,6 +25,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using ShareX.ImageEditor.Presentation.Theming;
+using ShareX.ImageEditor.Presentation.ViewModels;
 
 namespace XerahS.UI.Views
 {
@@ -41,6 +42,16 @@ namespace XerahS.UI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+
+            if (DataContext is MainViewModel viewModel)
+            {
+                viewModel.ShowTaskModeButtons = false;
+            }
         }
     }
 }
