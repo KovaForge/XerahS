@@ -182,27 +182,11 @@
     <Setter Property="Opacity" Value="1" />
   </Style>
 
-  <Style Selector="ScrollBar /template/ Thumb">
-    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-  </Style>
-
-  <Style Selector="ScrollBar:pointerover /template/ Thumb">
-    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-    <Setter Property="Opacity" Value="0.9" />
-  </Style>
-
-  <Style Selector="ScrollBar:pressed /template/ Thumb">
-    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-    <Setter Property="Opacity" Value="1" />
-  </Style>
-
   <!-- Standard surface-owning controls should resolve to the app's shared panel/card
        palette instead of stock Fluent dark fills. Local values in individual XAML
        files still win when a specific screen needs a different surface. -->
   <Style Selector="Window ScrollViewer">
+    <Setter Property="AllowAutoHide" Value="False" />
     <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
   </Style>
 
