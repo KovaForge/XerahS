@@ -183,6 +183,7 @@
                         </Grid>
                         <Button Content="Pick from screen"
                                 Command="{Binding PickFromScreenCommand}"
+                                Classes="accent"
                                 IsEnabled="{Binding CanPickFromScreen}"
                                 HorizontalAlignment="Stretch"
                                 AutomationProperties.Name="Pick from Screen"/>
@@ -243,10 +244,10 @@
                     <StackPanel Spacing="16">
                         <TextBlock Text="Copy" FontWeight="SemiBold"/>
                         <WrapPanel Orientation="Horizontal">
-                            <Button Content="Copy Hex" Command="{Binding CopyHexCommand}" Margin="0,0,8,8" AutomationProperties.Name="Copy Hex"/>
-                            <Button Content="Copy RGB" Command="{Binding CopyRgbCommand}" Margin="0,0,8,8" AutomationProperties.Name="Copy RGB"/>
-                            <Button Content="Copy HSB" Command="{Binding CopyHsbCommand}" Margin="0,0,8,8" AutomationProperties.Name="Copy HSB"/>
-                            <Button Content="Copy CMYK" Command="{Binding CopyCmykCommand}" Margin="0,0,8,8" AutomationProperties.Name="Copy CMYK"/>
+                            <Button Content="Copy Hex" Command="{Binding CopyHexCommand}" Classes="accent" Margin="0,0,8,8" AutomationProperties.Name="Copy Hex"/>
+                            <Button Content="Copy RGB" Command="{Binding CopyRgbCommand}" Classes="accent" Margin="0,0,8,8" AutomationProperties.Name="Copy RGB"/>
+                            <Button Content="Copy HSB" Command="{Binding CopyHsbCommand}" Classes="accent" Margin="0,0,8,8" AutomationProperties.Name="Copy HSB"/>
+                            <Button Content="Copy CMYK" Command="{Binding CopyCmykCommand}" Classes="accent" Margin="0,0,8,8" AutomationProperties.Name="Copy CMYK"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>
