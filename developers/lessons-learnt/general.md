@@ -100,6 +100,8 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 - Never use Avalonia's fake headless drawing for icon-font smoke tests; always use Skia-backed headless mode (`UseSkia()` and `UseHeadlessDrawing = false`) because glyph resource failures only surface when the font pipeline is actually exercised.
 - Never let feature work alter or bypass existing `ShareX.ImageEditor` theme resources, variants, or bindings unless the task explicitly targets them; always treat theme behavior and visual resource contracts as non-regression requirements because unrelated UI changes can silently break dark/light presentation across the editor.
 - Never collapse Linux modern region-capture failure and user cancellation into the same `null` outcome; always preserve cancellation separately and fall back to the XerahS overlay only for unsupported or failing backends because otherwise `UseModernCapture=true` can block X11 region capture on older desktops.
+- Never force `UseModernCapture=false` for every Linux `CaptureRectAsync`; always scope that downgrade to the overlay fallback flow because direct rect capture on capable X11 desktops should preserve the native portal path.
+- Never move the XDG portal to the front of every X11 region-capture waterfall; always require a desktop-native backend signal (for example KDE, GNOME, LXQt, or XApp) because generic GTK-backed X11 portal sessions can still hang or misroute captures.
 - Never define Tmds.DBus proxy interfaces as nested or inaccessible types; always expose them as top-level public interfaces because the dynamic proxy assembly cannot implement inaccessible interfaces.
 
 
