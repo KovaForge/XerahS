@@ -38,6 +38,7 @@
                       Content="X"
                       Command="{Binding $parent[ListBox].DataContext.RemoveItemCommand}"
                       CommandParameter="{Binding}"
+                      Classes="accent"
                       MinWidth="30" MinHeight="26"
                       Padding="6,2"
                       AutomationProperties.Name="Remove" />
@@ -49,20 +50,24 @@
       <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0" VerticalAlignment="Top">
         <Button Content="Add..."
                 Command="{Binding AddFilesCommand}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Add files" />
         <Button Content="Up"
                 Command="{Binding MoveUpCommand}"
                 CommandParameter="{Binding SelectedItem}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Move up" />
         <Button Content="Down"
                 Command="{Binding MoveDownCommand}"
                 CommandParameter="{Binding SelectedItem}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Move down" />
         <Button Content="Clear"
                 Command="{Binding ClearCommand}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Clear all" />
       </StackPanel>
@@ -120,6 +125,7 @@
               AutomationProperties.Name="Combine images" />
       <Button Content="Close"
               Click="OnCloseClick"
+              Classes="accent"
               MinWidth="80"
               AutomationProperties.Name="Close" />
     </StackPanel>
