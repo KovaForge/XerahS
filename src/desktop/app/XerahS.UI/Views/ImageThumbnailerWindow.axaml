@@ -35,15 +35,18 @@
       <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0" VerticalAlignment="Top">
         <Button Content="Add..."
                 Command="{Binding AddFilesCommand}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Add files" />
         <Button Content="Remove"
                 Command="{Binding RemoveFileCommand}"
                 CommandParameter="{Binding SelectedFile}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Remove file" />
         <Button Content="Clear"
                 Command="{Binding ClearCommand}"
+                Classes="accent"
                 MinWidth="80"
                 AutomationProperties.Name="Clear all" />
       </StackPanel>
@@ -86,6 +89,7 @@
       <Button Grid.Column="2"
               Content="Browse..."
               Command="{Binding BrowseOutputCommand}"
+              Classes="accent"
               Margin="8,0,0,0"
               MinWidth="90"
               AutomationProperties.Name="Browse output folder" />
@@ -111,6 +115,7 @@
               AutomationProperties.Name="Generate thumbnails" />
       <Button Content="Close"
               Click="OnCloseClick"
+              Classes="accent"
               MinWidth="80"
               AutomationProperties.Name="Close" />
     </StackPanel>
