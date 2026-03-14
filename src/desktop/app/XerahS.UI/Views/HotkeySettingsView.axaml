@@ -35,18 +35,24 @@
             </Border>
 
             <!-- Hotkey List -->
-            <ListBox Grid.Row="1"
-                     ItemsSource="{Binding Hotkeys}"
-                     SelectedItem="{Binding SelectedHotkey}"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     AutomationProperties.Name="Hotkeys List">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <views:HotkeySelectionControl Margin="0,0,0,8"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Border Grid.Row="1"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <ListBox ItemsSource="{Binding Hotkeys}"
+                         SelectedItem="{Binding SelectedHotkey}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         AutomationProperties.Name="Hotkeys List">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <views:HotkeySelectionControl Margin="0,0,0,8"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
         </Grid>
         
         <!-- Debug Section -->
@@ -62,7 +68,7 @@
                      CornerRadius="4"
                      Height="200"
                      IsVisible="{Binding #ShowDebugCheckBox.IsChecked}"
-                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                 <Grid RowDefinitions="Auto,*">
                     <TextBlock Grid.Row="0" 
                                Text="DEBUG LOG" 

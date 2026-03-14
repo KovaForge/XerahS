@@ -7,15 +7,22 @@
              x:Class="XerahS.UI.Views.Controls.HotkeySelectionControl"
              x:DataType="vm:HotkeyItemViewModel">
     <UserControl.Styles>
-        <Style Selector="Border.highlighted">
-            <Setter Property="Background" Value="{DynamicResource SystemAccentColorLowBrush}" />
+        <Style Selector="Border.hotkeySurface">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
         </Style>
-        <Style Selector="Border:not(.highlighted)">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+        <Style Selector="Border.hotkeySurface.highlighted">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Border.hotkeyCaptureSurface">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </UserControl.Styles>
 
-    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" 
+    <Border Classes="hotkeySurface"
             BorderThickness="1" 
             CornerRadius="4" 
             Padding="8,4"
@@ -77,8 +84,8 @@
             </Button>
             
             <!-- Hotkey Capture Button -->
-            <Border Grid.Column="4" 
-                    Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" 
+            <Border Grid.Column="4"
+                    Classes="hotkeyCaptureSurface"
                     CornerRadius="3" 
                     Margin="10,0"
                     MinWidth="100">
