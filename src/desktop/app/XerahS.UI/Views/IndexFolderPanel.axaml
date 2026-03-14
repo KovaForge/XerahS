@@ -12,25 +12,26 @@
         <vm:IndexFolderViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*"
-          Margin="24"
-          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
-            <TextBlock Text="Index Folder" Theme="{StaticResource TitleTextBlockStyle}"/>
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-        </StackPanel>
-
-        <!-- Main Content -->
-        <Grid Grid.Row="1"
-              ColumnDefinitions="400, *"
-              ColumnSpan="2"
+    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+            Padding="24">
+        <Grid RowDefinitions="Auto,*"
               Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
-            <!-- Left Column: Settings -->
-            <ScrollViewer Grid.Column="0"
-                          Padding="0,0,24,0"
-                          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
-                <StackPanel Spacing="16">
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
+                <TextBlock Text="Index Folder" Theme="{StaticResource TitleTextBlockStyle}"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+
+            <!-- Main Content -->
+            <Grid Grid.Row="1"
+                  ColumnDefinitions="400, *"
+                  ColumnSpan="2"
+                  Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <!-- Left Column: Settings -->
+                <ScrollViewer Grid.Column="0"
+                              Padding="0,0,24,0"
+                              Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                    <StackPanel Spacing="16">
                     
                     <!-- Folder Selection Card -->
                     <Border Theme="{StaticResource CardBorderTheme}">
@@ -134,13 +135,13 @@
                         </StackPanel>
                     </Border>
 
-                </StackPanel>
-            </ScrollViewer>
+                    </StackPanel>
+                </ScrollViewer>
 
-            <!-- Right Column: Preview & Actions -->
-            <Grid Grid.Column="1"
-                  RowDefinitions="Auto, Auto, *"
-                  Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <!-- Right Column: Preview & Actions -->
+                <Grid Grid.Column="1"
+                      RowDefinitions="Auto, Auto, *"
+                      Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
                 
                 <!-- Action Bar -->
                 <Border Grid.Row="0" Padding="16" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
@@ -168,25 +169,26 @@
                 <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="2" Margin="0,0,0,16" IsVisible="{Binding IsBusy}"/>
 
                 <!-- Text Output -->
-                <Border Grid.Row="2"
-                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        ClipToBounds="True">
-                    <TextBox Text="{Binding OutputText}"
-                             IsReadOnly="True"
-                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                             BorderThickness="0"
-                             TextWrapping="NoWrap"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                             FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
-                             FontSize="12"
-                             AcceptsReturn="True"
-                             AutomationProperties.Name="Output Preview"/>
-                </Border>
+                    <Border Grid.Row="2"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            ClipToBounds="True">
+                        <TextBox Text="{Binding OutputText}"
+                                 IsReadOnly="True"
+                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                 BorderThickness="0"
+                                 TextWrapping="NoWrap"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
+                                 FontSize="12"
+                                 AcceptsReturn="True"
+                                 AutomationProperties.Name="Output Preview"/>
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
-    </Grid>
+    </Border>
 </UserControl>
