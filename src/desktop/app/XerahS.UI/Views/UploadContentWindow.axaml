@@ -13,16 +13,6 @@
         AutomationProperties.Name="Upload content window">
 
   <Window.Styles>
-    <Style Selector="Border.section-card">
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="Padding" Value="12" />
-    </Style>
-    <Style Selector="TextBlock.section-title">
-      <Setter Property="FontSize" Value="14" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
     <Style Selector="Button.source-button">
       <Setter Property="MinWidth" Value="104" />
       <Setter Property="MinHeight" Value="32" />
@@ -129,12 +119,12 @@
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding ErrorMessage}"
                                    FontSize="11"
-                                   Foreground="Red"
+                                   Classes="status-error"
                                    IsVisible="{Binding IsFailed}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding ResultURL}"
                                    FontSize="11"
-                                   Foreground="Green"
+                                   Classes="status-success"
                                    IsVisible="{Binding ResultURL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                    TextTrimming="CharacterEllipsis" />
                         <ProgressBar Value="{Binding ProgressPercent}"

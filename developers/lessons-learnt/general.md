@@ -26,6 +26,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 - Never use outer `Margin` on the first child of a `UserControl` to create themed gutters; always use a painted root `Border` with `Padding` because `UserControl` itself does not own a background and transparent gutter space will fall through to the host surface.
 - Never rely on `VerticalScrollBarVisibility="Visible"` by itself when a scrollbar must stay fully shown; always pair it with `AllowAutoHide="False"` and prefer setting that once in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` because the Fluent `ScrollViewer` template can still collapse the bar until hover.
 - Never rely on `Classes="accent"` being added manually to every new button; always make accent the default in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` and use semantic opt-out classes such as `NoAccent`, `SettingsRow`, or `ColorSwatchButton` because Avalonia Fluent keeps ordinary buttons neutral unless the app supplies a shared default.
+- Never duplicate semantic control classes like `section-header`, `caption`, `readonly`, or status colors inside individual views; always define them once in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` and back them with palette tokens in `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Theming/ShareXTheme.axaml` because local copies stop whole-app theme changes from propagating consistently.
 
 ### ContextMenu vs. ContextFlyout
 

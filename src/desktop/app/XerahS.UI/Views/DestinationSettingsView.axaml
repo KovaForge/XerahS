@@ -129,12 +129,13 @@
                             
                             <!-- Verification Status -->
                             <StackPanel Spacing="16" IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationWarning}">
-                                <Border Background="{DynamicResource SystemFillColorCautionBackground}"
-                                        BorderBrush="#FFA500" BorderThickness="1" CornerRadius="4" Padding="12"
+                                <Border Classes="status-warning"
+                                        BorderThickness="1" CornerRadius="4" Padding="12"
                                         IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationWarning}">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="{Binding SelectedCategory.SelectedInstance.VerificationMessage}"
-                                                   FontWeight="Medium" Foreground="#FFA500"/>
+                                                   Classes="status-warning"
+                                                   FontWeight="Medium"/>
                                         <Expander Header="Details">
                                             <ItemsControl ItemsSource="{Binding SelectedCategory.SelectedInstance.VerificationIssues}"/>
                                         </Expander>
@@ -144,11 +145,12 @@
 
                              <!-- Error Status -->
                             <StackPanel Spacing="16" IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationError}">
-                                <Border Background="{DynamicResource SystemFillColorCriticalBackground}"
-                                        BorderBrush="#DC3545" BorderThickness="1" CornerRadius="4" Padding="12">
+                                <Border Classes="status-error"
+                                        BorderThickness="1" CornerRadius="4" Padding="12">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="{Binding SelectedCategory.SelectedInstance.VerificationMessage}"
-                                                   FontWeight="SemiBold" Foreground="#DC3545"/>
+                                                   Classes="status-error"
+                                                   FontWeight="SemiBold"/>
                                         <Expander Header="Fix Instructions" IsExpanded="True">
                                             <ItemsControl ItemsSource="{Binding SelectedCategory.SelectedInstance.VerificationIssues}"/>
                                         </Expander>

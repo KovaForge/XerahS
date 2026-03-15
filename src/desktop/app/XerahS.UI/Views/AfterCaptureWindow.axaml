@@ -32,9 +32,7 @@
     <x:Double x:Key="SpaceXL">24</x:Double>
 
     <x:Double x:Key="FontTitle">22</x:Double>
-    <x:Double x:Key="FontSection">16</x:Double>
     <x:Double x:Key="FontBody">13</x:Double>
-    <x:Double x:Key="FontCaption">12</x:Double>
 
     <x:Double x:Key="ControlHeight">40</x:Double>
     <x:Double x:Key="ButtonMinWidth">100</x:Double>
@@ -45,7 +43,6 @@
     <Thickness x:Key="CardPaddingCompact">12</Thickness>
     <Thickness x:Key="ButtonPadding">16,8</Thickness>
     <Thickness x:Key="CheckBoxPadding">8,4</Thickness>
-    <Thickness x:Key="BorderThin">1</Thickness>
 
     <CornerRadius x:Key="CornerMd">8</CornerRadius>
     <CornerRadius x:Key="CornerLg">12</CornerRadius>
@@ -60,19 +57,7 @@
       <Setter Property="FontSize" Value="{StaticResource FontTitle}"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
-    <Style Selector="TextBlock.section-header">
-      <Setter Property="FontSize" Value="{StaticResource FontSection}"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
-    <Style Selector="TextBlock.caption">
-      <Setter Property="FontSize" Value="{StaticResource FontCaption}"/>
-      <Setter Property="TextWrapping" Value="Wrap"/>
-      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
-    </Style>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
-      <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
-      <Setter Property="BorderThickness" Value="{StaticResource BorderThin}"/>
       <Setter Property="CornerRadius" Value="{StaticResource CornerLg}"/>
     </Style>
     <Style Selector="Button">
