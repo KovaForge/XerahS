@@ -210,3 +210,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 - preserve safe overlay fallback on X11 when the chosen native path is unavailable or fails,
 - stamp overlay follow-up rect/fullscreen captures with `LinuxRegionSelectorPreference = XerahSOverlay` so later Linux crop steps stay on the legacy path instead of accidentally re-entering portal/native logic,
 - expose live diagnostics in the UI (`session`, `portal backend`, `available selectors`, `automatic will prefer`) so users can make informed choices without understanding the full Linux capture stack.
+
+### Drain Portal Hotkey Rebind Work Before Dispose
+
+**Context**: Editing workflows or hotkeys on Wayland can trigger debounce-driven portal rebinds while the `WaylandPortalHotkeyService` is also being torn down.
+
+**Lesson**: Never dispose portal hotkey D-Bus state while debounce or rebind work can still be running. Mark the service as disposed first, cancel the debounce token, and wait for in-flight rebind tasks to drain before releasing the connection, session, or semaphore. Otherwise workflow edits can surface unobserved `ObjectDisposedException` failures against `Tmds.DBus.Connection`.
