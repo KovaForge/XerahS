@@ -49,7 +49,6 @@ Located in `AvaloniaUIService.ShowEditorAsync()`:
 
 ```csharp
 var editorViewModel = new MainViewModel();
-editorViewModel.ShowCaptureToolbar = false;
 editorViewModel.ApplicationName = AppResources.AppName;  // Uses product name from assembly
 
 editorWindow.DataContext = editorViewModel;
