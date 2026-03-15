@@ -196,7 +196,6 @@
                     HorizontalAlignment="Right"
                     Spacing="{StaticResource SpaceS}">
           <Button Content="Cancel"
-                  Classes="NoAccent"
                   Command="{Binding CancelCommand}"
                   IsCancel="True"
                   AutomationProperties.Name="Cancel"/>
