@@ -261,6 +261,7 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        UpdateModifiers(e.KeyModifiers);
 
         var point = e.GetPosition(this);
         var physicalPoint = LocalToPhysical(point);
@@ -306,6 +307,7 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+        UpdateModifiers(e.KeyModifiers);
 
         if (!_firstPointerMovedLogged && _sessionStartUtc is { } start)
         {
@@ -337,6 +339,7 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        UpdateModifiers(e.KeyModifiers);
 
         if (_state == CaptureState.Dragging && _mode != RegionCaptureMode.ScreenColorPicker)
         {
@@ -359,7 +362,7 @@ public sealed class RegionCaptureControl : UserControl
         base.OnKeyDown(e);
 
         // Update modifiers
-        UpdateModifiers(e);
+        UpdateModifiers(e.KeyModifiers);
 
         switch (e.Key)
         {
@@ -398,20 +401,20 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
-        UpdateModifiers(e);
+        UpdateModifiers(e.KeyModifiers);
     }
 
-    private void UpdateModifiers(KeyEventArgs e)
+    private void UpdateModifiers(KeyModifiers keyModifiers)
     {
         var modifiers = SelectionModifier.None;
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        if (keyModifiers.HasFlag(KeyModifiers.Shift))
             modifiers |= SelectionModifier.LockAspectRatio;
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        if (keyModifiers.HasFlag(KeyModifiers.Control))
             modifiers |= SelectionModifier.PixelNudge;
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        if (keyModifiers.HasFlag(KeyModifiers.Alt))
             modifiers |= SelectionModifier.FromCenter;
 
         if (_activeModifiers != modifiers)

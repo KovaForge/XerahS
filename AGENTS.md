@@ -1,4 +1,4 @@
-# XerahS Agent Instructions
+﻿# XerahS Agent Instructions
 
 **XerahS** - The Avalonia UI implementation of ShareX.  
 **Copyright (c) 2007-2026 ShareX Team.**
@@ -46,7 +46,7 @@
 
 ### Development
 - [Coding Standards & License Headers](developers/guidelines/CODING_STANDARDS.md)
-- [Release & Versioning](.ai/skills/xerahs-workflow/SKILL.md)
+- [Release & Versioning](.ai/skills/git-workflow/SKILL.md)
 - [Building Windows Executables](.ai/skills/build-windows-exe/SKILL.md)
 - [Building Android (MAUI / Avalonia, adb deploy)](.ai/skills/build-android/SKILL.md)
 - [Testing Guidelines](developers/guidelines/TESTING.md)
@@ -59,4 +59,4 @@
 
 ### Planning
 - [Roadmap & Status Snapshot](docs/planning/ROADMAP_SNAPSHOT_JAN_2025.md)
-- [XIP Sync](.ai/skills/xip-sync/SKILL.md)
+- [XIP Sync](.ai/skills/sync-xips/SKILL.md)

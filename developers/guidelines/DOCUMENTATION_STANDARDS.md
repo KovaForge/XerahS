@@ -1,8 +1,8 @@
-# Documentation Standards
+﻿# Documentation Standards
 
 - **Update Policy**: Update/add docs when behavior changes.
 - **Agent Instructions**: Keep repo-wide agent policy in `AGENTS.md`, detailed workflow guidance in `developers/guidelines/AGENT_WORKFLOW.md`, and agent-specific compatibility files thin.
-- **Git + Versioning Workflow**: Use `.ai/skills/xerahs-workflow/SKILL.md` as the single source of truth for commit, push, and version bump rules.
+- **Git + Versioning Workflow**: Use `.ai/skills/git-workflow/SKILL.md` as the single source of truth for commit, push, and version bump rules.
 - **Structure**:
   - `developers/guidelines`: Stable developer and agent guidance.
   - `developers/lessons-learnt`: Durable lessons, rules, and postmortem notes.

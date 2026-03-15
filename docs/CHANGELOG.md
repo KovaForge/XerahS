@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to XerahS will be documented in this file.
 
@@ -138,7 +138,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Fixes
 - **Linux**: UseModernCapture option (XDG Portal vs overlay), Wayland region capture and mixed-DPI bounds, GNOME portal recording output, double region-selection prompt fix; KDE Spectacle and GNOME fallbacks (XIP0046-C); system tray SNI (GNOME/Wayland); systemd user unit path via UserProfile `(8e2f372b, 8b686d9c, 792f9f5c, 5aafdad2, ad0f48d5, 58283cb1, 6426a6c6, 17a52cdc, 74dd1532, ffa8f982)`
 - **Core**: Validate URL before OpenURL Process.Start; SaveRequested/SaveAsRequested for embedded and standalone editor; fall back to File-category instances when no Image uploader; default white tray icon on Linux/macOS; Tools_* nav items and VideoEditor dispatch; AnnotateImage JSON deserialization; Linux portal handle format and RPM packaging `(d16c0179, 6595731d, 7ec997c0, 63f81ce6, ddf64eb5, e9f8594b, b4b47f53, 1172b9a5, c6e9dd21)`
-- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; Â§7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
+- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; Ã‚Â§7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
 - **VideoEditor submodule**: Button theme isolation and ReactiveUI main thread scheduler fixes `(ac7a1eec, 672a1e09)`
 - **Watch Folder**: Support legacy watchfolder.service `(9d291a15)`
 - **Core**: Hide Video Editor from Tools menu in release builds `(692cb5a0)`
@@ -178,7 +178,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ## v0.19.0
 
 ### Fixes
-- **Core**: Correct DMDO_90/DMDO_270 â†’Ã¢â€ â€™ ModeRotation mapping in DXGI capture (b484d197)
+- **Core**: Correct DMDO_90/DMDO_270 Ã¢â€ â€™ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ModeRotation mapping in DXGI capture (b484d197)
 
 ### Documentation
 - **Core**: Fix XIP0042 markdown rendering (939f92c5)
@@ -188,7 +188,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Changed
 - **Core**: [Docs] Shorten XIP0043 title and backup filename; sync XIP0038/XIP0040 slugs (8ebe0ae8)
 - **Core**: [Docs] XIP sync: GitHub source of truth, single-folder backup, merge script (5994bb13)
-- **Core**: [XIP0042] Second audit Ã¢â‚¬â€ update task after Jaex's Round 2 fixes (4c06d5cf)
+- **Core**: [XIP0042] Second audit ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â update task after Jaex's Round 2 fixes (4c06d5cf)
 - **Core**: [XIP0042] Sync task doc from feature/XIP0042-optimizations (latest implementation status) (b9da24b8)
 - **Core**: [XIP0042] Update GPU effects task with current codebase audit (7c70e94a)
 - **Core**: Move XIP0043 task to complete folder (2b9a95ed)
@@ -267,7 +267,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Documentation
 - **Consolidate**: Developer docs to developers/; plugins to developers/plugins and .xsdp; changelog consolidation; mobile README simplification `(1f17491, b78882f, 41702bd, 21927b4, ad719c9, c9ebe39, 72f2e55, c043844)`
 - **Planning**: Roadmap, XIP0033 complete, task docs `(caeaae1, e3f37e3, 04cf9cf, 168b2ea)`
-- **Misc**: Feasibility report JS/CSS; sync-submodules; build/Linux/mobile docs; XIP0040/0039; update-changelog skill in maintenance-chores `(8fc7446, 47d833c, ce35146, e9ed21a, 8e97f89, ccff1c4, a05200f, 14be1df, 717be27, 76df673, 5ade43b)`
+- **Misc**: Feasibility report JS/CSS; sync-submodules; build/Linux/mobile docs; XIP0040/0039; update-changelog skill in run-maintenance `(8fc7446, 47d833c, ce35146, e9ed21a, 8e97f89, ccff1c4, a05200f, 14be1df, 717be27, 76df673, 5ade43b)`
 
 ### Testing
 - **Linux Capture**: Waterfall and lane matrix tests `(7f49769)`
@@ -312,7 +312,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **ImageEditor**: Update submodule with context menu fixes `(bb862c4, c5618de)`
 - **Capture**: Optimize annotation layer rendering and resource management `(f3e3908, b3034be, af35c74, 4048f00)`
 - **Documentation**: Update FAQ to correctly reference XerahS instead of ShareX in Linux screen capture section `(699634f)`
-- **Infrastructure**: Integrate update-changelog skill into maintenance-chores workflow `(5ade43b)`
+- **Infrastructure**: Integrate update-changelog skill into run-maintenance workflow `(5ade43b)`
 
 ### Refactor
 - **Core**: Split large ViewModels, extract WatchFolder daemon base service, and consolidate ScreenRecordingManager startup flow `(86286af, 315549a, 1160519)`
