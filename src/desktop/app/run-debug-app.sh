@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTNET_BIN="$(command -v dotnet || true)"
 
 if [ -z "$DOTNET_BIN" ] && [ -x "$HOME/.dotnet/dotnet" ]; then
@@ -12,4 +13,4 @@ if [ -z "$DOTNET_BIN" ]; then
 	exit 1
 fi
 
-"$DOTNET_BIN" run --project XerahS.App/XerahS.App.csproj -c Debug "$@"
+"$DOTNET_BIN" run --project "$SCRIPT_DIR/XerahS.App/XerahS.App.csproj" -c Debug "$@"
