@@ -47,6 +47,11 @@ internal static class LinuxRegionSelectorPreferenceSupport
         return GetVisiblePreferences(TryGetDiagnostics());
     }
 
+    /// <summary>
+    /// Returns the list of region selector options to show in the UI. On Linux this always
+    /// includes Automatic first and the XerahS overlay crosshair when the platform reports
+    /// it as available, so the dropdown never omits those options.
+    /// </summary>
     public static IReadOnlyList<LinuxInteractiveRegionSelectorPreference> GetVisiblePreferences(
         LinuxRegionSelectorDiagnostics? diagnostics)
     {
@@ -57,10 +62,42 @@ internal static class LinuxRegionSelectorPreferenceSupport
 
         if (diagnostics?.AvailablePreferences is { Count: > 0 } availablePreferences)
         {
-            return availablePreferences;
+            return BuildVisiblePreferencesWithAutomaticAndOverlay(diagnostics, availablePreferences);
         }
 
         return FallbackVisiblePreferences;
+    }
+
+    /// <summary>
+    /// Ensures Automatic is first and XerahS overlay is included when the platform
+    /// lists it or when automatic preference is overlay (session supports it), so the
+    /// region selector dropdown always shows them when supported.
+    /// </summary>
+    private static IReadOnlyList<LinuxInteractiveRegionSelectorPreference> BuildVisiblePreferencesWithAutomaticAndOverlay(
+        LinuxRegionSelectorDiagnostics diagnostics,
+        IReadOnlyList<LinuxInteractiveRegionSelectorPreference> availablePreferences)
+    {
+        var result = new List<LinuxInteractiveRegionSelectorPreference>(availablePreferences.Count + 1);
+
+        result.Add(LinuxInteractiveRegionSelectorPreference.Automatic);
+
+        bool includeOverlay = availablePreferences.Contains(LinuxInteractiveRegionSelectorPreference.XerahSOverlay) ||
+                              diagnostics.AutomaticPreference == LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+        if (includeOverlay)
+        {
+            result.Add(LinuxInteractiveRegionSelectorPreference.XerahSOverlay);
+        }
+
+        foreach (var p in availablePreferences)
+        {
+            if (p != LinuxInteractiveRegionSelectorPreference.Automatic &&
+                p != LinuxInteractiveRegionSelectorPreference.XerahSOverlay)
+            {
+                result.Add(p);
+            }
+        }
+
+        return result;
     }
 
     public static LinuxInteractiveRegionSelectorPreference NormalizeForCurrentSession(
