@@ -36,8 +36,10 @@ namespace XerahS.UI.Services.Capture
     public static class LinuxCaptureOptionsResolver
     {
         /// <summary>
-        /// When falling back to the XerahS overlay path on Linux, force the follow-up
-        /// capture to stay on the legacy capture pipeline.
+        /// When falling back to the XerahS overlay path on Linux X11, force the follow-up
+        /// capture to stay on the legacy capture pipeline. On Wayland the overlay is only
+        /// the selection UI; post-selection capture uses the portal, so the legacy flag
+        /// must not be set.
         /// </summary>
         public static CaptureOptions? NormalizeLinuxOverlayCaptureOptions(
             CaptureOptions? options,
@@ -52,6 +54,20 @@ namespace XerahS.UI.Services.Capture
             if (linuxCapability is not { SupportsLegacyOverlayCapture: true } capability)
             {
                 return options;
+            }
+
+            bool isWayland = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")
+                ?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
+
+            if (isWayland)
+            {
+                DebugHelper.WriteLine($"{logPrefix}: Wayland session — overlay selection will use portal-backed capture. Reason={capability.Reason}");
+
+                return CloneCaptureOptions(
+                    options,
+                    useModernCapture: options?.UseModernCapture ?? true,
+                    linuxRegionSelectorPreference: LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+                    linuxForceLegacyCapturePath: false);
             }
 
             bool alreadyOnLegacyLinuxPath = options?.LinuxForceLegacyCapturePath == true &&

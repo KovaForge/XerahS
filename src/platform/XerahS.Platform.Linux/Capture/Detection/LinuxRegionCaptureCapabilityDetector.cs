@@ -64,8 +64,8 @@ internal static class LinuxRegionCaptureCapabilityDetector
             {
                 return new LinuxRegionCaptureCapability(
                     SupportsNativeRegionCapture: true,
-                    SupportsLegacyOverlayCapture: false,
-                    Reason: "Wayland region capture can use the XDG Screenshot portal.");
+                    SupportsLegacyOverlayCapture: true,
+                    Reason: "Wayland region capture can use the XDG Screenshot portal. XerahS overlay selection is available with portal-backed capture.");
             }
 
             if (support.HasSlurp)
