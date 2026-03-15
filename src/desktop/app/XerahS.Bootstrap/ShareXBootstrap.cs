@@ -25,6 +25,7 @@
 
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -62,14 +63,20 @@ namespace XerahS.Bootstrap
                 InitializePlatformServices(options.ScreenCaptureService);
                 result.PlatformServicesInitialized = true;
 
-                // 4. Initialize recording (async, critical for ScreenRecorder)
+                // 4. Build DI container and wire up RootProvider
+                var services = new ServiceCollection();
+                services.AddXerahSPlatformServices();
+                var provider = services.BuildServiceProvider();
+                PlatformServices.SetRootProvider(provider);
+
+                // 5. Initialize recording (async, critical for ScreenRecorder)
                 if (options.InitializeRecording)
                 {
                     await InitializeRecordingAsync();
                     result.RecordingInitialized = true;
                 }
 
-                // 5. Register UI services if provided
+                // 6. Register UI services if provided
                 if (options.UIService != null)
                 {
                     PlatformServices.RegisterUIService(options.UIService);
