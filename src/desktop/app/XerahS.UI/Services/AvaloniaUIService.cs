@@ -103,7 +103,7 @@ namespace XerahS.UI.Services
                 var editorWindow = new Views.EditorWindow();
 
                 // Create independent ViewModel for this editor instance
-                var editorOptions = taskMode ? new ImageEditorOptions { ExitConfirmation = false } : null;
+                var editorOptions = taskMode ? new ImageEditorOptions { ShowExitConfirmation = false } : null;
                 var editorViewModel = new MainViewModel(editorOptions);
                 editorViewModel.ShowTaskModeButtons = taskMode;
                 editorViewModel.TaskMode = taskMode;
