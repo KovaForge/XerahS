@@ -153,6 +153,18 @@ A day is only considered complete when:
 - no placeholders remain;
 - the day's file has exactly one matching docs commit in chronological order.
 
+## Scheduling (Cursor Automations, cron, or Task Scheduler)
+
+**Cursor Automations** can run this full skill on a daily schedule (cloud agent with cron or preset). See [SCHEDULING.md](SCHEDULING.md) for setup at [cursor.com/automations](https://cursor.com/automations).
+
+To only ensure today’s draft file exists (no content or commit), use the daily wrapper:
+
+```powershell
+.ai/skills/xerahs-blog-drafting/scripts/run-daily-draft.ps1
+```
+
+That script switches to the repo root and runs the upsert for the current UTC+8 day. For content population and commits, run this skill in Cursor or use Cursor Automations.
+
 ## Helper Script
 
 Script path:
