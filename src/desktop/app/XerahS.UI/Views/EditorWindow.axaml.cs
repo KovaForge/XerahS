@@ -26,25 +26,13 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
-using ShareX.ImageEditor.Presentation.Views;
-using XerahS.UI.Helpers;
 
 namespace XerahS.UI.Views
 {
     public partial class EditorWindow : SurfaceWindow
     {
         private MainViewModel? _viewModel;
-        private bool _showTaskModeButtons;
-
-        public bool ShowTaskModeButtons
-        {
-            get => _showTaskModeButtons;
-            set
-            {
-                _showTaskModeButtons = value;
-                UpdateTaskModeButtonVisibility();
-            }
-        }
+        internal bool IsCloseRequestedByViewModel { get; private set; }
 
         public EditorWindow()
         {
@@ -52,7 +40,6 @@ namespace XerahS.UI.Views
 
             RequestedThemeVariant = ThemeManager.GetCurrentTheme();
             ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
-            Opened += (_, _) => UpdateTaskModeButtonVisibility();
         }
 
         private void InitializeComponent()
@@ -69,13 +56,12 @@ namespace XerahS.UI.Views
 
             base.OnDataContextChanged(e);
 
+            IsCloseRequestedByViewModel = false;
             _viewModel = DataContext as MainViewModel;
             if (_viewModel != null)
             {
                 _viewModel.CloseRequested += OnViewModelCloseRequested;
             }
-
-            UpdateTaskModeButtonVisibility();
         }
 
         protected override void OnClosed(EventArgs e)
@@ -91,16 +77,8 @@ namespace XerahS.UI.Views
 
         private void OnViewModelCloseRequested(object? sender, EventArgs e)
         {
+            IsCloseRequestedByViewModel = true;
             Close();
-        }
-
-        private void UpdateTaskModeButtonVisibility()
-        {
-            EditorView? editorView = this.FindControl<EditorView>("EditorViewControl");
-            if (editorView != null)
-            {
-                EditorTaskButtons.SetVisible(editorView, ShowTaskModeButtons);
-            }
         }
     }
 }

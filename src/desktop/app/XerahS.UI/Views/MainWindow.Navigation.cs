@@ -203,17 +203,7 @@ namespace XerahS.UI.Views
 
         private EditorView CreateEditorView()
         {
-            var editorView = new EditorView();
-            void hideTaskButtons()
-            {
-                EditorTaskButtons.SetVisible(editorView, isVisible: false);
-            }
-
-            editorView.DataContextChanged += (_, _) => hideTaskButtons();
-            editorView.AttachedToVisualTree += (_, _) => hideTaskButtons();
-            editorView.Loaded += (_, _) => hideTaskButtons();
-            hideTaskButtons();
-            return editorView;
+            return new EditorView();
         }
 
         private void BuildNavigationNodes()
@@ -402,7 +392,6 @@ namespace XerahS.UI.Views
         {
             NavigationNode toolsNode = CreateNode("Tools", "Tools", HostIcons.NavigationTools, NavigationNodeKind.Page);
             toolsNode.AddChild(CreateNode("Color Picker...", "Tools_ColorPicker", null, NavigationNodeKind.Action));
-            toolsNode.AddChild(CreateNode("Pick From Screen", "Tools_ScreenColorPicker", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Ruler", "Tools_Ruler", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Index Folder...", "Tools_IndexFolder", null, NavigationNodeKind.Action));
 

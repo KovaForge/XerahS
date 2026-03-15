@@ -100,15 +100,12 @@ namespace XerahS.UI.Services
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 // Create independent Editor Window
-                var editorWindow = new Views.EditorWindow
-                {
-                    ShowTaskModeButtons = taskMode
-                };
+                var editorWindow = new Views.EditorWindow();
 
                 // Create independent ViewModel for this editor instance
                 var editorOptions = taskMode ? new ImageEditorOptions { ExitConfirmation = false } : null;
                 var editorViewModel = new MainViewModel(editorOptions);
-                editorViewModel.ShowCaptureToolbar = false;
+                editorViewModel.ShowTaskModeButtons = taskMode;
                 editorViewModel.TaskMode = taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
@@ -142,7 +139,11 @@ namespace XerahS.UI.Services
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
 
-                        if (taskMode && editorViewModel.TaskResult == MainViewModel.EditorTaskResult.ContinueNoSave)
+                        bool continueWithoutSave = editorViewModel.TaskResult == MainViewModel.EditorTaskResult.ContinueNoSave
+                            || (editorWindow.IsCloseRequestedByViewModel &&
+                                editorViewModel.TaskResult == MainViewModel.EditorTaskResult.Cancel);
+
+                        if (taskMode && continueWithoutSave)
                         {
                             tcs.TrySetResult(null);
                         }

@@ -46,7 +46,6 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
-using XerahS.UI.Helpers;
 using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI.Views
@@ -93,16 +92,6 @@ namespace XerahS.UI.Views
 
             LoadUserWorkflows();
             NavigateTo("Editor");
-        }
-
-        protected override void OnDataContextChanged(EventArgs e)
-        {
-            base.OnDataContextChanged(e);
-
-            if (_editorView != null)
-            {
-                EditorTaskButtons.SetVisible(_editorView, isVisible: false);
-            }
         }
 
         private void OnExitClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

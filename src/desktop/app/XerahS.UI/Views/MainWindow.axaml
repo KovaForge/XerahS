@@ -84,7 +84,6 @@
                 <!-- Tools Menu -->
                 <MenuItem Header="_Tools">
                     <MenuItem Header="_Color Picker..." Click="OnMenuNavigateClick" Tag="Tools_ColorPicker"/>
-                    <MenuItem Header="Pick From _Screen" Click="OnMenuNavigateClick" Tag="Tools_ScreenColorPicker"/>
                     <MenuItem Header="_Ruler" Click="OnMenuNavigateClick" Tag="Tools_Ruler"/>
                     <Separator/>
                     <MenuItem Header="_QR Code">
