@@ -35,6 +35,7 @@ using XerahS.Core.Managers;
 using XerahS.History;
 using XerahS.Media;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 using XerahS.UI.Services;
 using SkiaSharp;
 using System.Collections.ObjectModel;
@@ -140,11 +141,11 @@ namespace XerahS.UI.ViewModels
 
         private readonly HistoryManagerSQLite _historyManager;
         private CancellationTokenSource? _thumbnailCancellationTokenSource;
-        private readonly IViewDialogService _dialogService;
+        private readonly IDialogService _coreDialogService;
 
         public HistoryViewModel()
         {
-            _dialogService = PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+            _coreDialogService = PlatformServices.RootProvider?.GetService(typeof(IDialogService)) as IDialogService ?? new AvaloniaDialogServiceAdapter();
             HistoryItems = new ObservableCollection<HistoryItem>();
             SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
@@ -538,104 +539,11 @@ namespace XerahS.UI.ViewModels
             DebugHelper.WriteLine($"Deleted history item: {item.FileName}");
         }
 
-        private async Task<bool> ShowDeleteConfirmationDialog(string fileName)
+        private Task<bool> ShowDeleteConfirmationDialog(string fileName)
         {
-            var result = false;
-
-            var confirmDialog = new Avalonia.Controls.Window
-            {
-                Title = "Confirm Delete",
-                Width = 400,
-                Height = 180,
-                WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-                CanResize = false
-            };
-
-            var panel = new Avalonia.Controls.StackPanel
-            {
-                Margin = new Avalonia.Thickness(20),
-                Spacing = 15,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-            };
-
-            var messageText = new Avalonia.Controls.TextBlock
-            {
-                Text = $"Are you sure you want to delete '{fileName}' from history?",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                MaxWidth = 360,
-                FontSize = 14
-            };
-
-            var warningText = new Avalonia.Controls.TextBlock
-            {
-                Text = "This action cannot be undone.",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                MaxWidth = 360,
-                FontSize = 12,
-                Foreground = Avalonia.Media.Brushes.Orange,
-                FontWeight = Avalonia.Media.FontWeight.SemiBold
-            };
-
-            var buttonPanel = new Avalonia.Controls.StackPanel
-            {
-                Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 10,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                Margin = new Avalonia.Thickness(0, 10, 0, 0)
-            };
-
-            var deleteButton = new Avalonia.Controls.Button
-            {
-                Content = "Delete",
-                Padding = new Avalonia.Thickness(24, 8),
-                Background = Avalonia.Media.Brushes.Red,
-                Foreground = Avalonia.Media.Brushes.White
-            };
-
-            var cancelButton = new Avalonia.Controls.Button
-            {
-                Content = "Cancel",
-                Padding = new Avalonia.Thickness(24, 8),
-                IsDefault = true
-            };
-
-            deleteButton.Click += (s, e) =>
-            {
-                result = true;
-                confirmDialog.Close();
-            };
-
-            cancelButton.Click += (s, e) =>
-            {
-                result = false;
-                confirmDialog.Close();
-            };
-
-            buttonPanel.Children.Add(cancelButton);
-            buttonPanel.Children.Add(deleteButton);
-
-            panel.Children.Add(messageText);
-            panel.Children.Add(warningText);
-            panel.Children.Add(buttonPanel);
-
-            confirmDialog.Content = panel;
-
-            // Get the main window as the owner
-            if (_dialogService.GetMainWindow() is Avalonia.Controls.Window mainWindow)
-            {
-                await confirmDialog.ShowDialog(mainWindow);
-            }
-            else
-            {
-                // Fallback: show as independent window
-                confirmDialog.Show();
-                // Wait for close via event
-                var closeTcs = new TaskCompletionSource<bool>();
-                confirmDialog.Closed += (s, e) => closeTcs.TrySetResult(true);
-                await closeTcs.Task;
-            }
-
-            return result;
+            return _coreDialogService.ShowConfirmationAsync(
+                "Confirm Delete",
+                $"Are you sure you want to delete '{fileName}' from history?\n\nThis action cannot be undone.");
         }
 
         private TaskSettings GetUploadTaskSettings()

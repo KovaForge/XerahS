@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 using XerahS.UI.Services;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -99,13 +100,13 @@ public partial class ProviderExplorerViewModel : ViewModelBase, IDisposable
     public bool HasBandwidthSavingsNotice => !string.IsNullOrWhiteSpace(BandwidthSavingsNotice);
 
     public UploaderInstance BoundInstance => _instance;
-    private readonly IViewDialogService _dialogService;
+    private readonly IDialogService _coreDialogService;
 
     public ProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer)
     {
         _instance = instance;
         _explorer = explorer;
-        _dialogService = PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+        _coreDialogService = PlatformServices.RootProvider?.GetService(typeof(IDialogService)) as IDialogService ?? new AvaloniaDialogServiceAdapter();
 
         var providerName = ProviderCatalog.GetProvider(instance.ProviderId)?.Name ?? instance.ProviderId;
         WindowTitle = $"{providerName} — {instance.DisplayName}";
@@ -475,79 +476,11 @@ public partial class ProviderExplorerViewModel : ViewModelBase, IDisposable
         NavigateForwardCommand.NotifyCanExecuteChanged();
     }
 
-    private async Task<bool> ShowConfirmDeleteDialogAsync(string itemName)
+    private Task<bool> ShowConfirmDeleteDialogAsync(string itemName)
     {
-        var result = false;
-        var dialog = new Avalonia.Controls.Window
-        {
-            Title = "Confirm Delete",
-            Width = 420,
-            Height = 190,
-            WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-            CanResize = false
-        };
-
-        var panel = new Avalonia.Controls.StackPanel
-        {
-            Margin = new Avalonia.Thickness(20),
-            Spacing = 14,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-        };
-
-        panel.Children.Add(new Avalonia.Controls.TextBlock
-        {
-            Text = $"Delete '{itemName}' from the provider?",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            MaxWidth = 380,
-            FontSize = 14
-        });
-        panel.Children.Add(new Avalonia.Controls.TextBlock
-        {
-            Text = "This will permanently remove the file from the remote storage. This cannot be undone.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            MaxWidth = 380,
-            FontSize = 12,
-            Foreground = Avalonia.Media.Brushes.Orange,
-            FontWeight = Avalonia.Media.FontWeight.SemiBold
-        });
-
-        var buttonRow = new Avalonia.Controls.StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            Spacing = 10,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right
-        };
-
-        var cancelBtn = new Avalonia.Controls.Button { Content = "Cancel", Padding = new Avalonia.Thickness(20, 8), IsDefault = true };
-        var deleteBtn = new Avalonia.Controls.Button
-        {
-            Content = "Delete",
-            Padding = new Avalonia.Thickness(20, 8),
-            Background = Avalonia.Media.Brushes.Red,
-            Foreground = Avalonia.Media.Brushes.White
-        };
-
-        cancelBtn.Click += (_, _) => { result = false; dialog.Close(); };
-        deleteBtn.Click += (_, _) => { result = true; dialog.Close(); };
-
-        buttonRow.Children.Add(cancelBtn);
-        buttonRow.Children.Add(deleteBtn);
-        panel.Children.Add(buttonRow);
-        dialog.Content = panel;
-
-        if (_dialogService.GetMainWindow() is Avalonia.Controls.Window mainWindow)
-        {
-            await dialog.ShowDialog(mainWindow);
-        }
-        else
-        {
-            dialog.Show();
-            var tcs = new TaskCompletionSource<bool>();
-            dialog.Closed += (_, _) => tcs.TrySetResult(true);
-            await tcs.Task;
-        }
-
-        return result;
+        return _coreDialogService.ShowConfirmationAsync(
+            "Confirm Delete",
+            $"Delete '{itemName}' from the provider?\n\nThis will permanently remove the file from the remote storage. This cannot be undone.");
     }
 
     private void SetError(string operation, Exception ex)

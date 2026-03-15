@@ -43,12 +43,12 @@ namespace XerahS.UI.Services
     {
         private const string LinuxOverlayProviderId = "xerahs-overlay";
         private readonly IScreenCaptureService _platformImpl;
-        private readonly object _linuxRegionSelectorDecisionLock = new();
-        private LinuxRegionSelectorRuntimeDecision? _lastLinuxRegionSelectorDecision;
+        private readonly LinuxRegionSelectorResolver _linuxResolver;
 
         public ScreenCaptureService(IScreenCaptureService platformImpl)
         {
             _platformImpl = platformImpl;
+            _linuxResolver = new LinuxRegionSelectorResolver(LinuxOverlayProviderId);
         }
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
@@ -59,14 +59,14 @@ namespace XerahS.UI.Services
         public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
             LinuxRegionCaptureCapability? linuxCapability =
-                OperatingSystem.IsLinux() ? GetLinuxRegionCaptureCapability(options) : null;
-            var effectiveLinuxPreference = ResolveEffectiveLinuxRegionSelectorPreference(options, linuxCapability);
+                OperatingSystem.IsLinux() ? _linuxResolver.GetCapability(_platformImpl, options) : null;
+            var effectiveLinuxPreference = _linuxResolver.ResolveEffectivePreference(options, linuxCapability, _platformImpl);
             bool canUseLinuxOverlayFallback = linuxCapability?.SupportsLegacyOverlayCapture == true;
-            bool shouldTryLinuxNativeSelection = ShouldTryLinuxNativeRegionCapture(effectiveLinuxPreference, linuxCapability);
+            bool shouldTryLinuxNativeSelection = LinuxCaptureOptionsResolver.ShouldTryLinuxNativeRegionCapture(effectiveLinuxPreference, linuxCapability);
 
             if (shouldTryLinuxNativeSelection)
             {
-                var nativeSelectionOptions = NormalizeLinuxNativeCaptureOptions(
+                var nativeSelectionOptions = LinuxCaptureOptionsResolver.NormalizeLinuxNativeCaptureOptions(
                     options,
                     effectiveLinuxPreference,
                     "[RegionSelection] SelectRegionAsync");
@@ -108,10 +108,8 @@ namespace XerahS.UI.Services
 
             try
             {
-                // UI interaction must run on the UI thread
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    // Capture cursor if requested
                     XerahS.Platform.Abstractions.CursorInfo? cursorInfo = null;
                     if (options?.ShowCursor == true)
                     {
@@ -127,7 +125,6 @@ namespace XerahS.UI.Services
 
                     bool useFastOverlay = OperatingSystem.IsLinux() || (options?.UseTransparentOverlay ?? false);
 
-                    // Capture background only when using the frozen-overlay path.
                     SkiaSharp.SKBitmap? backgroundForMagnifier = null;
                     if (!useFastOverlay)
                     {
@@ -137,7 +134,7 @@ namespace XerahS.UI.Services
                             {
                                 ShowCursor = false,
                                 UseModernCapture = options?.UseModernCapture ?? true,
-                                LinuxRegionSelectorPreference = GetLinuxRegionSelectorPreference(options)
+                                LinuxRegionSelectorPreference = LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options)
                             });
                         }
                         catch
@@ -181,9 +178,9 @@ namespace XerahS.UI.Services
 
             if (OperatingSystem.IsLinux())
             {
-                RecordLinuxRegionSelectorDecision(CreateOverlayRuntimeDecision(
+                _linuxResolver.RecordDecision(_linuxResolver.CreateOverlayDecision(
                     operation: "Region selection",
-                    requestedPreference: GetLinuxRegionSelectorPreference(options),
+                    requestedPreference: LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options),
                     outcome: selection.IsEmpty ? "Cancelled" : "Succeeded"));
             }
 
@@ -193,16 +190,13 @@ namespace XerahS.UI.Services
         public async Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
             var totalStopwatch = Stopwatch.StartNew();
-            // TroubleshootingHelper.Log("FullscreenCapture", "INIT", "Fullscreen capture started");
 
             var captureStopwatch = Stopwatch.StartNew();
             var result = await _platformImpl.CaptureFullScreenAsync(options);
             captureStopwatch.Stop();
 
             var resultText = result == null ? "null" : $"{result.Width}x{result.Height}";
-            // TroubleshootingHelper.Log("FullscreenCapture", "CAPTURE", $"Platform capture finished in {captureStopwatch.ElapsedMilliseconds}ms, Result={resultText}");
             totalStopwatch.Stop();
-            // TroubleshootingHelper.Log("FullscreenCapture", "TOTAL", $"Fullscreen capture total elapsed: {totalStopwatch.ElapsedMilliseconds}ms");
 
             return result;
         }
@@ -220,14 +214,14 @@ namespace XerahS.UI.Services
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
             LinuxRegionCaptureCapability? linuxCapability =
-                OperatingSystem.IsLinux() ? GetLinuxRegionCaptureCapability(options) : null;
-            var effectiveLinuxPreference = ResolveEffectiveLinuxRegionSelectorPreference(options, linuxCapability);
+                OperatingSystem.IsLinux() ? _linuxResolver.GetCapability(_platformImpl, options) : null;
+            var effectiveLinuxPreference = _linuxResolver.ResolveEffectivePreference(options, linuxCapability, _platformImpl);
             bool canUseLinuxOverlayFallback = linuxCapability?.SupportsLegacyOverlayCapture == true;
-            bool shouldTryLinuxNativeRegionCapture = ShouldTryLinuxNativeRegionCapture(effectiveLinuxPreference, linuxCapability);
+            bool shouldTryLinuxNativeRegionCapture = LinuxCaptureOptionsResolver.ShouldTryLinuxNativeRegionCapture(effectiveLinuxPreference, linuxCapability);
 
             if (shouldTryLinuxNativeRegionCapture)
             {
-                var nativeCaptureOptions = NormalizeLinuxNativeCaptureOptions(
+                var nativeCaptureOptions = LinuxCaptureOptionsResolver.NormalizeLinuxNativeCaptureOptions(
                     options,
                     effectiveLinuxPreference,
                     "[RegionCapture] CaptureRegionAsync");
@@ -295,7 +289,6 @@ namespace XerahS.UI.Services
             DateTime sessionStartUtc = DateTime.UtcNow;
             DebugHelper.WriteLine($"[RegionCapture] Milestone: region capture started (+0 ms)");
 
-            // 1. Capture cursor BEFORE showing overlay (if ShowCursor is enabled)
             XerahS.Platform.Abstractions.CursorInfo? ghostCursor = null;
             if (effectiveOptions?.ShowCursor == true)
             {
@@ -309,9 +302,6 @@ namespace XerahS.UI.Services
                 }
             }
 
-            // 2. Capture background for frozen overlay and magnifier BEFORE showing overlay
-            // When UseTransparentOverlay is true, or on Linux (slow full-screen capture), skip so overlay appears immediately.
-            // After selection we use CaptureRectAsync when fullScreenBitmap is null.
             bool useFastOverlay = OperatingSystem.IsLinux() || (effectiveOptions?.UseTransparentOverlay ?? false);
             SKBitmap? fullScreenBitmap = null;
             if (!useFastOverlay)
@@ -340,7 +330,6 @@ namespace XerahS.UI.Services
                 }
             }
 
-            // 3. Select Region (UI) - pass ghost cursor for overlay display
             DebugHelper.WriteLine($"[RegionCapture] Milestone: region capture UI invoked (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
             SKRectI selection = SKRectI.Empty;
             SKBitmap? annotationLayer = null;
@@ -386,15 +375,14 @@ namespace XerahS.UI.Services
             {
                 // Ignore errors
             }
-            // Note: fullScreenBitmap is disposed later after cropping
 
             if (selection.IsEmpty || selection.Width <= 0 || selection.Height <= 0)
             {
                 if (OperatingSystem.IsLinux())
                 {
-                    RecordLinuxRegionSelectorDecision(CreateOverlayRuntimeDecision(
+                    _linuxResolver.RecordDecision(_linuxResolver.CreateOverlayDecision(
                         operation: "Region capture",
-                        requestedPreference: GetLinuxRegionSelectorPreference(options),
+                        requestedPreference: LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options),
                         outcome: "Cancelled"));
                 }
 
@@ -404,15 +392,14 @@ namespace XerahS.UI.Services
 
             if (OperatingSystem.IsLinux())
             {
-                RecordLinuxRegionSelectorDecision(CreateOverlayRuntimeDecision(
+                _linuxResolver.RecordDecision(_linuxResolver.CreateOverlayDecision(
                     operation: "Region capture",
-                    requestedPreference: GetLinuxRegionSelectorPreference(options),
+                    requestedPreference: LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options),
                     outcome: "Succeeded"));
             }
 
             bool showCursor = effectiveOptions?.ShowCursor == true;
 
-            // 3. Optional delay before capture starts (cancellable)
             if (effectiveOptions?.CaptureStartDelaySeconds > 0)
             {
                 var delayMs = (int)Math.Round(effectiveOptions.CaptureStartDelaySeconds * 1000, MidpointRounding.AwayFromZero);
@@ -433,14 +420,9 @@ namespace XerahS.UI.Services
                 }
             }
 
-            // 4. Small delay to allow overlay windows to close fully and cursor to hide
             await Task.Delay(200);
             DebugHelper.WriteLine($"[RegionCapture] Milestone: post-overlay delay done (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
 
-            // 5. Capture Screen (Platform) - ALWAYS without cursor.
-            // The ghost cursor (captured at workflow start) is drawn manually in step 6.
-            // Never let the platform draw the live cursor, as it may have moved into the
-            // captured region during the delay between overlay close and bitmap acquisition.
             var captureOptions = new CaptureOptions
             {
                 ShowCursor = false,
@@ -456,37 +438,7 @@ namespace XerahS.UI.Services
             {
                 if (fullScreenBitmap != null)
                 {
-                    var cropRect = selection;
-                    try
-                    {
-                        var virtualBounds = PlatformServices.Screen.GetVirtualScreenBounds();
-                        DebugHelper.WriteLine($"[RegionCapture] Pre-capture crop: fullBitmap={fullScreenBitmap.Width}x{fullScreenBitmap.Height} virtualBounds=({virtualBounds.X},{virtualBounds.Y},{virtualBounds.Width}x{virtualBounds.Height}) selection=({selection.Left},{selection.Top},{selection.Right},{selection.Bottom})");
-                        if (!virtualBounds.IsEmpty)
-                        {
-                            var offsetX = virtualBounds.X;
-                            var offsetY = virtualBounds.Y;
-                            cropRect = new SKRectI(
-                                selection.Left - offsetX,
-                                selection.Top - offsetY,
-                                selection.Right - offsetX,
-                                selection.Bottom - offsetY);
-                            DebugHelper.WriteLine($"[RegionCapture] Pre-capture crop: offset=({offsetX},{offsetY}) cropRect=({cropRect.Left},{cropRect.Top},{cropRect.Right},{cropRect.Bottom}) size={cropRect.Width}x{cropRect.Height}");
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore virtual screen lookup failures
-                    }
-
-                    SKBitmap cropped = ImageHelpers.Crop(fullScreenBitmap, cropRect);
-                    if (cropped.Width > 0 && cropped.Height > 0)
-                    {
-                        bitmap = cropped;
-                    }
-                    else
-                    {
-                        cropped.Dispose();
-                    }
+                    bitmap = CropFromPreCapture(fullScreenBitmap, selection);
                 }
             }
             catch
@@ -503,184 +455,22 @@ namespace XerahS.UI.Services
                 DebugHelper.WriteLine($"[RegionCapture] Milestone: bitmap obtained (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
             }
 
-            // Only when there was no pre-capture (e.g. Linux fast overlay). On Windows we normally have
-            // fullScreenBitmap and crop from it above; this block is not used for standard Windows region capture.
             if (bitmap == null)
             {
-                DebugHelper.WriteLine($"[RegionCapture] CaptureRectAsync path (no pre-capture). Selection physical: L={selection.Left}, T={selection.Top}, R={selection.Right}, B={selection.Bottom}, Size={selection.Right - selection.Left}x{selection.Bottom - selection.Top}");
-
-                // Start with selection in physical pixels. Windows (and macOS) keep this; Linux converts to logical below.
-                SKRect rectForCapture = new SKRect(selection.Left, selection.Top, selection.Right, selection.Bottom);
-                try
-                {
-                    var monitors = MonitorEnumerationService.GetAllMonitors();
-                    DebugHelper.WriteLine($"[RegionCapture] Monitor count={monitors.Count}, Linux={OperatingSystem.IsLinux()}");
-
-                    if (monitors.Count > 0)
-                    {
-                        // Linux only: portal screenshot is in logical pixels. Convert selection to logical and pass
-                        // logical virtual bounds so crop mapping is correct. Windows and other platforms are unchanged.
-                        if (OperatingSystem.IsLinux())
-                        {
-                            var ov = monitors[0].OverlayBounds;
-                            double vLeft = ov.X, vTop = ov.Y, vRight = ov.Right, vBottom = ov.Bottom;
-                            for (int i = 1; i < monitors.Count; i++)
-                            {
-                                var o = monitors[i].OverlayBounds;
-                                vLeft = Math.Min(vLeft, o.X);
-                                vTop = Math.Min(vTop, o.Y);
-                                vRight = Math.Max(vRight, o.Right);
-                                vBottom = Math.Max(vBottom, o.Bottom);
-                            }
-                            captureOptions.VirtualScreenBoundsForCrop = Rectangle.FromLTRB(
-                                (int)Math.Round(vLeft),
-                                (int)Math.Round(vTop),
-                                (int)Math.Round(vRight),
-                                (int)Math.Round(vBottom));
-                            DebugHelper.WriteLine($"[RegionCapture] Virtual bounds (logical, OverlayBounds union): L={vLeft:F0}, T={vTop:F0}, R={vRight:F0}, B={vBottom:F0}, Size={vRight - vLeft:F0}x{vBottom - vTop:F0}");
-
-                            // Also pass physical virtual bounds so LinuxScreenCaptureService can detect
-                            // whether the portal returned a physical-resolution bitmap (e.g. KDE Plasma)
-                            // and apply the correct crop without a uniform linear scale.
-                            var pb0 = monitors[0].PhysicalBounds;
-                            double physVLeft = pb0.X, physVTop = pb0.Y, physVRight = pb0.Right, physVBottom = pb0.Bottom;
-                            for (int i = 1; i < monitors.Count; i++)
-                            {
-                                var pb = monitors[i].PhysicalBounds;
-                                physVLeft = Math.Min(physVLeft, pb.X);
-                                physVTop = Math.Min(physVTop, pb.Y);
-                                physVRight = Math.Max(physVRight, pb.Right);
-                                physVBottom = Math.Max(physVBottom, pb.Bottom);
-                            }
-                            captureOptions.PhysicalVirtualScreenBoundsForCrop = Rectangle.FromLTRB(
-                                (int)Math.Round(physVLeft),
-                                (int)Math.Round(physVTop),
-                                (int)Math.Round(physVRight),
-                                (int)Math.Round(physVBottom));
-                            captureOptions.PhysicalRectForCrop = Rectangle.FromLTRB(
-                                selection.Left, selection.Top, selection.Right, selection.Bottom);
-                            DebugHelper.WriteLine($"[RegionCapture] Physical virtual bounds: L={physVLeft:F0}, T={physVTop:F0}, R={physVRight:F0}, B={physVBottom:F0}, Size={physVRight - physVLeft:F0}x{physVBottom - physVTop:F0}");
-                            DebugHelper.WriteLine($"[RegionCapture] PhysicalRectForCrop: L={selection.Left}, T={selection.Top}, R={selection.Right}, B={selection.Bottom}");
-
-                            double cx = (selection.Left + selection.Right) / 2.0;
-                            double cy = (selection.Top + selection.Bottom) / 2.0;
-                            var center = new XerahS.RegionCapture.Models.PixelPoint((int)cx, (int)cy);
-                            XerahS.RegionCapture.Models.MonitorInfo? monitorAtCenter = null;
-                            int monitorIndex = -1;
-                            for (int i = 0; i < monitors.Count; i++)
-                            {
-                                if (monitors[i].PhysicalBounds.Contains(center))
-                                {
-                                    monitorAtCenter = monitors[i];
-                                    monitorIndex = i;
-                                    break;
-                                }
-                            }
-                            monitorAtCenter ??= monitors[0];
-                            if (monitorIndex < 0) monitorIndex = 0;
-                            var phys = monitorAtCenter.PhysicalBounds;
-                            var over = monitorAtCenter.OverlayBounds;
-                            double s = monitorAtCenter.ScaleFactor;
-                            DebugHelper.WriteLine($"[RegionCapture] Monitor at selection center: index={monitorIndex}, DeviceName={monitorAtCenter.DeviceName}, ScaleFactor={s:F2}, PhysicalBounds=({phys.X:F0},{phys.Y:F0},{phys.Right:F0},{phys.Bottom:F0}), OverlayBounds=({over.X:F0},{over.Y:F0},{over.Right:F0},{over.Bottom:F0})");
-
-                            double logLeft = over.X + (selection.Left - phys.X) / s;
-                            double logTop = over.Y + (selection.Top - phys.Y) / s;
-                            double logRight = over.X + (selection.Right - phys.X) / s;
-                            double logBottom = over.Y + (selection.Bottom - phys.Y) / s;
-                            rectForCapture = new SKRect((float)logLeft, (float)logTop, (float)logRight, (float)logBottom);
-                            DebugHelper.WriteLine($"[RegionCapture] Selection converted to logical: L={logLeft:F1}, T={logTop:F1}, R={logRight:F1}, B={logBottom:F1}, Size={logRight - logLeft:F1}x{logBottom - logTop:F1}");
-                        }
-                        else
-                        {
-                            // Windows / macOS: selection and virtual bounds stay in physical pixels; platform capture uses same space.
-                            var b = monitors[0].PhysicalBounds;
-                            double left = b.X, top = b.Y, right = b.Right, bottom = b.Bottom;
-                            for (int i = 1; i < monitors.Count; i++)
-                            {
-                                var m = monitors[i].PhysicalBounds;
-                                left = Math.Min(left, m.X);
-                                top = Math.Min(top, m.Y);
-                                right = Math.Max(right, m.Right);
-                                bottom = Math.Max(bottom, m.Bottom);
-                            }
-                            captureOptions.VirtualScreenBoundsForCrop = Rectangle.FromLTRB(
-                                (int)Math.Round(left),
-                                (int)Math.Round(top),
-                                (int)Math.Round(right),
-                                (int)Math.Round(bottom));
-                            DebugHelper.WriteLine($"[RegionCapture] Virtual bounds (physical, PhysicalBounds union): L={left:F0}, T={top:F0}, R={right:F0}, B={bottom:F0}, Size={right - left:F0}x{bottom - top:F0}");
-                        }
-                    }
-                    else
-                    {
-                        DebugHelper.WriteLine("[RegionCapture] No monitors; rect passed as-is, no VirtualScreenBoundsForCrop");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.WriteLine($"[RegionCapture] Exception computing virtual bounds / logical rect: {ex.Message}");
-                    // Ignore; platform may use rect as-is or fall back to platform screen bounds
-                }
-
-                DebugHelper.WriteLine($"[RegionCapture] Milestone: CaptureRectAsync called (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
-                DebugHelper.WriteLine($"[RegionCapture] Calling CaptureRectAsync: rect L={rectForCapture.Left:F1}, T={rectForCapture.Top:F1}, R={rectForCapture.Right:F1}, B={rectForCapture.Bottom:F1}, VirtualScreenBoundsForCrop={captureOptions.VirtualScreenBoundsForCrop?.ToString() ?? "null"}");
-                bitmap = await _platformImpl.CaptureRectAsync(rectForCapture, captureOptions);
-                DebugHelper.WriteLine($"[RegionCapture] Milestone: CaptureRectAsync returned (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
+                bitmap = await CaptureRectFromSelection(selection, captureOptions, sessionStartUtc);
             }
 
-            // 6. Draw ghost cursor onto captured bitmap if available
-            // We use the INITIAL ghost cursor (captured at start) to match ShareX behavior ("original location").
-            // The Live cursor is hidden from the DXGI capture by the platform service.
+            // Composite ghost cursor and annotation layer (XIP-0052 §3.2 — delegated)
             if (bitmap != null && ghostCursor?.Image != null && showCursor)
             {
-                try
-                {
-                    // Calculate cursor position relative to the captured region
-                    int cursorX = ghostCursor.Position.X - selection.Left - ghostCursor.Hotspot.X;
-                    int cursorY = ghostCursor.Position.Y - selection.Top - ghostCursor.Hotspot.Y;
-
-                    // Draw cursor onto bitmap using SkiaSharp
-                    using var canvas = new SKCanvas(bitmap);
-                    using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
-                    canvas.DrawBitmap(ghostCursor.Image, cursorX, cursorY, paint);
-                }
-                catch
-                {
-                    // Ignore cursor drawing errors
-                }
+                CaptureImageCompositor.CompositeGhostCursor(bitmap, ghostCursor, selection);
             }
 
-            // 7. Composite annotation layer onto captured bitmap if available
-            // XIP-0023: Annotations drawn during region capture are rendered onto the final image
             if (bitmap != null && annotationLayer != null)
             {
-                try
-                {
-                    using var canvas = new SKCanvas(bitmap);
-                    using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
-
-                    // The annotation layer is monitor-sized, but selection is in absolute screen coords.
-                    // Subtract the monitor origin to get coordinates relative to the annotation layer.
-                    var srcRect = new SKRect(
-                        selection.Left - (float)annotationMonitorOrigin.X,
-                        selection.Top - (float)annotationMonitorOrigin.Y,
-                        selection.Right - (float)annotationMonitorOrigin.X,
-                        selection.Bottom - (float)annotationMonitorOrigin.Y);
-                    var dstRect = new SKRect(0, 0, bitmap.Width, bitmap.Height);
-
-                    canvas.DrawBitmap(annotationLayer, srcRect, dstRect, paint);
-                }
-                catch
-                {
-                    // Ignore annotation compositing errors
-                }
-                finally
-                {
-                    annotationLayer.Dispose();
-                }
+                CaptureImageCompositor.CompositeAnnotationLayer(bitmap, annotationLayer, selection, annotationMonitorOrigin);
             }
 
-            // Flush so milestone and debug lines appear in Debug Log (and log file) when user copies
             DebugHelper.Flush();
 
             return bitmap;
@@ -691,165 +481,195 @@ namespace XerahS.UI.Services
             return _platformImpl.CaptureWindowAsync(windowHandle, windowService, options);
         }
 
-        private static bool IsLinuxWayland()
-        {
-            return OperatingSystem.IsLinux() &&
-                   Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
-        }
+        // ─── Linux diagnostics (delegated to LinuxRegionSelectorResolver) ─────────
 
         public LinuxRegionCaptureCapability GetLinuxRegionCaptureCapability(CaptureOptions? options = null)
         {
-            if (_platformImpl is ILinuxRegionCaptureCapabilityProvider provider)
-            {
-                return provider.GetLinuxRegionCaptureCapability(options);
-            }
-
-            return new LinuxRegionCaptureCapability(
-                SupportsNativeRegionCapture: false,
-                SupportsLegacyOverlayCapture: false,
-                Reason: "Linux region capture capability provider unavailable.");
+            return _linuxResolver.GetCapability(_platformImpl, options);
         }
 
         public LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics()
         {
-            LinuxRegionSelectorDiagnostics? diagnostics = null;
-            if (_platformImpl is ILinuxRegionSelectorDiagnosticsProvider provider)
-            {
-                diagnostics = provider.GetLinuxRegionSelectorDiagnostics();
-            }
-
-            return MergeLinuxRegionSelectorDiagnostics(diagnostics, GetLastLinuxRegionSelectorDecision());
+            return _linuxResolver.GetDiagnostics(_platformImpl);
         }
 
+        /// <summary>
+        /// Kept for existing callers that reference this static helper directly.
+        /// </summary>
         internal static LinuxRegionSelectorDiagnostics? MergeLinuxRegionSelectorDiagnostics(
             LinuxRegionSelectorDiagnostics? diagnostics,
             LinuxRegionSelectorRuntimeDecision? runtimeDecision)
         {
-            if (diagnostics == null || runtimeDecision == null)
-            {
-                return diagnostics;
-            }
+            return LinuxRegionSelectorResolver.MergeDiagnostics(diagnostics, runtimeDecision);
+        }
 
-            if (diagnostics.LastDecision == null ||
-                runtimeDecision.TimestampUtc >= diagnostics.LastDecision.TimestampUtc)
+        // ─── Private helpers ──────────────────────────────────────────────────────
+
+        private static SKBitmap? CropFromPreCapture(SKBitmap fullScreenBitmap, SKRectI selection)
+        {
+            var cropRect = selection;
+            try
             {
-                return diagnostics with
+                var virtualBounds = PlatformServices.Screen.GetVirtualScreenBounds();
+                DebugHelper.WriteLine($"[RegionCapture] Pre-capture crop: fullBitmap={fullScreenBitmap.Width}x{fullScreenBitmap.Height} virtualBounds=({virtualBounds.X},{virtualBounds.Y},{virtualBounds.Width}x{virtualBounds.Height}) selection=({selection.Left},{selection.Top},{selection.Right},{selection.Bottom})");
+                if (!virtualBounds.IsEmpty)
                 {
-                    LastDecision = runtimeDecision
-                };
+                    var offsetX = virtualBounds.X;
+                    var offsetY = virtualBounds.Y;
+                    cropRect = new SKRectI(
+                        selection.Left - offsetX,
+                        selection.Top - offsetY,
+                        selection.Right - offsetX,
+                        selection.Bottom - offsetY);
+                    DebugHelper.WriteLine($"[RegionCapture] Pre-capture crop: offset=({offsetX},{offsetY}) cropRect=({cropRect.Left},{cropRect.Top},{cropRect.Right},{cropRect.Bottom}) size={cropRect.Width}x{cropRect.Height}");
+                }
+            }
+            catch
+            {
+                // Ignore virtual screen lookup failures
             }
 
-            return diagnostics;
-        }
-
-        private CaptureOptions? NormalizeLinuxOverlayCaptureOptions(
-            CaptureOptions? options,
-            string logPrefix)
-        {
-            return LinuxCaptureOptionsResolver.NormalizeLinuxOverlayCaptureOptions(
-                options, GetLinuxRegionCaptureCapability(options), logPrefix);
-        }
-
-        private static CaptureOptions? NormalizeLinuxNativeCaptureOptions(
-            CaptureOptions? options,
-            LinuxInteractiveRegionSelectorPreference effectivePreference,
-            string logPrefix)
-        {
-            return LinuxCaptureOptionsResolver.NormalizeLinuxNativeCaptureOptions(
-                options, effectivePreference, logPrefix);
-        }
-
-        private static bool ShouldTryLinuxNativeRegionCapture(
-            LinuxInteractiveRegionSelectorPreference effectivePreference,
-            LinuxRegionCaptureCapability? linuxCapability)
-        {
-            return LinuxCaptureOptionsResolver.ShouldTryLinuxNativeRegionCapture(
-                effectivePreference, linuxCapability);
-        }
-
-        private LinuxInteractiveRegionSelectorPreference ResolveEffectiveLinuxRegionSelectorPreference(
-            CaptureOptions? options,
-            LinuxRegionCaptureCapability? linuxCapability)
-        {
-            var preference = GetLinuxRegionSelectorPreference(options);
-            if (!OperatingSystem.IsLinux())
+            SKBitmap cropped = ImageHelpers.Crop(fullScreenBitmap, cropRect);
+            if (cropped.Width > 0 && cropped.Height > 0)
             {
-                return preference;
+                return cropped;
             }
 
-            var diagnostics = GetLinuxRegionSelectorDiagnostics();
-            if (preference != LinuxInteractiveRegionSelectorPreference.Automatic)
+            cropped.Dispose();
+            return null;
+        }
+
+        private async Task<SKBitmap?> CaptureRectFromSelection(SKRectI selection, CaptureOptions captureOptions, DateTime sessionStartUtc)
+        {
+            DebugHelper.WriteLine($"[RegionCapture] CaptureRectAsync path (no pre-capture). Selection physical: L={selection.Left}, T={selection.Top}, R={selection.Right}, B={selection.Bottom}, Size={selection.Right - selection.Left}x{selection.Bottom - selection.Top}");
+
+            SKRect rectForCapture = new SKRect(selection.Left, selection.Top, selection.Right, selection.Bottom);
+            try
             {
-                if (diagnostics?.AvailablePreferences is { Count: > 0 } availablePreferences &&
-                    !availablePreferences.Contains(preference))
+                var monitors = MonitorEnumerationService.GetAllMonitors();
+                DebugHelper.WriteLine($"[RegionCapture] Monitor count={monitors.Count}, Linux={OperatingSystem.IsLinux()}");
+
+                if (monitors.Count > 0)
                 {
-                    string availableList = string.Join(", ", availablePreferences.Select(x => x.ToString()));
-                    DebugHelper.WriteLine(
-                        $"[RegionCapture] Linux selector '{preference}' is unavailable in the current session. " +
-                        $"Available selectors: {availableList}. Falling back to Automatic.");
-                    preference = LinuxInteractiveRegionSelectorPreference.Automatic;
+                    if (OperatingSystem.IsLinux())
+                    {
+                        rectForCapture = ComputeLinuxLogicalRect(monitors, selection, captureOptions);
+                    }
+                    else
+                    {
+                        ComputeNonLinuxVirtualBounds(monitors, captureOptions);
+                    }
                 }
                 else
                 {
-                    return preference;
+                    DebugHelper.WriteLine("[RegionCapture] No monitors; rect passed as-is, no VirtualScreenBoundsForCrop");
                 }
             }
-
-            if ((options?.UseModernCapture == false) && linuxCapability?.SupportsLegacyOverlayCapture == true)
+            catch (Exception ex)
             {
-                return LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+                DebugHelper.WriteLine($"[RegionCapture] Exception computing virtual bounds / logical rect: {ex.Message}");
             }
 
-            if (diagnostics?.AutomaticPreference is { } automaticPreference &&
-                automaticPreference != LinuxInteractiveRegionSelectorPreference.Automatic)
-            {
-                return automaticPreference;
-            }
+            DebugHelper.WriteLine($"[RegionCapture] Milestone: CaptureRectAsync called (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
+            DebugHelper.WriteLine($"[RegionCapture] Calling CaptureRectAsync: rect L={rectForCapture.Left:F1}, T={rectForCapture.Top:F1}, R={rectForCapture.Right:F1}, B={rectForCapture.Bottom:F1}, VirtualScreenBoundsForCrop={captureOptions.VirtualScreenBoundsForCrop?.ToString() ?? "null"}");
+            var bitmap = await _platformImpl.CaptureRectAsync(rectForCapture, captureOptions);
+            DebugHelper.WriteLine($"[RegionCapture] Milestone: CaptureRectAsync returned (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
 
-            if (linuxCapability?.SupportsLegacyOverlayCapture == true)
-            {
-                return LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
-            }
-
-            return linuxCapability?.SupportsNativeRegionCapture == true
-                ? LinuxInteractiveRegionSelectorPreference.PortalDialog
-                : LinuxInteractiveRegionSelectorPreference.Automatic;
+            return bitmap;
         }
 
-        private static LinuxInteractiveRegionSelectorPreference GetLinuxRegionSelectorPreference(CaptureOptions? options)
+        private static SKRect ComputeLinuxLogicalRect(
+            IReadOnlyList<RegionCapture.Models.MonitorInfo> monitors,
+            SKRectI selection,
+            CaptureOptions captureOptions)
         {
-            return LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options);
-        }
-
-        private LinuxRegionSelectorRuntimeDecision? GetLastLinuxRegionSelectorDecision()
-        {
-            lock (_linuxRegionSelectorDecisionLock)
+            var ov = monitors[0].OverlayBounds;
+            double vLeft = ov.X, vTop = ov.Y, vRight = ov.Right, vBottom = ov.Bottom;
+            for (int i = 1; i < monitors.Count; i++)
             {
-                return _lastLinuxRegionSelectorDecision;
+                var o = monitors[i].OverlayBounds;
+                vLeft = Math.Min(vLeft, o.X);
+                vTop = Math.Min(vTop, o.Y);
+                vRight = Math.Max(vRight, o.Right);
+                vBottom = Math.Max(vBottom, o.Bottom);
             }
-        }
+            captureOptions.VirtualScreenBoundsForCrop = Rectangle.FromLTRB(
+                (int)Math.Round(vLeft),
+                (int)Math.Round(vTop),
+                (int)Math.Round(vRight),
+                (int)Math.Round(vBottom));
+            DebugHelper.WriteLine($"[RegionCapture] Virtual bounds (logical, OverlayBounds union): L={vLeft:F0}, T={vTop:F0}, R={vRight:F0}, B={vBottom:F0}, Size={vRight - vLeft:F0}x{vBottom - vTop:F0}");
 
-        private void RecordLinuxRegionSelectorDecision(LinuxRegionSelectorRuntimeDecision decision)
-        {
-            lock (_linuxRegionSelectorDecisionLock)
+            var pb0 = monitors[0].PhysicalBounds;
+            double physVLeft = pb0.X, physVTop = pb0.Y, physVRight = pb0.Right, physVBottom = pb0.Bottom;
+            for (int i = 1; i < monitors.Count; i++)
             {
-                _lastLinuxRegionSelectorDecision = decision;
+                var pb = monitors[i].PhysicalBounds;
+                physVLeft = Math.Min(physVLeft, pb.X);
+                physVTop = Math.Min(physVTop, pb.Y);
+                physVRight = Math.Max(physVRight, pb.Right);
+                physVBottom = Math.Max(physVBottom, pb.Bottom);
             }
+            captureOptions.PhysicalVirtualScreenBoundsForCrop = Rectangle.FromLTRB(
+                (int)Math.Round(physVLeft),
+                (int)Math.Round(physVTop),
+                (int)Math.Round(physVRight),
+                (int)Math.Round(physVBottom));
+            captureOptions.PhysicalRectForCrop = Rectangle.FromLTRB(
+                selection.Left, selection.Top, selection.Right, selection.Bottom);
+            DebugHelper.WriteLine($"[RegionCapture] Physical virtual bounds: L={physVLeft:F0}, T={physVTop:F0}, R={physVRight:F0}, B={physVBottom:F0}, Size={physVRight - physVLeft:F0}x{physVBottom - physVTop:F0}");
+            DebugHelper.WriteLine($"[RegionCapture] PhysicalRectForCrop: L={selection.Left}, T={selection.Top}, R={selection.Right}, B={selection.Bottom}");
+
+            double cx = (selection.Left + selection.Right) / 2.0;
+            double cy = (selection.Top + selection.Bottom) / 2.0;
+            var center = new XerahS.RegionCapture.Models.PixelPoint((int)cx, (int)cy);
+            XerahS.RegionCapture.Models.MonitorInfo? monitorAtCenter = null;
+            int monitorIndex = -1;
+            for (int i = 0; i < monitors.Count; i++)
+            {
+                if (monitors[i].PhysicalBounds.Contains(center))
+                {
+                    monitorAtCenter = monitors[i];
+                    monitorIndex = i;
+                    break;
+                }
+            }
+            monitorAtCenter ??= monitors[0];
+            if (monitorIndex < 0) monitorIndex = 0;
+            var phys = monitorAtCenter.PhysicalBounds;
+            var over = monitorAtCenter.OverlayBounds;
+            double s = monitorAtCenter.ScaleFactor;
+            DebugHelper.WriteLine($"[RegionCapture] Monitor at selection center: index={monitorIndex}, DeviceName={monitorAtCenter.DeviceName}, ScaleFactor={s:F2}, PhysicalBounds=({phys.X:F0},{phys.Y:F0},{phys.Right:F0},{phys.Bottom:F0}), OverlayBounds=({over.X:F0},{over.Y:F0},{over.Right:F0},{over.Bottom:F0})");
+
+            double logLeft = over.X + (selection.Left - phys.X) / s;
+            double logTop = over.Y + (selection.Top - phys.Y) / s;
+            double logRight = over.X + (selection.Right - phys.X) / s;
+            double logBottom = over.Y + (selection.Bottom - phys.Y) / s;
+            DebugHelper.WriteLine($"[RegionCapture] Selection converted to logical: L={logLeft:F1}, T={logTop:F1}, R={logRight:F1}, B={logBottom:F1}, Size={logRight - logLeft:F1}x{logBottom - logTop:F1}");
+
+            return new SKRect((float)logLeft, (float)logTop, (float)logRight, (float)logBottom);
         }
 
-        private static LinuxRegionSelectorRuntimeDecision CreateOverlayRuntimeDecision(
-            string operation,
-            LinuxInteractiveRegionSelectorPreference requestedPreference,
-            string outcome)
+        private static void ComputeNonLinuxVirtualBounds(
+            IReadOnlyList<RegionCapture.Models.MonitorInfo> monitors,
+            CaptureOptions captureOptions)
         {
-            return new LinuxRegionSelectorRuntimeDecision(
-                Operation: operation,
-                ProviderId: LinuxOverlayProviderId,
-                ProviderDisplayName: "XerahS overlay crosshair",
-                RequestedPreference: requestedPreference,
-                EffectivePreference: LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
-                Outcome: outcome,
-                TimestampUtc: DateTimeOffset.UtcNow);
+            var b = monitors[0].PhysicalBounds;
+            double left = b.X, top = b.Y, right = b.Right, bottom = b.Bottom;
+            for (int i = 1; i < monitors.Count; i++)
+            {
+                var m = monitors[i].PhysicalBounds;
+                left = Math.Min(left, m.X);
+                top = Math.Min(top, m.Y);
+                right = Math.Max(right, m.Right);
+                bottom = Math.Max(bottom, m.Bottom);
+            }
+            captureOptions.VirtualScreenBoundsForCrop = Rectangle.FromLTRB(
+                (int)Math.Round(left),
+                (int)Math.Round(top),
+                (int)Math.Round(right),
+                (int)Math.Round(bottom));
+            DebugHelper.WriteLine($"[RegionCapture] Virtual bounds (physical, PhysicalBounds union): L={left:F0}, T={top:F0}, R={right:F0}, B={bottom:F0}, Size={right - left:F0}x{bottom - top:F0}");
         }
     }
 }

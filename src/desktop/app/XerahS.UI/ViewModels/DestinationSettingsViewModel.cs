@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using XerahS.Platform.Abstractions;
 using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

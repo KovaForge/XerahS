@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
