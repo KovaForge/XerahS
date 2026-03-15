@@ -49,8 +49,8 @@
                         <MenuItem Header="Upload _Content..." Click="OnMenuNavigateClick" Tag="Upload_ClipboardUploadWithContentViewer"/>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
-                    <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
+                    <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" IsVisible="{Binding HasPreviewImage}"/>
+                    <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" IsVisible="{Binding HasPreviewImage}"/>
                     <Separator/>
                     <MenuItem Header="E_xit" Click="OnExitClick" InputGesture="Alt+F4"/>
                 </MenuItem>
