@@ -68,7 +68,7 @@ Follow these instructions exactly and in order. Do not skip steps, do not add bu
   <rule>For routed pages, prefer the shared host/theme defaults first and only add local root painting when that page still exposes transparent gutter space.</rule>
   <rule>Black areas usually mean an unpainted layout container is falling through to the underlying Fluent host surface. Diagnose the first painted surface before restyling inner controls.</rule>
   <rule>Do not hardcode dark colours. Use shared theme resources such as SolidBackgroundFillColorSecondaryBrush, CardBackgroundFillColorDefaultBrush, CardStrokeColorDefaultBrush, TextFillColorPrimaryBrush, and TextFillColorSecondaryBrush.</rule>
-  <rule>Buttons are accent by default app-wide through src\desktop\app\XerahS.UI\Themes\ThemeResources.axaml. Do not add Classes="accent" by default. Use semantic opt-out classes such as NoAccent, SettingsRow, ColorSwatchButton, or DarkButton only when a button intentionally needs a different presentation.</rule>
+  <rule>Buttons are accent by default app-wide through src\desktop\app\XerahS.UI\Themes\ThemeResources.axaml. Do not add Classes="accent" by default. Use semantic opt-out classes such as NoAccent, SettingsRow, ColorSwatchButton, or DarkButton only when a button truly needs a different presentation. Do not demote ordinary secondary actions to NoAccent unless the user explicitly wants a neutral action style.</rule>
   <rule>Do not style scrollbar thumbs manually. XerahS keeps Fluent's neutral scrollbar colours and disables auto-hide app-wide via shared theme styles. Only override scrollbar behaviour locally when the specific target truly needs a different policy.</rule>
   <rule>If read-only previews or control internals still render black after the root surface is correct, prefer fixing the relevant shared theme/resource mapping instead of painting many child controls one by one.</rule>
 </xerahs_window_dialog_playbook>
@@ -137,7 +137,7 @@ Execute the following steps in order. Think step-by-step and show your reasoning
   </step>
   <step>
     <id>7</id>
-    <action>Standardise control styling. Ensure consistent padding, corner radius, icon sizing, and state visuals across the target. Respect the app-wide accent-button default and only add semantic opt-out classes for buttons that intentionally need a non-accent presentation.</action>
+    <action>Standardise control styling. Ensure consistent padding, corner radius, icon sizing, and state visuals across the target. Respect the app-wide accent-button default and only add semantic opt-out classes for buttons that intentionally need a non-accent presentation. Do not use NoAccent just because an action is secondary.</action>
   </step>
   <step>
     <id>8</id>
