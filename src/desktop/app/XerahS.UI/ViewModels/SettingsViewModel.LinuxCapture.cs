@@ -52,6 +52,9 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private string _linuxRegionSelectorAutomaticText = string.Empty;
 
+        [ObservableProperty]
+        private string _linuxRegionSelectorLastDecisionText = string.Empty;
+
         public bool IsLinuxPlatform => OperatingSystem.IsLinux();
 
         public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
@@ -68,6 +71,7 @@ namespace XerahS.UI.ViewModels
                 LinuxRegionSelectorPortalBackendText = string.Empty;
                 LinuxRegionSelectorAvailableText = string.Empty;
                 LinuxRegionSelectorAutomaticText = string.Empty;
+                LinuxRegionSelectorLastDecisionText = string.Empty;
                 OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
                 return;
             }
@@ -79,6 +83,7 @@ namespace XerahS.UI.ViewModels
                 LinuxRegionSelectorPortalBackendText = "Portal backend: unavailable";
                 LinuxRegionSelectorAvailableText = "Available selectors: Automatic (recommended), XerahS overlay crosshair";
                 LinuxRegionSelectorAutomaticText = "Automatic will prefer the best available selector at runtime.";
+                LinuxRegionSelectorLastDecisionText = "Last selector result: unavailable";
                 OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
                 return;
             }
@@ -98,6 +103,7 @@ namespace XerahS.UI.ViewModels
             LinuxRegionSelectorPortalBackendText = $"Portal backend: {FormatDiagnosticsValue(diagnostics.PortalBackendSummary)}";
             LinuxRegionSelectorAvailableText = $"Available selectors: {string.Join(", ", diagnostics.AvailablePreferences.Select(GetPreferenceDescription))}";
             LinuxRegionSelectorAutomaticText = $"Automatic will prefer: {GetPreferenceDescription(diagnostics.AutomaticPreference)}";
+            LinuxRegionSelectorLastDecisionText = FormatLastDecision(diagnostics.LastDecision);
             OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
         }
 
@@ -109,6 +115,28 @@ namespace XerahS.UI.ViewModels
         private static string FormatDiagnosticsValue(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? "unavailable" : value;
+        }
+
+        private static string FormatLastDecision(LinuxRegionSelectorRuntimeDecision? decision)
+        {
+            if (decision == null)
+            {
+                return "Last selector result: no Linux interactive capture has run in this session.";
+            }
+
+            string timestampText = decision.TimestampUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+            string requestedPreference = GetPreferenceDescription(decision.RequestedPreference);
+            string effectivePreference = GetPreferenceDescription(decision.EffectivePreference);
+
+            return decision.Outcome switch
+            {
+                "Succeeded" =>
+                    $"Last selector result: {decision.Operation} used {decision.ProviderDisplayName} (provider: {decision.ProviderId}) at {timestampText}. Requested {requestedPreference}; effective {effectivePreference}.",
+                "Cancelled" =>
+                    $"Last selector result: {decision.Operation} was cancelled in {decision.ProviderDisplayName} (provider: {decision.ProviderId}) at {timestampText}. Requested {requestedPreference}; effective {effectivePreference}.",
+                _ =>
+                    $"Last selector result: {decision.Operation} failed in {decision.ProviderDisplayName} (provider: {decision.ProviderId}) at {timestampText}. Requested {requestedPreference}; effective {effectivePreference}."
+            };
         }
     }
 }

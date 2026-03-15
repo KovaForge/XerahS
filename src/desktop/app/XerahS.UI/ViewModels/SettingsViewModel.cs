@@ -158,6 +158,7 @@ namespace XerahS.UI.ViewModels
             nameof(LinuxRegionSelectorPortalBackendText),
             nameof(LinuxRegionSelectorAvailableText),
             nameof(LinuxRegionSelectorAutomaticText),
+            nameof(LinuxRegionSelectorLastDecisionText),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)

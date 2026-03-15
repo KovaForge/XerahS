@@ -560,6 +560,10 @@
                                                    FontSize="12"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorLastDecisionText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>

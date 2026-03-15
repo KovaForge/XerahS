@@ -23,30 +23,6 @@
 
 #endregion License Information (GPL v3)
 
-using System;
-using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-namespace XerahS.Platform.Abstractions;
-
-public sealed record LinuxRegionSelectorRuntimeDecision(
-    string Operation,
-    string ProviderId,
-    string ProviderDisplayName,
-    LinuxInteractiveRegionSelectorPreference RequestedPreference,
-    LinuxInteractiveRegionSelectorPreference EffectivePreference,
-    string Outcome,
-    DateTimeOffset TimestampUtc);
-
-public sealed record LinuxRegionSelectorDiagnostics(
-    string SessionType,
-    string Desktop,
-    string Compositor,
-    string PortalBackendSummary,
-    LinuxInteractiveRegionSelectorPreference AutomaticPreference,
-    IReadOnlyList<LinuxInteractiveRegionSelectorPreference> AvailablePreferences,
-    LinuxRegionSelectorRuntimeDecision? LastDecision = null);
-
-public interface ILinuxRegionSelectorDiagnosticsProvider
-{
-    LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics();
-}
+[assembly: InternalsVisibleTo("XerahS.Tests")]

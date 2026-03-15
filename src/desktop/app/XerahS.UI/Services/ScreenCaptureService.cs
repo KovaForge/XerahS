@@ -40,7 +40,10 @@ namespace XerahS.UI.Services
 {
     public class ScreenCaptureService : IScreenCaptureService, ILinuxRegionCaptureCapabilityProvider, ILinuxRegionSelectorDiagnosticsProvider
     {
+        private const string LinuxOverlayProviderId = "xerahs-overlay";
         private readonly IScreenCaptureService _platformImpl;
+        private readonly object _linuxRegionSelectorDecisionLock = new();
+        private LinuxRegionSelectorRuntimeDecision? _lastLinuxRegionSelectorDecision;
 
         public ScreenCaptureService(IScreenCaptureService platformImpl)
         {
@@ -173,6 +176,14 @@ namespace XerahS.UI.Services
             catch
             {
                 // Ignore errors to ensure robustness
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                RecordLinuxRegionSelectorDecision(CreateOverlayRuntimeDecision(
+                    operation: "Region selection",
+                    requestedPreference: GetLinuxRegionSelectorPreference(options),
+                    outcome: selection.IsEmpty ? "Cancelled" : "Succeeded"));
             }
 
             return selection;
@@ -378,8 +389,24 @@ namespace XerahS.UI.Services
 
             if (selection.IsEmpty || selection.Width <= 0 || selection.Height <= 0)
             {
+                if (OperatingSystem.IsLinux())
+                {
+                    RecordLinuxRegionSelectorDecision(CreateOverlayRuntimeDecision(
+                        operation: "Region capture",
+                        requestedPreference: GetLinuxRegionSelectorPreference(options),
+                        outcome: "Cancelled"));
+                }
+
                 DebugHelper.Flush();
                 return null;
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                RecordLinuxRegionSelectorDecision(CreateOverlayRuntimeDecision(
+                    operation: "Region capture",
+                    requestedPreference: GetLinuxRegionSelectorPreference(options),
+                    outcome: "Succeeded"));
             }
 
             bool showCursor = effectiveOptions?.ShowCursor == true;
@@ -684,12 +711,34 @@ namespace XerahS.UI.Services
 
         public LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics()
         {
+            LinuxRegionSelectorDiagnostics? diagnostics = null;
             if (_platformImpl is ILinuxRegionSelectorDiagnosticsProvider provider)
             {
-                return provider.GetLinuxRegionSelectorDiagnostics();
+                diagnostics = provider.GetLinuxRegionSelectorDiagnostics();
             }
 
-            return null;
+            return MergeLinuxRegionSelectorDiagnostics(diagnostics, GetLastLinuxRegionSelectorDecision());
+        }
+
+        internal static LinuxRegionSelectorDiagnostics? MergeLinuxRegionSelectorDiagnostics(
+            LinuxRegionSelectorDiagnostics? diagnostics,
+            LinuxRegionSelectorRuntimeDecision? runtimeDecision)
+        {
+            if (diagnostics == null || runtimeDecision == null)
+            {
+                return diagnostics;
+            }
+
+            if (diagnostics.LastDecision == null ||
+                runtimeDecision.TimestampUtc >= diagnostics.LastDecision.TimestampUtc)
+            {
+                return diagnostics with
+                {
+                    LastDecision = runtimeDecision
+                };
+            }
+
+            return diagnostics;
         }
 
         private CaptureOptions? NormalizeLinuxOverlayCaptureOptions(
@@ -859,6 +908,37 @@ namespace XerahS.UI.Services
                 PhysicalVirtualScreenBoundsForCrop = options?.PhysicalVirtualScreenBoundsForCrop,
                 PhysicalRectForCrop = options?.PhysicalRectForCrop
             };
+        }
+
+        private LinuxRegionSelectorRuntimeDecision? GetLastLinuxRegionSelectorDecision()
+        {
+            lock (_linuxRegionSelectorDecisionLock)
+            {
+                return _lastLinuxRegionSelectorDecision;
+            }
+        }
+
+        private void RecordLinuxRegionSelectorDecision(LinuxRegionSelectorRuntimeDecision decision)
+        {
+            lock (_linuxRegionSelectorDecisionLock)
+            {
+                _lastLinuxRegionSelectorDecision = decision;
+            }
+        }
+
+        private static LinuxRegionSelectorRuntimeDecision CreateOverlayRuntimeDecision(
+            string operation,
+            LinuxInteractiveRegionSelectorPreference requestedPreference,
+            string outcome)
+        {
+            return new LinuxRegionSelectorRuntimeDecision(
+                Operation: operation,
+                ProviderId: LinuxOverlayProviderId,
+                ProviderDisplayName: "XerahS overlay crosshair",
+                RequestedPreference: requestedPreference,
+                EffectivePreference: LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+                Outcome: outcome,
+                TimestampUtc: DateTimeOffset.UtcNow);
         }
     }
 }

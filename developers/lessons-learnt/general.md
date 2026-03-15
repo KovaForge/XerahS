@@ -216,3 +216,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: Editing workflows or hotkeys on Wayland can trigger debounce-driven portal rebinds while the `WaylandPortalHotkeyService` is also being torn down.
 
 **Lesson**: Never dispose portal hotkey D-Bus state while debounce or rebind work can still be running. Mark the service as disposed first, cancel the debounce token, and wait for in-flight rebind tasks to drain before releasing the connection, session, or semaphore. Otherwise workflow edits can surface unobserved `ObjectDisposedException` failures against `Tmds.DBus.Connection`.
+
+### Surface The Last Linux Selector Decision In Diagnostics
+
+**Context**: Static Linux selector diagnostics explain what should be available in the current session, but they do not show which selector actually handled the last capture.
+
+**Lesson**: When exposing Linux selector diagnostics, always carry the most recent runtime decision as well as the static capability snapshot. Native providers should record their exact winning provider ID, overlay fallbacks should record their own win in the UI wrapper, and diagnostics should surface whichever decision happened most recently so a stale native result cannot survive after an overlay fallback.
