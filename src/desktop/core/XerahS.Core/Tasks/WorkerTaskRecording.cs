@@ -43,7 +43,7 @@ namespace XerahS.Core.Tasks
     {
         #region Recording Handlers (Stage 5)
 
-        private async Task HandleStartRecordingAsync(CaptureMode mode, IntPtr windowHandle = default, Rectangle? region = null)
+        internal async Task HandleStartRecordingAsync(CaptureMode mode, IntPtr windowHandle = default, Rectangle? region = null)
         {
             var taskSettings = Info.TaskSettings ?? new TaskSettings();
             var metadata = Info.Metadata ?? new TaskMetadata();
@@ -358,19 +358,19 @@ namespace XerahS.Core.Tasks
             }
         }
 
-        private async Task HandleStopRecordingAsync()
+        internal async Task HandleStopRecordingAsync()
         {
              // Legacy handler - mapped to SignalStop in UI now
              await Task.CompletedTask;
         }
 
-        private async Task HandleAbortRecordingAsync()
+        internal async Task HandleAbortRecordingAsync()
         {
              // Legacy handler
              await ScreenRecordingManager.Instance.AbortRecordingAsync();
         }
 
-        private async Task HandlePauseRecordingAsync()
+        internal async Task HandlePauseRecordingAsync()
         {
              await ScreenRecordingManager.Instance.TogglePauseResumeAsync();
         }

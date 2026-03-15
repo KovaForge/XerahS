@@ -36,7 +36,7 @@ namespace XerahS.Core.Tasks
         /// <summary>
         /// Applies capture start delay if configured for the workflow.
         /// </summary>
-        private async Task<bool> ApplyCaptureStartDelayAsync(TaskSettings taskSettings, string category, double delaySeconds, CancellationToken token)
+        internal async Task<bool> ApplyCaptureStartDelayAsync(TaskSettings taskSettings, string category, double delaySeconds, CancellationToken token)
         {
             if (delaySeconds <= 0)
             {

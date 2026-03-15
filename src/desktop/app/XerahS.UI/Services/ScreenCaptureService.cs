@@ -35,6 +35,7 @@ using System;
 using System.Drawing;
 using System.Diagnostics;
 using System.Linq;
+using XerahS.UI.Services.Capture;
 
 namespace XerahS.UI.Services
 {
@@ -745,39 +746,8 @@ namespace XerahS.UI.Services
             CaptureOptions? options,
             string logPrefix)
         {
-            return NormalizeLinuxOverlayCaptureOptions(options, GetLinuxRegionCaptureCapability(options), logPrefix);
-        }
-
-        private static CaptureOptions? NormalizeLinuxOverlayCaptureOptions(
-            CaptureOptions? options,
-            LinuxRegionCaptureCapability? linuxCapability,
-            string logPrefix)
-        {
-            if (!OperatingSystem.IsLinux())
-            {
-                return options;
-            }
-
-            if (linuxCapability is not { SupportsLegacyOverlayCapture: true } capability)
-            {
-                return options;
-            }
-
-            bool alreadyOnLegacyLinuxPath = options?.LinuxForceLegacyCapturePath == true &&
-                GetLinuxRegionSelectorPreference(options) == LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
-
-            if (alreadyOnLegacyLinuxPath)
-            {
-                return options;
-            }
-
-            DebugHelper.WriteLine($"{logPrefix}: forcing Linux overlay follow-up capture to stay on the legacy path. Reason={capability.Reason}");
-
-            return CloneCaptureOptions(
-                options,
-                useModernCapture: options?.UseModernCapture ?? true,
-                linuxRegionSelectorPreference: LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
-                linuxForceLegacyCapturePath: true);
+            return LinuxCaptureOptionsResolver.NormalizeLinuxOverlayCaptureOptions(
+                options, GetLinuxRegionCaptureCapability(options), logPrefix);
         }
 
         private static CaptureOptions? NormalizeLinuxNativeCaptureOptions(
@@ -785,47 +755,16 @@ namespace XerahS.UI.Services
             LinuxInteractiveRegionSelectorPreference effectivePreference,
             string logPrefix)
         {
-            if (!OperatingSystem.IsLinux())
-            {
-                return options;
-            }
-
-            bool needsClone = options?.LinuxForceLegacyCapturePath == true ||
-                GetLinuxRegionSelectorPreference(options) != effectivePreference;
-
-            if (!needsClone)
-            {
-                return options;
-            }
-
-            DebugHelper.WriteLine($"{logPrefix}: selecting Linux native selector '{effectivePreference}'.");
-            return CloneCaptureOptions(
-                options,
-                useModernCapture: options?.UseModernCapture ?? true,
-                linuxRegionSelectorPreference: effectivePreference,
-                linuxForceLegacyCapturePath: false);
+            return LinuxCaptureOptionsResolver.NormalizeLinuxNativeCaptureOptions(
+                options, effectivePreference, logPrefix);
         }
 
         private static bool ShouldTryLinuxNativeRegionCapture(
             LinuxInteractiveRegionSelectorPreference effectivePreference,
             LinuxRegionCaptureCapability? linuxCapability)
         {
-            if (!OperatingSystem.IsLinux())
-            {
-                return false;
-            }
-
-            bool canUseLinuxOverlayFallback = linuxCapability?.SupportsLegacyOverlayCapture == true;
-            bool supportsNativeRegionCapture = linuxCapability?.SupportsNativeRegionCapture ?? true;
-
-            return effectivePreference switch
-            {
-                LinuxInteractiveRegionSelectorPreference.XerahSOverlay => !canUseLinuxOverlayFallback && supportsNativeRegionCapture,
-                LinuxInteractiveRegionSelectorPreference.PortalDialog or
-                    LinuxInteractiveRegionSelectorPreference.DesktopNative or
-                    LinuxInteractiveRegionSelectorPreference.Slurp => true,
-                _ => supportsNativeRegionCapture
-            };
+            return LinuxCaptureOptionsResolver.ShouldTryLinuxNativeRegionCapture(
+                effectivePreference, linuxCapability);
         }
 
         private LinuxInteractiveRegionSelectorPreference ResolveEffectiveLinuxRegionSelectorPreference(
@@ -879,35 +818,7 @@ namespace XerahS.UI.Services
 
         private static LinuxInteractiveRegionSelectorPreference GetLinuxRegionSelectorPreference(CaptureOptions? options)
         {
-            return options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
-        }
-
-        private static CaptureOptions CloneCaptureOptions(
-            CaptureOptions? options,
-            bool useModernCapture,
-            LinuxInteractiveRegionSelectorPreference? linuxRegionSelectorPreference = null,
-            bool? linuxForceLegacyCapturePath = null)
-        {
-            return new CaptureOptions
-            {
-                UseModernCapture = useModernCapture,
-                LinuxRegionSelectorPreference =
-                    linuxRegionSelectorPreference ?? options?.LinuxRegionSelectorPreference ??
-                    LinuxInteractiveRegionSelectorPreference.Automatic,
-                LinuxForceLegacyCapturePath = linuxForceLegacyCapturePath ?? options?.LinuxForceLegacyCapturePath ?? false,
-                ShowCursor = options?.ShowCursor ?? true,
-                CaptureTransparent = options?.CaptureTransparent ?? false,
-                UseTransparentOverlay = options?.UseTransparentOverlay ?? false,
-                CaptureShadow = options?.CaptureShadow ?? true,
-                CaptureClientArea = options?.CaptureClientArea ?? false,
-                WorkflowId = options?.WorkflowId,
-                WorkflowCategory = options?.WorkflowCategory,
-                CaptureStartDelaySeconds = options?.CaptureStartDelaySeconds ?? 0,
-                CaptureStartDelayCancellationToken = options?.CaptureStartDelayCancellationToken ?? default,
-                VirtualScreenBoundsForCrop = options?.VirtualScreenBoundsForCrop,
-                PhysicalVirtualScreenBoundsForCrop = options?.PhysicalVirtualScreenBoundsForCrop,
-                PhysicalRectForCrop = options?.PhysicalRectForCrop
-            };
+            return LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options);
         }
 
         private LinuxRegionSelectorRuntimeDecision? GetLastLinuxRegionSelectorDecision()
