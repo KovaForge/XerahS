@@ -10,6 +10,74 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ## Unreleased
 
+
+## v0.20.3
+
+### Fixes
+- **Core**: Accent scrollbar thumbs app wide (7db2f3ed)
+- **Core**: Detach window content before wrapping (637899a7)
+- **Core**: Expand shared Fluent surface bridge (57f55361)
+- **Core**: Improve hotkey toolbar contrast (05d73905)
+- **Core**: Keep index folder controls visible (17ffcb04)
+- **Core**: Make hotkey move labels explicit (dee46e8d)
+- **Core**: Map primary text brush to theme (4268d657)
+- **Core**: Normalize hotkey control card surfaces (ec599b8b)
+- **Core**: Normalize tool window surfaces (19b4424f)
+- **Core**: Paint color picker root surfaces (ec782d3d)
+- **Core**: Paint hash check window surface (7a314245)
+- **Core**: Paint image analyzer root surface (8c025fb4)
+- **Core**: Paint image combiner root surface (4d411ce0)
+- **Core**: Paint image splitter root surface (87946d13)
+- **Core**: Paint image thumbnailer root surface (550ab5f8)
+- **Core**: Paint index folder root gutter (e59362e7)
+- **Core**: Paint index folder surfaces explicitly (5a7ea131)
+- **Core**: Paint video tool window surfaces (4b88f19c)
+- **Core**: Place color picker swatch tooltips above chips (dc6bb5ba)
+- **Core**: Preserve capable X11 modern region capture (6a90f696)
+- **Core**: Publish native Windows clipboard image formats (43bbccbe)
+- **Core**: Restore neutral scrollbars and disable auto-hide (d77b4a4f)
+- **Core**: Show workflow move button labels (cca26574)
+- **Core**: Update ShareX.ImageEditor move-down icon (24093641)
+- **Core**: Update ShareX.ImageEditor move-up icon (857b192d)
+- **Core**: Use accent buttons in color picker (7cbeef73)
+- **Core**: Use accent buttons in image combiner (2160e463)
+- **Core**: Use accent buttons in image splitter (d2e82af6)
+- **Core**: Use accent buttons in image thumbnailer (b2bed6c1)
+- **Core**: Use accent buttons in upload content (2b661408)
+- **Core**: Use accent buttons in video converter (77eaede2)
+- **Core**: Use accent buttons in video thumbnailer (553bc915)
+- **Core**: Widen image combiner options layout (c20f703e)
+
+### Refactor
+- **Core**: Centralize desktop theme styles (8254e13c)
+- **Core**: Expand theme surface compatibility (b2e17ebd)
+- **Core**: Make accent the default button style (6895b18e)
+- **Core**: Move window surfaces into host bases (68ff55e9)
+- **Core**: Replace Linux UseModernCapture semantics (3852768d)
+- **Core**: Unify shared container surfaces (0fbada88)
+
+### Documentation
+- **Core**: Add 2026-03-13 release and UI cleanup blog draft. (3afbe52c)
+- **Core**: Add 2026-03-14 Linux selector blog draft. (d133df18)
+- **Core**: Add XIP0051 Linux selector preferences (1cf8aa43)
+- **Core**: Record Linux selector UX lessons (f68f6300)
+- **Core**: Record X11 portal fallback guardrails (506f8dac)
+
+### Changed
+- **Core**: Add Linux region selector settings UI (298ce627)
+- **Core**: Add Linux selector preference plumbing (48036c10)
+- **Core**: Clarify Linux capture settings UI (94e4d020)
+- **Core**: Hide editor task buttons in XerahS hosts (a5be14e6)
+- **Core**: Hide task buttons in main editor host (0bffed33)
+- **Core**: Keep annotate editor task UI in XerahS (5809651a)
+- **Core**: Remove stale editor toolbar references (43b7c8f9)
+- **Core**: Show File Save and Save As only when image loaded in editor (b10a5338)
+- **Core**: Sort View Zoom menu alphabetically; zoom enabled only with image (1cca79ec)
+- **Core**: Update editor integration and tools navigation (9d4e09be)
+- **Core**: Update run-debug-app.sh (80677704)
+- **Core**: Wire annotate editor task actions (5560ea1b)
+- **Update ShareX.ImageEditor**: disable Copy when no image (119d6324)
+
 ### Build
 - **Chocolatey**: Fix CRLF checksum replacement and normalize pack output paths in release sync so recovery packaging can find generated packages `(16af5a18, 075be629)`
 
@@ -70,7 +138,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Fixes
 - **Linux**: UseModernCapture option (XDG Portal vs overlay), Wayland region capture and mixed-DPI bounds, GNOME portal recording output, double region-selection prompt fix; KDE Spectacle and GNOME fallbacks (XIP0046-C); system tray SNI (GNOME/Wayland); systemd user unit path via UserProfile `(8e2f372b, 8b686d9c, 792f9f5c, 5aafdad2, ad0f48d5, 58283cb1, 6426a6c6, 17a52cdc, 74dd1532, ffa8f982)`
 - **Core**: Validate URL before OpenURL Process.Start; SaveRequested/SaveAsRequested for embedded and standalone editor; fall back to File-category instances when no Image uploader; default white tray icon on Linux/macOS; Tools_* nav items and VideoEditor dispatch; AnnotateImage JSON deserialization; Linux portal handle format and RPM packaging `(d16c0179, 6595731d, 7ec997c0, 63f81ce6, ddf64eb5, e9f8594b, b4b47f53, 1172b9a5, c6e9dd21)`
-- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; §7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
+- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; Â§7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
 - **VideoEditor submodule**: Button theme isolation and ReactiveUI main thread scheduler fixes `(ac7a1eec, 672a1e09)`
 - **Watch Folder**: Support legacy watchfolder.service `(9d291a15)`
 - **Core**: Hide Video Editor from Tools menu in release builds `(692cb5a0)`
@@ -110,7 +178,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ## v0.19.0
 
 ### Fixes
-- **Core**: Correct DMDO_90/DMDO_270 →â†’ ModeRotation mapping in DXGI capture (b484d197)
+- **Core**: Correct DMDO_90/DMDO_270 â†’Ã¢â€ â€™ ModeRotation mapping in DXGI capture (b484d197)
 
 ### Documentation
 - **Core**: Fix XIP0042 markdown rendering (939f92c5)
@@ -120,7 +188,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Changed
 - **Core**: [Docs] Shorten XIP0043 title and backup filename; sync XIP0038/XIP0040 slugs (8ebe0ae8)
 - **Core**: [Docs] XIP sync: GitHub source of truth, single-folder backup, merge script (5994bb13)
-- **Core**: [XIP0042] Second audit â€” update task after Jaex's Round 2 fixes (4c06d5cf)
+- **Core**: [XIP0042] Second audit Ã¢â‚¬â€ update task after Jaex's Round 2 fixes (4c06d5cf)
 - **Core**: [XIP0042] Sync task doc from feature/XIP0042-optimizations (latest implementation status) (b9da24b8)
 - **Core**: [XIP0042] Update GPU effects task with current codebase audit (7c70e94a)
 - **Core**: Move XIP0043 task to complete folder (2b9a95ed)
