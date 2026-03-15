@@ -23,9 +23,7 @@
 
 #endregion License Information (GPL v3)
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
+using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Core;
 using XerahS.Indexer;
@@ -39,53 +37,20 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task BrowseIndexerFolderAsync()
         {
-            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow
-                : null;
-
-            if (window?.StorageProvider == null)
+            var folderPath = await _dialogService.ShowFolderPickerAsync("Select Folder to Index");
+            if (!string.IsNullOrWhiteSpace(folderPath))
             {
-                return;
-            }
-
-            var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "Select Folder to Index",
-                AllowMultiple = false
-            });
-
-            if (folders.Count > 0)
-            {
-                IndexerFolderPath = folders[0].Path.LocalPath;
+                IndexerFolderPath = folderPath;
             }
         }
 
         [RelayCommand]
         private async Task BrowseIndexerCssFileAsync()
         {
-            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow
-                : null;
-
-            if (window?.StorageProvider == null)
+            var filePath = await _dialogService.ShowFilePickerAsync("Select Custom CSS File", new[] { "*.css", "*.*" });
+            if (!string.IsNullOrWhiteSpace(filePath))
             {
-                return;
-            }
-
-            var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-            {
-                Title = "Select Custom CSS File",
-                AllowMultiple = false,
-                FileTypeFilter = new[]
-                {
-                    new FilePickerFileType("CSS Files") { Patterns = new[] { "*.css" } },
-                    new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
-                }
-            });
-
-            if (files.Count > 0)
-            {
-                IndexerCustomCssFilePath = files[0].Path.LocalPath;
+                IndexerCustomCssFilePath = filePath;
             }
         }
 

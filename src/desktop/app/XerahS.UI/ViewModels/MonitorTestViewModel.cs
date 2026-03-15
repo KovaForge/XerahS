@@ -23,8 +23,6 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -502,11 +500,6 @@ public static class MonitorSnapshotService
     public static MonitorSnapshot GetSnapshot()
     {
         var monitors = GetMonitorsFromPlatformServices();
-        if (monitors.Count == 0)
-        {
-            monitors = GetMonitorsFromAvalonia();
-        }
-
         return new MonitorSnapshot(monitors);
     }
 
@@ -561,34 +554,7 @@ public static class MonitorSnapshotService
         return monitors;
     }
 
-    private static List<MonitorInfo> GetMonitorsFromAvalonia()
-    {
-        var monitors = new List<MonitorInfo>();
-        var screens = Application.Current?.ApplicationLifetime switch
-        {
-            IClassicDesktopStyleApplicationLifetime desktop => desktop.MainWindow?.Screens,
-            _ => null
-        };
 
-        if (screens == null)
-        {
-            return monitors;
-        }
-
-        int index = 1;
-        foreach (var screen in screens.All)
-        {
-            monitors.Add(new MonitorInfo(
-                $"Display {index}",
-                new MonitorRect(screen.Bounds.X, screen.Bounds.Y, screen.Bounds.Width, screen.Bounds.Height),
-                new MonitorRect(screen.WorkingArea.X, screen.WorkingArea.Y, screen.WorkingArea.Width, screen.WorkingArea.Height),
-                screen.Scaling,
-                screen.IsPrimary));
-            index++;
-        }
-
-        return monitors;
-    }
 }
 
 public enum TestMode

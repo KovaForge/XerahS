@@ -106,6 +106,7 @@ namespace XerahS.UI.Services
             try
             {
                 Register(PlatformServices.UI);
+                Register<IViewDialogService>(new AvaloniaDialogService());
             }
             catch (InvalidOperationException)
             {

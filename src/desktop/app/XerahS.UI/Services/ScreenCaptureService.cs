@@ -287,7 +287,7 @@ namespace XerahS.UI.Services
                 }
             }
 
-            var effectiveOptions = NormalizeLinuxOverlayCaptureOptions(
+            var effectiveOptions = LinuxCaptureOptionsResolver.NormalizeLinuxOverlayCaptureOptions(
                 options,
                 linuxCapability,
                 "[RegionCapture] CaptureRegionAsync");

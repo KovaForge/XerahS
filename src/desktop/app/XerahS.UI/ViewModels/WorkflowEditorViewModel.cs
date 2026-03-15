@@ -159,7 +159,9 @@ public partial class WorkflowEditorViewModel : ViewModelBase
         LogStep(sw, "basic fields set");
 
         // Initialize TaskSettings VM
-        TaskSettings = new TaskSettingsViewModel(_model.TaskSettings);
+        var dialogService = PlatformServices.RootProvider?.GetService(typeof(XerahS.UI.Services.IViewDialogService)) as XerahS.UI.Services.IViewDialogService 
+                            ?? new XerahS.UI.Services.AvaloniaDialogService();
+        TaskSettings = new TaskSettingsViewModel(_model.TaskSettings, dialogService);
         IndexFolderConfig = new IndexFolderViewModel(_model.TaskSettings, true);
         LogStep(sw, "task settings viewmodels created");
 

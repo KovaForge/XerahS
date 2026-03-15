@@ -22,7 +22,6 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -36,6 +35,7 @@ using XerahS.Core.Managers;
 using XerahS.History;
 using XerahS.Media;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Services;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -140,9 +140,11 @@ namespace XerahS.UI.ViewModels
 
         private readonly HistoryManagerSQLite _historyManager;
         private CancellationTokenSource? _thumbnailCancellationTokenSource;
+        private readonly IViewDialogService _dialogService;
 
         public HistoryViewModel()
         {
+            _dialogService = PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
             HistoryItems = new ObservableCollection<HistoryItem>();
             SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
@@ -418,15 +420,9 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                // Get clipboard from the main window
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(item.FilePath);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(item.FilePath);
                 }
             }
             catch (Exception ex)
@@ -442,15 +438,9 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                // Get clipboard from the main window
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(item.URL);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(item.URL);
                 }
             }
             catch (Exception ex)
@@ -467,14 +457,9 @@ namespace XerahS.UI.ViewModels
             var markdownImage = $"[img]{item.URL}[/img]";
             try
             {
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(markdownImage);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(markdownImage);
                 }
             }
             catch (Exception ex)
@@ -510,15 +495,9 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                // Get clipboard from the main window
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(item.Errors);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(item.Errors);
                 }
             }
             catch (Exception ex)
@@ -642,10 +621,9 @@ namespace XerahS.UI.ViewModels
             confirmDialog.Content = panel;
 
             // Get the main window as the owner
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                && desktop.MainWindow != null)
+            if (_dialogService.GetMainWindow() is Avalonia.Controls.Window mainWindow)
             {
-                await confirmDialog.ShowDialog(desktop.MainWindow);
+                await confirmDialog.ShowDialog(mainWindow);
             }
             else
             {

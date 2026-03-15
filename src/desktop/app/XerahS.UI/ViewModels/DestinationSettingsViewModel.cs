@@ -22,8 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
+using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json.Linq;
@@ -48,9 +47,11 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     [ObservableProperty]
     private CategoryViewModel? _selectedCategory;
 
-    public DestinationSettingsViewModel()
+    private readonly IViewDialogService _dialogService;
+
+    public DestinationSettingsViewModel(IViewDialogService? dialogService = null)
     {
-        // Constructor is now empty, initialization moved to Initialize()
+        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
     }
 
     public event Func<string, string, Task>? ShowMessageDialog;
@@ -132,20 +133,9 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task OpenPluginInstaller()
     {
-        var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-
-        if (mainWindow == null)
-        {
-            Common.DebugHelper.WriteLine("[DestinationSettings] Cannot open plugin installer (main window missing).");
-            return;
-        }
-
         try
         {
-            var dialog = new PluginInstallerDialog();
-            await dialog.ShowDialog<bool>(mainWindow);
+            await _dialogService.ShowDialogAsync<PluginInstallerDialog, bool>(new PluginInstallerViewModel());
         }
         catch (Exception ex)
         {
@@ -161,33 +151,14 @@ public partial class DestinationSettingsViewModel : ViewModelBase
 
             if (configPath == null)
             {
-                var topLevel = Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                    ? desktop.MainWindow
-                    : null;
+                var filePath = await _dialogService.ShowFilePickerAsync("Select ShareX UploadersConfig.json", new[] { "*UploadersConfig*.json", "*.json" });
 
-                if (topLevel?.StorageProvider == null)
-                {
-                    await ShowMessageDialogAsync("Import Failed", "No window available to open the file picker.");
-                    return;
-                }
-
-                var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-                {
-                    Title = "Select ShareX UploadersConfig.json",
-                    AllowMultiple = false,
-                    FileTypeFilter = new[]
-                    {
-                        new FilePickerFileType("ShareX Config") { Patterns = new[] { "*UploadersConfig*.json" } },
-                        new FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } }
-                    }
-                });
-
-                if (files.Count == 0)
+                if (string.IsNullOrWhiteSpace(filePath))
                 {
                     return;
                 }
 
-                configPath = files[0].Path.LocalPath;
+                configPath = filePath;
             }
 
             var result = UploadersConfigImporter.ImportFromFile(configPath, SettingsManager.UploadersConfig);
@@ -263,25 +234,10 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task AddCustomUploader()
     {
-        var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-
-        if (mainWindow == null)
-        {
-            Common.DebugHelper.WriteLine("[DestinationSettings] Cannot open custom uploader editor (main window missing).");
-            return;
-        }
-
         try
         {
             var viewModel = new CustomUploaderEditorViewModel();
-            var dialog = new CustomUploaderEditorDialog
-            {
-                DataContext = viewModel
-            };
-
-            var result = await dialog.ShowDialog<bool>(mainWindow);
+            var result = await _dialogService.ShowDialogAsync<CustomUploaderEditorDialog, bool>(viewModel);
 
             if (result)
             {

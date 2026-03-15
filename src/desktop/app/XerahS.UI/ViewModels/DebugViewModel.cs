@@ -22,8 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
@@ -83,13 +82,9 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async System.Threading.Tasks.Task Copy()
         {
-            if (!string.IsNullOrEmpty(LogText) && Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            if (!string.IsNullOrEmpty(LogText) && XerahS.Platform.Abstractions.PlatformServices.IsInitialized)
             {
-                var clipboard = desktop.MainWindow?.Clipboard;
-                if (clipboard != null)
-                {
-                    await clipboard.SetTextAsync(LogText);
-                }
+                await XerahS.Platform.Abstractions.PlatformServices.Clipboard.SetTextAsync(LogText);
             }
         }
 

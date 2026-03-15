@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
+using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
@@ -35,6 +34,12 @@ namespace XerahS.UI.ViewModels;
 
 public partial class PluginInstallerViewModel : ViewModelBase
 {
+    private readonly IViewDialogService _dialogService;
+
+    public PluginInstallerViewModel(IViewDialogService? dialogService = null)
+    {
+        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+    }
     [ObservableProperty]
     private string _packageFilePath = string.Empty;
 
@@ -60,32 +65,11 @@ public partial class PluginInstallerViewModel : ViewModelBase
     [RelayCommand]
     private async Task BrowsePackage()
     {
-        var topLevel = Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
+        var filePath = await _dialogService.ShowFilePickerAsync("Select Plugin Package", new[] { "*.xsdp" });
 
-        if (topLevel == null)
+        if (!string.IsNullOrWhiteSpace(filePath))
         {
-            ErrorMessage = "Unable to find the main window.";
-            return;
-        }
-
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Select Plugin Package",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType($"{SettingsManager.AppName} Plugin")
-                {
-                    Patterns = new[] { "*.xsdp" }
-                }
-            }
-        });
-
-        if (files.Count > 0)
-        {
-            PackageFilePath = files[0].Path.LocalPath;
+            PackageFilePath = filePath;
             await LoadManifestPreview();
         }
     }

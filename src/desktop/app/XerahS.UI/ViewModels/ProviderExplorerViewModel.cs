@@ -23,7 +23,8 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
+using XerahS.Platform.Abstractions;
+using XerahS.UI.Services;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -98,11 +99,13 @@ public partial class ProviderExplorerViewModel : ViewModelBase, IDisposable
     public bool HasBandwidthSavingsNotice => !string.IsNullOrWhiteSpace(BandwidthSavingsNotice);
 
     public UploaderInstance BoundInstance => _instance;
+    private readonly IViewDialogService _dialogService;
 
     public ProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer)
     {
         _instance = instance;
         _explorer = explorer;
+        _dialogService = PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
 
         var providerName = ProviderCatalog.GetProvider(instance.ProviderId)?.Name ?? instance.ProviderId;
         WindowTitle = $"{providerName} — {instance.DisplayName}";
@@ -189,12 +192,9 @@ public partial class ProviderExplorerViewModel : ViewModelBase, IDisposable
         if (item == null || string.IsNullOrEmpty(item.Item.Url)) return;
         try
         {
-            if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                && desktop.MainWindow != null)
+            if (PlatformServices.IsInitialized)
             {
-                var clipboard = desktop.MainWindow.Clipboard;
-                if (clipboard != null)
-                    await clipboard.SetTextAsync(item.Item.Url);
+                await PlatformServices.Clipboard.SetTextAsync(item.Item.Url);
             }
         }
         catch (Exception ex)
@@ -535,10 +535,9 @@ public partial class ProviderExplorerViewModel : ViewModelBase, IDisposable
         panel.Children.Add(buttonRow);
         dialog.Content = panel;
 
-        if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-            && desktop.MainWindow != null)
+        if (_dialogService.GetMainWindow() is Avalonia.Controls.Window mainWindow)
         {
-            await dialog.ShowDialog(desktop.MainWindow);
+            await dialog.ShowDialog(mainWindow);
         }
         else
         {
