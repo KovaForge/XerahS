@@ -23,17 +23,21 @@
 
 #endregion License Information (GPL v3)
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 
 namespace XerahS.UI.ViewModels;
@@ -42,6 +46,19 @@ public partial class WorkflowEditorViewModel : ViewModelBase
 {
     // Prevents writing selection back while we are initializing/reloading the list
     private bool _isLoadingSelection;
+    private readonly WorkflowSettings _sourceModel;
+    private readonly bool _loadUploaderCategories;
+    private bool _descriptionAutoSyncEnabled;
+    private static readonly JsonSerializerSettings CloneJsonSettings = new()
+    {
+        TypeNameHandling = TypeNameHandling.Auto,
+        ObjectCreationHandling = ObjectCreationHandling.Replace,
+        Converters = new List<JsonConverter>
+        {
+            new StringEnumConverter(),
+            new XerahS.Common.Converters.SkColorJsonConverter()
+        }
+    };
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WorkflowId))]
@@ -72,6 +89,8 @@ public partial class WorkflowEditorViewModel : ViewModelBase
     private CategoryViewModel _fileCategory = null!;
     private CategoryViewModel _urlCategory = null!;
 
+    public string SelectedJobDescription => EnumExtensions.GetDescription(SelectedJob);
+
     public string WindowTitle
     {
         get
@@ -91,9 +110,11 @@ public partial class WorkflowEditorViewModel : ViewModelBase
         get => Model.TaskSettings.Description;
         set
         {
-            if (Model.TaskSettings.Description != value)
+            string normalizedValue = value ?? string.Empty;
+            if (Model.TaskSettings.Description != normalizedValue)
             {
-                Model.TaskSettings.Description = value;
+                Model.TaskSettings.Description = normalizedValue;
+                _descriptionAutoSyncEnabled = ShouldAutoSyncDescription(normalizedValue, SelectedJob);
                 OnPropertyChanged(nameof(Description));
                 OnPropertyChanged(nameof(WindowTitle));
             }
@@ -121,39 +142,44 @@ public partial class WorkflowEditorViewModel : ViewModelBase
     public TaskSettingsViewModel TaskSettings { get; private set; }
     public IndexFolderViewModel IndexFolderConfig { get; }
 
-    public WorkflowEditorViewModel(WorkflowSettings model)
+    public WorkflowEditorViewModel(WorkflowSettings model, bool loadUploaderCategories = true)
     {
         var sw = Stopwatch.StartNew();
         DebugHelper.WriteLine($"[WorkflowEditorVM] ctor start. Job={model.Job}, Id={model.Id}");
 
-        _model = model;
-        _selectedKey = model.HotkeyInfo.Key;
-        _selectedModifiers = model.HotkeyInfo.Modifiers;
-        _selectedJob = model.Job;
+        _sourceModel = model ?? throw new ArgumentNullException(nameof(model));
+        _loadUploaderCategories = loadUploaderCategories;
+        _model = CloneWorkflow(model);
+        _model.TaskSettings ??= new TaskSettings();
+        _model.EnsureId();
+        _descriptionAutoSyncEnabled = ShouldAutoSyncDescription(_model.TaskSettings.Description, _model.Job);
+        _selectedKey = _model.HotkeyInfo.Key;
+        _selectedModifiers = _model.HotkeyInfo.Modifiers;
+        _selectedJob = _model.Job;
         LogStep(sw, "basic fields set");
 
         // Initialize TaskSettings VM
-        if (model.TaskSettings == null)
-            model.TaskSettings = new TaskSettings();
-
-        TaskSettings = new TaskSettingsViewModel(model.TaskSettings);
-        IndexFolderConfig = new IndexFolderViewModel(model.TaskSettings, true);
+        TaskSettings = new TaskSettingsViewModel(_model.TaskSettings);
+        IndexFolderConfig = new IndexFolderViewModel(_model.TaskSettings, true);
         LogStep(sw, "task settings viewmodels created");
 
         LoadJobCategories();
         LogStep(sw, $"job categories loaded: {JobCategories.Count}");
 
         // Select the current job from the category tree
-        SelectJobInCategories(model.Job);
+        SelectJobInCategories(_model.Job);
         LogStep(sw, $"job selected: {SelectedJob}");
 
         _isLoadingSelection = true;
-        InitializeCategories();
-        LogStep(sw, "uploader categories initialized");
-        UpdateDestinations();
-        LogStep(sw, $"destinations updated: {AvailableDestinations.Count}");
-        LoadSelectedDestination();
-        LogStep(sw, $"selected destination loaded: {SelectedDestination?.DisplayName ?? "none"}");
+        if (_loadUploaderCategories)
+        {
+            InitializeCategories();
+            LogStep(sw, "uploader categories initialized");
+            UpdateDestinations();
+            LogStep(sw, $"destinations updated: {AvailableDestinations.Count}");
+            LoadSelectedDestination();
+            LogStep(sw, $"selected destination loaded: {SelectedDestination?.DisplayName ?? "none"}");
+        }
         _isLoadingSelection = false;
 
         LogStep(sw, "ctor end");
@@ -180,13 +206,29 @@ public partial class WorkflowEditorViewModel : ViewModelBase
     {
         _isLoadingSelection = true;
         TaskSettings.Job = value;
-        UpdateDestinations();
-        LoadSelectedDestination();
+        if (_loadUploaderCategories)
+        {
+            UpdateDestinations();
+            LoadSelectedDestination();
+        }
         _isLoadingSelection = false;
+
+        if (_descriptionAutoSyncEnabled)
+        {
+            ApplyDefaultDescriptionForSelectedJob();
+        }
+
+        OnPropertyChanged(nameof(SelectedJobDescription));
+        OnPropertyChanged(nameof(WindowTitle));
     }
 
     private void UpdateDestinations()
     {
+        if (!_loadUploaderCategories)
+        {
+            return;
+        }
+
         DebugHelper.WriteLine($"[WorkflowEditorVM] UpdateDestinations start. Job={SelectedJob}");
         if (_imageCategory == null || _textCategory == null || _fileCategory == null || _urlCategory == null)
         {
@@ -265,6 +307,11 @@ public partial class WorkflowEditorViewModel : ViewModelBase
 
     private void LoadSelectedDestination()
     {
+        if (!_loadUploaderCategories)
+        {
+            return;
+        }
+
         UploaderInstanceViewModel? matched = null;
         var settings = Model;
 
@@ -376,6 +423,8 @@ public partial class WorkflowEditorViewModel : ViewModelBase
                 }
             }
         }
+
+        ApplyChangesToSourceModel();
     }
 
     partial void OnSelectedDestinationChanged(UploaderInstanceViewModel? value)
@@ -484,5 +533,58 @@ public partial class WorkflowEditorViewModel : ViewModelBase
     private static void LogStep(Stopwatch sw, string message)
     {
         DebugHelper.WriteLine($"[WorkflowEditorVM] {message} (+{sw.ElapsedMilliseconds}ms)");
+    }
+
+    private static WorkflowSettings CloneWorkflow(WorkflowSettings source)
+    {
+        string json = JsonConvert.SerializeObject(source, CloneJsonSettings);
+        return JsonConvert.DeserializeObject<WorkflowSettings>(json, CloneJsonSettings) ?? new WorkflowSettings();
+    }
+
+    private void ApplyChangesToSourceModel()
+    {
+        var snapshot = CloneWorkflow(Model);
+        snapshot.TaskSettings ??= new TaskSettings();
+        snapshot.EnsureId();
+
+        _sourceModel.Id = snapshot.Id;
+        _sourceModel.Enabled = snapshot.Enabled;
+        _sourceModel.PinnedToTray = snapshot.PinnedToTray;
+        _sourceModel.HotkeyInfo = snapshot.HotkeyInfo ?? new HotkeyInfo();
+        _sourceModel.TaskSettings = snapshot.TaskSettings;
+        _sourceModel.TaskSettings.Job = snapshot.Job;
+        _sourceModel.EnsureId();
+    }
+
+    private void ApplyDefaultDescriptionForSelectedJob()
+    {
+        string defaultDescription = GetDefaultDescriptionForJob(SelectedJob);
+        if (string.Equals(Model.TaskSettings.Description, defaultDescription, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Model.TaskSettings.Description = defaultDescription;
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(WindowTitle));
+    }
+
+    private static bool ShouldAutoSyncDescription(string? description, WorkflowType job)
+    {
+        return string.IsNullOrWhiteSpace(description) ||
+               string.Equals(description, GetDefaultDescriptionForJob(job), StringComparison.Ordinal) ||
+               string.Equals(description, EnumExtensions.GetDescription(job), StringComparison.Ordinal);
+    }
+
+    private static string GetDefaultDescriptionForJob(WorkflowType job)
+    {
+        string? preferredDescription = WorkflowsConfig
+            .GetDefaultWorkflowList()
+            .FirstOrDefault(workflow => workflow.Job == job)?
+            .TaskSettings.Description;
+
+        return string.IsNullOrWhiteSpace(preferredDescription)
+            ? EnumExtensions.GetDescription(job)
+            : preferredDescription;
     }
 }

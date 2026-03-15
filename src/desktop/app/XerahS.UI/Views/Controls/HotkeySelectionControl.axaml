@@ -57,10 +57,16 @@
                     Padding="5,2"
                     Click="TaskButton_Click">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding Description}" 
-                               FontWeight="{Binding $parent[ListBoxItem].IsSelected, Converter={x:Static vm:BoolToFontWeightConverter.Instance}}"
-                               VerticalAlignment="Center"/>
-
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Description}" 
+                                   FontWeight="{Binding $parent[ListBoxItem].IsSelected, Converter={x:Static vm:BoolToFontWeightConverter.Instance}}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding JobDescription}"
+                                   IsVisible="{Binding ShowJobDescription}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
                 </StackPanel>
                 <Button.ContextMenu>
                     <ContextMenu x:Name="TaskContextMenu"/>

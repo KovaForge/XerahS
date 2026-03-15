@@ -27,6 +27,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 - Never rely on `VerticalScrollBarVisibility="Visible"` by itself when a scrollbar must stay fully shown; always pair it with `AllowAutoHide="False"` and prefer setting that once in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` because the Fluent `ScrollViewer` template can still collapse the bar until hover.
 - Never rely on `Classes="accent"` being added manually to every new button; always make accent the default in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` and use semantic opt-out classes such as `NoAccent`, `SettingsRow`, or `ColorSwatchButton` because Avalonia Fluent keeps ordinary buttons neutral unless the app supplies a shared default.
 - Never duplicate semantic control classes like `section-header`, `caption`, `readonly`, or status colors inside individual views; always define them once in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` and back them with palette tokens in `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Theming/ShareXTheme.axaml` because local copies stop whole-app theme changes from propagating consistently.
+- Never bind workflow-edit dialogs directly to the live `WorkflowSettings` instance; always edit a working copy, apply it only on `OK`, and show the real job separately from the custom description because otherwise `Cancel` is not real and workflow names can silently drift away from the task they actually execute.
 
 ### ContextMenu vs. ContextFlyout
 

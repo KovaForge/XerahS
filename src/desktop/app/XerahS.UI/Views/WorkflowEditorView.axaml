@@ -68,6 +68,10 @@
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
                             </Grid>
+                            <TextBlock Text="{Binding SelectedJobDescription}"
+                                       Theme="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
 
                         <StackPanel Spacing="8">
