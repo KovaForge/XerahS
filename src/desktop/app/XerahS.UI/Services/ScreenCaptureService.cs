@@ -34,6 +34,7 @@ using SkiaSharp;
 using System;
 using System.Drawing;
 using System.Diagnostics;
+using System.Linq;
 
 namespace XerahS.UI.Services
 {
@@ -783,9 +784,27 @@ namespace XerahS.UI.Services
             LinuxRegionCaptureCapability? linuxCapability)
         {
             var preference = GetLinuxRegionSelectorPreference(options);
-            if (!OperatingSystem.IsLinux() || preference != LinuxInteractiveRegionSelectorPreference.Automatic)
+            if (!OperatingSystem.IsLinux())
             {
                 return preference;
+            }
+
+            var diagnostics = GetLinuxRegionSelectorDiagnostics();
+            if (preference != LinuxInteractiveRegionSelectorPreference.Automatic)
+            {
+                if (diagnostics?.AvailablePreferences is { Count: > 0 } availablePreferences &&
+                    !availablePreferences.Contains(preference))
+                {
+                    string availableList = string.Join(", ", availablePreferences.Select(x => x.ToString()));
+                    DebugHelper.WriteLine(
+                        $"[RegionCapture] Linux selector '{preference}' is unavailable in the current session. " +
+                        $"Available selectors: {availableList}. Falling back to Automatic.");
+                    preference = LinuxInteractiveRegionSelectorPreference.Automatic;
+                }
+                else
+                {
+                    return preference;
+                }
             }
 
             if ((options?.UseModernCapture == false) && linuxCapability?.SupportsLegacyOverlayCapture == true)
@@ -793,7 +812,6 @@ namespace XerahS.UI.Services
                 return LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
             }
 
-            var diagnostics = GetLinuxRegionSelectorDiagnostics();
             if (diagnostics?.AutomaticPreference is { } automaticPreference &&
                 automaticPreference != LinuxInteractiveRegionSelectorPreference.Automatic)
             {

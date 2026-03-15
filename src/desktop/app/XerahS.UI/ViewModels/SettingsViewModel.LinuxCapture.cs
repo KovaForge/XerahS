@@ -28,6 +28,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
+using XerahS.UI.Helpers;
 
 namespace XerahS.UI.ViewModels
 {
@@ -53,8 +54,8 @@ namespace XerahS.UI.ViewModels
 
         public bool IsLinuxPlatform => OperatingSystem.IsLinux();
 
-        public LinuxInteractiveRegionSelectorPreference[] LinuxRegionSelectorPreferences =>
-            Enum.GetValues<LinuxInteractiveRegionSelectorPreference>();
+        public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
+            LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences();
 
         public LinuxRecordingBackendPreference[] LinuxRecordingBackendPreferences =>
             Enum.GetValues<LinuxRecordingBackendPreference>();
@@ -67,16 +68,18 @@ namespace XerahS.UI.ViewModels
                 LinuxRegionSelectorPortalBackendText = string.Empty;
                 LinuxRegionSelectorAvailableText = string.Empty;
                 LinuxRegionSelectorAutomaticText = string.Empty;
+                OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
                 return;
             }
 
-            var diagnostics = TryGetLinuxRegionSelectorDiagnostics();
+            var diagnostics = LinuxRegionSelectorPreferenceSupport.TryGetDiagnostics();
             if (diagnostics == null)
             {
                 LinuxRegionSelectorCurrentSessionText = "Current session: Linux diagnostics unavailable";
                 LinuxRegionSelectorPortalBackendText = "Portal backend: unavailable";
                 LinuxRegionSelectorAvailableText = "Available selectors: Automatic (recommended), XerahS overlay crosshair";
                 LinuxRegionSelectorAutomaticText = "Automatic will prefer the best available selector at runtime.";
+                OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
                 return;
             }
 
@@ -95,16 +98,7 @@ namespace XerahS.UI.ViewModels
             LinuxRegionSelectorPortalBackendText = $"Portal backend: {FormatDiagnosticsValue(diagnostics.PortalBackendSummary)}";
             LinuxRegionSelectorAvailableText = $"Available selectors: {string.Join(", ", diagnostics.AvailablePreferences.Select(GetPreferenceDescription))}";
             LinuxRegionSelectorAutomaticText = $"Automatic will prefer: {GetPreferenceDescription(diagnostics.AutomaticPreference)}";
-        }
-
-        private static LinuxRegionSelectorDiagnostics? TryGetLinuxRegionSelectorDiagnostics()
-        {
-            if (!PlatformServices.IsInitialized || PlatformServices.ScreenCapture is not ILinuxRegionSelectorDiagnosticsProvider provider)
-            {
-                return null;
-            }
-
-            return provider.GetLinuxRegionSelectorDiagnostics();
+            OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
         }
 
         private static string GetPreferenceDescription(LinuxInteractiveRegionSelectorPreference preference)

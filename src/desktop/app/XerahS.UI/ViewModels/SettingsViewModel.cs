@@ -34,6 +34,7 @@ using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Helpers;
 
 namespace XerahS.UI.ViewModels
 {
@@ -213,9 +214,10 @@ namespace XerahS.UI.ViewModels
             CaptureShadow = taskSettings.CaptureSettings.CaptureShadow;
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
-            LinuxRegionSelectorPreference = taskSettings.CaptureSettings.LinuxRegionSelectorPreference;
-            LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(taskSettings.CaptureSettings);
             RefreshLinuxRegionSelectorDiagnostics();
+            LinuxRegionSelectorPreference = LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
+                taskSettings.CaptureSettings.LinuxRegionSelectorPreference);
+            LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(taskSettings.CaptureSettings);
 
             // Task Settings - File Naming Defaults
             NameFormatPattern = taskSettings.UploadSettings.NameFormatPattern;

@@ -110,6 +110,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 - Never force `UseModernCapture=false` for every Linux `CaptureRectAsync`; always scope that downgrade to the overlay fallback flow because direct rect capture on capable X11 desktops should preserve the native portal path.
 - Never move the XDG portal to the front of every X11 region-capture waterfall; always require a desktop-native backend signal (for example KDE, GNOME, LXQt, or XApp) because generic GTK-backed X11 portal sessions can still hang or misroute captures.
 - Never define Tmds.DBus proxy interfaces as nested or inaccessible types; always expose them as top-level public interfaces because the dynamic proxy assembly cannot implement inaccessible interfaces.
+- Never advertise Linux selector modes that the current session cannot actually honor, and never let an explicit selector silently fall through to a different interactive backend; always filter the UI using live selector diagnostics and keep `Automatic` as the only cross-backend fallback mode because otherwise specific selector choices become misleading and bug reports get polluted by fallback behavior.
 
 
 ---

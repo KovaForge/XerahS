@@ -66,19 +66,19 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.X11
     };
 
-    private static readonly LinuxCaptureStage[] DesktopNativeFirstRegionOrder =
+    private static readonly LinuxCaptureStage[] PortalOnlyRegionOrder =
     {
-        LinuxCaptureStage.DesktopDbus,
-        LinuxCaptureStage.X11,
         LinuxCaptureStage.Portal
     };
 
-    private static readonly LinuxCaptureStage[] SlurpFirstRegionOrder =
+    private static readonly LinuxCaptureStage[] DesktopNativeOnlyRegionOrder =
     {
-        LinuxCaptureStage.WaylandProtocol,
-        LinuxCaptureStage.Portal,
-        LinuxCaptureStage.DesktopDbus,
-        LinuxCaptureStage.X11
+        LinuxCaptureStage.DesktopDbus
+    };
+
+    private static readonly LinuxCaptureStage[] SlurpOnlyRegionOrder =
+    {
+        LinuxCaptureStage.WaylandProtocol
     };
 
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
@@ -93,9 +93,9 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
             switch (request.SelectorPreference)
             {
                 case LinuxInteractiveRegionSelectorPreference.PortalDialog:
-                    return PortalFirstRegionOrder;
+                    return PortalOnlyRegionOrder;
                 case LinuxInteractiveRegionSelectorPreference.DesktopNative:
-                    return DesktopNativeFirstRegionOrder;
+                    return DesktopNativeOnlyRegionOrder;
             }
 
             if (context.PrefersPortalForRegionCaptureOnX11)
@@ -110,8 +110,8 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         {
             return request.SelectorPreference switch
             {
-                LinuxInteractiveRegionSelectorPreference.Slurp => SlurpFirstRegionOrder,
-                LinuxInteractiveRegionSelectorPreference.PortalDialog => PortalFirstRegionOrder,
+                LinuxInteractiveRegionSelectorPreference.Slurp => SlurpOnlyRegionOrder,
+                LinuxInteractiveRegionSelectorPreference.PortalDialog => PortalOnlyRegionOrder,
                 _ => DefaultOrder
             };
         }
