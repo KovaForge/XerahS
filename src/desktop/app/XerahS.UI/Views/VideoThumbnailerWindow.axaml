@@ -14,7 +14,10 @@
         WindowStartupLocation="CenterOwner"
         CanResize="True">
 
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="16">
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
 
     <!-- Row 0: Input file -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -115,5 +118,6 @@
               AutomationProperties.Name="Close" />
     </StackPanel>
 
-  </Grid>
+    </Grid>
+  </Border>
 </ui:SurfaceWindow>
