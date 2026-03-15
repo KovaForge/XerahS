@@ -88,18 +88,11 @@ namespace XerahS.UI.ViewModels
                 return;
             }
 
-            string currentSession = diagnostics.SessionType;
-            if (!string.IsNullOrWhiteSpace(diagnostics.Desktop) && diagnostics.Desktop != "Unknown")
-            {
-                currentSession += $" / {diagnostics.Desktop}";
-            }
-
-            if (!string.IsNullOrWhiteSpace(diagnostics.Compositor) && diagnostics.Compositor != "Unknown")
-            {
-                currentSession += $" / {diagnostics.Compositor}";
-            }
-
-            LinuxRegionSelectorCurrentSessionText = $"Current session: {currentSession}";
+            string sessionType = FormatDiagnosticsValue(diagnostics.SessionType);
+            string desktop = FormatDiagnosticsValue(diagnostics.Desktop);
+            string compositor = FormatDiagnosticsValue(diagnostics.Compositor);
+            LinuxRegionSelectorCurrentSessionText =
+                $"Current session: Session type: {sessionType} / Desktop: {desktop} / Compositor: {compositor}";
             LinuxRegionSelectorPortalBackendText = $"Portal backend: {FormatDiagnosticsValue(diagnostics.PortalBackendSummary)}";
             LinuxRegionSelectorAvailableText = $"Available selectors: {string.Join(", ", diagnostics.AvailablePreferences.Select(GetPreferenceDescription))}";
             LinuxRegionSelectorAutomaticText = $"Automatic will prefer: {GetPreferenceDescription(diagnostics.AutomaticPreference)}";
