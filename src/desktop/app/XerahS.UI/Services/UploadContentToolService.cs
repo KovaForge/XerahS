@@ -53,6 +53,11 @@ public static class UploadContentToolService
         {
             try
             {
+                if (_window.WindowState == WindowState.Minimized)
+                {
+                    _window.WindowState = WindowState.Normal;
+                }
+
                 _window.Show();
                 _window.Activate();
                 return;
@@ -72,7 +77,18 @@ public static class UploadContentToolService
             _window = null;
         };
 
-        _window.Show();
+        // Keep the upload window owned by the shell when available so menu-driven
+        // navigation does not immediately bury it behind the main window.
+        if (owner != null)
+        {
+            _window.Show(owner);
+        }
+        else
+        {
+            _window.Show();
+        }
+
+        _window.Activate();
 
         DebugHelper.WriteLine("UploadContent: Window shown.");
     }

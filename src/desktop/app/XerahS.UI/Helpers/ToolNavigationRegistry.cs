@@ -60,7 +60,7 @@ internal static class ToolNavigationRegistry
         ["Tools_PinToScreenCloseAll"] = new(WorkflowType.PinToScreenCloseAll, ToolNavigationDispatchMode.ExecuteWorkflow),
         ["Tools_OCR"] = new(WorkflowType.OCR, ToolNavigationDispatchMode.ExecuteWorkflow),
         ["Tools_HashCheck"] = new(WorkflowType.HashCheck, ToolNavigationDispatchMode.ExecuteWorkflow),
-        ["Tools_ClipboardViewer"] = new(WorkflowType.ClipboardViewer, ToolNavigationDispatchMode.ExecuteWorkflow)
+        ["Tools_ClipboardViewer"] = new(WorkflowType.ClipboardViewer, ToolNavigationDispatchMode.DirectToolService)
     };
 
     public static bool TryResolve(string tag, out ToolNavigationRoute route)
