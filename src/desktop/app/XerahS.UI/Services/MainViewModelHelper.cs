@@ -83,6 +83,18 @@ public static class MainViewModelHelper
         };
     }
 
+    /// <summary>
+    /// Wires up the PinRequested event to pin the edited image to screen.
+    /// When getEditedSnapshot is provided, uses the rendered image (with annotations) instead of the base preview.
+    /// </summary>
+    public static void WirePinRequested(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot = null)
+    {
+        viewModel.PinRequested += () =>
+        {
+            HandlePinRequested(viewModel, getEditedSnapshot);
+        };
+    }
+
     private static async Task HandleSaveRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
     {
         DebugHelper.WriteLine("MainViewModelHelper: SaveRequested received");
@@ -209,6 +221,45 @@ public static class MainViewModelHelper
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"Editor upload failed: {ex.Message}");
+            DebugHelper.WriteException(ex);
+        }
+    }
+
+    private static void HandlePinRequested(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot = null)
+    {
+        DebugHelper.WriteLine("MainViewModelHelper: PinRequested received");
+
+        try
+        {
+            SKBitmap? imageToPin = getEditedSnapshot?.Invoke();
+            if (imageToPin != null)
+            {
+                DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToPin.Width}x{imageToPin.Height} for pin to screen");
+            }
+
+            if (imageToPin == null && viewModel.PreviewImage != null)
+            {
+                imageToPin = BitmapConversionHelpers.ToSKBitmap(viewModel.PreviewImage);
+                if (imageToPin != null)
+                {
+                    DebugHelper.WriteLine($"MainViewModelHelper: Using preview image {imageToPin.Width}x{imageToPin.Height} for pin to screen");
+                }
+            }
+
+            if (imageToPin == null)
+            {
+                DebugHelper.WriteLine("MainViewModelHelper: PinRequested ignored because no image available.");
+                return;
+            }
+
+            var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions
+                ?? new PinToScreenOptions();
+
+            PinToScreenManager.PinImage(imageToPin, null, options);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"Editor pin to screen failed: {ex.Message}");
             DebugHelper.WriteException(ex);
         }
     }

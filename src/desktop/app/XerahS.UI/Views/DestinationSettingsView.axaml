@@ -1,14 +1,17 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:controls="using:XerahS.UI.Controls"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
-             x:Class="XerahS.UI.Views.DestinationSettingsView"
-             x:DataType="vm:DestinationSettingsViewModel">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:controls="using:XerahS.UI.Controls"
+                mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+                x:Class="XerahS.UI.Views.DestinationSettingsView"
+                x:DataType="vm:DestinationSettingsViewModel">
 
-    <Grid ColumnDefinitions="240, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid ColumnDefinitions="240, *"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
         <!-- Category Sidebar -->
         <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -89,7 +92,7 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
 
-                                    <Button Grid.Column="4" Content="⋮" Padding="8,4" Background="Transparent" BorderThickness="0"
+                                    <Button Grid.Column="4" Content="⋮" Padding="8,4"
                                             AutomationProperties.Name="Instance Options">
                                         <Button.Flyout>
                                             <MenuFlyout>
@@ -120,17 +123,18 @@
                         CornerRadius="4"
                         Padding="24"
                         IsVisible="{Binding SelectedCategory.SelectedInstance, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <ScrollViewer Padding="0,0,16,0">
-                        <StackPanel Spacing="24">
+                    <ScrollViewer>
+                        <StackPanel Spacing="24" Margin="0,0,16,0">
                             
                             <!-- Verification Status -->
                             <StackPanel Spacing="16" IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationWarning}">
-                                <Border Background="{DynamicResource SystemFillColorCautionBackground}"
-                                        BorderBrush="#FFA500" BorderThickness="1" CornerRadius="4" Padding="12"
+                                <Border Classes="status-warning"
+                                        BorderThickness="1" CornerRadius="4" Padding="12"
                                         IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationWarning}">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="{Binding SelectedCategory.SelectedInstance.VerificationMessage}"
-                                                   FontWeight="Medium" Foreground="#FFA500"/>
+                                                   Classes="status-warning"
+                                                   FontWeight="Medium"/>
                                         <Expander Header="Details">
                                             <ItemsControl ItemsSource="{Binding SelectedCategory.SelectedInstance.VerificationIssues}"/>
                                         </Expander>
@@ -140,11 +144,12 @@
 
                              <!-- Error Status -->
                             <StackPanel Spacing="16" IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationError}">
-                                <Border Background="{DynamicResource SystemFillColorCriticalBackground}"
-                                        BorderBrush="#DC3545" BorderThickness="1" CornerRadius="4" Padding="12">
+                                <Border Classes="status-error"
+                                        BorderThickness="1" CornerRadius="4" Padding="12">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="{Binding SelectedCategory.SelectedInstance.VerificationMessage}"
-                                                   FontWeight="SemiBold" Foreground="#DC3545"/>
+                                                   Classes="status-error"
+                                                   FontWeight="SemiBold"/>
                                         <Expander Header="Fix Instructions" IsExpanded="True">
                                             <ItemsControl ItemsSource="{Binding SelectedCategory.SelectedInstance.VerificationIssues}"/>
                                         </Expander>
@@ -174,7 +179,7 @@
 
                                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Instance ID:" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="4" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.InstanceId}"
-                                             IsReadOnly="True" FontFamily="Consolas, Monospace" 
+                                             IsReadOnly="True" FontFamily="{DynamicResource ShareX.FontFamily.Monospace}" 
                                              Background="{DynamicResource ControlAltFillColorDefaultBrush}"
                                              AutomationProperties.Name="Instance ID"/>
                                 </Grid>
@@ -242,4 +247,4 @@
             </Grid>
         </Grid>
     </Grid>
-</UserControl>
+</views:PageView>

@@ -30,6 +30,7 @@ using XerahS.Core;
 using XerahS.Indexer;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
+using XerahS.UI.Services;
 
 namespace XerahS.UI.ViewModels
 {
@@ -49,16 +50,18 @@ namespace XerahS.UI.ViewModels
     {
         private TaskSettings _settings;
         private EditorCore _effectsEditorCore;
+        private readonly IViewDialogService _dialogService;
 
         public ImageEffectsViewModel ImageEffects { get; private set; }
 
-        public TaskSettingsViewModel(TaskSettings settings) : this(settings, null) { }
+        public TaskSettingsViewModel(TaskSettings settings, IViewDialogService dialogService) : this(settings, dialogService, null) { }
 
-        public TaskSettingsViewModel(TaskSettings settings, EditorCore? editorCore)
+        public TaskSettingsViewModel(TaskSettings settings, IViewDialogService dialogService, EditorCore? editorCore)
         {
             _settings = settings;
+            _dialogService = dialogService;
             _effectsEditorCore = editorCore ?? new EditorCore();
-            ImageEffects = new ImageEffectsViewModel(Model.ImageSettings, _effectsEditorCore);
+            ImageEffects = new ImageEffectsViewModel(Model.ImageSettings, _effectsEditorCore, _dialogService);
             ImageEffects.UpdatePreview();
             RefreshFFmpegState();
         }

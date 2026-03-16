@@ -279,6 +279,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
+                LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
                 ShowCursor = captureSettings.ShowCursor,
             };
 

@@ -1,5 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:XerahS.UI.ViewModels"
@@ -14,7 +15,10 @@
         CanResize="True"
         DragDrop.AllowDrop="True">
 
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="16">
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
 
     <!-- Row 0: File Path -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -78,7 +82,7 @@
       <TextBox Grid.Row="1"
                Text="{Binding ResultHash}"
                IsReadOnly="True"
-               FontFamily="Consolas, Courier New, monospace"
+               FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                AutomationProperties.Name="Hash result" />
     </Grid>
 
@@ -96,7 +100,7 @@
       <TextBox Grid.Row="1"
                Text="{Binding TargetHash, Mode=TwoWay}"
                Watermark="Paste expected hash here to verify..."
-               FontFamily="Consolas, Courier New, monospace"
+               FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                AutomationProperties.Name="Target hash for comparison" />
     </Grid>
 
@@ -136,5 +140,6 @@
                  TextTrimming="CharacterEllipsis"
                  MaxWidth="220" />
     </Grid>
-  </Grid>
-</Window>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

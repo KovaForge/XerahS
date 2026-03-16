@@ -2,18 +2,24 @@
   <PropertyGroup>
     <RootNamespace>XerahS.App</RootNamespace>
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..\..'))\</RepoRoot>
+    <IsWindowsDesktopBuild>false</IsWindowsDesktopBuild>
+    <IsMacOSDesktopBuild>false</IsMacOSDesktopBuild>
+    <IsLinuxDesktopBuild>false</IsLinuxDesktopBuild>
+    <IsWindowsDesktopBuild Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '' And '$(CrossCompile)' != 'true')">true</IsWindowsDesktopBuild>
+    <IsMacOSDesktopBuild Condition="$(RuntimeIdentifier.StartsWith('osx')) Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('OSX')))">true</IsMacOSDesktopBuild>
+    <IsLinuxDesktopBuild Condition="$(RuntimeIdentifier.StartsWith('linux')) Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux')))">true</IsLinuxDesktopBuild>
     <TargetFramework>net10.0</TargetFramework>
-    <TargetFramework Condition="'$(OS)' == 'Windows_NT' And !$(RuntimeIdentifier.StartsWith('linux')) And !$(RuntimeIdentifier.StartsWith('osx'))">net10.0-windows10.0.26100.0</TargetFramework>
-    <OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
-    <OutputType Condition="'$(OS)' == 'Windows_NT' And '$(Configuration)' == 'Debug'">Exe</OutputType>
-    <OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
+    <TargetFramework Condition="'$(IsWindowsDesktopBuild)' == 'true'">net10.0-windows10.0.26100.0</TargetFramework>
+    <OutputType Condition="'$(IsWindowsDesktopBuild)' == 'true'">WinExe</OutputType>
+    <OutputType Condition="'$(IsWindowsDesktopBuild)' == 'true' And '$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(IsWindowsDesktopBuild)' != 'true'">Exe</OutputType>
     <AssemblyName>XerahS</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>..\XerahS.UI\Assets\Logo.ico</ApplicationIcon>
-    <DefineConstants Condition="'$(OS)' == 'Windows_NT' And '$(CrossCompile)' != 'true'">$(DefineConstants);WINDOWS</DefineConstants>
-    <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(DefineConstants);MACOS</DefineConstants>
-    <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(DefineConstants);LINUX</DefineConstants>
+    <DefineConstants Condition="'$(IsWindowsDesktopBuild)' == 'true'">$(DefineConstants);WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(IsMacOSDesktopBuild)' == 'true'">$(DefineConstants);MACOS</DefineConstants>
+    <DefineConstants Condition="'$(IsLinuxDesktopBuild)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
     <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
     <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -38,10 +44,13 @@
     <ProjectReference Include="..\..\tools\XerahS.Audits.Tool\XerahS.Audits.Tool.csproj" Condition="'$(Configuration)' == 'Debug'" />
     <ProjectReference Include="..\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
-    <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '')" />
-    <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="$(RuntimeIdentifier.StartsWith('osx')) Or ('$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' == '')" />
-    <ProjectReference Include="..\..\..\platform\XerahS.Platform.Linux\XerahS.Platform.Linux.csproj" Condition="$(RuntimeIdentifier.StartsWith('linux')) Or ('$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' == '')" />
+    <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
+    <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="'$(IsWindowsDesktopBuild)' == 'true'" />
+    <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="'$(IsMacOSDesktopBuild)' == 'true'" />
+    <ProjectReference Include="..\..\..\platform\XerahS.Platform.Linux\XerahS.Platform.Linux.csproj" Condition="'$(IsLinuxDesktopBuild)' == 'true'" />
   </ItemGroup>
   <Target Name="CreateMacOSAppBundle" AfterTargets="Publish" Condition="('$(OS)' != 'Windows_NT' Or '$(CrossCompile)' == 'true') And ('$(RuntimeIdentifier)' == 'osx-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64')">
     <PropertyGroup>
@@ -151,6 +160,47 @@
           DestinationFiles="@(_WatchFolderDaemonBuildFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true"
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
+  </Target>
+
+  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
+    <PropertyGroup>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_VideoEditorWebUiBuildFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
+    </ItemGroup>
+
+    <Error Condition="'@(_VideoEditorWebUiBuildFiles)' == ''"
+           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
+
+    <Copy SourceFiles="@(_VideoEditorWebUiBuildFiles)"
+          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_VideoEditorWebUiPublishFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
+    </ItemGroup>
+
+    <Error Condition="'@(_VideoEditorWebUiPublishFiles)' == ''"
+           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
+
+    <Copy SourceFiles="@(_VideoEditorWebUiPublishFiles)"
+          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="RemoveTransitiveVideoEditorWebUiPublishItems" BeforeTargets="_HandleFileConflictsForPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\','/').StartsWith('frontend/dist/'))" />
+    </ItemGroup>
   </Target>
 
   <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/            -->

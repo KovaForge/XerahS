@@ -45,9 +45,10 @@ namespace XerahS.Platform.Abstractions
         Task RestoreMainWindowAsync();
 
         /// <summary>
-        /// Shows the image editor with the provided image and returns the edited image
+        /// Shows the image editor with the provided image and returns the edited image.
+        /// When taskMode is true, the editor behaves like an in-workflow annotation step.
         /// </summary>
-        Task<SKBitmap?> ShowEditorAsync(SKBitmap image);
+        Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false);
 
         /// <summary>
         /// Shows the video editor for the given video file. Returns the exported output path

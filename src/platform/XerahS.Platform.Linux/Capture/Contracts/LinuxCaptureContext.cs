@@ -27,13 +27,20 @@ namespace XerahS.Platform.Linux.Capture.Contracts;
 
 internal sealed class LinuxCaptureContext : ILinuxCaptureContext
 {
-    public LinuxCaptureContext(bool isWayland, string? desktop, string? compositor, bool isSandboxed, bool hasScreenshotPortal)
+    public LinuxCaptureContext(
+        bool isWayland,
+        string? desktop,
+        string? compositor,
+        bool isSandboxed,
+        bool hasScreenshotPortal,
+        bool prefersPortalForRegionCaptureOnX11 = false)
     {
         IsWayland = isWayland;
         Desktop = desktop;
         Compositor = compositor;
         IsSandboxed = isSandboxed;
         HasScreenshotPortal = hasScreenshotPortal;
+        PrefersPortalForRegionCaptureOnX11 = prefersPortalForRegionCaptureOnX11;
     }
 
     public bool IsWayland { get; }
@@ -47,4 +54,6 @@ internal sealed class LinuxCaptureContext : ILinuxCaptureContext
     public bool HasScreenshotPortal { get; }
 
     public bool ShouldTryPortal => IsWayland || IsSandboxed || HasScreenshotPortal;
+
+    public bool PrefersPortalForRegionCaptureOnX11 { get; }
 }

@@ -31,7 +31,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class UpdateMessageBox : Window
+public partial class UpdateMessageBox : SurfaceWindow
 {
     public UpdateMessageBox()
     {

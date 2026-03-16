@@ -27,7 +27,7 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views;
 
-public partial class AfterUploadWindow : Window
+public partial class AfterUploadWindow : SurfaceWindow
 {
     public AfterUploadWindow()
     {

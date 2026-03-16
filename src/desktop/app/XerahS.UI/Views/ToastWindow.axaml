@@ -1,8 +1,9 @@
-<Window xmlns="https://github.com/avaloniaui"
+<views:OverlayWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:XerahS.UI.ViewModels"
+        xmlns:views="using:XerahS.UI.Views"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
         x:Class="XerahS.UI.Views.ToastWindow"
         x:DataType="vm:ToastViewModel"
@@ -71,28 +72,13 @@
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
             </Border>
+
+            <!-- Transparent overlay for shared HistoryItemMenuFlyout (context menu); fills grid so right-click works -->
+            <Border Background="Transparent"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    x:Name="FlyoutHost"
+                    ContextFlyout="{StaticResource HistoryItemMenuFlyout}"/>
         </Grid>
-        
-        <Border.ContextFlyout>
-            <MenuFlyout Opened="OnFlyoutOpened" Closed="OnFlyoutClosed">
-                <MenuItem Header="Copy image to clipboard" 
-                          Command="{Binding CopyImageToClipboardCommand}"
-                          AutomationProperties.Name="Copy Image"/>
-                <MenuItem Header="Open file" 
-                          Command="{Binding OpenFileCommand}"
-                          AutomationProperties.Name="Open File"/>
-                <MenuItem Header="Copy file path" 
-                          Command="{Binding CopyFilePathCommand}"
-                          AutomationProperties.Name="Copy File Path"/>
-                <MenuItem Header="Copy URL" 
-                          Command="{Binding CopyUrlCommand}" 
-                          IsVisible="{Binding HasUrl}"
-                          AutomationProperties.Name="Copy URL"/>
-                <MenuItem Header="Copy Errors"
-                          Command="{Binding CopyErrorsCommand}"
-                          IsVisible="{Binding HasErrors}"
-                          AutomationProperties.Name="Copy Errors"/>
-            </MenuFlyout>
-        </Border.ContextFlyout>
     </Border>
-</Window>
+</views:OverlayWindow>

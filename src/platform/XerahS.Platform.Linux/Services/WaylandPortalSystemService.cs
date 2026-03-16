@@ -65,6 +65,8 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         }
     }
 
+    public bool IsDesktopWallpaperSupported => _fallback.IsDesktopWallpaperSupported;
+
     public bool ShowFileInExplorer(string filePath)
     {
         if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
@@ -133,6 +135,16 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         }
 
         return _fallback.OpenFile(filePath);
+    }
+
+    public bool TryGetDesktopWallpaperPath(out string? path)
+    {
+        return _fallback.TryGetDesktopWallpaperPath(out path);
+    }
+
+    public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
+    {
+        return _fallback.TryGetDesktopWallpaper(out wallpaper);
     }
 
     private bool TryPortalRequest(Func<Task<ObjectPath>> requestFactory)

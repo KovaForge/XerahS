@@ -68,6 +68,7 @@ public static class OcrToolService
         var captureOptions = new CaptureOptions
         {
             UseModernCapture = captureSettings.UseModernCapture,
+            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
             ShowCursor = captureSettings.ShowCursor,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,

@@ -1,13 +1,13 @@
-# XerahS Project Status
+﻿# XerahS Project Status
 
 This document tracks the current implementation status, backend porting checklist, pending tasks, and future enhancements for XerahS.
 
 ## Uploader Plugin System - Implementation Status
 
-### ✅ Completed: Multi-Instance Provider Catalog (Dec 2025)
+### âœ… Completed: Multi-Instance Provider Catalog (Dec 2025)
 
 **Architecture implemented:**
-- Renamed `IUploaderPlugin` → `IUploaderProvider` with multi-category support
+- Renamed `IUploaderPlugin` â†’ `IUploaderProvider` with multi-category support
 - Separated provider (type) from instance (configured occurrence)
 - `ProviderCatalog`: Static registry for provider types
 - `InstanceManager`: Singleton for instance lifecycle, persistence, default selection
@@ -28,7 +28,7 @@ This document tracks the current implementation status, backend porting checklis
 
 **Persistence:** `%AppData%/XerahS/uploader-instances.json`
 
-### ✅ Completed: Dynamic Plugin System (Jan 2026)
+### âœ… Completed: Dynamic Plugin System (Jan 2026)
 
 **Architecture implemented:**
 - **Pure Dynamic Loading**: No compile-time plugin references in host app.
@@ -53,7 +53,7 @@ This document tracks the current implementation status, backend porting checklis
 - [x] Create Imgur and S3 plugins as standalone DLLs.
 - [x] Integrate with UI (Catalog & Settings).
 
-### ✅ Completed: Core Features & UX Enhancements (Jan 2026)
+### âœ… Completed: Core Features & UX Enhancements (Jan 2026)
 
 **Capture Engine Improvements:**
 - **Capture Start Delay**: Configurable delay for Screen Capture and Screen Recording (TaskSettings driven).
@@ -70,9 +70,9 @@ This document tracks the current implementation status, backend porting checklis
 - **Hotkey Visibility**: Fixed main window visibility logic when "minimize to tray" is enabled.
 
 
-### 🔄 Next: File-Type Routing (Planned)
+### ðŸ”„ Next: File-Type Routing (Planned)
 
-**Specification:** See `.github/skills/xerahs-features/SKILL.md`
+**Specification:** See `.github/skills/feature-specifications/SKILL.md`
 
 **Goals:**
 - Deterministic routing based on file extension
@@ -87,9 +87,9 @@ This document tracks the current implementation status, backend porting checklis
 
 **Routing logic:**
 ```
-1. Exact extension match (e.g., .png → Imgur)
+1. Exact extension match (e.g., .png â†’ Imgur)
 2. "All File Types" fallback
-3. No match → error/notification
+3. No match â†’ error/notification
 ```
 
 **UI features:**
@@ -105,35 +105,35 @@ This document tracks the current implementation status, backend porting checklis
 4. UI (file type selector, conflict warnings)
 5. Upload workflow integration
 
-### ✅ Completed: After-Capture / After-Upload Automation Pipeline
+### âœ… Completed: After-Capture / After-Upload Automation Pipeline
 
 **Status**: Core pipeline fully implemented. Most AfterCapture and AfterUpload flags are wired and functional.
 
-#### Core Infrastructure — Fully Implemented
+#### Core Infrastructure â€” Fully Implemented
 
 - `TaskManager` singleton with `ConcurrentQueue<WorkerTask>`, concurrency control, `TaskStarted`/`TaskCompleted` events
-- `WorkerTask` — full pipeline: Capture → `CaptureJobProcessor` → `UploadJobProcessor`
-- `WorkflowTask` — lightweight Path A wrapper (hotkey → capture → upload → clipboard)
+- `WorkerTask` â€” full pipeline: Capture â†’ `CaptureJobProcessor` â†’ `UploadJobProcessor`
+- `WorkflowTask` â€” lightweight Path A wrapper (hotkey â†’ capture â†’ upload â†’ clipboard)
 - `TaskInfo` with full metadata, state, correlation ID, and upload progress reporting
 - `UploadResult` with URL / ThumbnailURL / DeletionURL / ShortenedURL fields
 - Upload progress events wired through `ProgressChanged` on `Uploader` base
-- Upload retry / fallback chain: Auto provider tries all configured instances, falls back Image → File category
+- Upload retry / fallback chain: Auto provider tries all configured instances, falls back Image â†’ File category
 - History written to SQLite (`HistoryManagerSQLite`) after every completed task
 - Toast notifications on task failure with truncated error message
 - `AfterCaptureWindow` and `AfterUploadWindow` (Views + ViewModels) fully implemented
 
-#### AfterCapture Pipeline (`CaptureJobProcessor`) — Wired Flags
+#### AfterCapture Pipeline (`CaptureJobProcessor`) â€” Wired Flags
 
 | Flag | Status | Notes |
 |------|--------|-------|
-| `ShowAfterCaptureWindow` | ✅ | Full modal; result flags applied back; persists setting change |
-| `AddImageEffects` | ✅ | SkiaSharp effects pipeline via `TaskHelpers.ApplyImageEffects` |
-| `AnnotateMedia` | ✅ | Opens `ShareX.ImageEditor` via `PlatformServices.UI.ShowEditorAsync` |
-| `SaveImageToFile` | ✅ | Full path resolution via `TaskHelpers.SaveImageAsFile` |
-| `CopyImageToClipboard` | ✅ | Via `PlatformServices.Clipboard.SetImage` |
-| `UploadImageToHost` | ✅ | Plugin dispatch with Auto fallback chain |
+| `ShowAfterCaptureWindow` | âœ… | Full modal; result flags applied back; persists setting change |
+| `AddImageEffects` | âœ… | SkiaSharp effects pipeline via `TaskHelpers.ApplyImageEffects` |
+| `AnnotateMedia` | âœ… | Opens `ShareX.ImageEditor` via `PlatformServices.UI.ShowEditorAsync` |
+| `SaveImageToFile` | âœ… | Full path resolution via `TaskHelpers.SaveImageAsFile` |
+| `CopyImageToClipboard` | âœ… | Via `PlatformServices.Clipboard.SetImage` |
+| `UploadImageToHost` | âœ… | Plugin dispatch with Auto fallback chain |
 
-#### AfterCapture Flags — Services Exist, Not Yet Wired as Pipeline Steps
+#### AfterCapture Flags â€” Services Exist, Not Yet Wired as Pipeline Steps
 
 These features are fully implemented as standalone tool workflows (hotkey-triggered) but not yet dispatched inside `CaptureJobProcessor.ProcessAsync`:
 
@@ -148,7 +148,7 @@ These features are fully implemented as standalone tool workflows (hotkey-trigge
 | `CopyFilePathToClipboard` | `ClipboardService` exists | Needs flag handler in processor |
 | `ShowInExplorer` | `URLHelpers.OpenURL` / `Process.Start` | Needs flag handler in processor |
 
-#### AfterCapture Flags — Not Yet Implemented
+#### AfterCapture Flags â€” Not Yet Implemented
 
 | Flag | Blocker |
 |------|---------|
@@ -160,33 +160,33 @@ These features are fully implemented as standalone tool workflows (hotkey-trigge
 | `PerformActions` | External actions/scripts system not implemented |
 | `ShowBeforeUploadWindow` | No before-upload confirmation dialog |
 
-#### AfterUpload Pipeline (`UploadJobProcessor.HandleAfterUploadTasksAsync`) — Wired Flags
+#### AfterUpload Pipeline (`UploadJobProcessor.HandleAfterUploadTasksAsync`) â€” Wired Flags
 
 | Flag | Status | Notes |
 |------|--------|-------|
-| `ShowAfterUploadWindow` | ✅ | Non-blocking show with full `AfterUploadWindowInfo` (URL, thumbnails, clipboard format) |
-| `CopyURLToClipboard` | ✅ | Async via `PlatformServices.Clipboard.SetTextAsync` |
-| `UseURLShortener` | ⚠️ | Flag checked; `TODO` comment; no URL shortener provider wired yet |
-| `OpenURL` | ⚠️ | **Window button fully works** (`AfterUploadViewModel.OpenPrimaryUrl` → `PlatformServices.System.OpenUrl`). The *silent* flag path (auto-open without showing the window) is not yet wired in the processor. |
-| `ShowQRCode` | ❌ | `QrCodeToolService` exists; not wired in processor |
-| `ShareURL` | ❌ | No sharing service implemented |
+| `ShowAfterUploadWindow` | âœ… | Non-blocking show with full `AfterUploadWindowInfo` (URL, thumbnails, clipboard format) |
+| `CopyURLToClipboard` | âœ… | Async via `PlatformServices.Clipboard.SetTextAsync` |
+| `UseURLShortener` | âš ï¸ | Flag checked; `TODO` comment; no URL shortener provider wired yet |
+| `OpenURL` | âš ï¸ | **Window button fully works** (`AfterUploadViewModel.OpenPrimaryUrl` â†’ `PlatformServices.System.OpenUrl`). The *silent* flag path (auto-open without showing the window) is not yet wired in the processor. |
+| `ShowQRCode` | âŒ | `QrCodeToolService` exists; not wired in processor |
+| `ShareURL` | âŒ | No sharing service implemented |
 
-#### AfterUploadWindow — Fully Implemented
+#### AfterUploadWindow â€” Fully Implemented
 
 `AfterUploadWindow` (View + `AfterUploadViewModel`) is a complete post-upload UI:
-- **Open URL** — `PlatformServices.System.OpenUrl` (cross-platform)
-- **Open file** — `PlatformServices.System.OpenFile`
-- **Open folder** — `FileHelpers.OpenFolderWithFile`
-- **Copy image** — `PlatformServices.Clipboard.SetImage`
-- **Copy format** — clipboard format list with grouped entries (Primary URL, Embeds, Management, Local, Custom)
-- **Copy errors** — copies error details to clipboard
-- **Format substitution** — `$result`, `$url`, `$shorturl`, `$thumbnail`, `$deletion`, `$filepath`, `$filename`
-- **Auto-close timer** — configurable countdown via `AutoCloseAfterUploadForm` setting
-- **Image preview** — loads from local file or captured `SKBitmap`
+- **Open URL** â€” `PlatformServices.System.OpenUrl` (cross-platform)
+- **Open file** â€” `PlatformServices.System.OpenFile`
+- **Open folder** â€” `FileHelpers.OpenFolderWithFile`
+- **Copy image** â€” `PlatformServices.Clipboard.SetImage`
+- **Copy format** â€” clipboard format list with grouped entries (Primary URL, Embeds, Management, Local, Custom)
+- **Copy errors** â€” copies error details to clipboard
+- **Format substitution** â€” `$result`, `$url`, `$shorturl`, `$thumbnail`, `$deletion`, `$filepath`, `$filename`
+- **Auto-close timer** â€” configurable countdown via `AutoCloseAfterUploadForm` setting
+- **Image preview** â€” loads from local file or captured `SKBitmap`
 
 ## Annotation Subsystem - Implementation Status
 
-### ✅ Completed: Full Image Editor (ShareX.ImageEditor submodule)
+### âœ… Completed: Full Image Editor (ShareX.ImageEditor submodule)
 
 The annotation subsystem is fully implemented as the standalone cross-platform `ShareX.ImageEditor` project (Avalonia/SkiaSharp). It is integrated into XerahS via `PlatformServices.UI.ShowEditorAsync` and wired into the `AnnotateMedia` AfterCapture flag.
 
@@ -196,17 +196,17 @@ The annotation subsystem is fully implemented as the standalone cross-platform `
 - Effects: Blur, Highlight, Magnify, Pixelate, Spotlight
 
 **Presentation layer** (`Presentation/`):
-- `SKCanvasControl` — interactive Skia-backed canvas control
+- `SKCanvasControl` â€” interactive Skia-backed canvas control
 - `AnnotationVisualFactory` + per-shape `.Visual.cs` rendering
 - `MainViewModel` (partial: CanvasState, EffectPreview, ImageState, ToolOptions)
-- `EditorHistory` / `EditorMemento` — full undo/redo
+- `EditorHistory` / `EditorMemento` â€” full undo/redo
 - `EditorCore`, `EditorTool` enum, `EditorToolbarAdapter`
 - Dozens of image-effect dialogs (Blur, Border, Brightness, ColorMatrix, Crop, DrawText, Flip, Grayscale, Levels, Resize, Rotate, and many more)
 
 **Hosting / integration** (`Hosting/`):
-- `AvaloniaIntegration` — entry point for embedding in Avalonia hosts
-- `EditorServices` — DI composition
-- `ImageEditorOptions` — configuration contract
+- `AvaloniaIntegration` â€” entry point for embedding in Avalonia hosts
+- `EditorServices` â€” DI composition
+- `ImageEditorOptions` â€” configuration contract
 
 **Cross-platform:** Targets `net10.0` (no Windows-specific APIs). Works on Windows, Linux, and macOS.
 
@@ -231,25 +231,25 @@ Gap report derived from comparing the ShareX libraries against the Avalonia proj
 - [x] AnimatedGifCreator.cs
 - [x] AppVeyor.cs
 - [x] AppVeyorUpdateChecker.cs
-- [x] BlackStyleCheckBox.cs (N/A — WinForms-only control; replaced by Avalonia built-in)
-- [x] BlackStyleProgressBar.cs (N/A — WinForms-only control; replaced by Avalonia built-in)
-- [x] Canvas.cs (N/A — WinForms-only; replaced by Avalonia Canvas / SkiaSharp)
+- [x] BlackStyleCheckBox.cs (N/A â€” WinForms-only control; replaced by Avalonia built-in)
+- [x] BlackStyleProgressBar.cs (N/A â€” WinForms-only control; replaced by Avalonia built-in)
+- [x] Canvas.cs (N/A â€” WinForms-only; replaced by Avalonia Canvas / SkiaSharp)
 - [x] CaptureHelpers.cs (Refactored to use PlatformServices.Screen)
 - [x] ClipboardHelpers.cs (Platform-agnostic, uses PlatformServices pattern)
 - [x] ClipboardHelpersEx.cs (Platform-agnostic DIB image manipulation)
 - [x] ClipboardFormat.cs
 - [x] CMYK.cs
 - [x] ColorBgra.cs
-- [x] ColorBox.cs (N/A — WinForms-only; replaced by Avalonia ColorPicker)
+- [x] ColorBox.cs (N/A â€” WinForms-only; replaced by Avalonia ColorPicker)
 - [x] ColorEventHandler.cs
 - [x] ColorMatrixManager.cs
 - [x] ColorPicker.cs (Replaced by `ColorPickerDialog` + `ColorPickerViewModel` + `ColorPickerService`)
 - [x] ColorPickerOptions.cs
-- [x] ColorSlider.cs (N/A — WinForms-only; replaced by Avalonia Slider)
+- [x] ColorSlider.cs (N/A â€” WinForms-only; replaced by Avalonia Slider)
 - [x] ConvolutionMatrixManager.cs
 - [x] ConvolutionMatrix.cs
 - [x] CursorData.cs
-- [x] CustomVScrollBar.cs (N/A — WinForms-only; Avalonia has native scroll support)
+- [x] CustomVScrollBar.cs (N/A â€” WinForms-only; Avalonia has native scroll support)
 - [x] DebugTimer.cs
 - [x] DesktopIconManager.cs
 - [x] DPAPI.cs
@@ -312,9 +312,9 @@ Gap report derived from comparing the ShareX libraries against the Avalonia proj
 - [x] Point.cs
 - [x] PointF.cs
 - [x] PointInfo.cs
-- [ ] PrintHelper.cs (Pending — printing not yet ported)
+- [ ] PrintHelper.cs (Pending â€” printing not yet ported)
 - [x] PrintSettings.cs
-- [ ] PrintTextHelper.cs (Pending — printing not yet ported)
+- [ ] PrintTextHelper.cs (Pending â€” printing not yet ported)
 - [x] PropertyExtensions.cs
 - [x] ProxyInfo.cs
 - [x] Quantizer.cs
@@ -323,8 +323,8 @@ Gap report derived from comparing the ShareX libraries against the Avalonia proj
 - [x] RGBA.cs
 - [x] SafeStringEnumConverter.cs
 - [x] SevenZipManager.cs
-- [x] ShareX.HelpersLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.HelpersLib.resources.cs (N/A — auto-generated)
+- [x] ShareX.HelpersLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.HelpersLib.resources.cs (N/A â€” auto-generated)
 - [x] ShareXTheme.cs
 - [x] ShortcutHelpers.cs
 - [x] SingleInstanceManager.cs
@@ -347,8 +347,8 @@ Gap report derived from comparing the ShareX libraries against the Avalonia proj
 ### ShareX.HistoryLib
 
 - [x] HistoryItemManager.cs (Replaced by full `XerahS.History` project: `HistoryManagerSQLite`, `HistoryManagerJSON`, `HistoryItem`, `HistoryFilter`, `HistoryHelpers`, `HistoryViewModel`, `HistoryView`)
-- [x] ShareX.HistoryLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.HistoryLib.resources.cs (N/A — auto-generated)
+- [x] ShareX.HistoryLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.HistoryLib.resources.cs (N/A â€” auto-generated)
 
 ### ShareX.ImageEffectsLib
 
@@ -368,30 +368,30 @@ Gap report derived from comparing the ShareX libraries against the Avalonia proj
 - [x] ImageEffectsSerializationBinder.cs (ShareX.Editor)
 - [x] ReplaceColor.cs (ShareX.Editor)
 - [x] SelectiveColor.cs (ShareX.Editor)
-- [x] ShareX.ImageEffectsLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.ImageEffectsLib.resources.cs (N/A — auto-generated)
+- [x] ShareX.ImageEffectsLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.ImageEffectsLib.resources.cs (N/A â€” auto-generated)
 - [x] UnsafeBitmap.cs (Moved to XerahS.Common)
-- [ ] WatermarkConfig.cs (Pending — watermark overlay feature not yet ported)
-- [ ] WatermarkHelpers.cs (Pending — watermark overlay feature not yet ported)
+- [ ] WatermarkConfig.cs (Pending â€” watermark overlay feature not yet ported)
+- [ ] WatermarkHelpers.cs (Pending â€” watermark overlay feature not yet ported)
 
 ### ShareX.IndexerLib
 
 Note: The folder/disk indexing functionality of `ShareX.IndexerLib` (HTML/XML/CSV index generation) has not been ported. It is low-priority; auto-generated files are N/A.
 
-- [x] ShareX.IndexerLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.IndexerLib.resources.cs (N/A — auto-generated)
+- [x] ShareX.IndexerLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.IndexerLib.resources.cs (N/A â€” auto-generated)
 
 ### ShareX.MediaLib
 
-- [x] DesignStubs.cs (N/A — WinForms designer stubs, not applicable to Avalonia)
+- [x] DesignStubs.cs (N/A â€” WinForms designer stubs, not applicable to Avalonia)
 - [x] FFmpegDownloader.cs (Replaced by `XerahS.Common.FFmpegDownloader`)
-- [ ] FFmpegGitHubDownloader.cs (Pending — GitHub-specific FFmpeg release download not yet ported)
+- [ ] FFmpegGitHubDownloader.cs (Pending â€” GitHub-specific FFmpeg release download not yet ported)
 - [x] GradientInfo.cs (Replaced by `XerahS.Common.GradientInfo` + `XerahS.Media`)
-- [ ] ImageBeautifier.cs (Pending — `ImageBeautifierOptions.cs` exists in `XerahS.Media` but the processor/renderer not yet ported)
+- [ ] ImageBeautifier.cs (Pending â€” `ImageBeautifierOptions.cs` exists in `XerahS.Media` but the processor/renderer not yet ported)
 - [x] ImageCombinerOptions.cs (Absorbed into `XerahS.Media.ImageCombiner` with full UI: `ImageCombinerViewModel` + `ImageCombinerWindow`)
-- [x] Resources.cs (N/A — auto-generated resource class)
-- [x] ShareX.MediaLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.MediaLib.resources.cs (N/A — auto-generated)
+- [x] Resources.cs (N/A â€” auto-generated resource class)
+- [x] ShareX.MediaLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.MediaLib.resources.cs (N/A â€” auto-generated)
 
 ### ShareX.ScreenCaptureLib
 
@@ -403,18 +403,18 @@ Note: The folder/disk indexing functionality of `ShareX.IndexerLib` (HTML/XML/CS
 - [x] BaseShape.cs (ShareX.Editor/Annotations)
 - [x] BaseTool.cs (ShareX.Editor/Annotations)
 - [x] BlurEffectShape.cs (ShareX.Editor/Annotations)
-- [x] ColorBlinkAnimation.cs (N/A — WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
+- [x] ColorBlinkAnimation.cs (N/A â€” WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
 - [x] CropTool.cs (ShareX.Editor/Annotations)
-- [ ] CursorDrawingShape.cs (Pending — cursor stamp annotation not yet in ShareX.ImageEditor)
+- [ ] CursorDrawingShape.cs (Pending â€” cursor stamp annotation not yet in ShareX.ImageEditor)
 - [x] CutOutTool.cs (ShareX.Editor/Annotations)
 - [x] EllipseDrawingShape.cs (ShareX.Editor/Annotations)
-- [x] EllipseRegionShape.cs (N/A — WinForms region selection shape; XerahS.RegionCapture handles region selection via Avalonia)
+- [x] EllipseRegionShape.cs (N/A â€” WinForms region selection shape; XerahS.RegionCapture handles region selection via Avalonia)
 - [x] FreehandArrowDrawingShape.cs (ShareX.Editor/Annotations)
 - [x] FreehandDrawingShape.cs (ShareX.Editor/Annotations)
-- [x] FreehandRegionShape.cs (N/A — WinForms region selection shape; superseded by XerahS.RegionCapture)
-- [x] HardDiskCache.cs (N/A — WinForms-era disk caching for screen recording; not needed in new architecture)
+- [x] FreehandRegionShape.cs (N/A â€” WinForms region selection shape; superseded by XerahS.RegionCapture)
+- [x] HardDiskCache.cs (N/A â€” WinForms-era disk caching for screen recording; not needed in new architecture)
 - [x] HighlightEffectShape.cs (ShareX.Editor/Annotations)
-- [x] ImageCache.cs (N/A — WinForms-era in-memory frame cache; not needed in new architecture)
+- [x] ImageCache.cs (N/A â€” WinForms-era in-memory frame cache; not needed in new architecture)
 - [x] ImageDrawingShape.cs (ShareX.Editor/Annotations)
 - [x] ImageFileDrawingShape.cs (ShareX.Editor/Annotations)
 - [x] ImageScreenDrawingShape.cs (ShareX.Editor/Annotations)
@@ -423,10 +423,10 @@ Note: The folder/disk indexing functionality of `ShareX.IndexerLib` (HTML/XML/CS
 - [x] MagnifyDrawingShape.cs (ShareX.Editor/Annotations)
 - [x] MouseState.cs (ShareX.Editor)
 - [x] PixelateEffectShape.cs (ShareX.Editor/Annotations)
-- [x] PointAnimation.cs (N/A — WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
-- [x] RectangleAnimation.cs (N/A — WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
+- [x] PointAnimation.cs (N/A â€” WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
+- [x] RectangleAnimation.cs (N/A â€” WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
 - [x] RectangleDrawingShape.cs (ShareX.Editor/Annotations)
-- [x] RectangleRegionShape.cs (N/A — WinForms region selection shape; superseded by XerahS.RegionCapture)
+- [x] RectangleRegionShape.cs (N/A â€” WinForms region selection shape; superseded by XerahS.RegionCapture)
 - [x] RegionCaptureOptions.cs (XerahS.RegionCapture)
 - [x] RegionCaptureTasks.cs (XerahS.RegionCapture)
 - [x] ResizeNode.cs (ShareX.Editor)
@@ -434,21 +434,21 @@ Note: The folder/disk indexing functionality of `ShareX.IndexerLib` (HTML/XML/CS
 - [x] ScreenRecordingOptions.cs (XerahS.RegionCapture)
 - [x] Screenshot.cs (XerahS.RegionCapture)
 - [x] Screenshot_Transparent.cs (XerahS.RegionCapture)
-- [x] ScrollbarManager.cs (N/A — WinForms scrollbar overlay for scrolling capture; superseded by `XerahS.RegionCapture.ScrollingCaptureManager`)
+- [x] ScrollbarManager.cs (N/A â€” WinForms scrollbar overlay for scrolling capture; superseded by `XerahS.RegionCapture.ScrollingCaptureManager`)
 - [x] ScrollingCaptureManager.cs (Replaced by `XerahS.RegionCapture.ScrollingCaptureManager` + `IScrollingCaptureService` + `WindowsScrollingCaptureService`)
-- [x] ShapeManager.cs (N/A — monolithic WinForms shape manager; fully superseded by `ShareX.ImageEditor` + `XerahS.RegionCapture`)
-- [x] ShareX.ScreenCaptureLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.ScreenCaptureLib.resources.cs (N/A — auto-generated)
+- [x] ShapeManager.cs (N/A â€” monolithic WinForms shape manager; fully superseded by `ShareX.ImageEditor` + `XerahS.RegionCapture`)
+- [x] ShareX.ScreenCaptureLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.ScreenCaptureLib.resources.cs (N/A â€” auto-generated)
 - [x] SmartEraserDrawingShape.cs (ShareX.Editor/Annotations)
-- [ ] SnapSize.cs (Pending — snap-to-size helper for region selection not yet ported)
+- [ ] SnapSize.cs (Pending â€” snap-to-size helper for region selection not yet ported)
 - [x] SpeechBalloonDrawingShape.cs (ShareX.Editor/Annotations)
 - [x] SpotlightTool.cs (ShareX.Editor/Annotations)
 - [x] StepDrawingShape.cs (Replaced by NumberAnnotation in ShareX.Editor)
-- [ ] StickerDrawingShape.cs (Pending — sticker annotation shape not yet in ShareX.ImageEditor; `CartoonStickerCutoutImageEffect` is a separate effect, not the same)
-- [x] TextAnimation.cs (N/A — WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
+- [ ] StickerDrawingShape.cs (Pending â€” sticker annotation shape not yet in ShareX.ImageEditor; `CartoonStickerCutoutImageEffect` is a separate effect, not the same)
+- [x] TextAnimation.cs (N/A â€” WinForms GDI+ overlay animation; superseded by Avalonia RegionCapture)
 - [x] TextDrawingOptions.cs (ShareX.Editor)
 - [x] TextDrawingShape.cs (ShareX.Editor/Annotations)
-- [ ] TextOutlineDrawingShape.cs (Pending — text outline/stroke annotation not yet in ShareX.ImageEditor)
+- [ ] TextOutlineDrawingShape.cs (Pending â€” text outline/stroke annotation not yet in ShareX.ImageEditor)
 
 ### ShareX.UploadersLib
 
@@ -493,13 +493,13 @@ Note: The folder/disk indexing functionality of `ShareX.IndexerLib` (HTML/XML/CS
 - [ ] Pushbullet.cs
 - [ ] PushbulletSharingService.cs
 - [ ] Puush.cs
-- [x] Resources.cs (N/A — auto-generated resource class)
+- [x] Resources.cs (N/A â€” auto-generated resource class)
 - [ ] Seafile.cs
 - [ ] SharedFolderUploader.cs
-- [x] ShareX.UploadersLib.AssemblyInfo.cs (N/A — auto-generated)
-- [x] ShareX.UploadersLib.resources.cs (N/A — auto-generated)
+- [x] ShareX.UploadersLib.AssemblyInfo.cs (N/A â€” auto-generated)
+- [x] ShareX.UploadersLib.resources.cs (N/A â€” auto-generated)
 - [ ] Streamable.cs
-- [x] Stubs.cs (N/A — WinForms UI stubs, not applicable to Avalonia)
+- [x] Stubs.cs (N/A â€” WinForms UI stubs, not applicable to Avalonia)
 - [ ] Sul.cs
 - [ ] Upaste.cs
 - [ ] UploadScreenshot.cs

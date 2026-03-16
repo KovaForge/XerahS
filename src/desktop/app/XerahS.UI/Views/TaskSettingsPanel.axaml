@@ -5,6 +5,7 @@
              xmlns:vm="using:XerahS.UI.ViewModels"
              xmlns:views="using:XerahS.UI.Views"
              xmlns:controls="using:XerahS.UI.Controls"
+             xmlns:converters="using:XerahS.UI.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
              x:Class="XerahS.UI.Views.TaskSettingsPanel"
              x:DataType="vm:TaskSettingsViewModel">
@@ -13,19 +14,43 @@
         <vm:TaskSettingsViewModel/>
     </Design.DataContext>
 
+    <UserControl.Resources>
+        <converters:EnumToDescriptionConverter x:Key="EnumToDescriptionConverter"/>
+    </UserControl.Resources>
+
     <Grid RowDefinitions="*" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <TabControl Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="300">
+        <TabControl Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch" MinHeight="300">
             
             <!-- Capture Tab -->
             <TabItem Header="Capture">
-                <ScrollViewer Padding="20">
-                    <StackPanel Spacing="24">
+                <ScrollViewer>
+                    <StackPanel Spacing="24" Margin="20">
                         <!-- General Capture Settings -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="General" FontWeight="SemiBold"/>
                             <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
-                                    <CheckBox IsChecked="{Binding UseModernCapture}" Content="Use modern screen capture (Direct3D11)"/>
+                                    <CheckBox IsChecked="{Binding UseModernCapture}"
+                                              Content="Use modern screen capture (Direct3D11)"
+                                              IsVisible="{Binding ShowUseModernCaptureSetting}"/>
+                                    <StackPanel Spacing="10" IsVisible="{Binding IsLinuxPlatform}">
+                                        <TextBlock Text="Preferred Linux region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox ItemsSource="{Binding LinuxRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding LinuxRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Preferred Linux Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Automatic keeps the current safe Linux fallback behavior and only prefers a specific native selector when requested."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
                                     <CheckBox IsChecked="{Binding ShowCursor}" Content="Show cursor in screenshots"/>
                                     
                                     <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, Auto, Auto">
@@ -77,8 +102,8 @@
 
             <!-- Index Folder Tab (Conditional) -->
             <TabItem Header="Index Folder" IsVisible="{Binding IsIndexFolderJob}">
-                <ScrollViewer Padding="20">
-                     <StackPanel Spacing="8">
+                <ScrollViewer>
+                     <StackPanel Spacing="8" Margin="20">
                         <TextBlock Text="Index folder" FontWeight="SemiBold"/>
                         <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                             <StackPanel Spacing="16">
@@ -146,8 +171,8 @@
 
             <!-- File Tab (New) -->
             <TabItem Header="File">
-                <ScrollViewer Padding="20">
-                     <StackPanel Spacing="8">
+                <ScrollViewer>
+                     <StackPanel Spacing="8" Margin="20">
                         <TextBlock Text="File naming" FontWeight="SemiBold"/>
                         <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                             <StackPanel Spacing="16">
@@ -181,8 +206,8 @@
 
             <!-- Upload Tab -->
             <TabItem Header="Upload">
-               <ScrollViewer Padding="20">
-                   <StackPanel Spacing="24">
+               <ScrollViewer>
+                   <StackPanel Spacing="24" Margin="20">
                         <!-- Destinations Section (New) -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="Destinations" FontWeight="SemiBold"/>
@@ -244,8 +269,8 @@
 
             <!-- Notifications Tab (Renamed from General) -->
             <TabItem Header="Notifications">
-                <ScrollViewer Padding="20">
-                    <StackPanel Spacing="24">
+                <ScrollViewer>
+                    <StackPanel Spacing="24" Margin="20">
                         <!-- Notifications Section -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="Notifications" FontWeight="SemiBold"/>

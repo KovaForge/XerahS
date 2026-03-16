@@ -31,6 +31,8 @@ namespace XerahS.Platform.Mobile;
 
 public class MobileSystemService : ISystemService
 {
+    public bool IsDesktopWallpaperSupported => false;
+
     public bool ShowFileInExplorer(string filePath) => false;
 
     public bool OpenUrl(string url)
@@ -52,4 +54,16 @@ public class MobileSystemService : ISystemService
     }
 
     public bool OpenFile(string filePath) => false;
+
+    public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
+    {
+        wallpaper = null;
+        return false;
+    }
+
+    public bool TryGetDesktopWallpaperPath(out string? path)
+    {
+        path = null;
+        return false;
+    }
 }

@@ -23,13 +23,18 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
+using Avalonia.Layout;
+using Avalonia.Media;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
+using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using ShareX.VideoEditor.Hosting;
@@ -88,7 +93,7 @@ namespace XerahS.UI.Services
             });
         }
 
-        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image)
+        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
         {
             var tcs = new TaskCompletionSource<SKBitmap?>();
 
@@ -98,8 +103,10 @@ namespace XerahS.UI.Services
                 var editorWindow = new Views.EditorWindow();
 
                 // Create independent ViewModel for this editor instance
-                var editorViewModel = new MainViewModel();
-                editorViewModel.ShowCaptureToolbar = false;
+                var editorOptions = taskMode ? new ImageEditorOptions { ShowExitConfirmation = false } : null;
+                var editorViewModel = new MainViewModel(editorOptions);
+                editorViewModel.ShowTaskModeButtons = taskMode;
+                editorViewModel.TaskMode = taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
                 // Wire up UploadRequested to trigger host app upload workflow
@@ -117,6 +124,7 @@ namespace XerahS.UI.Services
                     editorWindow.FindControl<EditorView>("EditorViewControl")?.GetSnapshot();
                 MainViewModelHelper.WireSaveRequested(editorViewModel, getSnapshot, () => editorWindow);
                 MainViewModelHelper.WireSaveAsRequested(editorViewModel, getSnapshot, () => editorWindow);
+                MainViewModelHelper.WirePinRequested(editorViewModel, getSnapshot);
 
                 // Set DataContext BEFORE initializing preview so bindings update correctly
                 editorWindow.DataContext = editorViewModel;
@@ -130,7 +138,16 @@ namespace XerahS.UI.Services
                     try
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
-                        if (editorView != null)
+
+                        bool continueWithoutSave = editorViewModel.TaskResult == MainViewModel.EditorTaskResult.ContinueNoSave
+                            || (editorWindow.IsCloseRequestedByViewModel &&
+                                editorViewModel.TaskResult == MainViewModel.EditorTaskResult.Cancel);
+
+                        if (taskMode && continueWithoutSave)
+                        {
+                            tcs.TrySetResult(null);
+                        }
+                        else if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
                             tcs.TrySetResult(snapshot);
@@ -156,16 +173,201 @@ namespace XerahS.UI.Services
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
-            return await Dispatcher.UIThread.InvokeAsync(() =>
+            string detectedFfmpegPath = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
+
+            return await Task.Run(async () =>
             {
-                var options = new VideoEditorOptions
+                try
                 {
-                    VideoPath = videoPath,
-                    FFmpegPath = ffmpegPath ?? string.Empty
-                };
-                return AvaloniaIntegration.ShowEditorDialog(options);
+                    Exception? startupFailure = null;
+                    var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
+                    LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
+
+                    string ffprobePath = string.Empty;
+                    if (ffmpegResolution.IsAvailable)
+                    {
+                        try
+                        {
+                            ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
+                                ffmpegResolution.ConfiguredPath,
+                                message => DebugHelper.WriteLine($"[VideoEditor] {message}"));
+
+                            if (!string.IsNullOrWhiteSpace(ffprobePath))
+                            {
+                                DebugHelper.WriteLine($"[VideoEditor] Using FFprobe at: {ffprobePath}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.WriteException(ex, "Failed to resolve FFprobe for video editor");
+                        }
+                    }
+
+                    var options = new VideoEditorOptions
+                    {
+                        VideoPath = videoPath,
+                        FFmpegPath = ffmpegResolution.ConfiguredPath,
+                        FFprobePath = ffprobePath,
+                        Theme = ResolveTheme(),
+                    };
+
+                    var events = new VideoEditorEvents
+                    {
+                        DiagnosticReported = diagnosticEvent =>
+                        {
+                            string message = $"[VideoEditor:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
+
+                            if (diagnosticEvent.Exception != null)
+                            {
+                                DebugHelper.WriteException(diagnosticEvent.Exception, message);
+                            }
+                            else
+                            {
+                                DebugHelper.WriteLine(message);
+                            }
+
+                            if (startupFailure == null &&
+                                diagnosticEvent.Source == nameof(VideoEditorHost) &&
+                                diagnosticEvent.Exception != null)
+                            {
+                                startupFailure = diagnosticEvent.Exception;
+                            }
+                        }
+                    };
+
+                    string? result = VideoEditorHost.ShowEditorDialog(options, events);
+
+                    if (startupFailure != null)
+                    {
+                        await ShowVideoEditorStartupErrorAsync(startupFailure.Message);
+                    }
+
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "Failed to open video editor");
+                    await ShowVideoEditorStartupErrorAsync(ex.Message);
+                    return null;
+                }
             });
         }
+
+        private static void LogVideoEditorFfmpegResolution(
+            string? hostPath,
+            string? detectedPath,
+            (string ConfiguredPath, bool IsAvailable, string Source) resolution)
+        {
+            string hostCandidate = string.IsNullOrWhiteSpace(hostPath) ? "(empty)" : hostPath;
+            string detectedCandidate = string.IsNullOrWhiteSpace(detectedPath) ? "(empty)" : detectedPath;
+            string configuredPath = string.IsNullOrWhiteSpace(resolution.ConfiguredPath)
+                ? "(not set)"
+                : resolution.ConfiguredPath;
+
+            if (resolution.IsAvailable)
+            {
+                DebugHelper.WriteLine(
+                    $"[VideoEditor] Using FFmpeg at: {configuredPath} (source: {resolution.Source}, hostCandidate: {hostCandidate}, detectedCandidate: {detectedCandidate})");
+            }
+            else
+            {
+                DebugHelper.WriteLine(
+                    $"[VideoEditor] FFmpeg unavailable. Source={resolution.Source}, hostCandidate={hostCandidate}, detectedCandidate={detectedCandidate}, configuredPath={configuredPath}");
+            }
+        }
+
+        private static string ResolveTheme()
+        {
+            // Map the XerahS theme setting to the VideoEditorOptions theme string.
+            return XerahS.Core.SettingsManager.Settings?.ThemeMode switch
+            {
+                XerahS.Core.AppThemeMode.Light  => "Light",
+                XerahS.Core.AppThemeMode.System => "System",
+                _                               => "Dark",
+            };
+        }
+
+        private static async Task ShowVideoEditorStartupErrorAsync(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var dialog = new Window
+                {
+                    Title = "Video Editor Unavailable",
+                    Width = 680,
+                    Height = 280,
+                    MinWidth = 560,
+                    MinHeight = 220,
+                    CanResize = true,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+
+                var closeButton = new Button
+                {
+                    Content = "Close",
+                    MinWidth = 100,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+
+                closeButton.Click += (_, _) => dialog.Close();
+
+                dialog.Content = new StackPanel
+                {
+                    Margin = new Thickness(20),
+                    Spacing = 16,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "The video editor could not start.",
+                            FontWeight = FontWeight.SemiBold
+                        },
+                        new ScrollViewer
+                        {
+                            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                            Content = new TextBlock
+                            {
+                                Text = message,
+                                TextWrapping = TextWrapping.Wrap
+                            }
+                        },
+                        closeButton
+                    }
+                };
+
+                Window? owner = TryGetDialogOwner();
+
+                if (CanUseDialogOwner(owner))
+                {
+                    _ = dialog.ShowDialog(owner!);
+                }
+                else
+                {
+                    dialog.Show();
+                }
+            });
+        }
+
+        private static Window? TryGetDialogOwner()
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                return desktop.MainWindow;
+            }
+
+            return null;
+        }
+
+        private static bool CanUseDialogOwner(Window? owner) =>
+            owner != null &&
+            owner.IsVisible &&
+            owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+            owner.ShowInTaskbar;
 
         public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
@@ -243,4 +445,3 @@ namespace XerahS.UI.Services
         }
     }
 }
-

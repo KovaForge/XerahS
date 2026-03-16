@@ -102,7 +102,7 @@ namespace XerahS.Core.Tasks.Processors
             {
                 if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
-                    var editedImage = await PlatformServices.UI.ShowEditorAsync(info.Metadata.Image);
+                    var editedImage = await PlatformServices.UI.ShowEditorAsync(info.Metadata.Image, taskMode: true);
                     if (editedImage != null)
                     {
                         if (info.Metadata.Image != editedImage)

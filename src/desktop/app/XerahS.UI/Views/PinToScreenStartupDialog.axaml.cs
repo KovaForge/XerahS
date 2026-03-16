@@ -39,7 +39,7 @@ public class PinToScreenStartupResult
     public PixelPoint? Location { get; init; }
 }
 
-public partial class PinToScreenStartupDialog : Window
+public partial class PinToScreenStartupDialog : SurfaceWindow
 {
     public PinToScreenStartupResult? Result { get; private set; }
 

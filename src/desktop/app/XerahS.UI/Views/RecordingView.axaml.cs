@@ -28,7 +28,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class RecordingView : UserControl
+public partial class RecordingView : PageView
 {
     private readonly RecordingViewModel _viewModel;
 

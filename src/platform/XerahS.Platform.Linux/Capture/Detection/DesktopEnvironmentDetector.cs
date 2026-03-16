@@ -29,35 +29,100 @@ internal static class DesktopEnvironmentDetector
 {
     public static string? Detect()
     {
-        var desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP");
-        if (!string.IsNullOrEmpty(desktop))
+        foreach (string hint in EnumerateHints())
         {
-            var desktops = desktop.Split(':');
-            foreach (var value in desktops)
+            string? normalized = NormalizeHint(hint);
+            if (!string.IsNullOrEmpty(normalized))
             {
-                var normalized = value.Trim().ToUpperInvariant();
-                if (normalized.Contains("GNOME")) return "GNOME";
-                if (normalized.Contains("KDE") || normalized.Contains("PLASMA")) return "KDE";
-                if (normalized.Contains("HYPRLAND")) return "HYPRLAND";
-                if (normalized.Contains("SWAY")) return "SWAY";
-                if (normalized.Contains("XFCE")) return "XFCE";
-                if (normalized.Contains("MATE")) return "MATE";
-                if (normalized.Contains("CINNAMON")) return "CINNAMON";
-                if (normalized.Contains("LXQT")) return "LXQT";
-                if (normalized.Contains("LXDE")) return "LXDE";
+                return normalized;
             }
         }
 
-        var session = Environment.GetEnvironmentVariable("DESKTOP_SESSION");
-        if (!string.IsNullOrEmpty(session))
+        return null;
+    }
+
+    internal static string? NormalizeHint(string? hint)
+    {
+        if (string.IsNullOrWhiteSpace(hint))
         {
-            var normalized = session.ToUpperInvariant();
-            if (normalized.Contains("GNOME")) return "GNOME";
-            if (normalized.Contains("PLASMA") || normalized.Contains("KDE")) return "KDE";
-            if (normalized.Contains("HYPRLAND")) return "HYPRLAND";
-            if (normalized.Contains("SWAY")) return "SWAY";
+            return null;
+        }
+
+        foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            string normalized = token.ToUpperInvariant();
+
+            if (normalized.Contains("GNOME") ||
+                normalized.Contains("UBUNTU") ||
+                normalized.Contains("UNITY") ||
+                normalized.Contains("BUDGIE") ||
+                normalized.Contains("PANTHEON"))
+            {
+                return "GNOME";
+            }
+
+            if (normalized.Contains("KDE") || normalized.Contains("PLASMA"))
+            {
+                return "KDE";
+            }
+
+            if (normalized.Contains("HYPRLAND"))
+            {
+                return "HYPRLAND";
+            }
+
+            if (normalized.Contains("SWAY"))
+            {
+                return "SWAY";
+            }
+
+            if (normalized.Contains("XFCE"))
+            {
+                return "XFCE";
+            }
+
+            if (normalized.Contains("MATE"))
+            {
+                return "MATE";
+            }
+
+            if (normalized.Contains("CINNAMON"))
+            {
+                return "CINNAMON";
+            }
+
+            if (normalized.Contains("LXQT"))
+            {
+                return "LXQT";
+            }
+
+            if (normalized.Contains("LXDE"))
+            {
+                return "LXDE";
+            }
         }
 
         return null;
+    }
+
+    private static IEnumerable<string> EnumerateHints()
+    {
+        string? currentDesktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP");
+        if (!string.IsNullOrWhiteSpace(currentDesktop))
+        {
+            yield return currentDesktop;
+        }
+
+        string? sessionDesktop = Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP");
+        if (!string.IsNullOrWhiteSpace(sessionDesktop))
+        {
+            yield return sessionDesktop;
+        }
+
+        string? desktopSession = Environment.GetEnvironmentVariable("DESKTOP_SESSION");
+        if (!string.IsNullOrWhiteSpace(desktopSession))
+        {
+            yield return desktopSession;
+        }
     }
 }

@@ -38,6 +38,12 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private bool _supportsFileAssociations;
 
+        [ObservableProperty]
+        private bool _supportsContextMenuIntegration;
+
+        [ObservableProperty]
+        private bool _supportsSendToIntegration;
+
         partial void OnIsPluginExtensionRegisteredChanged(bool value)
         {
             if (_isLoading) return; // Don't trigger during initial load
@@ -49,6 +55,54 @@ namespace XerahS.UI.ViewModels
             catch (InvalidOperationException)
             {
                 // Shell integration not available on this platform
+            }
+        }
+
+        private static bool ApplyContextMenuPreference(bool enable)
+        {
+            try
+            {
+                if (!PlatformServices.IsInitialized)
+                {
+                    return false;
+                }
+
+                IShellIntegrationService? shellIntegration = PlatformServices.GetShellIntegrationIfAvailable();
+                if (shellIntegration == null || !shellIntegration.SupportsContextMenuIntegration)
+                {
+                    return !enable;
+                }
+
+                return shellIntegration.SetContextMenuIntegration(enable);
+            }
+            catch (InvalidOperationException ex)
+            {
+                DebugHelper.WriteException(ex, "SettingsViewModel: ContextMenu platform services not ready.");
+                return false;
+            }
+        }
+
+        private static bool ApplySendToPreference(bool enable)
+        {
+            try
+            {
+                if (!PlatformServices.IsInitialized)
+                {
+                    return false;
+                }
+
+                IShellIntegrationService? shellIntegration = PlatformServices.GetShellIntegrationIfAvailable();
+                if (shellIntegration == null || !shellIntegration.SupportsSendToIntegration)
+                {
+                    return !enable;
+                }
+
+                return shellIntegration.SetSendToIntegration(enable);
+            }
+            catch (InvalidOperationException ex)
+            {
+                DebugHelper.WriteException(ex, "SettingsViewModel: SendTo platform services not ready.");
+                return false;
             }
         }
 

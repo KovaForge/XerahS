@@ -189,12 +189,12 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             ConfigViewModel = provider.CreateConfigViewModel();
             ConfigView = provider.CreateConfigView();
 
-            // Special handling for custom uploaders
+            // Custom uploaders use the full editor form inline in the provider settings area.
             if (ConfigViewModel == null && ConfigView == null && ProviderId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase))
             {
-                Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Creating custom uploader config view/viewmodel");
-                ConfigViewModel = new CustomUploaderConfigViewModel();
-                ConfigView = new Views.CustomUploaderConfigView();
+                Common.DebugHelper.WriteLine("[UploaderInstanceVM] Creating inline custom uploader editor view/viewmodel");
+                ConfigViewModel = new CustomUploaderEditorViewModel();
+                ConfigView = new Views.CustomUploaderEditorFormView();
             }
 
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] ConfigViewModel created: {ConfigViewModel?.GetType().Name ?? "null"}");
@@ -220,6 +220,13 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         if (ConfigViewModel != null)
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Loading settings from JSON for {ProviderId}");
+
+            if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
+            {
+                customUploaderConfigViewModel.SetFallbackName(provider?.Name);
+                customUploaderConfigViewModel.IsNameReadOnly = true;
+            }
+
             ConfigViewModel.LoadFromJson(SettingsJson);
 
             if (ConfigViewModel is ObservableObject obs)
@@ -362,7 +369,18 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         SettingsJson = instance.SettingsJson;
         IsAvailable = instance.IsAvailable;
 
+        if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
+        {
+            customUploaderConfigViewModel.SetFallbackName(ProviderCatalog.GetProvider(ProviderId)?.Name);
+        }
+
         ConfigViewModel?.LoadFromJson(SettingsJson);
+    }
+
+    partial void OnDisplayNameChanged(string value)
+    {
+        Instance.DisplayName = value;
+        InstanceManager.Instance.UpdateInstance(Instance);
     }
 
     [RelayCommand]

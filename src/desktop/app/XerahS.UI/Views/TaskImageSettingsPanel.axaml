@@ -8,11 +8,11 @@
              x:Class="XerahS.UI.Views.TaskImageSettingsPanel"
              x:DataType="vm:TaskSettingsViewModel">
 
-    <TabControl>
+    <TabControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
         <!-- Image Settings Tab -->
         <TabItem Header="Settings">
-            <ScrollViewer Padding="20">
-                <Grid ColumnDefinitions="*, 16, *" RowDefinitions="Auto">
+            <ScrollViewer>
+                <Grid ColumnDefinitions="*, 16, *" RowDefinitions="Auto" Margin="20">
                     <!-- Quality -->
                     <StackPanel Grid.Column="0" Spacing="8">
                         <TextBlock Text="Quality" FontWeight="SemiBold"/>

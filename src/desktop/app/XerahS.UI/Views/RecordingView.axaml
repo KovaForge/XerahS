@@ -1,19 +1,20 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:views="using:XerahS.UI.Views"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
-             x:Class="XerahS.UI.Views.RecordingView"
-             x:DataType="vm:RecordingViewModel">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
+                x:Class="XerahS.UI.Views.RecordingView"
+                x:DataType="vm:RecordingViewModel">
     
     <Design.DataContext>
         <vm:RecordingViewModel/>
     </Design.DataContext>
     
-    <Grid RowDefinitions="Auto,*" Margin="24">
+    <Grid RowDefinitions="Auto,*"
+          Margin="24">
         
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,24">
@@ -54,7 +55,7 @@
                                        Theme="{StaticResource CaptionTextBlockStyle}"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                             <TextBlock Text="{Binding OutputFilePath}"
-                                       FontFamily="Consolas, monospace"
+                                       FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                        Theme="{StaticResource CaptionTextBlockStyle}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
@@ -142,7 +143,10 @@
                                 CornerRadius="4"
                                 Padding="12,8">
                             <StackPanel Spacing="8" Orientation="Horizontal">
-                                <ui:SymbolIcon Symbol="Important" FontSize="16" Foreground="{DynamicResource SystemFillColorAttentionBrush}"/>
+                                <TextBlock Classes="IconGlyph"
+                                           FontSize="16"
+                                           Foreground="{DynamicResource SystemFillColorAttentionBrush}"
+                                           Text="{x:Static theming:HostIcons.StatusWarning}"/>
                                 <TextBlock Text="{Binding EncoderInfo}"
                                            Theme="{StaticResource CaptionTextBlockStyle}"
                                            TextWrapping="Wrap"
@@ -194,4 +198,4 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
-</UserControl>
+</views:PageView>

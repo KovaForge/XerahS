@@ -35,7 +35,7 @@ namespace XerahS.Core.Tasks
     /// </summary>
     public partial class WorkerTask
     {
-        private bool TryLoadClipboardContent(TaskSettings taskSettings, TaskMetadata metadata, out string[]? clipboardFiles)
+        internal bool TryLoadClipboardContent(TaskSettings taskSettings, TaskMetadata metadata, out string[]? clipboardFiles)
         {
             clipboardFiles = null;
             var clipboard = PlatformServices.Clipboard;
@@ -83,7 +83,7 @@ namespace XerahS.Core.Tasks
             return false;
         }
 
-        private async Task UploadClipboardFilesAsync(TaskSettings taskSettings, string[] files, CancellationToken token)
+        internal async Task UploadClipboardFilesAsync(TaskSettings taskSettings, string[] files, CancellationToken token)
         {
             var uploadProcessor = new UploadJobProcessor();
             TaskInfo? lastInfo = null;
@@ -121,7 +121,7 @@ namespace XerahS.Core.Tasks
             }
         }
 
-        private bool TryIndexFolder(TaskSettings taskSettings, out string? outputPath)
+        internal bool TryIndexFolder(TaskSettings taskSettings, out string? outputPath)
         {
             outputPath = null;
 

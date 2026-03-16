@@ -34,6 +34,7 @@ using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Helpers;
 
 namespace XerahS.UI.ViewModels
 {
@@ -121,6 +122,7 @@ namespace XerahS.UI.ViewModels
         }
 
         public Func<WatchFolderEditViewModel, Task<bool>>? EditWatchFolderRequester { get; set; }
+        public Func<Task<string?>>? BrowseScreenshotsFolderRequester { get; set; }
 
         public SettingsViewModel()
         {
@@ -152,6 +154,11 @@ namespace XerahS.UI.ViewModels
             nameof(WatchFolderDaemonStatusText),
             nameof(WatchFolderDaemonButtonText),
             nameof(WatchFolderDaemonLastError),
+            nameof(LinuxRegionSelectorCurrentSessionText),
+            nameof(LinuxRegionSelectorPortalBackendText),
+            nameof(LinuxRegionSelectorAvailableText),
+            nameof(LinuxRegionSelectorAutomaticText),
+            nameof(LinuxRegionSelectorLastDecisionText),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -208,6 +215,10 @@ namespace XerahS.UI.ViewModels
             CaptureShadow = taskSettings.CaptureSettings.CaptureShadow;
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
+            RefreshLinuxRegionSelectorDiagnostics();
+            LinuxRegionSelectorPreference = LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
+                taskSettings.CaptureSettings.LinuxRegionSelectorPreference);
+            LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(taskSettings.CaptureSettings);
 
             // Task Settings - File Naming Defaults
             NameFormatPattern = taskSettings.UploadSettings.NameFormatPattern;
@@ -241,15 +252,35 @@ namespace XerahS.UI.ViewModels
             ApplyWatchFolderRuntimePolicy(watchFolderConfigurationChanged: false, refreshDaemonStatus: true);
 
             // Integration Settings
-            SupportsFileAssociations = OperatingSystem.IsWindows();
             try
             {
-                IsPluginExtensionRegistered = PlatformServices.ShellIntegration.IsPluginExtensionRegistered();
+                IStartupService startupService = PlatformServices.Startup;
+                settings.RunAtStartup = startupService.IsRunAtStartupEnabled();
             }
             catch (InvalidOperationException)
             {
-                // Shell integration not available on this platform
+                settings.RunAtStartup = false;
+            }
+
+            IShellIntegrationService? shellIntegration = PlatformServices.GetShellIntegrationIfAvailable();
+            SupportsFileAssociations = shellIntegration?.SupportsPluginExtensionRegistration == true;
+            SupportsContextMenuIntegration = shellIntegration?.SupportsContextMenuIntegration == true;
+            SupportsSendToIntegration = shellIntegration?.SupportsSendToIntegration == true;
+
+            if (shellIntegration != null)
+            {
+                IsPluginExtensionRegistered = shellIntegration.SupportsPluginExtensionRegistration &&
+                                              shellIntegration.IsPluginExtensionRegistered();
+                settings.EnableContextMenuIntegration = shellIntegration.SupportsContextMenuIntegration &&
+                                                        shellIntegration.IsContextMenuIntegrationEnabled();
+                settings.EnableSendToIntegration = shellIntegration.SupportsSendToIntegration &&
+                                                   shellIntegration.IsSendToIntegrationEnabled();
+            }
+            else
+            {
                 IsPluginExtensionRegistered = false;
+                settings.EnableContextMenuIntegration = false;
+                settings.EnableSendToIntegration = false;
             }
         }
 
@@ -288,6 +319,8 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.CaptureShadow = CaptureShadow;
             taskSettings.CaptureSettings.CaptureClientArea = CaptureClientArea;
             taskSettings.CaptureSettings.UseModernCapture = UseModernCapture;
+            taskSettings.CaptureSettings.LinuxRegionSelectorPreference = LinuxRegionSelectorPreference;
+            taskSettings.CaptureSettings.LinuxRecordingBackendPreference = LinuxRecordingBackendPreference;
 
             taskSettings.UploadSettings.NameFormatPattern = NameFormatPattern;
             taskSettings.UploadSettings.NameFormatPatternActiveWindow = NameFormatPatternActiveWindow;
@@ -318,9 +351,18 @@ namespace XerahS.UI.ViewModels
         }
 
         [RelayCommand]
-        private void BrowseFolder()
+        private async Task BrowseFolder()
         {
-            // TODO: Implement folder picker dialog
+            if (BrowseScreenshotsFolderRequester == null)
+            {
+                return;
+            }
+
+            string? path = await BrowseScreenshotsFolderRequester();
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                ScreenshotsFolder = path;
+            }
         }
 
         [RelayCommand]
@@ -332,6 +374,16 @@ namespace XerahS.UI.ViewModels
             ShowTray = true;
             SilentRun = false;
             SelectedTheme = 0;
+            LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.Automatic;
+            LinuxRecordingBackendPreference = XerahS.RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.Automatic;
+        }
+
+        private static RegionCapture.ScreenRecording.LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)
+        {
+            return captureSettings.LinuxRecordingBackendPreference ??
+                (captureSettings.UseModernCapture
+                    ? RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.Automatic
+                    : RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.FFmpeg);
         }
 
         private static string BuildWatchFolderConfigurationSignature(bool watchFolderEnabled, List<WatchFolderSettings> watchFolderSettings)

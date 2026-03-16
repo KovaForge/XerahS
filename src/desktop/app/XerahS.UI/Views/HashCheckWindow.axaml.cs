@@ -31,7 +31,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class HashCheckWindow : Window
+public partial class HashCheckWindow : SurfaceWindow
 {
     public HashCheckWindow()
     {

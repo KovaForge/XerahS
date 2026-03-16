@@ -268,25 +268,50 @@ namespace XerahS.Platform.Windows
 
         public static Bitmap? DIBV5ToBitmap(byte[] data)
         {
+            if (data == null || data.Length < 124)
+            {
+                return null;
+            }
+
             GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             try
             {
                 var bmi = Marshal.PtrToStructure<BITMAPV5HEADER>(handle.AddrOfPinnedObject());
-                int stride = -(int)(bmi.bV5SizeImage / bmi.bV5Height);
-                long offset = bmi.bV5Size + ((bmi.bV5Height - 1) * (int)(bmi.bV5SizeImage / bmi.bV5Height));
-                if (bmi.bV5Compression == (uint)NativeConstants.BI_BITFIELDS)
+                if (bmi.bV5Width <= 0 || bmi.bV5Height == 0 || bmi.bV5BitCount != 32)
                 {
-                    offset += 12;
+                    return null;
                 }
-                IntPtr scan0 = new IntPtr(handle.AddrOfPinnedObject().ToInt64() + offset);
-                // Creating bitmap from pointer requires the pointer to stay valid if we don't copy?
-                // Actually new Bitmap(..., scan0) does NOT copy. So we must copy data or keep handle pinned.
-                // Original code freed handle immediately which is DANGEROUS unless it copied. 
-                // Wait, it returned 'bitmap'. If 'bitmap' wraps scan0, handle free is bad.
-                // But typically we should clone it.
-                // Note: The original returned bitmap.
-                // I'll clone it to be safe or investigate.
-                using (Bitmap temp = new Bitmap(bmi.bV5Width, bmi.bV5Height, stride, PixelFormat.Format32bppPArgb, scan0))
+
+                if (bmi.bV5Compression != (uint)NativeConstants.BI_BITFIELDS &&
+                    bmi.bV5Compression != (uint)BitmapCompressionMode.BI_RGB)
+                {
+                    return null;
+                }
+
+                int rows = Math.Abs(bmi.bV5Height);
+                int rowBytes = bmi.bV5SizeImage > 0
+                    ? (int)(bmi.bV5SizeImage / (uint)rows)
+                    : bmi.bV5Width * 4;
+
+                if (rowBytes <= 0)
+                {
+                    return null;
+                }
+
+                long offset = bmi.bV5Size;
+
+                long pixelBytes = (long)rowBytes * rows;
+                if (offset < 0 || offset + pixelBytes > data.LongLength)
+                {
+                    return null;
+                }
+
+                bool topDown = bmi.bV5Height < 0;
+                int stride = topDown ? rowBytes : -rowBytes;
+                long scan0Offset = topDown ? offset : offset + ((long)(rows - 1) * rowBytes);
+                IntPtr scan0 = new IntPtr(handle.AddrOfPinnedObject().ToInt64() + scan0Offset);
+
+                using (Bitmap temp = new Bitmap(bmi.bV5Width, rows, stride, PixelFormat.Format32bppPArgb, scan0))
                 {
                     return CloneImage(temp);
                 }

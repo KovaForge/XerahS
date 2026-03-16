@@ -22,7 +22,6 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -34,6 +33,10 @@ using XerahS.Common.Converters;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.History;
+using XerahS.Media;
+using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
+using XerahS.UI.Services;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -42,6 +45,19 @@ namespace XerahS.UI.ViewModels
 {
     public partial class HistoryViewModel : ViewModelBase, IDisposable
     {
+        private static readonly HashSet<string> CombinableImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".bmp",
+            ".webp",
+            ".ico",
+            ".tif",
+            ".tiff"
+        };
+
         // Converter for view toggle button text
         public static IValueConverter ViewToggleConverter { get; } = new FuncValueConverter<bool, string>(
             isGrid => isGrid ? "📋 List View" : "🔲 Grid View");
@@ -82,6 +98,21 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private bool _isLoadingThumbnails = false;
 
+        [ObservableProperty]
+        private bool _isCombiningSelection = false;
+
+        public ObservableCollection<HistoryItem> SelectedHistoryItems { get; } = new();
+
+        public bool CanCombineSelectedImages => GetSelectedCombinableHistoryItems().Count >= 2;
+
+        public bool ShowCombineActions => CanCombineSelectedImages;
+
+        public int SelectedImageCount => GetSelectedCombinableHistoryItems().Count;
+
+        public string CombineSelectionSummary => SelectedImageCount == 1
+            ? "1 image selected"
+            : $"{SelectedImageCount} images selected";
+
 
 
         // Pagination Properties
@@ -110,10 +141,13 @@ namespace XerahS.UI.ViewModels
 
         private readonly HistoryManagerSQLite _historyManager;
         private CancellationTokenSource? _thumbnailCancellationTokenSource;
+        private readonly IDialogService _coreDialogService;
 
         public HistoryViewModel()
         {
+            _coreDialogService = PlatformServices.RootProvider?.GetService(typeof(IDialogService)) as IDialogService ?? new AvaloniaDialogServiceAdapter();
             HistoryItems = new ObservableCollection<HistoryItem>();
+            SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
             // Create history manager with centralized path
             var historyPath = SettingsManager.GetHistoryFilePath();
@@ -171,6 +205,7 @@ namespace XerahS.UI.ViewModels
                 var items = await _historyManager.GetHistoryItemsAsync(offset, PageSize);
 
                 // Clear and populate on UI thread
+                ClearSelectedHistoryItems();
                 HistoryItems.Clear();
                 foreach (var item in items)
                 {
@@ -296,6 +331,18 @@ namespace XerahS.UI.ViewModels
         }
 
         [RelayCommand]
+        private Task CombineHorizontalAsync()
+        {
+            return CombineSelectedImagesAsync(ImageCombinerOrientation.Horizontal);
+        }
+
+        [RelayCommand]
+        private Task CombineVerticalAsync()
+        {
+            return CombineSelectedImagesAsync(ImageCombinerOrientation.Vertical);
+        }
+
+        [RelayCommand]
         private async Task EditImage(HistoryItem? item)
         {
             if (item == null || string.IsNullOrEmpty(item.FilePath)) return;
@@ -374,15 +421,9 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                // Get clipboard from the main window
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(item.FilePath);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(item.FilePath);
                 }
             }
             catch (Exception ex)
@@ -398,15 +439,9 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                // Get clipboard from the main window
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(item.URL);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(item.URL);
                 }
             }
             catch (Exception ex)
@@ -423,19 +458,34 @@ namespace XerahS.UI.ViewModels
             var markdownImage = $"[img]{item.URL}[/img]";
             try
             {
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(markdownImage);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(markdownImage);
                 }
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to copy markdown image: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private void CopyImageToClipboard(HistoryItem? item)
+        {
+            if (item == null || string.IsNullOrEmpty(item.FilePath) || !File.Exists(item.FilePath)) return;
+
+            try
+            {
+                using var bitmap = SKBitmap.Decode(item.FilePath);
+                if (bitmap != null)
+                {
+                    PlatformServices.Clipboard.SetImage(bitmap);
+                    DebugHelper.WriteLine($"Copied image to clipboard: {item.FilePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Failed to copy image to clipboard from history");
             }
         }
 
@@ -446,15 +496,9 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                // Get clipboard from the main window
-                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                    && desktop.MainWindow != null)
+                if (PlatformServices.IsInitialized)
                 {
-                    var clipboard = desktop.MainWindow.Clipboard;
-                    if (clipboard != null)
-                    {
-                        await clipboard.SetTextAsync(item.Errors);
-                    }
+                    await PlatformServices.Clipboard.SetTextAsync(item.Errors);
                 }
             }
             catch (Exception ex)
@@ -495,105 +539,11 @@ namespace XerahS.UI.ViewModels
             DebugHelper.WriteLine($"Deleted history item: {item.FileName}");
         }
 
-        private async Task<bool> ShowDeleteConfirmationDialog(string fileName)
+        private Task<bool> ShowDeleteConfirmationDialog(string fileName)
         {
-            var result = false;
-
-            var confirmDialog = new Avalonia.Controls.Window
-            {
-                Title = "Confirm Delete",
-                Width = 400,
-                Height = 180,
-                WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-                CanResize = false
-            };
-
-            var panel = new Avalonia.Controls.StackPanel
-            {
-                Margin = new Avalonia.Thickness(20),
-                Spacing = 15,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-            };
-
-            var messageText = new Avalonia.Controls.TextBlock
-            {
-                Text = $"Are you sure you want to delete '{fileName}' from history?",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                MaxWidth = 360,
-                FontSize = 14
-            };
-
-            var warningText = new Avalonia.Controls.TextBlock
-            {
-                Text = "This action cannot be undone.",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                MaxWidth = 360,
-                FontSize = 12,
-                Foreground = Avalonia.Media.Brushes.Orange,
-                FontWeight = Avalonia.Media.FontWeight.SemiBold
-            };
-
-            var buttonPanel = new Avalonia.Controls.StackPanel
-            {
-                Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 10,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                Margin = new Avalonia.Thickness(0, 10, 0, 0)
-            };
-
-            var deleteButton = new Avalonia.Controls.Button
-            {
-                Content = "Delete",
-                Padding = new Avalonia.Thickness(24, 8),
-                Background = Avalonia.Media.Brushes.Red,
-                Foreground = Avalonia.Media.Brushes.White
-            };
-
-            var cancelButton = new Avalonia.Controls.Button
-            {
-                Content = "Cancel",
-                Padding = new Avalonia.Thickness(24, 8),
-                IsDefault = true
-            };
-
-            deleteButton.Click += (s, e) =>
-            {
-                result = true;
-                confirmDialog.Close();
-            };
-
-            cancelButton.Click += (s, e) =>
-            {
-                result = false;
-                confirmDialog.Close();
-            };
-
-            buttonPanel.Children.Add(cancelButton);
-            buttonPanel.Children.Add(deleteButton);
-
-            panel.Children.Add(messageText);
-            panel.Children.Add(warningText);
-            panel.Children.Add(buttonPanel);
-
-            confirmDialog.Content = panel;
-
-            // Get the main window as the owner
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                && desktop.MainWindow != null)
-            {
-                await confirmDialog.ShowDialog(desktop.MainWindow);
-            }
-            else
-            {
-                // Fallback: show as independent window
-                confirmDialog.Show();
-                // Wait for close via event
-                var closeTcs = new TaskCompletionSource<bool>();
-                confirmDialog.Closed += (s, e) => closeTcs.TrySetResult(true);
-                await closeTcs.Task;
-            }
-
-            return result;
+            return _coreDialogService.ShowConfirmationAsync(
+                "Confirm Delete",
+                $"Are you sure you want to delete '{fileName}' from history?\n\nThis action cannot be undone.");
         }
 
         private TaskSettings GetUploadTaskSettings()
@@ -624,6 +574,164 @@ namespace XerahS.UI.ViewModels
 
             var json = JsonConvert.SerializeObject(source, jsonSettings);
             return JsonConvert.DeserializeObject<TaskSettings>(json, jsonSettings) ?? new TaskSettings();
+        }
+
+        private async Task CombineSelectedImagesAsync(ImageCombinerOrientation orientation)
+        {
+            if (IsCombiningSelection)
+            {
+                return;
+            }
+
+            var selectedItems = GetSelectedCombinableHistoryItems();
+            if (selectedItems.Count < 2)
+            {
+                return;
+            }
+
+            IsCombiningSelection = true;
+
+            try
+            {
+                var combinedHistoryItem = await Task.Run(() => CreateCombinedHistoryItem(selectedItems, orientation));
+                if (combinedHistoryItem == null)
+                {
+                    return;
+                }
+
+                if (!_historyManager.AppendHistoryItem(combinedHistoryItem))
+                {
+                    DebugHelper.WriteLine($"HistoryViewModel - Failed to append combined history item: {combinedHistoryItem.FilePath}");
+                    return;
+                }
+
+                ClearSelectedHistoryItems();
+                CurrentPage = 1;
+                await LoadHistoryAsync();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "HistoryViewModel - CombineSelectedImages failed");
+            }
+            finally
+            {
+                IsCombiningSelection = false;
+            }
+        }
+
+        private static HistoryItem? CreateCombinedHistoryItem(IReadOnlyList<HistoryItem> selectedItems, ImageCombinerOrientation orientation)
+        {
+            var filePaths = selectedItems
+                .Select(item => item.FilePath)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToList();
+
+            if (filePaths.Count < 2)
+            {
+                return null;
+            }
+
+            var bitmaps = new List<SKBitmap>();
+
+            try
+            {
+                foreach (var filePath in filePaths)
+                {
+                    var bitmap = ImageHelpers.LoadBitmap(filePath);
+                    if (bitmap != null)
+                    {
+                        bitmaps.Add(bitmap);
+                    }
+                }
+
+                if (bitmaps.Count < 2)
+                {
+                    return null;
+                }
+
+                var combiner = new ImageCombiner();
+                using var combinedBitmap = combiner.Combine(bitmaps, orientation);
+                if (combinedBitmap == null)
+                {
+                    return null;
+                }
+
+                var outputFolder = TaskHelpers.GetScreenshotsFolder();
+                FileHelpers.CreateDirectory(outputFolder);
+
+                var outputPath = FileHelpers.GetUniqueFilePath(
+                    Path.Combine(outputFolder, $"Combined_{DateTime.Now:yyyyMMdd_HHmmss}.png"));
+
+                ImageHelpers.SaveBitmap(combinedBitmap, outputPath);
+
+                return new HistoryItem
+                {
+                    FilePath = outputPath,
+                    FileName = Path.GetFileName(outputPath),
+                    DateTime = DateTime.Now,
+                    Type = "Image"
+                };
+            }
+            finally
+            {
+                foreach (var bitmap in bitmaps)
+                {
+                    bitmap.Dispose();
+                }
+            }
+        }
+
+        public void SetSelectedHistoryItems(IEnumerable<HistoryItem> items)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+
+            var selectedSet = new HashSet<HistoryItem>(items);
+
+            SelectedHistoryItems.Clear();
+
+            foreach (var item in HistoryItems)
+            {
+                if (selectedSet.Contains(item))
+                {
+                    SelectedHistoryItems.Add(item);
+                }
+            }
+        }
+
+        public void ClearSelectedHistoryItems()
+        {
+            if (SelectedHistoryItems.Count == 0)
+            {
+                return;
+            }
+
+            SelectedHistoryItems.Clear();
+        }
+
+        private void NotifySelectionStateChanged()
+        {
+            OnPropertyChanged(nameof(CanCombineSelectedImages));
+            OnPropertyChanged(nameof(ShowCombineActions));
+            OnPropertyChanged(nameof(SelectedImageCount));
+            OnPropertyChanged(nameof(CombineSelectionSummary));
+        }
+
+        private List<HistoryItem> GetSelectedCombinableHistoryItems()
+        {
+            return SelectedHistoryItems
+                .Where(CanCombineHistoryItem)
+                .ToList();
+        }
+
+        private static bool CanCombineHistoryItem(HistoryItem? item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+            {
+                return false;
+            }
+
+            var extension = Path.GetExtension(item.FilePath);
+            return !string.IsNullOrWhiteSpace(extension) && CombinableImageExtensions.Contains(extension);
         }
 
         public void Dispose()

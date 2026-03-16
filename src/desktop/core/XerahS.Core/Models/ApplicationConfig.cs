@@ -68,6 +68,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool TrayIconProgressEnabled = true;
     public bool TaskbarProgressEnabled = true;
     public bool UseWhiteShareXIcon = false;
+    public bool? LinuxUseWaylandPortalServices = null;
     public bool RememberMainFormPosition = false;
     public System.Drawing.Point MainFormPosition = System.Drawing.Point.Empty;
     public bool RememberMainFormSize = false;
@@ -283,6 +284,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     [Category("Paths"), Description("Custom workflows config path.")]
     public string CustomWorkflowsConfigPath { get; set; } = "";
 
+    [Browsable(false)]
     [Category("Paths"), Description("Secondary custom screenshots path.")]
     public string CustomScreenshotsPath2 { get; set; } = "";
 

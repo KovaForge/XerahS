@@ -42,7 +42,6 @@ internal static class ToolNavigationRegistry
     private static readonly Dictionary<string, ToolNavigationRoute> TagRoutes = new(StringComparer.Ordinal)
     {
         ["Tools_ColorPicker"] = new(WorkflowType.ColorPicker, ToolNavigationDispatchMode.DirectToolService),
-        ["Tools_ScreenColorPicker"] = new(WorkflowType.ScreenColorPicker, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_QrGenerator"] = new(WorkflowType.QRCode, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_QrScanScreen"] = new(WorkflowType.QRCodeDecodeFromScreen, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_QrScanRegion"] = new(WorkflowType.QRCodeScanRegion, ToolNavigationDispatchMode.DirectToolService),

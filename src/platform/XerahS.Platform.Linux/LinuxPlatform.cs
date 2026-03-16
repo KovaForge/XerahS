@@ -31,7 +31,7 @@ namespace XerahS.Platform.Linux
 {
     public static class LinuxPlatform
     {
-        public static void Initialize(IScreenCaptureService? screenCaptureService = null, bool useModernCapture = true)
+        public static void Initialize(IScreenCaptureService? screenCaptureService = null, bool useWaylandPortalServices = true)
         {
             // Use LinuxScreenCaptureService if none provided
             if (screenCaptureService == null)
@@ -44,13 +44,21 @@ namespace XerahS.Platform.Linux
 
             bool isWayland = LinuxScreenCaptureService.IsWayland;
 
-            // When UseModernCapture is disabled, skip all XDG Portal services to avoid
+            // When Wayland portal services are disabled, skip portal-backed hotkeys/input/system
+            // and fall back to simpler desktop services.
+            // This setting is separate from Linux screenshot/recording preferences.
+            // It controls GlobalShortcuts/InputCapture/OpenURI integration only.
+            // On X11, this flag has no effect.
+            // On Wayland, disabling it may reduce integration but also avoids portal-specific issues.
+            // Keeping this separate avoids overloading the old UseModernCapture toggle.
+            //
+            // Note: Screen capture and recording continue to make their own backend decisions.
             // EIS connection errors and unnecessary D-Bus connections
-            bool usePortalServices = useModernCapture && isWayland;
-            if (!useModernCapture && isWayland)
+            bool usePortalServices = useWaylandPortalServices && isWayland;
+            if (!useWaylandPortalServices && isWayland)
             {
-                DebugHelper.WriteLine("Linux: UseModernCapture is disabled. Skipping XDG Portal services (input capture, hotkeys, system). " +
-                    "Using fallback services instead. Re-enable and restart to use portal services.");
+                DebugHelper.WriteLine("Linux: Wayland portal services are disabled. Skipping portal hotkeys/input/system integration. " +
+                    "Using fallback services instead. Re-enable and restart to use portal-backed integration.");
             }
 
             bool hasGlobalShortcuts = usePortalServices && PortalInterfaceChecker.HasInterface("org.freedesktop.portal.GlobalShortcuts");
@@ -80,6 +88,7 @@ namespace XerahS.Platform.Linux
                 fontService: new LinuxFontService(),
                 startupService: new LinuxStartupService(),
                 systemService: systemService,
+                shellIntegrationService: new LinuxShellIntegrationService(),
                 notificationService: new LinuxNotificationService(),
                 diagnosticService: new Services.LinuxDiagnosticService(),
                 watchFolderDaemonService: new LinuxWatchFolderDaemonService()

@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Collections.Generic;
+using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Contracts;
 
 namespace XerahS.Platform.Linux.Capture.Orchestration;
@@ -43,11 +44,76 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.X11
     };
 
+    private static readonly LinuxCaptureStage[] X11RegionOrder =
+    {
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.X11,
+        LinuxCaptureStage.Portal
+    };
+
+    private static readonly LinuxCaptureStage[] X11PortalPreferredRegionOrder =
+    {
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.X11
+    };
+
+    private static readonly LinuxCaptureStage[] PortalFirstRegionOrder =
+    {
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.WaylandProtocol,
+        LinuxCaptureStage.X11
+    };
+
+    private static readonly LinuxCaptureStage[] PortalOnlyRegionOrder =
+    {
+        LinuxCaptureStage.Portal
+    };
+
+    private static readonly LinuxCaptureStage[] DesktopNativeOnlyRegionOrder =
+    {
+        LinuxCaptureStage.DesktopDbus
+    };
+
+    private static readonly LinuxCaptureStage[] SlurpOnlyRegionOrder =
+    {
+        LinuxCaptureStage.WaylandProtocol
+    };
+
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
         if (context.IsSandboxed)
         {
             return SandboxedOrder;
+        }
+
+        if (!context.IsWayland && request.Kind == LinuxCaptureKind.Region)
+        {
+            switch (request.SelectorPreference)
+            {
+                case LinuxInteractiveRegionSelectorPreference.PortalDialog:
+                    return PortalOnlyRegionOrder;
+                case LinuxInteractiveRegionSelectorPreference.DesktopNative:
+                    return DesktopNativeOnlyRegionOrder;
+            }
+
+            if (context.PrefersPortalForRegionCaptureOnX11)
+            {
+                return X11PortalPreferredRegionOrder;
+            }
+
+            return X11RegionOrder;
+        }
+
+        if (context.IsWayland && request.Kind == LinuxCaptureKind.Region)
+        {
+            return request.SelectorPreference switch
+            {
+                LinuxInteractiveRegionSelectorPreference.Slurp => SlurpOnlyRegionOrder,
+                LinuxInteractiveRegionSelectorPreference.PortalDialog => PortalOnlyRegionOrder,
+                _ => DefaultOrder
+            };
         }
 
         return DefaultOrder;

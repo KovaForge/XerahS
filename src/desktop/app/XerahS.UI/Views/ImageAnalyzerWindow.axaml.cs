@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class ImageAnalyzerWindow : Window
+public partial class ImageAnalyzerWindow : SurfaceWindow
 {
     private ImageAnalyzerViewModel? _viewModel;
 

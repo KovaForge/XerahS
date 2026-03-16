@@ -5,7 +5,6 @@
              xmlns:views="using:XerahS.UI.Views"
              xmlns:converters="clr-namespace:ShareX.ImageEditor.Presentation.Converters;assembly=ShareX.ImageEditor"
              xmlns:uiconverters="clr-namespace:XerahS.UI.Converters"
-             xmlns:sty="using:FluentAvalonia.Styling"
              xmlns:core="using:XerahS.Core"
              xmlns:common="clr-namespace:XerahS.Common;assembly=XerahS.Common"
              x:Class="XerahS.UI.App"
@@ -14,13 +13,54 @@
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Resources>
-        <converters:ActiveToolToBackgroundConverter x:Key="ActiveToolToBackground"/>
-        <converters:SelectedColorToBorderConverter x:Key="SelectedColorToBorder"/>
-        <converters:SelectedWidthToBackgroundConverter x:Key="SelectedWidthToBackground"/>
-        <converters:BoolToActiveBackgroundConverter x:Key="BoolToActiveBackgroundConverter"/>
-        <converters:EqualsConverter x:Key="EqualsConverter"/>
-        <uiconverters:BoolToRecordingColorConverter x:Key="BoolToRecordingColorConverter"/>
-        <uiconverters:ColorToNameConverter x:Key="ColorToNameConverter"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ShareX.ImageEditor/Presentation/Theming/ShareXTheme.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:ActiveToolToBackgroundConverter x:Key="ActiveToolToBackground"/>
+            <converters:SelectedColorToBorderConverter x:Key="SelectedColorToBorder"/>
+            <converters:SelectedWidthToBackgroundConverter x:Key="SelectedWidthToBackground"/>
+            <converters:BoolToActiveBackgroundConverter x:Key="BoolToActiveBackgroundConverter"/>
+            <converters:EqualsConverter x:Key="EqualsConverter"/>
+            <uiconverters:BoolToRecordingColorConverter x:Key="BoolToRecordingColorConverter"/>
+            <uiconverters:ColorToNameConverter x:Key="ColorToNameConverter"/>
+            <!-- Shared context menu used by both History and Toast.
+                 Hosts store IHistoryItemMenuContext in Tag so this single flyout can bind consistently. -->
+            <MenuFlyout x:Key="HistoryItemMenuFlyout"
+                        Opened="OnHistoryItemMenuFlyoutOpened">
+                <MenuItem Header="Edit..."
+                          Command="{Binding EditImageCommand}"
+                          InputGesture="Enter"/>
+                <MenuItem Header="Open File"
+                          Command="{Binding OpenFileCommand}"/>
+                <MenuItem Header="Upload"
+                          Command="{Binding UploadItemCommand}"/>
+                <MenuItem Header="Show in Explorer"
+                          Command="{Binding OpenFolderCommand}"/>
+                <Separator/>
+                <MenuItem Header="Copy Path"
+                          Command="{Binding CopyFilePathCommand}"/>
+                <MenuItem Header="Copy URL"
+                          Command="{Binding CopyURLCommand}"
+                          IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <MenuItem Header="Copy markdown image"
+                          Command="{Binding CopyMarkdownImageCommand}"
+                          IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <MenuItem Header="Copy image to clipboard"
+                          Command="{Binding CopyImageToClipboardCommand}"/>
+                <MenuItem Header="Copy Errors"
+                          Command="{Binding CopyErrorsCommand}"
+                          IsVisible="{Binding Item.HasErrors}"/>
+                <MenuItem Header="Open URL"
+                          Command="{Binding OpenURLCommand}"
+                          IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <Separator/>
+                <MenuItem Header="Delete"
+                          Command="{Binding DeleteItemCommand}"
+                          InputGesture="Delete"/>
+            </MenuFlyout>
+        </ResourceDictionary>
     </Application.Resources>
 
 
@@ -45,20 +85,10 @@
     <Application.Styles>
         <!-- TODO: Re-enable dark theme when ready -->
         <!-- <StyleInclude Source="avares://ShareX.Avalonia.UI/Themes/Dark/DarkTheme.axaml" /> -->
-        <sty:FluentAvaloniaTheme />
+        <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
-        <Style Selector="Button.DarkButton">
-            <Setter Property="Background" Value="#25263A"/>
-            <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="#3B3B52"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-        </Style>
-        <Style Selector="Button.DarkButton.active">
-            <Setter Property="Background" Value="#8B5CF6"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#8B5CF6"/>
-        </Style>
+        <StyleInclude Source="avares://XerahS.UI/Themes/Typography.axaml" />
+        <StyleInclude Source="avares://XerahS.UI/Themes/ThemeResources.axaml" />
     </Application.Styles>
 
     <TrayIcon.Icons>

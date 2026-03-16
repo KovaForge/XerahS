@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using System.ComponentModel;
+
 namespace XerahS.RegionCapture.ScreenRecording;
 
 /// <summary>
@@ -118,4 +120,19 @@ public enum RecordingBackend
     Default,
     GDI,
     Modern
+}
+
+/// <summary>
+/// Linux-specific screen recording backend preference.
+/// </summary>
+public enum LinuxRecordingBackendPreference
+{
+    [Description("Automatic (recommended)")]
+    Automatic = 0,
+
+    [Description("Native / portal-backed")]
+    Native = 1,
+
+    [Description("FFmpeg fallback")]
+    FFmpeg = 2
 }

@@ -31,6 +31,9 @@ namespace XerahS.Platform.Abstractions
     public class CaptureOptions
     {
         public bool UseModernCapture { get; set; } = true;
+        public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
+            LinuxInteractiveRegionSelectorPreference.Automatic;
+        public bool LinuxForceLegacyCapturePath { get; set; } = false;
         public bool ShowCursor { get; set; } = true;
         /// <summary>
         /// For window captures: capture transparent regions of the window.

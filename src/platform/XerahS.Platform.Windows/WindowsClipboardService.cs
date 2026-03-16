@@ -32,17 +32,22 @@ using XerahS.Platform.Abstractions;
 namespace XerahS.Platform.Windows;
 
 /// <summary>
-/// Windows implementation of IClipboardService using Win32 clipboard API only (no Windows Forms).
-/// Used for CLI/headless; the desktop Avalonia app replaces this with AvaloniaClipboardService.
+/// Windows implementation of IClipboardService using Win32 clipboard APIs only.
+/// Publishes native image formats explicitly so modern Windows clipboard consumers do not
+/// depend on shell or framework format synthesis.
 /// </summary>
 public class WindowsClipboardService : IClipboardService
 {
+    private const int ClipboardOpenRetryCount = 10;
+    private const int ClipboardOpenRetryDelayMs = 25;
+
     private static class Native
     {
         public const uint GMEM_MOVEABLE = 0x0002;
         public const uint CF_TEXT = 1;
         public const uint CF_BITMAP = 2;
         public const uint CF_DIB = 8;
+        public const uint CF_DIBV5 = WindowsClipboardImageHelper.CfDibV5;
         public const uint CF_UNICODETEXT = 13;
         public const uint CF_HDROP = 15;
 
@@ -106,7 +111,7 @@ public class WindowsClipboardService : IClipboardService
         {
             RunInStaThread(() =>
             {
-                if (Native.OpenClipboard(IntPtr.Zero))
+                if (OpenClipboardWithRetry())
                 {
                     try { Native.EmptyClipboard(); }
                     finally { Native.CloseClipboard(); }
@@ -134,6 +139,7 @@ public class WindowsClipboardService : IClipboardService
         {
             return RunInStaThread(() =>
                 Native.IsClipboardFormatAvailable(CfPng) ||
+                Native.IsClipboardFormatAvailable(Native.CF_DIBV5) ||
                 Native.IsClipboardFormatAvailable(Native.CF_DIB));
         }
         catch { return false; }
@@ -154,7 +160,7 @@ public class WindowsClipboardService : IClipboardService
         {
             return RunInStaThread(() =>
             {
-                if (!Native.OpenClipboard(IntPtr.Zero)) return null;
+                if (!OpenClipboardWithRetry()) return null;
                 try
                 {
                     var h = Native.GetClipboardData(Native.CF_UNICODETEXT);
@@ -182,14 +188,9 @@ public class WindowsClipboardService : IClipboardService
         {
             RunInStaThread(() =>
             {
-                var bytes = Encoding.Unicode.GetBytes(text + "\0");
-                var hMem = Native.GlobalAlloc(Native.GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+                IntPtr hMem = AllocateGlobalBytes(Encoding.Unicode.GetBytes(text + "\0"));
                 if (hMem == IntPtr.Zero) return;
-                var ptr = Native.GlobalLock(hMem);
-                if (ptr == IntPtr.Zero) { Native.GlobalFree(hMem); return; }
-                try { Marshal.Copy(bytes, 0, ptr, bytes.Length); }
-                finally { Native.GlobalUnlock(hMem); }
-                if (!Native.OpenClipboard(IntPtr.Zero)) { Native.GlobalFree(hMem); return; }
+                if (!OpenClipboardWithRetry()) { Native.GlobalFree(hMem); return; }
                 try
                 {
                     Native.EmptyClipboard();
@@ -210,39 +211,12 @@ public class WindowsClipboardService : IClipboardService
         {
             return RunInStaThread(() =>
             {
-                if (!Native.OpenClipboard(IntPtr.Zero)) return null;
+                if (!OpenClipboardWithRetry()) return null;
                 try
                 {
-                    // Prefer PNG (preserves alpha)
-                    var hPng = Native.GetClipboardData(CfPng);
-                    if (hPng != IntPtr.Zero)
-                    {
-                        var ptr = Native.GlobalLock(hPng);
-                        if (ptr != IntPtr.Zero)
-                        {
-                            try
-                            {
-                                var size = (int)(ulong)Native.GlobalSize(hPng);
-                                var bytes = new byte[size];
-                                Marshal.Copy(ptr, bytes, 0, size);
-                                return SKBitmap.Decode(bytes);
-                            }
-                            finally { Native.GlobalUnlock(hPng); }
-                        }
-                    }
-                    // Fallback: CF_DIB
-                    var hDib = Native.GetClipboardData(Native.CF_DIB);
-                    if (hDib == IntPtr.Zero) return null;
-                    var dibPtr = Native.GlobalLock(hDib);
-                    if (dibPtr == IntPtr.Zero) return null;
-                    try
-                    {
-                        var dibSize = (int)(ulong)Native.GlobalSize(hDib);
-                        var dibBytes = new byte[dibSize];
-                        Marshal.Copy(dibPtr, dibBytes, 0, dibSize);
-                        return DecodeDib(dibBytes);
-                    }
-                    finally { Native.GlobalUnlock(hDib); }
+                    return TryReadClipboardImage(CfPng, WindowsClipboardImageHelper.DecodePng) ??
+                        TryReadClipboardImage(Native.CF_DIBV5, WindowsClipboardImageHelper.DecodeDibV5) ??
+                        TryReadClipboardImage(Native.CF_DIB, WindowsClipboardImageHelper.DecodeDib);
                 }
                 finally { Native.CloseClipboard(); }
             });
@@ -253,24 +227,40 @@ public class WindowsClipboardService : IClipboardService
     public void SetImage(SKBitmap image)
     {
         if (image == null) return;
+
         try
         {
+            byte[] pngBytes = WindowsClipboardImageHelper.EncodePng(image);
+            byte[] dibV5Bytes = WindowsClipboardImageHelper.BuildDibV5(image);
+            byte[] dibBytes = WindowsClipboardImageHelper.BuildOpaqueDib(image, SKColors.White);
+
             RunInStaThread(() =>
             {
-                using var stream = new MemoryStream();
-                image.Encode(stream, SKEncodedImageFormat.Png, 100);
-                var bytes = stream.ToArray();
-                var hMem = Native.GlobalAlloc(Native.GMEM_MOVEABLE, (UIntPtr)bytes.Length);
-                if (hMem == IntPtr.Zero) return;
-                var ptr = Native.GlobalLock(hMem);
-                if (ptr == IntPtr.Zero) { Native.GlobalFree(hMem); return; }
-                try { Marshal.Copy(bytes, 0, ptr, bytes.Length); }
-                finally { Native.GlobalUnlock(hMem); }
-                if (!Native.OpenClipboard(IntPtr.Zero)) { Native.GlobalFree(hMem); return; }
+                if (!OpenClipboardWithRetry()) return;
                 try
                 {
                     Native.EmptyClipboard();
-                    Native.SetClipboardData(CfPng, hMem);
+                    int formatsWritten = 0;
+
+                    if (TrySetClipboardBytes(CfPng, pngBytes))
+                    {
+                        formatsWritten++;
+                    }
+
+                    if (TrySetClipboardBytes(Native.CF_DIBV5, dibV5Bytes))
+                    {
+                        formatsWritten++;
+                    }
+
+                    if (TrySetClipboardBytes(Native.CF_DIB, dibBytes))
+                    {
+                        formatsWritten++;
+                    }
+
+                    if (formatsWritten == 0)
+                    {
+                        throw new InvalidOperationException("Failed to publish any clipboard image formats.");
+                    }
                 }
                 finally { Native.CloseClipboard(); }
             });
@@ -287,7 +277,7 @@ public class WindowsClipboardService : IClipboardService
         {
             return RunInStaThread(() =>
             {
-                if (!Native.OpenClipboard(IntPtr.Zero)) return null;
+                if (!OpenClipboardWithRetry()) return null;
                 try
                 {
                     var h = Native.GetClipboardData(Native.CF_HDROP);
@@ -336,13 +326,9 @@ public class WindowsClipboardService : IClipboardService
                 var pathBytes = Encoding.Unicode.GetBytes(string.Join("\0", files.Where(f => !string.IsNullOrEmpty(f))) + "\0\0");
                 ms.Write(pathBytes, 0, pathBytes.Length);
                 var bytes = ms.ToArray();
-                var hMem = Native.GlobalAlloc(Native.GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+                IntPtr hMem = AllocateGlobalBytes(bytes);
                 if (hMem == IntPtr.Zero) return;
-                var ptr = Native.GlobalLock(hMem);
-                if (ptr == IntPtr.Zero) { Native.GlobalFree(hMem); return; }
-                try { Marshal.Copy(bytes, 0, ptr, bytes.Length); }
-                finally { Native.GlobalUnlock(hMem); }
-                if (!Native.OpenClipboard(IntPtr.Zero)) { Native.GlobalFree(hMem); return; }
+                if (!OpenClipboardWithRetry()) { Native.GlobalFree(hMem); return; }
                 try
                 {
                     Native.EmptyClipboard();
@@ -365,7 +351,7 @@ public class WindowsClipboardService : IClipboardService
             {
                 uint fmt = uint.TryParse(format, out var n) ? n : Native.RegisterClipboardFormat(format);
                 if (!Native.IsClipboardFormatAvailable(fmt)) return null;
-                if (!Native.OpenClipboard(IntPtr.Zero)) return null;
+                if (!OpenClipboardWithRetry()) return null;
                 try
                 {
                     var h = Native.GetClipboardData(fmt);
@@ -401,13 +387,9 @@ public class WindowsClipboardService : IClipboardService
                     : data is byte[] b ? b : null;
                 if (bytes == null || bytes.Length == 0) return;
                 var fmt = uint.TryParse(format, out var n) ? n : Native.RegisterClipboardFormat(format);
-                var hMem = Native.GlobalAlloc(Native.GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+                IntPtr hMem = AllocateGlobalBytes(bytes);
                 if (hMem == IntPtr.Zero) return;
-                var ptr = Native.GlobalLock(hMem);
-                if (ptr == IntPtr.Zero) { Native.GlobalFree(hMem); return; }
-                try { Marshal.Copy(bytes, 0, ptr, bytes.Length); }
-                finally { Native.GlobalUnlock(hMem); }
-                if (!Native.OpenClipboard(IntPtr.Zero)) { Native.GlobalFree(hMem); return; }
+                if (!OpenClipboardWithRetry()) { Native.GlobalFree(hMem); return; }
                 try
                 {
                     Native.EmptyClipboard();
@@ -435,6 +417,117 @@ public class WindowsClipboardService : IClipboardService
 
     public Task<string?> GetTextAsync() => Task.FromResult(GetText());
     public Task SetTextAsync(string text) => Task.Run(() => SetText(text));
+
+    private static bool OpenClipboardWithRetry()
+    {
+        for (int attempt = 0; attempt < ClipboardOpenRetryCount; attempt++)
+        {
+            if (Native.OpenClipboard(IntPtr.Zero))
+            {
+                return true;
+            }
+
+            Thread.Sleep(ClipboardOpenRetryDelayMs);
+        }
+
+        return false;
+    }
+
+    private static IntPtr AllocateGlobalBytes(byte[] bytes)
+    {
+        if (bytes == null || bytes.Length == 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        IntPtr hMem = Native.GlobalAlloc(Native.GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+        if (hMem == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        IntPtr ptr = Native.GlobalLock(hMem);
+        if (ptr == IntPtr.Zero)
+        {
+            Native.GlobalFree(hMem);
+            return IntPtr.Zero;
+        }
+
+        try
+        {
+            Marshal.Copy(bytes, 0, ptr, bytes.Length);
+            return hMem;
+        }
+        finally
+        {
+            Native.GlobalUnlock(hMem);
+        }
+    }
+
+    private static byte[]? ReadGlobalBytes(IntPtr handle)
+    {
+        if (handle == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        IntPtr ptr = Native.GlobalLock(handle);
+        if (ptr == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        try
+        {
+            int size = checked((int)(ulong)Native.GlobalSize(handle));
+            if (size <= 0)
+            {
+                return null;
+            }
+
+            byte[] bytes = new byte[size];
+            Marshal.Copy(ptr, bytes, 0, size);
+            return bytes;
+        }
+        finally
+        {
+            Native.GlobalUnlock(handle);
+        }
+    }
+
+    private static SKBitmap? TryReadClipboardImage(uint format, Func<byte[], SKBitmap?> decoder)
+    {
+        if (decoder == null)
+        {
+            return null;
+        }
+
+        IntPtr handle = Native.GetClipboardData(format);
+        if (handle == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        byte[]? bytes = ReadGlobalBytes(handle);
+        return bytes == null ? null : decoder(bytes);
+    }
+
+    private static bool TrySetClipboardBytes(uint format, byte[] bytes)
+    {
+        IntPtr hMem = AllocateGlobalBytes(bytes);
+        if (hMem == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        if (Native.SetClipboardData(format, hMem) != IntPtr.Zero)
+        {
+            return true;
+        }
+
+        Native.GlobalFree(hMem);
+        return false;
+    }
 
     private static void RunInStaThread(Action action)
     {
@@ -465,37 +558,5 @@ public class WindowsClipboardService : IClipboardService
         t.Join();
         if (captured != null) throw captured;
         return result;
-    }
-
-    private static SKBitmap? DecodeDib(byte[] dib)
-    {
-        if (dib == null || dib.Length < 40) return null;
-        try
-        {
-            int headerSize = BitConverter.ToInt32(dib, 0);
-            int width = BitConverter.ToInt32(dib, 4);
-            int height = BitConverter.ToInt32(dib, 8);
-            short bitCount = BitConverter.ToInt16(dib, 14);
-            if (width <= 0 || Math.Abs(height) <= 0 || bitCount != 32) return null;
-            int rowBytes = (width * 4 + 3) & ~3;
-            int rows = Math.Abs(height);
-            int pixelDataSize = rowBytes * rows;
-            int pixelsOffset = headerSize + (bitCount <= 8 ? (1 << bitCount) * 4 : 0);
-            if (pixelsOffset + (long)pixelDataSize > dib.Length) return null;
-            // Build a BMP file (DIB + 14-byte file header) for SKBitmap.Decode
-            int fileSize = 14 + dib.Length;
-            int offsetToPixels = 14 + pixelsOffset;
-            using var ms = new MemoryStream(14 + dib.Length);
-            var w = new BinaryWriter(ms);
-            w.Write((byte)'B'); w.Write((byte)'M');
-            w.Write(fileSize);
-            w.Write(0);
-            w.Write(offsetToPixels);
-            w.Write(dib, 0, dib.Length);
-            w.Flush();
-            ms.Position = 0;
-            return SKBitmap.Decode(ms);
-        }
-        catch { return null; }
     }
 }

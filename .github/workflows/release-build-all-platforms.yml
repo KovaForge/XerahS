@@ -270,3 +270,55 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  package-chocolatey:
+    if: github.ref_type == 'tag'
+    needs:
+      - validate-version
+      - release
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Ensure Chocolatey CLI
+        shell: pwsh
+        run: |
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            throw "Chocolatey CLI (choco) is required on the runner."
+          }
+
+          choco --version
+
+      - name: Sync and pack Chocolatey package
+        shell: pwsh
+        run: |
+          .\build\windows\chocolatey\Sync-ChocolateyPackage.ps1 `
+            -Version "${{ needs.validate-version.outputs.version }}" `
+            -Pack `
+            -OutputDirectory "dist\chocolatey"
+
+      - name: Smoke test Chocolatey package
+        shell: pwsh
+        run: |
+          .\build\windows\chocolatey\Test-ChocolateyPackage.ps1 `
+            -Version "${{ needs.validate-version.outputs.version }}" `
+            -SourceDirectory "dist\chocolatey"
+
+      - name: Upload Chocolatey artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chocolatey-package-${{ needs.validate-version.outputs.version }}
+          if-no-files-found: error
+          path: dist/chocolatey/xerahs.${{ needs.validate-version.outputs.version }}.nupkg
+
+      - name: Upload Chocolatey package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.validate-version.outputs.version }}
+          files: dist/chocolatey/xerahs.${{ needs.validate-version.outputs.version }}.nupkg
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

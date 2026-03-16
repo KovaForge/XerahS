@@ -46,6 +46,8 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private readonly Connection? _connection;
     private readonly IGlobalShortcuts? _portal;
     private readonly SemaphoreSlim _bindSemaphore = new(1, 1);
+    private readonly ManualResetEventSlim _rebindIdle = new(initialState: true);
+    private readonly Func<Task>? _testRebindAction;
     private readonly object _hotkeyLock = new();
     private readonly Dictionary<ushort, HotkeyInfo> _registered = new();
     private Dictionary<string, HotkeyInfo> _shortcutMap = new();
@@ -62,6 +64,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private bool _disposed;
     private CancellationTokenSource? _rebindDebounceCts;
     private string[] _lastBoundIds = Array.Empty<string>();
+    private int _activeRebindOperations;
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
     public bool IsSuspended
@@ -77,16 +80,35 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         }
     }
 
-    public WaylandPortalHotkeyService()
+    public WaylandPortalHotkeyService() : this(testRebindAction: null, skipPortalInitialization: false)
     {
+    }
+
+    internal WaylandPortalHotkeyService(Func<Task>? testRebindAction, bool skipPortalInitialization)
+    {
+        _testRebindAction = testRebindAction;
+        if (skipPortalInitialization)
+        {
+            return;
+        }
+
         try
         {
-            _connection = new Connection(Address.Session);
-            _connection.ConnectAsync().GetAwaiter().GetResult();
-            _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
-            _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
-            _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
-            _shortcutsChangedSubscription = _portal.WatchShortcutsChangedAsync(OnShortcutsChanged, OnPortalWatchError).GetAwaiter().GetResult();
+            var previousContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+                _connection = new Connection(Address.Session);
+                _connection.ConnectAsync().GetAwaiter().GetResult();
+                _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
+                _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
+                _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
+                _shortcutsChangedSubscription = _portal.WatchShortcutsChangedAsync(OnShortcutsChanged, OnPortalWatchError).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
+            }
         }
         catch (Exception ex)
         {
@@ -243,8 +265,10 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
         }
 
+        _disposed = true;
         var debounceCts = Interlocked.Exchange(ref _rebindDebounceCts, null);
         debounceCts?.Cancel();
+        WaitForRebindOperationsToDrain();
         debounceCts?.Dispose();
 
         _activatedSubscription?.Dispose();
@@ -259,12 +283,17 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             _fallbackHotkeyService = null;
         }
         _bindSemaphore.Dispose();
-        _disposed = true;
+        _rebindIdle.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private void ScheduleRebind()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var cts = new CancellationTokenSource();
         var old = Interlocked.Exchange(ref _rebindDebounceCts, cts);
         // Cancel only — do not dispose here. The old task's lambda may not have started yet
@@ -273,6 +302,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         // The old CTS is either disposed by its own lambda's finally block (if it ran first
         // and its CompareExchange still matched) or collected by GC otherwise.
         old?.Cancel();
+        MarkRebindOperationStarted();
 
         _ = Task.Run(async () =>
         {
@@ -283,6 +313,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
                 await RebindShortcutsAsync().ConfigureAwait(false);
             }
             catch (OperationCanceledException) { }
+            catch (ObjectDisposedException) when (_disposed) { }
             catch (PortalBindFailedException ex) when (ex.ResponseCode == 2)
             {
                 DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind failed with non-recoverable response (2); enabling X11 fallback");
@@ -299,12 +330,25 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
                 {
                     cts.Dispose();
                 }
+
+                MarkRebindOperationCompleted();
             }
         });
     }
 
     private async Task RebindShortcutsAsync()
     {
+        if (_testRebindAction != null)
+        {
+            await _testRebindAction().ConfigureAwait(false);
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
         if (_portal == null)
         {
             throw new InvalidOperationException("Global shortcuts portal is not available.");
@@ -313,6 +357,11 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         await _bindSemaphore.WaitAsync().ConfigureAwait(false);
         try
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             var (bindings, map) = BuildShortcutBindings();
             
             // Fix 4: Session Persistence. Do not recreate session if the set of shortcut IDs hasn't changed.
@@ -639,6 +688,38 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         }
 
         return string.Concat(parts);
+    }
+
+    private void WaitForRebindOperationsToDrain()
+    {
+        if (Volatile.Read(ref _activeRebindOperations) == 0)
+        {
+            return;
+        }
+
+        if (!_rebindIdle.Wait(TimeSpan.FromSeconds(5)))
+        {
+            DebugHelper.WriteLine("WaylandPortalHotkeyService: Timed out waiting for rebind tasks to drain during dispose.");
+        }
+    }
+
+    private void MarkRebindOperationStarted()
+    {
+        _rebindIdle.Reset();
+        Interlocked.Increment(ref _activeRebindOperations);
+    }
+
+    private void MarkRebindOperationCompleted()
+    {
+        if (Interlocked.Decrement(ref _activeRebindOperations) == 0)
+        {
+            _rebindIdle.Set();
+        }
+    }
+
+    internal void ScheduleRebindForTesting()
+    {
+        ScheduleRebind();
     }
 
     private static string MapKeyName(Key key)

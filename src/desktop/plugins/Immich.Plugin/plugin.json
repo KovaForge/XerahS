@@ -1,0 +1,15 @@
+{
+  "pluginId": "immich",
+  "name": "Immich",
+  "version": "1.0.0",
+  "author": "ShareX Team",
+  "description": "Upload media to Immich with native albums, duplicate checks, and shared links",
+  "apiVersion": "1.0",
+  "entryPoint": "ShareX.Immich.Plugin.ImmichProvider",
+  "assemblyFileName": "XerahS.Immich.Plugin.dll",
+  "supportedCategories": ["Image", "File"],
+  "supportsExplorer": true,
+  "configViewId": "immich",
+  "dependencies": [],
+  "homepageUrl": "https://immich.app/"
+}

@@ -25,6 +25,8 @@
 
 using Avalonia.Input;
 using NUnit.Framework;
+using System.Threading;
+using System.Threading.Tasks;
 using XerahS.Platform.Linux.Services;
 
 namespace XerahS.Tests.Platform.Linux;
@@ -61,6 +63,47 @@ public class LinuxHotkeyServiceTests
         var names = LinuxHotkeyService.GetCandidateKeysymNames(Key.A);
 
         Assert.That(names, Is.EqualTo(new[] { "A" }));
+    }
+
+    [Test]
+    public async Task WaylandPortalHotkeyService_DisposeWaitsForInFlightRebind()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new WaylandPortalHotkeyService(async () =>
+        {
+            started.TrySetResult();
+            await release.Task.ConfigureAwait(false);
+        }, skipPortalInitialization: true);
+
+        service.ScheduleRebindForTesting();
+        await started.Task.ConfigureAwait(false);
+
+        var disposeTask = Task.Run(service.Dispose);
+        await Task.Delay(150).ConfigureAwait(false);
+
+        Assert.That(disposeTask.IsCompleted, Is.False);
+
+        release.TrySetResult();
+        await disposeTask.ConfigureAwait(false);
+    }
+
+    [Test]
+    public async Task WaylandPortalHotkeyService_DisposeCancelsPendingDebounce()
+    {
+        int rebindCalls = 0;
+        var service = new WaylandPortalHotkeyService(() =>
+        {
+            Interlocked.Increment(ref rebindCalls);
+            return Task.CompletedTask;
+        }, skipPortalInitialization: true);
+
+        service.ScheduleRebindForTesting();
+        service.Dispose();
+
+        await Task.Delay(250).ConfigureAwait(false);
+
+        Assert.That(rebindCalls, Is.EqualTo(0));
     }
 }
 

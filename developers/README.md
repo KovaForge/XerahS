@@ -9,7 +9,7 @@
 ## Getting Started for Developers
 
 ### Cloning with Submodules
-XerahS depends on [ShareX/ImageEditor](https://github.com/ShareX/ImageEditor), which is included as the `ShareX.ImageEditor` Git submodule. To clone the repository with all dependencies:
+XerahS depends on the [ShareX.ImageEditor](https://github.com/ShareX/ShareX.ImageEditor) and [ShareX.VideoEditor](https://github.com/ShareX/ShareX.VideoEditor) Git submodules. To clone the repository with all dependencies:
 
 ```bash
 git clone --recursive https://github.com/ShareX/XerahS.git
@@ -30,9 +30,9 @@ dotnet build
 ```
 
 ### Updating Submodules
-To pull the latest changes for the `ShareX.ImageEditor` submodule:
+To pull the latest changes for the tracked submodules:
 ```bash
-git submodule update --remote --merge ShareX.ImageEditor
+git submodule update --remote --merge ShareX.ImageEditor ShareX.VideoEditor
 ```
 
 ## Target Framework Reference
@@ -79,9 +79,10 @@ All projects standardize on Windows SDK **10.0.26100.0** (Windows 11 24H2). Plug
 | XerahS.PluginExporter | `net10.0` | Plugin packager |
 | XerahS.Audits.Tool | `net10.0` | Dev tool |
 | XerahS.Tests | `net10.0-windows10.0.26100.0` | NUnit tests |
-| **Submodule (ShareX.ImageEditor)** | | |
-| ShareX.ImageEditor | `net9.0` / `net9.0-windows10.0.26100.0` / `net10.0` / `net10.0-windows10.0.26100.0` | Multi-target for ShareX compat; only net10.0 variants build from XerahS |
-| ShareX.ImageEditor.Loader | `net10.0-windows10.0.26100.0` | Standalone demo app |
+| **Submodules** | | |
+| ShareX.ImageEditor | `net9.0` / `net10.0` | Image editor library used by UI/Core/RegionCapture |
+| ShareX.ImageEditor.Loader | `net10.0` | Standalone demo app |
+| ShareX.VideoEditor | `net10.0` | Video editor library consumed by XerahS.UI |
 
 ## Architecture Overview
 
@@ -107,31 +108,42 @@ This project follows the **MVVM (Model-View-ViewModel)** pattern using the `Comm
 ### Services & Dependency Injection
 Services are initialized in `Program.cs` and `App.axaml.cs`. We use a Service Locator pattern via `PlatformServices` static class for easy access in ViewModels (though Constructor Injection is preferred where possible).
 
-### UI Theme & FluentAvalonia
+### UI Theme & Fluent
 
-This project uses **FluentAvaloniaUI** (v2.4.1) which provides a modern Fluent Design System for Avalonia applications.
+This project now uses the **official Avalonia `FluentTheme`** instead of `FluentAvaloniaTheme`. The migration is tracked in `docs/proposals/xip/XIP0050-replace-fluentavaloniaui-with-official-avalonia-primitives.md` and removes the third‑party FluentAvaloniaUI dependency in favour of first‑party Avalonia controls and local styles.
 
 #### ⚠️ Important: ContextMenu vs ContextFlyout
 
-**Issue**: Standard `ContextMenu` controls may not render correctly with FluentAvaloniaTheme. They use legacy Popup windows which are not fully styled by the theme.
+**Current behavior**: With the official `FluentTheme`, standard `ContextMenu` controls render correctly and are safe to use for ordinary right‑click menus.
 
-**Solution**: Use `ContextFlyout` with `MenuFlyout` instead:
+**Guideline**:
+
+- **Use `ContextMenu`** for plain context menus that just show a list of actions.
+- **Use `ContextFlyout` + `MenuFlyout`** when you specifically need flyout behavior (e.g., button‑attached flyouts, shared flyout instances, or richer popup layouts).
 
 ```xml
-<!-- ❌ DON'T: Standard ContextMenu (may be invisible) -->
+<!-- ✅ Plain context menu -->
 <Border.ContextMenu>
     <ContextMenu>
         <MenuItem Header="Action" Command="{Binding MyCommand}"/>
     </ContextMenu>
 </Border.ContextMenu>
 
-<!-- ✅ DO: Use ContextFlyout with MenuFlyout -->
-<Border.ContextFlyout>
+<!-- ✅ Flyout attached to a button -->
+<Button.Content>
+    <StackPanel Orientation="Horizontal">
+        <TextBlock Text="More" />
+        <Path Data="{StaticResource IconMore}" />
+    </StackPanel>
+</Button.Content>
+<Button.ContextFlyout>
     <MenuFlyout>
-        <MenuItem Header="Action" Command="{Binding MyCommand}"/>
+        <MenuItem Header="Advanced action" Command="{Binding AdvancedCommand}" />
     </MenuFlyout>
-</Border.ContextFlyout>
+</Button.ContextFlyout>
 ```
+
+For deeper rationale and platform quirks, see `developers/lessons-learnt/general.md` under **UI & Theming → ContextMenu vs. ContextFlyout**.
 
 #### Binding in DataTemplates with Flyouts/Popups
 
@@ -314,7 +326,8 @@ See also: [Destination Plugin Development Guide](plugins-destinations/README.md)
 ### Prerequisites
 Ensure you have the following installed:
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- `ShareX.ImageEditor` submodule (initialized as described above)
+- Node.js `^20.19.0 || >=22.12.0` for the `ShareX.VideoEditor` frontend build
+- `ShareX.ImageEditor` and `ShareX.VideoEditor` submodules (initialized as described above)
 
 ### Clone Repositories
 ```bash

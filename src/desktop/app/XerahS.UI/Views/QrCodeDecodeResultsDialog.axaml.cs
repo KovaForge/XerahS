@@ -29,7 +29,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class QrCodeDecodeResultsDialog : Window
+public partial class QrCodeDecodeResultsDialog : SurfaceWindow
 {
     public QrCodeDecodeResultsDialog()
     {

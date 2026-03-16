@@ -78,7 +78,9 @@ src/XerahS.Mobile.iOS.ShareExtension/ShareExtension.BundleId.plist
 !build/windows/
 !build/windows/chocolatey/
 !build/windows/chocolatey/Sync-ChocolateyPackage.ps1
+!build/windows/chocolatey/Test-ChocolateyPackage.ps1
 !build/windows/chocolatey/tools/
+!build/windows/chocolatey/tools/chocolateyBeforeModify.ps1
 !build/windows/chocolatey/tools/VERIFICATION.txt
 local.properties
 .idea/
@@ -132,3 +134,5 @@ SwiftPackageManager.build/
 /build/xip0043-publish
 /build/tmp-deb-check
 /build/logs
+/build/r2r-eval-no-r2r
+/build/r2r-eval-r2r

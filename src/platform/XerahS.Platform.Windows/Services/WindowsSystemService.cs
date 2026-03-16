@@ -24,12 +24,21 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
+using Microsoft.Win32;
+using System.Runtime.InteropServices;
+using System.Text;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Windows;
 
 namespace XerahS.Platform.Windows.Services
 {
     public class WindowsSystemService : ISystemService
     {
+        private const int SpiGetDesktopWallpaper = 0x0073;
+        private const int MaxWallpaperPath = 260;
+
+        public bool IsDesktopWallpaperSupported => true;
+
         public bool ShowFileInExplorer(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
@@ -83,5 +92,66 @@ namespace XerahS.Platform.Windows.Services
              }
              return false;
         }
+
+        public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
+        {
+            wallpaper = null;
+
+            if (!TryGetDesktopWallpaperPath(out string? path))
+            {
+                return false;
+            }
+
+            wallpaper = new DesktopWallpaperInfo
+            {
+                Path = path!,
+                Layout = GetDesktopWallpaperLayout()
+            };
+
+            return true;
+        }
+
+        public bool TryGetDesktopWallpaperPath(out string? path)
+        {
+            path = null;
+
+            StringBuilder buffer = new StringBuilder(MaxWallpaperPath);
+            if (!SystemParametersInfo(SpiGetDesktopWallpaper, buffer.Capacity, buffer, 0))
+            {
+                return false;
+            }
+
+            string wallpaperPath = buffer.ToString().TrimEnd('\0');
+            if (string.IsNullOrWhiteSpace(wallpaperPath) || !File.Exists(wallpaperPath))
+            {
+                return false;
+            }
+
+            path = wallpaperPath;
+            return true;
+        }
+
+        private static DesktopWallpaperLayout GetDesktopWallpaperLayout()
+        {
+            string? tileWallpaper = RegistryHelpers.GetValueString(@"Control Panel\Desktop", "TileWallpaper", RegistryHive.CurrentUser);
+            if (string.Equals(tileWallpaper, "1", StringComparison.Ordinal))
+            {
+                return DesktopWallpaperLayout.Tile;
+            }
+
+            string? wallpaperStyle = RegistryHelpers.GetValueString(@"Control Panel\Desktop", "WallpaperStyle", RegistryHive.CurrentUser);
+            return wallpaperStyle switch
+            {
+                "0" => DesktopWallpaperLayout.Center,
+                "2" => DesktopWallpaperLayout.Stretch,
+                "6" => DesktopWallpaperLayout.Fit,
+                "10" => DesktopWallpaperLayout.Fill,
+                "22" => DesktopWallpaperLayout.Span,
+                _ => DesktopWallpaperLayout.Fill
+            };
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool SystemParametersInfo(int uiAction, int uiParam, StringBuilder pvParam, int fWinIni);
     }
 }

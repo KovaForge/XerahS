@@ -597,7 +597,9 @@ public class TrayIconHelper : INotifyPropertyChanged
                 // If minimized, restore it
                 if (window.WindowState == Avalonia.Controls.WindowState.Minimized)
                 {
-                    window.WindowState = Avalonia.Controls.WindowState.Maximized;
+                    window.WindowState = ShouldRestoreToNormalWindowState()
+                        ? Avalonia.Controls.WindowState.Normal
+                        : Avalonia.Controls.WindowState.Maximized;
                 }
                 
                 window.Activate();
@@ -618,7 +620,9 @@ public class TrayIconHelper : INotifyPropertyChanged
             
             if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)
             {
-                mainWindow.WindowState = Avalonia.Controls.WindowState.Maximized;
+                mainWindow.WindowState = ShouldRestoreToNormalWindowState()
+                    ? Avalonia.Controls.WindowState.Normal
+                    : Avalonia.Controls.WindowState.Maximized;
             }
 
             mainWindow.Activate();
@@ -635,6 +639,12 @@ public class TrayIconHelper : INotifyPropertyChanged
             App.IsExiting = true;
             desktop.Shutdown();
         }
+    }
+
+    private static bool ShouldRestoreToNormalWindowState()
+    {
+        ApplicationConfig settings = SettingsManager.Settings;
+        return settings.RememberMainFormSize || settings.RememberMainFormPosition;
     }
 
     public void OnTrayClick()

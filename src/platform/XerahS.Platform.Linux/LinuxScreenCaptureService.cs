@@ -44,9 +44,11 @@ namespace XerahS.Platform.Linux
     /// Linux screen capture service with multiple fallback methods.
     /// Supports gnome-screenshot, spectacle (KDE), scrot, and import (ImageMagick).
     /// </summary>
-    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime
+    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime, ILinuxRegionCaptureCapabilityProvider, ILinuxRegionSelectorDiagnosticsProvider
     {
         private readonly LinuxCaptureCoordinator _captureCoordinator;
+        private readonly object _linuxRegionSelectorDecisionLock = new();
+        private LinuxRegionSelectorRuntimeDecision? _lastLinuxRegionSelectorDecision;
 
         public LinuxScreenCaptureService()
         {
@@ -69,17 +71,59 @@ namespace XerahS.Platform.Linux
         public static bool IsWayland =>
             Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
 
-        public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
+        public LinuxRegionCaptureCapability GetLinuxRegionCaptureCapability(CaptureOptions? options = null)
         {
+            var context = LinuxRuntimeContextDetector.Detect();
+            var support = LinuxRegionCaptureCapabilityDetector.ProbeSupportSnapshot(context);
+            return LinuxRegionCaptureCapabilityDetector.Detect(context, support);
+        }
+
+        public LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics()
+        {
+            var diagnostics = LinuxRegionSelectorDiagnosticsDetector.Detect();
+            return diagnostics with
+            {
+                LastDecision = GetLastLinuxRegionSelectorDecision()
+            };
+        }
+
+        public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
+        {
+            var requestedPreference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
             if (IsWayland && WaylandCliCapture.IsSlurpAvailable())
             {
-                return WaylandCliCapture.SelectRegionWithSlurpAsync();
+                try
+                {
+                    var region = await WaylandCliCapture.SelectRegionWithSlurpAsync().ConfigureAwait(false);
+                    RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                        operation: "Region selection",
+                        providerId: "wlroots",
+                        requestedPreference: requestedPreference,
+                        outcome: region.IsEmpty ? "Cancelled" : "Succeeded"));
+                    return region;
+                }
+                catch (OperationCanceledException)
+                {
+                    RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                        operation: "Region selection",
+                        providerId: "wlroots",
+                        requestedPreference: requestedPreference,
+                        outcome: "Cancelled"));
+                    throw;
+                }
             }
+
             if (IsWayland)
             {
                 DebugHelper.WriteLine("LinuxScreenCaptureService: SelectRegionAsync requested on Wayland but slurp is not available.");
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region selection",
+                    providerId: "wlroots",
+                    requestedPreference: requestedPreference,
+                    outcome: "Failed"));
             }
-            return Task.FromResult(SKRectI.Empty);
+
+            return SKRectI.Empty;
         }
 
         uint ILinuxCaptureRuntime.PortalCancelledResponseCode => PortalScreenCapture.PortalResponseCancelled;
@@ -157,19 +201,39 @@ namespace XerahS.Platform.Linux
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
             var context = LinuxRuntimeContextDetector.Detect();
+            var preference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture requested with selector preference '{preference}'.");
             var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options);
             var execution = await _captureCoordinator.CaptureWithTraceAsync(request, context).ConfigureAwait(false);
             var result = execution.Result;
             LogCaptureDecisionTrace("Region", execution.Trace);
             if (result.IsCancelled)
             {
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region capture",
+                    providerId: execution.Trace.FinalProviderId ?? result.ProviderId,
+                    requestedPreference: preference,
+                    outcome: "Cancelled"));
                 DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture cancelled by provider '{result.ProviderId}'.");
-                return null;
+                throw new OperationCanceledException($"Region capture cancelled by provider '{result.ProviderId}'.");
             }
 
             if (result.Bitmap != null)
             {
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region capture",
+                    providerId: execution.Trace.FinalProviderId ?? result.ProviderId,
+                    requestedPreference: preference,
+                    outcome: "Succeeded"));
                 DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture succeeded with provider '{result.ProviderId}'.");
+            }
+            else
+            {
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region capture",
+                    providerId: execution.Trace.FinalProviderId ?? result.ProviderId,
+                    requestedPreference: preference,
+                    outcome: "Failed"));
             }
 
             return result.Bitmap;
@@ -410,5 +474,67 @@ namespace XerahS.Platform.Linux
             return Task.FromResult<CursorInfo?>(null);
         }
 
+        internal static LinuxRegionSelectorRuntimeDecision CreateRuntimeDecision(
+            string operation,
+            string providerId,
+            LinuxInteractiveRegionSelectorPreference requestedPreference,
+            string outcome,
+            DateTimeOffset? timestampUtc = null)
+        {
+            return new LinuxRegionSelectorRuntimeDecision(
+                Operation: operation,
+                ProviderId: providerId,
+                ProviderDisplayName: GetProviderDisplayName(providerId),
+                RequestedPreference: requestedPreference,
+                EffectivePreference: GetEffectivePreference(providerId, requestedPreference),
+                Outcome: outcome,
+                TimestampUtc: timestampUtc ?? DateTimeOffset.UtcNow);
+        }
+
+        private LinuxRegionSelectorRuntimeDecision? GetLastLinuxRegionSelectorDecision()
+        {
+            lock (_linuxRegionSelectorDecisionLock)
+            {
+                return _lastLinuxRegionSelectorDecision;
+            }
+        }
+
+        private void RecordLinuxRegionSelectorDecision(LinuxRegionSelectorRuntimeDecision decision)
+        {
+            lock (_linuxRegionSelectorDecisionLock)
+            {
+                _lastLinuxRegionSelectorDecision = decision;
+            }
+        }
+
+        private static LinuxInteractiveRegionSelectorPreference GetEffectivePreference(
+            string providerId,
+            LinuxInteractiveRegionSelectorPreference requestedPreference)
+        {
+            return providerId switch
+            {
+                "portal" => LinuxInteractiveRegionSelectorPreference.PortalDialog,
+                "kde-dbus" or "gnome-dbus" => LinuxInteractiveRegionSelectorPreference.DesktopNative,
+                "wlroots" => LinuxInteractiveRegionSelectorPreference.Slurp,
+                "xerahs-overlay" => LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+                _ => requestedPreference
+            };
+        }
+
+        private static string GetProviderDisplayName(string providerId)
+        {
+            return providerId switch
+            {
+                "portal" => "XDG portal dialog",
+                "kde-dbus" => "KDE desktop selector",
+                "gnome-dbus" => "GNOME desktop selector",
+                "wlroots" => "slurp",
+                "xerahs-overlay" => "XerahS overlay crosshair",
+                "x11" => "X11 native capture",
+                "cli-tools" => "CLI capture tools",
+                "none" => "No provider",
+                _ => providerId
+            };
+        }
     }
 }

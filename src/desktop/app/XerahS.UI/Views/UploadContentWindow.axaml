@@ -1,5 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
         xmlns:vm="using:XerahS.UI.ViewModels"
         x:Class="XerahS.UI.Views.UploadContentWindow"
         x:DataType="vm:UploadContentViewModel"
@@ -12,16 +13,6 @@
         AutomationProperties.Name="Upload content window">
 
   <Window.Styles>
-    <Style Selector="Border.section-card">
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="Padding" Value="12" />
-    </Style>
-    <Style Selector="TextBlock.section-title">
-      <Setter Property="FontSize" Value="14" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
     <Style Selector="Button.source-button">
       <Setter Property="MinWidth" Value="104" />
       <Setter Property="MinHeight" Value="32" />
@@ -46,23 +37,23 @@
         <WrapPanel Grid.Row="1"
                    Orientation="Horizontal">
           <Button Content="Clipboard"
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding LoadFromClipboardCommand}"
                   AutomationProperties.Name="Load content from clipboard" />
           <Button Content="Files..."
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddFilesCommand}"
                   AutomationProperties.Name="Add files to upload queue" />
           <Button Content="Folder..."
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddFolderCommand}"
                   AutomationProperties.Name="Add folder contents to upload queue" />
           <Button Content="Text"
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddTextCommand}"
                   AutomationProperties.Name="Add text content to upload queue" />
           <Button Content="URL"
-                  Classes="source-button"
+                  Classes="source-button accent"
                   Command="{Binding AddURLCommand}"
                   AutomationProperties.Name="Add URL to upload queue" />
         </WrapPanel>
@@ -86,6 +77,7 @@
             <Button Grid.Column="1"
                     Content="Clear Completed"
                     Command="{Binding ClearCompletedCommand}"
+                    Classes="accent"
                     MinHeight="28"
                     Padding="10,4"
                     AutomationProperties.Name="Clear completed and failed items from queue" />
@@ -127,12 +119,12 @@
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding ErrorMessage}"
                                    FontSize="11"
-                                   Foreground="Red"
+                                   Classes="status-error"
                                    IsVisible="{Binding IsFailed}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding ResultURL}"
                                    FontSize="11"
-                                   Foreground="Green"
+                                   Classes="status-success"
                                    IsVisible="{Binding ResultURL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                    TextTrimming="CharacterEllipsis" />
                         <ProgressBar Value="{Binding ProgressPercent}"
@@ -171,6 +163,7 @@
                           <Button Content="Retry"
                                   Command="{Binding $parent[Window].DataContext.RetryItemCommand}"
                                   CommandParameter="{Binding}"
+                                  Classes="accent"
                                   IsVisible="{Binding IsFailed}"
                                   FontSize="11"
                                   Padding="8,3"
@@ -178,6 +171,7 @@
                           <Button Content="Remove"
                                   Command="{Binding $parent[Window].DataContext.RemoveItemCommand}"
                                   CommandParameter="{Binding}"
+                                  Classes="accent"
                                   IsVisible="{Binding IsPending}"
                                   FontSize="11"
                                   Padding="8,3"
@@ -289,7 +283,7 @@
                       HorizontalAlignment="Right"
                       Spacing="8">
             <Button Content="Cancel"
-                    Classes="footer-button"
+                    Classes="footer-button accent"
                     Command="{Binding CancelUploadCommand}"
                     IsVisible="{Binding IsUploading}"
                     AutomationProperties.Name="Cancel current upload" />
@@ -301,7 +295,7 @@
                     MinWidth="108"
                     AutomationProperties.Name="Upload all pending items" />
             <Button Content="Close"
-                    Classes="footer-button"
+                    Classes="footer-button accent"
                     x:Name="CloseButton"
                     Click="OnCloseClick"
                     AutomationProperties.Name="Close upload window" />
@@ -310,4 +304,4 @@
       </Grid>
     </Border>
   </Grid>
-</Window>
+</ui:SurfaceWindow>

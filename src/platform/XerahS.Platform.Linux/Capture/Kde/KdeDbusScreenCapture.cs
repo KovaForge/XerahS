@@ -338,13 +338,13 @@ internal static class KdeDbusScreenCapture
         value = raw.ToString() ?? string.Empty;
         return !string.IsNullOrWhiteSpace(value);
     }
+}
 
-    [DBusInterface("org.kde.KWin.ScreenShot2")]
-    internal interface IKdeScreenShot2 : IDBusObject
-    {
-        Task<uint> GetVersionAsync();
-        Task<IDictionary<string, object>> CaptureInteractiveAsync(uint kind, IDictionary<string, object> options, SafeFileHandle pipe);
-        Task<IDictionary<string, object>> CaptureActiveWindowAsync(IDictionary<string, object> options, SafeFileHandle pipe);
-        Task<IDictionary<string, object>> CaptureWorkspaceAsync(IDictionary<string, object> options, SafeFileHandle pipe);
-    }
+[DBusInterface("org.kde.KWin.ScreenShot2")]
+public interface IKdeScreenShot2 : IDBusObject
+{
+    Task<uint> GetVersionAsync();
+    Task<IDictionary<string, object>> CaptureInteractiveAsync(uint kind, IDictionary<string, object> options, SafeFileHandle pipe);
+    Task<IDictionary<string, object>> CaptureActiveWindowAsync(IDictionary<string, object> options, SafeFileHandle pipe);
+    Task<IDictionary<string, object>> CaptureWorkspaceAsync(IDictionary<string, object> options, SafeFileHandle pipe);
 }

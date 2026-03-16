@@ -23,7 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 
@@ -31,7 +31,8 @@ namespace XerahS.UI.Services
 {
     /// <summary>
     /// Single composition root: builds the DI container from platform and app services
-    /// and sets <see cref="PlatformServices.RootProvider"/> for constructor injection and migration.
+    /// using <see cref="Microsoft.Extensions.DependencyInjection.ServiceCollection"/>
+    /// and sets <see cref="PlatformServices.RootProvider"/> for constructor injection.
     /// Call after platform init and after UI/Toast/ImageEncoder are registered.
     /// </summary>
     public static class CompositionRoot
@@ -47,65 +48,57 @@ namespace XerahS.UI.Services
                 return;
             }
 
-            var map = new Dictionary<Type, object>();
-
-            void Register<T>(T instance) where T : class
-            {
-                if (instance != null)
-                {
-                    map[typeof(T)] = instance;
-                }
-            }
+            var services = new ServiceCollection();
 
             // Required platform services (from Initialize)
-            Register(PlatformServices.PlatformInfo);
-            Register(PlatformServices.Screen);
-            Register(PlatformServices.Clipboard);
-            Register(PlatformServices.Window);
-            Register(PlatformServices.Input);
-            Register(PlatformServices.Fonts);
-            Register(PlatformServices.Hotkey);
-            Register(PlatformServices.ScreenCapture);
-            Register(PlatformServices.Startup);
-            Register(PlatformServices.WatchFolderDaemon);
-            Register(PlatformServices.System);
-            Register(PlatformServices.Diagnostic);
+            services.AddSingleton(_ => PlatformServices.PlatformInfo);
+            services.AddSingleton(_ => PlatformServices.Screen);
+            services.AddSingleton(_ => PlatformServices.Clipboard);
+            services.AddSingleton(_ => PlatformServices.Window);
+            services.AddSingleton(_ => PlatformServices.Input);
+            services.AddSingleton(_ => PlatformServices.Fonts);
+            services.AddSingleton(_ => PlatformServices.Hotkey);
+            services.AddSingleton(_ => PlatformServices.ScreenCapture);
+            services.AddSingleton(_ => PlatformServices.Startup);
+            services.AddSingleton(_ => PlatformServices.WatchFolderDaemon);
+            services.AddSingleton(_ => PlatformServices.System);
+            services.AddSingleton(_ => PlatformServices.Diagnostic);
 
             // Optional platform services
             if (PlatformServices.GetShellIntegrationIfAvailable() is { } shellIntegration)
             {
-                Register(shellIntegration);
+                services.AddSingleton(_ => shellIntegration);
             }
 
             if (PlatformServices.GetNotificationIfAvailable() is { } notification)
             {
-                Register(notification);
+                services.AddSingleton(_ => notification);
             }
 
             if (PlatformServices.IsThemeServiceInitialized)
             {
-                Register(PlatformServices.Theme);
+                services.AddSingleton(_ => PlatformServices.Theme);
             }
 
             if (PlatformServices.ScrollingCapture is { } scrollingCapture)
             {
-                Register(scrollingCapture);
+                services.AddSingleton(_ => scrollingCapture);
             }
 
             if (PlatformServices.Ocr is { } ocr)
             {
-                Register(ocr);
+                services.AddSingleton(_ => ocr);
             }
 
             // App services (registered in OnFrameworkInitializationCompleted before this is called)
             if (PlatformServices.IsToastServiceInitialized)
             {
-                Register(PlatformServices.Toast);
+                services.AddSingleton(_ => PlatformServices.Toast);
             }
 
             try
             {
-                Register(PlatformServices.UI);
+                services.AddSingleton(_ => PlatformServices.UI);
             }
             catch (InvalidOperationException)
             {
@@ -114,33 +107,20 @@ namespace XerahS.UI.Services
 
             try
             {
-                Register(PlatformServices.ImageEncoder);
+                services.AddSingleton(_ => PlatformServices.ImageEncoder);
             }
             catch (InvalidOperationException)
             {
                 // ImageEncoder not registered
             }
 
-            IServiceProvider provider = new RootServiceProvider(map);
+            // Application-level service abstractions (XIP-0052 §3.3)
+            services.AddSingleton<IViewDialogService, AvaloniaDialogService>();
+            services.AddSingleton<IDialogService, AvaloniaDialogServiceAdapter>();
+            services.AddSingleton<ILifecycleService, AvaloniaLifecycleService>();
+
+            IServiceProvider provider = services.BuildServiceProvider();
             PlatformServices.SetRootProvider(provider);
-        }
-    }
-
-    /// <summary>
-    /// Minimal service provider for the composition root; resolves from a type-to-instance map.
-    /// </summary>
-    internal sealed class RootServiceProvider : IServiceProvider
-    {
-        private readonly Dictionary<Type, object> _map;
-
-        internal RootServiceProvider(Dictionary<Type, object> map)
-        {
-            _map = map;
-        }
-
-        public object? GetService(Type serviceType)
-        {
-            return _map.TryGetValue(serviceType, out var instance) ? instance : null;
         }
     }
 }

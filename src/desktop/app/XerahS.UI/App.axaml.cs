@@ -26,14 +26,20 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Controls.Primitives;
 using ShareX.ImageEditor.Hosting;
+using ShareX.ImageEditor.Hosting.Diagnostics;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Media.Encoders;
 using XerahS.Platform.Abstractions;
+#if WINDOWS
+using XerahS.Platform.Windows;
+#endif
 using XerahS.UI.Services;
+using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
 namespace XerahS.UI;
@@ -78,8 +84,22 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Register host-level editor services before creating any editor view models.
+            EditorServices.Diagnostics = new DelegateEditorDiagnosticsSink(diagnosticEvent =>
+            {
+                string prefix = $"[ImageEditor:{diagnosticEvent.Level}:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
+                Common.DebugHelper.WriteLine(prefix);
+
+                if (!string.IsNullOrWhiteSpace(diagnosticEvent.ExceptionText))
+                {
+                    Common.DebugHelper.WriteLine(diagnosticEvent.ExceptionText!);
+                }
+            });
+            EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
+
             var mainViewModel = new MainViewModel();
             mainViewModel.ApplicationName = AppResources.AppName;
+            mainViewModel.ShowTaskModeButtons = false;
 
             // Wire up UploadRequested for embedded editor in MainWindow
             Services.MainViewModelHelper.WireUploadRequested(mainViewModel);
@@ -109,6 +129,7 @@ public partial class App : Application
             };
             Services.MainViewModelHelper.WireSaveRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
             Services.MainViewModelHelper.WireSaveAsRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
+            Services.MainViewModelHelper.WirePinRequested(mainViewModel, getEmbeddedSnapshot);
 
             // Prepare for Silent Run
             bool silentRun = XerahS.Core.SettingsManager.Settings.SilentRun;
@@ -129,10 +150,14 @@ public partial class App : Application
             };
             _baseTitle = desktop.MainWindow.Title ?? AppResources.ProductNameWithVersion;
 
-            // Use Avalonia's built-in clipboard (replaces Windows Forms clipboard for desktop app)
+            // Use native Win32 clipboard on Windows so image formats are published explicitly.
+#if WINDOWS
+            PlatformServices.Clipboard = new WindowsClipboardService();
+#else
             PlatformServices.Clipboard = new Services.AvaloniaClipboardService(
                 desktop.MainWindow.Clipboard!,
                 desktop.MainWindow.StorageProvider);
+#endif
 
             // Apply window state based on SilentRun.
             // We avoid starting minimized because some Windows setups can leave a minimized
@@ -161,10 +186,6 @@ public partial class App : Application
                 };
 
                 desktop.MainWindow.Opened += hideOnFirstOpen;
-            }
-            else
-            {
-                desktop.MainWindow.WindowState = Avalonia.Controls.WindowState.Maximized;
             }
 
             // Register UI Service
@@ -236,5 +257,35 @@ public partial class App : Application
         }
     }
 
-}
+    private void OnHistoryItemMenuFlyoutOpened(object? sender, EventArgs e)
+    {
+        if (sender is not MenuFlyout menuFlyout)
+        {
+            return;
+        }
 
+        if (menuFlyout.Target is not Control target || target.Tag is not IHistoryItemMenuContext context)
+        {
+            return;
+        }
+
+        ApplyMenuContext(menuFlyout.Items, context);
+    }
+
+    private static void ApplyMenuContext(IEnumerable<object?> items, IHistoryItemMenuContext context)
+    {
+        foreach (object? item in items)
+        {
+            if (item is MenuItem menuItem)
+            {
+                menuItem.DataContext = context;
+
+                if (menuItem.Items.Count > 0)
+                {
+                    ApplyMenuContext(menuItem.Items, context);
+                }
+            }
+        }
+    }
+
+}

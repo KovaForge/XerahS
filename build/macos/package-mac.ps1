@@ -4,6 +4,7 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path "$PSScriptRoot\..\.."
 $project = Join-Path $root "src\desktop\app\XerahS.App\XerahS.App.csproj"
 $outputDir = Join-Path $root "dist"
+$gitBash = "C:\Program Files\Git\bin\bash.exe"
 
 if (!(Test-Path $outputDir)) { New-Item -ItemType Directory -Force -Path $outputDir | Out-Null }
 
@@ -74,7 +75,7 @@ function Configure-MacBundleIcon {
         [Parameter(Mandatory = $true)][string]$AppBundlePath
     )
 
-    $iconSource = Join-Path $RootPath "src\XerahS.UI\Assets\Logo.icns"
+    $iconSource = Join-Path $RootPath "src\desktop\app\XerahS.UI\Assets\Logo.icns"
     $resourcesDir = Join-Path $AppBundlePath "Contents\Resources"
     $plistPath = Join-Path $AppBundlePath "Contents\Info.plist"
 
@@ -125,6 +126,10 @@ if (!(Test-Path $nativeLib)) {
     Write-Host "(To rebuild native library, run package-mac.sh on macOS)"
 }
 
+if (!(Test-Path $gitBash)) {
+    throw "Git Bash is required for macOS packaging on Windows to preserve Unix executable permissions. Expected: $gitBash"
+}
+
 $archs = @("arm64", "x64")
 
 foreach ($arch in $archs) {
@@ -141,9 +146,11 @@ foreach ($arch in $archs) {
     # Ensure clean
     if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
 
-    # Publish with cross-compilation flag
-    # The csproj automatically includes libscreencapturekit_bridge.dylib for osx RIDs
-    dotnet publish $project -c Release -r $rid -p:PublishSingleFile=false --self-contained true -p:nodeReuse=false -p:SkipBundlePlugins=true
+    dotnet build-server shutdown | Out-Null
+
+    # Force the non-Windows publish path so app bundle creation and daemon publish resolve macOS targets.
+    # The csproj automatically includes libscreencapturekit_bridge.dylib for osx RIDs.
+    dotnet publish $project -c Release -r $rid -p:OS=Unix -p:CrossCompile=true -p:PublishSingleFile=false --self-contained true --disable-build-servers -p:nodeReuse=false -p:UseSharedCompilation=false -p:BuildInParallel=false -m:1 -p:SkipBundlePlugins=true
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet publish failed for $rid with exit code $LASTEXITCODE."
     }
@@ -186,7 +193,7 @@ foreach ($arch in $archs) {
         }
         New-Item -ItemType Directory -Force -Path $pluginOutput | Out-Null
 
-        dotnet publish $plugin.FullName -c Release -r $rid --no-self-contained -p:PublishSingleFile=false -o $pluginOutput > $null
+        dotnet publish $plugin.FullName -c Release -r $rid -p:OS=Unix -p:CrossCompile=true --no-self-contained -p:PublishSingleFile=false --disable-build-servers -p:nodeReuse=false -p:UseSharedCompilation=false -p:BuildInParallel=false -m:1 -o $pluginOutput > $null
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet publish failed for plugin $($plugin.Name) on $rid with exit code $LASTEXITCODE."
         }
@@ -228,39 +235,18 @@ foreach ($arch in $archs) {
     $tarPath = Join-Path $outputDir $tarName
 
     Write-Host "Creating archive: $tarName"
-    
-    $gitBash = "C:\Program Files\Git\bin\bash.exe"
-    if (Test-Path $gitBash) {
-        # Windows builds lose Unix execute permissions; enforce mode in archive.
-        $publishDirUnix = Convert-ToUnixPath $publishDir
-        $tarPathUnix = Convert-ToUnixPath $tarPath
-        $tarCommand = "set -e; tar -C '$publishDirUnix' --mode='a+rx,u+w' -czf '$tarPathUnix' XerahS.app"
-        & $gitBash -lc $tarCommand
 
-        if ($LASTEXITCODE -ne 0) {
-            throw "GNU tar packaging failed for $rid."
-        }
+    # Windows builds lose Unix execute permissions; enforce mode in archive via GNU tar.
+    $publishDirUnix = Convert-ToUnixPath $publishDir
+    $tarPathUnix = Convert-ToUnixPath $tarPath
+    $tarCommand = "set -e; tar -C '$publishDirUnix' --mode='a+rx,u+w' -czf '$tarPathUnix' XerahS.app"
+    & $gitBash -lc $tarCommand
 
-        Write-Host "Success: Generated $tarName in dist."
-    } else {
-        Write-Warning "Git Bash not found at '$gitBash'. Falling back to Windows tar."
-        Write-Warning "The app may fail to open on macOS due to missing executable permissions."
-
-        # Fallback tar -C [dir] -czf [archive] [file] to avoid including full path
-        $tarArgs = "-C `"$publishDir`" -czf `"$tarPath`" XerahS.app"
-        $tarProcess = Start-Process -FilePath "tar" -ArgumentList $tarArgs -Wait -NoNewWindow -PassThru
-
-        if ($tarProcess.ExitCode -ne 0) {
-            Write-Warning "tar command failed. Trying alternative method..."
-
-            # Fallback: Use Compress-Archive then rename (creates .zip though)
-            $zipPath = [System.IO.Path]::ChangeExtension($tarPath, ".zip")
-            Compress-Archive -Path $appBundlePath -DestinationPath $zipPath -Force
-            Write-Host "Created .zip archive instead: $([System.IO.Path]::GetFileName($zipPath))"
-        } else {
-            Write-Host "Success: Generated $tarName in dist."
-        }
+    if ($LASTEXITCODE -ne 0) {
+        throw "GNU tar packaging failed for $rid."
     }
+
+    Write-Host "Success: Generated $tarName in dist."
 }
 
 Write-Host "`nAll builds complete! Packages in $outputDir"

@@ -26,7 +26,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
-using FluentAvalonia.UI.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -47,58 +46,53 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
-using XerahS.UI.Helpers;
 using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI.Views
 {
     public partial class MainWindow : Window
     {
+        private const double DefaultWindowWidth = 1100;
+        private const double DefaultWindowHeight = 650;
+        private const int MinimumPersistedWindowDimension = 200;
+
         private EditorView? _editorView = null;
+        private DestinationSettingsView? _destinationSettingsView = null;
         private bool _isOpenImageInProgress;
 
         /// <summary>
         /// Collection of user-configured workflows for menu binding.
         /// </summary>
         public ObservableCollection<WorkflowSettings> UserWorkflows { get; } = new ObservableCollection<WorkflowSettings>();
+        public ObservableCollection<NavigationNode> NavigationNodes { get; } = new ObservableCollection<NavigationNode>();
 
         public MainWindow()
         {
             InitializeComponent();
             KeyDown += OnKeyDown;
+            ApplyInitialWindowPlacement();
 
 #if !DEBUG
             // Video Editor is a work-in-progress; hide it in release builds.
             var menuItemVideoEditor = this.FindControl<MenuItem>("MenuItemVideoEditor");
             if (menuItemVideoEditor != null)
                 menuItemVideoEditor.IsVisible = false;
-            var navItemVideoEditor = this.FindControl<NavigationViewItem>("NavItemVideoEditor");
-            if (navItemVideoEditor != null)
-                navItemVideoEditor.IsVisible = false;
 #endif
 
             // Set initial theme and subscribe to changes
             RequestedThemeVariant = ThemeManager.GetCurrentTheme();
             ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
 
-            // Initial Navigation
-            var navView = this.FindControl<NavigationView>("NavView");
-            if (navView != null)
+            BuildNavigationNodes();
+
+            var navigationTree = this.FindControl<TreeView>("NavigationTree");
+            if (navigationTree != null)
             {
-                // Force selection of first item
-                if (navView.MenuItems[0] is NavigationViewItem item)
-                {
-                    navView.SelectedItem = item;
-                    OnNavSelectionChanged(navView, new NavigationViewSelectionChangedEventArgs());
-                }
+                navigationTree.ItemsSource = NavigationNodes;
             }
 
             LoadUserWorkflows();
-        }
-
-        protected override void OnDataContextChanged(EventArgs e)
-        {
-            base.OnDataContextChanged(e);
+            NavigateTo("Editor");
         }
 
         private void OnExitClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -384,19 +378,7 @@ namespace XerahS.UI.Views
                 XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
             }
 
-            // Only maximize if we are NOT in silent run mode
-            if (!SettingsManager.Settings.SilentRun)
-            {
-                // Maximize window and center it on screen
-                this.WindowState = Avalonia.Controls.WindowState.Maximized;
-            }
-
-            // Update navigation items after settings are loaded
-            var navView = this.FindControl<NavigationView>("NavView");
-            if (navView != null)
-            {
-                UpdateNavigationItems(navView);
-            }
+            UpdateNavigationItems();
 
             LoadUserWorkflows();
 
@@ -408,17 +390,36 @@ namespace XerahS.UI.Views
                     {
                         LoadUserWorkflows();
 
-                        if (navView != null)
-                        {
-                            UpdateNavigationItems(navView);
-                        }
+                        UpdateNavigationItems();
                     });
                 };
+            }
+
+            // Pre-warm Destination Settings so the first navigation does not pay init cost.
+            Dispatcher.UIThread.Post(() => _ = PreWarmDestinationSettingsAsync(), DispatcherPriority.Background);
+        }
+
+        private async Task PreWarmDestinationSettingsAsync()
+        {
+            try
+            {
+                _destinationSettingsView ??= CreateDestinationSettingsView();
+
+                if (_destinationSettingsView.DataContext is DestinationSettingsViewModel vm)
+                {
+                    await vm.Initialize();
+                }
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Failed to pre-warm Destination Settings");
             }
         }
 
         protected override void OnClosing(WindowClosingEventArgs e)
         {
+            PersistWindowPlacement();
+
             // If SilentRun ("Start minimized to tray") is enabled and we are not explicitly
             // exiting via Tray → Exit, hide the window to tray instead of closing the app.
             // This works on all platforms (Windows, Linux, macOS); no OS-specific logic.
@@ -440,6 +441,88 @@ namespace XerahS.UI.Views
             }
 
             base.OnClosing(e);
+        }
+
+        private void ApplyInitialWindowPlacement()
+        {
+            ApplicationConfig settings = SettingsManager.Settings;
+            bool rememberSize = settings.RememberMainFormSize;
+            bool rememberPosition = settings.RememberMainFormPosition;
+            bool appliedSize = false;
+
+            if (rememberSize &&
+                settings.MainFormSize.Width >= MinimumPersistedWindowDimension &&
+                settings.MainFormSize.Height >= MinimumPersistedWindowDimension)
+            {
+                Width = settings.MainFormSize.Width;
+                Height = settings.MainFormSize.Height;
+                appliedSize = true;
+            }
+
+            if (!appliedSize && (rememberSize || rememberPosition))
+            {
+                Width = DefaultWindowWidth;
+                Height = DefaultWindowHeight;
+            }
+
+            if (rememberPosition && settings.MainFormPosition != System.Drawing.Point.Empty)
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Position = new PixelPoint(settings.MainFormPosition.X, settings.MainFormPosition.Y);
+            }
+
+            if (!settings.SilentRun && !rememberSize && !rememberPosition)
+            {
+                WindowState = Avalonia.Controls.WindowState.Maximized;
+            }
+        }
+
+        private void PersistWindowPlacement()
+        {
+            ApplicationConfig settings = SettingsManager.Settings;
+            if (!settings.RememberMainFormSize && !settings.RememberMainFormPosition)
+            {
+                return;
+            }
+
+            if (WindowState != Avalonia.Controls.WindowState.Normal)
+            {
+                return;
+            }
+
+            bool settingsChanged = false;
+
+            if (settings.RememberMainFormSize)
+            {
+                int width = (int)Math.Round(Width);
+                int height = (int)Math.Round(Height);
+
+                if (width >= MinimumPersistedWindowDimension &&
+                    height >= MinimumPersistedWindowDimension)
+                {
+                    var size = new System.Drawing.Size(width, height);
+                    if (settings.MainFormSize != size)
+                    {
+                        settings.MainFormSize = size;
+                        settingsChanged = true;
+                    }
+                }
+            }
+
+            if (settings.RememberMainFormPosition)
+            {
+                var position = new System.Drawing.Point(Position.X, Position.Y);
+                if (settings.MainFormPosition != position)
+                {
+                    settings.MainFormPosition = position;
+                    settingsChanged = true;
+                }
+            }
+
+            if (settingsChanged)
+            {
+                SettingsManager.SaveApplicationConfig();
+            }
         }
 
         private void InitializeComponent()
@@ -512,9 +595,21 @@ namespace XerahS.UI.Views
             {
                 TaskManager.Instance.TaskCompleted -= HandleTaskCompleted;
 
-                if (task.Info?.Metadata?.Image != null && DataContext is MainViewModel vm)
+                if (task.Info?.Metadata?.Image is { } image && DataContext is MainViewModel vm)
                 {
-                    vm.UpdatePreview(task.Info.Metadata.Image);
+                    int width = image.Width;
+                    int height = image.Height;
+                    SKBitmap? previewCopy = image.Copy();
+                    if (previewCopy == null || previewCopy.Handle == IntPtr.Zero)
+                    {
+                        previewCopy?.Dispose();
+                        XerahS.Common.DebugHelper.WriteLine("Skipped preview update from navbar task completion: failed to clone bitmap.");
+                        return;
+                    }
+
+                    // UpdatePreview takes ownership and can dispose the supplied bitmap during property-change handling.
+                    vm.UpdatePreview(previewCopy);
+                    XerahS.Common.DebugHelper.WriteLine($"Updated preview from navbar task completion: {width}x{height}");
                 }
             }
 

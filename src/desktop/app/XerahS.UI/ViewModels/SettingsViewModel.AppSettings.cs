@@ -30,6 +30,8 @@ namespace XerahS.UI.ViewModels
     public partial class SettingsViewModel
     {
         public bool IsMacOS => OperatingSystem.IsMacOS();
+        public bool IsWindowsPlatform => OperatingSystem.IsWindows();
+        public bool ShowUseModernCaptureSetting => OperatingSystem.IsWindows();
 
         // True on platforms where system panels use dark backgrounds (macOS menu bar, GNOME/KDE top bar).
         // Controls visibility of the white tray icon option.
@@ -43,6 +45,20 @@ namespace XerahS.UI.ViewModels
                 if (SettingsManager.Settings.UseWhiteShareXIcon != value)
                 {
                     SettingsManager.Settings.UseWhiteShareXIcon = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool LinuxUseWaylandPortalServices
+        {
+            get => SettingsManager.Settings.LinuxUseWaylandPortalServices ?? ResolveLegacyLinuxWaylandPortalServicesSetting();
+            set
+            {
+                bool currentValue = SettingsManager.Settings.LinuxUseWaylandPortalServices ?? ResolveLegacyLinuxWaylandPortalServicesSetting();
+                if (currentValue != value || SettingsManager.Settings.LinuxUseWaylandPortalServices == null)
+                {
+                    SettingsManager.Settings.LinuxUseWaylandPortalServices = value;
                     OnPropertyChanged();
                 }
             }
@@ -162,6 +178,32 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool RememberMainWindowSize
+        {
+            get => SettingsManager.Settings.RememberMainFormSize;
+            set
+            {
+                if (SettingsManager.Settings.RememberMainFormSize != value)
+                {
+                    SettingsManager.Settings.RememberMainFormSize = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RememberMainWindowPosition
+        {
+            get => SettingsManager.Settings.RememberMainFormPosition;
+            set
+            {
+                if (SettingsManager.Settings.RememberMainFormPosition != value)
+                {
+                    SettingsManager.Settings.RememberMainFormPosition = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // OS Integration Settings
         public bool RunAtStartup
         {
@@ -190,13 +232,26 @@ namespace XerahS.UI.ViewModels
             get => SettingsManager.Settings.EnableContextMenuIntegration;
             set
             {
-                if (SettingsManager.Settings.EnableContextMenuIntegration != value)
+                if (SettingsManager.Settings.EnableContextMenuIntegration == value)
                 {
-                    SettingsManager.Settings.EnableContextMenuIntegration = value;
-                    OnPropertyChanged();
-                    // TODO: Call platform-specific context menu registration service
+                    return;
+                }
+
+                bool previousValue = SettingsManager.Settings.EnableContextMenuIntegration;
+                SettingsManager.Settings.EnableContextMenuIntegration = value;
+                OnPropertyChanged();
+
+                if (!ApplyContextMenuPreference(value))
+                {
+                    SettingsManager.Settings.EnableContextMenuIntegration = previousValue;
+                    OnPropertyChanged(nameof(EnableContextMenuIntegration));
                 }
             }
+        }
+
+        private static bool ResolveLegacyLinuxWaylandPortalServicesSetting()
+        {
+            return SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
         }
 
         public bool EnableSendToIntegration
@@ -204,11 +259,19 @@ namespace XerahS.UI.ViewModels
             get => SettingsManager.Settings.EnableSendToIntegration;
             set
             {
-                if (SettingsManager.Settings.EnableSendToIntegration != value)
+                if (SettingsManager.Settings.EnableSendToIntegration == value)
                 {
-                    SettingsManager.Settings.EnableSendToIntegration = value;
-                    OnPropertyChanged();
-                    // TODO: Call platform-specific Send To registration service
+                    return;
+                }
+
+                bool previousValue = SettingsManager.Settings.EnableSendToIntegration;
+                SettingsManager.Settings.EnableSendToIntegration = value;
+                OnPropertyChanged();
+
+                if (!ApplySendToPreference(value))
+                {
+                    SettingsManager.Settings.EnableSendToIntegration = previousValue;
+                    OnPropertyChanged(nameof(EnableSendToIntegration));
                 }
             }
         }

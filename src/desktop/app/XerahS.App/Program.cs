@@ -108,7 +108,7 @@ namespace XerahS.App
                     ClearX11SessionManagement();
                 }
 
-                // Initialize settings first (UseModernCapture must be available for platform init)
+                // Initialize settings first (Linux portal service preference is needed for platform init)
                 XerahS.Core.SettingsManager.LoadInitialSettings();
 
                 InitializePlatformServices();
@@ -405,10 +405,10 @@ namespace XerahS.App
                 var linuxCaptureService = new XerahS.Platform.Linux.LinuxScreenCaptureService();
                 var uiCaptureService = new XerahS.UI.Services.ScreenCaptureService(linuxCaptureService);
 
-                bool useModernCapture = XerahS.Core.SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
-                XerahS.Common.DebugHelper.WriteLine($"Linux: UseModernCapture={useModernCapture}");
+                bool useWaylandPortalServices = ResolveLinuxWaylandPortalServicesSetting();
+                XerahS.Common.DebugHelper.WriteLine($"Linux: UseWaylandPortalServices={useWaylandPortalServices}");
 
-                XerahS.Platform.Linux.LinuxPlatform.Initialize(uiCaptureService, useModernCapture);
+                XerahS.Platform.Linux.LinuxPlatform.Initialize(uiCaptureService, useWaylandPortalServices);
                 // NOTE: InitializeRecording() moved to async post-UI initialization in App.axaml.cs
                 return;
             }
@@ -416,6 +416,17 @@ namespace XerahS.App
             // Fallback for non-Windows/MacOS (or generic stubs)
             // In future: LinuxPlatform.Initialize()
             System.Diagnostics.Debug.WriteLine("Warning: Platform not fully supported, services may not be fully functional.");
+        }
+
+        private static bool ResolveLinuxWaylandPortalServicesSetting()
+        {
+            bool? explicitSetting = XerahS.Core.SettingsManager.Settings?.LinuxUseWaylandPortalServices;
+            if (explicitSetting.HasValue)
+            {
+                return explicitSetting.Value;
+            }
+
+            return XerahS.Core.SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
         }
 
         private static void ApplyInitialWatchFolderRuntimePolicy()
@@ -621,7 +632,7 @@ namespace XerahS.App
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
-
+                .WithInterFont()
                 .LogToTrace();
 
         /// <summary>
