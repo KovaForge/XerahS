@@ -33,6 +33,9 @@ namespace XerahS.Platform.Linux
     {
         public static void Initialize(IScreenCaptureService? screenCaptureService = null, bool useWaylandPortalServices = true)
         {
+            var clipboardService = new LinuxClipboardService();
+            var clipboardMonitorService = new LinuxClipboardMonitorService(clipboardService);
+
             // Use LinuxScreenCaptureService if none provided
             if (screenCaptureService == null)
             {
@@ -80,7 +83,7 @@ namespace XerahS.Platform.Linux
             PlatformServices.Initialize(
                 platformInfo: new LinuxPlatformInfo(),
                 screenService: new LinuxScreenService(),
-                clipboardService: new LinuxClipboardService(),
+                clipboardService: clipboardService,
                 windowService: new LinuxWindowService(),
                 screenCaptureService: screenCaptureService,
                 hotkeyService: hotkeyService,
@@ -91,7 +94,8 @@ namespace XerahS.Platform.Linux
                 shellIntegrationService: new LinuxShellIntegrationService(),
                 notificationService: new LinuxNotificationService(),
                 diagnosticService: new Services.LinuxDiagnosticService(),
-                watchFolderDaemonService: new LinuxWatchFolderDaemonService()
+                watchFolderDaemonService: new LinuxWatchFolderDaemonService(),
+                clipboardMonitorService: clipboardMonitorService
             );
 
             // Register OCR service stub (Tesseract integration planned)
