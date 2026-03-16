@@ -114,7 +114,7 @@
                                 <TextBox Grid.Column="1" Text="{Binding Value}" Watermark="Value"
                                          AutomationProperties.Name="Parameter Value"/>
                                 <Button Grid.Column="2" Content="X" Padding="8,4"
-                                        Command="{Binding #ParametersControl.DataContext.RemoveParameterCommand}"
+                                        Command="{Binding #ParametersControl.((vm:CustomUploaderEditorViewModel)DataContext).RemoveParameterCommand}"
                                         CommandParameter="{Binding}"
                                         AutomationProperties.Name="Remove Parameter"/>
                             </Grid>
@@ -161,7 +161,7 @@
                                 <TextBox Grid.Column="1" Text="{Binding Value}" Watermark="Value"
                                          AutomationProperties.Name="Argument Value"/>
                                 <Button Grid.Column="2" Content="X" Padding="8,4"
-                                        Command="{Binding #ArgumentsControl.DataContext.RemoveArgumentCommand}"
+                                        Command="{Binding #ArgumentsControl.((vm:CustomUploaderEditorViewModel)DataContext).RemoveArgumentCommand}"
                                         CommandParameter="{Binding}"
                                         AutomationProperties.Name="Remove Argument"/>
                             </Grid>

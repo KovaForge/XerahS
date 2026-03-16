@@ -214,14 +214,13 @@
                             <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
                                     <TextBlock Text="Select the destination for this task:" VerticalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding DataContext.AvailableDestinations, RelativeSource={RelativeSource AncestorType={x:Type views:WorkflowEditorView}}}"
-                                              SelectedItem="{Binding DataContext.SelectedDestination, RelativeSource={RelativeSource AncestorType={x:Type views:WorkflowEditorView}}}"
+                                    <ComboBox ItemsSource="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).AvailableDestinations}"
+                                              SelectedItem="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).SelectedDestination}"
                                               HorizontalAlignment="Stretch"
                                               AutomationProperties.Name="Select Destination">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
                                                  <StackPanel Orientation="Horizontal" Spacing="8">
-                                                     <Image Source="{Binding Icon}" Width="16" Height="16"/>
                                                      <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
                                                  </StackPanel>
                                             </DataTemplate>

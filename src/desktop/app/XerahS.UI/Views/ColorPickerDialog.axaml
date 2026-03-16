@@ -82,8 +82,8 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Command="{Binding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            <DataTemplate x:DataType="x:Object">
+                                <Button Command="{ReflectionBinding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
                                         Classes="ColorSwatchButton"
                                         Padding="0" Width="26" Height="26"
@@ -117,8 +117,8 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Command="{Binding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            <DataTemplate x:DataType="x:Object">
+                                <Button Command="{ReflectionBinding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
                                         Classes="ColorSwatchButton"
                                         Padding="0" Width="26" Height="26"

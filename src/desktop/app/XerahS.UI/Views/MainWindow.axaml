@@ -144,7 +144,9 @@
                           KeyDown="OnNavigationTreeKeyDown"
                           AutomationProperties.Name="Main Navigation">
                     <TreeView.ItemTemplate>
-                        <TreeDataTemplate ItemsSource="{Binding Children}">
+                        <TreeDataTemplate DataType="{x:Type vm:NavigationNode}"
+                                          x:DataType="vm:NavigationNode"
+                                          ItemsSource="{Binding Children}">
                             <Border Background="Transparent"
                                     CornerRadius="8"
                                     Padding="10,8"
@@ -168,7 +170,7 @@
                     </TreeView.ItemTemplate>
                     <TreeView.Styles>
                         <Style Selector="TreeView#NavigationTree TreeViewItem">
-                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
                         </Style>
                     </TreeView.Styles>
                 </TreeView>

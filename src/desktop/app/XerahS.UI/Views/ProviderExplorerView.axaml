@@ -10,7 +10,7 @@
 
     <UserControl.Resources>
         <!-- Context menu for media items -->
-        <MenuFlyout x:Key="ItemMenuFlyout">
+        <MenuFlyout x:Key="ItemMenuFlyout" x:CompileBindings="False">
             <MenuItem Header="Open / Preview"
                       Command="{Binding $parent[UserControl].DataContext.OpenItemCommand}"
                       CommandParameter="{Binding}"/>
@@ -54,7 +54,7 @@
                         AutomationProperties.Name="Navigate Up"/>
                 <Separator Classes="vertical" Height="20"/>
                 <Button Content="🔄 Refresh"
-                        Command="{Binding RefreshAsyncCommand}"
+                        Command="{Binding RefreshCommand}"
                         IsEnabled="{Binding !IsLoading}"
                         AutomationProperties.Name="Refresh"/>
                 <Separator Classes="vertical" Height="20"/>
@@ -110,7 +110,7 @@
                          Watermark="Search files..."
                          AutomationProperties.Name="Search Files">
                     <TextBox.KeyBindings>
-                        <KeyBinding Gesture="Return" Command="{Binding SearchAsyncCommand}"/>
+                        <KeyBinding Gesture="Return" Command="{Binding SearchCommand}"/>
                     </TextBox.KeyBindings>
                 </TextBox>
 
@@ -145,7 +145,7 @@
                 <!-- Apply search button -->
                 <Button Grid.Column="8"
                         Content="Apply"
-                        Command="{Binding SearchAsyncCommand}"
+                        Command="{Binding SearchCommand}"
                         Classes="accent"
                         AutomationProperties.Name="Apply Search"/>
             </Grid>
@@ -225,7 +225,7 @@
 
                 <!-- Load More button -->
                 <Button Content="Load More..."
-                        Command="{Binding LoadMoreAsyncCommand}"
+                        Command="{Binding LoadMoreCommand}"
                         IsVisible="{Binding HasMoreItems}"
                         HorizontalAlignment="Center"
                         Padding="24,8"
@@ -311,7 +311,7 @@
 
                 <!-- Load More -->
                 <Button Content="Load More..."
-                        Command="{Binding LoadMoreAsyncCommand}"
+                        Command="{Binding LoadMoreCommand}"
                         IsVisible="{Binding HasMoreItems}"
                         HorizontalAlignment="Center"
                         Margin="0,8"
