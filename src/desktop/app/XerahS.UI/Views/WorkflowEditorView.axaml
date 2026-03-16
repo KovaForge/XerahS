@@ -48,7 +48,7 @@
                                           PlaceholderText="Select Category"
                                           AutomationProperties.Name="Job Category Selection">
                                     <ComboBox.ItemTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate x:DataType="vm:JobCategoryViewModel">
                                             <TextBlock Text="{Binding Name}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
@@ -62,7 +62,7 @@
                                           PlaceholderText="Select Task"
                                           AutomationProperties.Name="Job Task Selection">
                                     <ComboBox.ItemTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate x:DataType="vm:HotkeyItemViewModel">
                                             <TextBlock Text="{Binding Description}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>

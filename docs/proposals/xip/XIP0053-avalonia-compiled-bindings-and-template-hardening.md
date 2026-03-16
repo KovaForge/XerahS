@@ -1,6 +1,6 @@
 # XIP0053 - Avalonia Compiled Bindings and Template Hardening
 
-**Status**: Proposed  
+**Status**: Implemented  
 **Priority**: High  
 **Audit date**: 2026-03-17  
 **Related**: XIP0041, XIP0052
@@ -122,6 +122,12 @@ to:
 
 Then run compile, fix typed-binding errors, and explicitly mark truly dynamic paths with `ReflectionBinding`.
 
+Benefits:
+
+- **Early failure over late failure**: binding/path mistakes become build errors instead of runtime surprises.
+- **Immediate migration inventory**: enabling defaults exposed the real set of breakpoints across desktop UI and editor surfaces, which made follow-up work concrete instead of speculative.
+- **AOT/perf alignment**: this moves projects toward Avalonia's recommended compiled-binding path and away from reflection-heavy defaults.
+
 ### Phase 2 - Type all templates with `x:DataType`
 
 Audit and update untyped templates in:
@@ -134,6 +140,12 @@ Rule:
 - Every template with bindings gets an `x:DataType`.
 - If data is truly polymorphic/dynamic, document and use `ReflectionBinding` intentionally.
 
+Benefits:
+
+- **Safer refactors**: renaming view-model properties now fails at compile time where templates are typed.
+- **Cleaner intent**: each template advertises its expected data shape, improving readability and onboarding.
+- **Controlled dynamic exceptions**: dynamic bindings remain possible, but only where explicitly declared, reducing accidental runtime binding drift.
+
 ### Phase 3 - Replace default reflection `ViewLocator`
 
 Move from convention-only runtime lookup to explicit mapping:
@@ -142,6 +154,12 @@ Move from convention-only runtime lookup to explicit mapping:
 - Keep a narrow compatibility fallback during migration only.
 - Log any fallback usage so remaining dynamic paths are visible.
 
+Benefits:
+
+- **Deterministic view resolution**: common navigation paths no longer depend only on string-based `Type.GetType` conventions.
+- **Reduced runtime fragility**: namespace/name refactors are less likely to break screen resolution unexpectedly.
+- **Incremental safety**: keeping fallback behavior preserves compatibility while explicit mappings are expanded.
+
 ### Phase 4 - Command-first interaction pass (targeted)
 
 Prioritize high-use shell actions:
@@ -149,12 +167,112 @@ Prioritize high-use shell actions:
 - Convert suitable `Click="..."` paths in `MainWindow` and similar views to commands.
 - Keep code-behind handlers for truly view-specific behavior (focus, animation, control-only plumbing).
 
+Benefits:
+
+- **Higher testability**: command-backed actions are easier to exercise in view-model tests than code-behind event handlers.
+- **Better MVVM consistency**: application behavior is centralized in view models/services rather than split across many views.
+- **Lower coupling**: UI event wiring becomes thinner, which reduces regression risk during UI redesigns.
+
 ### Phase 5 - Verification and guardrails
 
 - Build with warnings-as-errors for affected projects where feasible.
 - Add CI checks for common binding regressions.
 - Add a lightweight lint/checklist: "new templates must include `x:DataType`."
 - Enable/verify binding trace logging in development to catch remaining dynamic issues quickly.
+
+Benefits:
+
+- **Prevents regression backslide**: guardrails make it hard to accidentally reintroduce reflection-only patterns.
+- **Faster PR feedback**: contributors get actionable failures in CI instead of delayed runtime bug reports.
+- **Sustained migration velocity**: explicit checks let the team continue phase-by-phase hardening without losing prior gains.
+
+---
+
+## Implementation Status (2026-03-17)
+
+### Phase 1 - Turn on compiled-binding defaults
+
+Status: **Implemented**
+
+- Enabled `<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>` in:
+  - `src/desktop/app/XerahS.UI/XerahS.UI.csproj`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj`
+
+Benefits realized:
+
+- Binding issues now fail at build time during normal development.
+- Migration work became concrete and trackable from compiler output.
+
+### Phase 2 - Type templates with `x:DataType` and explicit dynamic bindings
+
+Status: **Implemented**
+
+- Added `x:DataType` to all `DataTemplate` declarations in `XerahS.UI` and `ShareX.ImageEditor` presentation surfaces.
+- Added explicit type annotations for templates that already had `DataType` but lacked compiled binding typing metadata.
+- Preserved explicit dynamic template boundaries by using `x:Object` where the item shape is intentionally enum/object-driven.
+
+Benefits realized:
+
+- Stronger template safety across the entire migrated template surface area.
+- Fewer hidden runtime binding failures in navigation, settings, tools, and editor dialogs.
+
+### Phase 3 - Replace default reflection `ViewLocator` behavior
+
+Status: **Implemented**
+
+- `ViewLocator` now uses explicit type-to-view mappings first, with convention fallback retained for compatibility.
+
+Benefits realized:
+
+- More deterministic view resolution for common navigation paths.
+- Lower risk from namespace/type renames that previously depended on string conventions only.
+
+### Phase 4 - Command-first interaction pass
+
+Status: **Implemented**
+
+- Converted main shell menu navigation/open/exit wiring in `MainWindow` from direct `Click` handlers to command bindings (`NavigateMenuCommand`, `OpenImageMenuCommand`, `ExitMenuCommand`).
+- Converted dynamic workflow menu execution to command-based dispatch (`RunWorkflowFromMenuCommand`) instead of per-item click events.
+
+Benefits realized:
+
+- High-use shell actions now follow a command-first pattern, improving consistency with MVVM command flows.
+- Menu action behavior is easier to reason about and test because dispatch paths are centralized.
+
+### Phase 5 - Verification and guardrails
+
+Status: **Implemented**
+
+- Added CI workflow: `.github/workflows/compiled-bindings-guardrails.yml`.
+- Added template typing guard script: `build/ci/check_compiled_bindings_guardrails.py`.
+- CI now enforces:
+  - `x:DataType` presence on `DataTemplate` / `TreeDataTemplate` in hardened surfaces.
+  - `dotnet build -warnaserror` for:
+    - `src/desktop/app/XerahS.UI/XerahS.UI.csproj`
+    - `ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj`
+- Added contributor guideline: `developers/guidelines/AVALONIA_COMPILED_BINDING_GUIDELINES.md` and linked it from `developers/README.md`.
+
+Benefits realized:
+
+- Guardrails now prevent silent regressions in template typing and binding hygiene.
+- CI catches typed-binding regressions earlier and with explicit failure signals.
+
+---
+
+## Exit Criteria for Temporary `x:CompileBindings="False"`
+
+`x:CompileBindings="False"` is treated as a temporary migration aid and should be removed when all are true:
+
+1. The view has a stable `x:DataType` at root and all template scopes.
+2. Any dynamic binding path is explicitly marked with `ReflectionBinding`.
+3. The project builds cleanly without adding new AVLN binding errors.
+4. No runtime regressions are observed in smoke tests for that view.
+5. The opt-out is narrowed to smallest practical scope (never broad/global unless unavoidable).
+
+Current note:
+
+- All prior `x:CompileBindings="False"` temporary opt-outs in targeted surfaces have been removed.
+- Dynamic binding edges that remain are now explicitly represented through typed scopes and narrow `ReflectionBinding` usage where needed.
 
 ---
 

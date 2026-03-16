@@ -33,7 +33,7 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="vm:FileTypeItemViewModel">
                                 <CheckBox Content="{Binding DisplayText}"
                                           IsChecked="{Binding IsSelected}"
                                           IsEnabled="{Binding !IsBlocked}"
@@ -74,7 +74,7 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="x:String">
                                 <Border Classes="accent-chip"
                                         Margin="0,0,4,4">
                                     <TextBlock Text="{Binding StringFormat='.{0}'}"

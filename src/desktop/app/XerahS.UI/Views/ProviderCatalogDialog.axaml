@@ -29,7 +29,7 @@
                      </Style>
                 </ListBox.Styles>
                 <ListBox.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="vm:ProviderViewModel">
                         <StackPanel Spacing="4">
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding Description}" 

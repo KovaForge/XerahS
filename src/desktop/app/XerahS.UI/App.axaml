@@ -28,7 +28,7 @@
             <!-- Shared context menu used by both History and Toast.
                  Hosts store IHistoryItemMenuContext in Tag so this single flyout can bind consistently. -->
             <MenuFlyout x:Key="HistoryItemMenuFlyout"
-                        x:CompileBindings="False"
+                        x:DataType="vm:IHistoryItemMenuContext"
                         Opened="OnHistoryItemMenuFlyoutOpened">
                 <MenuItem Header="Edit..."
                           Command="{Binding EditImageCommand}"
@@ -69,7 +69,7 @@
         <local:ViewLocator/>
         
         <!-- Manual DataTemplate registrations for modal dialogs -->
-        <DataTemplate DataType="vm:ProviderCatalogViewModel">
+        <DataTemplate DataType="vm:ProviderCatalogViewModel" x:DataType="vm:ProviderCatalogViewModel">
             <views:ProviderCatalogView/>
         </DataTemplate>
     </Application.DataTemplates>

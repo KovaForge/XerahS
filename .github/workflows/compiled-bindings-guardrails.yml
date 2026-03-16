@@ -1,0 +1,41 @@
+name: Compiled Bindings Guardrails
+
+on:
+  pull_request:
+    paths:
+      - "src/desktop/app/XerahS.UI/**"
+      - "ShareX.ImageEditor/**"
+      - "build/ci/check_compiled_bindings_guardrails.py"
+      - ".github/workflows/compiled-bindings-guardrails.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src/desktop/app/XerahS.UI/**"
+      - "ShareX.ImageEditor/**"
+      - "build/ci/check_compiled_bindings_guardrails.py"
+      - ".github/workflows/compiled-bindings-guardrails.yml"
+  workflow_dispatch:
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Verify template typing guardrail
+        run: python3 build/ci/check_compiled_bindings_guardrails.py --repo-root .
+
+      - name: Build XerahS.UI with warnings as errors
+        run: dotnet build src/desktop/app/XerahS.UI/XerahS.UI.csproj -warnaserror
+
+      - name: Build ShareX.ImageEditor with warnings as errors
+        run: dotnet build ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj -warnaserror
+

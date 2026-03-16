@@ -29,6 +29,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -65,10 +66,18 @@ namespace XerahS.UI.Views
         /// </summary>
         public ObservableCollection<WorkflowSettings> UserWorkflows { get; } = new ObservableCollection<WorkflowSettings>();
         public ObservableCollection<NavigationNode> NavigationNodes { get; } = new ObservableCollection<NavigationNode>();
+        public IAsyncRelayCommand OpenImageMenuCommand { get; }
+        public IRelayCommand ExitMenuCommand { get; }
+        public IRelayCommand<string?> NavigateMenuCommand { get; }
+        public IRelayCommand<WorkflowSettings?> RunWorkflowFromMenuCommand { get; }
 
         public MainWindow()
         {
             InitializeComponent();
+            OpenImageMenuCommand = new AsyncRelayCommand(OpenImageFromFileAsync);
+            ExitMenuCommand = new RelayCommand(Close);
+            NavigateMenuCommand = new RelayCommand<string?>(NavigateFromMenuTag);
+            RunWorkflowFromMenuCommand = new RelayCommand<WorkflowSettings?>(RunWorkflowFromMenu);
             KeyDown += OnKeyDown;
             ApplyInitialWindowPlacement();
 
@@ -95,14 +104,20 @@ namespace XerahS.UI.Views
             NavigateTo("Editor");
         }
 
-        private void OnExitClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void NavigateFromMenuTag(string? navTag)
         {
-            Close();
+            if (!string.IsNullOrWhiteSpace(navTag))
+            {
+                NavigateTo(navTag);
+            }
         }
 
-        private async void OnOpenImageClick(object? sender, RoutedEventArgs e)
+        private void RunWorkflowFromMenu(WorkflowSettings? workflow)
         {
-            await OpenImageFromFileAsync();
+            if (workflow != null)
+            {
+                _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
+            }
         }
 
         private async Task OpenImageFromFileAsync()
@@ -294,14 +309,6 @@ namespace XerahS.UI.Views
             UpdateWorkflowMenuItems();
         }
 
-        private void OnWorkflowMenuItemClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            if (sender is MenuItem menuItem && menuItem.DataContext is WorkflowSettings workflow)
-            {
-                _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
-            }
-        }
-
         private void UpdateWorkflowMenuItems()
         {
             var runWorkflowsMenuItem = this.FindControl<MenuItem>("RunWorkflowsMenuItem");
@@ -317,9 +324,9 @@ namespace XerahS.UI.Views
                 var workflowMenuItem = new MenuItem
                 {
                     Header = GetWorkflowDisplayName(workflow),
-                    DataContext = workflow
+                    Command = RunWorkflowFromMenuCommand,
+                    CommandParameter = workflow
                 };
-                workflowMenuItem.Click += OnWorkflowMenuItemClick;
                 workflowMenuItems.Add(workflowMenuItem);
             }
 

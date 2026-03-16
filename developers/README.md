@@ -320,6 +320,7 @@ See also: [Destination Plugin Development Guide](plugins-destinations/README.md)
 3.  Follow MVVM separation: UI logic in Views, business logic in ViewModels
 4.  Add XML documentation for public APIs
 5.  Test on multiple platforms when possible
+6.  For Avalonia templates, follow `developers/guidelines/AVALONIA_COMPILED_BINDING_GUIDELINES.md`
 
 ## Building and Running
 

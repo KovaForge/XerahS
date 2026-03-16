@@ -55,7 +55,7 @@
                          BorderThickness="0"
                          AutomationProperties.Name="Hotkeys List">
                     <ListBox.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:HotkeyItemViewModel">
                             <views:HotkeySelectionControl Margin="0,0,0,8"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

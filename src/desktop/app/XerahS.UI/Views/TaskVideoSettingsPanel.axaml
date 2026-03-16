@@ -52,7 +52,7 @@
                                       MinWidth="240"
                                       AutomationProperties.Name="Preferred Linux Recording Backend">
                                 <ComboBox.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate x:DataType="x:Object">
                                         <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>

@@ -44,22 +44,6 @@ namespace XerahS.UI.Views
     {
         private NavigationNode? _captureNavigationNode;
 
-        private void OnMenuNavigateClick(object? sender, RoutedEventArgs e)
-        {
-            if (sender is not MenuItem menuItem)
-            {
-                return;
-            }
-
-            string? navTag = menuItem.Tag?.ToString();
-            if (string.IsNullOrWhiteSpace(navTag))
-            {
-                return;
-            }
-
-            NavigateTo(navTag);
-        }
-
         private void OnNavSelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
             ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");

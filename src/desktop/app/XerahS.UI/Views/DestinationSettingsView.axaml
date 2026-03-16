@@ -24,7 +24,7 @@
                          Background="Transparent"
                          AutomationProperties.Name="Destination Categories">
                     <ListBox.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:CategoryViewModel">
                             <TextBlock Text="{Binding Name}" Margin="0,4"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -75,7 +75,7 @@
                              Background="Transparent"
                              AutomationProperties.Name="Destination Instances">
                         <ListBox.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                 <Grid ColumnDefinitions="Auto, 12, *, 8, Auto" Margin="4">
                                     <Path Grid.Column="0" 
                                           Data="M12,0A12,12,0,1,0,24,12,12,12,0,0,0,12,0ZM10.8,18.6L4.2,12l1.68-1.68L10.8,15.24l7.32-7.32L19.8,9.6Z"
@@ -190,7 +190,7 @@
                                 <TextBlock Text="File Type Configuration" FontWeight="SemiBold" FontSize="16"/>
                                 <ContentControl Content="{Binding SelectedCategory.SelectedInstance}">
                                     <ContentControl.ContentTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                             <controls:FileTypeSelectorControl/>
                                         </DataTemplate>
                                     </ContentControl.ContentTemplate>

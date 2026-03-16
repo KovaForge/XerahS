@@ -90,7 +90,7 @@
                          Background="Transparent"
                          AutomationProperties.Name="Workflows List">
                     <ListBox.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:HotkeyItemViewModel">
                             <controls:HotkeySelectionControl Margin="0,4"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
