@@ -267,6 +267,8 @@ public sealed class LinuxClipboardService : IClipboardService
 
     private static async Task<byte[]?> ReadBytesAsync(string tool, string args)
     {
+        const int clipboardReadTimeoutMs = 2000;
+
         try
         {
             using var process = CreateProcess(tool, args);
@@ -274,9 +276,29 @@ public sealed class LinuxClipboardService : IClipboardService
                 return null;
 
             await using var ms = new MemoryStream();
-            await process.StandardOutput.BaseStream.CopyToAsync(ms);
-            var exited = await Task.Run(() => process.WaitForExit(2000));
-            return exited && process.ExitCode == 0 ? ms.ToArray() : null;
+            using var timeoutCts = new CancellationTokenSource(clipboardReadTimeoutMs);
+
+            try
+            {
+                await process.StandardOutput.BaseStream.CopyToAsync(ms, timeoutCts.Token);
+                await process.WaitForExitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                    // Ignore kill failures when read timed out.
+                }
+
+                return null;
+            }
+
+            return process.ExitCode == 0 ? ms.ToArray() : null;
         }
         catch
         {

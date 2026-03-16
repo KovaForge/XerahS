@@ -170,11 +170,34 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private void LoadFromClipboard()
+    private async Task LoadFromClipboardAsync()
     {
-        if (!PlatformServices.IsInitialized || PlatformServices.Clipboard == null) return;
+        if (!PlatformServices.IsInitialized || PlatformServices.Clipboard == null)
+        {
+            return;
+        }
 
-        var content = ClipboardContentHelper.ParseClipboard(PlatformServices.Clipboard);
+        const int clipboardReadTimeoutMs = 5000;
+        ClipboardContent? content = null;
+
+        try
+        {
+            var parseTask = Task.Run(() => ClipboardContentHelper.ParseClipboard(PlatformServices.Clipboard));
+            var completedTask = await Task.WhenAny(parseTask, Task.Delay(clipboardReadTimeoutMs));
+            if (completedTask != parseTask)
+            {
+                DebugHelper.WriteLine($"UploadContent: Clipboard read timed out after {clipboardReadTimeoutMs}ms.");
+                return;
+            }
+
+            content = await parseTask;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "UploadContent: Clipboard parsing failed.");
+            return;
+        }
+
         if (content == null)
         {
             DebugHelper.WriteLine("UploadContent: Clipboard is empty or unsupported.");
