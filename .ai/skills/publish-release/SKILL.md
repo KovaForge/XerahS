@@ -1,6 +1,6 @@
 ﻿---
-name: xerahs-release-bump-tag
-description: "Orchestrate XerahS release flow in strict order: maintenance-chores first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then optionally set pre-release. On failures, inspect logs, fix root cause, and retry with the next patch release."
+name: publish-release
+description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then optionally set pre-release. On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -47,13 +47,13 @@ Step 6 performs:
 From repository root:
 
 ```bash
-./.ai/skills/xerahs-release-bump-tag/scripts/run-release-sequence.sh
+./.ai/skills/publish-release/scripts/run-release-sequence.sh
 ```
 
 Automated monitor + pre-release (recommended):
 
 ```bash
-./.ai/skills/xerahs-release-bump-tag/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
 ```
 
 Manual monitor (fallback, PowerShell example):
@@ -69,25 +69,25 @@ gh run view <run-id> --json status,conclusion,jobs,url
 Patch bump, no prompts:
 
 ```bash
-./.ai/skills/xerahs-release-bump-tag/scripts/run-release-sequence.sh --assume-changelog-done --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --bump z --yes
 ```
 
 Patch bump with built-in 2-minute monitoring:
 
 ```bash
-./.ai/skills/xerahs-release-bump-tag/scripts/run-release-sequence.sh --assume-changelog-done --monitor --monitor-interval 120 --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --monitor-interval 120 --bump z --yes
 ```
 
 Minor bump with custom commit token/summary:
 
 ```bash
-./.ai/skills/xerahs-release-bump-tag/scripts/run-release-sequence.sh --assume-changelog-done --bump y --type CI --summary "Prepare release artifacts" --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --bump y --type CI --summary "Prepare release artifacts" --yes
 ```
 
 Preview only:
 
 ```bash
-./.ai/skills/xerahs-release-bump-tag/scripts/run-release-sequence.sh --assume-changelog-done --bump z --dry-run --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --bump z --dry-run --yes
 ```
 
 ## When bash is unavailable (e.g. Windows PowerShell)
@@ -140,7 +140,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 
 ## Behavior
 
-1. Require completion of `maintenance-chores` first.
+1. Require completion of `run-maintenance` first.
    - Script behavior: executes maintenance commands automatically unless explicitly bypassed with `--skip-maintenance` (or legacy alias `--assume-maintenance-done`).
 2. Require completion of `update-changelog` second (skip if no `CHANGELOG.md` or user confirms).
 3. Before bump, run `dotnet build src/desktop/XerahS.sln`; abort on failure.

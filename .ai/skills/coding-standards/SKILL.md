@@ -61,13 +61,13 @@ This is required to avoid "Windows Metadata not provided" errors during full sol
 - Keep changes minimal and targeted.
 - Add small comments only when necessary to explain non-obvious logic.
 - **CRITICAL:** After modifying code, always run `dotnet build` and fix all build errors before finishing.
-- For Git workflow, commit format, and version bump behavior, follow `.github/skills/xerahs-workflow/SKILL.md`.
+- For Git workflow, commit format, and version bump behavior, follow `.ai/skills/git-workflow/SKILL.md`.
 - **Ensure you can compile, and if not, fix the issues.** This is a mandatory check before finishing any coding task.
 
 ### Change Safety
 
 - Do not remove or rewrite unrelated content.
-- Apply version changes only via the workflow defined in `.github/skills/xerahs-workflow/SKILL.md`.
+- Apply version changes only via the workflow defined in `.ai/skills/git-workflow/SKILL.md`.
 - Flag assumptions clearly when requirements are ambiguous.
 
 ### Testing
@@ -80,7 +80,7 @@ This is required to avoid "Windows Metadata not provided" errors during full sol
 - Update or add docs when behavior or usage changes.
 - Keep filenames and headings descriptive and stable.
 - **Technical Documentation Location**: Automatically save all technical `.md` files that do not properly belong to other specific `docs/` subfolders in `docs/technical`. Do not save them in the root folder.
-- Commit expectations for documentation follow `.github/skills/xerahs-workflow/SKILL.md`.
+- Commit expectations for documentation follow `.ai/skills/git-workflow/SKILL.md`.
 
 ### Security
 

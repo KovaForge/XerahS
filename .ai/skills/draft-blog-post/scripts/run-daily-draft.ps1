@@ -8,7 +8,7 @@
   to fill Summary, Features, Fixes, etc. from git history.
 .EXAMPLE
   .\run-daily-draft.ps1
-  # Or from anywhere: powershell -NoProfile -ExecutionPolicy Bypass -File "C:\path\to\XerahS\.ai\skills\xerahs-blog-drafting\scripts\run-daily-draft.ps1"
+  # Or from anywhere: powershell -NoProfile -ExecutionPolicy Bypass -File "C:\path\to\XerahS\.ai\skills\draft-blog-post\scripts\run-daily-draft.ps1"
 #>
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"

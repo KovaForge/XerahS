@@ -1,6 +1,6 @@
 # One-time: merge legacy XIP*.md (old naming) into GitHub issues (masters), then remove old files.
 # Master = file name that matches GitHub issue (XIP####-slug.md). Old = any other XIP*.md under tasks/.
-# Usage: run from repo root: .\.ai\skills\xip-sync\scripts\merge-old-xips.ps1
+# Usage: run from repo root: .\.ai\skills\sync-xips\scripts\merge-old-xips.ps1
 
 $ErrorActionPreference = "Stop"
 

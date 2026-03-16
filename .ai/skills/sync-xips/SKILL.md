@@ -1,5 +1,5 @@
 ---
-name: xip-sync
+name: sync-xips
 description: Create and maintain XerahS Improvement Proposals (XIPs) with GitHub as source of truth and tasks folder as backup. Use when creating or editing XIPs, syncing XIPs between GitHub issues and the tasks folder, or when the user mentions XIP, GitHub issues for XIP, or tasks backup.
 ---
 
@@ -30,7 +30,7 @@ Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync.
    - Or check highest in `tasks/**/*.md` (e.g. XIP0044).
 
 2. **Draft the XIP body**  
-   - Use the structure in [XIP writing reference](.ai/skills/xip-writing/SKILL.md): Overview, Prerequisites, Implementation Phases, Non-Negotiable Rules, Deliverables, Affected Components.  
+   - Use the structure in [XIP writing reference](../write-xip/SKILL.md): Overview, Prerequisites, Implementation Phases, Non-Negotiable Rules, Deliverables, Affected Components.  
    - **Title format**: `XIP0044 Short Descriptive Title` (4-digit zero-padded number, single space, no brackets, no colon, no dash).
 
 3. **Create the GitHub issue**  
@@ -43,7 +43,7 @@ Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync.
    ```
 
 4. **Sync to tasks**  
-   - Run: `./.ai/skills/xip-sync/scripts/sync-from-github.ps1`  
+   - Run: `./.ai/skills/sync-xips/scripts/sync-from-github.ps1`  
    - The new XIP appears as `tasks/XIP####-Title-Slug.md`.
 
 ### Edit an existing XIP
@@ -53,14 +53,14 @@ Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync.
    - Or edit title/body in the GitHub issue in the browser.
 
 2. **Sync to tasks**  
-   - Run `./.ai/skills/xip-sync/scripts/sync-from-github.ps1` so the backup in `tasks/` is updated.
+   - Run `./.ai/skills/sync-xips/scripts/sync-from-github.ps1` so the backup in `tasks/` is updated.
 
 ### Sync GitHub → tasks (backup)
 
 Run from repo root:
 
 ```powershell
-.\.ai\skills\xip-sync\scripts\sync-from-github.ps1
+.\.ai\skills\sync-xips\scripts\sync-from-github.ps1
 ```
 
 - Reads all issues with label `xip`.
@@ -92,14 +92,14 @@ If the only good copy of a XIP is in the tasks folder:
   - 4-digit zero-padded number, single space, no `[ ]`, no `:`, no `-` between number and title.
 - **File name**: `XIP0044-Short-Descriptive-Title.md` (number + slug with hyphens).
 
-Full structure, templates, and patterns: [.ai/skills/xip-writing/SKILL.md](.ai/skills/xip-writing/SKILL.md).
+Full structure, templates, and patterns: [XIP writing reference](../write-xip/SKILL.md).
 
 ---
 
 ## Script location
 
-- **Sync (GitHub → tasks)**: `.ai/skills/xip-sync/scripts/sync-from-github.ps1`
-- **One-time merge of legacy files**: `.ai/skills/xip-sync/scripts/merge-old-xips.ps1` – merges old-named `XIP*.md` (e.g. in `tasks/complete/`) into the corresponding GitHub issue body, runs sync, then deletes the old files. Use after migrating to single-folder backup or when cleaning duplicates.
+- **Sync (GitHub → tasks)**: `.ai/skills/sync-xips/scripts/sync-from-github.ps1`
+- **One-time merge of legacy files**: `.ai/skills/sync-xips/scripts/merge-old-xips.ps1` – merges old-named `XIP*.md` (e.g. in `tasks/complete/`) into the corresponding GitHub issue body, runs sync, then deletes the old files. Use after migrating to single-folder backup or when cleaning duplicates.
 
 Run from repo root; requires `gh` CLI and PowerShell.
 

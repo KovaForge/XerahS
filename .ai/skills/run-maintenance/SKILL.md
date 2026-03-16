@@ -77,7 +77,7 @@ Write-Host "Current Version: $version"
 
 #### 3.0 Execute Changelog Update Skill (Primary Method)
 
-**Location**: `.github/skills/update-changelog/SKILL.md`
+**Location**: `.ai/skills/update-changelog/SKILL.md`
 
 Run the dedicated changelog management skill which handles:
 - Version grouping strategy (minor version breakdowns)
@@ -233,7 +233,7 @@ git -C ../ShareX push origin develop
 - ✅ Pull all repositories (main XerahS, ShareX.ImageEditor submodule, website, ShareX)
 - ✅ Determine appropriate version bump (patch/minor/major)
 - ✅ Update `Directory.Build.props` in both main and ShareX.ImageEditor
-- ✅ **Run `.github/skills/update-changelog/SKILL.md` to consolidate and format changelog** ← PRIMARY STEP
+- ✅ **Run `.ai/skills/update-changelog/SKILL.md` to consolidate and format changelog** ← PRIMARY STEP
 - ✅ Update version references in README/docs as needed
 - ✅ Run `dotnet build` to validate changes
 - ✅ **Check status of ALL repositories and submodules (`git status --short` in each)**
@@ -313,8 +313,8 @@ git -C ../xerahs.github.io add . ; git -C ../xerahs.github.io commit -m "[vX.Y.Z
 
 ## 🔗 Related Documentation
 
-- [Update Changelog Skill](.github/skills/update-changelog/SKILL.md) - **Dedicated changelog management, versioning, and consolidation rules** (Primary step in Phase 3)
-- [AGENTS.md](../../AGENTS.md) - General git workflow and commit format standards
-- [Development Standards](../development/CODING_STANDARDS.md)
-- [Release & Versioning](.github/skills/xerahs-workflow/SKILL.md)
+- [Update Changelog Skill](../update-changelog/SKILL.md) - **Dedicated changelog management, versioning, and consolidation rules** (Primary step in Phase 3)
+- [AGENTS.md](../../../AGENTS.md) - General git workflow and commit format standards
+- [Development Standards](../coding-standards/SKILL.md)
+- [Release & Versioning](../git-workflow/SKILL.md)
 

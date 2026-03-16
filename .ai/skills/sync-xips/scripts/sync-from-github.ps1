@@ -1,6 +1,6 @@
 # Sync XIP GitHub issues -> tasks folder (backup). Single folder; status stays in GitHub.
 # Source of truth: GitHub. Backup: tasks/*.md (one folder, no status-based paths).
-# Usage: run from repo root: .\.ai\skills\xip-sync\scripts\sync-from-github.ps1
+# Usage: run from repo root: .\.ai\skills\sync-xips\scripts\sync-from-github.ps1
 
 $ErrorActionPreference = "Stop"
 

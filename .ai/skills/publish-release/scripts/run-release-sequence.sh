@@ -6,7 +6,7 @@ usage() {
 Usage: run-release-sequence.sh [sequence-options] [-- bump-script-options]
 
 Run release flow in strict order:
-1) maintenance-chores skill
+1) run-maintenance skill
 2) update-changelog skill
 3) bump-version-commit-tag.sh
 4) optional: monitor tag release workflow until complete
@@ -21,7 +21,7 @@ Sequence options:
   -h, --help                  Show this help
 
 All other options are passed through to:
-  ./.ai/skills/xerahs-release-bump-tag/scripts/bump-version-commit-tag.sh
+  ./.ai/skills/publish-release/scripts/bump-version-commit-tag.sh
 USAGE
 }
 
@@ -298,9 +298,9 @@ fi
 cd "$repo_root"
 repo_root="$(pwd -P)"
 
-maintenance_skill="$repo_root/.ai/skills/maintenance-chores/SKILL.md"
+maintenance_skill="$repo_root/.ai/skills/run-maintenance/SKILL.md"
 changelog_skill="$repo_root/.ai/skills/update-changelog/SKILL.md"
-bump_script="$repo_root/.ai/skills/xerahs-release-bump-tag/scripts/bump-version-commit-tag.sh"
+bump_script="$repo_root/.ai/skills/publish-release/scripts/bump-version-commit-tag.sh"
 
 if [[ ! -f "$maintenance_skill" ]]; then
   echo "Error: required skill file not found: $maintenance_skill" >&2

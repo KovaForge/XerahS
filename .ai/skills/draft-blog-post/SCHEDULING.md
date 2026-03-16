@@ -14,10 +14,10 @@ Cursor has **Automations**: cloud agents that run on a **schedule** (including c
 1. Create a new automation → choose **Scheduled** trigger.
 2. Set the schedule (e.g. daily at 00:10 UTC+8, or use a cron expression like `10 0 * * *` if your automation uses UTC+8).
 3. Select the **XerahS** repository and the branch (e.g. `develop`).
-4. In the prompt, instruct the agent to run the **xerahs-blog-drafting** skill for **today** (UTC+8). For example:
+4. In the prompt, instruct the agent to run the **draft-blog-post** skill for **today** (UTC+8). For example:
 
    ```text
-   Run the xerahs-blog-drafting skill for today (UTC+8). Follow the skill at .ai/skills/xerahs-blog-drafting/SKILL.md:
+   Run the draft-blog-post skill for today (UTC+8). Follow the skill at .ai/skills/draft-blog-post/SKILL.md:
    - Resolve today's date in UTC+8 and ensure docs/blog/YYYY/YYYY-MM/blog-YYYYMMDD.md exists (use the upsert script if needed).
    - Gather git log (author date in UTC+8) for today from this repo and the ShareX.ImageEditor submodule (and XerahS.Editor if present). Use --since="<today>T00:00:00+08:00" --until="<tomorrow>T00:00:00+08:00" so author dates fall on the current UTC+8 day.
    - Populate all sections (Summary, Features, Fixes, Build and Tooling, Commits Reviewed, Notes) from real commits only. No placeholders.
@@ -44,7 +44,7 @@ If you use **Task Scheduler** or **cron** (below), the job only runs the **draft
 3. **Action**: Start a program.
    - **Program**: `powershell.exe`
    - **Arguments**:  
-     `-NoProfile -ExecutionPolicy Bypass -File "C:\Users\liveu\source\repos\ShareX Team\XerahS\.ai\skills\xerahs-blog-drafting\scripts\run-daily-draft.ps1"`
+     `-NoProfile -ExecutionPolicy Bypass -File "C:\Users\liveu\source\repos\ShareX Team\XerahS\.ai\skills\draft-blog-post\scripts\run-daily-draft.ps1"`
    - Use the **actual** path to your XerahS repo if different.
 4. **Start in**: Optional; `run-daily-draft.ps1` switches to the repo root itself.
 5. Under **Settings**, allow the task to run when the user is logged off if you want it to run in the background.
@@ -52,7 +52,7 @@ If you use **Task Scheduler** or **cron** (below), the job only runs the **draft
 One-time test from PowerShell (run from any directory):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\liveu\source\repos\ShareX Team\XerahS\.ai\skills\xerahs-blog-drafting\scripts\run-daily-draft.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\liveu\source\repos\ShareX Team\XerahS\.ai\skills\draft-blog-post\scripts\run-daily-draft.ps1"
 ```
 
 ## Linux / WSL / macOS (cron)
@@ -64,13 +64,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\liveu\source\repos
 Example (run at 00:05 in a timezone that’s UTC+8, e.g. `TZ=Asia/Shanghai`):
 
 ```cron
-5 0 * * * TZ=Asia/Shanghai powershell -NoProfile -ExecutionPolicy Bypass -File "/path/to/XerahS/.ai/skills/xerahs-blog-drafting/scripts/run-daily-draft.ps1"
+5 0 * * * TZ=Asia/Shanghai powershell -NoProfile -ExecutionPolicy Bypass -File "/path/to/XerahS/.ai/skills/draft-blog-post/scripts/run-daily-draft.ps1"
 ```
 
 If you use bash and the repo is in `$HOME/repos/XerahS`:
 
 ```cron
-5 0 * * * cd "$HOME/repos/XerahS" && powershell -NoProfile -ExecutionPolicy Bypass -File ".ai/skills/xerahs-blog-drafting/scripts/run-daily-draft.ps1"
+5 0 * * * cd "$HOME/repos/XerahS" && powershell -NoProfile -ExecutionPolicy Bypass -File ".ai/skills/draft-blog-post/scripts/run-daily-draft.ps1"
 ```
 
 (On macOS/Linux you may need `pwsh` if you use PowerShell Core, and the path to the script must be absolute or relative to the `cd` directory.)
@@ -81,6 +81,6 @@ If you use bash and the repo is in `$HOME/repos/XerahS`:
 |---------------------|------------------------------|---------------------------------------------------------------------|
 | Full skill (draft + content + commit) | Once per day (scheduled)     | **Cursor Automations** → scheduled trigger + prompt (see above)    |
 | Draft file only     | Once per day (scheduled)     | Task Scheduler / cron → `run-daily-draft.ps1`                       |
-| Content + commit    | Manual                       | Run xerahs-blog-drafting skill in Cursor (or rely on Automations)    |
+| Content + commit    | Manual                       | Run draft-blog-post skill in Cursor (or rely on Automations)    |
 
 **Recommendation:** Use **Cursor Automations** with a daily schedule to run the full skill (draft, git-based content, single-file commit) without opening the editor. Use **Task Scheduler / cron** only if you want to ensure the draft file exists and you’ll run the skill yourself later.
