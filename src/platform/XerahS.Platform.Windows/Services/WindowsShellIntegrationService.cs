@@ -35,6 +35,13 @@ namespace XerahS.Platform.Windows.Services;
 /// </summary>
 public sealed class WindowsShellIntegrationService : IShellIntegrationService
 {
+    private const string UploadContextMenuDisplayName = "Upload with XerahS";
+    private const string FilesContextMenuPath = @"Software\Classes\*\shell\XerahSUpload";
+    private const string FilesContextMenuCommandPath = @"Software\Classes\*\shell\XerahSUpload\command";
+    private const string DirectoryContextMenuPath = @"Software\Classes\Directory\shell\XerahSUpload";
+    private const string DirectoryContextMenuCommandPath = @"Software\Classes\Directory\shell\XerahSUpload\command";
+    private const string SendToScriptName = "XerahS.cmd";
+
     private const string ShellPluginExtensionPath = @"Software\Classes\.xsdp";
     private readonly string ShellPluginExtensionValue = $"{AppResources.AppName}.xsdp";
     private readonly string ShellPluginAssociatePath;
@@ -57,6 +64,10 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         ShellPluginIconValue = $"{ApplicationPath},0"; // Extract icon from .exe
         ShellPluginCommandValue = $"{ApplicationPath} -InstallPlugin \"%1\"";
     }
+
+    public bool SupportsPluginExtensionRegistration => OperatingSystem.IsWindows();
+    public bool SupportsContextMenuIntegration => OperatingSystem.IsWindows();
+    public bool SupportsSendToIntegration => OperatingSystem.IsWindows();
 
     /// <summary>
     /// Check if .xsdp file association is registered
@@ -101,6 +112,119 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         catch (Exception e)
         {
             DebugHelper.WriteException(e);
+        }
+    }
+
+    public bool IsContextMenuIntegrationEnabled()
+    {
+        if (!SupportsContextMenuIntegration)
+            return false;
+
+        try
+        {
+            string commandValue = $"{ApplicationPath} \"%1\"";
+            return CheckRegistryValue(FilesContextMenuPath, null, UploadContextMenuDisplayName) &&
+                   CheckRegistryValue(FilesContextMenuCommandPath, null, commandValue) &&
+                   CheckRegistryValue(DirectoryContextMenuPath, null, UploadContextMenuDisplayName) &&
+                   CheckRegistryValue(DirectoryContextMenuCommandPath, null, commandValue);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex);
+            return false;
+        }
+    }
+
+    public bool SetContextMenuIntegration(bool enable)
+    {
+        if (!SupportsContextMenuIntegration)
+            return !enable;
+
+        try
+        {
+            if (enable)
+            {
+                string commandValue = $"{ApplicationPath} \"%1\"";
+                CreateRegistryKey(FilesContextMenuPath, UploadContextMenuDisplayName);
+                CreateRegistryKey(FilesContextMenuPath, "Icon", $"{ApplicationPath},0");
+                CreateRegistryKey(FilesContextMenuPath, "MUIVerb", UploadContextMenuDisplayName);
+                CreateRegistryKey(FilesContextMenuPath, "Position", "Bottom");
+                CreateRegistryKey(FilesContextMenuCommandPath, commandValue);
+
+                CreateRegistryKey(DirectoryContextMenuPath, UploadContextMenuDisplayName);
+                CreateRegistryKey(DirectoryContextMenuPath, "Icon", $"{ApplicationPath},0");
+                CreateRegistryKey(DirectoryContextMenuPath, "MUIVerb", UploadContextMenuDisplayName);
+                CreateRegistryKey(DirectoryContextMenuPath, "Position", "Bottom");
+                CreateRegistryKey(DirectoryContextMenuCommandPath, commandValue);
+            }
+            else
+            {
+                RemoveRegistryKey(FilesContextMenuPath);
+                RemoveRegistryKey(DirectoryContextMenuPath);
+            }
+
+            SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero);
+            return IsContextMenuIntegrationEnabled() == enable;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex);
+            return false;
+        }
+    }
+
+    public bool IsSendToIntegrationEnabled()
+    {
+        if (!SupportsSendToIntegration)
+            return false;
+
+        try
+        {
+            string scriptPath = GetSendToScriptPath();
+            if (!File.Exists(scriptPath))
+            {
+                return false;
+            }
+
+            string content = File.ReadAllText(scriptPath);
+            return content.Contains(Environment.ProcessPath ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex);
+            return false;
+        }
+    }
+
+    public bool SetSendToIntegration(bool enable)
+    {
+        if (!SupportsSendToIntegration)
+            return !enable;
+
+        try
+        {
+            string scriptPath = GetSendToScriptPath();
+            string? directoryPath = Path.GetDirectoryName(scriptPath);
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            if (enable)
+            {
+                File.WriteAllText(scriptPath, BuildSendToScript());
+            }
+            else if (File.Exists(scriptPath))
+            {
+                File.Delete(scriptPath);
+            }
+
+            return IsSendToIntegrationEnabled() == enable;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex);
+            return false;
         }
     }
 
@@ -180,6 +304,21 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         }
 
         return false;
+    }
+
+    private static string GetSendToScriptPath()
+    {
+        string sendToPath = Environment.GetFolderPath(Environment.SpecialFolder.SendTo);
+        return Path.Combine(sendToPath, SendToScriptName);
+    }
+
+    private string BuildSendToScript()
+    {
+        return
+$"""
+@echo off
+"{Environment.ProcessPath}" %*
+""";
     }
 
     // P/Invoke for shell notification

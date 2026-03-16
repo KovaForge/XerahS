@@ -64,7 +64,7 @@ namespace XerahS.Platform.Windows
                 hotkeyService: new WindowsHotkeyService(),
                 inputService: new WindowsInputService(),
                 fontService: new WindowsFontService(),
-                startupService: new UnsupportedStartupService(),
+                startupService: new Services.WindowsStartupService(),
                 systemService: new Services.WindowsSystemService(),
                 shellIntegrationService: new Services.WindowsShellIntegrationService(),
                 notificationService: new WindowsNotificationService(),
