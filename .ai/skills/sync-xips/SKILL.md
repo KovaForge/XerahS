@@ -1,23 +1,23 @@
 ---
 name: sync-xips
-description: Create and maintain XerahS Improvement Proposals (XIPs) with GitHub as source of truth and tasks folder as backup. Use when creating or editing XIPs, syncing XIPs between GitHub issues and the tasks folder, or when the user mentions XIP, GitHub issues for XIP, or tasks backup.
+description: Create and maintain XerahS Improvement Proposals (XIPs) with GitHub as source of truth and docs/proposals/xip folder as backup. Use when creating or editing XIPs, syncing XIPs between GitHub issues and the docs/proposals/xip folder, or when the user mentions XIP, GitHub issues for XIP, or local XIP files.
 ---
 
 # XIP Sync Skill
 
 **Source of truth**: GitHub issues (label `xip`).  
-**Backup**: `tasks/` folder (generated from GitHub via sync).
+**Backup**: `docs/proposals/xip/` folder (generated from GitHub via sync).
 
-Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync. Do not treat the tasks folder as the primary place to write XIPs.
+Create and edit XIPs in GitHub; keep a local backup in `docs/proposals/xip/` by running sync. Do not treat the local folder as the primary place to write XIPs.
 
 ---
 
 ## Principles
 
 1. **Create and edit XIPs in GitHub** – Use `gh issue create` / `gh issue edit` (or the GitHub UI). The issue body holds the full XIP markdown. Status (open/closed/parked) lives only in GitHub via issue state and labels.
-2. **Sync GitHub → tasks** – Run the sync script to write one `.md` file per XIP under `tasks/` (single folder). Files do not move; status is not reflected in paths.
-3. **Tasks folder is read-only for XIP content** – Do not edit XIP content in the tasks folder; edit the GitHub issue, then sync.
-4. **Recovery** – If the only copy of a XIP is in tasks, create a new issue with that content and then sync.
+2. **Sync GitHub → docs/proposals/xip** – Run the sync script to write one `.md` file per XIP under `docs/proposals/xip/` (single folder). Files do not move; status is not reflected in paths.
+3. **docs/proposals/xip folder is read-only for XIP content** – Do not edit XIP content in the local folder; edit the GitHub issue, then sync.
+4. **Recovery** – If the only copy of a XIP is in `docs/proposals/xip/`, create a new issue with that content and then sync.
 
 ---
 
@@ -27,7 +27,7 @@ Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync.
 
 1. **Choose the next XIP number**  
    - List existing: `gh issue list --label xip --limit 500 --json number,title`  
-   - Or check highest in `tasks/**/*.md` (e.g. XIP0044).
+   - Or check highest in `docs/proposals/xip/*.md` (e.g. XIP0044).
 
 2. **Draft the XIP body**  
    - Use the structure in [XIP writing reference](../write-xip/SKILL.md): Overview, Prerequisites, Implementation Phases, Non-Negotiable Rules, Deliverables, Affected Components.  
@@ -42,9 +42,9 @@ Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync.
    gh issue create --title "XIP0044 Your Title" --label "xip" --body-file path/to/draft.md
    ```
 
-4. **Sync to tasks**  
+4. **Sync to docs/proposals/xip**  
    - Run: `./.ai/skills/sync-xips/scripts/sync-from-github.ps1`  
-   - The new XIP appears as `tasks/XIP####-Title-Slug.md`.
+   - The new XIP appears as `docs/proposals/xip/XIP####-Title-Slug.md`.
 
 ### Edit an existing XIP
 
@@ -52,10 +52,10 @@ Create and edit XIPs in GitHub; keep a local backup in `tasks/` by running sync.
    - `gh issue edit <number> --title "XIP0044 New Title" --body-file path/to/updated.md`  
    - Or edit title/body in the GitHub issue in the browser.
 
-2. **Sync to tasks**  
-   - Run `./.ai/skills/sync-xips/scripts/sync-from-github.ps1` so the backup in `tasks/` is updated.
+2. **Sync to docs/proposals/xip**  
+   - Run `./.ai/skills/sync-xips/scripts/sync-from-github.ps1` so the backup in `docs/proposals/xip/` is updated.
 
-### Sync GitHub → tasks (backup)
+### Sync GitHub → docs/proposals/xip (backup)
 
 Run from repo root:
 
@@ -64,25 +64,25 @@ Run from repo root:
 ```
 
 - Reads all issues with label `xip`.
-- Writes/overwrites one `.md` file per XIP under **`tasks/`** (single folder). Status is not synced to paths; it stays in GitHub (issue state and labels).
+- Writes/overwrites one `.md` file per XIP under **`docs/proposals/xip/`** (single folder). Status is not synced to paths; it stays in GitHub (issue state and labels).
 - Filename: `XIP####-Title-Slug.md` (number from title, rest from slug of title).
 - File content: issue body only (no extra “issue” wrapper). If the body contains a “XIP Document” block from an old migration, the script strips it and uses the actual XIP content.
 
-### Recovery: tasks → GitHub
+### Recovery: docs/proposals/xip → GitHub
 
-If the only good copy of a XIP is in the tasks folder:
+If the only good copy of a XIP is in the local folder:
 
 1. Create a new issue with that file as the body and label `xip`:
    ```powershell
-   gh issue create --title "XIP0044 Title From File" --label "xip" --body-file "tasks/XIP0044-Something.md"
+   gh issue create --title "XIP0044 Title From File" --label "xip" --body-file "docs/proposals/xip/XIP0044-Something.md"
    ```
-2. Run sync so the backup is consistent with GitHub.
+2. Run sync so the local copy is consistent with GitHub.
 
 ---
 
 ## Backup layout
 
-- All XIP backup files live in **`tasks/`** as `XIP####-Title-Slug.md`. Status (open/closed/parked) is **not** reflected in folder structure; it lives only in GitHub issues (state and labels). This avoids moving files and breaking links when status changes.
+- All XIP backup files live in **`docs/proposals/xip/`** as `XIP####-Title-Slug.md`. Status (open/closed/parked) is **not** reflected in folder structure; it lives only in GitHub issues (state and labels). This avoids moving files and breaking links when status changes.
 
 ---
 
@@ -98,8 +98,8 @@ Full structure, templates, and patterns: [XIP writing reference](../write-xip/SK
 
 ## Script location
 
-- **Sync (GitHub → tasks)**: `.ai/skills/sync-xips/scripts/sync-from-github.ps1`
-- **One-time merge of legacy files**: `.ai/skills/sync-xips/scripts/merge-old-xips.ps1` – merges old-named `XIP*.md` (e.g. in `tasks/complete/`) into the corresponding GitHub issue body, runs sync, then deletes the old files. Use after migrating to single-folder backup or when cleaning duplicates.
+- **Sync (GitHub → docs/proposals/xip)**: `.ai/skills/sync-xips/scripts/sync-from-github.ps1`
+- **One-time merge of legacy files**: `.ai/skills/sync-xips/scripts/merge-old-xips.ps1` – merges old-named `XIP*.md` (e.g. in `docs/proposals/xip/`) into the corresponding GitHub issue body, runs sync, then deletes the old files. Use after migrating to single-folder backup or when cleaning duplicates.
 
 Run from repo root; requires `gh` CLI and PowerShell.
 
@@ -108,6 +108,6 @@ Run from repo root; requires `gh` CLI and PowerShell.
 ## Key takeaways
 
 1. **GitHub first** – Create and edit XIPs as issues (label `xip`); issue body = full XIP.
-2. **Tasks = backup** – One folder (`tasks/`); status only in GitHub. Run `sync-from-github.ps1` after changes.
-3. **Don’t edit XIP content in tasks** – Edit the issue, then sync.
+2. **docs/proposals/xip = backup** – One folder (`docs/proposals/xip/`); status only in GitHub. Run `sync-from-github.ps1` after changes.
+3. **Don't edit XIP content locally** – Edit the issue, then sync.
 4. **Naming** – `XIP0044 Title` (no brackets/colon/dash); file `XIP0044-Title-Slug.md`.

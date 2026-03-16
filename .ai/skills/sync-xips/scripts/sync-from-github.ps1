@@ -1,5 +1,5 @@
-# Sync XIP GitHub issues -> tasks folder (backup). Single folder; status stays in GitHub.
-# Source of truth: GitHub. Backup: tasks/*.md (one folder, no status-based paths).
+# Sync XIP GitHub issues -> docs/proposals/xip folder (backup). Single folder; status stays in GitHub.
+# Source of truth: GitHub. Backup: docs/proposals/xip/*.md (one folder, no status-based paths).
 # Usage: run from repo root: .\.ai\skills\sync-xips\scripts\sync-from-github.ps1
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +12,7 @@ for ($i = 0; $i -lt 5; $i++) {
 if (-not (Test-Path (Join-Path $repoRoot ".git"))) {
     Write-Error "Repo root not found. Run from XerahS repo."
 }
-$tasksRoot = Join-Path $repoRoot "tasks"
+$tasksRoot = Join-Path $repoRoot "docs/proposals/xip"
 if (-not (Test-Path $tasksRoot)) { New-Item -ItemType Directory -Path $tasksRoot -Force | Out-Null }
 Get-ChildItem -Path $tasksRoot -Filter "XIP*.md" -File | Remove-Item -Force
 
@@ -79,9 +79,9 @@ foreach ($issue in $issues) {
     }
 
     [System.IO.File]::WriteAllText($outPath, $content, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "  $fileName -> tasks/" -ForegroundColor Green
+    Write-Host "  $fileName -> docs/proposals/xip/" -ForegroundColor Green
     $written++
 }
 
 Write-Host ""
-Write-Host "Synced $written XIP(s) to tasks. Skipped $skipped." -ForegroundColor Cyan
+Write-Host "Synced $written XIP(s) to docs/proposals/xip. Skipped $skipped." -ForegroundColor Cyan
