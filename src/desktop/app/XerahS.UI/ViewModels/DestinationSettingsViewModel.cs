@@ -49,6 +49,7 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     private CategoryViewModel? _selectedCategory;
 
     private readonly IViewDialogService _dialogService;
+    private bool _isInitialized;
 
     public DestinationSettingsViewModel(IViewDialogService? dialogService = null)
     {
@@ -59,6 +60,12 @@ public partial class DestinationSettingsViewModel : ViewModelBase
 
     public async Task Initialize()
     {
+        if (_isInitialized)
+        {
+            Common.DebugHelper.WriteLine("[DestinationSettings] Initialize skipped (already initialized).");
+            return;
+        }
+
         Common.DebugHelper.WriteLine("[DestinationSettings] ========================================");
         Common.DebugHelper.WriteLine("[DestinationSettings] Initializing destination settings...");
 
@@ -95,6 +102,7 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         Common.DebugHelper.WriteLine("[DestinationSettings] ========================================");
 
         LoadCategories();
+        _isInitialized = true;
     }
 
     private void Provider_ConfigChanged(object? sender, EventArgs e)

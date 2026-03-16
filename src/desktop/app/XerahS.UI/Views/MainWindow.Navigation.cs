@@ -188,7 +188,8 @@ namespace XerahS.UI.Views
                     contentFrame.Content = new ApplicationSettingsView();
                     return true;
                 case "Settings_Dest":
-                    contentFrame.Content = new DestinationSettingsView();
+                    _destinationSettingsView ??= CreateDestinationSettingsView();
+                    contentFrame.Content = _destinationSettingsView;
                     return true;
                 case "Debug":
                     contentFrame.Content = new DebugView();
@@ -204,6 +205,11 @@ namespace XerahS.UI.Views
         private EditorView CreateEditorView()
         {
             return new EditorView();
+        }
+
+        private DestinationSettingsView CreateDestinationSettingsView()
+        {
+            return new DestinationSettingsView();
         }
 
         private void BuildNavigationNodes()

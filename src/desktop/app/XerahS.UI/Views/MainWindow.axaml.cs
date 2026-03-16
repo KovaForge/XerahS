@@ -57,6 +57,7 @@ namespace XerahS.UI.Views
         private const int MinimumPersistedWindowDimension = 200;
 
         private EditorView? _editorView = null;
+        private DestinationSettingsView? _destinationSettingsView = null;
         private bool _isOpenImageInProgress;
 
         /// <summary>
@@ -392,6 +393,26 @@ namespace XerahS.UI.Views
                         UpdateNavigationItems();
                     });
                 };
+            }
+
+            // Pre-warm Destination Settings so the first navigation does not pay init cost.
+            Dispatcher.UIThread.Post(() => _ = PreWarmDestinationSettingsAsync(), DispatcherPriority.Background);
+        }
+
+        private async Task PreWarmDestinationSettingsAsync()
+        {
+            try
+            {
+                _destinationSettingsView ??= CreateDestinationSettingsView();
+
+                if (_destinationSettingsView.DataContext is DestinationSettingsViewModel vm)
+                {
+                    await vm.Initialize();
+                }
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Failed to pre-warm Destination Settings");
             }
         }
 
