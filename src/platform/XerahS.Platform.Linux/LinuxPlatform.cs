@@ -88,6 +88,7 @@ namespace XerahS.Platform.Linux
                 fontService: new LinuxFontService(),
                 startupService: new LinuxStartupService(),
                 systemService: systemService,
+                shellIntegrationService: new LinuxShellIntegrationService(),
                 notificationService: new LinuxNotificationService(),
                 diagnosticService: new Services.LinuxDiagnosticService(),
                 watchFolderDaemonService: new LinuxWatchFolderDaemonService()
