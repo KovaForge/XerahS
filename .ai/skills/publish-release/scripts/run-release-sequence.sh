@@ -93,7 +93,7 @@ find_tag_run_id() {
       return 0
     fi
 
-    echo "Waiting for workflow run for $tag_name (attempt $attempt/$max_attempts)..."
+    echo "Waiting for workflow run for $tag_name (attempt $attempt/$max_attempts)..." >&2
     sleep 10
     attempt=$((attempt + 1))
   done
