@@ -35,6 +35,7 @@ namespace XerahS.Platform.Abstractions
         private static IPlatformInfo? _platformInfo;
         private static IScreenService? _screenService;
         private static IClipboardService? _clipboardService;
+        private static IClipboardMonitorService? _clipboardMonitorService;
         private static IWindowService? _windowService;
         private static IInputService? _inputService;
         private static IFontService? _fontService;
@@ -56,6 +57,12 @@ namespace XerahS.Platform.Abstractions
         {
             get => _clipboardService ?? throw new InvalidOperationException("Platform services not initialized. Call Initialize() first.");
             set => _clipboardService = value;
+        }
+
+        public static IClipboardMonitorService ClipboardMonitor
+        {
+            get => _clipboardMonitorService ?? new UnsupportedClipboardMonitorService();
+            set => _clipboardMonitorService = value;
         }
 
         public static IWindowService Window
@@ -226,7 +233,8 @@ namespace XerahS.Platform.Abstractions
             IDiagnosticService diagnosticService,
             IShellIntegrationService? shellIntegrationService = null,
             INotificationService? notificationService = null,
-            IWatchFolderDaemonService? watchFolderDaemonService = null)
+            IWatchFolderDaemonService? watchFolderDaemonService = null,
+            IClipboardMonitorService? clipboardMonitorService = null)
         {
             _platformInfo = platformInfo ?? throw new ArgumentNullException(nameof(platformInfo));
             _screenService = screenService ?? throw new ArgumentNullException(nameof(screenService));
@@ -242,6 +250,7 @@ namespace XerahS.Platform.Abstractions
             _shellIntegrationService = shellIntegrationService;  // Optional - null means shell integration not available
             _notificationService = notificationService;  // Optional - null means no native notifications
             _watchFolderDaemonService = watchFolderDaemonService ?? new UnsupportedWatchFolderDaemonService();
+            _clipboardMonitorService = clipboardMonitorService ?? new UnsupportedClipboardMonitorService();
         }
 
 
@@ -288,6 +297,7 @@ namespace XerahS.Platform.Abstractions
             _platformInfo = null;
             _screenService = null;
             _clipboardService = null;
+            _clipboardMonitorService = null;
             _windowService = null;
             _screenCaptureService = null;
             _inputService = null;

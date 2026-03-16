@@ -47,9 +47,12 @@ namespace XerahS.UI;
 public partial class App : Application
 {
     public static bool IsExiting { get; set; } = false;
+    private static readonly TimeSpan ClipboardViewerAutoOpenCooldown = TimeSpan.FromSeconds(2);
     private readonly IWorkflowOrchestrator _workflowOrchestrator = new WorkflowOrchestrator();
     private readonly ITrayIconController _trayIconController = new TrayIconController();
     private string _baseTitle = AppResources.ProductNameWithVersion;
+    private EventHandler? _clipboardChangedHandler;
+    private DateTime _lastClipboardViewerAutoOpenUtc = DateTime.MinValue;
 
     public override void Initialize()
     {
@@ -153,6 +156,7 @@ public partial class App : Application
             // Use native Win32 clipboard on Windows so image formats are published explicitly.
 #if WINDOWS
             PlatformServices.Clipboard = new WindowsClipboardService();
+            PlatformServices.ClipboardMonitor = new WindowsClipboardMonitorService(PlatformServices.Clipboard);
 #else
             PlatformServices.Clipboard = new Services.AvaloniaClipboardService(
                 desktop.MainWindow.Clipboard!,
@@ -206,9 +210,16 @@ public partial class App : Application
 
             _workflowOrchestrator.Start(desktop, _baseTitle);
             _trayIconController.Initialize();
+            InitializeClipboardMonitor(desktop.MainWindow);
 
             desktop.Exit += (sender, args) =>
             {
+                if (_clipboardChangedHandler != null)
+                {
+                    PlatformServices.ClipboardMonitor.ClipboardChanged -= _clipboardChangedHandler;
+                    _clipboardChangedHandler = null;
+                }
+                PlatformServices.ClipboardMonitor.Stop();
                 XerahS.Core.SettingsManager.SaveAllSettings();
                 DebugHelper.Shutdown();
             };
@@ -233,6 +244,51 @@ public partial class App : Application
     /// </summary>
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator.WorkflowManager;
+
+    private void InitializeClipboardMonitor(Window owner)
+    {
+        try
+        {
+            if (!SettingsManager.Settings.ShowClipboardContentViewer)
+            {
+                return;
+            }
+
+            var monitor = PlatformServices.ClipboardMonitor;
+            if (!monitor.IsSupported)
+            {
+                return;
+            }
+
+            _clipboardChangedHandler = (_, _) =>
+            {
+                if (!SettingsManager.Settings.ShowClipboardContentViewer)
+                {
+                    return;
+                }
+
+                var now = DateTime.UtcNow;
+                if (now - _lastClipboardViewerAutoOpenUtc < ClipboardViewerAutoOpenCooldown)
+                {
+                    return;
+                }
+
+                _lastClipboardViewerAutoOpenUtc = now;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    _ = UploadContentToolService.HandleWorkflowAsync(WorkflowType.ClipboardViewer, owner);
+                }, Avalonia.Threading.DispatcherPriority.Background);
+            };
+
+            monitor.ClipboardChanged += _clipboardChangedHandler;
+            monitor.Start();
+            DebugHelper.WriteLine("Clipboard monitor started: auto-open Clipboard Viewer on clipboard changes.");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to initialize clipboard monitor.");
+        }
+    }
 
     private void TrayIcon_Clicked(object? sender, EventArgs e)
     {
