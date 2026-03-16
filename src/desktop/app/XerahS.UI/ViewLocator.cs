@@ -25,17 +25,45 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using CommunityToolkit.Mvvm.ComponentModel;
+using XerahS.UI.ViewModels;
+using XerahS.UI.Views;
 
 namespace XerahS.UI;
 
 public class ViewLocator : IDataTemplate
 {
+    private static readonly IReadOnlyDictionary<Type, Func<Control>> KnownMappings =
+        new Dictionary<Type, Func<Control>>
+        {
+            [typeof(DebugViewModel)] = static () => new DebugView(),
+            [typeof(DestinationSettingsViewModel)] = static () => new DestinationSettingsView(),
+            [typeof(HistoryViewModel)] = static () => new HistoryView(),
+            [typeof(HotkeySettingsViewModel)] = static () => new HotkeySettingsView(),
+            [typeof(IndexFolderViewModel)] = static () => new IndexFolderPanel(),
+            [typeof(ProviderCatalogViewModel)] = static () => new ProviderCatalogView(),
+            [typeof(ProviderExplorerViewModel)] = static () => new ProviderExplorerView(),
+            [typeof(SettingsViewModel)] = static () => new SettingsView(),
+            [typeof(TaskSettingsViewModel)] = static () => new TaskSettingsPanel(),
+            [typeof(WorkflowEditorViewModel)] = static () => new WorkflowEditorView(),
+            [typeof(WorkflowsViewModel)] = static () => new WorkflowsView()
+        };
+
     public Control? Build(object? data)
     {
         if (data is null)
+        {
             return null;
+        }
 
-        var name = data.GetType().FullName!.Replace("ViewModel", "View").Replace("ViewModels", "Views");
+        Type vmType = data.GetType();
+        if (KnownMappings.TryGetValue(vmType, out var createKnownControl))
+        {
+            Control mapped = createKnownControl();
+            mapped.DataContext = data;
+            return mapped;
+        }
+
+        var name = vmType.FullName!.Replace("ViewModel", "View").Replace("ViewModels", "Views");
         var type = Type.GetType(name);
 
         if (type != null)
