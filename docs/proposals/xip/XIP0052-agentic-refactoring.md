@@ -118,6 +118,48 @@ This XIP should deliver the following outcomes:
 
 ---
 
+## Benefits After Refactoring
+
+When this XIP is complete, the codebase should feel materially better to work in, not just cleaner on paper.
+
+### 1. Faster, lower-risk feature work
+
+- New desktop features should require fewer edits across unrelated files.
+- Constructor signatures will communicate dependencies more clearly than static lookups.
+- Changes to capture, recording, or workflow orchestration will have a smaller review surface.
+
+### 2. Safer AI-assisted and human-assisted refactoring
+
+- Agents and contributors will be able to infer dependencies from constructors and registrations instead of chasing global state.
+- Smaller, responsibility-focused classes will reduce context-window pressure and accidental breakage.
+- Shared composition logic will make it easier to reason about what is actually available in each host.
+
+### 3. Better testability and easier regression prevention
+
+- View models will be testable with explicit fake services instead of Avalonia windows or service-locator setup.
+- Task and recording orchestration can be validated through interfaces rather than global singleton initialization.
+- Composition tests will catch registration drift before it turns into runtime failures.
+
+### 4. More predictable host behavior
+
+- CLI and UI will resolve services through the same core registration path.
+- Fewer host-specific wiring differences means fewer "works in UI but not CLI" or "works in CLI but not UI" regressions.
+- The root provider will become an implementation detail of composition, not an application-wide escape hatch.
+
+### 5. Cleaner MVVM and UI boundaries
+
+- View models will describe user-intent and workflow behavior rather than window construction details.
+- UI-specific concerns will stay in UI services and composition code.
+- Future UI framework or shell changes will be less invasive because behavior and presentation are better separated.
+
+### 6. Better onboarding and maintenance
+
+- New contributors will have clearer architectural entry points.
+- Debugging will be easier because control flow and dependency ownership will be more explicit.
+- The project will be easier to evolve incrementally without reopening the same global-state seams every time.
+
+---
+
 ## Non-Goals
 
 This XIP does not require:
