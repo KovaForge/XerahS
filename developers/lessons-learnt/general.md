@@ -39,11 +39,10 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 **Issue**: The old warning against `ContextMenu` was specific to `FluentAvaloniaTheme`. XerahS now uses the official Avalonia `FluentTheme`, so standard `ContextMenu` rendering is no longer blocked by that theme-specific limitation.
 
-**Solution**: Use `ContextMenu` for ordinary context menus. Keep `ContextFlyout` with `MenuFlyout` for cases that need richer flyout behavior, shared popup content, or a flyout attached to a non-standard host.
+**Solution**: Use `ContextMenu` for ordinary context menus. Keep `ContextFlyout` with `MenuFlyout` for cases that need richer flyout behavior, shared popup content, or a flyout attached to a non-standard host (e.g., a button that always opens its flyout below).
 
-**❌ Incorrect**:
+**✅ Plain context menu**:
 ```xml
-<!-- Standard ContextMenu (may be invisible) -->
 <Border.ContextMenu>
     <ContextMenu>
         <MenuItem Header="Action" Command="{Binding MyCommand}"/>
@@ -51,14 +50,20 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 </Border.ContextMenu>
 ```
 
-**✅ Correct**:
+**✅ Flyout for richer behavior**:
 ```xml
-<!-- Use ContextFlyout with MenuFlyout -->
-<Border.ContextFlyout>
+<Button.Content>
+    <StackPanel Orientation="Horizontal">
+        <TextBlock Text="More" />
+        <Path Data="{StaticResource IconMore}" />
+    </StackPanel>
+</Button.Content>
+
+<Button.ContextFlyout>
     <MenuFlyout>
-        <MenuItem Header="Action" Command="{Binding MyCommand}"/>
+        <MenuItem Header="Advanced action" Command="{Binding AdvancedCommand}" />
     </MenuFlyout>
-</Border.ContextFlyout>
+</Button.ContextFlyout>
 ```
 
 ### Binding in DataTemplates with Flyouts

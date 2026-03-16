@@ -108,31 +108,42 @@ This project follows the **MVVM (Model-View-ViewModel)** pattern using the `Comm
 ### Services & Dependency Injection
 Services are initialized in `Program.cs` and `App.axaml.cs`. We use a Service Locator pattern via `PlatformServices` static class for easy access in ViewModels (though Constructor Injection is preferred where possible).
 
-### UI Theme & FluentAvalonia
+### UI Theme & Fluent
 
-This project uses **FluentAvaloniaUI** (v2.4.1) which provides a modern Fluent Design System for Avalonia applications.
+This project now uses the **official Avalonia `FluentTheme`** instead of `FluentAvaloniaTheme`. The migration is tracked in `docs/proposals/xip/XIP0050-replace-fluentavaloniaui-with-official-avalonia-primitives.md` and removes the third‑party FluentAvaloniaUI dependency in favour of first‑party Avalonia controls and local styles.
 
 #### ⚠️ Important: ContextMenu vs ContextFlyout
 
-**Issue**: Standard `ContextMenu` controls may not render correctly with FluentAvaloniaTheme. They use legacy Popup windows which are not fully styled by the theme.
+**Current behavior**: With the official `FluentTheme`, standard `ContextMenu` controls render correctly and are safe to use for ordinary right‑click menus.
 
-**Solution**: Use `ContextFlyout` with `MenuFlyout` instead:
+**Guideline**:
+
+- **Use `ContextMenu`** for plain context menus that just show a list of actions.
+- **Use `ContextFlyout` + `MenuFlyout`** when you specifically need flyout behavior (e.g., button‑attached flyouts, shared flyout instances, or richer popup layouts).
 
 ```xml
-<!-- ❌ DON'T: Standard ContextMenu (may be invisible) -->
+<!-- ✅ Plain context menu -->
 <Border.ContextMenu>
     <ContextMenu>
         <MenuItem Header="Action" Command="{Binding MyCommand}"/>
     </ContextMenu>
 </Border.ContextMenu>
 
-<!-- ✅ DO: Use ContextFlyout with MenuFlyout -->
-<Border.ContextFlyout>
+<!-- ✅ Flyout attached to a button -->
+<Button.Content>
+    <StackPanel Orientation="Horizontal">
+        <TextBlock Text="More" />
+        <Path Data="{StaticResource IconMore}" />
+    </StackPanel>
+</Button.Content>
+<Button.ContextFlyout>
     <MenuFlyout>
-        <MenuItem Header="Action" Command="{Binding MyCommand}"/>
+        <MenuItem Header="Advanced action" Command="{Binding AdvancedCommand}" />
     </MenuFlyout>
-</Border.ContextFlyout>
+</Button.ContextFlyout>
 ```
+
+For deeper rationale and platform quirks, see `developers/lessons-learnt/general.md` under **UI & Theming → ContextMenu vs. ContextFlyout**.
 
 #### Binding in DataTemplates with Flyouts/Popups
 
