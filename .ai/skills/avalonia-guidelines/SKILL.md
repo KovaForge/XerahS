@@ -1,6 +1,6 @@
 ---
 name: avalonia-api
-description: Comprehensive reference for Avalonia UI framework including XAML syntax, controls, data binding, MVVM patterns, styling, custom controls, layout system, and best practices. Covers ReactiveUI integration, compiled bindings, dependency properties, attached properties, control templates, and cross-platform development patterns.
+description: Comprehensive reference for Avalonia UI framework including XAML syntax, controls, data binding, MVVM patterns, styling, custom controls, layout system, responsive layout, navigation, and best practices. Covers CommunityToolkit.Mvvm integration, compiled bindings, dependency properties, attached properties, control templates, container queries, and cross-platform development patterns.
 metadata:
   keywords:
     - avalonia
@@ -8,7 +8,7 @@ metadata:
     - xaml
     - ui
     - mvvm
-    - reactiveui
+    - communitytoolkit
     - databinding
     - controls
     - styling
@@ -20,8 +20,10 @@ metadata:
     - contextflyout
     - menuflyout
     - fluentavalonia
-version: 1.1.0
-last_updated: 2026-02-19
+    - navigation
+    - container-queries
+version: 1.3.0
+last_updated: 2026-03-16
 ---
 
 # Avalonia UI Framework - Complete API & Best Practices Guide
@@ -38,16 +40,19 @@ last_updated: 2026-02-19
 2. [Controls & UI Elements](#controls--ui-elements)
 3. [Layout System](#layout-system)
 4. [Data Binding](#data-binding)
-5. [MVVM Pattern with ReactiveUI](#mvvm-pattern-with-reactiveui)
+5. [MVVM Pattern with CommunityToolkit.Mvvm](#mvvm-pattern-with-communitytoolkitmvvm)
 6. [Styling & Theming](#styling--theming)
 7. [Dependency & Attached Properties](#dependency--attached-properties)
 8. [Custom Controls](#custom-controls)
 9. [Control Templates](#control-templates)
 10. [Resources & Converters](#resources--converters)
 11. [Events & Commands](#events--commands)
-12. [Cross-Platform Patterns](#cross-platform-patterns)
-13. [Performance & Best Practices](#performance--best-practices)
-14. [Common Patterns in XerahS](#common-patterns-in-xerahs)
+12. [Navigation](#navigation)
+13. [Cross-Platform Patterns](#cross-platform-patterns)
+14. [Performance & Best Practices](#performance--best-practices)
+15. [Developer Tools](#developer-tools)
+16. [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+17. [Common Patterns in XerahS](#common-patterns-in-xerahs)
 
 ---
 
@@ -186,6 +191,44 @@ Every `.axaml` file follows this standard structure:
 
 ## Layout System
 
+### ScrollViewer Activation Requirements
+
+A `ScrollViewer` only activates (shows and enables the scrollbar) when it receives a **finite** (bounded) height constraint from its parent during the Measure pass. If any ancestor passes `∞` (infinity) down the chain, the `ScrollViewer` will never scroll.
+
+**Common sources of infinite height in XerahS layouts and their fixes:**
+
+| Root cause | Why it breaks scrolling | Fix |
+|---|---|---|
+| `SplitView` as two-column shell | Inherits `ContentControl`; default `VerticalContentAlignment=Top` → `ContentPresenter` passes `∞` height | Replace with `Grid ColumnDefinitions="auto,*"` |
+| `TransitioningContentControl` as page host | Internal animation `Panel` passes `∞` height during measure | Replace with `ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"` |
+| `TabControl` without `VerticalContentAlignment="Stretch"` | Inner `ContentPresenter` templates to `{TemplateBinding VerticalContentAlignment}`; default `Top` → `∞` down to tab bodies | Add `VerticalContentAlignment="Stretch"` to the `TabControl` |
+| `ScrollViewer Padding="N"` | Shrinks the *viewport* but does NOT add `N` to the scroll extent — bottom `N`px of content is permanently unreachable | Remove `Padding` from `ScrollViewer`; add `Margin="N"` to the inner `StackPanel`/`Grid` instead |
+
+**Canonical scrollable settings page pattern:**
+
+```xml
+<!-- ✅ Correct: padding lives inside the scroll extent -->
+<TabControl VerticalContentAlignment="Stretch">
+    <TabItem Header="General">
+        <ScrollViewer>
+            <StackPanel Spacing="24" Margin="24">
+                <!-- content -->
+            </StackPanel>
+        </ScrollViewer>
+    </TabItem>
+</TabControl>
+
+<!-- ❌ Wrong: padding cuts the viewport, last Npx of content unreachable -->
+<TabControl>  <!-- default VerticalContentAlignment=Top → ∞ height -->
+    <TabItem Header="General">
+        <ScrollViewer Padding="24">  <!-- bottom 24px permanently cut off -->
+            <StackPanel Spacing="24">
+            </StackPanel>
+        </ScrollViewer>
+    </TabItem>
+</TabControl>
+```
+
 ### Layout Process
 
 Avalonia uses a two-pass layout system:
@@ -265,6 +308,83 @@ Control → Measure → MeasureOverride → DesiredSize
     <TextBlock Text="Item 3" />
 </StackPanel>
 ```
+
+### GridSplitter (Resizable Panes)
+
+When a `Grid` has distinct content regions (sidebar + main, top/bottom split), add a `GridSplitter` so users can resize the panes. Dedicate a narrow column/row (3–6 px) for the splitter.
+
+```xml
+<!-- Two-pane resizable layout -->
+<Grid ColumnDefinitions="250, 4, *">
+    <TreeView Grid.Column="0" />
+    <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+    <ContentControl Grid.Column="2" Content="{Binding Detail}" />
+</Grid>
+```
+
+**Key rules**:
+- `ResizeDirection` must match the axis: `Columns` for a column splitter, `Rows` for a row splitter.
+- Set `MinWidth`/`MaxWidth` (or `MinHeight`/`MaxHeight`) on adjacent cells to prevent collapsing to zero.
+- Use `GridSplitter` whenever a Grid has two or more sizeable content regions.
+
+### Responsive Layouts
+
+Avalonia provides four approaches. Prefer these over fixed-pixel layouts.
+
+#### Container Queries (preferred for reusable components)
+
+Respond to the size of an ancestor control — not the window. Works live as the control resizes.
+
+```xml
+<Border Container.Name="main" Container.Sizing="Width">
+    <Panel.Styles>
+        <ContainerQuery Name="main" Query="max-width:600">
+            <Style Selector="StackPanel#sidebar">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+        </ContainerQuery>
+    </Panel.Styles>
+    <!-- content here -->
+</Border>
+```
+
+- Combine conditions: `Query="min-width:400 and max-width:800"`
+- `Container.Sizing`: `Width`, `Height`, or `Width Height`
+
+#### OnFormFactor (static platform detection)
+
+Resolves once at startup. Use for desktop-vs-mobile differences that don't respond to window resizing.
+
+```xml
+<Grid ColumnDefinitions="{OnFormFactor Desktop='250,*', Mobile='*'}">
+    <Border IsVisible="{OnFormFactor Desktop=True, Mobile=False}" />
+</Grid>
+```
+
+#### Reflowing Panels (self-adapting)
+
+```xml
+<ItemsRepeater ItemsSource="{Binding Items}">
+    <ItemsRepeater.Layout>
+        <UniformGridLayout MinItemWidth="200" MinItemHeight="150" />
+    </ItemsRepeater.Layout>
+</ItemsRepeater>
+```
+
+#### When to use what
+
+| Scenario | Approach |
+|----------|----------|
+| Reusable component adapts to its own size | Container Query |
+| Desktop vs. mobile layout (static) | `OnFormFactor` |
+| Flowing cards/tiles that wrap | `WrapPanel` or `UniformGridLayout` |
+| Complex multi-property changes at breakpoints | Breakpoint ViewModel (observe window size, expose bool properties) |
+
+**Key rules**:
+- PREFER Container Queries over manual size-change event handling.
+- ALWAYS use star sizing (`*`) and `Auto` in Grid definitions — avoid fixed pixel widths for content regions.
+- `Visibility` enum replaced by `bool IsVisible`; for invisible-but-space-occupying use `Opacity="0"`.
+- NO `VisualStateManager` — use pseudo-class selectors or Container Queries instead.
 
 ---
 
@@ -367,68 +487,31 @@ Compiled bindings provide **compile-time safety** and **better performance**.
 
 ---
 
-## MVVM Pattern with ReactiveUI
+## MVVM Pattern with CommunityToolkit.Mvvm
 
-### Setup
-
-```xml
-<!-- App.axaml.cs -->
-public override void Initialize()
-{
-    AvaloniaXamlLoader.Load(this);
-}
-
-<!-- Program.cs -->
-public static AppBuilder BuildAvaloniaApp()
-    => AppBuilder.Configure<App>()
-        .UsePlatformDetect()
-        .LogToTrace()
-        .UseReactiveUI();  // ← Enable ReactiveUI
-```
+> ⚠️ **XerahS uses `CommunityToolkit.Mvvm`, NOT ReactiveUI.** Do not add or reference `ReactiveUI` or `Avalonia.ReactiveUI` packages.
 
 ### Install Package
 
 ```bash
-dotnet add package ReactiveUI.Avalonia
+dotnet add package CommunityToolkit.Mvvm
 ```
 
 ### ViewModel Base Pattern
 
 ```csharp
-using ReactiveUI;
-using System.Reactive;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
-public class MainViewModel : ReactiveObject
+public partial class MainViewModel : ObservableObject
 {
+    [ObservableProperty]
     private string _firstName = string.Empty;
-    public string FirstName
-    {
-        get => _firstName;
-        set => this.RaiseAndSetIfChanged(ref _firstName, value);
-    }
 
+    [ObservableProperty]
     private bool _isLoading;
-    public bool IsLoading
-    {
-        get => _isLoading;
-        set => this.RaiseAndSetIfChanged(ref _isLoading, value);
-    }
 
-    // Reactive command
-    public ReactiveCommand<Unit, Unit> SaveCommand { get; }
-
-    public MainViewModel()
-    {
-        // Command with validation
-        var canSave = this.WhenAnyValue(
-            x => x.FirstName,
-            x => !string.IsNullOrWhiteSpace(x));
-
-        SaveCommand = ReactiveCommand.CreateFromTask(
-            SaveAsync, 
-            canSave);
-    }
-
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
         IsLoading = true;
@@ -441,38 +524,72 @@ public class MainViewModel : ReactiveObject
             IsLoading = false;
         }
     }
+
+    private bool CanSave() => !string.IsNullOrWhiteSpace(FirstName);
 }
 ```
 
-### View Activation
+**Source-generator notes**:
+- `[ObservableProperty]` on a `private` field generates a public PascalCase property + `INotifyPropertyChanged` notification (`_firstName` → `FirstName`).
+- `[RelayCommand]` generates `SaveAsyncCommand` (an `IAsyncRelayCommand`) automatically.
+- The class **must** be `partial` for source generators to work.
+- `[RelayCommand(CanExecute = nameof(...))]` wires can-execute automatically; call `SaveAsyncCommand.NotifyCanExecuteChanged()` when the condition changes.
+
+### Architecture Layering
+
+- **Views (AXAML)**: Visual composition only. No business logic in code-behind beyond `InitializeComponent()`.
+- **ViewModels**: State, commands, and orchestration. UI-framework agnostic and unit-testable. Wire services via DI.
+- **Services / Domain**: Business logic and data access — no references to Avalonia types.
+
+### View Setup (code-behind)
 
 ```csharp
-public partial class MainView : ReactiveUserControl<MainViewModel>
+public partial class MainView : UserControl
 {
     public MainView()
     {
         InitializeComponent();
-        
-        this.WhenActivated(disposables =>
-        {
-            // Bind ViewModel properties to View
-            this.Bind(ViewModel, 
-                vm => vm.FirstName, 
-                v => v.FirstNameTextBox.Text)
-                .DisposeWith(disposables);
+        DataContext = new MainViewModel(); // Or resolve via ViewLocator / DI
+    }
+}
+```
 
-            // One-way binding
-            this.OneWayBind(ViewModel,
-                vm => vm.IsLoading,
-                v => v.LoadingSpinner.IsVisible)
-                .DisposeWith(disposables);
+### Command Binding in XAML
 
-            // Bind commands
-            this.BindCommand(ViewModel,
-                vm => vm.SaveCommand,
-                v => v.SaveButton)
-                .DisposeWith(disposables);
-        });
+```xml
+<!-- Generated command name: SaveAsyncCommand -->
+<Button Content="Save" Command="{Binding SaveAsyncCommand}" />
+
+<!-- With parameter -->
+<Button Content="Delete"
+        Command="{Binding DeleteCommand}"
+        CommandParameter="{Binding SelectedItem}" />
+```
+
+### Property Changed Callbacks
+
+```csharp
+[ObservableProperty]
+private string _name = string.Empty;
+
+// Source-generated partial method — called automatically when Name changes
+partial void OnNameChanged(string value)
+{
+    // React to change
+}
+```
+
+### Manual Property Notifications (when source generators are unavailable)
+
+```csharp
+public partial class MyViewModel : ObservableObject
+{
+    private string _title = string.Empty;
+
+    public string Title
+    {
+        get => _title;
+        set => SetProperty(ref _title, value);
     }
 }
 ```
@@ -945,18 +1062,25 @@ private void OnButtonClick(object? sender, RoutedEventArgs e)
 ```
 
 ```csharp
-// Using ReactiveUI
-public ReactiveCommand<object?, Unit> SaveCommand { get; }
-
-public MyViewModel()
-{
-    SaveCommand = ReactiveCommand.Create<object?>(Save);
-}
-
+// Using CommunityToolkit.Mvvm
+[RelayCommand]
 private void Save(object? parameter)
 {
     // Execute command
 }
+
+// Async command
+[RelayCommand]
+private async Task SaveAsync()
+{
+    await Task.Delay(100);
+}
+
+// Command with can-execute
+[RelayCommand(CanExecute = nameof(CanDelete))]
+private void Delete() { }
+
+private bool CanDelete() => SelectedItem is not null;
 ```
 
 ### Routed Events
@@ -1040,15 +1164,22 @@ else if (OperatingSystem.IsLinux())
 
 ### Memory Management
 
+`CommunityToolkit.Mvvm` source-generated properties raise `PropertyChanged` automatically — no manual subscription disposal is needed for `[ObservableProperty]` fields. When subscribing to external observables or events, implement `IDisposable`:
+
 ```csharp
-// Dispose subscriptions properly
-this.WhenActivated(disposables =>
+public partial class MyViewModel : ObservableObject, IDisposable
 {
-    ViewModel
-        .WhenAnyValue(x => x.Property)
-        .Subscribe(value => { })
-        .DisposeWith(disposables);
-});
+    private readonly IDisposable _subscription;
+
+    public MyViewModel(IMyService service)
+    {
+        _subscription = service.ValueStream.Subscribe(OnValue);
+    }
+
+    private void OnValue(string v) { }
+
+    public void Dispose() => _subscription.Dispose();
+}
 ```
 
 ### Null Safety
@@ -1063,6 +1194,63 @@ XerahS uses **strict nullable reference types**. Always:
 public string? Title { get; set; }  // Nullable
 public string Name { get; set; } = string.Empty;  // Non-nullable with default
 ```
+
+### AOT and Trimming Awareness
+
+For apps targeting mobile (iOS/Android), WebAssembly, or NativeAOT:
+
+- **Prefer compiled bindings** (already the default) — they avoid reflection.
+- Avoid `Activator.CreateInstance` for ViewModel/service resolution; use a DI container with AOT support (e.g. `Microsoft.Extensions.DependencyInjection` with source-generated registrations).
+- Avoid `Type.GetType()`, `PropertyInfo.SetValue()`, or runtime reflection in hot paths.
+- Use `[DynamicallyAccessedMembers]` annotations when reflection is unavoidable.
+- Use `{ReflectionBinding}` sparingly — it is **not** trimming-safe.
+
+---
+
+## Developer Tools
+
+> ⚠️ The legacy `Avalonia.Diagnostics` package is **deprecated**. NEVER use it.
+
+Use the `migrate_diagnostics` MCP tool to set up or migrate Developer Tools in any project. It handles:
+- Removing `Avalonia.Diagnostics`
+- Installing `AvaloniaUI.DiagnosticsSupport`
+- Configuring `Program.cs` and `App.axaml.cs`
+- Replacing old API calls
+
+```bash
+# Install the global developer tools CLI
+dotnet tool install --global AvaloniaUI.DeveloperTools
+```
+
+**Rule**: ALWAYS use `AvaloniaUI.DiagnosticsSupport` + the `AvaloniaUI.DeveloperTools` .NET global tool.
+
+---
+
+## Common Mistakes to Avoid
+
+| # | Mistake | Correct Approach |
+|---|---------|------------------|
+| 1 | Using `.xaml` extension | Use `.axaml` |
+| 2 | WPF namespaces | Use `https://github.com/avaloniaui` |
+| 3 | `Style.Triggers` / `DataTrigger` / `EventTrigger` | Use pseudo-class selectors |
+| 4 | `DependencyProperty` | Use `StyledProperty` or `DirectProperty` |
+| 5 | `Style x:Key="..."` | Use style classes and selectors |
+| 6 | `HierarchicalDataTemplate` | Use `TreeDataTemplate` |
+| 7 | `pack://application:,,,/` URIs | Use `avares://AssemblyName/path` |
+| 8 | `Visibility` enum | Use `bool IsVisible` (`Opacity="0"` for hidden-but-spaced) |
+| 9 | Missing `x:DataType` | Always set it for compiled bindings |
+| 10 | `{ReflectionBinding}` by default | Enable compiled bindings globally |
+| 11 | `Avalonia.Diagnostics` | Use `AvaloniaUI.DiagnosticsSupport` + `AvaloniaUI.DeveloperTools` |
+| 12 | `ReactiveUI` / `Avalonia.ReactiveUI` | Use `CommunityToolkit.Mvvm` |
+| 13 | Manual `ContentControl.Content` page swapping | Use `NavigationPage` / `TabbedPage` / `DrawerPage` |
+| 14 | `VisualStateManager` | Use pseudo-class selectors or Container Queries |
+| 15 | `LayoutTransform` | Wrap in `LayoutTransformControl` |
+| 16 | `Dispatcher.Invoke()` | Use `Dispatcher.UIThread.InvokeAsync()` |
+| 17 | `ContextMenu` with FluentAvalonia | Use `ContextFlyout` + `MenuFlyout` |
+| 18 | `ScrollViewer Padding="N"` around a `StackPanel` | Move padding to inner element: `<StackPanel Margin="N">` — `ScrollViewer.Padding` shrinks the viewport only, not the scroll extent; bottow content stays permanently unreachable |
+| 19 | `SplitView` as a two-column non-pane shell | Use `Grid ColumnDefinitions="auto,*"` — `SplitView` inherits `ContentControl` whose default `VerticalContentAlignment=Top` passes `∞` height to children, breaking any nested `ScrollViewer` |
+| 20 | `TransitioningContentControl` as a page host containing a `ScrollViewer` | Use plain `ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"` — `TransitioningContentControl`'s animation panel passes `∞` height during measure |
+| 21 | `TabControl` at default `VerticalContentAlignment` wrapping scrollable tabs | Set `VerticalContentAlignment="Stretch"` on the `TabControl` — the inner `ContentPresenter` templates to `{TemplateBinding VerticalContentAlignment}` and defaults to `Top`, passing `∞` height to tab bodies |
 
 ---
 
@@ -1151,7 +1339,8 @@ public static void SetIsUnwired(Control control, bool value)
 - **Official Docs**: https://docs.avaloniaui.net/
 - **GitHub**: https://github.com/AvaloniaUI/Avalonia
 - **Samples**: https://github.com/AvaloniaUI/Avalonia/tree/master/samples
-- **ReactiveUI**: https://reactiveui.net/
+- **CommunityToolkit.Mvvm**: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/
+- **FluentAvalonia**: https://github.com/amwx/FluentAvalonia
 - **Community**: https://avaloniaui.community/
 
 ---
@@ -1161,19 +1350,23 @@ public static void SetIsUnwired(Control control, bool value)
 - [ ] Use `.axaml` file extension
 - [ ] Set `x:Class` attribute
 - [ ] Set `x:DataType` for compiled bindings
-- [ ] Set `x:CompileBindings="True"` (or global setting)
+- [ ] Set `x:CompileBindings="True"` (or enable globally in `.csproj`)
 - [ ] Define proper namespaces
-- [ ] Use `StyledProperty` for custom properties
+- [ ] Use `StyledProperty` for styleable custom properties; `DirectProperty` for non-styleable/perf-critical ones
 - [ ] Follow nullable reference type rules
-- [ ] Use ReactiveUI for MVVM
+- [ ] Use `CommunityToolkit.Mvvm` (`ObservableObject`, `[ObservableProperty]`, `[RelayCommand]`) for MVVM — **NOT ReactiveUI**
+- [ ] Mark ViewModel classes `partial` for source generators
 - [ ] Apply consistent styling/theming
 - [ ] ⚠️ **Use `ContextFlyout` + `MenuFlyout`, NOT `ContextMenu`** (FluentAvalonia compatibility)
 - [ ] Use `$parent[UserControl].DataContext` for flyout bindings in DataTemplates
+- [ ] Use `NavigationPage`/`TabbedPage`/`DrawerPage` for multi-page apps — not manual `ContentControl` swapping
+- [ ] AOT/trimming: prefer compiled bindings; avoid runtime reflection
+- [ ] Use `AvaloniaUI.DiagnosticsSupport` — never `Avalonia.Diagnostics`
 - [ ] Handle accessibility (tab order, accessible names)
 - [ ] Test on all target platforms
 
 ---
 
-**Last Updated**: February 19, 2026  
-**Version**: 1.1.0  
+**Last Updated**: March 16, 2026  
+**Version**: 1.3.0  
 **Maintained by**: XerahS Development Team

@@ -19,12 +19,12 @@
     </UserControl.Resources>
 
     <Grid RowDefinitions="*" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <TabControl Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="300">
+        <TabControl Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch" MinHeight="300">
             
             <!-- Capture Tab -->
             <TabItem Header="Capture">
-                <ScrollViewer Padding="20">
-                    <StackPanel Spacing="24">
+                <ScrollViewer>
+                    <StackPanel Spacing="24" Margin="20">
                         <!-- General Capture Settings -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="General" FontWeight="SemiBold"/>
@@ -102,8 +102,8 @@
 
             <!-- Index Folder Tab (Conditional) -->
             <TabItem Header="Index Folder" IsVisible="{Binding IsIndexFolderJob}">
-                <ScrollViewer Padding="20">
-                     <StackPanel Spacing="8">
+                <ScrollViewer>
+                     <StackPanel Spacing="8" Margin="20">
                         <TextBlock Text="Index folder" FontWeight="SemiBold"/>
                         <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                             <StackPanel Spacing="16">
@@ -171,8 +171,8 @@
 
             <!-- File Tab (New) -->
             <TabItem Header="File">
-                <ScrollViewer Padding="20">
-                     <StackPanel Spacing="8">
+                <ScrollViewer>
+                     <StackPanel Spacing="8" Margin="20">
                         <TextBlock Text="File naming" FontWeight="SemiBold"/>
                         <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                             <StackPanel Spacing="16">
@@ -206,8 +206,8 @@
 
             <!-- Upload Tab -->
             <TabItem Header="Upload">
-               <ScrollViewer Padding="20">
-                   <StackPanel Spacing="24">
+               <ScrollViewer>
+                   <StackPanel Spacing="24" Margin="20">
                         <!-- Destinations Section (New) -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="Destinations" FontWeight="SemiBold"/>
@@ -269,8 +269,8 @@
 
             <!-- Notifications Tab (Renamed from General) -->
             <TabItem Header="Notifications">
-                <ScrollViewer Padding="20">
-                    <StackPanel Spacing="24">
+                <ScrollViewer>
+                    <StackPanel Spacing="24" Margin="20">
                         <!-- Notifications Section -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="Notifications" FontWeight="SemiBold"/>

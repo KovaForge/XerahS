@@ -13,8 +13,8 @@
         <converters:EnumToDescriptionConverter x:Key="EnumToDescriptionConverter"/>
     </UserControl.Resources>
 
-    <ScrollViewer Padding="20">
-        <StackPanel Spacing="24">
+    <ScrollViewer>
+        <StackPanel Spacing="24" Margin="20">
             <!-- Screen Recorder Settings -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Screen recorder" FontWeight="SemiBold"/>

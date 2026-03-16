@@ -8,8 +8,8 @@
                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
                 x:Class="XerahS.UI.Views.AboutView">
 
-    <ScrollViewer Padding="24">
-        <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Center">
+    <ScrollViewer>
+        <StackPanel Spacing="24" Margin="24" MaxWidth="800" HorizontalAlignment="Center">
             <StackPanel Spacing="16" HorizontalAlignment="Center" Margin="0,32,0,32">
                 <Image Source="/Assets/Logo.png" Height="128" Width="128" />
                 <TextBlock Text="{x:Static common:AppResources.ProductNameWithVersion}"

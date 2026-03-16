@@ -123,8 +123,8 @@
                         CornerRadius="4"
                         Padding="24"
                         IsVisible="{Binding SelectedCategory.SelectedInstance, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <ScrollViewer Padding="0,0,16,0">
-                        <StackPanel Spacing="24">
+                    <ScrollViewer>
+                        <StackPanel Spacing="24" Margin="0,0,16,0">
                             
                             <!-- Verification Status -->
                             <StackPanel Spacing="16" IsVisible="{Binding SelectedCategory.SelectedInstance.HasVerificationWarning}">

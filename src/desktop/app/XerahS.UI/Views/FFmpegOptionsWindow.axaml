@@ -15,8 +15,8 @@
     <vm:FFmpegOptionsViewModel />
   </Design.DataContext>
 
-  <ScrollViewer Padding="24">
-    <StackPanel Spacing="24">
+  <ScrollViewer>
+    <StackPanel Spacing="24" Margin="24">
       
       <!-- Header -->
       <StackPanel Spacing="8">

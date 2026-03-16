@@ -130,60 +130,60 @@
         </Border>
 
         <!-- Main Navigation Shell -->
-        <SplitView Grid.Row="1"
-                   DisplayMode="Inline"
-                   IsPaneOpen="True"
-                   CompactPaneLength="0"
-                   OpenPaneLength="300">
-            <SplitView.Pane>
-                <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                        BorderThickness="0,0,1,0">
-                    <TreeView Name="NavigationTree"
-                              Margin="12"
-                              Background="Transparent"
-                              BorderThickness="0"
-                              SelectionChanged="OnNavSelectionChanged"
-                              KeyDown="OnNavigationTreeKeyDown"
-                              AutomationProperties.Name="Main Navigation">
-                        <TreeView.ItemTemplate>
-                            <TreeDataTemplate ItemsSource="{Binding Children}">
-                                <Border Background="Transparent"
-                                        CornerRadius="8"
-                                        Padding="10,8"
-                                        Tapped="OnNavigationNodeTapped"
-                                        AutomationProperties.Name="{Binding Text}">
-                                    <Grid ColumnDefinitions="Auto,*"
-                                          ColumnSpacing="12">
-                                        <TextBlock Text="{Binding Glyph}"
-                                                   FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                                   FontSize="18"
-                                                   FontWeight="Normal"
-                                                   VerticalAlignment="Center"
-                                                   IsVisible="{Binding HasGlyph}" />
-                                        <TextBlock Grid.Column="1"
-                                                   Text="{Binding Text}"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" />
-                                    </Grid>
-                                </Border>
-                            </TreeDataTemplate>
-                        </TreeView.ItemTemplate>
-                        <TreeView.Styles>
-                            <Style Selector="TreeView#NavigationTree TreeViewItem">
-                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                            </Style>
-                        </TreeView.Styles>
-                    </TreeView>
-                </Border>
-            </SplitView.Pane>
-
-            <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
-                <TransitioningContentControl Name="ContentFrame"
-                                             HorizontalContentAlignment="Stretch"
-                                             VerticalContentAlignment="Stretch" />
+        <Grid Grid.Row="1" ColumnDefinitions="300,*">
+            <!-- Navigation Pane (column 0) -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,1,0">
+                <TreeView Name="NavigationTree"
+                          Margin="12"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          SelectionChanged="OnNavSelectionChanged"
+                          KeyDown="OnNavigationTreeKeyDown"
+                          AutomationProperties.Name="Main Navigation">
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate ItemsSource="{Binding Children}">
+                            <Border Background="Transparent"
+                                    CornerRadius="8"
+                                    Padding="10,8"
+                                    Tapped="OnNavigationNodeTapped"
+                                    AutomationProperties.Name="{Binding Text}">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12">
+                                    <TextBlock Text="{Binding Glyph}"
+                                               FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                               FontSize="18"
+                                               FontWeight="Normal"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding HasGlyph}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Text}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </Border>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                    <TreeView.Styles>
+                        <Style Selector="TreeView#NavigationTree TreeViewItem">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        </Style>
+                    </TreeView.Styles>
+                </TreeView>
             </Border>
-        </SplitView>
+
+            <!-- Content Area (column 1) — bounded by * column, ensures ScrollViewers work -->
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <ContentControl Name="ContentFrame"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch" />
+            </Border>
+        </Grid>
 
         <!-- Modal Overlay Layer (Bootstrap Style) -->
         <Grid Grid.Row="0" Grid.RowSpan="2" 
