@@ -41,6 +41,8 @@ namespace XerahS.Platform.MacOS
         public static void Initialize(IScreenCaptureService? screenCaptureService = null)
         {
             var screenService = new MacOSScreenService();
+            var clipboardService = new MacOSClipboardService();
+            var clipboardMonitorService = new MacOSClipboardMonitorService(clipboardService);
 
             if (screenCaptureService == null)
             {
@@ -52,7 +54,7 @@ namespace XerahS.Platform.MacOS
             PlatformServices.Initialize(
                 platformInfo: new MacOSPlatformInfo(),
                 screenService: screenService,
-                clipboardService: new MacOSClipboardService(),
+                clipboardService: clipboardService,
                 windowService: new MacOSWindowService(),
                 screenCaptureService: screenCaptureService,
                 hotkeyService: new MacOSHotkeyService(),
@@ -63,7 +65,8 @@ namespace XerahS.Platform.MacOS
                 shellIntegrationService: new MacOSShellIntegrationService(),
                 notificationService: new MacOSNotificationService(),
                 diagnosticService: new Services.MacOSDiagnosticService(),
-                watchFolderDaemonService: new MacOSWatchFolderDaemonService()
+                watchFolderDaemonService: new MacOSWatchFolderDaemonService(),
+                clipboardMonitorService: clipboardMonitorService
             );
 
             // Register OCR service stub (Apple Vision framework integration planned)
