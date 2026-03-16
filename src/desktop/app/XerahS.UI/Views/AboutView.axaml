@@ -21,8 +21,8 @@
                            Opacity="0.6" />
             </StackPanel>
 
-            <Border Theme="{StaticResource CardBorderTheme}" Padding="16">
-                <Expander Header="Links" IsExpanded="True">
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="16" HorizontalAlignment="Stretch">
+                <Expander Header="Links" IsExpanded="True" HorizontalAlignment="Stretch">
                     <Expander.Header>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                             <TextBlock Classes="IconGlyph"
@@ -143,8 +143,8 @@
                 </Expander>
             </Border>
 
-            <Border Theme="{StaticResource CardBorderTheme}" Padding="16">
-                <Expander Header="Social" IsExpanded="True">
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="16" HorizontalAlignment="Stretch">
+                <Expander Header="Social" IsExpanded="True" HorizontalAlignment="Stretch">
                     <Expander.Header>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                             <TextBlock Classes="IconGlyph"
