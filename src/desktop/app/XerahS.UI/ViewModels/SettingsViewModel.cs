@@ -252,15 +252,35 @@ namespace XerahS.UI.ViewModels
             ApplyWatchFolderRuntimePolicy(watchFolderConfigurationChanged: false, refreshDaemonStatus: true);
 
             // Integration Settings
-            SupportsFileAssociations = OperatingSystem.IsWindows();
             try
             {
-                IsPluginExtensionRegistered = PlatformServices.ShellIntegration.IsPluginExtensionRegistered();
+                IStartupService startupService = PlatformServices.Startup;
+                settings.RunAtStartup = startupService.IsRunAtStartupEnabled();
             }
             catch (InvalidOperationException)
             {
-                // Shell integration not available on this platform
+                settings.RunAtStartup = false;
+            }
+
+            IShellIntegrationService? shellIntegration = PlatformServices.GetShellIntegrationIfAvailable();
+            SupportsFileAssociations = shellIntegration?.SupportsPluginExtensionRegistration == true;
+            SupportsContextMenuIntegration = shellIntegration?.SupportsContextMenuIntegration == true;
+            SupportsSendToIntegration = shellIntegration?.SupportsSendToIntegration == true;
+
+            if (shellIntegration != null)
+            {
+                IsPluginExtensionRegistered = shellIntegration.SupportsPluginExtensionRegistration &&
+                                              shellIntegration.IsPluginExtensionRegistered();
+                settings.EnableContextMenuIntegration = shellIntegration.SupportsContextMenuIntegration &&
+                                                        shellIntegration.IsContextMenuIntegrationEnabled();
+                settings.EnableSendToIntegration = shellIntegration.SupportsSendToIntegration &&
+                                                   shellIntegration.IsSendToIntegrationEnabled();
+            }
+            else
+            {
                 IsPluginExtensionRegistered = false;
+                settings.EnableContextMenuIntegration = false;
+                settings.EnableSendToIntegration = false;
             }
         }
 

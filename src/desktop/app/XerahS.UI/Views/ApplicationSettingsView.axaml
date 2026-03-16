@@ -336,12 +336,14 @@
                                     <CheckBox IsChecked="{Binding RunAtStartup}" 
                                               Content="Run at system startup" AutomationProperties.Name="Run at Startup"/>
                                     <CheckBox IsChecked="{Binding EnableContextMenuIntegration}" 
-                                              Content="Add 'Upload with ShareX' to context menu"
+                                              Content="Add 'Upload with XerahS' to context menu"
+                                              IsEnabled="{Binding SupportsContextMenuIntegration}"
                                               ToolTip.Tip="Adds an option to upload files from the right-click context menu"
                                               AutomationProperties.Name="Enable Context Menu Integration"/>
                                     <CheckBox IsChecked="{Binding EnableSendToIntegration}" 
                                               Content="Add to 'Send To' menu"
-                                              ToolTip.Tip="Adds ShareX to the 'Send To' menu for quick file access"
+                                              IsEnabled="{Binding SupportsSendToIntegration}"
+                                              ToolTip.Tip="Adds XerahS to the 'Send To' menu for quick file access"
                                               AutomationProperties.Name="Enable Send To Integration"/>
                                               
                                     <TextBlock Text="File Associations" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"/>

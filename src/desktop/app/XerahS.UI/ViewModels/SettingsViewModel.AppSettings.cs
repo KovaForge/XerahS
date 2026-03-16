@@ -232,11 +232,19 @@ namespace XerahS.UI.ViewModels
             get => SettingsManager.Settings.EnableContextMenuIntegration;
             set
             {
-                if (SettingsManager.Settings.EnableContextMenuIntegration != value)
+                if (SettingsManager.Settings.EnableContextMenuIntegration == value)
                 {
-                    SettingsManager.Settings.EnableContextMenuIntegration = value;
-                    OnPropertyChanged();
-                    // TODO: Call platform-specific context menu registration service
+                    return;
+                }
+
+                bool previousValue = SettingsManager.Settings.EnableContextMenuIntegration;
+                SettingsManager.Settings.EnableContextMenuIntegration = value;
+                OnPropertyChanged();
+
+                if (!ApplyContextMenuPreference(value))
+                {
+                    SettingsManager.Settings.EnableContextMenuIntegration = previousValue;
+                    OnPropertyChanged(nameof(EnableContextMenuIntegration));
                 }
             }
         }
@@ -251,11 +259,19 @@ namespace XerahS.UI.ViewModels
             get => SettingsManager.Settings.EnableSendToIntegration;
             set
             {
-                if (SettingsManager.Settings.EnableSendToIntegration != value)
+                if (SettingsManager.Settings.EnableSendToIntegration == value)
                 {
-                    SettingsManager.Settings.EnableSendToIntegration = value;
-                    OnPropertyChanged();
-                    // TODO: Call platform-specific Send To registration service
+                    return;
+                }
+
+                bool previousValue = SettingsManager.Settings.EnableSendToIntegration;
+                SettingsManager.Settings.EnableSendToIntegration = value;
+                OnPropertyChanged();
+
+                if (!ApplySendToPreference(value))
+                {
+                    SettingsManager.Settings.EnableSendToIntegration = previousValue;
+                    OnPropertyChanged(nameof(EnableSendToIntegration));
                 }
             }
         }
