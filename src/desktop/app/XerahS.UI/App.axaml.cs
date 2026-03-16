@@ -153,15 +153,21 @@ public partial class App : Application
             };
             _baseTitle = desktop.MainWindow.Title ?? AppResources.ProductNameWithVersion;
 
+            XerahS.Platform.Abstractions.IClipboardService runtimeClipboardService;
+
             // Use native Win32 clipboard on Windows so image formats are published explicitly.
 #if WINDOWS
-            PlatformServices.Clipboard = new WindowsClipboardService();
-            PlatformServices.ClipboardMonitor = new WindowsClipboardMonitorService(PlatformServices.Clipboard);
+            runtimeClipboardService = new WindowsClipboardService();
+            PlatformServices.ClipboardMonitor = new WindowsClipboardMonitorService(runtimeClipboardService);
 #else
-            PlatformServices.Clipboard = new Services.AvaloniaClipboardService(
+            runtimeClipboardService = new Services.AvaloniaClipboardService(
                 desktop.MainWindow.Clipboard!,
                 desktop.MainWindow.StorageProvider);
 #endif
+
+            PlatformServices.Clipboard = new ClipboardMonitorAwareClipboardService(
+                runtimeClipboardService,
+                PlatformServices.ClipboardMonitor);
 
             // Apply window state based on SilentRun.
             // We avoid starting minimized because some Windows setups can leave a minimized

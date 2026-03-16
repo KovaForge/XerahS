@@ -11,6 +11,7 @@ public interface IClipboardMonitorService : IDisposable
     bool IsSupported { get; }
     bool IsMonitoring { get; }
     event EventHandler? ClipboardChanged;
+    void SuppressInternalActivity(TimeSpan duration);
     void Start();
     void Stop();
 }
@@ -28,6 +29,7 @@ public sealed class UnsupportedClipboardMonitorService : IClipboardMonitorServic
         remove { }
     }
 
+    public void SuppressInternalActivity(TimeSpan duration) { }
     public void Start() { }
     public void Stop() { }
     public void Dispose() { }
@@ -45,6 +47,7 @@ public abstract class PollingClipboardMonitorService : IClipboardMonitorService
     private string? _lastFingerprint;
     private bool _hasBaseline;
     private bool _disposed;
+    private DateTime _suppressUntilUtc = DateTime.MinValue;
 
     protected PollingClipboardMonitorService(IClipboardService clipboardService, TimeSpan pollInterval)
     {
@@ -56,6 +59,20 @@ public abstract class PollingClipboardMonitorService : IClipboardMonitorService
     public bool IsMonitoring => _monitorTask != null && !_monitorTask.IsCompleted;
 
     public event EventHandler? ClipboardChanged;
+
+    public void SuppressInternalActivity(TimeSpan duration)
+    {
+        if (duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        var candidate = DateTime.UtcNow.Add(duration);
+        if (candidate > _suppressUntilUtc)
+        {
+            _suppressUntilUtc = candidate;
+        }
+    }
 
     public void Start()
     {
@@ -113,7 +130,10 @@ public abstract class PollingClipboardMonitorService : IClipboardMonitorService
 
             if (_hasBaseline && !string.Equals(fingerprint, _lastFingerprint, StringComparison.Ordinal))
             {
-                ClipboardChanged?.Invoke(this, EventArgs.Empty);
+                if (DateTime.UtcNow >= _suppressUntilUtc)
+                {
+                    ClipboardChanged?.Invoke(this, EventArgs.Empty);
+                }
             }
 
             _lastFingerprint = fingerprint;
@@ -193,5 +213,77 @@ public abstract class PollingClipboardMonitorService : IClipboardMonitorService
         byte[] bytes = Encoding.UTF8.GetBytes(value);
         byte[] hash = System.Security.Cryptography.SHA256.HashData(bytes);
         return Convert.ToHexString(hash);
+    }
+}
+
+/// <summary>
+/// Wraps clipboard writes and marks them as app-originated for monitor suppression.
+/// </summary>
+public sealed class ClipboardMonitorAwareClipboardService : IClipboardService
+{
+    private static readonly TimeSpan DefaultSuppressionDuration = TimeSpan.FromSeconds(3);
+    private readonly IClipboardService _inner;
+    private readonly IClipboardMonitorService _monitor;
+    private readonly TimeSpan _suppressionDuration;
+
+    public ClipboardMonitorAwareClipboardService(
+        IClipboardService inner,
+        IClipboardMonitorService monitor,
+        TimeSpan? suppressionDuration = null)
+    {
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+        _suppressionDuration = suppressionDuration ?? DefaultSuppressionDuration;
+    }
+
+    public void Clear()
+    {
+        Suppress();
+        _inner.Clear();
+    }
+
+    public bool ContainsText() => _inner.ContainsText();
+    public bool ContainsImage() => _inner.ContainsImage();
+    public bool ContainsFileDropList() => _inner.ContainsFileDropList();
+    public string? GetText() => _inner.GetText();
+    public SKBitmap? GetImage() => _inner.GetImage();
+    public string[]? GetFileDropList() => _inner.GetFileDropList();
+    public object? GetData(string format) => _inner.GetData(format);
+    public bool ContainsData(string format) => _inner.ContainsData(format);
+    public Task<string?> GetTextAsync() => _inner.GetTextAsync();
+
+    public void SetText(string text)
+    {
+        Suppress();
+        _inner.SetText(text);
+    }
+
+    public void SetImage(SKBitmap image)
+    {
+        Suppress();
+        _inner.SetImage(image);
+    }
+
+    public void SetFileDropList(string[] files)
+    {
+        Suppress();
+        _inner.SetFileDropList(files);
+    }
+
+    public void SetData(string format, object data)
+    {
+        Suppress();
+        _inner.SetData(format, data);
+    }
+
+    public Task SetTextAsync(string text)
+    {
+        Suppress();
+        return _inner.SetTextAsync(text);
+    }
+
+    private void Suppress()
+    {
+        _monitor.SuppressInternalActivity(_suppressionDuration);
     }
 }

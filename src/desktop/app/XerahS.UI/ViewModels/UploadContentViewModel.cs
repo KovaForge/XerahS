@@ -182,7 +182,13 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
 
         try
         {
-            var parseTask = Task.Run(() => ClipboardContentHelper.ParseClipboard(PlatformServices.Clipboard));
+            // Use the async path so clipboard I/O does not block the UI message
+            // loop.  On Linux/X11 the selection protocol is event-driven; calling
+            // the synchronous wrappers inside Task.Run caused a deadlock because
+            // the dispatched callback blocked the UI thread with
+            // .GetAwaiter().GetResult() while the X11 response still needed the
+            // message pump.
+            var parseTask = ClipboardContentHelper.ParseClipboardAsync(PlatformServices.Clipboard!);
             var completedTask = await Task.WhenAny(parseTask, Task.Delay(clipboardReadTimeoutMs));
             if (completedTask != parseTask)
             {

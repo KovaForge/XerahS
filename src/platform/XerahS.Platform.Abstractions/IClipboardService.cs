@@ -106,5 +106,19 @@ namespace XerahS.Platform.Abstractions
         /// Asynchronously sets text to the clipboard (for platforms that require async clipboard access)
         /// </summary>
         Task SetTextAsync(string text);
+
+        /// <summary>
+        /// Asynchronously gets an image from the clipboard.
+        /// Default implementation wraps <see cref="GetImage"/>.
+        /// Platforms where clipboard access is inherently async (e.g. Linux/X11)
+        /// should override to avoid blocking the UI thread.
+        /// </summary>
+        Task<SKBitmap?> GetImageAsync() => Task.FromResult(GetImage());
+
+        /// <summary>
+        /// Asynchronously gets file drop list from the clipboard.
+        /// Default implementation wraps <see cref="GetFileDropList"/>.
+        /// </summary>
+        Task<string[]?> GetFileDropListAsync() => Task.FromResult(GetFileDropList());
     }
 }

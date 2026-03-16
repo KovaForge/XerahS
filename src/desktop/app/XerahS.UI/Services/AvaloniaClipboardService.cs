@@ -141,7 +141,35 @@ public sealed class AvaloniaClipboardService : IClipboardService
 
     public string[]? GetFileDropList()
     {
-        return GetFileDropListAsync().GetAwaiter().GetResult();
+        return GetFileDropListCoreAsync().GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Truly async clipboard image retrieval that does not block the UI thread.
+    /// On Linux/X11, <see cref="IClipboard.TryGetBitmapAsync"/> needs the
+    /// message loop to pump X11 selection events; the sync overload deadlocks
+    /// because it calls <c>.GetAwaiter().GetResult()</c> inside a dispatcher
+    /// callback.
+    /// </summary>
+    public async Task<SKBitmap?> GetImageAsync()
+    {
+        return await RunOnUIThreadAsync(async () =>
+        {
+            var bitmap = await _clipboard.TryGetBitmapAsync();
+            if (bitmap == null)
+                return null;
+
+            using var stream = new MemoryStream();
+            bitmap.Save(stream);
+            stream.Position = 0;
+            return SKBitmap.Decode(stream);
+        });
+    }
+
+    /// <inheritdoc cref="IClipboardService.GetFileDropListAsync"/>
+    public Task<string[]?> GetFileDropListAsync()
+    {
+        return GetFileDropListCoreAsync();
     }
 
     public void SetFileDropList(string[] files)
@@ -183,7 +211,7 @@ public sealed class AvaloniaClipboardService : IClipboardService
         await RunOnUIThreadAsync(() => _clipboard.SetTextAsync(text));
     }
 
-    private async Task<string[]?> GetFileDropListAsync()
+    private async Task<string[]?> GetFileDropListCoreAsync()
     {
         return await RunOnUIThreadAsync(async () =>
         {
