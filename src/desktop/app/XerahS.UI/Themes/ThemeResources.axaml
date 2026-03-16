@@ -48,7 +48,7 @@
     <SolidColorBrush x:Key="SystemControlForegroundListLowBrush"
                      Color="{DynamicResource ShareX.Color.Border}" />
     <SolidColorBrush x:Key="SystemControlHighlightListAccentLowBrush"
-                     Color="{DynamicResource ShareX.Color.Accent.End}"
+                     Color="{DynamicResource SystemAccentColor}"
                      Opacity="0.7" />
     <SolidColorBrush x:Key="TextControlBackground"
                      Color="{DynamicResource ShareX.Color.Background.Panel}" />
@@ -76,7 +76,7 @@
     <SolidColorBrush x:Key="TextControlBorderBrushDisabled"
                      Color="{DynamicResource ShareX.Color.Border}" />
     <SolidColorBrush x:Key="TextControlBorderBrushFocused"
-                     Color="{DynamicResource ShareX.Color.Accent.End}" />
+                     Color="{DynamicResource SystemAccentColor}" />
     <SolidColorBrush x:Key="TextControlBorderBrushPointerOver"
                      Color="{DynamicResource ShareX.Color.Border}" />
     <SolidColorBrush x:Key="TextControlBorderBrushReadOnly"
@@ -94,36 +94,24 @@
     <SolidColorBrush x:Key="SystemBaseLowColor"
                      Color="{DynamicResource ShareX.Color.Border}" />
 
-    <LinearGradientBrush x:Key="AccentFillColorDefaultBrush"
-                         StartPoint="0%,0%"
-                         EndPoint="100%,100%">
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
-    </LinearGradientBrush>
+    <!-- Accent brushes track the OS system accent colour.
+         Windows: reads from Personalisation live. macOS: reads macOS accent.
+         Linux: Avalonia falls back to a neutral blue if the DE does not expose one.
+         SystemAccentColorLight1 / Dark1 are Avalonia-provided tint/shade variants. -->
+    <SolidColorBrush x:Key="AccentFillColorDefaultBrush"
+                     Color="{DynamicResource SystemAccentColor}" />
 
-    <LinearGradientBrush x:Key="AccentButtonPointerOverBrush"
-                         StartPoint="0%,0%"
-                         EndPoint="100%,100%"
-                         Opacity="0.92">
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
-    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AccentButtonPointerOverBrush"
+                     Color="{DynamicResource SystemAccentColorLight1}"
+                     Opacity="0.92" />
 
-    <LinearGradientBrush x:Key="AccentButtonPressedBrush"
-                         StartPoint="0%,0%"
-                         EndPoint="100%,100%"
-                         Opacity="0.82">
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
-    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AccentButtonPressedBrush"
+                     Color="{DynamicResource SystemAccentColorDark1}"
+                     Opacity="0.82" />
 
-    <LinearGradientBrush x:Key="AccentButtonDisabledBrush"
-                         StartPoint="0%,0%"
-                         EndPoint="100%,100%"
-                         Opacity="0.55">
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.Start}" Offset="0" />
-      <GradientStop Color="{DynamicResource ShareX.Color.Accent.End}" Offset="1" />
-    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AccentButtonDisabledBrush"
+                     Color="{DynamicResource SystemAccentColor}"
+                     Opacity="0.55" />
 
     <SolidColorBrush x:Key="AccentButtonForegroundBrush"
                      Color="White" />
@@ -202,6 +190,15 @@
 
   <Style Selector=":is(views|SurfaceWindow)">
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+  </Style>
+
+  <!-- Centre button content universally. Button.SettingsRow intentionally overrides
+       HorizontalContentAlignment back to Stretch so settings rows stay left-aligned.
+       All other buttons display their label and icon centred both horizontally and
+       vertically to give a polished, consistent appearance app-wide. -->
+  <Style Selector="Button">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <!-- Accent is the default button treatment app-wide. Buttons that intentionally

@@ -70,6 +70,8 @@ Follow these instructions exactly and in order. Do not skip steps, do not add bu
   <rule>Do not hardcode dark colours. Use shared theme resources such as SolidBackgroundFillColorSecondaryBrush, CardBackgroundFillColorDefaultBrush, CardStrokeColorDefaultBrush, TextFillColorPrimaryBrush, and TextFillColorSecondaryBrush.</rule>
   <rule>Buttons are accent by default app-wide through src\desktop\app\XerahS.UI\Themes\ThemeResources.axaml. Do not add Classes="accent" by default. Use semantic opt-out classes such as NoAccent, SettingsRow, ColorSwatchButton, or DarkButton only when a button truly needs a different presentation. Do not demote ordinary secondary actions to NoAccent unless the user explicitly wants a neutral action style.</rule>
   <rule>Do not style scrollbar thumbs manually. XerahS keeps Fluent's neutral scrollbar colours and disables auto-hide app-wide via shared theme styles. Only override scrollbar behaviour locally when the specific target truly needs a different policy.</rule>
+  <rule>The accent colour is the OS system accent on all platforms, delivered through SystemAccentColor / SystemAccentColorLight1 / SystemAccentColorDark1 in ThemeResources.axaml. Never hardcode ShareX.Color.Accent.Start or ShareX.Color.Accent.End into new brush definitions. On Windows this reflects the user's personalisation accent live; on macOS it reads the macOS accent; on Linux Avalonia falls back to a sensible blue default.</rule>
+  <rule>Button content is centred both horizontally and vertically app-wide via a universal Button style in src\desktop\app\XerahS.UI\Themes\ThemeResources.axaml. Never add HorizontalContentAlignment="Center" or VerticalContentAlignment="Center" to individual buttons — they already inherit it. The only exception is Button.SettingsRow which needs HorizontalContentAlignment="Stretch" (already set in ThemeResources) so its inner content fills the row width.</rule>
   <rule>If read-only previews or control internals still render black after the root surface is correct, prefer fixing the relevant shared theme/resource mapping instead of painting many child controls one by one.</rule>
 </xerahs_window_dialog_playbook>
 
@@ -187,6 +189,8 @@ Execute the following steps in order. Think step-by-step and show your reasoning
   <rule>UI remains readable at different DPI scales.</rule>
   <rule>No transparent root gutters or host-surface fall-through remain unless the target is intentionally transparent.</rule>
   <rule>Buttons use the shared accent-default rule unless a semantic opt-out class intentionally says otherwise.</rule>
+  <rule>Button text and icons are centred by the shared universal Button style in ThemeResources. Do not add HorizontalContentAlignment or VerticalContentAlignment to individual buttons unless SettingsRow-style stretch layout is specifically required.</rule>
+  <rule>The accent colour tracks the OS system accent on all platforms via SystemAccentColor in ThemeResources.axaml. Do not hardcode accent colours or reference ShareX.Color.Accent.Start/End in new brush definitions. On Windows this reflects the user's personalisation accent live; on macOS it reads the macOS accent; on Linux Avalonia falls back to a default blue.</rule>
 </validation_rules>
 
 <output_format>
