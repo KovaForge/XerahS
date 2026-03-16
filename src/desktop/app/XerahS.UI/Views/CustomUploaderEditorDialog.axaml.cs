@@ -32,7 +32,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class CustomUploaderEditorDialog : Window
+public partial class CustomUploaderEditorDialog : SurfaceWindow
 {
     public CustomUploaderEditorDialog()
     {

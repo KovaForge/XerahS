@@ -26,8 +26,9 @@
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ShareX.ImageEditor;
-using ShareX.ImageEditor.Annotations;
+using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Core.Editor;
+using ShareX.ImageEditor.Hosting;
 using SkiaSharp;
 
 namespace XerahS.RegionCapture.ViewModels;
@@ -40,7 +41,7 @@ namespace XerahS.RegionCapture.ViewModels;
 public partial class RegionCaptureAnnotationViewModel : ObservableObject
 {
     private readonly EditorCore _editorCore;
-    private EditorOptions? _options;
+    private ImageEditorOptions? _options;
 
     public RegionCaptureAnnotationViewModel()
     {
@@ -54,14 +55,14 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
     /// Loads editor options from settings into the ViewModel.
     /// Call this after construction to restore saved preferences.
     /// </summary>
-    public void LoadOptions(EditorOptions options)
+    public void LoadOptions(ImageEditorOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
 
         SelectedColor = ColorToHex(options.BorderColor);
         FillColor = ColorToHex(options.FillColor);
         StrokeWidth = options.Thickness;
-        FontSize = options.FontSize;
+        FontSize = (int)options.TextFontSize;
         ShadowEnabled = options.Shadow;
     }
 
@@ -76,7 +77,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         _options.BorderColor = HexToColor(SelectedColor);
         _options.FillColor = HexToColor(FillColor);
         _options.Thickness = StrokeWidth;
-        _options.FontSize = FontSize;
+        _options.TextFontSize = FontSize;
         _options.Shadow = ShadowEnabled;
     }
 

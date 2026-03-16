@@ -42,13 +42,13 @@ internal static class ToolNavigationRegistry
     private static readonly Dictionary<string, ToolNavigationRoute> TagRoutes = new(StringComparer.Ordinal)
     {
         ["Tools_ColorPicker"] = new(WorkflowType.ColorPicker, ToolNavigationDispatchMode.DirectToolService),
-        ["Tools_ScreenColorPicker"] = new(WorkflowType.ScreenColorPicker, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_QrGenerator"] = new(WorkflowType.QRCode, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_QrScanScreen"] = new(WorkflowType.QRCodeDecodeFromScreen, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_QrScanRegion"] = new(WorkflowType.QRCodeScanRegion, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_ImageCombiner"] = new(WorkflowType.ImageCombiner, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_ImageSplitter"] = new(WorkflowType.ImageSplitter, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_ImageThumbnailer"] = new(WorkflowType.ImageThumbnailer, ToolNavigationDispatchMode.DirectToolService),
+        ["Tools_VideoEditor"] = new(WorkflowType.VideoEditor, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoConverter"] = new(WorkflowType.VideoConverter, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoThumbnailer"] = new(WorkflowType.VideoThumbnailer, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_AnalyzeImage"] = new(WorkflowType.AnalyzeImage, ToolNavigationDispatchMode.DirectToolService),

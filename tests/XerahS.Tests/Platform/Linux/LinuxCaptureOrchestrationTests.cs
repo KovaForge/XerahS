@@ -29,9 +29,11 @@ using NUnit.Framework;
 using SkiaSharp;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.Contracts;
+using XerahS.Platform.Linux.Capture.Detection;
 using XerahS.Platform.Linux.Capture.Orchestration;
 using XerahS.Platform.Linux.Capture.Portal;
 using XerahS.Platform.Linux.Capture.Providers;
+using XerahS.Platform.Linux.Recording;
 
 namespace XerahS.Tests.Platform.Linux;
 
@@ -56,6 +58,88 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void WaterfallPolicy_X11Region_PrefersDesktopDbusAndX11BeforePortal()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "CINNAMON", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[]
+        {
+            LinuxCaptureStage.DesktopDbus,
+            LinuxCaptureStage.X11,
+            LinuxCaptureStage.Portal
+        }));
+    }
+
+    [Test]
+    public void WaterfallPolicy_X11Region_WithDesktopNativePortal_PrefersPortalFirst()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(
+            isWayland: false,
+            desktop: "XFCE",
+            compositor: "X11",
+            isSandboxed: false,
+            hasScreenshotPortal: true,
+            prefersPortalForRegionCaptureOnX11: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[]
+        {
+            LinuxCaptureStage.Portal,
+            LinuxCaptureStage.DesktopDbus,
+            LinuxCaptureStage.X11
+        }));
+    }
+
+    [Test]
+    public void WaterfallPolicy_X11Region_WithExplicitDesktopNative_UsesDesktopDbusOnly()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(
+            LinuxCaptureKind.Region,
+            new CaptureOptions { LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.DesktopNative });
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "KDE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[] { LinuxCaptureStage.DesktopDbus }));
+    }
+
+    [Test]
+    public void WaterfallPolicy_WaylandRegion_WithExplicitPortalDialog_UsesPortalOnly()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(
+            LinuxCaptureKind.Region,
+            new CaptureOptions { LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.PortalDialog });
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[] { LinuxCaptureStage.Portal }));
+    }
+
+    [Test]
+    public void WaterfallPolicy_WaylandRegion_WithExplicitSlurp_UsesWlrootsOnly()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(
+            LinuxCaptureKind.Region,
+            new CaptureOptions { LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.Slurp });
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "SWAY", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[] { LinuxCaptureStage.WaylandProtocol }));
+    }
+
+    [Test]
     public void WaterfallPolicy_Sandboxed_UsesPortalOnlyOrder()
     {
         var policy = new WaterfallCapturePolicy();
@@ -74,19 +158,19 @@ public class LinuxCaptureOrchestrationTests
         {
             new TestProvider("portal-skip", LinuxCaptureStage.Portal, canHandle: false, resultFactory: () => LinuxCaptureResult.Failure("portal-skip")),
             new TestProvider("portal-fail", LinuxCaptureStage.Portal, canHandle: true, resultFactory: () => LinuxCaptureResult.Failure("portal-fail")),
-            new TestProvider("kde-success", LinuxCaptureStage.DesktopDbus, canHandle: true, resultFactory: () => LinuxCaptureResult.Success("kde-success", new SKBitmap(1, 1)))
+            new TestProvider("gnome-success", LinuxCaptureStage.DesktopDbus, canHandle: true, resultFactory: () => LinuxCaptureResult.Success("gnome-success", new SKBitmap(1, 1)))
         };
 
         var coordinator = new LinuxCaptureCoordinator(providers, new WaterfallCapturePolicy());
         var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
-        var context = new LinuxCaptureContext(isWayland: false, desktop: "KDE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
 
         var execution = await coordinator.CaptureWithTraceAsync(request, context, CancellationToken.None);
         execution.Result.Bitmap?.Dispose();
 
         Assert.Multiple(() =>
         {
-            Assert.That(execution.Result.ProviderId, Is.EqualTo("kde-success"));
+            Assert.That(execution.Result.ProviderId, Is.EqualTo("gnome-success"));
             Assert.That(execution.Trace.FinalOutcome, Is.EqualTo(CaptureDecisionOutcome.Succeeded));
             Assert.That(execution.Trace.Steps.Count, Is.EqualTo(3));
             Assert.That(execution.Trace.Steps[0].Outcome, Is.EqualTo(CaptureDecisionOutcome.Skipped));
@@ -179,8 +263,10 @@ public class LinuxCaptureOrchestrationTests
         };
 
         var coordinator = new LinuxCaptureCoordinator(providers, new WaterfallCapturePolicy());
-        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
-        var context = new LinuxCaptureContext(isWayland: false, desktop: "KDE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var request = new LinuxCaptureRequest(
+            LinuxCaptureKind.Region,
+            new CaptureOptions { LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.PortalDialog });
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
 
         var execution = await coordinator.CaptureWithTraceAsync(request, context, CancellationToken.None);
 
@@ -220,6 +306,179 @@ public class LinuxCaptureOrchestrationTests
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseSuccess), Is.False);
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseCancelled), Is.False);
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseFailed), Is.True);
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_X11WithoutNativeSelector_UsesOverlayFallback()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "XFCE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: false,
+                HasKdeScreenShot2: false,
+                HasSlurp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.False);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
+            Assert.That(capability.Reason, Does.Contain("overlay fallback"));
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_X11GnomeSelector_SupportsNativeAndOverlay()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "CINNAMON", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: true,
+                HasKdeScreenShot2: false,
+                HasSlurp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.True);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
+            Assert.That(capability.Reason, Does.Contain("org.gnome.Shell.Screenshot"));
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_X11DesktopNativePortal_SupportsNativeAndOverlay()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "XFCE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: false,
+                HasKdeScreenShot2: false,
+                HasSlurp: false,
+                HasKnownGoodX11PortalBackend: true,
+                PrefersPortalForRegionCaptureOnX11: true,
+                X11PortalBackendLabel: "xapp"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.True);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
+            Assert.That(capability.Reason, Does.Contain("xapp"));
+            Assert.That(capability.Reason, Does.Contain("XDG portal backend"));
+        });
+    }
+
+    [Test]
+    public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_RequiresNativePathOnly()
+    {
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(
+            context,
+            new LinuxRegionCaptureSupportSnapshot(
+                HasGnomeShellScreenshot: false,
+                HasKdeScreenShot2: false,
+                HasSlurp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(capability.SupportsNativeRegionCapture, Is.True);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.False);
+            Assert.That(capability.Reason, Does.Contain("XDG Screenshot portal"));
+        });
+    }
+
+    [Test]
+    public void LinuxRegionSelectorDiagnosticsDetector_X11Kde_OnlyExposesSupportedSelectors()
+    {
+        var context = new LinuxCaptureContext(isWayland: false, desktop: "KDE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
+        var support = new LinuxRegionCaptureSupportSnapshot(
+            HasGnomeShellScreenshot: false,
+            HasKdeScreenShot2: true,
+            HasSlurp: false);
+        var capability = LinuxRegionCaptureCapabilityDetector.Detect(context, support);
+
+        var diagnostics = LinuxRegionSelectorDiagnosticsDetector.Detect(context, support, capability);
+
+        Assert.That(diagnostics.AvailablePreferences, Is.EqualTo(new[]
+        {
+            LinuxInteractiveRegionSelectorPreference.Automatic,
+            LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+            LinuxInteractiveRegionSelectorPreference.DesktopNative,
+            LinuxInteractiveRegionSelectorPreference.PortalDialog
+        }));
+    }
+
+    [Test]
+    public void PortalBackendDetector_X11CinnamonWithXappBackend_PrefersPortal()
+    {
+        var support = PortalBackendDetector.DetectX11RegionSupport(
+            desktop: "CINNAMON",
+            hasScreenshotPortal: true,
+            hasGnomeShellScreenshot: false,
+            hasKdeScreenShot2: false,
+            backends: new PortalBackendSnapshot(
+                HasKde: false,
+                HasGnome: false,
+                HasGtk: false,
+                HasWlr: false,
+                HasHyprland: false,
+                HasLxqt: false,
+                HasXapp: true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(support.HasKnownGoodX11PortalBackend, Is.True);
+            Assert.That(support.PrefersPortalForRegionCaptureOnX11, Is.True);
+            Assert.That(support.BackendLabel, Is.EqualTo("xapp"));
+        });
+    }
+
+    [Test]
+    public void PortalBackendDetector_X11GtkBackendOnly_DoesNotTreatPortalAsKnownGood()
+    {
+        var support = PortalBackendDetector.DetectX11RegionSupport(
+            desktop: "CINNAMON",
+            hasScreenshotPortal: true,
+            hasGnomeShellScreenshot: false,
+            hasKdeScreenShot2: false,
+            backends: new PortalBackendSnapshot(
+                HasKde: false,
+                HasGnome: false,
+                HasGtk: true,
+                HasWlr: false,
+                HasHyprland: false,
+                HasLxqt: false,
+                HasXapp: false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(support.HasKnownGoodX11PortalBackend, Is.False);
+            Assert.That(support.PrefersPortalForRegionCaptureOnX11, Is.False);
+            Assert.That(support.BackendLabel, Is.Null);
+        });
+    }
+
+    [Test]
+    public void WaylandPortalRecordingService_GnomeWayland_PrefersCpuGStreamer()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(WaylandPortalRecordingService.ShouldPreferCpuGStreamerPath("wayland", "GNOME", null, null), Is.True);
+            Assert.That(WaylandPortalRecordingService.ShouldPreferCpuGStreamerPath("wayland", "ubuntu:GNOME", null, null), Is.True);
+            Assert.That(WaylandPortalRecordingService.ShouldPreferCpuGStreamerPath("wayland", null, "gnome", null), Is.True);
+        });
+    }
+
+    [Test]
+    public void WaylandPortalRecordingService_NonGnomeOrNonWayland_DoesNotPreferCpuGStreamer()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(WaylandPortalRecordingService.ShouldPreferCpuGStreamerPath("wayland", "Hyprland", null, null), Is.False);
+            Assert.That(WaylandPortalRecordingService.ShouldPreferCpuGStreamerPath("wayland", null, null, "sway"), Is.False);
+            Assert.That(WaylandPortalRecordingService.ShouldPreferCpuGStreamerPath("x11", "GNOME", null, null), Is.False);
         });
     }
 

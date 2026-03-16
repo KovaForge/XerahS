@@ -1,5 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:XerahS.UI.ViewModels"
@@ -12,10 +13,10 @@
         Width="850" Height="650"
         WindowStartupLocation="CenterOwner">
 
-    <Grid RowDefinitions="*,Auto" Margin="12">
+    <Grid RowDefinitions="*,Auto" Margin="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         
         <!-- Main Tabs -->
-        <TabControl Grid.Row="0" Margin="0,0,0,12">
+        <TabControl Grid.Row="0" Margin="0,0,0,12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             
             <!-- Tab 1: Task (Trigger & Job) -->
             <TabItem Header="Task">
@@ -25,7 +26,7 @@
                             <TextBlock Text="Workflow ID" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
                             <TextBox Text="{Binding WorkflowId}"
                                      IsReadOnly="True"
-                                     FontFamily="Consolas, Monospace"
+                                     FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                      Theme="{StaticResource SimpleTextBoxStyle}"
                                      AutomationProperties.Name="Workflow ID (ReadOnly)"/>
                         </StackPanel>
@@ -67,6 +68,10 @@
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
                             </Grid>
+                            <TextBlock Text="{Binding SelectedJobDescription}"
+                                       Theme="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap"/>
                         </StackPanel>
 
                         <StackPanel Spacing="8">
@@ -82,7 +87,7 @@
                                             Content="{Binding KeyText}"
                                             Background="Transparent"
                                             BorderThickness="0"
-                                            FontFamily="Consolas, Monospace"
+                                            FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                             HorizontalContentAlignment="Center"
                                             VerticalContentAlignment="Center"
                                             Padding="10,6"
@@ -140,4 +145,4 @@
             <Button Content="Cancel" Click="CancelButton_Click" IsCancel="True" Width="80" AutomationProperties.Name="Cancel"/>
         </StackPanel>
     </Grid>
-</Window>
+</ui:SurfaceWindow>

@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release_title: ${{ steps.version.outputs.release_title }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,13 +28,26 @@ jobs:
             exit 1
           fi
 
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [[ "${GITHUB_REF_TYPE}" == "tag" && "$VERSION" != "$TAG_VERSION" ]]; then
-            echo "Tag version '$TAG_VERSION' does not match Directory.Build.props version '$VERSION'"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version '$VERSION' must follow x.y.z format."
             exit 1
           fi
 
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Tag '${GITHUB_REF_NAME}' must follow vX.Y.Z format."
+              exit 1
+            fi
+
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$VERSION" != "$TAG_VERSION" ]]; then
+              echo "Tag version '$TAG_VERSION' does not match Directory.Build.props version '$VERSION'"
+              exit 1
+            fi
+          fi
+
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_title=XerahS $VERSION" >> "$GITHUB_OUTPUT"
 
   build-windows:
     needs: validate-version
@@ -42,6 +56,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -61,7 +76,16 @@ jobs:
 
       - name: Build Windows packages
         shell: pwsh
-        run: .\build\windows\package-windows.ps1
+        run: |
+          New-Item -ItemType Directory -Force -Path build/logs | Out-Null
+          $logPath = "build/logs/windows-build.log"
+          Start-Transcript -Path $logPath -Force | Out-Null
+          try {
+            .\build\windows\package-windows.ps1
+          }
+          finally {
+            Stop-Transcript | Out-Null
+          }
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -72,6 +96,14 @@ jobs:
             dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
             dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
 
+      - name: Upload Windows build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-log
+          if-no-files-found: warn
+          path: build/logs/windows-build.log
+
   build-macos:
     needs: validate-version
     runs-on: macos-15
@@ -79,6 +111,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -88,8 +121,24 @@ jobs:
       - name: Build macOS packages
         shell: bash
         run: |
+          set -o pipefail
+          mkdir -p build/logs
           chmod +x ./build/macos/package-mac.sh
-          ./build/macos/package-mac.sh
+          ./build/macos/package-mac.sh 2>&1 | tee build/logs/macos-build.log
+
+      - name: Validate macOS archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          for ARCH in arm64 x64; do
+            ARCHIVE="dist/XerahS-${VERSION}-mac-${ARCH}.tar.gz"
+            ARCHIVE_LIST="$(mktemp)"
+            tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
+            grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon" "$ARCHIVE_LIST"
+            grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json" "$ARCHIVE_LIST"
+            rm -f "$ARCHIVE_LIST"
+          done
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -100,13 +149,32 @@ jobs:
             dist/XerahS-${{ needs.validate-version.outputs.version }}-mac-arm64.tar.gz
             dist/XerahS-${{ needs.validate-version.outputs.version }}-mac-x64.tar.gz
 
+      - name: Upload macOS build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-log
+          if-no-files-found: warn
+          path: build/logs/macos-build.log
+
   build-linux:
     needs: validate-version
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            runner: ubuntu-24.04
+            artifact_name: linux-release-x64
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+            artifact_name: linux-release-arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -117,26 +185,45 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm
+          sudo apt-get install -y rpm desktop-file-utils
 
       - name: Build Linux packages
         shell: bash
         run: |
+          set -o pipefail
+          mkdir -p build/logs
           chmod +x ./build/linux/package-linux.sh
-          ./build/linux/package-linux.sh
+          XERAHS_ARCHITECTURES="${{ matrix.rid }}" ./build/linux/package-linux.sh 2>&1 | tee "build/logs/linux-${{ matrix.rid }}-build.log"
+
+      - name: Validate Linux archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          ARCHIVE="dist/XerahS-${VERSION}-${{ matrix.rid }}.tar.gz"
+          ARCHIVE_LIST="$(mktemp)"
+          tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
+          grep -Eq '(^|/)xerahs-watchfolder-daemon$' "$ARCHIVE_LIST"
+          grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
+          rm -f "$ARCHIVE_LIST"
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-release
+          name: ${{ matrix.artifact_name }}
           if-no-files-found: error
           path: |
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.tar.gz
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.deb
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.rpm
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.tar.gz
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.deb
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.rpm
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.tar.gz
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.deb
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.rpm
+
+      - name: Upload Linux build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build-log-${{ matrix.rid }}
+          if-no-files-found: warn
+          path: build/logs/linux-${{ matrix.rid }}-build.log
 
   release:
     if: github.ref_type == 'tag'
@@ -147,15 +234,28 @@ jobs:
       - build-linux
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: release-assets
           merge-multiple: true
 
+      - name: Validate release matrix and generate metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          python3 build/ci/validate_release_assets.py \
+            --assets-dir release-assets \
+            --version "$VERSION" \
+            --metadata-output release-assets/release-metadata.json
+
       - name: Upload assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ needs.validate-version.outputs.release_title }}
           files: |
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
@@ -167,6 +267,58 @@ jobs:
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.deb
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.rpm
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  package-chocolatey:
+    if: github.ref_type == 'tag'
+    needs:
+      - validate-version
+      - release
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Ensure Chocolatey CLI
+        shell: pwsh
+        run: |
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            throw "Chocolatey CLI (choco) is required on the runner."
+          }
+
+          choco --version
+
+      - name: Sync and pack Chocolatey package
+        shell: pwsh
+        run: |
+          .\build\windows\chocolatey\Sync-ChocolateyPackage.ps1 `
+            -Version "${{ needs.validate-version.outputs.version }}" `
+            -Pack `
+            -OutputDirectory "dist\chocolatey"
+
+      - name: Smoke test Chocolatey package
+        shell: pwsh
+        run: |
+          .\build\windows\chocolatey\Test-ChocolateyPackage.ps1 `
+            -Version "${{ needs.validate-version.outputs.version }}" `
+            -SourceDirectory "dist\chocolatey"
+
+      - name: Upload Chocolatey artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chocolatey-package-${{ needs.validate-version.outputs.version }}
+          if-no-files-found: error
+          path: dist/chocolatey/xerahs.${{ needs.validate-version.outputs.version }}.nupkg
+
+      - name: Upload Chocolatey package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.validate-version.outputs.version }}
+          files: dist/chocolatey/xerahs.${{ needs.validate-version.outputs.version }}.nupkg
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

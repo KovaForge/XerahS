@@ -137,6 +137,21 @@ public class ScreenRecordingManager
     }
 
     /// <summary>
+    /// Planned final output path for the active recording, after backend-specific
+    /// container adjustments such as .mp4 -> .webm fallback.
+    /// </summary>
+    public string? PlannedOutputPath
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _finalOutputPath;
+            }
+        }
+    }
+
+    /// <summary>
     /// Signals the current recording task to stop.
     /// Used by the hotkey handler to resume the waiting WorkerTask.
     /// </summary>
@@ -177,12 +192,17 @@ public class ScreenRecordingManager
         // This ensures factories are set up before we try to create recording services
         await EnsureRecordingInitialized();
 
-        // Verify recording services are available after initialization
-        if (ScreenRecorderService.NativeRecordingServiceFactory == null &&
-            ScreenRecorderService.FallbackServiceFactory == null)
+        // Verify recording services are available after initialization.
+        // Windows uses CaptureSourceFactory + EncoderFactory (ScreenRecorderService); Linux/macOS may use NativeRecordingServiceFactory or FallbackServiceFactory.
+        bool hasNativeFactory = ScreenRecorderService.NativeRecordingServiceFactory != null;
+        bool hasFallbackFactory = ScreenRecorderService.FallbackServiceFactory != null;
+        bool hasCaptureSourceFactory = ScreenRecorderService.CaptureSourceFactory != null;
+        if (!hasNativeFactory && !hasFallbackFactory && !hasCaptureSourceFactory)
         {
-            throw new InvalidOperationException(
-                "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support and PipeWire are installed and running.");
+            string message = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support and PipeWire are installed and running."
+                : "Screen recording is not available. Ensure platform recording has been initialized.";
+            throw new InvalidOperationException(message);
         }
 
         if (string.IsNullOrEmpty(options.OutputPath))
@@ -338,11 +358,43 @@ public class ScreenRecordingManager
         bool isWayland = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
         bool hasNativeFactory = ScreenRecorderService.NativeRecordingServiceFactory != null;
 
-        DebugHelper.WriteLine($"ShouldForceFallback: isWayland={isWayland}, hasNativeFactory={hasNativeFactory}, UseModernCapture={options.UseModernCapture}");
+        DebugHelper.WriteLine(
+            $"ShouldForceFallback: isWayland={isWayland}, hasNativeFactory={hasNativeFactory}, " +
+            $"UseModernCapture={options.UseModernCapture}, LinuxRecordingBackendPreference={options.LinuxRecordingBackendPreference}");
 
-        // Check UseModernCapture override: if false, force FFmpeg fallback
-        // BUT on Wayland, FFmpeg x11grab doesn't work, so prefer native recording if available
-        if (!options.UseModernCapture)
+        if (OperatingSystem.IsLinux())
+        {
+            switch (options.LinuxRecordingBackendPreference)
+            {
+                case LinuxRecordingBackendPreference.Native:
+                    if (hasNativeFactory)
+                    {
+                        TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux native recording backend requested -> using native backend");
+                        return false;
+                    }
+
+                    TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux native recording backend requested but unavailable -> using FFmpeg fallback");
+                    return true;
+                case LinuxRecordingBackendPreference.FFmpeg:
+                    if (isWayland && hasNativeFactory)
+                    {
+                        TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux FFmpeg fallback requested on Wayland -> using native backend because x11grab is unavailable");
+                        return false;
+                    }
+
+                    if (isWayland && !hasNativeFactory)
+                    {
+                        DebugHelper.WriteLine("WARNING: Linux FFmpeg fallback requested on Wayland but native recording is unavailable.");
+                    }
+
+                    TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux FFmpeg fallback backend requested -> using FFmpeg");
+                    return true;
+            }
+        }
+
+        // On non-Linux platforms, UseModernCapture still selects between native and fallback recording paths.
+        // Linux now uses LinuxRecordingBackendPreference instead.
+        if (!OperatingSystem.IsLinux() && !options.UseModernCapture)
         {
             if (isWayland && hasNativeFactory)
             {
@@ -455,6 +507,7 @@ public class ScreenRecordingManager
 
                 TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", "Calling recordingService.StartRecordingAsync");
                 await recordingService.StartRecordingAsync(optionsToStart);
+                UpdateFinalOutputExtensionFromSegmentPath(optionsToStart.OutputPath);
 
                 TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", "Recording started successfully");
 
@@ -617,6 +670,42 @@ public class ScreenRecordingManager
         return CloneOptions(options, segmentPath);
     }
 
+    private void UpdateFinalOutputExtensionFromSegmentPath(string? actualSegmentPath)
+    {
+        if (string.IsNullOrWhiteSpace(actualSegmentPath))
+        {
+            return;
+        }
+
+        string actualExtension = Path.GetExtension(actualSegmentPath);
+        if (string.IsNullOrWhiteSpace(actualExtension))
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (string.IsNullOrWhiteSpace(_finalOutputPath))
+            {
+                return;
+            }
+
+            string currentExtension = Path.GetExtension(_finalOutputPath);
+            if (string.Equals(currentExtension, actualExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _finalOutputPath = Path.ChangeExtension(_finalOutputPath, actualExtension);
+            if (_resumeOptions != null)
+            {
+                _resumeOptions.OutputPath = _finalOutputPath;
+            }
+
+            DebugHelper.WriteLine($"ScreenRecordingManager: Adjusted final output extension to match recorder container: {_finalOutputPath}");
+        }
+    }
+
     private async Task StartRecordingInternalAsync(RecordingOptions options, bool isResume)
     {
         await EnsureRecordingInitialized();
@@ -744,6 +833,7 @@ public class ScreenRecordingManager
         if (_segments.Count == 1)
         {
             string single = _segments[0];
+            string finalOutputPath = _finalOutputPath!;
             if (!string.Equals(single, _finalOutputPath, StringComparison.OrdinalIgnoreCase))
             {
                 FileHelpers.CreateDirectoryFromFilePath(_finalOutputPath);
@@ -752,7 +842,7 @@ public class ScreenRecordingManager
 
             _segments.Clear();
             ResetSegmentState();
-            return _finalOutputPath;
+            return finalOutputPath;
         }
 
         string ffmpegPath = PathsManager.GetFFmpegPath();
@@ -762,6 +852,7 @@ public class ScreenRecordingManager
             return _segments.LastOrDefault();
         }
 
+        string finalConcatPath = _finalOutputPath!;
         string tempOutput = FileHelpers.AppendTextToFileName(_finalOutputPath, "-concat");
         await Task.Run(() =>
         {
@@ -777,7 +868,7 @@ public class ScreenRecordingManager
 
         _segments.Clear();
         ResetSegmentState();
-        return _finalOutputPath;
+        return finalConcatPath;
     }
 
     private void CleanupSegments(bool deleteFinalOutput)
@@ -826,7 +917,8 @@ public class ScreenRecordingManager
             Region = source.Region,
             OutputPath = outputPath ?? source.OutputPath,
             Settings = source.Settings,
-            UseModernCapture = source.UseModernCapture
+            UseModernCapture = source.UseModernCapture,
+            LinuxRecordingBackendPreference = source.LinuxRecordingBackendPreference
         };
     }
 

@@ -199,6 +199,8 @@ public class CustomUploaderProvider : IUploaderProvider
         return new CustomUploaderExecutor(effectiveItem);
     }
 
+    object IUploaderProvider.CreateInstance(string settingsJson) => CreateInstance(settingsJson);
+
     /// <inheritdoc/>
     public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes()
     {
@@ -257,12 +259,8 @@ public class CustomUploaderProvider : IUploaderProvider
     /// <inheritdoc/>
     public string GetDefaultSettings(UploaderCategory category)
     {
-        // Return the current item as the default settings
-        return JsonConvert.SerializeObject(_item, Formatting.Indented, new JsonSerializerSettings
-        {
-            DefaultValueHandling = DefaultValueHandling.Ignore,
-            NullValueHandling = NullValueHandling.Ignore
-        });
+        // Instance settings must retain a resolved name so the advanced editor can reopen with it prefilled.
+        return CustomUploaderSettingsSerializer.SerializeForInstance(_item, Name);
     }
 
     /// <inheritdoc/>

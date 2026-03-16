@@ -31,7 +31,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class UploadContentWindow : Window
+public partial class UploadContentWindow : SurfaceWindow
 {
     private UploadContentViewModel? _viewModel;
 

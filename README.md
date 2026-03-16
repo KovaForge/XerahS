@@ -90,19 +90,29 @@ dotnet run --project src/XerahS.Mobile.Maui/XerahS.Mobile.Maui.csproj -f net10.0
 ## 🚀 Getting Started
 
 ### Cloning the Repository
-XerahS requires the XerahS.Editor submodule. Clone with:
+XerahS requires the `ShareX.ImageEditor` and `ShareX.VideoEditor` submodules. Clone with:
 ```bash
 git clone --recursive https://github.com/ShareX/XerahS.git
 ```
 
-If you already cloned without `--recursive`, initialize the submodule:
+If you already cloned without `--recursive`, initialize the submodules:
 ```bash
 cd XerahS
 git submodule update --init --recursive
 ```
 
+### Desktop Quick Start (Windows)
+On Windows, the fastest verified first-run path is:
+```powershell
+.\init-submodules.ps1
+dotnet build src/desktop/XerahS.sln -m:1 -p:nodeReuse=false -p:UseSharedCompilation=false
+```
+
+If you skip submodule initialization and run `dotnet build src/desktop/XerahS.sln` immediately after a plain `git clone`, the build fails with `MSB3202` because `ShareX.ImageEditor` and `ShareX.VideoEditor` are checked out as Git submodules.
+
 ### Prerequisites
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Node.js `^20.19.0 || >=22.12.0` for the `ShareX.VideoEditor` frontend build
 
 ### Arch Linux (AUR)
 Arch Linux users can install the latest development version via the community-maintained AUR package [`xerahs-git`](https://aur.archlinux.org/packages/xerahs-git) (maintained by @unicxrn).

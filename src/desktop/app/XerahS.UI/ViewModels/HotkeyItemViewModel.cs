@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using XerahS.Common;
 
 namespace XerahS.UI.ViewModels;
@@ -36,6 +37,10 @@ public partial class HotkeyItemViewModel : ViewModelBase
         string.IsNullOrEmpty(Model.TaskSettings.Description)
             ? EnumExtensions.GetDescription(Model.TaskSettings.Job)
             : Model.TaskSettings.Description;
+
+    public string JobDescription => EnumExtensions.GetDescription(Model.TaskSettings.Job);
+
+    public bool ShowJobDescription => !string.Equals(Description, JobDescription, StringComparison.Ordinal);
 
     public string KeyString => Model.HotkeyInfo.ToString();
 
@@ -55,6 +60,8 @@ public partial class HotkeyItemViewModel : ViewModelBase
     public void Refresh()
     {
         OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(JobDescription));
+        OnPropertyChanged(nameof(ShowJobDescription));
         OnPropertyChanged(nameof(KeyString));
         OnPropertyChanged(nameof(FullDescription));
         OnPropertyChanged(nameof(Status));

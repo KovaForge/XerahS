@@ -24,12 +24,16 @@
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using ShareX.ImageEditor.Helpers;
+using ShareX.ImageEditor.Presentation.Theming;
+using ShareX.ImageEditor.Presentation.ViewModels;
 
 namespace XerahS.UI.Views
 {
-    public partial class EditorWindow : Window
+    public partial class EditorWindow : SurfaceWindow
     {
+        private MainViewModel? _viewModel;
+        internal bool IsCloseRequestedByViewModel { get; private set; }
+
         public EditorWindow()
         {
             InitializeComponent();
@@ -41,6 +45,40 @@ namespace XerahS.UI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            if (_viewModel != null)
+            {
+                _viewModel.CloseRequested -= OnViewModelCloseRequested;
+            }
+
+            base.OnDataContextChanged(e);
+
+            IsCloseRequestedByViewModel = false;
+            _viewModel = DataContext as MainViewModel;
+            if (_viewModel != null)
+            {
+                _viewModel.CloseRequested += OnViewModelCloseRequested;
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (_viewModel != null)
+            {
+                _viewModel.CloseRequested -= OnViewModelCloseRequested;
+                _viewModel = null;
+            }
+
+            base.OnClosed(e);
+        }
+
+        private void OnViewModelCloseRequested(object? sender, EventArgs e)
+        {
+            IsCloseRequestedByViewModel = true;
+            Close();
         }
     }
 }

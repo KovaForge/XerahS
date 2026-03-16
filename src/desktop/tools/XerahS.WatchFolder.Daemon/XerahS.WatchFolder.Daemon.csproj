@@ -15,11 +15,17 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '')">
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
+    <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj"
+                      Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '')"
+                      AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
+    <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj"
+                      Condition="!($(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == ''))"
+                      GlobalPropertiesToRemove="OS"
+                      AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '')" />

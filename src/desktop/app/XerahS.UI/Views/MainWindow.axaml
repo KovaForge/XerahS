@@ -3,11 +3,11 @@
         xmlns:vm="using:XerahS.UI.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ui="using:FluentAvalonia.UI.Controls"
         xmlns:hotkeys="using:XerahS.Core.Hotkeys"
         xmlns:views="using:XerahS.UI.Views"
         xmlns:common="clr-namespace:XerahS.Common;assembly=XerahS.Common"
-        xmlns:editvm="clr-namespace:ShareX.ImageEditor.ViewModels;assembly=ShareX.ImageEditor"
+        xmlns:editvm="clr-namespace:ShareX.ImageEditor.Presentation.ViewModels;assembly=ShareX.ImageEditor"
+        xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="650"
         x:Class="XerahS.UI.Views.MainWindow"
         x:DataType="editvm:MainViewModel"
@@ -20,7 +20,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://ShareX.ImageEditor/UI/Themes/ShareXTheme.axaml"/>
+                <ResourceInclude Source="avares://ShareX.ImageEditor/Presentation/Theming/ShareXTheme.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
@@ -68,9 +68,9 @@
                     <MenuItem Header="_Editor" Click="OnMenuNavigateClick" Tag="Editor"/>
                     <MenuItem Header="_History" Click="OnMenuNavigateClick" Tag="History"/>
                     <Separator/>
+                    <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+0"/>
                     <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" InputGesture="Ctrl++"/>
                     <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+-"/>
-                    <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+0"/>
                     <MenuItem Header="Zoom to _Fit" Command="{Binding ZoomToFitCommand}" InputGesture="Ctrl+D9"/>
                 </MenuItem>
                 
@@ -84,7 +84,6 @@
                 <!-- Tools Menu -->
                 <MenuItem Header="_Tools">
                     <MenuItem Header="_Color Picker..." Click="OnMenuNavigateClick" Tag="Tools_ColorPicker"/>
-                    <MenuItem Header="Pick From _Screen" Click="OnMenuNavigateClick" Tag="Tools_ScreenColorPicker"/>
                     <MenuItem Header="_Ruler" Click="OnMenuNavigateClick" Tag="Tools_Ruler"/>
                     <Separator/>
                     <MenuItem Header="_QR Code">
@@ -108,6 +107,7 @@
                     <MenuItem Header="Image _Thumbnailer..." Click="OnMenuNavigateClick" Tag="Tools_ImageThumbnailer"/>
                     <MenuItem Header="_Analyze Image..." Click="OnMenuNavigateClick" Tag="Tools_AnalyzeImage"/>
                     <Separator/>
+                    <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Click="OnMenuNavigateClick" Tag="Tools_VideoEditor"/>
                     <MenuItem Header="_Video Converter..." Click="OnMenuNavigateClick" Tag="Tools_VideoConverter"/>
                     <MenuItem Header="Video Thumb_nailer..." Click="OnMenuNavigateClick" Tag="Tools_VideoThumbnailer"/>
                     <Separator/>
@@ -130,114 +130,60 @@
         </Border>
 
         <!-- Main Navigation Shell -->
-        <ui:NavigationView Grid.Row="1" 
-                           Name="NavView" 
-                           PaneDisplayMode="Left" 
-                           IsPaneOpen="True"
-                           IsSettingsVisible="False"
-                           SelectionChanged="OnNavSelectionChanged"
-                           AutomationProperties.Name="Main Navigation">
-            <ui:NavigationView.MenuItems>
-                <!-- Capture Section - Items populated dynamically from first 3 workflows -->
-                <ui:NavigationViewItem Content="Capture" Tag="Capture" SelectsOnInvoked="False" IsExpanded="True" Name="CaptureNavItem"
-                                       AutomationProperties.Name="Capture Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Camera"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Recording" Tag="Recording" AutomationProperties.Name="Recording View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Video"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Editor" Tag="Editor" IsSelected="True" AutomationProperties.Name="Editor View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Edit"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="History" Tag="History" AutomationProperties.Name="History View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Clock"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Workflows" Tag="Workflows" AutomationProperties.Name="Workflows View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="List"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
+        <SplitView Grid.Row="1"
+                   DisplayMode="Inline"
+                   IsPaneOpen="True"
+                   CompactPaneLength="0"
+                   OpenPaneLength="300">
+            <SplitView.Pane>
+                <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,1,0">
+                    <TreeView Name="NavigationTree"
+                              Margin="12"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              SelectionChanged="OnNavSelectionChanged"
+                              KeyDown="OnNavigationTreeKeyDown"
+                              AutomationProperties.Name="Main Navigation">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate ItemsSource="{Binding Children}">
+                                <Border Background="Transparent"
+                                        CornerRadius="8"
+                                        Padding="10,8"
+                                        Tapped="OnNavigationNodeTapped"
+                                        AutomationProperties.Name="{Binding Text}">
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="12">
+                                        <TextBlock Text="{Binding Glyph}"
+                                                   FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                   FontSize="18"
+                                                   FontWeight="Normal"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding HasGlyph}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Text}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Border>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                        <TreeView.Styles>
+                            <Style Selector="TreeView#NavigationTree TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.Styles>
+                    </TreeView>
+                </Border>
+            </SplitView.Pane>
 
-                <ui:NavigationViewItem Content="Upload" Tag="Upload" SelectsOnInvoked="False" IsExpanded="False" AutomationProperties.Name="Upload Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Upload"/>
-                    </ui:NavigationViewItem.IconSource>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="Upload File..."
-                                               Tag="Upload_FileUpload"
-                                               AutomationProperties.Name="File Upload"/>
-                        <ui:NavigationViewItem Content="Upload Content..."
-                                               Tag="Upload_ClipboardUploadWithContentViewer"
-                                               AutomationProperties.Name="Upload Content"/>
-                    </ui:NavigationViewItem.MenuItems>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Tools" Tag="Tools" SelectsOnInvoked="True" IsExpanded="False" AutomationProperties.Name="Tools Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Folder"/>
-                    </ui:NavigationViewItem.IconSource>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="Color Picker..." Tag="Tools_ColorPicker" AutomationProperties.Name="Color Picker Tool"/>
-                        <ui:NavigationViewItem Content="Pick From Screen" Tag="Tools_ScreenColorPicker" AutomationProperties.Name="Screen Color Picker Tool"/>
-                        <ui:NavigationViewItem Content="Ruler" Tag="Tools_Ruler" AutomationProperties.Name="Ruler Tool"/>
-                        <ui:NavigationViewItem Content="Index Folder..." Tag="Tools_IndexFolder" AutomationProperties.Name="Index Folder Tool"/>
-                        <ui:NavigationViewItem Content="QR Code" AutomationProperties.Name="QR Code Tools">
-                            <ui:NavigationViewItem.MenuItems>
-                                <ui:NavigationViewItem Content="Generator..." Tag="Tools_QrGenerator" AutomationProperties.Name="QR Code Generator"/>
-                                <ui:NavigationViewItem Content="Scan from screen" Tag="Tools_QrScanScreen" AutomationProperties.Name="Scan QR from Screen"/>
-                                <ui:NavigationViewItem Content="Scan from region" Tag="Tools_QrScanRegion" AutomationProperties.Name="Scan QR from Region"/>
-                            </ui:NavigationViewItem.MenuItems>
-                        </ui:NavigationViewItem>
-                        <ui:NavigationViewItem Content="Image Combiner..." Tag="Tools_ImageCombiner" AutomationProperties.Name="Image Combiner Tool"/>
-                        <ui:NavigationViewItem Content="Image Splitter..." Tag="Tools_ImageSplitter" AutomationProperties.Name="Image Splitter Tool"/>
-                        <ui:NavigationViewItem Content="Image Thumbnailer..." Tag="Tools_ImageThumbnailer" AutomationProperties.Name="Image Thumbnailer Tool"/>
-                        <ui:NavigationViewItem Content="Video Converter..." Tag="Tools_VideoConverter" AutomationProperties.Name="Video Converter Tool"/>
-                        <ui:NavigationViewItem Content="Video Thumbnailer..." Tag="Tools_VideoThumbnailer" AutomationProperties.Name="Video Thumbnailer Tool"/>
-                        <ui:NavigationViewItem Content="Analyze Image..." Tag="Tools_AnalyzeImage" AutomationProperties.Name="Image Analyzer Tool"/>
-                        <ui:NavigationViewItem Content="Monitor Test" Tag="Tools_MonitorTest" AutomationProperties.Name="Monitor Test Tool"/>
-                    </ui:NavigationViewItem.MenuItems>
-                </ui:NavigationViewItem>
-                
-                <ui:NavigationViewItem Content="Settings" Tag="Settings" SelectsOnInvoked="True" IsExpanded="True" AutomationProperties.Name="Settings Menu">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Settings"/>
-                    </ui:NavigationViewItem.IconSource>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="Application Settings" Tag="Settings_App" AutomationProperties.Name="Application Settings"/>
-                        <ui:NavigationViewItem Content="Destination Settings" Tag="Settings_Dest" AutomationProperties.Name="Destination Settings"/>
-                    </ui:NavigationViewItem.MenuItems>
-                 </ui:NavigationViewItem>
-                 
-                 <ui:NavigationViewItem Content="Debug" Tag="Debug" AutomationProperties.Name="Debug View"
-                                        AutomationProperties.HelpText="Opens developer debug tools">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Code"/>
-                    </ui:NavigationViewItem.IconSource>
-                 </ui:NavigationViewItem>
-
-                <ui:NavigationViewItem Content="About" Tag="About" AutomationProperties.Name="About View">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:SymbolIconSource Symbol="Important"/>
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-            </ui:NavigationView.MenuItems>
-            
-            <ui:NavigationView.Content>
-                 <ContentControl Name="ContentFrame" />
-            </ui:NavigationView.Content>
-        </ui:NavigationView>
+            <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+                <TransitioningContentControl Name="ContentFrame"
+                                             HorizontalContentAlignment="Stretch"
+                                             VerticalContentAlignment="Stretch" />
+            </Border>
+        </SplitView>
 
         <!-- Modal Overlay Layer (Bootstrap Style) -->
         <Grid Grid.Row="0" Grid.RowSpan="2" 

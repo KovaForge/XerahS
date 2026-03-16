@@ -75,12 +75,10 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{DynamicResource AccentFillColorDefaultBrush}"
-                                        CornerRadius="3"
-                                        Padding="6,2"
+                                <Border Classes="accent-chip"
                                         Margin="0,0,4,4">
                                     <TextBlock Text="{Binding StringFormat='.{0}'}"
-                                               Foreground="White"
+                                               Classes="on-accent"
                                                FontSize="11"/>
                                 </Border>
                             </DataTemplate>
@@ -91,17 +89,16 @@
         </StackPanel>
 
         <!-- Conflict Warning -->
-        <Border Background="{DynamicResource SystemFillColorCautionBackground}"
-                BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
+        <Border Classes="status-warning"
                 BorderThickness="1"
                 CornerRadius="4"
                 Padding="10"
                 IsVisible="{Binding ConflictWarning.HasConflict}">
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
+                <TextBlock Text="!" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding ConflictWarning.Message}"
+                           Classes="status-warning"
                            TextWrapping="Wrap"
-                           Foreground="{DynamicResource SystemFillColorCautionBrush}"
                            VerticalAlignment="Center"/>
             </StackPanel>
         </Border>

@@ -331,33 +331,30 @@
         </Border>
 
         <Border Grid.Row="5"
+                Classes="status-success"
                 Padding="12"
-                Background="#CDEBC8"
-                BorderBrush="#72A86A"
                 BorderThickness="0,1,0,0"
                 IsVisible="{Binding HasBandwidthSavingsNotice}">
             <TextBlock Text="{Binding BandwidthSavingsNotice}"
-                       Foreground="#000000"
+                       Classes="status-success"
                        FontSize="12"
                        TextWrapping="Wrap"/>
         </Border>
 
         <Border Grid.Row="6"
+                Classes="status-warning"
                 Padding="12"
-                Background="#FFF4CC"
-                BorderBrush="#D7A550"
                 BorderThickness="0,1,0,0"
                 IsVisible="{Binding ErrorDetails, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <TextBox Text="{Binding ErrorDetails}"
+                     Classes="status-warning"
                      IsReadOnly="True"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
                      MinHeight="72"
                      MaxHeight="180"
-                     Background="#FFF4CC"
-                     Foreground="#6E1E1E"
                      BorderThickness="0"
-                     FontFamily="Consolas, Menlo, monospace"
+                     FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                      FontSize="12"
                      ToolTip.Tip="Copy the error details and share with support."/>
         </Border>

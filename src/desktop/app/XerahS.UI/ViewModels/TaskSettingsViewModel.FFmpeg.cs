@@ -23,9 +23,6 @@
 
 #endregion License Information (GPL v3)
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
 using XerahS.Core;
@@ -159,22 +156,8 @@ namespace XerahS.UI.ViewModels
             var ffmpegOptions = taskSettings.CaptureSettings.FFmpegOptions ?? new FFmpegOptions();
             taskSettings.CaptureSettings.FFmpegOptions = ffmpegOptions;
             var vm = new FFmpegOptionsViewModel(ffmpegOptions);
-            var window = new FFmpegOptionsWindow
-            {
-                DataContext = vm
-            };
-
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                desktop.MainWindow != null)
-            {
-                await window.ShowDialog(desktop.MainWindow);
-                RefreshFFmpegState();
-            }
-            else
-            {
-                window.Closed += (_, _) => RefreshFFmpegState();
-                window.Show();
-            }
+            await _dialogService.ShowDialogAsync<FFmpegOptionsWindow>(vm);
+            RefreshFFmpegState();
         }
 
         [RelayCommand]
@@ -307,12 +290,7 @@ namespace XerahS.UI.ViewModels
 
         private void RefreshOpenFFmpegOptionsWindows()
         {
-            if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                return;
-            }
-
-            foreach (var window in desktop.Windows.OfType<FFmpegOptionsWindow>())
+            foreach (var window in _dialogService.GetOpenWindows().OfType<FFmpegOptionsWindow>())
             {
                 if (window.DataContext is FFmpegOptionsViewModel vm)
                 {

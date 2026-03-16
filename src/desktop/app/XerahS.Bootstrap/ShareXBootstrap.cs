@@ -25,6 +25,7 @@
 
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -54,7 +55,7 @@ namespace XerahS.Bootstrap
                     InitializeLogging(options.LogPath);
                 }
 
-                // 2. Load configuration (must be before platform init so UseModernCapture is available)
+                // 2. Load configuration (must be before platform init so Linux portal service preferences are available)
                 SettingsManager.LoadInitialSettings();
                 result.ConfigurationLoaded = true;
 
@@ -62,14 +63,20 @@ namespace XerahS.Bootstrap
                 InitializePlatformServices(options.ScreenCaptureService);
                 result.PlatformServicesInitialized = true;
 
-                // 4. Initialize recording (async, critical for ScreenRecorder)
+                // 4. Build DI container and wire up RootProvider
+                var services = new ServiceCollection();
+                services.AddXerahSPlatformServices();
+                var provider = services.BuildServiceProvider();
+                PlatformServices.SetRootProvider(provider);
+
+                // 5. Initialize recording (async, critical for ScreenRecorder)
                 if (options.InitializeRecording)
                 {
                     await InitializeRecordingAsync();
                     result.RecordingInitialized = true;
                 }
 
-                // 5. Register UI services if provided
+                // 6. Register UI services if provided
                 if (options.UIService != null)
                 {
                     PlatformServices.RegisterUIService(options.UIService);
@@ -102,12 +109,7 @@ namespace XerahS.Bootstrap
             }
             else
             {
-                var now = DateTime.Now;
-                var baseFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    SettingsManager.AppName);
-                var logsFolder = Path.Combine(baseFolder, "Logs", now.ToString("yyyy-MM"));
-                logPath = Path.Combine(logsFolder, $"ShareX-{now:yyyy-MM-dd}.log");
+                logPath = PathsManager.GetMainLogFilePath();
             }
 
             string? logDirectory = Path.GetDirectoryName(logPath);
@@ -123,7 +125,7 @@ namespace XerahS.Bootstrap
             if (dh == null) return;
             dh.AsyncWrite = false; // Synchronous for startup
 
-            dh.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - ShareX starting.");
+            dh.WriteLine("ShareX starting.");
 
             var version = Assembly.GetEntryAssembly()?.GetName().Version;
             dh.WriteLine($"Version: {version} Dev");
@@ -135,7 +137,7 @@ namespace XerahS.Bootstrap
 #endif
 
             dh.WriteLine($"Command line: \"{Environment.ProcessPath}\"");
-            dh.WriteLine($"Personal path: {Path.GetDirectoryName(logPath)}");
+            dh.WriteLine($"Personal path: {PathsManager.GetLogsFolderForMonth()}");
             dh.WriteLine($"Operating system: {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})");
             dh.WriteLine($".NET version: {Environment.Version}");
 
@@ -252,11 +254,22 @@ namespace XerahS.Bootstrap
         /// </summary>
         private static void InitializeLinuxPlatform()
         {
-            bool useModernCapture = Core.SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
-            DebugHelper.WriteLine($"Linux: UseModernCapture={useModernCapture}");
-            Platform.Linux.LinuxPlatform.Initialize(useModernCapture: useModernCapture);
+            bool useWaylandPortalServices = ResolveLinuxWaylandPortalServicesSetting();
+            DebugHelper.WriteLine($"Linux: UseWaylandPortalServices={useWaylandPortalServices}");
+            Platform.Linux.LinuxPlatform.Initialize(useWaylandPortalServices: useWaylandPortalServices);
         }
 #endif
+
+        private static bool ResolveLinuxWaylandPortalServicesSetting()
+        {
+            bool? explicitSetting = Core.SettingsManager.Settings?.LinuxUseWaylandPortalServices;
+            if (explicitSetting.HasValue)
+            {
+                return explicitSetting.Value;
+            }
+
+            return Core.SettingsManager.DefaultTaskSettings?.CaptureSettings?.UseModernCapture ?? true;
+        }
 
         /// <summary>
         /// Asynchronously initializes platform-specific recording capabilities.

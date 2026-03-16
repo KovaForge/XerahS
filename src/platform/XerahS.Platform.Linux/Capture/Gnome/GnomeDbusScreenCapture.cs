@@ -184,13 +184,13 @@ internal static class GnomeDbusScreenCapture
             }
         }
     }
+}
 
-    [DBusInterface("org.gnome.Shell.Screenshot")]
-    internal interface IGnomeShellScreenshot : IDBusObject
-    {
-        Task<(bool success, string filename)> ScreenshotAsync(bool include_cursor, bool flash, string filename);
-        Task<(bool success, string filename)> ScreenshotWindowAsync(bool include_frame, bool include_cursor, bool flash, string filename);
-        Task<(bool success, string filename)> ScreenshotAreaAsync(int x, int y, int width, int height, bool flash, string filename);
-        Task<(int x, int y, int width, int height)> SelectAreaAsync();
-    }
+[DBusInterface("org.gnome.Shell.Screenshot")]
+public interface IGnomeShellScreenshot : IDBusObject
+{
+    Task<(bool success, string filename)> ScreenshotAsync(bool include_frame, bool flash, string filename);
+    Task<(bool success, string filename)> ScreenshotWindowAsync(bool include_frame, bool include_cursor, bool flash, string filename);
+    Task<(bool success, string filename)> ScreenshotAreaAsync(int x, int y, int width, int height, bool flash, string filename);
+    Task<(int x, int y, int width, int height)> SelectAreaAsync();
 }

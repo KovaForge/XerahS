@@ -28,4 +28,5 @@ namespace XerahS.Uploaders.PluginSystem;
 public static class ProviderIds
 {
     public const string Auto = "auto";
+    public const string Bitly = "bitly";
 }

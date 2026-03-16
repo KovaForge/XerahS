@@ -31,7 +31,7 @@ using XerahS.Core;
 
 namespace XerahS.UI.Views
 {
-    public partial class DestinationSettingsView : UserControl
+    public partial class DestinationSettingsView : PageView
     {
         public DestinationSettingsView()
         {

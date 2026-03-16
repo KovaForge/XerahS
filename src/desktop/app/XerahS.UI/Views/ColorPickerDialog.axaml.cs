@@ -30,7 +30,7 @@ using XerahS.UI.Services;
 
 namespace XerahS.UI.Views;
 
-public partial class ColorPickerDialog : Window
+public partial class ColorPickerDialog : SurfaceWindow
 {
     public ColorPickerDialog()
     {

@@ -22,16 +22,13 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
-using Avalonia.Platform.Storage;
-using Avalonia.Controls;
 using CommunityToolkit.Mvvm.Input;
-using ShareX.ImageEditor;
-using ShareX.ImageEditor.Extensions;
-using ShareX.ImageEditor.ImageEffects;
-using ShareX.ImageEditor.ImageEffects.Manipulations;
+using ShareX.ImageEditor.Core.Editor;
+using ShareX.ImageEditor.Core.ImageEffects;
+using ShareX.ImageEditor.Core.ImageEffects.Helpers;
+using ShareX.ImageEditor.Core.ImageEffects.Manipulations;
+using ShareX.ImageEditor.Presentation.Controls;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -39,6 +36,7 @@ using XerahS.Common;
 using XerahS.Common.Helpers;
 using XerahS.Core;
 using XerahS.Core.Helpers;
+using XerahS.UI.Services;
 
 namespace XerahS.UI.ViewModels
 {
@@ -49,6 +47,7 @@ namespace XerahS.UI.ViewModels
         private SKBitmap? sourcePreviewBitmap;
         private const int PreviewSize = 256;
         private bool isSyncSuspended;
+        private readonly IViewDialogService _dialogService;
 
         private bool canUndo;
         public bool CanUndo
@@ -95,10 +94,11 @@ namespace XerahS.UI.ViewModels
             private set => SetProperty(ref previewBitmap, value);
         }
 
-        public ImageEffectsViewModel(TaskSettingsImage settings, EditorCore editorCore)
+        public ImageEffectsViewModel(TaskSettingsImage settings, EditorCore editorCore, IViewDialogService dialogService)
         {
             this.settings = settings;
             this.editorCore = editorCore;
+            _dialogService = dialogService;
 
             InitializeAvailableEffects();
             GeneratePreviewImage();
@@ -344,30 +344,10 @@ namespace XerahS.UI.ViewModels
             if (Effects == null)
                 return;
 
-            var topLevel = GetMainWindow();
-            if (topLevel?.StorageProvider == null)
-            {
-                DebugHelper.WriteLine("[ImageEffects] Unable to open save picker (no window).");
-                return;
-            }
-
-            var options = new FilePickerSaveOptions
-            {
-                Title = "Save Image Effects Preset",
-                SuggestedFileName = string.IsNullOrWhiteSpace(Name) ? "Preset.xsie" : $"{Name}.xsie",
-                DefaultExtension = "xsie",
-                FileTypeChoices = new[]
-                {
-                    new FilePickerFileType("XerahS Image Effects") { Patterns = new[] { "*.xsie" } },
-                    new FilePickerFileType("ShareX Image Effects") { Patterns = new[] { "*.sxie" } }
-                }
-            };
-
-            var file = await topLevel.StorageProvider.SaveFilePickerAsync(options);
-            if (file == null)
-                return;
-
-            var filePath = file.Path.LocalPath;
+            string suggestedFileName = string.IsNullOrWhiteSpace(Name) ? "Preset.xsie" : $"{Name}.xsie";
+            var filters = new[] { "*.xsie", "*.sxie" };
+            
+            var filePath = await _dialogService.ShowSaveFilePickerAsync("Save Image Effects Preset", suggestedFileName, "xsie", filters);
             if (string.IsNullOrWhiteSpace(filePath))
                 return;
 
@@ -448,28 +428,8 @@ namespace XerahS.UI.ViewModels
 
         private async Task<ImageEffectPreset?> LoadPresetFromPickerAsync(string title)
         {
-            var topLevel = GetMainWindow();
-            if (topLevel?.StorageProvider == null)
-            {
-                DebugHelper.WriteLine("[ImageEffects] Unable to open file picker (no window).");
-                return null;
-            }
-
-            var options = new FilePickerOpenOptions
-            {
-                Title = title,
-                AllowMultiple = false,
-                FileTypeFilter = new[]
-                {
-                    new FilePickerFileType("Image Effects Preset") { Patterns = new[] { "*.xsie", "*.sxie" } }
-                }
-            };
-
-            var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
-            if (files.Count == 0)
-                return null;
-
-            var filePath = files[0].Path.LocalPath;
+            var filters = new[] { "*.xsie", "*.sxie" };
+            var filePath = await _dialogService.ShowFilePickerAsync(title, filters);
             if (string.IsNullOrWhiteSpace(filePath))
                 return null;
 
@@ -513,12 +473,7 @@ namespace XerahS.UI.ViewModels
             return LoadLegacyPreset(filePath);
         }
 
-        private static Window? GetMainWindow()
-        {
-            return Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow
-                : null;
-        }
+
 
         private static ImageEffect? CreateEffectFromMapped(MappedEffect mapped)
         {
@@ -654,7 +609,7 @@ namespace XerahS.UI.ViewModels
             string? name = null;
             try
             {
-                if (Activator.CreateInstance(type) is ShareX.ImageEditor.ImageEffects.ImageEffect effect)
+                if (Activator.CreateInstance(type) is ImageEffect effect)
                 {
                     name = effect.Name;
                 }
@@ -663,7 +618,7 @@ namespace XerahS.UI.ViewModels
             {
             }
 
-            Name = name ?? ShareX.ImageEditor.Extensions.TypeExtensions.GetDescription(type) ?? type.Name;
+            Name = name ?? TypeExtensions.GetDescription(type) ?? type.Name;
         }
     }
 }

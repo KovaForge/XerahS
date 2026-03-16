@@ -217,12 +217,8 @@ class Program
         using var fileStream = File.Create(outputPath);
         using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
         using var tarWriter = new TarWriter(gzipStream, TarEntryFormat.Ustar);
-
-        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
-        {
-            string relativePath = Path.GetRelativePath(sourceDir, file).Replace('\\', '/');
-            WriteTarFileEntry(tarWriter, file, relativePath);
-        }
+        // Preserve symlinks for all tarball uses (portable archive and RPM Source0 staging tarball).
+        AddDirectoryToTar(tarWriter, sourceDir, sourceDir, prependDotPrefix: false);
     }
 
     static void CreateDeb(string sourceDir, string outputPath, string version, string arch)
@@ -247,13 +243,16 @@ class Program
                 File.Copy(file, destFile);
             }
 
-            // Create symlink binary in /usr/bin/xerahs
+            // Create /usr/bin/xerahs as a symlink to the real binary.
+            // A true symlink is required so that xdg-desktop-portal can resolve the Exec= path
+            // back to the real binary via /proc/PID/exe for app-ID detection. A wrapper shell
+            // script would not resolve to the same path and breaks portal app identification.
             string binPath = Path.Combine(dataRoot, "usr", "bin");
             Directory.CreateDirectory(binPath);
-            // We can't easily create a true symlink on Windows for the tar archive without specific library calls or storing it as a special entry.
-            // A safer bet for cross-platform packaging is a wrapper script.
-            string wrapperScript = Path.Combine(binPath, "xerahs");
-            File.WriteAllText(wrapperScript, "#!/bin/sh\nexec /usr/lib/xerahs/XerahS \"$@\"\n");
+            string symlinkPath = Path.Combine(binPath, "xerahs");
+            // Relative symlink: resolves to /usr/lib/xerahs/XerahS from /usr/bin/. A relative
+// target is used so rpmbuild can correctly traverse the symlink inside BUILDROOT.
+File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
 
             // Create desktop entry for application menu
             string applicationsPath = Path.Combine(dataRoot, "usr", "share", "applications");
@@ -269,7 +268,7 @@ class Program
                 Type=Application
                 Categories=Utility;Graphics;GTK;
                 Keywords=screenshot;screen;capture;share;upload;
-                StartupWMClass=XerahS
+                StartupWMClass=xerahs
                 X-GNOME-UsesNotifications=true
                 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
                 """;
@@ -304,8 +303,16 @@ class Program
             sb.AppendLine($"Installed-Size: {installedSizeKb}");
             sb.AppendLine("Section: utils");
             sb.AppendLine("Priority: optional");
+            // gnome-shell-extension-appindicator provides org.kde.StatusNotifierWatcher on GNOME,
+            // which is required for the system tray icon to appear. Listed as Suggests (not Recommends)
+            // so it does not auto-install on non-GNOME desktops (KDE, XFCE, etc.) where tray works
+            // natively without this package.
+            sb.AppendLine("Suggests: gnome-shell-extension-appindicator");
             sb.AppendLine("Description: XerahS - Cross-platform screen capture tool");
             sb.AppendLine(" A modern, cross-platform successor to ShareX.");
+            sb.AppendLine(" .");
+            sb.AppendLine(" On GNOME, install the gnome-shell-extension-appindicator package");
+            sb.AppendLine(" to enable the system tray icon.");
             
             File.WriteAllText(Path.Combine(controlRoot, "control"), sb.ToString());
 
@@ -360,13 +367,19 @@ class Program
 
     static bool CreateRpm(string sourceDir, string outputPath, string version, string arch)
     {
-        if (!IsToolAvailable("rpmbuild"))
+        if (!TryGetRpmBuildInvoker(out string rpmBuildFileName, out string rpmBuildPrefixArgs, out string rpmBuildDisplayName))
         {
-            Console.WriteLine("rpmbuild not found in PATH.");
+            Console.WriteLine("rpmbuild not found in PATH or via flatpak-spawn --host.");
             return false;
         }
 
-        string workDir = Path.Combine(Path.GetTempPath(), "xerahs_rpm_" + Guid.NewGuid());
+        Console.WriteLine($"Using {rpmBuildDisplayName} for RPM build.");
+        bool rpmBuildRunsOnHost = rpmBuildFileName == "flatpak-spawn";
+        string workRoot = rpmBuildRunsOnHost
+            ? Path.Combine(Path.GetDirectoryName(outputPath) ?? sourceDir, ".tmp")
+            : Path.GetTempPath();
+        Directory.CreateDirectory(workRoot);
+        string workDir = Path.Combine(workRoot, "xerahs_rpm_" + Guid.NewGuid());
         string rpmRoot = Path.Combine(workDir, "rpmbuild");
         string buildRoot = Path.Combine(rpmRoot, "BUILDROOT");
         string sourcesRoot = Path.Combine(rpmRoot, "SOURCES");
@@ -395,11 +408,13 @@ class Program
                 File.Copy(file, destFile);
             }
 
-            // Wrapper script
+            // /usr/bin/xerahs as a symlink (see DEB section for rationale)
             string binPath = Path.Combine(stagePackageRoot, "usr", "bin");
             Directory.CreateDirectory(binPath);
-            string wrapperScript = Path.Combine(binPath, "xerahs");
-            File.WriteAllText(wrapperScript, "#!/bin/sh\nexec /usr/lib/xerahs/XerahS \"$@\"\n");
+            string symlinkPath = Path.Combine(binPath, "xerahs");
+            // Relative symlink: resolves to /usr/lib/xerahs/XerahS from /usr/bin/. A relative
+// target is used so rpmbuild can correctly traverse the symlink inside BUILDROOT.
+File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
 
             // Desktop entry
             string applicationsPath = Path.Combine(stagePackageRoot, "usr", "share", "applications");
@@ -415,7 +430,7 @@ class Program
                 Type=Application
                 Categories=Utility;Graphics;GTK;
                 Keywords=screenshot;screen;capture;share;upload;
-                StartupWMClass=XerahS
+                StartupWMClass=xerahs
                 X-GNOME-UsesNotifications=true
                 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
                 """;
@@ -453,10 +468,14 @@ class Program
                 Console.WriteLine("Non-RPM host detected; disabling rpmbuild dependency checks.");
             }
 
+            string rpmBuildArgs = string.IsNullOrWhiteSpace(rpmBuildPrefixArgs)
+                ? $"-bb{depFlag} --target {arch} --define \"_topdir {rpmRoot}\" \"{specPath}\""
+                : $"{rpmBuildPrefixArgs} -bb{depFlag} --target {arch} --define \"_topdir {rpmRoot}\" \"{specPath}\"";
+
             var psi = new ProcessStartInfo
             {
-                FileName = "rpmbuild",
-                Arguments = $"-bb{depFlag} --target {arch} --define \"_topdir {rpmRoot}\" \"{specPath}\"",
+                FileName = rpmBuildFileName,
+                Arguments = rpmBuildArgs,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -466,7 +485,7 @@ class Program
             using var proc = Process.Start(psi);
             if (proc == null)
             {
-                Console.WriteLine("Failed to start rpmbuild.");
+                Console.WriteLine($"Failed to start RPM build command: {rpmBuildDisplayName}");
                 return false;
             }
 
@@ -505,6 +524,17 @@ class Program
         finally
         {
             try { Directory.Delete(workDir, true); } catch { }
+            if (rpmBuildRunsOnHost)
+            {
+                try
+                {
+                    if (Directory.Exists(workRoot) && !Directory.EnumerateFileSystemEntries(workRoot).Any())
+                    {
+                        Directory.Delete(workRoot);
+                    }
+                }
+                catch { }
+            }
         }
     }
 
@@ -525,9 +555,16 @@ class Program
         sb.AppendLine("Source0: %{name}-%{version}.tar.gz");
         sb.AppendLine($"BuildArch: {arch}");
         sb.AppendLine("BuildRequires: desktop-file-utils");
+        // gnome-shell-extension-appindicator provides org.kde.StatusNotifierWatcher on GNOME,
+        // required for the system tray icon. Suggests means it is displayed as optional by dnf
+        // and not pulled in automatically, so KDE/XFCE users are unaffected.
+        sb.AppendLine("Suggests: gnome-shell-extension-appindicator");
         sb.AppendLine();
         sb.AppendLine("%description");
         sb.AppendLine("XerahS is a modern, cross-platform screen capture and sharing tool.");
+        sb.AppendLine();
+        sb.AppendLine("On GNOME, install gnome-shell-extension-appindicator to enable the");
+        sb.AppendLine("system tray icon (Settings > Show tray icon).");
         sb.AppendLine();
         sb.AppendLine("%prep");
         sb.AppendLine("%setup -q -n %{name}-%{version}");
@@ -536,14 +573,16 @@ class Program
         sb.AppendLine("rm -rf %{buildroot}");
         sb.AppendLine("mkdir -p %{buildroot}");
         sb.AppendLine("cp -a usr %{buildroot}/usr");
-        sb.AppendLine("chmod 755 %{buildroot}/usr/bin/xerahs");
+        sb.AppendLine("rm -f %{buildroot}/usr/bin/xerahs");
+        sb.AppendLine("ln -s ../lib/xerahs/XerahS %{buildroot}/usr/bin/xerahs");
         sb.AppendLine("chmod 755 %{buildroot}/usr/lib/xerahs/XerahS");
+        sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon ]; then chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon; fi");
+        sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe ]; then chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe; fi");
         sb.AppendLine("desktop-file-validate %{buildroot}/usr/share/applications/xerahs.desktop");
         sb.AppendLine();
         sb.AppendLine("%files");
         sb.AppendLine("%{_bindir}/xerahs");
-        sb.AppendLine("/usr/lib/xerahs");
-        sb.AppendLine("/usr/lib/xerahs/*");
+        sb.AppendLine("/usr/lib/xerahs/**");
         sb.AppendLine("%{_datadir}/applications/xerahs.desktop");
         sb.AppendLine("%{_datadir}/pixmaps/xerahs.png");
         sb.AppendLine();
@@ -593,6 +632,55 @@ class Program
         }
     }
 
+    static bool TryGetRpmBuildInvoker(out string fileName, out string prefixArgs, out string displayName)
+    {
+        if (IsToolAvailable("rpmbuild"))
+        {
+            fileName = "rpmbuild";
+            prefixArgs = string.Empty;
+            displayName = "rpmbuild";
+            return true;
+        }
+
+        if (IsHostToolAvailableViaFlatpak("rpmbuild"))
+        {
+            fileName = "flatpak-spawn";
+            prefixArgs = "--host rpmbuild";
+            displayName = "flatpak-spawn --host rpmbuild";
+            return true;
+        }
+
+        fileName = string.Empty;
+        prefixArgs = string.Empty;
+        displayName = string.Empty;
+        return false;
+    }
+
+    static bool IsHostToolAvailableViaFlatpak(string toolName)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "flatpak-spawn",
+                Arguments = $"--host which {toolName}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var proc = Process.Start(psi);
+            if (proc == null) return false;
+            string stdout = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit(3000);
+            return proc.ExitCode == 0 && !string.IsNullOrWhiteSpace(stdout);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     static bool IsRpmNativeHost()
     {
         try
@@ -632,13 +720,13 @@ class Program
         }
     }
 
-    static void AddDirectoryToTar(TarWriter tar, string rootDir, string currentDir)
+    static void AddDirectoryToTar(TarWriter tar, string rootDir, string currentDir, bool prependDotPrefix = true)
     {
         string relativeDirPath = Path.GetRelativePath(rootDir, currentDir).Replace('\\', '/');
         if (!string.IsNullOrEmpty(relativeDirPath) && relativeDirPath != ".")
         {
             if (relativeDirPath.StartsWith("/")) relativeDirPath = relativeDirPath.Substring(1);
-            relativeDirPath = "./" + relativeDirPath.TrimEnd('/') + "/";
+            relativeDirPath = (prependDotPrefix ? "./" : string.Empty) + relativeDirPath.TrimEnd('/') + "/";
             WriteTarDirectoryEntry(tar, relativeDirPath);
         }
 
@@ -647,12 +735,23 @@ class Program
             string relativePath = Path.GetRelativePath(rootDir, file).Replace('\\', '/');
             // Make sure relative path doesn't start with /
             if (relativePath.StartsWith("/")) relativePath = relativePath.Substring(1);
-            // Standard debian data.tar.gz is usually ./usr/..., so we simulate that
-            relativePath = "./" + relativePath;
+            if (prependDotPrefix)
+            {
+                // Standard debian data.tar.gz is usually ./usr/..., so we simulate that.
+                relativePath = "./" + relativePath;
+            }
+
+            // Detect and preserve symlinks: write a tar symlink entry instead of copying content.
+            string? linkTarget = new FileInfo(file).LinkTarget;
+            if (linkTarget != null)
+            {
+                WriteTarSymlinkEntry(tar, relativePath, linkTarget);
+                continue;
+            }
 
             // Permission handling
             UnixFileMode mode;
-            if (relativePath.EndsWith("/xerahs") || relativePath.EndsWith("/XerahS")) // Wrapper script or main executable
+            if (IsExecutablePayloadPath(relativePath))
             {
                 mode = (UnixFileMode)Convert.ToInt32("755", 8);
             }
@@ -666,7 +765,7 @@ class Program
 
         foreach (var dir in Directory.GetDirectories(currentDir))
         {
-            AddDirectoryToTar(tar, rootDir, dir);
+            AddDirectoryToTar(tar, rootDir, dir, prependDotPrefix);
         }
     }
 
@@ -687,7 +786,7 @@ class Program
         {
             entry.Mode = modeOverride.Value;
         }
-        else if (entryPath.EndsWith("/xerahs") || entryPath.EndsWith("/XerahS"))
+        else if (IsExecutablePayloadPath(entryPath))
         {
             entry.Mode = (UnixFileMode)Convert.ToInt32("755", 8);
         }
@@ -697,6 +796,23 @@ class Program
         }
 
         tar.WriteEntry(entry);
+    }
+
+    static void WriteTarSymlinkEntry(TarWriter tar, string entryPath, string linkTarget)
+    {
+        var entry = new UstarTarEntry(TarEntryType.SymbolicLink, entryPath);
+        entry.LinkName = linkTarget;
+        entry.Mode = (UnixFileMode)Convert.ToInt32("777", 8);
+        tar.WriteEntry(entry);
+    }
+
+    static bool IsExecutablePayloadPath(string path)
+    {
+        string normalized = path.Replace('\\', '/');
+        return normalized.EndsWith("/xerahs", StringComparison.OrdinalIgnoreCase) ||
+               normalized.EndsWith("/XerahS", StringComparison.OrdinalIgnoreCase) ||
+               normalized.EndsWith("/xerahs-watchfolder-daemon", StringComparison.OrdinalIgnoreCase) ||
+               normalized.EndsWith("/xerahs-watchfolder-daemon.exe", StringComparison.OrdinalIgnoreCase);
     }
 
     static void WriteArEntry(Stream stream, string name, byte[] content)
@@ -782,6 +898,3 @@ class Program
         return null;
     }
 }
-
-
-

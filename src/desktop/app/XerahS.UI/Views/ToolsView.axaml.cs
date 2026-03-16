@@ -28,7 +28,7 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views
 {
-    public partial class ToolsView : UserControl
+    public partial class ToolsView : PageView
     {
         public ToolsView()
         {

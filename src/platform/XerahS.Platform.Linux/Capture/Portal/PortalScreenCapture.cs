@@ -23,14 +23,13 @@
 
 #endregion License Information (GPL v3)
 
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SkiaSharp;
 using Tmds.DBus;
 using XerahS.Common;
 using XerahS.Platform.Linux.Capture;
+using XerahS.Platform.Linux.Capture.Detection;
 
 namespace XerahS.Platform.Linux.Capture.Portal;
 
@@ -237,54 +236,14 @@ internal static class PortalScreenCapture
         {
             return;
         }
-        var runningBackends = GetRunningPortalBackends();
-        var routingHint = GetPortalRoutingHint();
+        var runningBackends = PortalBackendDetector.GetRunningBackendsSummary();
+        var routingHint = PortalBackendDetector.GetRoutingHint();
         var portalsConfigSummary = GetPortalsConfigSummary();
         DebugHelper.WriteLine("LinuxScreenCaptureService: XDG portal backend diagnostics:");
         DebugHelper.WriteLine($"  - Running backends: {runningBackends}");
         DebugHelper.WriteLine($"  - Routing hint (from desktop session): {routingHint}");
         DebugHelper.WriteLine($"  - portals.conf: {portalsConfigSummary}");
         DebugHelper.WriteLine("  - Note: Portal UI is provided by the selected backend and can differ across desktop environments.");
-    }
-
-    private static string GetRunningPortalBackends()
-    {
-        var running = new List<string>();
-        TryAddRunningBackend(running, "xdg-desktop-portal-kde", "kde");
-        TryAddRunningBackend(running, "xdg-desktop-portal-gnome", "gnome");
-        TryAddRunningBackend(running, "xdg-desktop-portal-gtk", "gtk");
-        TryAddRunningBackend(running, "xdg-desktop-portal-wlr", "wlr");
-        TryAddRunningBackend(running, "xdg-desktop-portal-hyprland", "hyprland");
-        TryAddRunningBackend(running, "xdg-desktop-portal-lxqt", "lxqt");
-        return running.Count > 0 ? string.Join(", ", running) : "none detected";
-    }
-
-    private static void TryAddRunningBackend(List<string> running, string processName, string label)
-    {
-        try
-        {
-            if (Process.GetProcessesByName(processName).Length > 0)
-            {
-                running.Add(label);
-            }
-        }
-        catch
-        {
-            // Best-effort diagnostics only.
-        }
-    }
-
-    private static string GetPortalRoutingHint()
-    {
-        var desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ??
-                      Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ??
-                      string.Empty;
-        var normalized = desktop.ToUpperInvariant();
-        if (normalized.Contains("KDE") || normalized.Contains("PLASMA")) return "kde";
-        if (normalized.Contains("GNOME")) return "gnome";
-        if (normalized.Contains("HYPRLAND")) return "hyprland/wlr";
-        if (normalized.Contains("SWAY")) return "wlr";
-        return "unknown";
     }
 
     private static string GetPortalsConfigSummary()

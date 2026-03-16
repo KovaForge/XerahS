@@ -43,7 +43,7 @@ namespace XerahS.Core.Tasks
     {
         #region Recording Handlers (Stage 5)
 
-        private async Task HandleStartRecordingAsync(CaptureMode mode, IntPtr windowHandle = default, Rectangle? region = null)
+        internal async Task HandleStartRecordingAsync(CaptureMode mode, IntPtr windowHandle = default, Rectangle? region = null)
         {
             var taskSettings = Info.TaskSettings ?? new TaskSettings();
             var metadata = Info.Metadata ?? new TaskMetadata();
@@ -63,7 +63,8 @@ namespace XerahS.Core.Tasks
                     Mode = mode,
                     Settings = captureSettings.ScreenRecordingSettings,
                     TargetWindowHandle = windowHandle,
-                    UseModernCapture = captureSettings.UseModernCapture
+                    UseModernCapture = captureSettings.UseModernCapture,
+                    LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(captureSettings)
                 };
 
                 // Set region if provided (for Region mode)
@@ -97,6 +98,8 @@ namespace XerahS.Core.Tasks
 
                 // 1. Start recording
                 await ScreenRecordingManager.Instance.StartRecordingAsync(recordingOptions);
+                recordingOptions.OutputPath = ScreenRecordingManager.Instance.PlannedOutputPath ?? recordingOptions.OutputPath;
+                Info.FilePath = recordingOptions.OutputPath;
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
 
                 // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
@@ -209,6 +212,20 @@ namespace XerahS.Core.Tasks
                          {
                              TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Conversion failed. Keeping MP4.");
                          }
+                    }
+
+                    // Open VideoEditor when AnnotateMedia is checked, mirroring how AnnotateMedia opens ImageEditor for images
+                    if (taskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia)
+                        && PlatformServices.IsInitialized && PlatformServices.UI != null)
+                    {
+                        string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
+                        string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
+                        if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
+                        {
+                            outputPath = editedPath;
+                            Info.FilePath = outputPath;
+                            DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
+                        }
                     }
 
                     // Handle After Capture tasks for recordings (manual handling since CaptureJobProcessor is for images)
@@ -341,32 +358,53 @@ namespace XerahS.Core.Tasks
             }
         }
 
-        private async Task HandleStopRecordingAsync()
+        internal async Task HandleStopRecordingAsync()
         {
              // Legacy handler - mapped to SignalStop in UI now
              await Task.CompletedTask;
         }
 
-        private async Task HandleAbortRecordingAsync()
+        internal async Task HandleAbortRecordingAsync()
         {
              // Legacy handler
              await ScreenRecordingManager.Instance.AbortRecordingAsync();
         }
 
-        private async Task HandlePauseRecordingAsync()
+        internal async Task HandlePauseRecordingAsync()
         {
              await ScreenRecordingManager.Instance.TogglePauseResumeAsync();
         }
 
         private static string? ResolveGifFFmpegPath(FFmpegOptions? ffmpegOptions)
         {
-            if (ffmpegOptions != null && !string.IsNullOrWhiteSpace(ffmpegOptions.CLIPath))
+            if (ffmpegOptions?.OverrideCLIPath == true && !string.IsNullOrWhiteSpace(ffmpegOptions.CLIPath))
             {
-                return ffmpegOptions.CLIPath;
+                string configuredPath = ffmpegOptions.CLIPath.Trim().Trim('"', '\'');
+                if (!string.IsNullOrWhiteSpace(configuredPath))
+                {
+                    try
+                    {
+                        configuredPath = FileHelpers.GetAbsolutePath(configuredPath);
+                    }
+                    catch
+                    {
+                        // Keep the user-provided value for diagnostics if normalization fails.
+                    }
+
+                    return configuredPath;
+                }
             }
 
             string detectedPath = PathsManager.GetFFmpegPath();
             return string.IsNullOrWhiteSpace(detectedPath) ? null : detectedPath;
+        }
+
+        private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)
+        {
+            return captureSettings.LinuxRecordingBackendPreference ??
+                (captureSettings.UseModernCapture
+                    ? LinuxRecordingBackendPreference.Automatic
+                    : LinuxRecordingBackendPreference.FFmpeg);
         }
 
         #endregion

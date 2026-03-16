@@ -32,7 +32,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class MonitorTestWindow : Window
+public partial class MonitorTestWindow : SurfaceWindow
 {
     private MonitorTestViewModel? _boundViewModel;
     private MonitorTestViewModel? ViewModel => DataContext as MonitorTestViewModel;

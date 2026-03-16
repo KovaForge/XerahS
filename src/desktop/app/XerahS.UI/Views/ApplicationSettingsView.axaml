@@ -1,24 +1,58 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-             xmlns:vm="using:XerahS.UI.ViewModels"
-             xmlns:views="using:XerahS.UI.Views.Controls"
-             xmlns:controls="using:XerahS.UI.Controls"
-             x:Class="XerahS.UI.Views.ApplicationSettingsView"
-             x:DataType="vm:SettingsViewModel">
+<views:PageView xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+                xmlns:views="using:XerahS.UI.Views"
+                xmlns:viewcontrols="using:XerahS.UI.Views.Controls"
+                xmlns:vm="using:XerahS.UI.ViewModels"
+                xmlns:controls="using:XerahS.UI.Controls"
+                xmlns:converters="using:XerahS.UI.Converters"
+                x:Class="XerahS.UI.Views.ApplicationSettingsView"
+                x:DataType="vm:SettingsViewModel">
 
     <Design.DataContext>
         <vm:SettingsViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto, *" Margin="0">
+    <views:PageView.Resources>
+        <converters:EnumToDescriptionConverter x:Key="EnumToDescriptionConverter"/>
+    </views:PageView.Resources>
+
+    <Grid RowDefinitions="Auto, *"
+          Margin="0"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
         <TabControl Grid.Row="1">
             <!-- General Tab -->
             <TabItem Header="General">
                 <ScrollViewer Padding="24">
                     <StackPanel Spacing="24">
+                        
+                        <!-- Theme -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Theme" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <Grid ColumnDefinitions="Auto, 16, *">
+                                        <TextBlock Grid.Column="0" Text="Application Theme:" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding ThemeModes}"
+                                                  SelectedItem="{Binding ThemeMode}"
+                                                  MinWidth="200"
+                                                  HorizontalAlignment="Stretch"
+                                                  AutomationProperties.Name="Application Theme"/>
+                                    </Grid>
+                                    <TextBlock Text="'System default' follows your operating system's light/dark mode preference."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
                         
                         <!-- System -->
                         <StackPanel Spacing="8">
@@ -31,6 +65,12 @@
                                     <CheckBox IsChecked="{Binding ShowTray}" Content="Show tray icon" AutomationProperties.Name="Show Tray Icon"/>
                                     <CheckBox IsChecked="{Binding SilentRun}" Content="Start minimized to tray" 
                                               IsEnabled="{Binding ShowTray}" AutomationProperties.Name="Start Minimized"/>
+                                    <CheckBox IsChecked="{Binding RememberMainWindowSize}"
+                                              Content="Remember main window size"
+                                              AutomationProperties.Name="Remember Main Window Size"/>
+                                    <CheckBox IsChecked="{Binding RememberMainWindowPosition}"
+                                              Content="Remember main window position"
+                                              AutomationProperties.Name="Remember Main Window Position"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -51,7 +91,7 @@
                                                   ItemsSource="{Binding UpdateChannels}"
                                                   SelectedItem="{Binding UpdateChannel}"
                                                   IsEnabled="{Binding AutoCheckUpdate}"
-                                                  HorizontalAlignment="Left" Width="200"
+                                                  HorizontalAlignment="Stretch" MinWidth="200"
                                                   AutomationProperties.Name="Update Channel"/>
                                     </Grid>
                                 </StackPanel>
@@ -67,6 +107,11 @@
                                     CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding TrayIconProgressEnabled}" Content="Show progress on tray icon" AutomationProperties.Name="Show Tray Progress"/>
+                                    <CheckBox IsChecked="{Binding UseWhiteShareXIcon}"
+                                              Content="Use single-color white tray icon (for dark panels)"
+                                              IsVisible="{Binding IsLinuxOrMacOS}"
+                                              ToolTip.Tip="Shows a white/monochrome icon that matches the look of system indicators (WiFi, volume, battery) on dark panels. On GNOME, requires the AppIndicator extension."
+                                              AutomationProperties.Name="Use White Tray Icon"/>
                                     
                                     <TextBlock Text="Click Actions" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"/>
 
@@ -113,37 +158,6 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Theme Tab -->
-            <TabItem Header="Theme">
-                 <ScrollViewer Padding="24">
-                     <StackPanel Spacing="24">
-                         <StackPanel Spacing="8">
-                            <TextBlock Text="Theme" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <Grid ColumnDefinitions="Auto, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Application Theme:" VerticalAlignment="Center"/>
-                                        <ComboBox Grid.Column="2"
-                                                  ItemsSource="{Binding ThemeModes}"
-                                                  SelectedItem="{Binding ThemeMode}"
-                                                  Width="200"
-                                                  HorizontalAlignment="Left"
-                                                  AutomationProperties.Name="Application Theme"/>
-                                    </Grid>
-                                    <TextBlock Text="'System default' follows your operating system's light/dark mode preference."
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </StackPanel>
-                 </ScrollViewer>
-            </TabItem>
-
             <!-- Paths Tab -->
             <TabItem Header="Paths">
                 <ScrollViewer Padding="24">
@@ -159,7 +173,14 @@
                                     <CheckBox IsChecked="{Binding UseCustomScreenshotsPath}" Content="Use custom screenshots path" AutomationProperties.Name="Use Custom Screenshots Path"/>
                                     <Grid ColumnDefinitions="*, 16, Auto" IsEnabled="{Binding UseCustomScreenshotsPath}">
                                         <TextBox Grid.Column="0" Text="{Binding ScreenshotsFolder}" Watermark="Path to screenshots folder" AutomationProperties.Name="Screenshots Folder Path"/>
-                                        <Button Grid.Column="2" Content="Browse..." Command="{Binding BrowseFolderCommand}" AutomationProperties.Name="Browse Screenshots Folder"/>
+                                        <Button Grid.Column="2"
+                                                Width="36"
+                                                MinWidth="36"
+                                                Padding="0"
+                                                Content="..."
+                                                ToolTip.Tip="Browse for screenshots folder"
+                                                Command="{Binding BrowseFolderCommand}"
+                                                AutomationProperties.Name="Browse Screenshots Folder"/>
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -264,8 +285,8 @@
                                         <ComboBox Grid.Column="2"
                                                   ItemsSource="{Binding WatchFolderDaemonScopes}"
                                                   SelectedItem="{Binding WatchFolderDaemonScope}"
-                                                  Width="180"
-                                                  HorizontalAlignment="Left"
+                                                  MinWidth="180"
+                                                  HorizontalAlignment="Stretch"
                                                   AutomationProperties.Name="Watch Folder Daemon Scope"/>
                                     </Grid>
 
@@ -315,12 +336,14 @@
                                     <CheckBox IsChecked="{Binding RunAtStartup}" 
                                               Content="Run at system startup" AutomationProperties.Name="Run at Startup"/>
                                     <CheckBox IsChecked="{Binding EnableContextMenuIntegration}" 
-                                              Content="Add 'Upload with ShareX' to context menu"
+                                              Content="Add 'Upload with XerahS' to context menu"
+                                              IsEnabled="{Binding SupportsContextMenuIntegration}"
                                               ToolTip.Tip="Adds an option to upload files from the right-click context menu"
                                               AutomationProperties.Name="Enable Context Menu Integration"/>
                                     <CheckBox IsChecked="{Binding EnableSendToIntegration}" 
                                               Content="Add to 'Send To' menu"
-                                              ToolTip.Tip="Adds ShareX to the 'Send To' menu for quick file access"
+                                              IsEnabled="{Binding SupportsSendToIntegration}"
+                                              ToolTip.Tip="Adds XerahS to the 'Send To' menu for quick file access"
                                               AutomationProperties.Name="Enable Send To Integration"/>
                                               
                                     <TextBlock Text="File Associations" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"/>
@@ -375,7 +398,7 @@
                                         <NumericUpDown Grid.Column="2" 
                                                        Value="{Binding RecentTasksMaxCount}" 
                                                        Minimum="1" Maximum="100" 
-                                                       Width="120" HorizontalAlignment="Left"
+                                                       MinWidth="120" HorizontalAlignment="Stretch"
                                                        AutomationProperties.Name="Max Recent Tasks"/>
                                     </Grid>
                                     
@@ -412,7 +435,7 @@
                                         <ComboBox Grid.Column="2"
                                                   ItemsSource="{Binding ProxyMethods}"
                                                   SelectedItem="{Binding ProxyMethod}"
-                                                  HorizontalAlignment="Left" Width="200"
+                                                  HorizontalAlignment="Stretch" MinWidth="200"
                                                   AutomationProperties.Name="Proxy Method"/>
                                     </Grid>
                                     <TextBlock Text="Configure how network requests should be proxied. Changes apply immediately to all uploads."
@@ -442,7 +465,7 @@
                                         <NumericUpDown Grid.Column="2"
                                                        Value="{Binding ProxyPort}"
                                                        Minimum="1" Maximum="65535"
-                                                       Width="120" HorizontalAlignment="Left"
+                                                       MinWidth="120" HorizontalAlignment="Stretch"
                                                        AutomationProperties.Name="Proxy Port"/>
                                     </Grid>
                                 </StackPanel>
@@ -486,7 +509,7 @@
              <TabItem Header="Advanced">
                 <ScrollViewer Padding="24">
                     <StackPanel Spacing="24">
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" IsVisible="{Binding ShowUseModernCaptureSetting}">
                             <TextBlock Text="Capture Engine" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -494,6 +517,106 @@
                                     CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding UseModernCapture}" Content="Use Modern Screen Capture (Direct3D11 on Windows, XDG Portal on Linux). Requires restart." AutomationProperties.Name="Use Modern Capture"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Linux Region Selector" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Choose which selector XerahS should prefer for Linux interactive region selection."
+                                               TextWrapping="Wrap"/>
+                                    <Grid ColumnDefinitions="120, 16, *">
+                                        <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding LinuxRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding LinuxRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Linux Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding LinuxRegionSelectorCurrentSessionText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorPortalBackendText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorAvailableText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorAutomaticText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LinuxRegionSelectorLastDecisionText}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Linux Recording Backend" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Choose which recording backend XerahS should prefer for Linux screen recording workflows."
+                                               TextWrapping="Wrap"/>
+                                    <Grid ColumnDefinitions="120, 16, *">
+                                        <TextBlock Grid.Column="0" Text="Recording backend:" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding LinuxRecordingBackendPreferences}"
+                                                  SelectedItem="{Binding LinuxRecordingBackendPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Linux Recording Backend">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <TextBlock Text="Automatic prefers native or portal-backed recording when available and falls back to FFmpeg when needed."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Wayland Portal Services" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <CheckBox IsChecked="{Binding LinuxUseWaylandPortalServices}"
+                                              Content="Use Wayland portal services for hotkeys, input capture, and open-uri integration. Requires restart."
+                                              AutomationProperties.Name="Use Wayland Portal Services"/>
+                                    <TextBlock Text="This setting controls portal-backed desktop integration on Wayland. It does not choose the Linux screenshot region selector or recording backend."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -514,4 +637,4 @@
             </TabItem>
         </TabControl>
     </Grid>
-</UserControl>
+</views:PageView>

@@ -22,21 +22,25 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
-using XerahS.Common;
 using XerahS.History;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
 {
-    public partial class HistoryView : UserControl
+    public partial class HistoryView : PageView
     {
+        private readonly ListBox? _gridHistoryListBox;
+        private readonly ListBox? _listHistoryListBox;
+        private bool _isSynchronizingSelection;
+
         public HistoryView()
         {
             InitializeComponent();
+            _gridHistoryListBox = this.FindControl<ListBox>("GridHistoryListBox");
+            _listHistoryListBox = this.FindControl<ListBox>("ListHistoryListBox");
             DataContext = new HistoryViewModel();
         }
 
@@ -45,33 +49,52 @@ namespace XerahS.UI.Views
             AvaloniaXamlLoader.Load(this);
         }
 
-        private async void OnItemPointerPressed(object? sender, PointerPressedEventArgs e)
+        private void OnHistorySelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
-            // Right-click is handled natively by Avalonia ContextMenu
-            var point = e.GetCurrentPoint(sender as Visual);
-
-            if (!point.Properties.IsLeftButtonPressed)
-                return;
-
-            if (sender is not Border border || border.DataContext is not HistoryItem item)
-                return;
-
-            if (DataContext is not HistoryViewModel vm)
-                return;
-
-            if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            if (_isSynchronizingSelection || sender is not ListBox sourceListBox || DataContext is not HistoryViewModel vm)
             {
-                // Ctrl+Click: Open file with default application
-                DebugHelper.WriteLine($"HistoryView - Ctrl+Click: Opening file {item.FileName}");
-                vm.OpenFileCommand.Execute(item);
-                e.Handled = true;
+                return;
             }
-            else if (e.ClickCount == 1)
+
+            var selectedItems = sourceListBox.SelectedItems?.OfType<HistoryItem>().ToList() ?? new List<HistoryItem>();
+            vm.SetSelectedHistoryItems(selectedItems);
+
+            _isSynchronizingSelection = true;
+
+            try
             {
-                // Single-click: Open in Editor
-                DebugHelper.WriteLine($"HistoryView - Click: Opening in editor {item.FileName}");
-                await vm.EditImageCommand.ExecuteAsync(item);
-                e.Handled = true;
+                SyncSelection(_gridHistoryListBox, sourceListBox, selectedItems);
+                SyncSelection(_listHistoryListBox, sourceListBox, selectedItems);
+            }
+            finally
+            {
+                _isSynchronizingSelection = false;
+            }
+        }
+
+        private async void OnItemDoubleTapped(object? sender, TappedEventArgs e)
+        {
+            if (sender is not Border border || border.DataContext is not HistoryItem item || DataContext is not HistoryViewModel vm)
+            {
+                return;
+            }
+
+            await vm.EditImageCommand.ExecuteAsync(item);
+            e.Handled = true;
+        }
+
+        private static void SyncSelection(ListBox? targetListBox, ListBox sourceListBox, IReadOnlyCollection<HistoryItem> selectedItems)
+        {
+            if (targetListBox == null || ReferenceEquals(targetListBox, sourceListBox) || targetListBox.SelectedItems == null)
+            {
+                return;
+            }
+
+            targetListBox.SelectedItems.Clear();
+
+            foreach (var selectedItem in selectedItems)
+            {
+                targetListBox.SelectedItems.Add(selectedItem);
             }
         }
     }

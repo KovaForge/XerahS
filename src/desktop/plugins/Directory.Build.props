@@ -3,13 +3,18 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
 
   <PropertyGroup>
-    <Version>0.15.3</Version>
+    <Version>0.20.4</Version>
   </PropertyGroup>
 
   <PropertyGroup>
     <!-- Plugins are libraries, not executables - disable single-file publishing -->
     <!-- This prevents NETSDK1099 when main app publishes with PublishSingleFile=true -->
     <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+
+  <!-- When published via the host app's BundlePlugins target, place output in Plugins/<PluginId>/ -->
+  <PropertyGroup Condition="'$(PluginPublishBaseDir)' != ''">
+    <PublishDir>$(PluginPublishBaseDir)$(PluginId)/</PublishDir>
   </PropertyGroup>
 
   <!-- Copy plugin to main app's Plugins directory (only when built standalone, not during Publish) -->

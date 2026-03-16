@@ -38,7 +38,7 @@ namespace XerahS.UI.Views;
 /// - Red: GDI/FFmpeg fallback
 /// - Green: Modern Capture (Windows.Graphics.Capture) - shown on top of Windows yellow border
 /// </summary>
-public partial class RecordingBorderWindow : Window
+public partial class RecordingBorderWindow : OverlayWindow
 {
     private Border? _borderElement;
 

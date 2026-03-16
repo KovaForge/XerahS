@@ -1,16 +1,16 @@
 ### How to pronounce XerahS?
 
-**Q: How to pronounce XerahS?**
+XerahS is pronounced **ZERR-ahs** with IPA **/ˈzɛr.ɑːs/** and sounds like *Zer* from Xerox plus *ahs* as in glass or class.
 
-**A:** XerahS is a pronounced **zeh raks** with *xe* as in Xerox and *rax* as in the ending sound of relax.
+Listen to the pronunciation sample: [XerahS.wav](https://xerahs.com/assets/XerahS.wav)
+
+Audio sample provided by [@CubityFirst](https://github.com/CubityFirst).
 
 ---
 
 ### How is XerahS different from ShareX?
 
-**Q: How is XerahS different from ShareX?**
-
-**A:** XerahS is a cross-platform rewrite reimagined for modern workflows and AI-assisted development.
+XerahS is a cross-platform rewrite reimagined for modern workflows and AI-assisted development.
 
 | Feature | XerahS | ShareX |
 | :--- | :--- | :--- |
@@ -18,7 +18,7 @@
 | **Development** | **Agentic Coding** (AI-First) | Traditional Manual Coding |
 | **Architecture** | **Plugin-based** (Destinations) | Monolithic |
 | **UI Framework** | **Avalonia UI** (Modern XAML) | **Windows Forms** (Legacy) |
-| **Core Framework** | **.NET 10** | .NET Framework 4.8 |
+| **Core Framework** | **.NET 10** | .NET 9.0 |
 | **Rendering** | GPU Accelerated (SkiaSharp) | CPU Based (GDI+) |
 | **Workflows** | Zero-Inheritance (Isolated) | Inheritance-based (Profiles) |
 | **Philosophy** | Modern, Experimental, Community-Driven | Feature-Rich, Battle-Tested, Stable |
@@ -27,9 +27,7 @@
 
 ### How is image rendering handled? Is it hardware accelerated?
 
-**Q: "Is rendering used for the image editor hardware accelerated? I had issues with image editors struggling to keep stable 60FPS on high res monitors."**
-
-**A:** Yes, XerahS uses **Avalonia UI**, which is fully hardware-accelerated via Skia/Direct2D/Metal depending on your OS.
+Yes, XerahS uses **Avalonia UI**, which is fully hardware-accelerated via Skia/Direct2D/Metal depending on your OS.
 
 *   **No more GDI+ Bottlenecks:** We do not use legacy Windows GDI rendering.
 *   **Optimized Pipeline:** As of January 2026, we have refactored the image pipeline to use direct memory copies (`memcpy`) instead of expensive stream-based encoding.
@@ -41,9 +39,7 @@
 
 ### Why do workflows have unique settings instead of inheriting from a Default?
 
-**Q: Why are there no "Default Settings" for workflows like in ShareX?**
-
-**A:** XerahS adopts a "Zero Inheritance" policy for workflows to reduce cognitive load and configuration errors.
+XerahS adopts a "Zero Inheritance" policy for workflows to reduce cognitive load and configuration errors.
 
 *   **Simplicity:** Each workflow is a self-contained unit. You never need to look elsewhere to understand what a specific hotkey or task will do.
 *   **No "Inheritance" Confusion:** In the legacy model, users often struggled to remember which setting was inherited from "Default," which was overridden by a "Profile," and which was specific to a "Task."
@@ -53,17 +49,13 @@
 
 ### macOS: Why don't global hotkeys work?
 
-**Q: Hotkeys never fire on macOS. What should I check?**
-
-**A:** macOS requires Accessibility permission for global key monitoring. Open `System Settings` → `Privacy & Security` → `Accessibility` and allow the ShareX Ava app (bundle or `dotnet run`). Restart the app after granting permission. Hotkeys are powered by SharpHook; without Accessibility, it cannot receive events.
+macOS requires Accessibility permission for global key monitoring. Open `System Settings` → `Privacy & Security` → `Accessibility` and allow the ShareX Ava app (bundle or `dotnet run`). Restart the app after granting permission. Hotkeys are powered by SharpHook; without Accessibility, it cannot receive events.
 
 ---
 
 ### Why use SkiaSharp instead of `System.Drawing` or Avalonia's native `Bitmap`?
 
-**Q: Why are we using SkiaSharp? The original ShareX didn't need it.**
-
-**A:** ShareX (WinForms) and XerahS represent two different eras of .NET development. The decision to use **SkiaSharp** is driven by cross-platform compatibility, performance, and maintainability.
+ShareX (WinForms) and XerahS represent two different eras of .NET development. The decision to use **SkiaSharp** is driven by cross-platform compatibility, performance, and maintainability.
 
 #### 1. The "Old Way" (Legacy ShareX)
 
@@ -93,9 +85,7 @@ Use `SkiaSharp` for **editing, processing, and saving** images.
 
 ### Why does a "Share this screen" dialog appear on Linux?
 
-**Q: On Linux (Wayland), why do I see a "Share this screen" dialog every time I try to capture a region?**
-
-**A:** This happens if you have disabled **"Use modern capture"** in settings but are running on a secure Wayland compositor (like GNOME 42+ or KDE Plasma 6).
+This happens if you have disabled **"Use modern capture"** in settings but are running on a secure Wayland compositor (like GNOME 42+ or KDE Plasma 6).
 
 *   **Modern Capture (Enabled):** Uses the system's native screenshot UI. It is secure and doesn't require extra permissions, but lacks the ShareX-inspired (now XerahS) custom crosshair/magnifier.
 *   **Legacy Capture (Disabled):** Uses XerahS's custom `OverlayWindow`. To draw this overlay on top of your screen, the app must first **capture the entire specific screen** to use as a background.

@@ -23,7 +23,9 @@
 
 #endregion License Information (GPL v3)
 
+using ShareX.VideoEditor.Hosting;
 using SkiaSharp;
+using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 
@@ -31,7 +33,7 @@ namespace XerahS.CLI.Services
 {
     /// <summary>
     /// Minimal IUIService implementation for headless CLI execution.
-    /// Editor and AfterCapture UI cannot be shown in CLI mode.
+    /// Image editor and after-capture UI remain unavailable, but the video editor can be launched for diagnostics/workflows.
     /// </summary>
     public class HeadlessUIService : IUIService
     {
@@ -47,11 +49,96 @@ namespace XerahS.CLI.Services
             return Task.CompletedTask;
         }
 
-        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image)
+        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
         {
             Console.Error.WriteLine("[WARNING] Image editor not available in CLI mode.");
             Console.Error.WriteLine("Image dimensions: {0}x{1}", image.Width, image.Height);
             return Task.FromResult<SKBitmap?>(image);
+        }
+
+        public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
+        {
+            string detectedFfmpegPath = PathsManager.GetFFmpegPath();
+
+            return await Task.Run(async () =>
+            {
+                try
+                {
+                    string resolvedVideoPath = FileHelpers.GetAbsolutePath(videoPath);
+                    var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
+
+                    LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
+
+                    string ffprobePath = string.Empty;
+                    if (ffmpegResolution.IsAvailable)
+                    {
+                        try
+                        {
+                            ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
+                                ffmpegResolution.ConfiguredPath,
+                                message =>
+                                {
+                                    string logMessage = $"[VideoEditor] {message}";
+                                    Console.WriteLine(logMessage);
+                                    DebugHelper.WriteLine(logMessage);
+                                });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.Error.WriteLine($"[VideoEditor] FFprobe unavailable: {ex.Message}");
+                            DebugHelper.WriteException(ex, "Failed to resolve FFprobe for video editor");
+                        }
+                    }
+
+                    var options = new VideoEditorOptions
+                    {
+                        VideoPath = resolvedVideoPath,
+                        FFmpegPath = ffmpegResolution.ConfiguredPath,
+                        FFprobePath = ffprobePath,
+                        Theme = ResolveTheme()
+                    };
+
+                    var events = new VideoEditorEvents
+                    {
+                        DiagnosticReported = diagnosticEvent =>
+                        {
+                            string message = $"[VideoEditor:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
+
+                            if (diagnosticEvent.Exception != null)
+                            {
+                                Console.Error.WriteLine(message);
+                                Console.Error.WriteLine(diagnosticEvent.Exception);
+                                DebugHelper.WriteException(diagnosticEvent.Exception, message);
+                            }
+                            else
+                            {
+                                Console.WriteLine(message);
+                                DebugHelper.WriteLine(message);
+                            }
+                        },
+                        ExportCompleted = outputPath =>
+                        {
+                            string message = $"[VideoEditor] Export completed: {outputPath}";
+                            Console.WriteLine(message);
+                            DebugHelper.WriteLine(message);
+                        },
+                        ExportFailed = ex =>
+                        {
+                            string message = $"[VideoEditor] Export failed: {ex.Message}";
+                            Console.Error.WriteLine(message);
+                            DebugHelper.WriteException(ex, message);
+                        }
+                    };
+
+                    return VideoEditorHost.ShowEditorDialog(options, events);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"[VideoEditor] Failed to open editor: {ex.Message}");
+                    DebugHelper.WriteException(ex, "Failed to open video editor from CLI");
+                    return null;
+                }
+            });
         }
 
         public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
@@ -68,6 +155,43 @@ namespace XerahS.CLI.Services
         {
             Console.WriteLine("[INFO] After-upload window not available in CLI mode.");
             return Task.CompletedTask;
+        }
+
+        private static void LogVideoEditorFfmpegResolution(
+            string? hostPath,
+            string? detectedPath,
+            (string ConfiguredPath, bool IsAvailable, string Source) resolution)
+        {
+            string hostCandidate = string.IsNullOrWhiteSpace(hostPath) ? "(empty)" : hostPath;
+            string detectedCandidate = string.IsNullOrWhiteSpace(detectedPath) ? "(empty)" : detectedPath;
+            string configuredPath = string.IsNullOrWhiteSpace(resolution.ConfiguredPath)
+                ? "(not set)"
+                : resolution.ConfiguredPath;
+
+            if (resolution.IsAvailable)
+            {
+                string message =
+                    $"[VideoEditor] Using FFmpeg at: {configuredPath} (source: {resolution.Source}, hostCandidate: {hostCandidate}, detectedCandidate: {detectedCandidate})";
+                Console.WriteLine(message);
+                DebugHelper.WriteLine(message);
+            }
+            else
+            {
+                string message =
+                    $"[VideoEditor] FFmpeg unavailable. Source={resolution.Source}, hostCandidate={hostCandidate}, detectedCandidate={detectedCandidate}, configuredPath={configuredPath}";
+                Console.Error.WriteLine(message);
+                DebugHelper.WriteLine(message);
+            }
+        }
+
+        private static string ResolveTheme()
+        {
+            return SettingsManager.Settings?.ThemeMode switch
+            {
+                AppThemeMode.Light => "Light",
+                AppThemeMode.System => "System",
+                _ => "Dark"
+            };
         }
     }
 }

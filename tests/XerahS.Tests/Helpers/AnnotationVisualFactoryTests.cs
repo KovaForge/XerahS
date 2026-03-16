@@ -26,7 +26,9 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using NUnit.Framework;
-using ShareX.ImageEditor.Annotations;
+using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Presentation.Controls;
+using ShareX.ImageEditor.Presentation.Rendering;
 using SkiaSharp;
 
 namespace XerahS.Tests.Helpers;
@@ -61,7 +63,7 @@ public class AnnotationVisualFactoryTests
     }
 
     [Test]
-    public void TextPreviewMode_UsesPlaceholderWhilePersistedUsesTextBox()
+    public void TextPreviewMode_UsesPlaceholderWhilePersistedUsesOutlinedTextControl()
     {
         var textAnnotation = new TextAnnotation
         {
@@ -74,6 +76,6 @@ public class AnnotationVisualFactoryTests
         var persistedControl = AnnotationVisualFactory.CreateVisualControl(textAnnotation, AnnotationVisualMode.Persisted);
 
         Assert.That(previewControl, Is.TypeOf<Rectangle>());
-        Assert.That(persistedControl, Is.TypeOf<TextBox>());
+        Assert.That(persistedControl, Is.TypeOf<OutlinedTextControl>());
     }
 }

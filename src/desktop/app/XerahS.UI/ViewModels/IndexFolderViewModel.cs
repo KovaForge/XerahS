@@ -23,9 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
+using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
@@ -38,6 +36,7 @@ using System.Threading;
 using XerahS.Common;
 using XerahS.Common.Converters;
 using XerahS.Core;
+using XerahS.Indexer;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 
@@ -50,6 +49,7 @@ public partial class IndexFolderViewModel : ViewModelBase
     private readonly string _tempHtmlPath;
     private CancellationTokenSource? _indexingCancellationTokenSource;
     private readonly Progress<XerahS.Indexer.IndexerProgress> _indexerProgress;
+    private readonly IViewDialogService _dialogService;
 
     [ObservableProperty]
     private string _folderPath = string.Empty;
@@ -87,8 +87,9 @@ public partial class IndexFolderViewModel : ViewModelBase
     {
     }
 
-    public IndexFolderViewModel(TaskSettings? taskSettings, bool isWorkflowConfigMode)
+    public IndexFolderViewModel(TaskSettings? taskSettings, bool isWorkflowConfigMode, IViewDialogService? dialogService = null)
     {
+        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
         var workflow = SettingsManager.GetFirstWorkflow(WorkflowType.IndexFolder);
         _taskSettings = taskSettings ?? workflow?.TaskSettings ?? new TaskSettings { Job = WorkflowType.IndexFolder };
         _isWorkflowConfigMode = isWorkflowConfigMode;
@@ -419,53 +420,20 @@ public partial class IndexFolderViewModel : ViewModelBase
     [RelayCommand]
     private async Task BrowseFolderAsync()
     {
-        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-
-        if (mainWindow?.StorageProvider == null)
+        var folderPath = await _dialogService.ShowFolderPickerAsync("Select Folder to Index");
+        if (!string.IsNullOrWhiteSpace(folderPath))
         {
-            return;
-        }
-
-        var folders = await mainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Select Folder to Index",
-            AllowMultiple = false
-        });
-
-        if (folders.Count > 0)
-        {
-            FolderPath = folders[0].Path.LocalPath;
+            FolderPath = folderPath;
         }
     }
 
     [RelayCommand]
     private async Task BrowseCssAsync()
     {
-        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-
-        if (mainWindow?.StorageProvider == null)
+        var filePath = await _dialogService.ShowFilePickerAsync("Select Custom CSS File", new[] { "*.css", "*.*" });
+        if (!string.IsNullOrWhiteSpace(filePath))
         {
-            return;
-        }
-
-        var files = await mainWindow.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Select Custom CSS File",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType("CSS Files") { Patterns = new[] { "*.css" } },
-                new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
-            }
-        });
-
-        if (files.Count > 0)
-        {
-            CustomCssFilePath = files[0].Path.LocalPath;
+            CustomCssFilePath = filePath;
         }
     }
 
@@ -497,7 +465,7 @@ public partial class IndexFolderViewModel : ViewModelBase
             _taskSettings.Job = WorkflowType.IndexFolder;
             _taskSettings.ToolsSettings.IndexerFolderPath = FolderPath;
 
-            var indexerSettings = BuildIndexerSettings(_taskSettings.ToolsSettings.IndexerSettings);
+            var indexerSettings = _taskSettings.ToolsSettings.IndexerSettings ?? new XerahS.Indexer.IndexerSettings();
             
             // Use async indexer with progress reporting and cancellation support
             string outputExtension = GetOutputExtension(Output);
@@ -606,42 +574,26 @@ public partial class IndexFolderViewModel : ViewModelBase
             return;
         }
 
-        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-
-        if (mainWindow?.StorageProvider == null)
-        {
-            return;
-        }
-
         string suggestedName = GetSuggestedFileName();
-        var file = await mainWindow.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save Index Output",
-            SuggestedFileName = suggestedName,
-            FileTypeChoices = new[]
-            {
-                new FilePickerFileType("Index Output") { Patterns = new[] { $"*.{GetOutputExtension(Output)}" } },
-                new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
-            }
-        });
+        string extension = GetOutputExtension(Output);
+        
+        var filePath = await _dialogService.ShowSaveFilePickerAsync("Save Index Output", suggestedName, extension, new[] { $"*.{extension}", "*.*" });
 
-        if (file?.Path == null)
+        if (string.IsNullOrWhiteSpace(filePath))
         {
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(GeneratedFilePath) && File.Exists(GeneratedFilePath))
         {
-            File.Copy(GeneratedFilePath, file.Path.LocalPath, overwrite: true);
+            File.Copy(GeneratedFilePath, filePath, overwrite: true);
         }
         else
         {
-            await File.WriteAllTextAsync(file.Path.LocalPath, OutputText);
+            await File.WriteAllTextAsync(filePath, OutputText);
         }
 
-        StatusMessage = $"Saved to {file.Path.LocalPath}";
+        StatusMessage = $"Saved to {filePath}";
     }
 
     [RelayCommand(CanExecute = nameof(HasOutput))]
@@ -707,32 +659,7 @@ public partial class IndexFolderViewModel : ViewModelBase
         }
     }
 
-    private static XerahS.Indexer.IndexerSettings BuildIndexerSettings(XerahS.Core.IndexerSettings settings)
-    {
-        var indexerSettings = new XerahS.Indexer.IndexerSettings
-        {
-            Output = (XerahS.Indexer.IndexerOutput)settings.Output,
-            SkipHiddenFolders = settings.SkipHiddenFolders,
-            SkipHiddenFiles = settings.SkipHiddenFiles,
-            SkipFiles = settings.SkipFiles,
-            MaxDepthLevel = settings.MaxDepthLevel,
-            ShowSizeInfo = settings.ShowSizeInfo,
-            AddFooter = settings.AddFooter,
-            IndentationText = settings.IndentationText,
-            AddEmptyLineAfterFolders = settings.AddEmptyLineAfterFolders,
-            UseCustomCSSFile = settings.UseCustomCSSFile,
-            DisplayPath = settings.DisplayPath,
-            DisplayPathLimited = settings.DisplayPathLimited,
-            CustomCSSFilePath = settings.CustomCSSFilePath,
-            UseAttribute = settings.UseAttribute,
-            CreateParseableJson = settings.CreateParseableJson,
-            IncludedFileExtensions = settings.IncludedFileExtensions != null ? new List<string>(settings.IncludedFileExtensions) : null,
-            ExcludedFileExtensions = settings.ExcludedFileExtensions != null ? new List<string>(settings.ExcludedFileExtensions) : null
-        };
 
-        indexerSettings.BinaryUnits = settings.BinaryUnits;
-        return indexerSettings;
-    }
 
     private string WriteIndexOutput(TaskSettings taskSettings, string sourceOutputFilePath, string fallbackOutput)
     {

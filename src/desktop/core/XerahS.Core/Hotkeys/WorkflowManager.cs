@@ -103,6 +103,13 @@ public class WorkflowManager : IDisposable
     /// </summary>
     public bool RegisterHotkey(WorkflowSettings settings)
     {
+        // If this workflow had a previously registered hotkey, release it first.
+        // This is required when editing a hotkey and clearing it to None.
+        if (settings.HotkeyInfo.Id != 0)
+        {
+            UnregisterHotkeyInternal(settings, removeFromList: false); // Best effort cleanup
+        }
+
         if (settings.Job == WorkflowType.None)
         {
             settings.HotkeyInfo.Status = HotkeyStatus.NotConfigured;
@@ -113,13 +120,6 @@ public class WorkflowManager : IDisposable
         {
             settings.HotkeyInfo.Status = HotkeyStatus.NotConfigured;
             return false;
-        }
-
-        // Always try to unregister first if this hotkey has an ID
-        // Ignore failures - the hotkey might not have been registered yet
-        if (settings.HotkeyInfo.Id != 0)
-        {
-            UnregisterHotkeyInternal(settings, removeFromList: false); // Don't check result
         }
 
         bool result = _hotkeyService.RegisterHotkey(settings.HotkeyInfo);
@@ -208,6 +208,14 @@ public class WorkflowManager : IDisposable
     public void ToggleHotkeys(bool disabled)
     {
         IgnoreHotkeys = disabled;
+    }
+
+    /// <summary>
+    /// Invokes native interactive configuration if available (e.g. for Linux Wayland).
+    /// </summary>
+    public Task<bool> ShowNativeConfigurationAsync()
+    {
+        return _hotkeyService.ShowInteractiveConfigurationAsync();
     }
 
     /// <summary>

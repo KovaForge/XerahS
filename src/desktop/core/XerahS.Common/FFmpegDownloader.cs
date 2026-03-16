@@ -25,6 +25,7 @@
 
 using System;
 using System.IO;
+using System.Text.Json;
 
 namespace XerahS.Common
 {
@@ -53,6 +54,8 @@ namespace XerahS.Common
     {
         public const string DefaultOwner = "ShareX";
         public const string DefaultRepo = "FFmpeg";
+        private const string FFprobeFallbackOwner = "System233";
+        private const string FFprobeFallbackRepo = "ffmpeg-msvc-prebuilt";
 
         public static Task<FFmpegDownloadResult> DownloadLatestToToolsAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
         {
@@ -135,31 +138,88 @@ namespace XerahS.Common
             }
         }
 
+        public static async Task<string?> DownloadFFprobeFallbackAsync(
+            string destinationFolder,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(destinationFolder))
+            {
+                return null;
+            }
+
+            string ffprobeBinary = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
+            if (!OperatingSystem.IsWindows())
+            {
+                return null;
+            }
+
+            Directory.CreateDirectory(destinationFolder);
+
+            string? downloadedArchive = null;
+            FileDownloader? downloader = null;
+            Action? detachProgressHandlers = null;
+
+            try
+            {
+                string? downloadUrl = await GetFFprobeFallbackDownloadUrlAsync();
+                if (string.IsNullOrWhiteSpace(downloadUrl))
+                {
+                    return null;
+                }
+
+                downloadedArchive = Path.Combine(
+                    Path.GetTempPath(),
+                    Path.GetFileName(new Uri(downloadUrl).AbsolutePath));
+
+                downloader = new FileDownloader(downloadUrl, downloadedArchive);
+                detachProgressHandlers = AttachProgressHandlers(downloader, progress);
+                bool downloadSuccess = await downloader.StartDownload();
+                progress?.Report(100);
+
+                if (!downloadSuccess || !File.Exists(downloadedArchive))
+                {
+                    return null;
+                }
+
+                ExtractExecutables(downloadedArchive, destinationFolder, ffprobeBinary);
+
+                string extractedFFprobePath = Path.Combine(destinationFolder, ffprobeBinary);
+                return File.Exists(extractedFFprobePath) ? extractedFFprobePath : null;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "FFprobe fallback download failed.");
+                return null;
+            }
+            finally
+            {
+                detachProgressHandlers?.Invoke();
+
+                if (!string.IsNullOrWhiteSpace(downloadedArchive) && File.Exists(downloadedArchive))
+                {
+                    try
+                    {
+                        File.Delete(downloadedArchive);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    DebugHelper.WriteLine("FFprobe fallback download was canceled.");
+                }
+            }
+        }
+
         private static void ExtractFFmpegBinaries(string archivePath, string destinationFolder)
         {
             string ffmpegBinary = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
             string ffprobeBinary = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
 
-            ZipManager.Extract(
-                archivePath,
-                destinationFolder,
-                retainDirectoryStructure: false,
-                filter: entry =>
-                    entry.Name.Equals(ffmpegBinary, StringComparison.OrdinalIgnoreCase) ||
-                    entry.Name.Equals(ffprobeBinary, StringComparison.OrdinalIgnoreCase));
-
-            string extractedFFmpegPath = Path.Combine(destinationFolder, ffmpegBinary);
-            string extractedFFprobePath = Path.Combine(destinationFolder, ffprobeBinary);
-
-            if (File.Exists(extractedFFmpegPath))
-            {
-                EnsureExecutable(extractedFFmpegPath);
-            }
-
-            if (File.Exists(extractedFFprobePath))
-            {
-                EnsureExecutable(extractedFFprobePath);
-            }
+            ExtractExecutables(archivePath, destinationFolder, ffmpegBinary, ffprobeBinary);
         }
 
         private static void EnsureExecutable(string path)
@@ -212,6 +272,93 @@ namespace XerahS.Common
             string suffix = updateChecker.GetExpectedAssetSuffix();
             string fileName = $"ffmpeg-{versionToken}-{suffix}";
             return $"https://github.com/{updateChecker.Owner}/{updateChecker.Repo}/releases/download/v{versionToken}/{fileName}";
+        }
+
+        private static void ExtractExecutables(string archivePath, string destinationFolder, params string[] executableNames)
+        {
+            HashSet<string> executableSet = new HashSet<string>(executableNames, StringComparer.OrdinalIgnoreCase);
+
+            ZipManager.Extract(
+                archivePath,
+                destinationFolder,
+                retainDirectoryStructure: false,
+                filter: entry => executableSet.Contains(entry.Name));
+
+            foreach (string executableName in executableNames)
+            {
+                string extractedExecutablePath = Path.Combine(destinationFolder, executableName);
+                if (File.Exists(extractedExecutablePath))
+                {
+                    EnsureExecutable(extractedExecutablePath);
+                }
+            }
+        }
+
+        private static async Task<string?> GetFFprobeFallbackDownloadUrlAsync()
+        {
+            string response = await WebHelpers.DownloadStringAsync(
+                $"https://api.github.com/repos/{FFprobeFallbackOwner}/{FFprobeFallbackRepo}/releases/latest");
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return null;
+            }
+
+            using JsonDocument document = JsonDocument.Parse(response);
+            if (!document.RootElement.TryGetProperty("assets", out JsonElement assetsElement))
+            {
+                return null;
+            }
+
+            string[] preferredSuffixes = GetFFprobeFallbackAssetSuffixes();
+
+            foreach (string suffix in preferredSuffixes)
+            {
+                foreach (JsonElement assetElement in assetsElement.EnumerateArray())
+                {
+                    if (!assetElement.TryGetProperty("name", out JsonElement nameElement) ||
+                        !assetElement.TryGetProperty("browser_download_url", out JsonElement urlElement))
+                    {
+                        continue;
+                    }
+
+                    string? assetName = nameElement.GetString();
+                    if (!string.IsNullOrWhiteSpace(assetName) &&
+                        assetName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return urlElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string[] GetFFprobeFallbackAssetSuffixes()
+        {
+            return FFmpegUpdateChecker.ResolveArchitecture() switch
+            {
+                FFmpegArchitecture.winArm64 =>
+                [
+                    "-gpl-arm64-static.zip",
+                    "-lgpl-arm64-static.zip",
+                    "-gpl-arm64-shared.zip",
+                    "-lgpl-arm64-shared.zip"
+                ],
+                FFmpegArchitecture.win64 =>
+                [
+                    "-gpl-amd64-static.zip",
+                    "-lgpl-amd64-static.zip",
+                    "-gpl-amd64-shared.zip",
+                    "-lgpl-amd64-shared.zip"
+                ],
+                _ =>
+                [
+                    "-gpl-x86-static.zip",
+                    "-lgpl-x86-static.zip",
+                    "-gpl-x86-shared.zip",
+                    "-lgpl-x86-shared.zip"
+                ]
+            };
         }
     }
 }

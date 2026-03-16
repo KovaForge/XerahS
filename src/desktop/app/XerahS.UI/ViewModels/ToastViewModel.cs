@@ -79,12 +79,18 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _hasErrors;
 
-    // Commands for context menu (using ContextFlyout/MenuFlyout)
+    // Commands for context menu (shared with History - same MenuFlyout)
+    public ICommand EditImageCommand { get; }
     public ICommand CopyImageToClipboardCommand { get; }
     public ICommand OpenFileCommand { get; }
+    public ICommand UploadItemCommand { get; }
+    public ICommand OpenFolderCommand { get; }
     public ICommand CopyFilePathCommand { get; }
     public ICommand CopyUrlCommand { get; }
+    public ICommand CopyMarkdownImageCommand { get; }
     public ICommand CopyErrorsCommand { get; }
+    public ICommand OpenURLCommand { get; }
+    public ICommand DeleteItemCommand { get; }
 
     public ToastViewModel(ToastConfig config)
     {
@@ -112,12 +118,18 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         ErrorDetails = config.ErrorDetails;
         HasErrors = !string.IsNullOrWhiteSpace(config.ErrorDetails);
 
-        // Initialize context menu commands
+        // Initialize context menu commands (same set as History for shared ContextFlyout)
+        EditImageCommand = new RelayCommand(AnnotateMedia);
         CopyImageToClipboardCommand = new RelayCommand(CopyImageToClipboard);
         OpenFileCommand = new RelayCommand(OpenFile);
+        UploadItemCommand = new RelayCommand(UploadFile);
+        OpenFolderCommand = new RelayCommand(OpenFolder);
         CopyFilePathCommand = new RelayCommand(CopyFilePath);
         CopyUrlCommand = new RelayCommand(CopyUrl);
+        CopyMarkdownImageCommand = new RelayCommand(CopyMarkdownImage);
         CopyErrorsCommand = new RelayCommand(CopyErrors);
+        OpenURLCommand = new RelayCommand(OpenUrl);
+        DeleteItemCommand = new RelayCommand(DeleteFile);
 
         // Calculate fade decrement
         if (config.FadeDuration > 0)
@@ -275,8 +287,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 CopyUrl();
                 break;
 
-            case ToastClickAction.AnnotateImage:
-                AnnotateImage();
+            case ToastClickAction.AnnotateMedia:
+                AnnotateMedia();
                 break;
 
             case ToastClickAction.Upload:
@@ -413,6 +425,22 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void CopyMarkdownImage()
+    {
+        if (string.IsNullOrEmpty(_config.URL)) return;
+
+        var markdownImage = $"[img]{_config.URL}[/img]";
+        try
+        {
+            PlatformServices.Clipboard.SetText(markdownImage);
+            DebugHelper.WriteLine("Copied markdown image to clipboard from toast.");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to copy markdown image from toast");
+        }
+    }
+
     private void CopyErrors()
     {
         if (string.IsNullOrWhiteSpace(ErrorDetails))
@@ -431,23 +459,31 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async void AnnotateImage()
+    private async void AnnotateMedia()
     {
-        if (!string.IsNullOrEmpty(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath))
+        if (string.IsNullOrEmpty(_config.FilePath)) return;
+
+        try
         {
-            try
+            if (FileHelpers.IsImageFile(_config.FilePath))
             {
-                // Load image and use UI service to open editor
                 using var bitmap = SKBitmap.Decode(_config.FilePath);
                 if (bitmap != null)
                 {
                     await PlatformServices.UI.ShowEditorAsync(bitmap);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                DebugHelper.WriteException(ex, "Failed to annotate image from toast");
+                string ffmpegPath = XerahS.Common.PathsManager.GetFFmpegPath();
+                await PlatformServices.UI.ShowVideoEditorAsync(
+                    _config.FilePath,
+                    string.IsNullOrEmpty(ffmpegPath) ? null : ffmpegPath);
             }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to annotate media from toast");
         }
     }
 

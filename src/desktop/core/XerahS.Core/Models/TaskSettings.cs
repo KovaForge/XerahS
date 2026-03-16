@@ -29,6 +29,7 @@ using System.ComponentModel;
 using System.Drawing;
 using Newtonsoft.Json;
 using XerahS.Common;
+using XerahS.Indexer;
 using XerahS.Services.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
@@ -58,11 +59,15 @@ public class TaskSettings
 
     public WorkflowType Job = WorkflowType.None;
 
-    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
+    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.AnnotateMedia | AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
 
     public AfterUploadTasks AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
 
+    /// <summary>Legacy; not used by runtime. Use UrlShortenerDestinationInstanceId (plugin system). Kept for config serialization.</summary>
+    [Obsolete("Legacy; use UrlShortenerDestinationInstanceId (plugin system). Kept for config serialization.")]
     public UrlShortenerType URLShortenerDestination = UrlShortenerType.BITLY;
+    /// <summary>Legacy; not used by runtime. Kept for config serialization.</summary>
+    [Obsolete("Legacy; runtime uses plugin system. Kept for config serialization.")]
     public URLSharingServices URLSharingServiceDestination = URLSharingServices.Email;
 
     /// <summary>
@@ -209,7 +214,7 @@ public class TaskSettingsGeneral
     public SizeI ToastWindowSize = new SizeI(400, 300);
     public ToastClickAction ToastWindowLeftClickAction = ToastClickAction.OpenUrl;
     public ToastClickAction ToastWindowRightClickAction = ToastClickAction.CloseNotification;
-    public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateImage;
+    public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateMedia;
     public bool ToastWindowAutoHide = true;
     public bool DisableNotificationsOnFullscreen = false;
     public bool UseCustomCaptureSound = false;
@@ -269,6 +274,13 @@ public class TaskSettingsCapture
 
     [Category("Capture"), DefaultValue(true), Description("Use modern screen capture (Direct3D11) if available.")]
     public bool UseModernCapture { get; set; } = true;
+
+    [Category("Capture"), DefaultValue(LinuxInteractiveRegionSelectorPreference.Automatic), Description("Preferred Linux interactive region selector.")]
+    public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
+        LinuxInteractiveRegionSelectorPreference.Automatic;
+
+    [Category("Capture"), DefaultValue(null), Description("Preferred Linux screen recording backend.")]
+    public LinuxRecordingBackendPreference? LinuxRecordingBackendPreference { get; set; } = null;
 
     public bool ShowCursor = true;
     public decimal ScreenshotDelay = 0;

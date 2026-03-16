@@ -28,7 +28,7 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views;
 
-public partial class QrCodeGeneratorDialog : Window
+public partial class QrCodeGeneratorDialog : SurfaceWindow
 {
     public QrCodeGeneratorDialog()
     {

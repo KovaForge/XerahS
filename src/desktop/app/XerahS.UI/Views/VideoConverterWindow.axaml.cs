@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class VideoConverterWindow : Window
+public partial class VideoConverterWindow : SurfaceWindow
 {
     private VideoConverterViewModel? _viewModel;
 

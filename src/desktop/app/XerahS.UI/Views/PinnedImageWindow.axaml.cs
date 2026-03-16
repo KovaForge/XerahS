@@ -34,13 +34,10 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class PinnedImageWindow : Window
+public partial class PinnedImageWindow : OverlayWindow
 {
     private PinnedImageViewModel? _viewModel;
     private PinToScreenOptions? _options;
-    private bool _isDragging;
-    private Avalonia.Point _dragStartPoint;
-    private PixelPoint _windowStartPosition;
 
     public PinnedImageWindow()
     {
@@ -86,37 +83,8 @@ public partial class PinnedImageWindow : Window
 
         if (point.Properties.IsLeftButtonPressed)
         {
-            _isDragging = true;
-            _dragStartPoint = e.GetPosition(this);
-            _windowStartPosition = Position;
-            e.Pointer.Capture(this);
+            BeginMoveDrag(e);
             e.Handled = true;
-        }
-    }
-
-    protected override void OnPointerMoved(PointerEventArgs e)
-    {
-        base.OnPointerMoved(e);
-
-        if (_isDragging)
-        {
-            var currentPos = e.GetPosition(this);
-            var deltaX = currentPos.X - _dragStartPoint.X;
-            var deltaY = currentPos.Y - _dragStartPoint.Y;
-            Position = new PixelPoint(
-                _windowStartPosition.X + (int)deltaX,
-                _windowStartPosition.Y + (int)deltaY);
-        }
-    }
-
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
-    {
-        base.OnPointerReleased(e);
-
-        if (_isDragging)
-        {
-            _isDragging = false;
-            e.Pointer.Capture(null);
         }
     }
 

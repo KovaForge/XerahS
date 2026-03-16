@@ -22,7 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
-using ShareX.ImageEditor;
+using ShareX.ImageEditor.Hosting;
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture.Services;
 
@@ -158,5 +158,11 @@ public sealed record RegionCaptureOptions
     /// Editor options for persisting tool selection and styling preferences.
     /// These settings are saved between sessions.
     /// </summary>
-    public EditorOptions EditorOptions { get; init; } = new();
+    public ImageEditorOptions EditorOptions { get; init; } = new();
+
+    /// <summary>
+    /// When set, used to log elapsed ms at milestones (overlay shown, mouse down/up, etc.) for bottleneck diagnosis.
+    /// Set by ScreenCaptureService at the start of region capture UI.
+    /// </summary>
+    public DateTime? SessionStartUtc { get; init; }
 }

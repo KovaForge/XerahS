@@ -29,7 +29,7 @@
     <SolidColorBrush x:Key="SeparatorLightBrush" Color="{DynamicResource SeparatorLightColor}" />
     <SolidColorBrush x:Key="SeparatorDarkBrush" Color="{DynamicResource SeparatorDarkColor}" />
 
-    <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
+    <FontFamily x:Key="AppFontFamily">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
     <x:Double x:Key="AppFontSize">13</x:Double>
 
     <x:Double x:Key="CheckerSize">15</x:Double>

@@ -279,6 +279,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
+                LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
                 ShowCursor = captureSettings.ShowCursor,
             };
 
@@ -310,7 +311,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
                 Job = WorkflowType.PrintScreen,
                 AfterCaptureJob = (SettingsManager.DefaultTaskSettings?.AfterCaptureJob
                     ?? (AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile))
-                    & ~AfterCaptureTasks.AnnotateImage,
+                    & ~AfterCaptureTasks.AnnotateMedia,
                 AfterUploadJob = SettingsManager.DefaultTaskSettings?.AfterUploadJob
                     ?? AfterUploadTasks.CopyURLToClipboard,
                 GeneralSettings = new TaskSettingsGeneral

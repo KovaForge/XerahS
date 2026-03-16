@@ -43,7 +43,7 @@ namespace XerahS.Core.Tasks
         /// Handles tool workflow execution (ColorPicker, QRCode, etc.)
         /// Tools require UI context, so this method delegates to the callback set by the UI layer.
         /// </summary>
-        private async Task HandleToolWorkflowAsync(CancellationToken token)
+        internal async Task HandleToolWorkflowAsync(CancellationToken token)
         {
             TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "HandleToolWorkflowAsync Entry");
 

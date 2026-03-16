@@ -24,12 +24,11 @@
 #endregion License Information (GPL v3)
 
 using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
-using Avalonia.Platform.Storage;
+using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ShareX.ImageEditor.Helpers;
+using ShareX.ImageEditor.Presentation.Rendering;
 using SkiaSharp;
 using XerahS.Core.Services;
 using XerahS.Platform.Abstractions;
@@ -43,6 +42,12 @@ public partial class QrCodeGeneratorViewModel : ViewModelBase, IDisposable
 
     private SKBitmap? _generatedBitmap;
     private Bitmap? _previewImage;
+    private readonly IViewDialogService _dialogService;
+
+    public QrCodeGeneratorViewModel(IViewDialogService? dialogService = null)
+    {
+        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+    }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GenerateCommand))]
@@ -154,28 +159,9 @@ public partial class QrCodeGeneratorViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
+        var filePath = await _dialogService.ShowSaveFilePickerAsync("Save QR Code", "qr-code.png", "png", new[] { "*.png", "*.*" });
 
-        if (mainWindow?.StorageProvider == null)
-        {
-            StatusMessage = "File picker is not available.";
-            return;
-        }
-
-        var file = await mainWindow.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save QR Code",
-            SuggestedFileName = "qr-code.png",
-            FileTypeChoices = new[]
-            {
-                new FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } },
-                new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
-            }
-        });
-
-        if (file?.Path == null)
+        if (string.IsNullOrWhiteSpace(filePath))
         {
             StatusMessage = "Save cancelled.";
             return;
@@ -183,8 +169,8 @@ public partial class QrCodeGeneratorViewModel : ViewModelBase, IDisposable
 
         try
         {
-            ImageHelpers.SaveBitmap(_generatedBitmap, file.Path.LocalPath);
-            StatusMessage = $"Saved to {file.Path.LocalPath}";
+            ImageHelpers.SaveBitmap(_generatedBitmap, filePath);
+            StatusMessage = $"Saved to {filePath}";
         }
         catch (Exception ex)
         {

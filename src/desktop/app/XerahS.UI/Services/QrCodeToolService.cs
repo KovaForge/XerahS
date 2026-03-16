@@ -24,7 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
-using ShareX.ImageEditor.Helpers;
+using ShareX.ImageEditor.Presentation.Rendering;
 using SkiaSharp;
 using XerahS.Core;
 using XerahS.Core.Services;
@@ -104,6 +104,7 @@ public static class QrCodeToolService
         return new CaptureOptions
         {
             UseModernCapture = captureSettings.UseModernCapture,
+            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
             ShowCursor = captureSettings.ShowCursor,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,
@@ -194,4 +195,3 @@ public static class QrCodeToolService
         }
     }
 }
-

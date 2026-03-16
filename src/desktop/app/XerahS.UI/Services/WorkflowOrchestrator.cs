@@ -27,7 +27,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using ShareX.ImageEditor.ViewModels;
+using ShareX.ImageEditor.Presentation.ViewModels;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -260,13 +260,26 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
     private void OnTaskCompleted(object? sender, EventArgs e)
     {
-        if (sender is Core.Tasks.WorkerTask task &&
-            task.Info?.Metadata?.Image != null &&
-            _desktop?.MainWindow?.DataContext is MainViewModel viewModel)
+        if (sender is not Core.Tasks.WorkerTask task ||
+            task.Info?.Metadata?.Image is not { } image ||
+            _desktop?.MainWindow?.DataContext is not MainViewModel viewModel)
         {
-            viewModel.UpdatePreview(task.Info.Metadata.Image);
-            DebugHelper.WriteLine($"Updated preview from task completion: {task.Info.Metadata.Image.Width}x{task.Info.Metadata.Image.Height}");
+            return;
         }
+
+        int width = image.Width;
+        int height = image.Height;
+        SkiaSharp.SKBitmap? previewCopy = image.Copy();
+        if (previewCopy == null || previewCopy.Handle == IntPtr.Zero)
+        {
+            previewCopy?.Dispose();
+            DebugHelper.WriteLine("Skipped preview update from task completion: failed to clone bitmap.");
+            return;
+        }
+
+        // UpdatePreview takes ownership and can dispose the supplied bitmap during property-change handling.
+        viewModel.UpdatePreview(previewCopy);
+        DebugHelper.WriteLine($"Updated preview from task completion: {width}x{height}");
     }
 
     private async void HotkeyManager_HotkeyTriggered(object? sender, Core.Hotkeys.WorkflowSettings settings)

@@ -76,6 +76,9 @@ namespace XerahS.CLI
                 rootCommand.Add(CompareCaptureCommand.Create());
                 rootCommand.Add(VerifyRecordingCommand.Create());
                 rootCommand.Add(VerifyGifRecordingCommand.Create());
+                rootCommand.Add(VerifyVideoEditorCommand.Create());
+                rootCommand.Add(OpenVideoEditorCommand.Create());
+                rootCommand.Add(WatchFolderDaemonCommand.Create());
 
                 // Execute
                 return await rootCommand.Parse(args).InvokeAsync();

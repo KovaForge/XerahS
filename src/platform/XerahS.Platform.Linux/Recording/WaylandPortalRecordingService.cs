@@ -62,6 +62,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     private IPortalSession? _sessionProxy;
     private ObjectPath? _sessionHandle;
     private uint _pipewireNodeId;
+    private int _pipewireSourceWidth;
+    private int _pipewireSourceHeight;
 
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
@@ -96,61 +98,43 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             // Fall back to portal + GStreamer/FFmpeg approach
             InitializePortalSession(options).GetAwaiter().GetResult();
 
-            var (executable, args, useGStreamer) = BuildRecordingCommand(options, _pipewireNodeId);
+            bool preferCpuGStreamer = ShouldPreferCpuGStreamerPath();
+            if (preferCpuGStreamer)
+            {
+                DebugHelper.WriteLine("[WaylandPortalRecording] GNOME Wayland detected; preferring CPU GStreamer pipeline to avoid black GL captures.");
+            }
+
+            var (executable, args, useGStreamer) = BuildRecordingCommand(
+                options,
+                _pipewireNodeId,
+                _pipewireSourceWidth,
+                _pipewireSourceHeight,
+                preferCpuGStreamer);
             DebugHelper.WriteLine($"[WaylandPortalRecording] Using {(useGStreamer ? "GStreamer" : "FFmpeg")}");
             DebugHelper.WriteLine($"[WaylandPortalRecording] Command: {executable} {args}");
 
             if (useGStreamer)
             {
-                // Use GStreamer directly via Process
-                _ffmpegTask = Task.Run(() =>
+                // Build CPU-only fallback pipeline in case the GL path fails.
+                // Two known failure modes on GNOME/Wayland:
+                //   (a) GL path with video/x-raw filter → not-negotiated when pipewiresrc only offers DMABuf
+                //   (b) GL path without filter → glupload "unhandled format" on some systems
+                // The fallback (no GL) uses videoconvert which handles both raw and DMABuf universally.
+                string? fallbackGstArgs = null;
+                bool primaryUsesGl = !preferCpuGStreamer && HasGStreamerElement("gldownload") && HasGStreamerElement("glupload");
+                if (primaryUsesGl)
                 {
-                    Process? process = null;
-                    try
-                    {
-                        lock (_lock)
-                        {
-                            _stopwatch.Restart();
-                            UpdateStatus(RecordingStatus.Recording);
-                        }
+                    // options.OutputPath was resolved (and possibly extension-adjusted) by BuildRecordingCommand above.
+                    var (fallbackPipeline, _) = BuildGStreamerPipeline(options, _pipewireNodeId,
+                        options.OutputPath ?? string.Empty, _pipewireSourceWidth, _pipewireSourceHeight, useGl: false);
+                    fallbackGstArgs = "-e " + fallbackPipeline;
+                    DebugHelper.WriteLine("[WaylandPortalRecording] CPU fallback pipeline ready (will use if GL path fails)");
+                }
 
-                        var startInfo = new ProcessStartInfo
-                        {
-                            FileName = executable,
-                            Arguments = args,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true
-                        };
-
-                        process = Process.Start(startInfo);
-                        if (process == null)
-                        {
-                            HandleFatalError(new Exception("Failed to start GStreamer process"), true);
-                            return;
-                        }
-
-                        _gstreamerProcess = process;
-                        try { _gstreamerPid = process.Id; } catch { }
-                        string output = process.StandardError.ReadToEnd();
-                        process.WaitForExit();
-
-                        if (process.ExitCode != 0)
-                        {
-                            DebugHelper.WriteLine($"[WaylandPortalRecording] GStreamer stderr:\n{output}");
-                        }
-
-                        if (process.ExitCode != 0 && !_stopRequested)
-                        {
-                            HandleFatalError(new Exception($"GStreamer process failed.\nOutput: {output}"), true);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        HandleFatalError(ex, true);
-                    }
-                });
+                var capturedExecutable = executable;
+                var capturedPrimaryArgs = args;
+                var capturedFallbackArgs = fallbackGstArgs;
+                _ffmpegTask = Task.Run(() => RunGStreamerWithFallback(capturedExecutable, capturedPrimaryArgs, capturedFallbackArgs));
             }
             else
             {
@@ -202,6 +186,94 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             CleanupPortalSession();
             HandleFatalError(ex, true);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Tries the primary GStreamer pipeline; if it fails and a fallback is available, retries with the fallback.
+    /// Only calls HandleFatalError when all candidates are exhausted.
+    /// </summary>
+    private void RunGStreamerWithFallback(string executable, string primaryArgs, string? fallbackArgs)
+    {
+        // Stop may have been signalled before the background thread even starts GStreamer.
+        if (_stopRequested) return;
+
+        bool primaryFailed = RunGStreamerProcess(executable, primaryArgs, out string primaryOutput);
+
+        if (!primaryFailed || _stopRequested)
+            return;
+
+        if (fallbackArgs != null)
+        {
+            DebugHelper.WriteLine("[WaylandPortalRecording] Primary (GL) pipeline failed; retrying with CPU fallback pipeline...");
+            bool fallbackFailed = RunGStreamerProcess(executable, fallbackArgs, out string fallbackOutput);
+            if (fallbackFailed && !_stopRequested)
+            {
+                HandleFatalError(new Exception(
+                    $"GStreamer: both GL and CPU pipelines failed.\nGL output: {primaryOutput}\nCPU output: {fallbackOutput}"), true);
+            }
+        }
+        else
+        {
+            HandleFatalError(new Exception($"GStreamer process failed.\nOutput: {primaryOutput}"), true);
+        }
+    }
+
+    /// <summary>
+    /// Runs a single GStreamer process and waits for it to exit.
+    /// Returns true if the process failed and the caller should consider a retry.
+    /// </summary>
+    private bool RunGStreamerProcess(string executable, string args, out string stderrOutput)
+    {
+        stderrOutput = string.Empty;
+        try
+        {
+            lock (_lock)
+            {
+                _stopwatch.Restart();
+                UpdateStatus(RecordingStatus.Recording);
+            }
+
+            // Re-check after taking the lock: stop may have arrived between RunGStreamerWithFallback's
+            // early check and this point.
+            if (_stopRequested) { stderrOutput = string.Empty; return false; }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = executable,
+                Arguments = args,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                stderrOutput = "Failed to start GStreamer process";
+                return true;
+            }
+
+            _gstreamerProcess = process;
+            try { _gstreamerPid = process.Id; } catch { }
+
+            stderrOutput = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                DebugHelper.WriteLine($"[WaylandPortalRecording] GStreamer stderr:\n{stderrOutput}");
+                return !_stopRequested; // failed → caller should retry (unless user stopped)
+            }
+
+            return false; // exited cleanly
+        }
+        catch (Exception ex)
+        {
+            HandleFatalError(ex, true);
+            stderrOutput = ex.Message;
+            return false; // unexpected exception: don't retry
         }
     }
 
@@ -314,7 +386,9 @@ public sealed class WaylandPortalRecordingService : IRecordingService
 
         lock (_lock)
         {
-            if (_status != RecordingStatus.Recording)
+            // Allow stopping from Initializing too: hotkey can arrive before the background
+            // thread advances status from Initializing to Recording.
+            if (_status == RecordingStatus.Idle || _status == RecordingStatus.Finalizing)
             {
                 return;
             }
@@ -485,6 +559,12 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         {
             throw new PlatformNotSupportedException("ScreenCast response did not include PipeWire stream node.");
         }
+
+        TryGetPipeWireSourceSize(startResults, out _pipewireSourceWidth, out _pipewireSourceHeight);
+        if (_pipewireSourceWidth > 0)
+            DebugHelper.WriteLine($"[WaylandPortalRecording] PipeWire source size: {_pipewireSourceWidth}x{_pipewireSourceHeight}");
+        else
+            DebugHelper.WriteLine("[WaylandPortalRecording] PipeWire source size: not reported by portal");
     }
 
     private void CleanupPortalSession()
@@ -545,6 +625,54 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                     nodeId = id;
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Extracts the source stream size (width × height in screen pixels) from the portal Start response.
+    /// The XDG ScreenCast portal includes a "size" property per stream: a{sv} with key "size" → (int32, int32).
+    /// </summary>
+    private static bool TryGetPipeWireSourceSize(IDictionary<string, object> results, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+
+        if (!results.TryGetValue("streams", out var streamsRaw) || streamsRaw == null)
+            return false;
+
+        var streams = UnwrapVariant(streamsRaw) as Array;
+        if (streams == null || streams.Length == 0)
+            return false;
+
+        foreach (var entry in streams)
+        {
+            if (entry == null) continue;
+            var unwrapped = UnwrapVariant(entry);
+
+            IDictionary<string, object>? props = null;
+            if (unwrapped is ValueTuple<uint, IDictionary<string, object>> tuple)
+                props = tuple.Item2;
+            else if (unwrapped is object[] parts && parts.Length > 1)
+                props = UnwrapVariant(parts[1]) as IDictionary<string, object>;
+
+            if (props == null || !props.TryGetValue("size", out var sizeRaw))
+                continue;
+
+            var size = UnwrapVariant(sizeRaw);
+            if (size is ValueTuple<int, int> sizeTuple)
+            {
+                width = sizeTuple.Item1;
+                height = sizeTuple.Item2;
+                return width > 0 && height > 0;
+            }
+            if (size is object[] sizeArr && sizeArr.Length >= 2)
+            {
+                width = Convert.ToInt32(UnwrapVariant(sizeArr[0]));
+                height = Convert.ToInt32(UnwrapVariant(sizeArr[1]));
+                return width > 0 && height > 0;
             }
         }
 
@@ -638,6 +766,26 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         }
     }
 
+    internal static bool ShouldPreferCpuGStreamerPath(
+        string? sessionType = null,
+        string? currentDesktop = null,
+        string? sessionDesktop = null,
+        string? desktopSession = null)
+    {
+        sessionType ??= Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
+        if (!string.Equals(sessionType, "wayland", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        string desktopHints =
+            $"{currentDesktop ?? Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")} " +
+            $"{sessionDesktop ?? Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP")} " +
+            $"{desktopSession ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")}";
+
+        return desktopHints.Contains("GNOME", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool HasWfRecorder()
     {
         try
@@ -706,7 +854,12 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                desktopSession.Contains("SWAY");
     }
 
-    private static (string executable, string arguments, bool useGStreamer) BuildRecordingCommand(RecordingOptions options, uint pipeWireNodeId)
+    private static (string executable, string arguments, bool useGStreamer) BuildRecordingCommand(
+        RecordingOptions options,
+        uint pipeWireNodeId,
+        int sourceWidth = 0,
+        int sourceHeight = 0,
+        bool preferCpuGStreamer = false)
     {
         var settings = options.Settings ?? new ScreenRecordingSettings();
         string outputPath = options.OutputPath ?? GetDefaultOutputPath();
@@ -722,7 +875,13 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         {
             DebugHelper.WriteLine("[WaylandPortalRecording] FFmpeg lacks pipewire support, using GStreamer");
             // -e flag: send EOS on SIGINT for proper file finalization
-            var (pipeline, actualOutputPath) = BuildGStreamerPipeline(options, pipeWireNodeId, outputPath);
+            var (pipeline, actualOutputPath) = BuildGStreamerPipeline(
+                options,
+                pipeWireNodeId,
+                outputPath,
+                sourceWidth,
+                sourceHeight,
+                useGl: !preferCpuGStreamer);
 
             // Update options with the actual output path (may differ if muxer changed, e.g. .mp4 -> .mkv)
             if (!string.Equals(outputPath, actualOutputPath, StringComparison.Ordinal))
@@ -849,46 +1008,67 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         });
     }
 
-    private static (string pipeline, string actualOutputPath) BuildGStreamerPipeline(RecordingOptions options, uint pipeWireNodeId, string outputPath)
+    private static (string pipeline, string actualOutputPath) BuildGStreamerPipeline(RecordingOptions options, uint pipeWireNodeId, string outputPath, int sourceWidth = 0, int sourceHeight = 0, bool useGl = true)
     {
         var settings = options.Settings ?? new ScreenRecordingSettings();
         bool hasAudio = settings.CaptureSystemAudio || settings.CaptureMicrophone;
 
         // Build pipeline with queue for buffering large frames.
-        // Request video/x-raw to avoid DMA-BUF format negotiation failures.
-        // If GL elements are available, use gldownload as a more robust path.
         var pipeline = new List<string>();
         pipeline.Add($"pipewiresrc path={pipeWireNodeId} do-timestamp=true");
 
-        if (HasGStreamerElement("gldownload") && HasGStreamerElement("glupload"))
+        if (useGl && HasGStreamerElement("gldownload") && HasGStreamerElement("glupload"))
         {
-            // GPU path: handles DMA-BUF / EGL frames from PipeWire
+            // GPU path: let glupload negotiate directly with pipewiresrc.
+            // glupload is designed to handle DMA-BUF from PipeWire natively.
+            // DO NOT insert a video/x-raw caps filter here: pipewiresrc on Wayland often
+            // only offers DMA-BUF (video/x-raw(memory:DMABuf)), and the plain video/x-raw
+            // filter rejects that, causing "streaming stopped, reason not-negotiated (-4)".
+            // NOTE: on some systems glupload itself fails with "unhandled format" — if that
+            // happens the caller retries with useGl=false (the CPU path below).
             pipeline.AddRange(new[] { "!", "glupload", "!", "glcolorconvert", "!", "gldownload" });
         }
-        else
-        {
-            // CPU path: request raw video from PipeWire
-            pipeline.AddRange(new[] { "!", "video/x-raw" });
-        }
+        // CPU path: no GL, no caps filter.
+        // videoconvert below handles all pipewiresrc output formats (raw memory and DMA-BUF).
 
         // queue to decouple and handle buffering
         pipeline.AddRange(new[] { "!", "queue max-size-buffers=3 leaky=downstream" });
         // videoconvert handles any format conversion needed
         pipeline.AddRange(new[] { "!", "videoconvert" });
 
-        // Add crop filter for region capture using FFmpeg-style crop filter
+        // Add crop filter for region capture.
         if (options.Mode == CaptureMode.Region && options.Region.Width > 0 && options.Region.Height > 0)
         {
-            // Use videocrop with correct parameters (pixels to remove from each edge)
-            // For a region at (X,Y) with size WxH on a larger source, we crop:
-            // - left: X pixels, top: Y pixels
-            // - right and bottom are set to 0, then we scale to exact size
+            // GStreamer videocrop removes pixels from each edge (left, top, right, bottom).
+            // We MUST specify all four edges; omitting right/bottom leaves them at 0, meaning the
+            // full screen width/height minus only the left/top crop is passed to videoscale, which
+            // then squashes a wider-than-intended frame into the target dimensions.
+            int cropLeft = Math.Max(0, options.Region.X);
+            int cropTop = Math.Max(0, options.Region.Y);
+
+            string cropElement;
+            if (sourceWidth > 0 && sourceHeight > 0)
+            {
+                // Source size known from portal stream properties — compute exact right/bottom crops.
+                int cropRight = Math.Max(0, sourceWidth - cropLeft - options.Region.Width);
+                int cropBottom = Math.Max(0, sourceHeight - cropTop - options.Region.Height);
+                cropElement = $"videocrop left={cropLeft} top={cropTop} right={cropRight} bottom={cropBottom}";
+                DebugHelper.WriteLine($"[WaylandPortalRecording] videocrop: left={cropLeft} top={cropTop} right={cropRight} bottom={cropBottom} (source={sourceWidth}x{sourceHeight})");
+            }
+            else
+            {
+                // Source size unknown; crop left/top only. videoscale will still scale to the target
+                // dimensions, but may squash if the source is wider than the region.
+                cropElement = $"videocrop left={cropLeft} top={cropTop}";
+                DebugHelper.WriteLine($"[WaylandPortalRecording] videocrop: left={cropLeft} top={cropTop} (source size unknown, right/bottom not cropped)");
+            }
+
             pipeline.Add("!");
-            pipeline.Add($"videocrop left={options.Region.X} top={options.Region.Y}");
+            pipeline.Add(cropElement);
             pipeline.Add("!");
             pipeline.Add("videoconvert");
             pipeline.Add("!");
-            pipeline.Add($"videoscale");
+            pipeline.Add("videoscale");
             pipeline.Add("!");
             pipeline.Add($"video/x-raw,width={options.Region.Width},height={options.Region.Height}");
             // Final videoconvert to ensure encoder-compatible format
@@ -1157,6 +1337,12 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             }
 
             _ffmpeg = null;
+
+            // Clean up the portal session immediately so the DBus Connection is not
+            // left open until GC. An open Connection whose finalizer fires a close
+            // message on a dead portal session produces an unobserved task exception
+            // (org.freedesktop.DBus.Error.ServiceUnknown).
+            CleanupPortalSession();
         }
     }
 }

@@ -63,6 +63,22 @@ public interface IHotkeyService : IDisposable
     /// Temporarily suspend all hotkey processing
     /// </summary>
     bool IsSuspended { get; set; }
+
+    /// <summary>
+    /// Invokes the native interactive configuration dialog for global shortcuts.
+    /// Returns true if the native configuration dialog was successfully shown and handled.
+    /// Platforms that do not support a native shortcut configuration UI return false.
+    /// </summary>
+    Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
+
+    /// <summary>
+    /// Called by the UI layer once the main window has fully opened and the native window
+    /// handle is available via <see cref="PlatformServices.NativeWindowHandleProvider"/>.
+    /// Implementations that deferred portal session setup (because the handle was not
+    /// yet available at registration time) should retry binding here.
+    /// The default implementation is a no-op.
+    /// </summary>
+    void NotifyWindowReady() { }
 }
 
 /// <summary>

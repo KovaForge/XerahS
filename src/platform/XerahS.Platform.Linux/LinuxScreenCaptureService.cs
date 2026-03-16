@@ -44,9 +44,11 @@ namespace XerahS.Platform.Linux
     /// Linux screen capture service with multiple fallback methods.
     /// Supports gnome-screenshot, spectacle (KDE), scrot, and import (ImageMagick).
     /// </summary>
-    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime
+    public class LinuxScreenCaptureService : IScreenCaptureService, ILinuxCaptureRuntime, ILinuxRegionCaptureCapabilityProvider, ILinuxRegionSelectorDiagnosticsProvider
     {
         private readonly LinuxCaptureCoordinator _captureCoordinator;
+        private readonly object _linuxRegionSelectorDecisionLock = new();
+        private LinuxRegionSelectorRuntimeDecision? _lastLinuxRegionSelectorDecision;
 
         public LinuxScreenCaptureService()
         {
@@ -69,17 +71,59 @@ namespace XerahS.Platform.Linux
         public static bool IsWayland =>
             Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
 
-        public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
+        public LinuxRegionCaptureCapability GetLinuxRegionCaptureCapability(CaptureOptions? options = null)
         {
+            var context = LinuxRuntimeContextDetector.Detect();
+            var support = LinuxRegionCaptureCapabilityDetector.ProbeSupportSnapshot(context);
+            return LinuxRegionCaptureCapabilityDetector.Detect(context, support);
+        }
+
+        public LinuxRegionSelectorDiagnostics? GetLinuxRegionSelectorDiagnostics()
+        {
+            var diagnostics = LinuxRegionSelectorDiagnosticsDetector.Detect();
+            return diagnostics with
+            {
+                LastDecision = GetLastLinuxRegionSelectorDecision()
+            };
+        }
+
+        public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
+        {
+            var requestedPreference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
             if (IsWayland && WaylandCliCapture.IsSlurpAvailable())
             {
-                return WaylandCliCapture.SelectRegionWithSlurpAsync();
+                try
+                {
+                    var region = await WaylandCliCapture.SelectRegionWithSlurpAsync().ConfigureAwait(false);
+                    RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                        operation: "Region selection",
+                        providerId: "wlroots",
+                        requestedPreference: requestedPreference,
+                        outcome: region.IsEmpty ? "Cancelled" : "Succeeded"));
+                    return region;
+                }
+                catch (OperationCanceledException)
+                {
+                    RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                        operation: "Region selection",
+                        providerId: "wlroots",
+                        requestedPreference: requestedPreference,
+                        outcome: "Cancelled"));
+                    throw;
+                }
             }
+
             if (IsWayland)
             {
                 DebugHelper.WriteLine("LinuxScreenCaptureService: SelectRegionAsync requested on Wayland but slurp is not available.");
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region selection",
+                    providerId: "wlroots",
+                    requestedPreference: requestedPreference,
+                    outcome: "Failed"));
             }
-            return Task.FromResult(SKRectI.Empty);
+
+            return SKRectI.Empty;
         }
 
         uint ILinuxCaptureRuntime.PortalCancelledResponseCode => PortalScreenCapture.PortalResponseCancelled;
@@ -157,19 +201,39 @@ namespace XerahS.Platform.Linux
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
             var context = LinuxRuntimeContextDetector.Detect();
+            var preference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic;
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture requested with selector preference '{preference}'.");
             var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options);
             var execution = await _captureCoordinator.CaptureWithTraceAsync(request, context).ConfigureAwait(false);
             var result = execution.Result;
             LogCaptureDecisionTrace("Region", execution.Trace);
             if (result.IsCancelled)
             {
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region capture",
+                    providerId: execution.Trace.FinalProviderId ?? result.ProviderId,
+                    requestedPreference: preference,
+                    outcome: "Cancelled"));
                 DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture cancelled by provider '{result.ProviderId}'.");
-                return null;
+                throw new OperationCanceledException($"Region capture cancelled by provider '{result.ProviderId}'.");
             }
 
             if (result.Bitmap != null)
             {
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region capture",
+                    providerId: execution.Trace.FinalProviderId ?? result.ProviderId,
+                    requestedPreference: preference,
+                    outcome: "Succeeded"));
                 DebugHelper.WriteLine($"LinuxScreenCaptureService: Region capture succeeded with provider '{result.ProviderId}'.");
+            }
+            else
+            {
+                RecordLinuxRegionSelectorDecision(CreateRuntimeDecision(
+                    operation: "Region capture",
+                    providerId: execution.Trace.FinalProviderId ?? result.ProviderId,
+                    requestedPreference: preference,
+                    outcome: "Failed"));
             }
 
             return result.Bitmap;
@@ -193,7 +257,7 @@ namespace XerahS.Platform.Linux
 
         public async Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Capturing rect - Left={rect.Left}, Top={rect.Top}, Right={rect.Right}, Bottom={rect.Bottom}");
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Input rect (from UI): Left={rect.Left}, Top={rect.Top}, Right={rect.Right}, Bottom={rect.Bottom}, Size={rect.Right - rect.Left:F0}x{rect.Bottom - rect.Top:F0}");
 
             // Capture full screen with the same options and crop.
             var fullBitmap = await CaptureFullScreenAsync(options);
@@ -214,7 +278,61 @@ namespace XerahS.Platform.Linux
                     (int)rect.Bottom
                 );
 
-                DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Initial crop rect: Left={cropRect.Left}, Top={cropRect.Top}, Right={cropRect.Right}, Bottom={cropRect.Bottom}");
+                // Fast path: portal returned a physical-resolution bitmap (e.g. KDE Plasma portal).
+                // Detect by comparing bitmap size to PhysicalVirtualScreenBoundsForCrop (within 2% tolerance).
+                // If matched, use PhysicalRectForCrop directly — no per-monitor scale needed.
+                bool usedPhysicalPath = false;
+                var physicalVirtualBounds = options?.PhysicalVirtualScreenBoundsForCrop;
+                var physicalRect = options?.PhysicalRectForCrop;
+                if (physicalVirtualBounds.HasValue && physicalRect.HasValue)
+                {
+                    var pv = physicalVirtualBounds.Value;
+                    const double tolerance = 0.02;
+                    bool widthMatch = Math.Abs(fullBitmap.Width - pv.Width) <= Math.Max(1, pv.Width * tolerance);
+                    bool heightMatch = Math.Abs(fullBitmap.Height - pv.Height) <= Math.Max(1, pv.Height * tolerance);
+                    DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Physical bitmap check: bitmap={fullBitmap.Width}x{fullBitmap.Height}, physVirtual={pv.Width}x{pv.Height}, widthMatch={widthMatch}, heightMatch={heightMatch}");
+                    if (widthMatch && heightMatch)
+                    {
+                        var pr = physicalRect.Value;
+                        cropRect.Left = pr.Left - pv.Left;
+                        cropRect.Top = pr.Top - pv.Top;
+                        cropRect.Right = pr.Right - pv.Left;
+                        cropRect.Bottom = pr.Bottom - pv.Top;
+                        DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Physical path: crop at physical offset ({pv.Left},{pv.Top}): L={cropRect.Left}, T={cropRect.Top}, R={cropRect.Right}, B={cropRect.Bottom}");
+                        usedPhysicalPath = true;
+                    }
+                }
+
+                // When portal/capture returns a different size than app virtual screen (e.g. 2560x2790 vs physical layout),
+                // transform the selection rect from virtual screen coordinates to capture bitmap coordinates.
+                var virtualBounds = options?.VirtualScreenBoundsForCrop;
+                if (!usedPhysicalPath && virtualBounds.HasValue)
+                {
+                    var v = virtualBounds.Value;
+                    DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: VirtualScreenBoundsForCrop: X={v.X}, Y={v.Y}, Width={v.Width}, Height={v.Height}");
+                    if (v.Width > 0 && v.Height > 0 &&
+                        (v.Width != fullBitmap.Width || v.Height != fullBitmap.Height))
+                    {
+                        double scaleX = (double)fullBitmap.Width / v.Width;
+                        double scaleY = (double)fullBitmap.Height / v.Height;
+                        DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Applying mapping: scaleX={scaleX:F4}, scaleY={scaleY:F4} (capture size {fullBitmap.Width}x{fullBitmap.Height} vs virtual {v.Width}x{v.Height})");
+                        cropRect.Left = (int)Math.Round((rect.Left - v.X) * scaleX);
+                        cropRect.Top = (int)Math.Round((rect.Top - v.Y) * scaleY);
+                        cropRect.Right = (int)Math.Round((rect.Right - v.X) * scaleX);
+                        cropRect.Bottom = (int)Math.Round((rect.Bottom - v.Y) * scaleY);
+                        DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Mapped crop rect: L={cropRect.Left}, T={cropRect.Top}, R={cropRect.Right}, B={cropRect.Bottom}, Size={cropRect.Width}x{cropRect.Height}");
+                    }
+                    else
+                    {
+                        DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: Virtual size matches capture; using rect as direct crop (no scale).");
+                    }
+                }
+                else if (!usedPhysicalPath)
+                {
+                    DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: VirtualScreenBoundsForCrop not set; using rect as direct crop.");
+                }
+
+                DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Crop rect before clamp: L={cropRect.Left}, T={cropRect.Top}, R={cropRect.Right}, B={cropRect.Bottom}");
 
                 // Clamp to image bounds
                 cropRect.Left = Math.Max(0, cropRect.Left);
@@ -356,5 +474,67 @@ namespace XerahS.Platform.Linux
             return Task.FromResult<CursorInfo?>(null);
         }
 
+        internal static LinuxRegionSelectorRuntimeDecision CreateRuntimeDecision(
+            string operation,
+            string providerId,
+            LinuxInteractiveRegionSelectorPreference requestedPreference,
+            string outcome,
+            DateTimeOffset? timestampUtc = null)
+        {
+            return new LinuxRegionSelectorRuntimeDecision(
+                Operation: operation,
+                ProviderId: providerId,
+                ProviderDisplayName: GetProviderDisplayName(providerId),
+                RequestedPreference: requestedPreference,
+                EffectivePreference: GetEffectivePreference(providerId, requestedPreference),
+                Outcome: outcome,
+                TimestampUtc: timestampUtc ?? DateTimeOffset.UtcNow);
+        }
+
+        private LinuxRegionSelectorRuntimeDecision? GetLastLinuxRegionSelectorDecision()
+        {
+            lock (_linuxRegionSelectorDecisionLock)
+            {
+                return _lastLinuxRegionSelectorDecision;
+            }
+        }
+
+        private void RecordLinuxRegionSelectorDecision(LinuxRegionSelectorRuntimeDecision decision)
+        {
+            lock (_linuxRegionSelectorDecisionLock)
+            {
+                _lastLinuxRegionSelectorDecision = decision;
+            }
+        }
+
+        private static LinuxInteractiveRegionSelectorPreference GetEffectivePreference(
+            string providerId,
+            LinuxInteractiveRegionSelectorPreference requestedPreference)
+        {
+            return providerId switch
+            {
+                "portal" => LinuxInteractiveRegionSelectorPreference.PortalDialog,
+                "kde-dbus" or "gnome-dbus" => LinuxInteractiveRegionSelectorPreference.DesktopNative,
+                "wlroots" => LinuxInteractiveRegionSelectorPreference.Slurp,
+                "xerahs-overlay" => LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+                _ => requestedPreference
+            };
+        }
+
+        private static string GetProviderDisplayName(string providerId)
+        {
+            return providerId switch
+            {
+                "portal" => "XDG portal dialog",
+                "kde-dbus" => "KDE desktop selector",
+                "gnome-dbus" => "GNOME desktop selector",
+                "wlroots" => "slurp",
+                "xerahs-overlay" => "XerahS overlay crosshair",
+                "x11" => "X11 native capture",
+                "cli-tools" => "CLI capture tools",
+                "none" => "No provider",
+                _ => providerId
+            };
+        }
     }
 }

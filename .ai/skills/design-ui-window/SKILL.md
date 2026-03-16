@@ -1,6 +1,6 @@
 ---
 name: design-ui-window
-description: Redesigns any Avalonia .axaml view/window to best-in-class UI/UX quality. Enforces consistent layout, spacing, typography, interaction, accessibility and visual hierarchy. Only changes visuals, layout and styles — never business logic, bindings or public view-model API. Reusable by updating target_view_path.
+description: Redesigns or normalises any XerahS Avalonia .axaml page, dialog, or tool window to consistent app quality. Enforces layout, spacing, theming, surfaces, buttons, scrollbars, accessibility, and visual hierarchy. Only changes visuals, layout, and styles; never business logic, bindings, or public view-model API. Reusable by updating target_view_path.
 metadata:
   keywords:
     - redesign
@@ -9,34 +9,37 @@ metadata:
     - avalonia
     - axaml
     - window
-    - view
+    - dialog
+    - page
     - layout
     - consistency
     - accessibility
-    - animation
-    - feedback
-    - refactor
+    - theming
+    - surface
+    - buttons
+    - scrollbars
     - style
     - xaml
 ---
 
-You are an expert Avalonia UI/UX designer and refactor specialist.
+You are an expert Avalonia UI/UX designer and refactor specialist for XerahS.
 
-Follow these instructions **exactly** and in order. Do not skip steps, do not add business logic changes, do not break existing bindings or view-model public API.
+Follow these instructions exactly and in order. Do not skip steps, do not add business logic changes, do not break existing bindings or view-model public API.
 
 <task>
-  <goal>Redesign every control in the target window to achieve best in class UI and UX quality.</goal>
-  <goal>Make layout spacing alignment typography and interaction behaviour consistent across the entire window.</goal>
+  <goal>Redesign every control in the target window or page to achieve strong UI and UX quality.</goal>
+  <goal>Make layout, spacing, alignment, typography, surfaces, and interaction behaviour consistent across the entire target.</goal>
+  <goal>Apply the proven XerahS Avalonia window/dialog fix strategy so transparent roots, black gutters, inconsistent buttons, and collapsing scrollbars are fixed the same way every time.</goal>
   <goal>Keep the prompt reusable by changing the target view path in one place only.</goal>
 </task>
 
 <context>
-  <target_view_path>src\XerahS.UI\Views\AfterCaptureWindow.axaml</target_view_path>
-  <scope_definition>The target window is the view referenced by target_view_path. All changes must be confined to this view file and any new/updated styles/resources that are introduced for consistency.</scope_definition>
+  <target_view_path>src\desktop\app\XerahS.UI\Views\AfterCaptureWindow.axaml</target_view_path>
+  <scope_definition>The target is the view referenced by target_view_path. Changes must stay confined to this view and any shared styles/resources that are genuinely required for consistency.</scope_definition>
 
   <ui_ux_reference_characteristics>
-    <item>Visual consistency across the entire window.</item>
-    <item>Uniform spacing margins and alignment.</item>
+    <item>Visual consistency across the entire target.</item>
+    <item>Uniform spacing, margins, and alignment.</item>
     <item>Controls aligned to a clear grid.</item>
     <item>Controls use available space appropriately.</item>
     <item>Predictable control placement.</item>
@@ -50,47 +53,58 @@ Follow these instructions **exactly** and in order. Do not skip steps, do not ad
     <item>Text always readable. Consistent typography and scaling.</item>
     <item>Colour used sparingly and meaningfully. Colour never carries meaning alone.</item>
     <item>Strong contrast for accessibility.</item>
-    <item>Icons simple recognisable and consistent.</item>
     <item>Platform conventions followed.</item>
     <item>Behaviour consistent across similar controls and screens.</item>
     <item>No surprise interactions. State always visible.</item>
-    <item>Error prevention first. Errors clear human and actionable.</item>
+    <item>Error prevention first. Errors are clear, human, and actionable.</item>
     <item>Progressive disclosure of complexity.</item>
     <item>Sensible safe defaults.</item>
-    <item>Performance feels instant.</item>
   </ui_ux_reference_characteristics>
 </context>
 
+<xerahs_window_dialog_playbook>
+  <rule>Identify the host type first: PageView, SurfaceWindow, ordinary dialog/window, or transparent overlay. Do not apply normal painted surfaces to overlay windows that intentionally stay transparent.</rule>
+  <rule>For normal tool windows and dialogs, the first painted client-area surface must be explicit. If the root child is a transparent Grid, StackPanel, or other layout container using outer Margin, replace that pattern with a root Border using Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" and Padding, then place the inner layout inside it.</rule>
+  <rule>For routed pages, prefer the shared host/theme defaults first and only add local root painting when that page still exposes transparent gutter space.</rule>
+  <rule>Black areas usually mean an unpainted layout container is falling through to the underlying Fluent host surface. Diagnose the first painted surface before restyling inner controls.</rule>
+  <rule>Do not hardcode dark colours. Use shared theme resources such as SolidBackgroundFillColorSecondaryBrush, CardBackgroundFillColorDefaultBrush, CardStrokeColorDefaultBrush, TextFillColorPrimaryBrush, and TextFillColorSecondaryBrush.</rule>
+  <rule>Buttons are accent by default app-wide through src\desktop\app\XerahS.UI\Themes\ThemeResources.axaml. Do not add Classes="accent" by default. Use semantic opt-out classes such as NoAccent, SettingsRow, ColorSwatchButton, or DarkButton only when a button truly needs a different presentation. Do not demote ordinary secondary actions to NoAccent unless the user explicitly wants a neutral action style.</rule>
+  <rule>Do not style scrollbar thumbs manually. XerahS keeps Fluent's neutral scrollbar colours and disables auto-hide app-wide via shared theme styles. Only override scrollbar behaviour locally when the specific target truly needs a different policy.</rule>
+  <rule>If read-only previews or control internals still render black after the root surface is correct, prefer fixing the relevant shared theme/resource mapping instead of painting many child controls one by one.</rule>
+</xerahs_window_dialog_playbook>
+
 <constraints>
   <do_not_change>Do not change business logic. Do not change command bindings. Do not change view model public API.</do_not_change>
-  <do_not_break>Do not break keyboard navigation. Do not break screen reader semantics. Do not break localisation readiness.</do_not_break>
-  <do_not_remove>Do not remove existing controls or features. Only reorganise and restyle unless a control is provably redundant.</do_not_remove>
+  <do_not_break>Do not break keyboard navigation, screen reader semantics, or localisation readiness.</do_not_break>
+  <do_not_remove>Do not remove existing controls or features unless a control is provably redundant.</do_not_remove>
 
   <layout_rules>
-    <rule>Use a consistent grid based layout.</rule>
+    <rule>Use a consistent grid-based layout.</rule>
     <rule>Use consistent spacing tokens. Avoid ad hoc pixel values.</rule>
     <rule>Align related controls. Keep labels and inputs aligned.</rule>
-    <rule>Use stretch only where it improves scanability and reduces empty awkward gaps.</rule>
+    <rule>Use stretch only where it improves scanability and reduces awkward empty space.</rule>
     <rule>Primary action must be visually dominant and placed predictably.</rule>
+    <rule>Prefer a painted root Border with Padding over a transparent root child with outer Margin when the target owns a surface.</rule>
   </layout_rules>
 
   <interaction_rules>
-    <rule>Every interactive control must provide clear hover pressed focused and disabled states.</rule>
-    <rule>Every action must provide immediate feedback. Use progress indication for long running tasks.</rule>
-    <rule>Confirm destructive actions. Provide undo where feasible without changing core logic.</rule>
+    <rule>Every interactive control must provide clear hover, pressed, focused, and disabled states.</rule>
+    <rule>Every action must provide immediate feedback. Use progress indication for long-running tasks.</rule>
+    <rule>Confirm destructive actions where appropriate without changing core logic.</rule>
   </interaction_rules>
 
   <accessibility_rules>
     <rule>All controls must have accessible names.</rule>
     <rule>Focus order must follow visual order.</rule>
     <rule>Minimum hit target size must be appropriate for touch and pointer use.</rule>
-    <rule>Contrast must be sufficient for common accessibility expectations.</rule>
+    <rule>Contrast must remain sufficient for common accessibility expectations.</rule>
   </accessibility_rules>
 
   <implementation_rules>
-    <rule>Prefer existing app styles resources and theme tokens.</rule>
-    <rule>Introduce new reusable styles only when they reduce duplication.</rule>
-    <rule>Keep code behind changes minimal. Prefer XAML changes.</rule>
+    <rule>Prefer existing app styles, resources, and theme tokens.</rule>
+    <rule>Introduce new reusable styles only when they reduce duplication or fix a true cross-view issue.</rule>
+    <rule>Keep code-behind changes minimal. Prefer XAML changes.</rule>
+    <rule>If the issue is structural across many windows, fix the shared theme/resource layer instead of repeating the same local patch.</rule>
   </implementation_rules>
 </constraints>
 
@@ -99,74 +113,80 @@ Execute the following steps in order. Think step-by-step and show your reasoning
 <steps>
   <step>
     <id>1</id>
-    <action>Open the target view and inventory every control. Record type purpose binding and current layout container.</action>
+    <action>Open the target view and inventory every control. Record type, purpose, binding, current layout container, host type, and whether the first painted surface is explicit or transparent.</action>
   </step>
   <step>
     <id>2</id>
-    <action>Define the intended information hierarchy. Identify the primary action secondary actions and supporting options.</action>
+    <action>Identify whether the current root uses the transparent-layout-plus-margin anti-pattern. If so, plan to replace it with a painted root Border and inner layout using shared theme brushes.</action>
   </step>
   <step>
     <id>3</id>
-    <action>Redesign the layout using a grid based structure. Group related controls into clear sections. Use consistent spacing and alignment.</action>
+    <action>Define the intended information hierarchy. Identify the primary action, secondary actions, and supporting options.</action>
   </step>
   <step>
     <id>4</id>
-    <action>Fix sizing and stretching so controls use available space appropriately. Avoid cramped areas and avoid large dead zones.</action>
+    <action>Redesign the layout using a grid-based structure. Group related controls into clear sections. Use consistent spacing and alignment.</action>
   </step>
   <step>
     <id>5</id>
-    <action>Standardise typography. Apply consistent font sizes weights and line heights using shared styles.</action>
+    <action>Fix sizing and stretching so controls use available space appropriately. Avoid cramped areas and avoid large dead zones.</action>
   </step>
   <step>
     <id>6</id>
-    <action>Standardise control styling. Ensure consistent padding corner radius icon sizing and state visuals across the window.</action>
+    <action>Standardise typography. Apply consistent font sizes, weights, and line heights using shared styles.</action>
   </step>
   <step>
     <id>7</id>
-    <action>Ensure accessibility. Add or fix accessible names. Verify focus order. Verify keyboard navigation for all controls.</action>
+    <action>Standardise control styling. Ensure consistent padding, corner radius, icon sizing, and state visuals across the target. Respect the app-wide accent-button default and only add semantic opt-out classes for buttons that intentionally need a non-accent presentation. Do not use NoAccent just because an action is secondary.</action>
   </step>
   <step>
     <id>8</id>
-    <action>Review micro interactions. Ensure feedback for all actions. Add progress indication where needed without changing the underlying workflow.</action>
+    <action>Ensure accessibility. Add or fix accessible names. Verify focus order. Verify keyboard navigation for all controls.</action>
   </step>
   <step>
     <id>9</id>
-    <action>Remove visual noise. Reduce unnecessary borders separators and duplicated labels. Use whitespace and section headers instead.</action>
+    <action>Review scroll containers and micro-interactions. Keep scrollbars on shared defaults unless the target explicitly needs a different local behaviour.</action>
   </step>
   <step>
     <id>10</id>
-    <action>Refactor styles. Extract repeated styling into reusable styles and resources. Keep styles consistent with existing app theming.</action>
+    <action>Remove visual noise. Reduce unnecessary borders, separators, and duplicated labels. Use whitespace and section headers instead.</action>
   </step>
   <step>
     <id>11</id>
-    <action>Build and run. Verify the window at common sizes and DPI settings. Verify localisation expansion by simulating longer text.</action>
+    <action>Refactor styles. Extract repeated styling into reusable styles and resources. Prefer shared theme resources over per-view brush duplication, and if the issue is structural across many windows document the shared theme fix instead of repeating local patches.</action>
   </step>
   <step>
     <id>12</id>
-    <action>Document the changes briefly in a UI audit note. Include before and after screenshots if available.</action>
+    <action>Build and run. Verify the target at common sizes and DPI settings. Verify localisation expansion by simulating longer text.</action>
+  </step>
+  <step>
+    <id>13</id>
+    <action>Document the changes briefly in a UI audit note. Include before/after screenshots if available.</action>
   </step>
 </steps>
 
 <success_criteria>
-  The redesign is considered successful when:
+  The redesign is successful when:
   <criteria>All validation_rules pass with no exceptions.</criteria>
-  <criteria>No regressions in behavior. All existing functionality works as before.</criteria>
+  <criteria>No regressions in behaviour. All existing functionality works as before.</criteria>
   <criteria>Primary action is visually dominant and immediately clear to users.</criteria>
-  <criteria>Window is usable at all sizes and DPI scales without layout issues.</criteria>
+  <criteria>Window or page is usable at all sizes and DPI scales without layout issues.</criteria>
   <criteria>No arbitrary pixel values outside defined spacing and sizing tokens.</criteria>
+  <criteria>No transparent root gutters or black fall-through areas remain unless the target is intentionally an overlay.</criteria>
 </success_criteria>
 
 <validation_rules>
   <rule>All controls are aligned to a consistent grid. No misaligned edges within a section.</rule>
-  <rule>Spacing is consistent across the window. No arbitrary spacing values outside defined tokens.</rule>
+  <rule>Spacing is consistent across the target. No arbitrary spacing values outside defined tokens.</rule>
   <rule>Primary action is obvious within 2 seconds of first view. Secondary actions are present but visually quieter.</rule>
-  <rule>All interactive controls have visible hover pressed focused and disabled states.</rule>
-  <rule>Keyboard only navigation can reach every control. Focus order matches visual order.</rule>
-  <rule>Screen reader has meaningful names for every interactive control.</rule>
-  <rule>No bindings are broken. No runtime binding errors in logs.</rule>
-  <rule>Window remains usable at different sizes. No clipped content at typical minimum size.</rule>
+  <rule>All interactive controls have visible hover, pressed, focused, and disabled states.</rule>
+  <rule>Keyboard-only navigation can reach every control. Focus order matches visual order.</rule>
+  <rule>Screen readers have meaningful names for every interactive control.</rule>
+  <rule>No bindings are broken. No runtime binding errors appear in logs.</rule>
+  <rule>Window or page remains usable at different sizes. No clipped content at typical minimum size.</rule>
   <rule>UI remains readable at different DPI scales.</rule>
-  <rule>No regressions in behaviour. Commands trigger the same actions as before.</rule>
+  <rule>No transparent root gutters or host-surface fall-through remain unless the target is intentionally transparent.</rule>
+  <rule>Buttons use the shared accent-default rule unless a semantic opt-out class intentionally says otherwise.</rule>
 </validation_rules>
 
 <output_format>
@@ -179,4 +199,4 @@ Execute the following steps in order. Think step-by-step and show your reasoning
   <section>files_changed</section>
 </output_format>
 
-After completing all steps, output your final answer strictly in the <output_format> structure above.
+After completing all steps, output your final answer strictly in the output_format structure above.

@@ -70,12 +70,13 @@ Name: "CreateStartupIcon"; Description: "Run {#MyAppName} when Windows starts"; 
 [Files]
 Source: "{#MyAppReleaseDirectory}\{#MyAppExeName}"; DestDir: {app}; Flags: ignoreversion
 Source: "{#MyAppReleaseDirectory}\xerahs-watchfolder-daemon.exe"; DestDir: {app}; Flags: ignoreversion
-Source: "{#MyAppReleaseDirectory}\xerahs-watchfolder-daemon.deps.json"; DestDir: {app}; Flags: ignoreversion
-Source: "{#MyAppReleaseDirectory}\xerahs-watchfolder-daemon.runtimeconfig.json"; DestDir: {app}; Flags: ignoreversion
+Source: "{#MyAppReleaseDirectory}\xerahs-watchfolder-daemon.deps.json"; DestDir: {app}; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#MyAppReleaseDirectory}\xerahs-watchfolder-daemon.runtimeconfig.json"; DestDir: {app}; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#MyAppReleaseDirectory}\*.dll"; DestDir: {app}; Flags: ignoreversion
 Source: "{#MyAppReleaseDirectory}\*.json"; DestDir: {app}; Flags: ignoreversion
 Source: "{#MyAppReleaseDirectory}\runtimes\win-x64\*"; DestDir: "{app}\runtimes\win-x64"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 Source: "{#MyAppReleaseDirectory}\runtimes\win-arm64\*"; DestDir: "{app}\runtimes\win-arm64"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+Source: "{#MyAppReleaseDirectory}\WebUI\dist\*"; DestDir: "{app}\WebUI\dist"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 Source: "{#MyAppReleaseDirectory}\Plugins\*"; DestDir: "{userdocs}\{#MyAppName}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -88,6 +89,9 @@ Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall; Check: not IsNoRun
 
 [Code]
+var
+  DaemonWasRunning: Boolean;
+
 function CmdLineParamExists(const value: string): Boolean;
 var
   i: Integer;
@@ -116,4 +120,44 @@ begin
   Result := FileExists(ExpandConstant('{userdesktop}\{#MyAppName}.lnk'));
 end;
 
+procedure StopWatchFolderDaemon();
+var
+  ResultCode: Integer;
+begin
+  DaemonWasRunning := False;
+  { Graceful shutdown first: sends WM_CLOSE / CTRL_BREAK without /F }
+  if Exec('taskkill.exe', '/IM xerahs-watchfolder-daemon.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    if ResultCode = 0 then
+    begin
+      DaemonWasRunning := True;
+      Sleep(2000); { Give the daemon time to exit cleanly }
+    end;
+  end;
+  { Safety net: force-terminate any remaining instance }
+  Exec('taskkill.exe', '/F /IM xerahs-watchfolder-daemon.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if DaemonWasRunning then
+    Sleep(500); { Brief pause for OS to release file handles }
+end;
+
+procedure StartWatchFolderDaemon();
+var
+  ResultCode: Integer;
+begin
+  if FileExists(ExpandConstant('{app}\xerahs-watchfolder-daemon.exe')) then
+    Exec(ExpandConstant('{app}\xerahs-watchfolder-daemon.exe'), '', ExpandConstant('{app}'), SW_HIDE, ewNoWait, ResultCode);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  StopWatchFolderDaemon();
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  { Only restart the daemon if it was running before the install }
+  if (CurStep = ssPostInstall) and DaemonWasRunning then
+    StartWatchFolderDaemon();
+end;
 

@@ -23,30 +23,44 @@
             <Border Grid.Row="0" Padding="16" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,16">
                 <StackPanel Spacing="8" Orientation="Horizontal">
-                    <Button Content="Add" Command="{Binding AddCommand}" AutomationProperties.Name="Add Hotkey"/>
-                    <Button Content="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove Hotkey"/>
-                    <Button Content="Duplicate" Command="{Binding DuplicateCommand}" AutomationProperties.Name="Duplicate Hotkey"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Add" Command="{Binding AddCommand}" AutomationProperties.Name="Add Hotkey"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove Hotkey"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Duplicate" Command="{Binding DuplicateCommand}" AutomationProperties.Name="Duplicate Hotkey"/>
                     <Separator Classes="vertical" Height="20"/>
-                    <Button Content="Move Up" Command="{Binding MoveUpCommand}" AutomationProperties.Name="Move Hotkey Up"/>
-                    <Button Content="Move Down" Command="{Binding MoveDownCommand}" AutomationProperties.Name="Move Hotkey Down"/>
+                    <Button Classes="hotkeyToolbarButton" Command="{Binding MoveUpCommand}" AutomationProperties.Name="Move Hotkey Up">
+                        <TextBlock Text="Move Up"
+                                   FontFamily="{DynamicResource ShareX.FontFamily.Default}"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
+                    <Button Classes="hotkeyToolbarButton" Command="{Binding MoveDownCommand}" AutomationProperties.Name="Move Hotkey Down">
+                        <TextBlock Text="Move Down"
+                                   FontFamily="{DynamicResource ShareX.FontFamily.Default}"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
                     <Separator Classes="vertical" Height="20"/>
-                    <Button Content="Reset" Command="{Binding ResetCommand}" AutomationProperties.Name="Reset Hotkeys"/>
+                    <Button Classes="hotkeyToolbarButton" Content="Reset" Command="{Binding ResetCommand}" AutomationProperties.Name="Reset Hotkeys"/>
                 </StackPanel>
             </Border>
 
             <!-- Hotkey List -->
-            <ListBox Grid.Row="1"
-                     ItemsSource="{Binding Hotkeys}"
-                     SelectedItem="{Binding SelectedHotkey}"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     AutomationProperties.Name="Hotkeys List">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <views:HotkeySelectionControl Margin="0,0,0,8"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Border Grid.Row="1"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <ListBox ItemsSource="{Binding Hotkeys}"
+                         SelectedItem="{Binding SelectedHotkey}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         AutomationProperties.Name="Hotkeys List">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <views:HotkeySelectionControl Margin="0,0,0,8"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
         </Grid>
         
         <!-- Debug Section -->
@@ -62,7 +76,7 @@
                      CornerRadius="4"
                      Height="200"
                      IsVisible="{Binding #ShowDebugCheckBox.IsChecked}"
-                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                 <Grid RowDefinitions="Auto,*">
                     <TextBlock Grid.Row="0" 
                                Text="DEBUG LOG" 
@@ -74,7 +88,7 @@
                              AcceptsReturn="True" 
                              IsReadOnly="True"
                              TextWrapping="Wrap"
-                             FontFamily="Consolas"
+                             FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                              FontSize="12"
                              BorderThickness="0"
                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"

@@ -39,6 +39,9 @@ namespace XerahS.Platform.Windows
             switch (method)
             {
                 case ScrollMethod.MouseWheel:
+                    // Save cursor position so the user's cursor isn't permanently hijacked
+                    NativeMethods.GetCursorPos(out POINT savedCursor);
+
                     // Move mouse to center of target window's client area for reliable wheel delivery
                     var clientRect = NativeMethods.GetClientRect(windowHandle);
                     if (clientRect.Width > 0 && clientRect.Height > 0)
@@ -54,6 +57,9 @@ namespace XerahS.Platform.Windows
                     }
                     // WHEEL_DELTA = 120; negative = scroll down
                     InputHelpers.SendMouseWheel(-120 * amount);
+
+                    // Restore cursor to where the user left it
+                    NativeMethods.SetCursorPos(savedCursor.X, savedCursor.Y);
                     break;
 
                 case ScrollMethod.DownArrow:
@@ -65,6 +71,26 @@ namespace XerahS.Platform.Windows
 
                 case ScrollMethod.PageDown:
                     InputHelpers.SendKeyPress(VirtualKeyCode.NEXT);
+                    break;
+
+                case ScrollMethod.MouseWheelMessage:
+                    // Post WM_MOUSEWHEEL directly to the window without moving the physical cursor.
+                    // Works for standard Win32/WPF/WinForms controls. Falls back to MouseWheel
+                    // for apps that require real input (e.g. raw-input games).
+                    var msgClientRect = NativeMethods.GetClientRect(windowHandle);
+                    POINT msgCenter = new POINT
+                    {
+                        X = msgClientRect.Left + msgClientRect.Width / 2,
+                        Y = msgClientRect.Top + msgClientRect.Height / 2
+                    };
+                    NativeMethods.ClientToScreen(windowHandle, ref msgCenter);
+
+                    // wParam: HIWORD = wheel delta, LOWORD = key state (0)
+                    // lParam: HIWORD = Y screen coord, LOWORD = X screen coord
+                    int msgWheelDelta = -120 * amount;
+                    IntPtr msgWParam = (IntPtr)unchecked((int)((uint)(msgWheelDelta << 16)));
+                    IntPtr msgLParam = (IntPtr)unchecked((int)((uint)((msgCenter.Y << 16) | (msgCenter.X & 0xFFFF))));
+                    NativeMethods.PostMessage(windowHandle, (uint)WindowsMessages.WM_MOUSEWHEEL, msgWParam, msgLParam);
                     break;
 
                 case ScrollMethod.ScrollMessage:

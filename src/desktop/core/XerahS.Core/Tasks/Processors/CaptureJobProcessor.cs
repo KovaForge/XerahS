@@ -98,11 +98,11 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             // Annotation should happen BEFORE save, so the saved file includes annotations
-            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateImage))
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia))
             {
                 if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
-                    var editedImage = await PlatformServices.UI.ShowEditorAsync(info.Metadata.Image);
+                    var editedImage = await PlatformServices.UI.ShowEditorAsync(info.Metadata.Image, taskMode: true);
                     if (editedImage != null)
                     {
                         if (info.Metadata.Image != editedImage)
@@ -407,7 +407,7 @@ namespace XerahS.Core.Tasks.Processors
             Uploader uploader;
             try
             {
-                uploader = provider.CreateInstance(instance.SettingsJson);
+                uploader = (Uploader)provider.CreateInstance(instance.SettingsJson);
             }
             catch (Exception ex)
             {

@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -61,6 +62,7 @@ public sealed class RegionCaptureControl : UserControl
     private readonly bool _useTransparentOverlay;
     private readonly bool _quickCrop;
     private readonly bool _useLightResizeNodes;
+    private readonly DateTime? _sessionStartUtc;
     private readonly XerahS.Platform.Abstractions.CursorInfo? _ghostCursor;
     private readonly Bitmap? _ghostCursorBitmap;
     private readonly SkiaSharp.SKBitmap? _backgroundBitmap;
@@ -69,9 +71,18 @@ public sealed class RegionCaptureControl : UserControl
     // Keyboard state tracking
     private SelectionModifier _activeModifiers = SelectionModifier.None;
 
+    // Throttle crosshair redraws to ~60 FPS to reduce compositor load (Linux/mixed DPI)
+    private static readonly long CrosshairInvalidateIntervalTicks = Math.Max(1, Stopwatch.Frequency / 60);
+    private long _lastCrosshairInvalidateTicks;
+
+    // Milestone: log first pointer move once (to diagnose delay until crosshair is responsive)
+    private bool _firstPointerMovedLogged;
+
     // Visual brushes and pens (lazy initialization for performance)
     private IBrush? _dimBrush;
     private IBrush DimBrush => _dimBrush ??= new SolidColorBrush(Color.FromArgb((byte)(_dimOpacity * 255), 0, 0, 0));
+    private IPen? _crosshairLinePen;
+    private IPen? _crosshairPen;
 
     private static readonly IPen SelectionPen = new Pen(Brushes.White, 2);
     private static readonly IPen SelectionShadowPen = new Pen(new SolidColorBrush(Color.FromArgb(100, 0, 0, 0)), 4);
@@ -132,6 +143,7 @@ public sealed class RegionCaptureControl : UserControl
         _crosshairLineColor = options.CrosshairLineColor;
         _quickCrop = options.QuickCrop;
         _useLightResizeNodes = options.UseLightResizeNodes;
+        _sessionStartUtc = options.SessionStartUtc;
 
         // Convert background bitmap to Avalonia Bitmap for rendering when not transparent
         // PERFORMANCE: Use direct pixel copy instead of slow PNG encoding (~1-2s saved for 4K screens)
@@ -234,19 +246,34 @@ public sealed class RegionCaptureControl : UserControl
     {
     }
 
-    private void OnSelectionConfirmed(RegionSelectionResult result) => RegionSelected?.Invoke(result);
+    private void OnSelectionConfirmed(RegionSelectionResult result)
+    {
+        if (_sessionStartUtc is { } start)
+        {
+            double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+            XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: selection confirmed (+{elapsedMs:F0} ms)");
+        }
+        RegionSelected?.Invoke(result);
+    }
     private void OnSelectionChanged(PixelRect rect) => SelectionChanged?.Invoke(rect);
     private void OnSelectionCancelled() => Cancelled?.Invoke();
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        UpdateModifiers(e.KeyModifiers);
 
         var point = e.GetPosition(this);
         var physicalPoint = LocalToPhysical(point);
 
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
+            if (_sessionStartUtc is { } start)
+            {
+                double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: first mouse down (+{elapsedMs:F0} ms)");
+            }
+            _lastCrosshairInvalidateTicks = 0; // Allow immediate redraw on drag start
             if (_mode == RegionCaptureMode.ScreenColorPicker)
             {
                 _stateMachine.ConfirmPoint(physicalPoint);
@@ -267,9 +294,27 @@ public sealed class RegionCaptureControl : UserControl
         }
     }
 
+    protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (_sessionStartUtc is { } start)
+        {
+            double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+            XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: overlay control attached to visual tree (+{elapsedMs:F0} ms)");
+        }
+    }
+
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+        UpdateModifiers(e.KeyModifiers);
+
+        if (!_firstPointerMovedLogged && _sessionStartUtc is { } start)
+        {
+            _firstPointerMovedLogged = true;
+            double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+            XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: first pointer moved (+{elapsedMs:F0} ms)");
+        }
 
         var point = e.GetPosition(this);
         var physicalPoint = LocalToPhysical(point);
@@ -282,15 +327,27 @@ public sealed class RegionCaptureControl : UserControl
             _stateMachine.UpdateHoveredWindow(window);
         }
 
-        InvalidateVisual();
+        // Throttle redraws to ~60 FPS to avoid sluggish crosshair on Linux (Avalonia #19363, compositor load)
+        long now = Stopwatch.GetTimestamp();
+        if (_lastCrosshairInvalidateTicks == 0 || (now - _lastCrosshairInvalidateTicks) >= CrosshairInvalidateIntervalTicks)
+        {
+            _lastCrosshairInvalidateTicks = now;
+            InvalidateVisual();
+        }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        UpdateModifiers(e.KeyModifiers);
 
         if (_state == CaptureState.Dragging && _mode != RegionCaptureMode.ScreenColorPicker)
         {
+            if (_sessionStartUtc is { } start)
+            {
+                double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: mouse up (+{elapsedMs:F0} ms)");
+            }
             var point = e.GetPosition(this);
             var physicalPoint = LocalToPhysical(point);
             _stateMachine.UpdateCursorPosition(physicalPoint);
@@ -305,7 +362,7 @@ public sealed class RegionCaptureControl : UserControl
         base.OnKeyDown(e);
 
         // Update modifiers
-        UpdateModifiers(e);
+        UpdateModifiers(e.KeyModifiers);
 
         switch (e.Key)
         {
@@ -344,20 +401,20 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
-        UpdateModifiers(e);
+        UpdateModifiers(e.KeyModifiers);
     }
 
-    private void UpdateModifiers(KeyEventArgs e)
+    private void UpdateModifiers(KeyModifiers keyModifiers)
     {
         var modifiers = SelectionModifier.None;
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        if (keyModifiers.HasFlag(KeyModifiers.Shift))
             modifiers |= SelectionModifier.LockAspectRatio;
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        if (keyModifiers.HasFlag(KeyModifiers.Control))
             modifiers |= SelectionModifier.PixelNudge;
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        if (keyModifiers.HasFlag(KeyModifiers.Alt))
             modifiers |= SelectionModifier.FromCenter;
 
         if (_activeModifiers != modifiers)
@@ -607,43 +664,39 @@ public sealed class RegionCaptureControl : UserControl
         if (!bounds.Contains(cursorLocal))
             return;
 
+        // Cache pens to avoid per-frame allocations (Avalonia high-frequency rendering; issue #19363)
+        _crosshairLinePen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairLineColor)), 1);
+        _crosshairPen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairColor)), 1.5);
+
         const double crosshairLength = 32; // Length of the colored crosshair portion
-        
-        // Regular line pen (configurable color for full-screen lines)
-        var lineColor = Color.FromUInt32(_crosshairLineColor);
-        var linePen = new Pen(new SolidColorBrush(lineColor), 1);
-        
-        // Crosshair colored pen (configurable color, more visible near cursor)
-        var crosshairColor = Color.FromUInt32(_crosshairColor);
-        var crosshairPen = new Pen(new SolidColorBrush(crosshairColor), 1.5);
 
         // Vertical line - top portion (regular)
-        context.DrawLine(linePen,
+        context.DrawLine(_crosshairLinePen,
             new Point(cursorLocal.X, 0),
             new Point(cursorLocal.X, Math.Max(0, cursorLocal.Y - crosshairLength)));
 
         // Vertical line - crosshair portion (colored, 32px centered on cursor)
-        context.DrawLine(crosshairPen,
+        context.DrawLine(_crosshairPen,
             new Point(cursorLocal.X, Math.Max(0, cursorLocal.Y - crosshairLength)),
             new Point(cursorLocal.X, Math.Min(bounds.Height, cursorLocal.Y + crosshairLength)));
 
         // Vertical line - bottom portion (regular)
-        context.DrawLine(linePen,
+        context.DrawLine(_crosshairLinePen,
             new Point(cursorLocal.X, Math.Min(bounds.Height, cursorLocal.Y + crosshairLength)),
             new Point(cursorLocal.X, bounds.Height));
 
         // Horizontal line - left portion (regular)
-        context.DrawLine(linePen,
+        context.DrawLine(_crosshairLinePen,
             new Point(0, cursorLocal.Y),
             new Point(Math.Max(0, cursorLocal.X - crosshairLength), cursorLocal.Y));
 
         // Horizontal line - crosshair portion (colored, 32px centered on cursor)
-        context.DrawLine(crosshairPen,
+        context.DrawLine(_crosshairPen,
             new Point(Math.Max(0, cursorLocal.X - crosshairLength), cursorLocal.Y),
             new Point(Math.Min(bounds.Width, cursorLocal.X + crosshairLength), cursorLocal.Y));
 
         // Horizontal line - right portion (regular)
-        context.DrawLine(linePen,
+        context.DrawLine(_crosshairLinePen,
             new Point(Math.Min(bounds.Width, cursorLocal.X + crosshairLength), cursorLocal.Y),
             new Point(bounds.Width, cursorLocal.Y));
     }

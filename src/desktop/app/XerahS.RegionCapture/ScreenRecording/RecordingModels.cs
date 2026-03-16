@@ -68,6 +68,12 @@ public class RecordingOptions
     /// Maps to TaskSettings.CaptureSettings.UseModernCapture.
     /// </summary>
     public bool UseModernCapture { get; set; } = true;
+
+    /// <summary>
+    /// Preferred Linux recording backend. This replaces the Linux meaning of UseModernCapture.
+    /// </summary>
+    public LinuxRecordingBackendPreference LinuxRecordingBackendPreference { get; set; } =
+        LinuxRecordingBackendPreference.Automatic;
 }
 
 /// <summary>

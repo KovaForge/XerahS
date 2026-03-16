@@ -28,7 +28,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class AutoCaptureWindow : Window
+public partial class AutoCaptureWindow : SurfaceWindow
 {
     private AutoCaptureViewModel? _viewModel;
 

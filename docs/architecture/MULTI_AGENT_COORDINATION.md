@@ -1,247 +1,69 @@
-# Multi-Agent Development Coordination
+# Multi-Agent Coordination
 
-## Context
+Use this document when more than one coding agent, worktree, or parallel session is active on XerahS.
 
-This document defines the coordination rules for parallel development on XerahS using three AI developer agents.
+## Core Rules
 
----
+1. One coordinating agent owns scope, task slicing, merge order, and final verification.
+2. Split work by project or folder boundary, not by adjacent files inside the same project.
+3. Never have two agents editing the same project at the same time.
+4. Keep repository-wide policy files and solution-level settings under coordinator control unless they are explicitly delegated.
+5. Every worker agent must return files changed, assumptions, verification, and remaining risks.
 
-## Agent Roles
+## Good Boundaries in This Repo
 
-| Agent | Platform | Role | Primary Scope |
-|-------|----------|------|---------------|
-| **Antigravity** | Windows (Claude) | Lead Developer | Architecture, platform abstraction, integration, merge decisions |
-| **Codex** | Surface Laptop 5 (VS Code) | Backend Developer | Core logic, Helpers, Media, History, CLI, Settings |
-| **Copilot** | Surface Laptop 7 (VS2026 IDE) | UI Developer | ViewModels, Views, Services, UI wiring |
+| Boundary | Typical Scope |
+| --- | --- |
+| `src/desktop/app/XerahS.UI` | Avalonia views, controls, XAML, UI wiring |
+| `src/desktop/app/XerahS.App` and `src/desktop/app/XerahS.Bootstrap` | App startup and composition root |
+| `src/desktop/core/*` | Business logic, history, media, services, uploaders, shared view models |
+| `src/platform/*` | Windows, Linux, macOS, and shared platform abstractions |
+| `src/desktop/plugins/*` | Uploader plugin implementations |
+| `src/mobile/*` | Android and iOS heads |
+| `docs/*` and `developers/*` | Documentation, audits, and process updates |
 
----
+## Typical Reasons to Delegate
 
-## Antigravity Responsibilities
+- Large refactors across multiple files
+- Separate research or audit work
+- Focused test authoring or verification
+- Mechanical cleanup that would otherwise drown the main context
+- Platform-specific reproduction or validation
 
-- Own main branch direction and architecture
-- Decide task boundaries and assign work
-- Review high-level changes before merge
-- Prevent overlapping file modifications
-- Final conflict resolution
+## Delegation Pattern
 
----
+1. The coordinator writes a short task brief with scope, boundary, and expected verification.
+2. The worker agent stays inside the assigned boundary and does not expand scope silently.
+3. The worker returns:
+   - Summary of the change
+   - Files changed
+   - Commands run and results
+   - Assumptions, risks, or blockers
+4. The coordinator integrates the result, resolves cross-cutting edits, and reruns final verification.
 
-## Task Distribution Rules
+## Protected or High-Conflict Files
 
-1. **Assign by project/folder boundaries, not individual files**
-2. **Never assign two agents to the same project simultaneously**
-3. **Prefer vertical slices over shared utilities**
+- `AGENTS.md`
+- `CLAUDE.md`
+- `developers/guidelines/AGENT_WORKFLOW.md`
+- `Directory.Build.props`
+- `Directory.Packages.props`
+- `src/desktop/XerahS.sln`
+- Shared interfaces, enums, and other abstractions that cross project boundaries
+- Docs that define repository-wide policy
 
----
+## Git Rules
 
-## Recommended Task Split
-
-### Codex (Backend)
-- ✅ XerahS.Core (logic only, not Models exposed to UI)
-- ✅ XerahS.Common (Helpers, utilities) - **Priority: Port Gaps**
-- ✅ XerahS.Media (encoding, FFmpeg)
-- ✅ XerahS.History (persistence, managers)
-- ✅ XerahS.Annotations (Logic/Models - Phase 2)
-- ❌ NO Avalonia UI projects or XAML
-
-### Copilot (UI)
-- ✅ XerahS.UI/ViewModels/*
-- ✅ XerahS.UI/Views/*
-- ✅ XerahS.UI/Controls/AnnotationCanvas - **Priority: Phase 2**
-- ✅ UI wiring and MVVM bindings
-- ❌ NO Core logic or backend processing (unless directed)
-
-### Antigravity (Architecture)
-- ✅ XerahS.Platform.Abstractions
-- ✅ XerahS.Platform.Windows/Linux/macOS
-- ✅ Project structure and solution files
-- ✅ Merge Review & Documentation
-
----
-
-## Git Workflow
-
-### Branch Naming
-```
-feature/annotation-canvas  # Copilot: Canvas implementation
-feature/backend-gaps       # Codex: HelpersLib porting
-feature/automation-tasks   # Codex: Automation engine
-```
-
-### Commit Rules
-- **Small, focused commits**
-- **Message format**:
-  ```
-  [Project] Brief description
-
-  - Change 1
-  - Change 2
-  
-  Touched: folder/file1.cs, folder/file2.cs
-  ```
-
-### Push Frequency
-- Push frequently (at least after each logical change)
-- Never rebase shared branches
-- Pull before starting work
-
----
-
-## Conflict Avoidance
-
-### Protected Resources (Single Agent Only)
-| Resource | Owner |
-|----------|-------|
-| `AGENTS.md` | Antigravity |
-| `NEXT_STEPS.md` | Antigravity |
-| `*.sln` files | Antigravity |
-| `*.csproj` files | Antigravity (or assigned agent for that project) |
-| Shared interfaces | Antigravity approval required |
-| Shared enums | Antigravity approval required |
-
-### Escalation Rules
-If conflict is likely:
-1. Pause one agent
-2. Redirect to different task
-3. Antigravity resolves ownership
-
----
-
-## Communication Protocol
-
-### Agent Reports Must Include
-1. Files modified (list)
-2. New types added (class/interface names)
-3. Assumptions made
-4. Dependencies introduced
-
-### Report Format
-```markdown
-## Work Report: [Agent Name]
-
-### Files Modified
-- `src/Project/Folder/File.cs`
-
-### New Types
-- `ClassName` - purpose
-
-### Assumptions
-- Assumed X because Y
-
-### Dependencies
-- Added reference to ProjectZ
-```
-
-### Antigravity Response
-- ✅ Approve and continue
-- 🔄 Redirect to different task
-- ⏸️ Pause and clarify
-
----
+- Use separate branches or worktrees for parallel work when possible.
+- Keep commits small and boundary-specific.
+- Avoid rebasing shared branches during active multi-agent work.
+- After integration, the coordinator should run at least one targeted build or test pass that covers the merged scope.
 
 ## Stop Conditions
 
-Agents MUST stop and ask Antigravity if:
+Pause and escalate when:
 
-1. **Unclear ownership** - Which project should this go in?
-2. **Architectural ambiguity** - Is this the right pattern?
-3. **Potential conflict** - Another agent might need this file
-4. **New shared type needed** - Interface, enum, or model
-5. **AGENTS.md violation** - Proposed change breaks rules
-
-**No shortcuts that violate AGENTS.md rules are permitted.**
-
----
-
-## Current Task Assignments
-
-| Task | Agent | Branch | Status |
-|------|-------|--------|--------|
-| **SIP0001: Port HelpersLib Utilities** | Codex | `feature/backend-gaps` | 📋 [Assigned](tasks/SIP0001_Port_HelpersLib_Utilities.md) |
-| **Annotation Canvas (Phase 2)** | Copilot | `feature/annotation-canvas` | 🔥 **Next Priority** |
-| **Backend Gap Filling** | Codex | `feature/backend-gaps` | 🔥 **Next Priority** |
-| Plugin System | Antigravity | `feature/uploaders` | ✅ Complete |
-| History UI | Copilot | `feature/ui-history` | 📋 Planned |
-| Screen Recorder Logic | Codex | `feature/recorder-core` | 📋 Planned |
-
----
-
-## 🎯 Comprehensive Gap Analysis & Detailed Scope
-
-This section outlines the specific missing features compared to ShareX (WinForms) and assigns them to agents.
-
-### 1. `ShareX.HelpersLib` (Foundation)
-**Status**: ~60% Ported.
-**Missing**:
-- Advanced image manipulators (ColorMatrix, ConvolutionMatrix).
-- System integration helpers (verified platform agnostic).
-- **Assignment**: **Codex** (`feature/backend-gaps`)
-  - *Goal*: Port remaining non-UI helpers to `XerahS.Common`.
-
-### 2. `ShareX.ScreenCaptureLib` (Capture Engine)
-**Status**: Region/Fullscreen implemented.
-**Missing**:
-- **Screen Recording**: FFmpeg integration, command line generation.
-- **Scrolling Capture**: Image stitching logic.
-- **OCR**: Text recognition integration.
-- **Assignment**:
-  - **Logic**: **Codex** (`feature/recorder-core`) - FFmpeg wrapper, stitching logic.
-  - **UI**: **Copilot** - Recording overlay, region selection updates.
-
-### 3. `ShareX.MediaLib` (Processing)
-**Status**: Basic.
-**Missing**:
-- Image Combiner.
-- Video Converter (UI & Logic).
-- GIF Encoding optimization.
-- **Assignment**: **Codex** - Port core logic to `XerahS.Media`.
-
-### 4. `ShareX` (Application Tools)
-**Status**: Main Window & Settings done.
-**Missing Tools**:
-- Color Picker.
-- Screen Ruler.
-- Image Editor (Annotation Canvas).
-- QR Code Generator/Decoder.
-- DNS Changer / Hash Check (Low priority).
-- **Assignment**: **Copilot** (`feature/tools-ui`)
-  - *Goal*: Create `XerahS.UI/Tools/*`.
-
-### 5. `ShareX.HistoryLib` (Persistence)
-**Status**: Basic Manager exists.
-**Missing**:
-- Advanced History View (search, filter, thumbnails).
-- **Assignment**: **Copilot** (`feature/ui-history`) - Build the grid view.
-
-### 6. `ShareX.UploadersLib` (Plugins)
-**Status**: Architecture Done. Imgur/S3 Done.
-**Strategy**: **Do not port all 50+ uploaders.**
-- Wait for community contributions via the new Plugin System.
-- Implement only highly requested ones on demand.
-
----
-
-## 🚀 Execution Plan (Next 3 Sprints)
-
-### Sprint 1: The Editor & The Foundation
-- **Copilot**: Build `AnnotationCanvas` (Phase 2). This is the "Image Editor".
-- **Codex**: Port `HelpersLib` gaps and `MediaLib` basics.
-
-### Sprint 2: Tools & Recorder
-- **Copilot**: Color Picker, Ruler, QR Code UI.
-- **Codex**: Screen Recorder logic (FFmpeg piping).
-
-### Sprint 3: Polish & History
-- **Copilot**: History Window & Image History.
-- **Codex**: Scrolling Capture logic.
-
----
-
-## Outcome
-
-This structure enables:
-- ✅ Parallel development
-- ✅ Minimal Git conflicts
-- ✅ Centralized architectural control
-- ✅ Clear ownership boundaries
-- ✅ Efficient code review
+- A task needs files outside its assigned boundary
+- Two agents need the same project at the same time
+- A new shared abstraction or package/version change is required
+- A solution-level setting or repository policy file must change

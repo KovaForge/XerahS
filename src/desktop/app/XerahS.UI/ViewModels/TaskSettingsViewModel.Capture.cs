@@ -23,13 +23,17 @@
 
 #endregion License Information (GPL v3)
 using XerahS.Core;
+using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
+using XerahS.UI.Helpers;
 
 namespace XerahS.UI.ViewModels
 {
     public partial class TaskSettingsViewModel
     {
         #region Capture Settings
+
+        public bool ShowUseModernCaptureSetting => OperatingSystem.IsWindows();
 
         public bool UseModernCapture
         {
@@ -43,6 +47,40 @@ namespace XerahS.UI.ViewModels
                 }
             }
         }
+
+        public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference
+        {
+            get => LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
+                _settings.CaptureSettings.LinuxRegionSelectorPreference);
+            set
+            {
+                if (_settings.CaptureSettings.LinuxRegionSelectorPreference != value)
+                {
+                    _settings.CaptureSettings.LinuxRegionSelectorPreference = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
+            LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences();
+
+        public LinuxRecordingBackendPreference LinuxRecordingBackendPreference
+        {
+            get => ResolveLinuxRecordingBackendPreference(_settings.CaptureSettings);
+            set
+            {
+                if (ResolveLinuxRecordingBackendPreference(_settings.CaptureSettings) != value ||
+                    _settings.CaptureSettings.LinuxRecordingBackendPreference == null)
+                {
+                    _settings.CaptureSettings.LinuxRecordingBackendPreference = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public LinuxRecordingBackendPreference[] LinuxRecordingBackendPreferences =>
+            Enum.GetValues<LinuxRecordingBackendPreference>();
 
         public bool ShowCursor
         {
@@ -204,6 +242,14 @@ namespace XerahS.UI.ViewModels
                     OnPropertyChanged();
                 }
             }
+        }
+
+        private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)
+        {
+            return captureSettings.LinuxRecordingBackendPreference ??
+                (captureSettings.UseModernCapture
+                    ? LinuxRecordingBackendPreference.Automatic
+                    : LinuxRecordingBackendPreference.FFmpeg);
         }
 
         #endregion

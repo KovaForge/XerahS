@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class WatchFolderDialog : Window
+public partial class WatchFolderDialog : SurfaceWindow
 {
     public WatchFolderDialog()
     {

@@ -1,5 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:XerahS.UI.ViewModels"
@@ -13,7 +14,10 @@
         WindowStartupLocation="CenterOwner"
         CanResize="True">
 
-  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16">
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="16">
+    <Grid RowDefinitions="Auto,*,Auto,Auto"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
 
     <!-- Row 0: Input file -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -63,5 +67,6 @@
               AutomationProperties.Name="Close" />
     </StackPanel>
 
-  </Grid>
-</Window>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>
