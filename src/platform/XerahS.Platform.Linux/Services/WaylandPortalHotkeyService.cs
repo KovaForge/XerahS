@@ -94,12 +94,21 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
         try
         {
-            _connection = new Connection(Address.Session);
-            _connection.ConnectAsync().GetAwaiter().GetResult();
-            _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
-            _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
-            _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
-            _shortcutsChangedSubscription = _portal.WatchShortcutsChangedAsync(OnShortcutsChanged, OnPortalWatchError).GetAwaiter().GetResult();
+            var previousContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+                _connection = new Connection(Address.Session);
+                _connection.ConnectAsync().GetAwaiter().GetResult();
+                _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
+                _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
+                _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
+                _shortcutsChangedSubscription = _portal.WatchShortcutsChangedAsync(OnShortcutsChanged, OnPortalWatchError).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
+            }
         }
         catch (Exception ex)
         {

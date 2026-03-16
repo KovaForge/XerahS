@@ -64,10 +64,19 @@ public sealed class WaylandPortalInputService : IInputService
 
         try
         {
-            _connection = new Connection(Address.Session);
-            _connection.ConnectAsync().GetAwaiter().GetResult();
-            _portal = _connection.CreateProxy<IInputCapture>(PortalBusName, PortalObjectPath);
-            InitializeAsync().GetAwaiter().GetResult();
+            var previousContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+                _connection = new Connection(Address.Session);
+                _connection.ConnectAsync().GetAwaiter().GetResult();
+                _portal = _connection.CreateProxy<IInputCapture>(PortalBusName, PortalObjectPath);
+                InitializeAsync().GetAwaiter().GetResult();
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
+            }
         }
         catch (Exception ex)
         {
