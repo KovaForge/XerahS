@@ -111,10 +111,10 @@ collect_version_sync_targets() {
 }
 
 print_version_sync_targets() {
-  local entry file tag_name
+  local entry file xml_tag
   for entry in "${VERSION_SYNC_TARGETS[@]}"; do
-    IFS='|' read -r file tag_name <<< "$entry"
-    echo "  - $file (<$tag_name>)"
+    IFS='|' read -r file xml_tag <<< "$entry"
+    echo "  - $file (<$xml_tag>)"
   done
 }
 
@@ -333,8 +333,8 @@ fi
 
 if [[ $NO_BUMP -eq 0 ]]; then
   for entry in "${VERSION_SYNC_TARGETS[@]}"; do
-    IFS='|' read -r file tag_name <<< "$entry"
-    update_version_tag_in_file "$file" "$tag_name" "$new_version"
+    IFS='|' read -r file xml_tag <<< "$entry"
+    update_version_tag_in_file "$file" "$xml_tag" "$new_version"
   done
 fi
 
