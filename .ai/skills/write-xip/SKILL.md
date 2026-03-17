@@ -184,6 +184,14 @@ Explicitly forbid:
 | Providers | Execute actual uploads |
 | UI | Display results, user interaction |
 
+### 6. Avalonia-Specific Accuracy for UI XIPs
+
+When a XIP touches Avalonia `.axaml` bindings, write rules using Avalonia semantics (not WPF assumptions):
+
+- Treat `#ElementName.Property` as Avalonia binding syntax used by `Binding`/compiled binding paths.
+- Do **not** prescribe `{ReflectionBinding #ElementName.Property}`.
+- If dynamic reflection binding is truly required, keep it explicit and avoid `#ElementName` path segments.
+
 ---
 
 ## XIP Evolution Process
@@ -247,6 +255,7 @@ Before finalizing a XIP:
 - [ ] Architecture diagram included (for complex features)
 - [ ] No duplicate logic implied
 - [ ] Platform neutrality maintained
+- [ ] For Avalonia UI XIPs, binding guidance uses Avalonia-native syntax (no WPF-style `ReflectionBinding` guidance for `#ElementName` paths)
 - [ ] GitHub issue created/updated (body = full XIP); sync run if needed
 
 ---
