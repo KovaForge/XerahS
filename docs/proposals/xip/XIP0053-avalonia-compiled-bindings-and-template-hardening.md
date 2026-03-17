@@ -84,6 +84,11 @@ Representative example:
 
 This is not always wrong (some are shell/navigation concerns), but the current ratio suggests more app actions can move to command bindings for testability and consistency.
 
+Binding correctness note for Avalonia command migration:
+
+- `#ElementName.Property` is an Avalonia binding path feature and should be used with Avalonia `Binding` / compiled binding paths.
+- Do **not** combine `#ElementName` paths with `ReflectionBinding`; that WPF-compatible reflection parser treats `#...` as a literal segment and command lookup can fail silently at runtime.
+
 ---
 
 ## Goals
@@ -166,6 +171,7 @@ Prioritize high-use shell actions:
 
 - Convert suitable `Click="..."` paths in `MainWindow` and similar views to commands.
 - Keep code-behind handlers for truly view-specific behavior (focus, animation, control-only plumbing).
+- For element-scoped command sources (for example `#MainWindowRoot.NavigateMenuCommand`), keep Avalonia `Binding` syntax and do not switch those paths to `ReflectionBinding`.
 
 Benefits:
 
@@ -233,11 +239,13 @@ Status: **Implemented**
 
 - Converted main shell menu navigation/open/exit wiring in `MainWindow` from direct `Click` handlers to command bindings (`NavigateMenuCommand`, `OpenImageMenuCommand`, `ExitMenuCommand`).
 - Converted dynamic workflow menu execution to command-based dispatch (`RunWorkflowFromMenuCommand`) instead of per-item click events.
+- Confirmed menu item command paths that use `#MainWindowRoot` are expressed as Avalonia `Binding` paths, not `ReflectionBinding`.
 
 Benefits realized:
 
 - High-use shell actions now follow a command-first pattern, improving consistency with MVVM command flows.
 - Menu action behavior is easier to reason about and test because dispatch paths are centralized.
+- Avoided the WPF-compatibility pitfall where `ReflectionBinding` does not interpret Avalonia `#ElementName` path semantics.
 
 ### Phase 5 - Verification and guardrails
 
