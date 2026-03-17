@@ -40,7 +40,7 @@ public sealed class UnsupportedClipboardMonitorService : IClipboardMonitorServic
 /// </summary>
 public abstract class PollingClipboardMonitorService : IClipboardMonitorService
 {
-    private readonly IClipboardService _clipboardService;
+    private protected readonly IClipboardService _clipboardService;
     private readonly TimeSpan _pollInterval;
     private CancellationTokenSource? _cts;
     private Task? _monitorTask;
@@ -162,7 +162,7 @@ public abstract class PollingClipboardMonitorService : IClipboardMonitorService
         }
     }
 
-    private string BuildClipboardFingerprint()
+    protected virtual string BuildClipboardFingerprint()
     {
         if (_clipboardService.ContainsText())
         {
