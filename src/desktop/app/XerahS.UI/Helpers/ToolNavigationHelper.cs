@@ -40,8 +40,11 @@ public static class ToolNavigationHelper
         string tag,
         Window? owner,
         ContentControl contentFrame,
-        Func<WorkflowType, Task> executeWorkflowFromNavigationAsync)
+        Func<WorkflowType, Task> executeWorkflowFromNavigationAsync,
+        out bool openedExternalWindow)
     {
+        openedExternalWindow = false;
+
         if (string.IsNullOrEmpty(tag) || !tag.StartsWith("Tools", StringComparison.Ordinal))
         {
             return false;
@@ -54,6 +57,7 @@ public static class ToolNavigationHelper
                 return true;
             case "Tools_IndexFolder":
                 ShowIndexFolderWindow(owner);
+                openedExternalWindow = true;
                 return true;
         }
 
@@ -65,12 +69,14 @@ public static class ToolNavigationHelper
         if (route.DispatchMode == ToolNavigationDispatchMode.ExecuteWorkflow)
         {
             _ = executeWorkflowFromNavigationAsync(route.WorkflowType);
+            openedExternalWindow = true;
             return true;
         }
 
         if (ToolWorkflowDispatcher.TryDispatch(route.WorkflowType, owner, null, out var dispatchTask))
         {
             _ = dispatchTask;
+            openedExternalWindow = true;
             return true;
         }
 

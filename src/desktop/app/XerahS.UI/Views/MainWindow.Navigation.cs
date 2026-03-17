@@ -54,7 +54,7 @@ namespace XerahS.UI.Views
                 return;
             }
 
-            HandleNavigationTag(selectedItem.Tag, contentFrame);
+            HandleNavigationTag(selectedItem.Tag, contentFrame, out _);
         }
 
         private void OnNavigationNodeTapped(object? sender, TappedEventArgs e)
@@ -88,8 +88,10 @@ namespace XerahS.UI.Views
             }
         }
 
-        private bool HandleNavigationTag(string? tag, ContentControl contentFrame)
+        private bool HandleNavigationTag(string? tag, ContentControl contentFrame, out bool openedExternalWindow)
         {
+            openedExternalWindow = false;
+
             if (string.IsNullOrEmpty(tag))
             {
                 return false;
@@ -116,6 +118,7 @@ namespace XerahS.UI.Views
                     {
                         _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
                         NavigateToEditor();
+                        openedExternalWindow = true;
                         return true;
                     }
                 }
@@ -132,6 +135,7 @@ namespace XerahS.UI.Views
                     if (workflow != null)
                     {
                         _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
+                        openedExternalWindow = true;
                         return true;
                     }
                 }
@@ -139,7 +143,7 @@ namespace XerahS.UI.Views
                 return false;
             }
 
-            if (ToolNavigationHelper.TryHandleToolsTag(tag, this, contentFrame, ExecuteWorkflowFromNavigationAsync))
+            if (ToolNavigationHelper.TryHandleToolsTag(tag, this, contentFrame, ExecuteWorkflowFromNavigationAsync, out openedExternalWindow))
             {
                 return true;
             }
@@ -161,9 +165,11 @@ namespace XerahS.UI.Views
                     return true;
                 case "Upload_ClipboardUploadWithContentViewer":
                     _ = ExecuteWorkflowFromNavigationAsync(WorkflowType.ClipboardUploadWithContentViewer);
+                    openedExternalWindow = true;
                     return true;
                 case "Upload_FileUpload":
                     _ = ExecuteWorkflowFromNavigationAsync(WorkflowType.FileUpload);
+                    openedExternalWindow = true;
                     return true;
                 case "Settings":
                     contentFrame.Content = new SettingsView();
@@ -238,6 +244,7 @@ namespace XerahS.UI.Views
         private void NavigateTo(string navTag)
         {
             bool handled = false;
+            bool openedExternalWindow = false;
             ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
             TreeView? navigationTree = this.FindControl<TreeView>("NavigationTree");
 
@@ -252,7 +259,7 @@ namespace XerahS.UI.Views
                     {
                         if (contentFrame != null)
                         {
-                            handled = HandleNavigationTag(navTag, contentFrame);
+                            handled = HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
                         }
                     }
                     else if (navNode.Kind == NavigationNodeKind.Page && !ReferenceEquals(navigationTree.SelectedItem, navNode))
@@ -262,14 +269,14 @@ namespace XerahS.UI.Views
                     }
                     else if (navNode.Kind == NavigationNodeKind.Page && contentFrame != null)
                     {
-                        handled = HandleNavigationTag(navTag, contentFrame);
+                        handled = HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
                     }
                 }
             }
 
             if (!handled && contentFrame != null)
             {
-                _ = HandleNavigationTag(navTag, contentFrame);
+                HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
             }
 
             if (!this.IsVisible)
@@ -282,8 +289,11 @@ namespace XerahS.UI.Views
                 this.WindowState = Avalonia.Controls.WindowState.Normal;
             }
 
-            this.Activate();
-            this.Focus();
+            if (!openedExternalWindow)
+            {
+                this.Activate();
+                this.Focus();
+            }
         }
 
         private bool InvokeNavigationNode(NavigationNode node, bool toggleGroups)
@@ -311,7 +321,7 @@ namespace XerahS.UI.Views
 
             if (node.Kind == NavigationNodeKind.Action)
             {
-                return HandleNavigationTag(node.Tag, contentFrame);
+                return HandleNavigationTag(node.Tag, contentFrame, out _);
             }
 
             if (navigationTree != null && !ReferenceEquals(navigationTree.SelectedItem, node))
@@ -320,7 +330,7 @@ namespace XerahS.UI.Views
                 return true;
             }
 
-            return HandleNavigationTag(node.Tag, contentFrame);
+            return HandleNavigationTag(node.Tag, contentFrame, out _);
         }
 
         private static NavigationNode? FindNavigationNodeByTag(IEnumerable? menuItems, string navTag)
