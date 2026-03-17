@@ -25,8 +25,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
 using Avalonia.Controls.Primitives;
+using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Hosting.Diagnostics;
 using ShareX.ImageEditor.Presentation.ViewModels;
@@ -330,11 +331,44 @@ public partial class App : Application
             _lastClipboardViewerAutoOpenUtc = now;
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _ = UploadContentToolService.HandleWorkflowAsync(WorkflowType.ClipboardViewer, owner);
+                if (IsMainWindowMenuOpen())
+                {
+                    return;
+                }
+
+                _ = UploadContentToolService.HandleWorkflowAsync(WorkflowType.ClipboardViewer, owner, background: true);
             }, Avalonia.Threading.DispatcherPriority.Background);
         };
 
         monitor.ClipboardChanged += _clipboardChangedHandler;
+    }
+
+    private bool IsMainWindowMenuOpen()
+    {
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+            return false;
+
+        if (desktop.MainWindow is not Window mainWindow || !mainWindow.IsActive)
+            return false;
+
+        return HasOpenSubMenu(mainWindow);
+    }
+
+    private static bool HasOpenSubMenu(Visual root)
+    {
+        foreach (var child in root.GetVisualChildren())
+        {
+            if (child is MenuItem { IsSubMenuOpen: true })
+                return true;
+
+            if (child is Popup { IsOpen: true })
+                return true;
+
+            if (HasOpenSubMenu(child))
+                return true;
+        }
+
+        return false;
     }
 
     private void TrayIcon_Clicked(object? sender, EventArgs e)

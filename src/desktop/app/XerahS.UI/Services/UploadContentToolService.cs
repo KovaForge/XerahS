@@ -35,9 +35,13 @@ public static class UploadContentToolService
 {
     private static UploadContentWindow? _window;
 
-    public static Task HandleWorkflowAsync(WorkflowType job, Window? owner)
+    /// <param name="background">
+    /// When <c>true</c>, the window is shown without stealing focus (used by the
+    /// clipboard-monitor auto-open path so menus and popups are not disrupted).
+    /// </param>
+    public static Task HandleWorkflowAsync(WorkflowType job, Window? owner, bool background = false)
     {
-        ShowWindow(owner);
+        ShowWindow(owner, background);
 
         if (job is WorkflowType.ClipboardUploadWithContentViewer or WorkflowType.ClipboardViewer)
         {
@@ -47,7 +51,7 @@ public static class UploadContentToolService
         return Task.CompletedTask;
     }
 
-    private static void ShowWindow(Window? owner)
+    private static void ShowWindow(Window? owner, bool background)
     {
         if (_window != null)
         {
@@ -59,7 +63,12 @@ public static class UploadContentToolService
                 }
 
                 _window.Show();
-                _window.Activate();
+
+                if (!background)
+                {
+                    _window.Activate();
+                }
+
                 return;
             }
             catch
@@ -77,8 +86,6 @@ public static class UploadContentToolService
             _window = null;
         };
 
-        // Keep the upload window owned by the shell when available so menu-driven
-        // navigation does not immediately bury it behind the main window.
         if (owner != null)
         {
             _window.Show(owner);
@@ -88,8 +95,11 @@ public static class UploadContentToolService
             _window.Show();
         }
 
-        _window.Activate();
+        if (!background)
+        {
+            _window.Activate();
+        }
 
-        DebugHelper.WriteLine("UploadContent: Window shown.");
+        DebugHelper.WriteLine($"UploadContent: Window shown (background={background}).");
     }
 }
