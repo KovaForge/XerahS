@@ -37,7 +37,9 @@ Key doc families used:
 
 ---
 
-## Code Audit Findings (XerahS)
+## Pre-migration Audit Findings (XerahS baseline)
+
+The findings in this section describe the baseline state observed at audit time before the XIP0053 implementation work.
 
 ### 1) Project-wide compiled bindings are not enabled in key UI projects
 
@@ -92,7 +94,7 @@ Binding correctness note for Avalonia command migration:
   - bind via an explicit window element path, or
   - set a narrow local scope `DataContext` to the window when appropriate (for example menu shell wiring).
 - If command properties are exposed from a `Window`/`UserControl` code-behind surface, instantiate those command objects before `InitializeComponent()` so first-pass binding evaluation can resolve them.
-- For this codebase's current Avalonia/tooling surface, `MenuItem Click="..."` XAML event wiring is not a safe fallback for migration fixes (compiler can reject it with AVLN3000). Use command bindings for menu actions.
+- For `MainWindow` menu migration and equivalent compiled-binding shell surfaces in this codebase's current Avalonia/tooling setup, `MenuItem Click="..."` XAML event wiring is not a safe fallback for migration fixes (compiler can reject it with AVLN3000). Use command bindings for menu actions.
 
 ---
 
