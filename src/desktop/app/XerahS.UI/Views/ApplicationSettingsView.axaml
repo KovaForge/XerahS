@@ -348,6 +348,13 @@
                                               IsEnabled="{Binding SupportsSendToIntegration}"
                                               ToolTip.Tip="Adds XerahS to the 'Send To' menu for quick file access"
                                               AutomationProperties.Name="Enable Send To Integration"/>
+
+                                    <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"/>
+
+                                    <CheckBox IsChecked="{Binding EnableClipboardContentViewer}"
+                                              Content="Monitor clipboard and auto-show Clipboard Viewer"
+                                              ToolTip.Tip="When enabled, automatically opens the Clipboard Viewer when new content is copied to the clipboard"
+                                              AutomationProperties.Name="Enable Clipboard Content Viewer"/>
                                               
                                     <TextBlock Text="File Associations" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"/>
                                     

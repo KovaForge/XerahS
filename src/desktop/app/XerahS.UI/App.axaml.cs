@@ -251,6 +251,34 @@ public partial class App : Application
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator.WorkflowManager;
 
+    /// <summary>
+    /// Allows the settings UI to start or stop the clipboard monitor at runtime.
+    /// </summary>
+    public static void SetClipboardMonitorEnabled(bool enabled)
+    {
+        if (Application.Current is not App app)
+            return;
+
+        var monitor = PlatformServices.ClipboardMonitor;
+        if (!monitor.IsSupported)
+            return;
+
+        if (enabled)
+        {
+            if (!monitor.IsMonitoring)
+            {
+                app.EnsureClipboardChangedHandler();
+                monitor.Start();
+                DebugHelper.WriteLine("Clipboard monitor started via settings.");
+            }
+        }
+        else
+        {
+            monitor.Stop();
+            DebugHelper.WriteLine("Clipboard monitor stopped via settings.");
+        }
+    }
+
     private void InitializeClipboardMonitor(Window owner)
     {
         try
@@ -266,27 +294,7 @@ public partial class App : Application
                 return;
             }
 
-            _clipboardChangedHandler = (_, _) =>
-            {
-                if (!SettingsManager.Settings.ShowClipboardContentViewer)
-                {
-                    return;
-                }
-
-                var now = DateTime.UtcNow;
-                if (now - _lastClipboardViewerAutoOpenUtc < ClipboardViewerAutoOpenCooldown)
-                {
-                    return;
-                }
-
-                _lastClipboardViewerAutoOpenUtc = now;
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    _ = UploadContentToolService.HandleWorkflowAsync(WorkflowType.ClipboardViewer, owner);
-                }, Avalonia.Threading.DispatcherPriority.Background);
-            };
-
-            monitor.ClipboardChanged += _clipboardChangedHandler;
+            EnsureClipboardChangedHandler();
             monitor.Start();
             DebugHelper.WriteLine("Clipboard monitor started: auto-open Clipboard Viewer on clipboard changes.");
         }
@@ -294,6 +302,39 @@ public partial class App : Application
         {
             DebugHelper.WriteException(ex, "Failed to initialize clipboard monitor.");
         }
+    }
+
+    private void EnsureClipboardChangedHandler()
+    {
+        if (_clipboardChangedHandler != null)
+            return;
+
+        var monitor = PlatformServices.ClipboardMonitor;
+        Window? owner = null;
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            owner = desktop.MainWindow;
+
+        _clipboardChangedHandler = (_, _) =>
+        {
+            if (!SettingsManager.Settings.ShowClipboardContentViewer)
+            {
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            if (now - _lastClipboardViewerAutoOpenUtc < ClipboardViewerAutoOpenCooldown)
+            {
+                return;
+            }
+
+            _lastClipboardViewerAutoOpenUtc = now;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _ = UploadContentToolService.HandleWorkflowAsync(WorkflowType.ClipboardViewer, owner);
+            }, Avalonia.Threading.DispatcherPriority.Background);
+        };
+
+        monitor.ClipboardChanged += _clipboardChangedHandler;
     }
 
     private void TrayIcon_Clicked(object? sender, EventArgs e)

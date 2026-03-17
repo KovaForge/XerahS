@@ -275,5 +275,21 @@ namespace XerahS.UI.ViewModels
                 }
             }
         }
+
+        public bool EnableClipboardContentViewer
+        {
+            get => SettingsManager.Settings.ShowClipboardContentViewer;
+            set
+            {
+                if (SettingsManager.Settings.ShowClipboardContentViewer == value)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.ShowClipboardContentViewer = value;
+                OnPropertyChanged();
+                App.SetClipboardMonitorEnabled(value);
+            }
+        }
     }
 }
