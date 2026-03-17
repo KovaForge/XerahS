@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     XerahS - The Avalonia UI implementation of ShareX
@@ -360,7 +360,7 @@ namespace XerahS.Core.Tasks
 
         internal async Task HandleStopRecordingAsync()
         {
-             // Legacy handler - mapped to SignalStop in UI now
+             ScreenRecordingManager.Instance.SignalStop();
              await Task.CompletedTask;
         }
 
