@@ -327,7 +327,7 @@ namespace XerahS.Core.Tasks.Pipeline
 
                 case WorkflowType.ScreenRecorderCustomRegion:
                 case WorkflowType.ScreenRecorderGIFCustomRegion:
-                    await HandleScreenRecorderCustomRegionAsync(context, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
+                    await HandleScreenRecorderCustomRegionAsync(context, captureOptions, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
                     return PipelineStageResult.Stop;
 
                 case WorkflowType.StopScreenRecording:
@@ -531,7 +531,13 @@ namespace XerahS.Core.Tasks.Pipeline
             }
         }
 
-        private async Task HandleScreenRecorderCustomRegionAsync(PipelineContext context, bool isDelay, double delay, string category, CancellationToken token)
+        private async Task HandleScreenRecorderCustomRegionAsync(
+            PipelineContext context,
+            CaptureOptions captureOptions,
+            bool isDelay,
+            double delay,
+            string category,
+            CancellationToken token)
         {
             if (context.Info.Metadata.Image != null)
             {
@@ -539,11 +545,24 @@ namespace XerahS.Core.Tasks.Pipeline
                 context.Info.Metadata.Image = null;
             }
 
-            var configuredRegion = context.Info.TaskSettings!.CaptureSettings.CaptureCustomRegion;
+            var captureSettings = context.Info.TaskSettings!.CaptureSettings;
+            var configuredRegion = captureSettings.CaptureCustomRegion;
             if (configuredRegion.IsEmpty || configuredRegion.Width <= 0 || configuredRegion.Height <= 0)
             {
-                context.Status = TaskStatus.Stopped;
-                return;
+                var selectedRegion = await PlatformServices.ScreenCapture.SelectRegionAsync(captureOptions);
+                if (selectedRegion.IsEmpty || selectedRegion.Width <= 0 || selectedRegion.Height <= 0)
+                {
+                    context.Status = TaskStatus.Stopped;
+                    return;
+                }
+
+                configuredRegion = new Rectangle(
+                    selectedRegion.Left,
+                    selectedRegion.Top,
+                    selectedRegion.Width,
+                    selectedRegion.Height);
+
+                captureSettings.CaptureCustomRegion = configuredRegion;
             }
 
             int customAdjustedWidth = configuredRegion.Width - (configuredRegion.Width % VideoDimensionAlignment);
