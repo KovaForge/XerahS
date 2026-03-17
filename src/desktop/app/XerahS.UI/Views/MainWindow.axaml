@@ -42,17 +42,17 @@
             <Menu Background="Transparent">
                 <!-- File Menu -->
                 <MenuItem Header="_File">
-                    <MenuItem Header="_Open..." Command="{Binding #MainWindowRoot.OpenImageMenuCommand}" InputGesture="Ctrl+O"/>
+                    <MenuItem Header="_Open..." Command="{ReflectionBinding #MainWindowRoot.OpenImageMenuCommand}" InputGesture="Ctrl+O"/>
                     <Separator/>
                     <MenuItem Header="_Upload">
-                        <MenuItem Header="Upload _File..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Upload_FileUpload"/>
-                        <MenuItem Header="Upload _Content..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Upload_ClipboardUploadWithContentViewer"/>
+                        <MenuItem Header="Upload _File..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Upload_FileUpload"/>
+                        <MenuItem Header="Upload _Content..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Upload_ClipboardUploadWithContentViewer"/>
                     </MenuItem>
                     <Separator/>
                     <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
                     <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
                     <Separator/>
-                    <MenuItem Header="E_xit" Command="{Binding #MainWindowRoot.ExitMenuCommand}" InputGesture="Alt+F4"/>
+                    <MenuItem Header="E_xit" Command="{ReflectionBinding #MainWindowRoot.ExitMenuCommand}" InputGesture="Alt+F4"/>
                 </MenuItem>
                 
                 <!-- Edit Menu -->
@@ -65,8 +65,8 @@
                 
                 <!-- View Menu -->
                 <MenuItem Header="_View">
-                    <MenuItem Header="_Editor" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Editor"/>
-                    <MenuItem Header="_History" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="History"/>
+                    <MenuItem Header="_Editor" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Editor"/>
+                    <MenuItem Header="_History" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="History"/>
                     <Separator/>
                     <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+0"/>
                     <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" InputGesture="Ctrl++"/>
@@ -76,55 +76,55 @@
                 
                 <!-- Workflows Menu -->
                 <MenuItem Header="_Workflows" Name="WorkflowsMenuItem">
-                    <MenuItem Header="_Manage Workflows" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Workflows"/>
+                    <MenuItem Header="_Manage Workflows" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Workflows"/>
                     <Separator/>
                     <MenuItem Header="_Run Workflow" Name="RunWorkflowsMenuItem"/>
                 </MenuItem>
                 
                 <!-- Tools Menu -->
                 <MenuItem Header="_Tools">
-                    <MenuItem Header="_Color Picker..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ColorPicker"/>
-                    <MenuItem Header="_Ruler" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_Ruler"/>
+                    <MenuItem Header="_Color Picker..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ColorPicker"/>
+                    <MenuItem Header="_Ruler" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_Ruler"/>
                     <Separator/>
                     <MenuItem Header="_QR Code">
-                        <MenuItem Header="_Generator..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_QrGenerator"/>
-                        <MenuItem Header="Scan from _Screen" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_QrScanScreen"/>
-                        <MenuItem Header="Scan from _Region" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_QrScanRegion"/>
+                        <MenuItem Header="_Generator..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_QrGenerator"/>
+                        <MenuItem Header="Scan from _Screen" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_QrScanScreen"/>
+                        <MenuItem Header="Scan from _Region" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_QrScanRegion"/>
                     </MenuItem>
                     <MenuItem Header="_Pin to Screen">
-                        <MenuItem Header="From _Screen" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenFromScreen"/>
-                        <MenuItem Header="From _Clipboard" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenFromClipboard"/>
-                        <MenuItem Header="From _File" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenFromFile"/>
-                        <MenuItem Header="Close _All" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenCloseAll"/>
+                        <MenuItem Header="From _Screen" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenFromScreen"/>
+                        <MenuItem Header="From _Clipboard" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenFromClipboard"/>
+                        <MenuItem Header="From _File" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenFromFile"/>
+                        <MenuItem Header="Close _All" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_PinToScreenCloseAll"/>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem Header="_OCR" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_OCR"/>
-                    <MenuItem Header="_Hash Checker..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_HashCheck"/>
-                    <MenuItem Header="_Index Folder..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_IndexFolder"/>
+                    <MenuItem Header="_OCR" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_OCR"/>
+                    <MenuItem Header="_Hash Checker..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_HashCheck"/>
+                    <MenuItem Header="_Index Folder..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_IndexFolder"/>
                     <Separator/>
-                    <MenuItem Header="_Image Combiner..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ImageCombiner"/>
-                    <MenuItem Header="Image _Splitter..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ImageSplitter"/>
-                    <MenuItem Header="Image _Thumbnailer..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ImageThumbnailer"/>
-                    <MenuItem Header="_Analyze Image..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_AnalyzeImage"/>
+                    <MenuItem Header="_Image Combiner..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ImageCombiner"/>
+                    <MenuItem Header="Image _Splitter..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ImageSplitter"/>
+                    <MenuItem Header="Image _Thumbnailer..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ImageThumbnailer"/>
+                    <MenuItem Header="_Analyze Image..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_AnalyzeImage"/>
                     <Separator/>
-                    <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_VideoEditor"/>
-                    <MenuItem Header="_Video Converter..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_VideoConverter"/>
-                    <MenuItem Header="Video Thumb_nailer..." Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_VideoThumbnailer"/>
+                    <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_VideoEditor"/>
+                    <MenuItem Header="_Video Converter..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_VideoConverter"/>
+                    <MenuItem Header="Video Thumb_nailer..." Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_VideoThumbnailer"/>
                     <Separator/>
-                    <MenuItem Header="Clipboard _Viewer" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ClipboardViewer"/>
-                    <MenuItem Header="_Monitor Test" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_MonitorTest"/>
+                    <MenuItem Header="Clipboard _Viewer" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_ClipboardViewer"/>
+                    <MenuItem Header="_Monitor Test" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Tools_MonitorTest"/>
                 </MenuItem>
                 
                 <!-- Settings Menu -->
                 <MenuItem Header="_Settings">
-                    <MenuItem Header="_Application Settings" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Settings_App"/>
-                    <MenuItem Header="_Destination Settings" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Settings_Dest"/>
+                    <MenuItem Header="_Application Settings" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Settings_App"/>
+                    <MenuItem Header="_Destination Settings" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Settings_Dest"/>
                 </MenuItem>
                 
                 <!-- Help Menu -->
                 <MenuItem Header="_Help">
-                    <MenuItem Header="_About" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="About"/>
-                    <MenuItem Header="_Debug" Command="{Binding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Debug"/>
+                    <MenuItem Header="_About" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="About"/>
+                    <MenuItem Header="_Debug" Command="{ReflectionBinding #MainWindowRoot.NavigateMenuCommand}" CommandParameter="Debug"/>
                 </MenuItem>
             </Menu>
         </Border>

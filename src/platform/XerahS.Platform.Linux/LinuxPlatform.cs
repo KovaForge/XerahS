@@ -34,7 +34,7 @@ namespace XerahS.Platform.Linux
         public static void Initialize(IScreenCaptureService? screenCaptureService = null, bool useWaylandPortalServices = true)
         {
             var clipboardService = new LinuxClipboardService();
-            var clipboardMonitorService = new LinuxClipboardMonitorService(clipboardService);
+            var clipboardMonitorService = new LinuxClipboardMonitorService();
 
             // Use LinuxScreenCaptureService if none provided
             if (screenCaptureService == null)
