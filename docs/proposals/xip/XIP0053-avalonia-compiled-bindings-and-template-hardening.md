@@ -88,6 +88,11 @@ Binding correctness note for Avalonia command migration:
 
 - `#ElementName.Property` is an Avalonia binding path feature and should be used with Avalonia `Binding` / compiled binding paths.
 - Do **not** combine `#ElementName` paths with `ReflectionBinding`; that WPF-compatible reflection parser treats `#...` as a literal segment and command lookup can fail silently at runtime.
+- In views with root `x:DataType` set to a view-model type, `{Binding SomeCommand}` resolves against that view-model. Window-level commands (for example in `MainWindow`) must either:
+  - bind via an explicit window element path, or
+  - set a narrow local scope `DataContext` to the window when appropriate (for example menu shell wiring).
+- If command properties are exposed from a `Window`/`UserControl` code-behind surface, instantiate those command objects before `InitializeComponent()` so first-pass binding evaluation can resolve them.
+- For this codebase's current Avalonia/tooling surface, `MenuItem Click="..."` XAML event wiring is not a safe fallback for migration fixes (compiler can reject it with AVLN3000). Use command bindings for menu actions.
 
 ---
 
@@ -172,6 +177,11 @@ Prioritize high-use shell actions:
 - Convert suitable `Click="..."` paths in `MainWindow` and similar views to commands.
 - Keep code-behind handlers for truly view-specific behavior (focus, animation, control-only plumbing).
 - For element-scoped command sources (for example `#MainWindowRoot.NavigateMenuCommand`), keep Avalonia `Binding` syntax and do not switch those paths to `ReflectionBinding`.
+- For mixed command sources (window commands + view-model commands) in the same menu:
+  - make command source ownership explicit,
+  - avoid relying on implicit `DataContext` for shell menu actions,
+  - ensure command property initialization order is deterministic (`commands -> InitializeComponent -> control discovery`),
+  - require a runtime smoke check of at least 3 tool-launch entries before merge.
 
 Benefits:
 
@@ -237,15 +247,23 @@ Benefits realized:
 
 Status: **Implemented**
 
-- Converted main shell menu navigation/open/exit wiring in `MainWindow` from direct `Click` handlers to command bindings (`NavigateMenuCommand`, `OpenImageMenuCommand`, `ExitMenuCommand`).
+- Converted main shell menu navigation/open/exit wiring in `MainWindow` to command bindings (`NavigateMenuCommand`, `OpenImageMenuCommand`, `ExitMenuCommand`) with explicit command-source scoping.
 - Converted dynamic workflow menu execution to command-based dispatch (`RunWorkflowFromMenuCommand`) instead of per-item click events.
 - Confirmed menu item command paths that use `#MainWindowRoot` are expressed as Avalonia `Binding` paths, not `ReflectionBinding`.
+- Corrected a post-migration regression by making menu command source ownership explicit in XAML:
+  - shell menu command source is scoped to `MainWindow`,
+  - editor/view-model commands are explicitly bound to `MainWindow.DataContext`.
+- Corrected a cross-platform startup regression where menu commands were instantiated after `InitializeComponent()`:
+  - moved menu-command initialization earlier in the `MainWindow` constructor,
+  - validated that first-pass bindings resolve and tool menu launches work on startup.
 
 Benefits realized:
 
 - High-use shell actions now follow a command-first pattern, improving consistency with MVVM command flows.
 - Menu action behavior is easier to reason about and test because dispatch paths are centralized.
 - Avoided the WPF-compatibility pitfall where `ReflectionBinding` does not interpret Avalonia `#ElementName` path semantics.
+- Added explicit command source boundaries, removing an implicit-binding ambiguity that caused Tools menu actions to stop opening tool windows during migration.
+- Added constructor-order guardrail so command-backed menus remain available immediately at window startup.
 
 ### Phase 5 - Verification and guardrails
 
@@ -291,6 +309,7 @@ Current note:
 3. `App.axaml` no longer depends on reflection `ViewLocator` as the primary view resolution mechanism.
 4. No functional regression in core flows (capture, editor, upload, settings, history).
 5. A short contributor guideline exists for template typing and binding defaults.
+6. Main menu tool actions (`Tools > Clipboard Viewer`, `Tools > Hash Checker`, `Tools > Index Folder`) open expected windows/views in runtime smoke tests.
 
 ---
 
@@ -330,10 +349,18 @@ Mitigation:
 ### Runtime smoke checks
 
 - Main shell navigation and menu actions
+- Tools menu launches (minimum): Clipboard Viewer, Hash Checker, Index Folder
 - Capture -> edit -> upload flow
 - Destination/provider settings editing
 - History grid/list rendering and context actions
 - ImageEditor tool dialogs and effect parameter panels
+
+### Command-source regression checks (required for menu refactors)
+
+- Verify each menu command binding's owner explicitly (`MainWindow` vs view-model `DataContext`).
+- Verify command properties used by XAML are initialized before `InitializeComponent()`.
+- Reject PRs that fix menu command regressions by switching to `ReflectionBinding` for `#ElementName` paths.
+- Reject PRs that rely on `MenuItem Click="..."` as fallback in hardened compiled-binding surfaces.
 
 ### Diagnostics
 

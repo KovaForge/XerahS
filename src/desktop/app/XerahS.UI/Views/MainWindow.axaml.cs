@@ -73,11 +73,11 @@ namespace XerahS.UI.Views
 
         public MainWindow()
         {
-            InitializeComponent();
             OpenImageMenuCommand = new AsyncRelayCommand(OpenImageFromFileAsync);
             ExitMenuCommand = new RelayCommand(Close);
             NavigateMenuCommand = new RelayCommand<string?>(NavigateFromMenuTag);
             RunWorkflowFromMenuCommand = new RelayCommand<WorkflowSettings?>(RunWorkflowFromMenu);
+            InitializeComponent();
             KeyDown += OnKeyDown;
             ApplyInitialWindowPlacement();
 
