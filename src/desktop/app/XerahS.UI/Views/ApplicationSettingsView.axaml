@@ -57,27 +57,6 @@
                             </Border>
                         </StackPanel>
                         
-                        <!-- System -->
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="System" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1" 
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <CheckBox IsChecked="{Binding ShowTray}" Content="Show tray icon" AutomationProperties.Name="Show Tray Icon"/>
-                                    <CheckBox IsChecked="{Binding SilentRun}" Content="Start minimized to tray" 
-                                              IsEnabled="{Binding ShowTray}" AutomationProperties.Name="Start Minimized"/>
-                                    <CheckBox IsChecked="{Binding RememberMainWindowSize}"
-                                              Content="Remember main window size"
-                                              AutomationProperties.Name="Remember Main Window Size"/>
-                                    <CheckBox IsChecked="{Binding RememberMainWindowPosition}"
-                                              Content="Remember main window position"
-                                              AutomationProperties.Name="Remember Main Window Position"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
                         <!-- Updates -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="Updates" FontWeight="SemiBold"/>
@@ -328,9 +307,30 @@
             <TabItem Header="Integration">
                 <ScrollViewer>
                     <StackPanel Spacing="24" Margin="24">
-                        <!-- OS Integration -->
+                        <!-- System -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="System Integration" FontWeight="SemiBold"/>
+                            <TextBlock Text="System" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <CheckBox IsChecked="{Binding ShowTray}" Content="Show tray icon" AutomationProperties.Name="Show Tray Icon"/>
+                                    <CheckBox IsChecked="{Binding SilentRun}" Content="Start minimized to tray"
+                                              IsEnabled="{Binding ShowTray}" AutomationProperties.Name="Start Minimized"/>
+                                    <CheckBox IsChecked="{Binding RememberMainWindowSize}"
+                                              Content="Remember main window size"
+                                              AutomationProperties.Name="Remember Main Window Size"/>
+                                    <CheckBox IsChecked="{Binding RememberMainWindowPosition}"
+                                              Content="Remember main window position"
+                                              AutomationProperties.Name="Remember Main Window Position"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Desktop Integration -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Desktop Integration" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
                                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
