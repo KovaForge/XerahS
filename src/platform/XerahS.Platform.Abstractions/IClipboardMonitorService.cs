@@ -251,6 +251,8 @@ public sealed class ClipboardMonitorAwareClipboardService : IClipboardService
     public object? GetData(string format) => _inner.GetData(format);
     public bool ContainsData(string format) => _inner.ContainsData(format);
     public Task<string?> GetTextAsync() => _inner.GetTextAsync();
+    public Task<SKBitmap?> GetImageAsync() => _inner.GetImageAsync();
+    public Task<string[]?> GetFileDropListAsync() => _inner.GetFileDropListAsync();
 
     public void SetText(string text)
     {
