@@ -58,18 +58,21 @@ public static class ProviderCatalog
     /// <param name="pluginDirectories">List of directories to scan</param>
     public static void LoadPlugins(IEnumerable<string> pluginDirectories, bool forceReload = false)
     {
+        var pluginDirectoryList = pluginDirectories?.ToList() ?? new List<string>();
+
         lock (_lock)
         {
             if (_pluginsLoaded && !forceReload)
             {
                 DebugHelper.WriteLine("[Plugins] Already loaded, skipping");
+                PluginFolderCleaner.ScheduleCleanup(pluginDirectoryList);
                 return;
             }
 
             var discovery = new PluginDiscovery();
             var allDiscovered = new List<PluginMetadata>();
 
-            foreach (var pluginsDirectory in pluginDirectories)
+            foreach (var pluginsDirectory in pluginDirectoryList)
             {
                 DebugHelper.WriteLine($"[Plugins] Scanning directory: {pluginsDirectory}");
                 if (Directory.Exists(pluginsDirectory))
@@ -124,7 +127,7 @@ public static class ProviderCatalog
 
             // Also load custom uploaders (.sxcu files) from the same directories
             int customCount = 0;
-            foreach (var pluginsDirectory in pluginDirectories)
+            foreach (var pluginsDirectory in pluginDirectoryList)
             {
                 if (Directory.Exists(pluginsDirectory))
                 {
@@ -138,6 +141,8 @@ public static class ProviderCatalog
                     (customCount > 0 ? $", {customCount} custom" : "") +
                     (failureCount > 0 ? $", {failureCount} failed" : ""));
             }
+
+            PluginFolderCleaner.ScheduleCleanup(pluginDirectoryList);
         }
     }
 

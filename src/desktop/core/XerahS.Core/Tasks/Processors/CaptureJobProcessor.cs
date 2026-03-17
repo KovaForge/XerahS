@@ -494,9 +494,9 @@ namespace XerahS.Core.Tasks.Processors
             {
                 XerahS.Core.Uploaders.ProviderContextManager.EnsureProviderContext();
                 ProviderCatalog.InitializeBuiltInProviders();
-                string pluginsPath = PathsManager.PluginsFolder;
-                DebugHelper.WriteLine($"Loading plugins from: {pluginsPath}");
-                ProviderCatalog.LoadPlugins(pluginsPath);
+                var pluginPaths = PathsManager.GetPluginDirectories();
+                DebugHelper.WriteLine($"Loading plugins from: {string.Join(", ", pluginPaths)}");
+                ProviderCatalog.LoadPlugins(pluginPaths);
                 DebugHelper.WriteLine($"Plugin providers available: {ProviderCatalog.GetAllProviders().Count}");
             }
             catch (Exception ex)

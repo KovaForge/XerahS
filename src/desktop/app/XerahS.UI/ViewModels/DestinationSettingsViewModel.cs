@@ -73,15 +73,15 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         Common.DebugHelper.WriteLine("[DestinationSettings] Initializing built-in providers...");
         ProviderCatalog.InitializeBuiltInProviders();
 
-        // Load external plugins from Plugins folder (for third-party plugins)
-        var pluginsPath = PathsManager.PluginsFolder;
-        Common.DebugHelper.WriteLine($"[DestinationSettings] Checking for external plugins in: {pluginsPath}");
+        // Load external plugins from all configured plugin roots.
+        var pluginPaths = PathsManager.GetPluginDirectories().ToList();
+        Common.DebugHelper.WriteLine($"[DestinationSettings] Checking for external plugins in: {string.Join(", ", pluginPaths)}");
 
-        if (Directory.Exists(pluginsPath))
+        if (pluginPaths.Count > 0)
         {
             try
             {
-                ProviderCatalog.LoadPlugins(pluginsPath);
+                ProviderCatalog.LoadPlugins(pluginPaths);
             }
             catch (Exception ex)
             {

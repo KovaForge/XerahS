@@ -155,9 +155,10 @@ namespace XerahS.Common
                 paths.Add(appPluginsPath);
             }
 
-            // 2. User-installed plugins (PluginsFolder -> PersonalFolder/Plugins)
-            // This allows users to add plugins without modifying the app installation
-            string userPluginsPath = PluginsFolder;
+            // 2. User-installed plugins (PersonalFolder/Plugins)
+            // This allows users to add plugins without modifying the app installation.
+            // Do not use PluginsFolder here because in DEBUG it can resolve to BaseDirectory/Plugins.
+            string userPluginsPath = Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
             
             // Only add if it exists and is different from the app plugins path
             if (Directory.Exists(userPluginsPath) && 
