@@ -314,10 +314,13 @@ namespace XerahS.Core.Tasks.Pipeline
 
                 // Screen Recording Workflow Cases (Extracted for brevity, calling internal helpers)
                 case WorkflowType.ScreenRecorder:
-                case WorkflowType.StartScreenRecorder:
                 case WorkflowType.ScreenRecorderGIF:
-                case WorkflowType.StartScreenRecorderGIF:
                     await HandleScreenRecorderRegionAsync(context, captureOptions, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
+                    return PipelineStageResult.Stop;
+
+                case WorkflowType.StartScreenRecorder:
+                case WorkflowType.StartScreenRecorderGIF:
+                    await HandleScreenRecorderLastRegionAsync(context, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
                     return PipelineStageResult.Stop;
 
                 case WorkflowType.ScreenRecorderActiveWindow:
@@ -584,6 +587,43 @@ namespace XerahS.Core.Tasks.Pipeline
                 return;
 
             await _workerTask.HandleStartRecordingAsync(CaptureMode.Region, region: configuredRecordingRegion);
+        }
+
+        private async Task HandleScreenRecorderLastRegionAsync(
+            PipelineContext context,
+            bool isDelay,
+            double delay,
+            string category,
+            CancellationToken token)
+        {
+            if (context.Info.Metadata.Image != null)
+            {
+                context.Info.Metadata.Image.Dispose();
+                context.Info.Metadata.Image = null;
+            }
+
+            var lastRegion = context.Info.TaskSettings!.CaptureSettings.CaptureCustomRegion;
+            if (lastRegion.IsEmpty || lastRegion.Width <= 0 || lastRegion.Height <= 0)
+            {
+                context.Status = TaskStatus.Stopped;
+                return;
+            }
+
+            int adjustedWidth = lastRegion.Width - (lastRegion.Width % VideoDimensionAlignment);
+            int adjustedHeight = lastRegion.Height - (lastRegion.Height % VideoDimensionAlignment);
+
+            if (adjustedWidth < MinVideoWidth || adjustedHeight < MinVideoHeight)
+            {
+                context.Status = TaskStatus.Stopped;
+                return;
+            }
+
+            var recordingRegion = new Rectangle(lastRegion.X, lastRegion.Y, adjustedWidth, adjustedHeight);
+
+            if (isDelay && !await _workerTask.ApplyCaptureStartDelayAsync(context.Info.TaskSettings!, category, delay, token))
+                return;
+
+            await _workerTask.HandleStartRecordingAsync(CaptureMode.Region, region: recordingRegion);
         }
     }
 }
