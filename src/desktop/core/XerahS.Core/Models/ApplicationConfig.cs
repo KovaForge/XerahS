@@ -239,7 +239,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
         set => hotkeyRepeatLimit = Math.Max(value, 200);
     }
 
-    [Category("Clipboard"), DefaultValue(true), Description("Show clipboard content viewer.")]
+    [Category("Clipboard"), DefaultValue(false), Description("Show clipboard content viewer.")]
     public bool ShowClipboardContentViewer { get; set; }
 
     [Category("Clipboard"), DefaultValue(true), Description("Fill white background for clipboard copy.")]
