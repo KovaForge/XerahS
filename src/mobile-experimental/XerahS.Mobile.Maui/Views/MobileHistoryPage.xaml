@@ -4,7 +4,8 @@
              xmlns:vm="clr-namespace:XerahS.Mobile.Maui.ViewModels"
              x:Class="XerahS.Mobile.Maui.Views.MobileHistoryPage"
              x:DataType="vm:MobileHistoryViewModel"
-             Title="Upload History">
+             Title="Upload History"
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Refresh"
@@ -24,14 +25,14 @@
                Text="{Binding StatusText}"
                FontSize="12"
                Margin="0,8,0,12"
-               TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}" />
+               TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}" />
 
         <CollectionView Grid.Row="2"
                         ItemsSource="{Binding HistoryItems}"
                         SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:MobileHistoryItem">
-                    <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                    <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                             Stroke="Transparent"
                             Padding="12"
                             Margin="0,0,0,10">
@@ -43,10 +44,10 @@
                                    FontAttributes="Bold" />
                             <Label Text="{Binding DateText}"
                                    FontSize="12"
-                                   TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}" />
+                                   TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}" />
                             <Label Text="{Binding Host}"
                                    FontSize="12"
-                                   TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}" />
+                                   TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}" />
                             <Label Text="{Binding Url}"
                                    IsVisible="{Binding HasUrl}"
                                    TextColor="{StaticResource Primary}"

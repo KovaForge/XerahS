@@ -5,7 +5,8 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="XerahS.Mobile.Maui.Views.MobileCustomUploaderConfigPage"
              x:DataType="vm:MobileCustomUploaderConfigViewModel"
-             Title="Custom Uploader">
+             Title="Custom Uploader"
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
 
     <Grid>
         <!-- State 1: List View -->
@@ -13,7 +14,7 @@
             <VerticalStackLayout Padding="16" Spacing="16">
 
                 <!-- Header Card -->
-                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="20">
                     <Border.StrokeShape>
@@ -25,13 +26,13 @@
                                FontAttributes="Bold"/>
                         <Label Text="Add and manage custom HTTP uploaders"
                                FontSize="13"
-                               TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}"
-                               LineBreakMode="WordWrap"/>
+                           TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"
+                           LineBreakMode="WordWrap"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Configured Uploaders Card -->
-                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="16">
                     <Border.StrokeShape>
@@ -74,7 +75,7 @@
                                                    FontSize="14"/>
                                             <Label Text="{Binding HostName}"
                                                    FontSize="12"
-                                                   TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}"/>
+                                                   TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
                                         </VerticalStackLayout>
 
                                         <!-- Active badge -->
@@ -107,7 +108,7 @@
                                            FontSize="13"
                                            FontAttributes="Italic"
                                            HorizontalOptions="Center"
-                                           TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}"/>
+                                           TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
                                 </VerticalStackLayout>
                             </CollectionView.EmptyView>
                         </CollectionView>
@@ -172,7 +173,7 @@
 
                 <!-- Section: Basic Information -->
                 <Border x:Name="BasicInfoSection"
-                        BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="16">
                     <Border.StrokeShape>
@@ -235,7 +236,7 @@
 
                 <!-- Section: HTTP Request -->
                 <Border x:Name="HttpRequestSection"
-                        BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="16">
                     <Border.StrokeShape>
@@ -287,7 +288,7 @@
                             <VerticalStackLayout BindableLayout.ItemsSource="{Binding Headers}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border BackgroundColor="{AppThemeBinding Light=#EBEBEB, Dark=#333333}"
+                                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceVariantLight}, Dark={StaticResource SurfaceVariantDark}}"
                                                 Stroke="Transparent"
                                                 Padding="8"
                                                 Margin="0,2">
@@ -334,7 +335,7 @@
                             <VerticalStackLayout BindableLayout.ItemsSource="{Binding Parameters}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border BackgroundColor="{AppThemeBinding Light=#EBEBEB, Dark=#333333}"
+                                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceVariantLight}, Dark={StaticResource SurfaceVariantDark}}"
                                                 Stroke="Transparent"
                                                 Padding="8"
                                                 Margin="0,2">
@@ -369,7 +370,7 @@
                 </Border>
 
                 <!-- Section: Request Body -->
-                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="16">
                     <Border.StrokeShape>
@@ -410,7 +411,7 @@
                             <VerticalStackLayout BindableLayout.ItemsSource="{Binding Arguments}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border BackgroundColor="{AppThemeBinding Light=#EBEBEB, Dark=#333333}"
+                                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceVariantLight}, Dark={StaticResource SurfaceVariantDark}}"
                                                 Stroke="Transparent"
                                                 Padding="8"
                                                 Margin="0,2">
@@ -461,7 +462,7 @@
                 </Border>
 
                 <!-- Section: Response Parsing -->
-                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="16">
                     <Border.StrokeShape>
@@ -506,7 +507,7 @@
                 </Border>
 
                 <!-- Section: Import from JSON -->
-                <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                         Stroke="Transparent"
                         Padding="16">
                     <Border.StrokeShape>
