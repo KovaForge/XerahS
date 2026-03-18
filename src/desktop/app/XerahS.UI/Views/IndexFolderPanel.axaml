@@ -189,7 +189,6 @@
                                  TextWrapping="NoWrap"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                 FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                  FontSize="12"
                                  AcceptsReturn="True"
                                  AutomationProperties.Name="Output Preview"/>

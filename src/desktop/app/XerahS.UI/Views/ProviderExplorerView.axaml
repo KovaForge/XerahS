@@ -354,7 +354,6 @@
                      MinHeight="72"
                      MaxHeight="180"
                      BorderThickness="0"
-                     FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                      FontSize="12"
                      ToolTip.Tip="Copy the error details and share with support."/>
         </Border>

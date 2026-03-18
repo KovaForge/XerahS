@@ -48,7 +48,6 @@
             <!-- Duration & Status -->
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <TextBlock Text="{Binding DurationFormatted}"
-                           FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                            FontSize="16"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center"

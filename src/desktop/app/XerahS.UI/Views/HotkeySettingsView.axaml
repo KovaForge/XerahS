@@ -29,12 +29,10 @@
                     <Separator Classes="vertical" Height="20"/>
                     <Button Classes="hotkeyToolbarButton" Command="{Binding MoveUpCommand}" AutomationProperties.Name="Move Hotkey Up">
                         <TextBlock Text="Move Up"
-                                   FontFamily="{DynamicResource ShareX.FontFamily.Default}"
                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                     </Button>
                     <Button Classes="hotkeyToolbarButton" Command="{Binding MoveDownCommand}" AutomationProperties.Name="Move Hotkey Down">
                         <TextBlock Text="Move Down"
-                                   FontFamily="{DynamicResource ShareX.FontFamily.Default}"
                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                     </Button>
                     <Separator Classes="vertical" Height="20"/>
@@ -88,7 +86,6 @@
                              AcceptsReturn="True" 
                              IsReadOnly="True"
                              TextWrapping="Wrap"
-                             FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                              FontSize="12"
                              BorderThickness="0"
                              Foreground="{DynamicResource TextFillColorPrimaryBrush}"

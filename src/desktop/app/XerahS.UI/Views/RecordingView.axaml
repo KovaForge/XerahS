@@ -55,7 +55,6 @@
                                        Theme="{StaticResource CaptionTextBlockStyle}"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                             <TextBlock Text="{Binding OutputFilePath}"
-                                       FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                        Theme="{StaticResource CaptionTextBlockStyle}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>

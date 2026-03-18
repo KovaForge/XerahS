@@ -84,7 +84,6 @@
                         MinWidth="300"
                         Background="Transparent"
                         BorderThickness="0"
-                        FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                         FontWeight="Bold"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center"
