@@ -34,13 +34,17 @@ public sealed class LinuxShellIntegrationService : IShellIntegrationService
     private const string PluginMimeType = "application/x-xerahs-plugin";
     private const string PluginDesktopEntryFileName = "xerahs-xsdp.desktop";
     private const string PluginMimeXmlFileName = "xerahs-xsdp.xml";
+    private const string SendToFlag = "--send-to";
+    private const string SendToMarkerKey = "X-XerahS-SendTo";
+    private const string SendToMarkerValue = "true";
 
     private readonly string _processPath;
     private readonly string _desktopEntryPath;
     private readonly string _mimeXmlPath;
     private readonly string _mimeAppsPath;
     private readonly string[] _contextMenuScriptPaths;
-    private readonly string[] _sendToEntryPaths;
+    private readonly string _kdeSendToEntryPath;
+    private readonly string _thunarSendToEntryPath;
 
     public LinuxShellIntegrationService()
     {
@@ -63,11 +67,8 @@ public sealed class LinuxShellIntegrationService : IShellIntegrationService
             Path.Combine(dataHome, "caja", "scripts", "Upload with XerahS")
         ];
 
-        _sendToEntryPaths =
-        [
-            Path.Combine(dataHome, "kio", "servicemenus", "XerahS.desktop"),
-            Path.Combine(dataHome, "Thunar", "sendto", "XerahS.desktop")
-        ];
+        _kdeSendToEntryPath = Path.Combine(dataHome, "kio", "servicemenus", "XerahS.desktop");
+        _thunarSendToEntryPath = Path.Combine(dataHome, "Thunar", "sendto", "XerahS.desktop");
     }
 
     public bool SupportsPluginExtensionRegistration => OperatingSystem.IsLinux();
@@ -181,7 +182,7 @@ public sealed class LinuxShellIntegrationService : IShellIntegrationService
             return false;
         }
 
-        return _sendToEntryPaths.Any(File.Exists);
+        return IsManagedSendToEntry(_kdeSendToEntryPath) || IsManagedSendToEntry(_thunarSendToEntryPath);
     }
 
     public bool SetSendToIntegration(bool enable)
@@ -200,18 +201,16 @@ public sealed class LinuxShellIntegrationService : IShellIntegrationService
                     return false;
                 }
 
-                foreach (string path in _sendToEntryPaths)
-                {
-                    EnsureParentDirectory(path);
-                    File.WriteAllText(path, BuildSendToDesktopEntry(), Encoding.UTF8);
-                }
+                EnsureParentDirectory(_kdeSendToEntryPath);
+                File.WriteAllText(_kdeSendToEntryPath, BuildKdeSendToDesktopEntry(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+                EnsureParentDirectory(_thunarSendToEntryPath);
+                File.WriteAllText(_thunarSendToEntryPath, BuildThunarSendToDesktopEntry(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             }
             else
             {
-                foreach (string path in _sendToEntryPaths)
-                {
-                    DeleteIfExists(path);
-                }
+                DeleteIfExists(_kdeSendToEntryPath);
+                DeleteIfExists(_thunarSendToEntryPath);
             }
 
             return IsSendToIntegrationEnabled() == enable;
@@ -329,18 +328,60 @@ $"""
 """;
     }
 
-    private string BuildSendToDesktopEntry()
+    private string BuildKdeSendToDesktopEntry()
+    {
+        return
+$"""
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=all/all;
+Actions=SendToXerahS
+X-KDE-Priority=TopLevel
+X-KDE-Submenu=Send To
+{SendToMarkerKey}={SendToMarkerValue}
+
+[Desktop Action SendToXerahS]
+Name=XerahS
+Exec="{_processPath}" {SendToFlag} %F
+Icon=xerahs
+""";
+    }
+
+    private string BuildThunarSendToDesktopEntry()
     {
         return
 $"""
 [Desktop Entry]
 Type=Application
 Name=Send to XerahS
-Exec="{_processPath}" %F
+Exec="{_processPath}" {SendToFlag} %F
 Icon=xerahs
 MimeType=all/allfiles;
 NoDisplay=false
+Terminal=false
+{SendToMarkerKey}={SendToMarkerValue}
 """;
+    }
+
+    private bool IsManagedSendToEntry(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            string content = File.ReadAllText(path);
+            return content.Contains($"{SendToMarkerKey}={SendToMarkerValue}", StringComparison.OrdinalIgnoreCase) &&
+                   content.Contains(_processPath, StringComparison.OrdinalIgnoreCase) &&
+                   content.Contains(SendToFlag, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void EnsureParentDirectory(string path)
