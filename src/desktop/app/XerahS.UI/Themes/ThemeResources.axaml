@@ -403,6 +403,8 @@
     <Setter Property="BorderBrush" Value="{DynamicResource XerahS.Brush.Accent.Border}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector=":is(Control).xerahs-surface Button:pointerover">
