@@ -2,14 +2,83 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:XerahS.UI.Views">
   <Styles.Resources>
+    <FontFamily x:Key="ShareX.FontFamily.Default">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+    <FontFamily x:Key="ShareX.FontFamily.Icon">avares://ShareX.ImageEditor/Assets#lucide</FontFamily>
+    <FontFamily x:Key="ShareX.FontFamily.Monospace">Cascadia Mono, Consolas, Courier New, Monospace</FontFamily>
+
+    <SolidColorBrush x:Key="ShareX.Brush.Accent"
+                     Color="{DynamicResource SystemAccentColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Text"
+                     Color="{DynamicResource SystemBaseHighColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Text.Secondary"
+                     Color="{DynamicResource SystemBaseMediumHighColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Background.Main"
+                     Color="{DynamicResource SystemChromeLowColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Background.Panel"
+                     Color="{DynamicResource SystemChromeMediumLowColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Background.Popup"
+                     Color="{DynamicResource SystemChromeMediumColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Background.Toolbar"
+                     Color="{DynamicResource SystemChromeLowColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Border"
+                     Color="{DynamicResource SystemBaseLowColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Control.Background"
+                     Color="{DynamicResource SystemChromeMediumLowColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Hover"
+                     Color="{DynamicResource SystemChromeMediumColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Control.Border"
+                     Color="{DynamicResource SystemBaseLowColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Disabled"
+                     Color="{DynamicResource SystemChromeMediumColor}" />
+    <SolidColorBrush x:Key="ShareX.Brush.Separator"
+                     Color="{DynamicResource SystemBaseLowColor}" />
+    <DrawingBrush x:Key="ShareX.Brush.Checkered" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
+      <DrawingBrush.Drawing>
+        <DrawingGroup>
+          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+            <GeometryDrawing.Geometry>
+              <RectangleGeometry Rect="0,0,30,30" />
+            </GeometryDrawing.Geometry>
+          </GeometryDrawing>
+          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+            <GeometryDrawing.Geometry>
+              <GeometryGroup>
+                <RectangleGeometry Rect="0,0,15,15" />
+                <RectangleGeometry Rect="15,15,15,15" />
+              </GeometryGroup>
+            </GeometryDrawing.Geometry>
+          </GeometryDrawing>
+        </DrawingGroup>
+      </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <DrawingBrush x:Key="ShareX.Brush.Checkered.Small" TileMode="Tile" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
+      <DrawingBrush.Drawing>
+        <DrawingGroup>
+          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+            <GeometryDrawing.Geometry>
+              <RectangleGeometry Rect="0,0,8,8" />
+            </GeometryDrawing.Geometry>
+          </GeometryDrawing>
+          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+            <GeometryDrawing.Geometry>
+              <GeometryGroup>
+                <RectangleGeometry Rect="0,0,4,4" />
+                <RectangleGeometry Rect="4,4,4,4" />
+              </GeometryGroup>
+            </GeometryDrawing.Geometry>
+          </GeometryDrawing>
+        </DrawingGroup>
+      </DrawingBrush.Drawing>
+    </DrawingBrush>
+
     <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"
-                     Color="{DynamicResource SystemAltHighColor}" />
+                     Color="{DynamicResource SystemChromeLowColor}" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"
-                     Color="{DynamicResource SystemBaseHighColor}" />
+                     Color="{DynamicResource SystemChromeMediumLowColor}" />
     <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"
-                     Color="{DynamicResource SystemAltHighColor}" />
+                     Color="{DynamicResource SystemChromeMediumLowColor}" />
     <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"
-                     Color="{DynamicResource SystemBaseHighColor}" />
+                     Color="{DynamicResource SystemChromeMediumColor}" />
     <SolidColorBrush x:Key="LayerFillColorDefaultBrush"
                      Color="{DynamicResource SystemChromeLowColor}" />
     <SolidColorBrush x:Key="ControlFillColorDefaultBrush"
