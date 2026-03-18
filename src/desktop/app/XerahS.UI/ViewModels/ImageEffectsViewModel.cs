@@ -26,12 +26,14 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.Input;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Core.ImageEffects;
+using ShareX.ImageEditor.Core.ImageEffects.Filters;
 using ShareX.ImageEditor.Core.ImageEffects.Helpers;
 using ShareX.ImageEditor.Core.ImageEffects.Manipulations;
 using ShareX.ImageEditor.Presentation.Controls;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
+using EditorImageHelpers = ShareX.ImageEditor.Core.ImageEffects.Helpers.ImageHelpers;
 using XerahS.Common;
 using XerahS.Common.Helpers;
 using XerahS.Core;
@@ -197,15 +199,20 @@ namespace XerahS.UI.ViewModels
             var effectTypes = typeof(ImageEffect).Assembly
                 .GetTypes()
                 .Where(t => !t.IsAbstract && typeof(ImageEffect).IsAssignableFrom(t))
-                .Where(t => t.GetConstructor(Type.EmptyTypes) != null)
-                .Select(t => new { Type = t, Instance = Activator.CreateInstance(t) as ImageEffect })
+                .Select(t =>
+                {
+                    var created = TryCreateEffectInstance(t, out var instance);
+                    return new { Type = t, Instance = created ? instance : null };
+                })
                 .Where(x => x.Instance != null)
                 .ToList();
 
             AvailableEffects = effectTypes
                 .GroupBy(x => x.Instance!.Category)
                 .OrderBy(x => x.Key)
-                .Select(group => new EffectCategory(group.Key.ToString(), group.Select(x => x.Type).ToArray()))
+                .Select(group => new EffectCategory(
+                    group.Key.ToString(),
+                    group.Select(x => new EffectType(x.Type, x.Instance!.Name))))
                 .ToList();
         }
 
@@ -317,13 +324,81 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         public void AddEffect(Type effectType)
         {
-            if (Activator.CreateInstance(effectType) is ImageEffect effect)
+            if (TryCreateEffectInstance(effectType, out var effect) && effect != null)
             {
                 Effects.Add(effect);
                 SelectedEffect = Effects.LastOrDefault();
                 UpdatePreview();
                 SyncToSettings();
             }
+        }
+
+        private static bool TryCreateEffectInstance(Type effectType, out ImageEffect? effect)
+        {
+            effect = null;
+
+            try
+            {
+                if (Activator.CreateInstance(effectType) is ImageEffect defaultEffect)
+                {
+                    effect = defaultEffect;
+                    return true;
+                }
+            }
+            catch
+            {
+                // Fall back to known effect constructors without parameterless overloads.
+            }
+
+            if (effectType == typeof(RotateImageEffect))
+            {
+                effect = RotateImageEffect.Custom(0f);
+                return true;
+            }
+
+            if (effectType == typeof(TornEdgeImageEffect))
+            {
+                effect = new TornEdgeImageEffect(5, 24, top: false, right: false, bottom: false, left: false, curved: false);
+                return true;
+            }
+
+            if (effectType == typeof(ReflectionImageEffect))
+            {
+                effect = new ReflectionImageEffect(25, 80, 0, 0, skew: false, skewSize: 0);
+                return true;
+            }
+
+            if (effectType == typeof(ShadowImageEffect))
+            {
+                effect = new ShadowImageEffect(50, 8, SKColors.Black, 0, 0, autoResize: true);
+                return true;
+            }
+
+            if (effectType == typeof(SliceImageEffect))
+            {
+                effect = new SliceImageEffect(8, 24, 4, 16);
+                return true;
+            }
+
+            if (effectType == typeof(OutlineImageEffect))
+            {
+                effect = new OutlineImageEffect(2, 0, outlineOnly: false, SKColors.Black);
+                return true;
+            }
+
+            if (effectType == typeof(GlowImageEffect))
+            {
+                effect = new GlowImageEffect(6, 60, SKColors.White, 0, 0, autoResize: true);
+                return true;
+            }
+
+            if (effectType == typeof(BorderImageEffect))
+            {
+                effect = new BorderImageEffect(EditorImageHelpers.BorderType.Outside, 2, EditorImageHelpers.DashStyle.Solid, SKColors.Black);
+                return true;
+            }
+
+            return false;
         }
 
         [RelayCommand]
@@ -595,6 +670,12 @@ namespace XerahS.UI.ViewModels
             Name = name;
             Effects = types.Select(t => new EffectType(t)).ToList();
         }
+
+        public EffectCategory(string name, IEnumerable<EffectType> effects)
+        {
+            Name = name;
+            Effects = effects.ToList();
+        }
     }
 
     public class EffectType
@@ -602,9 +683,15 @@ namespace XerahS.UI.ViewModels
         public string Name { get; }
         public Type Type { get; }
 
-        public EffectType(Type type)
+        public EffectType(Type type, string? displayName = null)
         {
             Type = type;
+
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                Name = displayName;
+                return;
+            }
 
             string? name = null;
             try
