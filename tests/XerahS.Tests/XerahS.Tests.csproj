@@ -51,6 +51,10 @@
     <Compile Remove="Editor\EditorHistoryEffectsTests.cs" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <Compile Remove="Platform\Windows\WindowsClipboardImageHelperTests.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="CustomUploader\SampleUploaders\*.sxcu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
