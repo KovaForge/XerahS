@@ -35,6 +35,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Reflection;
 using EditorImageHelpers = ShareX.ImageEditor.Core.ImageEffects.Helpers.ImageHelpers;
 using XerahS.Common;
 using XerahS.Common.Helpers;
@@ -346,6 +347,7 @@ namespace XerahS.UI.ViewModels
 
         private bool TryAddEffect(ImageEffect effect)
         {
+            EnsurePreviewVisibleDefaults(effect);
             Effects.Add(effect);
             SelectedEffect = Effects.LastOrDefault();
             UpdatePreview();
@@ -459,6 +461,199 @@ namespace XerahS.UI.ViewModels
             return EffectItem.NormalizeEffectId(value);
         }
 
+        private void EnsurePreviewVisibleDefaults(ImageEffect effect)
+        {
+            if (sourcePreviewBitmap == null)
+            {
+                return;
+            }
+
+            if (HasPreviewImpact(effect))
+            {
+                return;
+            }
+
+            ApplyVisibleDefaultsHeuristic(effect);
+        }
+
+        private bool HasPreviewImpact(ImageEffect effect)
+        {
+            if (sourcePreviewBitmap == null)
+            {
+                return true;
+            }
+
+            using var source = sourcePreviewBitmap.Copy();
+            SKBitmap? processed = null;
+
+            try
+            {
+                processed = effect.Apply(source);
+                return !AreBitmapsEqual(source, processed);
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (processed != null && !ReferenceEquals(processed, source))
+                {
+                    processed.Dispose();
+                }
+            }
+        }
+
+        private static bool AreBitmapsEqual(SKBitmap left, SKBitmap right)
+        {
+            if (left.Width != right.Width || left.Height != right.Height)
+            {
+                return false;
+            }
+
+            for (int y = 0; y < left.Height; y++)
+            {
+                for (int x = 0; x < left.Width; x++)
+                {
+                    if (left.GetPixel(x, y) != right.GetPixel(x, y))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static void ApplyVisibleDefaultsHeuristic(ImageEffect effect)
+        {
+            var properties = effect.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead && p.CanWrite)
+                .ToArray();
+
+            foreach (var property in properties)
+            {
+                try
+                {
+                    object? value = property.GetValue(effect);
+                    var propertyType = property.PropertyType;
+                    string name = property.Name;
+
+                    if (propertyType == typeof(bool) && value is bool boolValue && !boolValue)
+                    {
+                        if (IsToggleLikeProperty(name))
+                        {
+                            property.SetValue(effect, true);
+                        }
+
+                        continue;
+                    }
+
+                    if (propertyType.IsEnum)
+                    {
+                        var current = value != null ? Convert.ToInt64(value) : 0;
+                        if (current == 0)
+                        {
+                            var enumValues = Enum.GetValues(propertyType);
+                            foreach (var enumValue in enumValues)
+                            {
+                                if (Convert.ToInt64(enumValue) != 0)
+                                {
+                                    property.SetValue(effect, enumValue);
+                                    break;
+                                }
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    if (propertyType == typeof(SKColor) && value is SKColor color && color.Alpha == 0)
+                    {
+                        property.SetValue(effect, SKColors.Black);
+                        continue;
+                    }
+
+                    if (IsNumericType(propertyType))
+                    {
+                        double numeric = value != null ? Convert.ToDouble(value) : 0d;
+                        if (Math.Abs(numeric) > double.Epsilon)
+                        {
+                            continue;
+                        }
+
+                        double fallback = GetNumericFallbackForProperty(name);
+                        object converted = Convert.ChangeType(fallback, propertyType);
+                        property.SetValue(effect, converted);
+                    }
+                }
+                catch
+                {
+                    // Ignore per-property conversion issues and keep best-effort defaults.
+                }
+            }
+        }
+
+        private static bool IsNumericType(Type type)
+        {
+            return type == typeof(byte) || type == typeof(sbyte) ||
+                   type == typeof(short) || type == typeof(ushort) ||
+                   type == typeof(int) || type == typeof(uint) ||
+                   type == typeof(long) || type == typeof(ulong) ||
+                   type == typeof(float) || type == typeof(double) ||
+                   type == typeof(decimal);
+        }
+
+        private static bool IsToggleLikeProperty(string propertyName)
+        {
+            return propertyName.Contains("Top", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Right", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Bottom", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Left", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Horizontal", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Vertical", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Curved", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Outline", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Enabled", StringComparison.OrdinalIgnoreCase) ||
+                   propertyName.Contains("Enable", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static double GetNumericFallbackForProperty(string propertyName)
+        {
+            if (propertyName.Contains("Angle", StringComparison.OrdinalIgnoreCase))
+                return 15;
+            if (propertyName.Contains("Opacity", StringComparison.OrdinalIgnoreCase))
+                return 60;
+            if (propertyName.Contains("Strength", StringComparison.OrdinalIgnoreCase))
+                return 60;
+            if (propertyName.Contains("Intensity", StringComparison.OrdinalIgnoreCase))
+                return 60;
+            if (propertyName.Contains("Threshold", StringComparison.OrdinalIgnoreCase))
+                return 50;
+            if (propertyName.Contains("Radius", StringComparison.OrdinalIgnoreCase))
+                return 8;
+            if (propertyName.Contains("Size", StringComparison.OrdinalIgnoreCase))
+                return 8;
+            if (propertyName.Contains("Depth", StringComparison.OrdinalIgnoreCase))
+                return 8;
+            if (propertyName.Contains("Range", StringComparison.OrdinalIgnoreCase))
+                return 24;
+            if (propertyName.Contains("Offset", StringComparison.OrdinalIgnoreCase))
+                return 8;
+            if (propertyName.Contains("Width", StringComparison.OrdinalIgnoreCase))
+                return 64;
+            if (propertyName.Contains("Height", StringComparison.OrdinalIgnoreCase))
+                return 64;
+            if (propertyName.Contains("Percentage", StringComparison.OrdinalIgnoreCase))
+                return 25;
+            if (propertyName.Contains("Alpha", StringComparison.OrdinalIgnoreCase))
+                return 80;
+            if (propertyName.Contains("Scale", StringComparison.OrdinalIgnoreCase))
+                return 4;
+
+            return 1;
+        }
+
         private static bool TryCreateEffectInstance(Type effectType, out ImageEffect? effect)
         {
             effect = null;
@@ -484,7 +679,7 @@ namespace XerahS.UI.ViewModels
 
             if (effectType == typeof(TornEdgeImageEffect))
             {
-                effect = new TornEdgeImageEffect(5, 24, top: false, right: false, bottom: false, left: false, curved: false);
+                effect = new TornEdgeImageEffect(8, 24, top: true, right: true, bottom: true, left: true, curved: true);
                 return true;
             }
 
@@ -831,7 +1026,7 @@ namespace XerahS.UI.ViewModels
             {
             }
 
-            Name = name ?? TypeExtensions.GetDescription(type) ?? type.Name;
+            Name = name ?? ShareX.ImageEditor.Core.ImageEffects.Helpers.TypeExtensions.GetDescription(type) ?? type.Name;
         }
     }
 }
