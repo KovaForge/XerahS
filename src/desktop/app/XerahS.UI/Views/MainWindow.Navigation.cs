@@ -30,12 +30,12 @@ using Avalonia.Interactivity;
 using System;
 using System.Collections;
 using System.Linq;
-using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.UI.Helpers;
+using XerahS.UI.Theming;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
