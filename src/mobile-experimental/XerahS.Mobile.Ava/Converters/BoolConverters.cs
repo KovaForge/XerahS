@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Data.Converters;
+using Avalonia;
 using Avalonia.Media;
 
 namespace Ava.ViewModels;
@@ -33,8 +34,26 @@ namespace Ava.ViewModels;
 /// </summary>
 public class BoolToConfiguredBrushConverter : IValueConverter
 {
-    private static readonly ISolidColorBrush ConfiguredBrush = new SolidColorBrush(Colors.Green);
-    private static readonly ISolidColorBrush NotConfiguredBrush = new SolidColorBrush(Colors.Orange);
+    private static readonly ISolidColorBrush ConfiguredBrush = ResolveBrush("ThemeSuccessBrush", Colors.Green);
+    private static readonly ISolidColorBrush NotConfiguredBrush = ResolveBrush("ThemeWarningBrush", Colors.Orange);
+
+    private static ISolidColorBrush ResolveBrush(string resourceKey, Color fallback)
+    {
+        if (global::Avalonia.Application.Current is { } app && app.TryGetResource(resourceKey, app.ActualThemeVariant, out var resource))
+        {
+            if (resource is ISolidColorBrush brush)
+            {
+                return brush;
+            }
+
+            if (resource is Color color)
+            {
+                return new SolidColorBrush(color);
+            }
+        }
+
+        return new SolidColorBrush(fallback);
+    }
 
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {
