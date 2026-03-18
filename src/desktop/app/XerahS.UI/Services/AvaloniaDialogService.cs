@@ -21,9 +21,9 @@ namespace XerahS.UI.Services
             window.DataContext = dataContext;
 
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                desktop.MainWindow != null)
+                GetDialogOwner(desktop) is { } owner)
             {
-                await window.ShowDialog(desktop.MainWindow);
+                await window.ShowDialog(owner);
             }
             else
             {
@@ -37,16 +37,25 @@ namespace XerahS.UI.Services
         public async Task<TResult?> ShowDialogAsync<TWindow, TResult>(object dataContext) where TWindow : class, new()
         {
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                desktop.MainWindow != null)
+                GetDialogOwner(desktop) is { } owner)
             {
                 var window = new TWindow() as Window;
                 if (window != null)
                 {
                     window.DataContext = dataContext;
-                    return await window.ShowDialog<TResult>(desktop.MainWindow);
+                    return await window.ShowDialog<TResult>(owner);
                 }
             }
             return default;
+        }
+
+        private static Window? GetDialogOwner(IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            // Prefer the currently active visible window so modal dialogs are not hidden
+            // behind another tool/settings window (most noticeable on Linux WMs).
+            return desktop.Windows.FirstOrDefault(window => window.IsVisible && window.IsActive)
+                ?? desktop.Windows.LastOrDefault(window => window.IsVisible)
+                ?? desktop.MainWindow;
         }
 
         public async Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null)
