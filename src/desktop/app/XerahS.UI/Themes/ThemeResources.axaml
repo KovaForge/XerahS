@@ -25,11 +25,11 @@
     <SolidColorBrush x:Key="TextFillColorTertiaryBrush"
                      Color="{DynamicResource SystemBaseMediumColor}" />
     <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"
-                     Color="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                     Color="{DynamicResource SystemBaseLowColor}" />
     <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"
-                     Color="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                     Color="{DynamicResource SystemBaseLowColor}" />
     <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush"
-                     Color="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                     Color="{DynamicResource SystemBaseLowColor}" />
     <SolidColorBrush x:Key="AccentFillColorDefaultBrush"
                      Color="{DynamicResource SystemAccentColor}" />
 
