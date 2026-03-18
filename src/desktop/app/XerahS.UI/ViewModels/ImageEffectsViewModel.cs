@@ -26,12 +26,14 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.Input;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Core.ImageEffects;
+using ShareX.ImageEditor.Core.ImageEffects.Drawings;
 using ShareX.ImageEditor.Core.ImageEffects.Filters;
 using ShareX.ImageEditor.Core.ImageEffects.Helpers;
 using ShareX.ImageEditor.Core.ImageEffects.Manipulations;
 using ShareX.ImageEditor.Presentation.Controls;
 using SkiaSharp;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using EditorImageHelpers = ShareX.ImageEditor.Core.ImageEffects.Helpers.ImageHelpers;
 using XerahS.Common;
@@ -39,6 +41,7 @@ using XerahS.Common.Helpers;
 using XerahS.Core;
 using XerahS.Core.Helpers;
 using XerahS.UI.Services;
+using XerahS.UI.Views;
 
 namespace XerahS.UI.ViewModels
 {
@@ -324,13 +327,136 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         public void AddEffect(Type effectType)
         {
+            TryAddEffectType(effectType);
+        }
+
+        private bool TryAddEffectType(Type effectType)
+        {
             if (TryCreateEffectInstance(effectType, out var effect) && effect != null)
             {
                 Effects.Add(effect);
                 SelectedEffect = Effects.LastOrDefault();
                 UpdatePreview();
                 SyncToSettings();
+                return true;
             }
+
+            return false;
+        }
+
+        private bool TryAddEffect(ImageEffect effect)
+        {
+            Effects.Add(effect);
+            SelectedEffect = Effects.LastOrDefault();
+            UpdatePreview();
+            SyncToSettings();
+            return true;
+        }
+
+        [RelayCommand]
+        public async Task OpenEffectBrowserDialogAsync()
+        {
+            await _dialogService.ShowDialogAsync<ImageEffectsBrowserDialog>(this);
+        }
+
+        public bool TryAddEffectByBrowserId(string effectId)
+        {
+            if (string.IsNullOrWhiteSpace(effectId))
+            {
+                return false;
+            }
+
+            if (BrowserEffectIdToTypeMap.TryGetValue(effectId, out var effectType))
+            {
+                return TryAddEffectType(effectType);
+            }
+
+            return false;
+        }
+
+        public bool TryAddRotate90ClockwiseEffect() => TryAddEffect(RotateImageEffect.Clockwise90);
+
+        public bool TryAddRotate90CounterClockwiseEffect() => TryAddEffect(RotateImageEffect.CounterClockwise90);
+
+        public bool TryAddRotate180Effect() => TryAddEffect(RotateImageEffect.Rotate180);
+
+        public bool TryAddRotateCustomEffect() => TryAddEffect(RotateImageEffect.Custom(0f));
+
+        public bool TryAddFlipHorizontalEffect() => TryAddEffect(FlipImageEffect.Horizontal);
+
+        public bool TryAddFlipVerticalEffect() => TryAddEffect(FlipImageEffect.Vertical);
+
+        private static readonly Dictionary<string, Type> BrowserEffectIdToTypeMap = CreateBrowserEffectIdToTypeMap();
+
+        private static Dictionary<string, Type> CreateBrowserEffectIdToTypeMap()
+        {
+            var map = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var type in typeof(ImageEffect).Assembly
+                .GetTypes()
+                .Where(t => !t.IsAbstract && typeof(ImageEffect).IsAssignableFrom(t)))
+            {
+                AddBrowserEffectTypeAlias(map, NormalizeBrowserEffectId(type.Name), type);
+                AddBrowserEffectTypeAlias(map, NormalizeBrowserEffectId(RemoveEffectTypeSuffix(type.Name)), type);
+
+                if (TryCreateEffectInstance(type, out var effect) && effect != null)
+                {
+                    AddBrowserEffectTypeAlias(map, NormalizeBrowserEffectId(effect.Name), type);
+                }
+            }
+
+            // Browser IDs that intentionally point to shared effect implementations.
+            AddBrowserEffectTypeAlias(map, "rotate", typeof(RotateImageEffect));
+            AddBrowserEffectTypeAlias(map, "auto_crop_image", typeof(AutoCropImageEffect));
+            AddBrowserEffectTypeAlias(map, "resize_image", typeof(ResizeImageEffect));
+            AddBrowserEffectTypeAlias(map, "flip", typeof(FlipImageEffect));
+            AddBrowserEffectTypeAlias(map, "draw_background", typeof(DrawBackgroundEffect));
+            AddBrowserEffectTypeAlias(map, "draw_background_image", typeof(DrawBackgroundImageEffect));
+            AddBrowserEffectTypeAlias(map, "draw_checkerboard", typeof(DrawCheckerboardEffect));
+            AddBrowserEffectTypeAlias(map, "draw_image", typeof(DrawImageEffect));
+            AddBrowserEffectTypeAlias(map, "draw_particles", typeof(DrawParticlesEffect));
+            AddBrowserEffectTypeAlias(map, "draw_text", typeof(DrawTextEffect));
+
+            // Browser-only actions not represented by task preset effects.
+            map.Remove("crop_image");
+            map.Remove("resize_canvas");
+
+            return map;
+        }
+
+        private static void AddBrowserEffectTypeAlias(Dictionary<string, Type> map, string id, Type type)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return;
+            }
+
+            map[id] = type;
+        }
+
+        private static string RemoveEffectTypeSuffix(string value)
+        {
+            if (value.EndsWith("ImageEffect", StringComparison.Ordinal))
+            {
+                return value[..^"ImageEffect".Length];
+            }
+
+            if (value.EndsWith("Effect", StringComparison.Ordinal))
+            {
+                return value[..^"Effect".Length];
+            }
+
+            return value;
+        }
+
+        private static string NormalizeBrowserEffectId(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            return EffectItem.NormalizeEffectId(value);
         }
 
         private static bool TryCreateEffectInstance(Type effectType, out ImageEffect? effect)
