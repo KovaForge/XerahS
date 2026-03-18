@@ -41,6 +41,8 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
     private const string DirectoryContextMenuPath = @"Software\Classes\Directory\shell\XerahSUpload";
     private const string DirectoryContextMenuCommandPath = @"Software\Classes\Directory\shell\XerahSUpload\command";
     private const string SendToScriptName = "XerahS.cmd";
+    private const string SendToFlag = "--send-to";
+    private const string SendToScriptMarker = "REM XerahS SendTo Integration";
 
     private const string ShellPluginExtensionPath = @"Software\Classes\.xsdp";
     private readonly string ShellPluginExtensionValue = $"{AppResources.AppName}.xsdp";
@@ -187,7 +189,7 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
             }
 
             string content = File.ReadAllText(scriptPath);
-            return content.Contains(Environment.ProcessPath ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            return IsManagedSendToScript(content);
         }
         catch (Exception ex)
         {
@@ -317,8 +319,22 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         return
 $"""
 @echo off
-"{Environment.ProcessPath}" %*
+{SendToScriptMarker}
+"{Environment.ProcessPath}" {SendToFlag} %*
 """;
+    }
+
+    private bool IsManagedSendToScript(string content)
+    {
+        string processPath = Environment.ProcessPath ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(processPath))
+        {
+            return false;
+        }
+
+        return content.Contains(SendToScriptMarker, StringComparison.OrdinalIgnoreCase) &&
+               content.Contains(processPath, StringComparison.OrdinalIgnoreCase) &&
+               content.Contains(SendToFlag, StringComparison.OrdinalIgnoreCase);
     }
 
     // P/Invoke for shell notification
