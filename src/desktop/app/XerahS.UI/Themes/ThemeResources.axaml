@@ -2,131 +2,287 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:XerahS.UI.Views">
   <Styles.Resources>
-    <FontFamily x:Key="ShareX.FontFamily.Default">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
-    <FontFamily x:Key="ShareX.FontFamily.Icon">avares://ShareX.ImageEditor/Assets#lucide</FontFamily>
-    <FontFamily x:Key="ShareX.FontFamily.Monospace">Cascadia Mono, Consolas, Courier New, Monospace</FontFamily>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <Color x:Key="XerahS.Color.Surface.Window">#F7F8FB</Color>
+          <Color x:Key="XerahS.Color.Surface.Panel">#F1F3F7</Color>
+          <Color x:Key="XerahS.Color.Surface.Card">#FFFFFF</Color>
+          <Color x:Key="XerahS.Color.Surface.CardAlt">#F8FAFD</Color>
+          <Color x:Key="XerahS.Color.Surface.Input">#FCFDFF</Color>
+          <Color x:Key="XerahS.Color.Surface.InputHover">#F6F9FD</Color>
+          <Color x:Key="XerahS.Color.Stroke.Subtle">#D8DEE8</Color>
+          <Color x:Key="XerahS.Color.Stroke.Control">#C4CEDA</Color>
+          <Color x:Key="XerahS.Color.Text.Primary">#161B22</Color>
+          <Color x:Key="XerahS.Color.Text.Secondary">#586475</Color>
+          <Color x:Key="XerahS.Color.Text.Tertiary">#758293</Color>
+          <Color x:Key="XerahS.Color.Overlay.Modal">#A61A1F27</Color>
+          <Color x:Key="XerahS.Color.Overlay.Soft">#B3202630</Color>
+          <Color x:Key="XerahS.Color.OnOverlay">#F9FBFD</Color>
+          <Color x:Key="XerahS.Color.Accent.Foreground">#FFFFFF</Color>
+          <Color x:Key="XerahS.Color.Status.Success.Fill">#EAF7EE</Color>
+          <Color x:Key="XerahS.Color.Status.Success.Border">#72A86A</Color>
+          <Color x:Key="XerahS.Color.Status.Success.Foreground">#183624</Color>
+          <Color x:Key="XerahS.Color.Status.Warning.Fill">#FFF4CC</Color>
+          <Color x:Key="XerahS.Color.Status.Warning.Border">#D7A550</Color>
+          <Color x:Key="XerahS.Color.Status.Warning.Foreground">#6A4C00</Color>
+          <Color x:Key="XerahS.Color.Status.Error.Fill">#FDECEC</Color>
+          <Color x:Key="XerahS.Color.Status.Error.Border">#DC3545</Color>
+          <Color x:Key="XerahS.Color.Status.Error.Foreground">#7A1622</Color>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <Color x:Key="XerahS.Color.Surface.Window">#171B21</Color>
+          <Color x:Key="XerahS.Color.Surface.Panel">#1C2128</Color>
+          <Color x:Key="XerahS.Color.Surface.Card">#232A33</Color>
+          <Color x:Key="XerahS.Color.Surface.CardAlt">#293039</Color>
+          <Color x:Key="XerahS.Color.Surface.Input">#20262F</Color>
+          <Color x:Key="XerahS.Color.Surface.InputHover">#262D37</Color>
+          <Color x:Key="XerahS.Color.Stroke.Subtle">#313947</Color>
+          <Color x:Key="XerahS.Color.Stroke.Control">#465061</Color>
+          <Color x:Key="XerahS.Color.Text.Primary">#F3F6F8</Color>
+          <Color x:Key="XerahS.Color.Text.Secondary">#CAD2DB</Color>
+          <Color x:Key="XerahS.Color.Text.Tertiary">#98A5B4</Color>
+          <Color x:Key="XerahS.Color.Overlay.Modal">#BF06080C</Color>
+          <Color x:Key="XerahS.Color.Overlay.Soft">#B8141820</Color>
+          <Color x:Key="XerahS.Color.OnOverlay">#F9FBFD</Color>
+          <Color x:Key="XerahS.Color.Accent.Foreground">#FFFFFF</Color>
+          <Color x:Key="XerahS.Color.Status.Success.Fill">#16271C</Color>
+          <Color x:Key="XerahS.Color.Status.Success.Border">#4C8E67</Color>
+          <Color x:Key="XerahS.Color.Status.Success.Foreground">#D9FBE8</Color>
+          <Color x:Key="XerahS.Color.Status.Warning.Fill">#35260D</Color>
+          <Color x:Key="XerahS.Color.Status.Warning.Border">#D7A550</Color>
+          <Color x:Key="XerahS.Color.Status.Warning.Foreground">#FFE9B2</Color>
+          <Color x:Key="XerahS.Color.Status.Error.Fill">#34161B</Color>
+          <Color x:Key="XerahS.Color.Status.Error.Border">#DC5A68</Color>
+          <Color x:Key="XerahS.Color.Status.Error.Foreground">#FFD7DC</Color>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
 
-    <SolidColorBrush x:Key="ShareX.Brush.Accent"
-                     Color="{DynamicResource SystemAccentColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Text"
-                     Color="{DynamicResource SystemBaseHighColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Text.Secondary"
-                     Color="{DynamicResource SystemBaseMediumHighColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Background.Main"
-                     Color="{DynamicResource SystemChromeLowColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Background.Panel"
-                     Color="{DynamicResource SystemChromeMediumLowColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Background.Popup"
-                     Color="{DynamicResource SystemChromeMediumColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Background.Toolbar"
-                     Color="{DynamicResource SystemChromeLowColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Border"
-                     Color="{DynamicResource SystemBaseLowColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Control.Background"
-                     Color="{DynamicResource SystemChromeMediumLowColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Hover"
-                     Color="{DynamicResource SystemChromeMediumColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Control.Border"
-                     Color="{DynamicResource SystemBaseLowColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Disabled"
-                     Color="{DynamicResource SystemChromeMediumColor}" />
-    <SolidColorBrush x:Key="ShareX.Brush.Separator"
-                     Color="{DynamicResource SystemBaseLowColor}" />
-    <DrawingBrush x:Key="ShareX.Brush.Checkered" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
-      <DrawingBrush.Drawing>
-        <DrawingGroup>
-          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
-            <GeometryDrawing.Geometry>
-              <RectangleGeometry Rect="0,0,30,30" />
-            </GeometryDrawing.Geometry>
-          </GeometryDrawing>
-          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
-            <GeometryDrawing.Geometry>
-              <GeometryGroup>
-                <RectangleGeometry Rect="0,0,15,15" />
-                <RectangleGeometry Rect="15,15,15,15" />
-              </GeometryGroup>
-            </GeometryDrawing.Geometry>
-          </GeometryDrawing>
-        </DrawingGroup>
-      </DrawingBrush.Drawing>
-    </DrawingBrush>
-    <DrawingBrush x:Key="ShareX.Brush.Checkered.Small" TileMode="Tile" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
-      <DrawingBrush.Drawing>
-        <DrawingGroup>
-          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
-            <GeometryDrawing.Geometry>
-              <RectangleGeometry Rect="0,0,8,8" />
-            </GeometryDrawing.Geometry>
-          </GeometryDrawing>
-          <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
-            <GeometryDrawing.Geometry>
-              <GeometryGroup>
-                <RectangleGeometry Rect="0,0,4,4" />
-                <RectangleGeometry Rect="4,4,4,4" />
-              </GeometryGroup>
-            </GeometryDrawing.Geometry>
-          </GeometryDrawing>
-        </DrawingGroup>
-      </DrawingBrush.Drawing>
-    </DrawingBrush>
+      <FontFamily x:Key="ShareX.FontFamily.Default">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+      <FontFamily x:Key="ShareX.FontFamily.Icon">avares://ShareX.ImageEditor/Assets#lucide</FontFamily>
+      <FontFamily x:Key="ShareX.FontFamily.Monospace">Cascadia Mono, Consolas, Courier New, Monospace</FontFamily>
 
-    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"
-                     Color="{DynamicResource SystemChromeLowColor}" />
-    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"
-                     Color="{DynamicResource SystemChromeMediumLowColor}" />
-    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"
-                     Color="{DynamicResource SystemChromeMediumLowColor}" />
-    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"
-                     Color="{DynamicResource SystemChromeMediumColor}" />
-    <SolidColorBrush x:Key="LayerFillColorDefaultBrush"
-                     Color="{DynamicResource SystemChromeLowColor}" />
-    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"
-                     Color="{DynamicResource SystemChromeLowColor}" />
-    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"
-                     Color="{DynamicResource SystemChromeMediumColor}" />
-    <SolidColorBrush x:Key="ControlAltFillColorDefaultBrush"
-                     Color="{DynamicResource SystemChromeMediumLowColor}" />
-    <SolidColorBrush x:Key="TextFillColorPrimaryBrush"
-                     Color="{DynamicResource SystemBaseHighColor}" />
-    <SolidColorBrush x:Key="TextFillColorSecondaryBrush"
-                     Color="{DynamicResource SystemBaseMediumHighColor}" />
-    <SolidColorBrush x:Key="TextFillColorTertiaryBrush"
-                     Color="{DynamicResource SystemBaseMediumColor}" />
-    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"
-                     Color="{DynamicResource SystemBaseLowColor}" />
-    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"
-                     Color="{DynamicResource SystemBaseLowColor}" />
-    <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush"
-                     Color="{DynamicResource SystemBaseLowColor}" />
-    <SolidColorBrush x:Key="AccentFillColorDefaultBrush"
-                     Color="{DynamicResource SystemAccentColor}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Surface.Window"
+                       Color="{DynamicResource XerahS.Color.Surface.Window}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Surface.Panel"
+                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Surface.Card"
+                       Color="{DynamicResource XerahS.Color.Surface.Card}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Surface.CardAlt"
+                       Color="{DynamicResource XerahS.Color.Surface.CardAlt}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Surface.Input"
+                       Color="{DynamicResource XerahS.Color.Surface.Input}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Surface.InputHover"
+                       Color="{DynamicResource XerahS.Color.Surface.InputHover}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Stroke.Subtle"
+                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Stroke.Control"
+                       Color="{DynamicResource XerahS.Color.Stroke.Control}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Text.Primary"
+                       Color="{DynamicResource XerahS.Color.Text.Primary}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Text.Secondary"
+                       Color="{DynamicResource XerahS.Color.Text.Secondary}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Text.Tertiary"
+                       Color="{DynamicResource XerahS.Color.Text.Tertiary}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.Subtle"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.14" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.SubtleHover"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.20" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.SubtlePressed"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.28" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.Border"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.45" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.Solid"
+                       Color="{DynamicResource SystemAccentColor}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.SolidHover"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.90" />
+      <SolidColorBrush x:Key="XerahS.Brush.Accent.SolidPressed"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.76" />
+      <SolidColorBrush x:Key="XerahS.Brush.Overlay.Modal"
+                       Color="{DynamicResource XerahS.Color.Overlay.Modal}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Overlay.Soft"
+                       Color="{DynamicResource XerahS.Color.Overlay.Soft}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Overlay.Foreground"
+                       Color="{DynamicResource XerahS.Color.OnOverlay}" />
+      <SolidColorBrush x:Key="XerahS.Brush.Overlay.ForegroundMuted"
+                       Color="{DynamicResource XerahS.Color.OnOverlay}"
+                       Opacity="0.78" />
 
-    <SolidColorBrush x:Key="StatusSuccessFillBrush"
-                     Color="#EAF7EE" />
-    <SolidColorBrush x:Key="StatusSuccessBorderBrush"
-                     Color="#72A86A" />
-    <SolidColorBrush x:Key="StatusSuccessForegroundBrush"
-                     Color="#183624" />
-    <SolidColorBrush x:Key="StatusWarningFillBrush"
-                     Color="#FFF4CC" />
-    <SolidColorBrush x:Key="StatusWarningBorderBrush"
-                     Color="#D7A550" />
-    <SolidColorBrush x:Key="StatusWarningForegroundBrush"
-                     Color="#6A4C00" />
-    <SolidColorBrush x:Key="StatusErrorFillBrush"
-                     Color="#FDECEC" />
-    <SolidColorBrush x:Key="StatusErrorBorderBrush"
-                     Color="#DC3545" />
-    <SolidColorBrush x:Key="StatusErrorForegroundBrush"
-                     Color="#7A1622" />
+      <SolidColorBrush x:Key="ShareX.Brush.Accent"
+                       Color="{DynamicResource SystemAccentColor}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Text"
+                       Color="{DynamicResource XerahS.Color.Text.Primary}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Text.Secondary"
+                       Color="{DynamicResource XerahS.Color.Text.Secondary}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Background.Main"
+                       Color="{DynamicResource XerahS.Color.Surface.Window}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Background.Panel"
+                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Background.Popup"
+                       Color="{DynamicResource XerahS.Color.Surface.Card}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Background.Toolbar"
+                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Border"
+                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Control.Background"
+                       Color="{DynamicResource XerahS.Color.Surface.Input}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Hover"
+                       Color="{DynamicResource XerahS.Color.Surface.InputHover}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Control.Border"
+                       Color="{DynamicResource XerahS.Color.Stroke.Control}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Disabled"
+                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
+      <SolidColorBrush x:Key="ShareX.Brush.Separator"
+                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
 
-    <ControlTheme x:Key="CardBorderTheme" TargetType="Border">
-      <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="8" />
-    </ControlTheme>
+      <DrawingBrush x:Key="ShareX.Brush.Checkered" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,30,30" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+              <GeometryDrawing.Geometry>
+                <GeometryGroup>
+                  <RectangleGeometry Rect="0,0,15,15" />
+                  <RectangleGeometry Rect="15,15,15,15" />
+                </GeometryGroup>
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+      <DrawingBrush x:Key="ShareX.Brush.Checkered.Small" TileMode="Tile" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,8,8" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+              <GeometryDrawing.Geometry>
+                <GeometryGroup>
+                  <RectangleGeometry Rect="0,0,4,4" />
+                  <RectangleGeometry Rect="4,4,4,4" />
+                </GeometryGroup>
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+      <DrawingBrush x:Key="CheckerBrush" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,30,30" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+              <GeometryDrawing.Geometry>
+                <GeometryGroup>
+                  <RectangleGeometry Rect="0,0,15,15" />
+                  <RectangleGeometry Rect="15,15,15,15" />
+                </GeometryGroup>
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+      <DrawingBrush x:Key="CheckerBrushSmall" TileMode="Tile" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,8,8" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+              <GeometryDrawing.Geometry>
+                <GeometryGroup>
+                  <RectangleGeometry Rect="0,0,4,4" />
+                  <RectangleGeometry Rect="4,4,4,4" />
+                </GeometryGroup>
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+
+      <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.Window}" />
+      <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
+      <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.Card}" />
+      <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.CardAlt}" />
+      <SolidColorBrush x:Key="LayerFillColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.CardAlt}" />
+      <SolidColorBrush x:Key="ControlFillColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.Input}" />
+      <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.InputHover}" />
+      <SolidColorBrush x:Key="ControlAltFillColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Surface.CardAlt}" />
+      <SolidColorBrush x:Key="TextFillColorPrimaryBrush"
+                       Color="{DynamicResource XerahS.Color.Text.Primary}" />
+      <SolidColorBrush x:Key="TextFillColorSecondaryBrush"
+                       Color="{DynamicResource XerahS.Color.Text.Secondary}" />
+      <SolidColorBrush x:Key="TextFillColorTertiaryBrush"
+                       Color="{DynamicResource XerahS.Color.Text.Tertiary}" />
+      <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
+      <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Stroke.Control}" />
+      <SolidColorBrush x:Key="SurfaceStrokeColorDefaultBrush"
+                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
+      <SolidColorBrush x:Key="AccentFillColorDefaultBrush"
+                       Color="{DynamicResource SystemAccentColor}" />
+      <SolidColorBrush x:Key="AccentFillColorSecondaryBrush"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.14" />
+      <SolidColorBrush x:Key="AccentFillColorTertiaryBrush"
+                       Color="{DynamicResource SystemAccentColor}"
+                       Opacity="0.20" />
+      <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush"
+                       Color="{DynamicResource XerahS.Color.Accent.Foreground}" />
+
+      <SolidColorBrush x:Key="StatusSuccessFillBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Success.Fill}" />
+      <SolidColorBrush x:Key="StatusSuccessBorderBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Success.Border}" />
+      <SolidColorBrush x:Key="StatusSuccessForegroundBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Success.Foreground}" />
+      <SolidColorBrush x:Key="StatusWarningFillBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Warning.Fill}" />
+      <SolidColorBrush x:Key="StatusWarningBorderBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Warning.Border}" />
+      <SolidColorBrush x:Key="StatusWarningForegroundBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Warning.Foreground}" />
+      <SolidColorBrush x:Key="StatusErrorFillBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Error.Fill}" />
+      <SolidColorBrush x:Key="StatusErrorBorderBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Error.Border}" />
+      <SolidColorBrush x:Key="StatusErrorForegroundBrush"
+                       Color="{DynamicResource XerahS.Color.Status.Error.Foreground}" />
+
+      <ControlTheme x:Key="CardBorderTheme" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+      </ControlTheme>
+    </ResourceDictionary>
   </Styles.Resources>
 
   <Style Selector="TextBlock.IconGlyph">
@@ -152,7 +308,7 @@
   </Style>
 
   <Style Selector="TextBlock.on-accent">
-    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="TextBlock.status-success">
@@ -175,6 +331,14 @@
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
   </Style>
 
+  <Style Selector="Border.section-card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
   <Style Selector="Border.accent-chip">
     <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="CornerRadius" Value="3" />
@@ -187,13 +351,14 @@
   </Style>
 
   <Style Selector="Border.hotkeySurface.highlighted">
-    <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+    <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <Style Selector="Border.hotkeyCaptureSurface">
-    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
 
@@ -233,12 +398,96 @@
     <Setter Property="BorderThickness" Value="1" />
   </Style>
 
+  <Style Selector=":is(Control).xerahs-surface Button">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Subtle}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource XerahS.Brush.Accent.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button:pointerover">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtleHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button:pressed">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtlePressed}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button:disabled">
+    <Setter Property="Opacity" Value="0.55" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button.accent, :is(Control).xerahs-surface Button[IsDefault=true]">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Solid}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button.accent:pointerover, :is(Control).xerahs-surface Button[IsDefault=true]:pointerover">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidHover}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button.accent:pressed, :is(Control).xerahs-surface Button[IsDefault=true]:pressed">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidPressed}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button.hyperlink">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface Button.hyperlink:pointerover">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Subtle}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource XerahS.Brush.Accent.Border}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface TextBox, :is(Control).xerahs-surface ComboBox, :is(Control).xerahs-surface NumericUpDown">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface TextBox:pointerover, :is(Control).xerahs-surface ComboBox:pointerover, :is(Control).xerahs-surface NumericUpDown:pointerover">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource XerahS.Brush.Accent.Border}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-surface TextBox:focus-within, :is(Control).xerahs-surface ComboBox:focus-within, :is(Control).xerahs-surface NumericUpDown:focus-within">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
   <Style Selector="Separator.ToolbarSeparator">
     <Setter Property="Width" Value="1" />
     <Setter Property="MinHeight" Value="24" />
     <Setter Property="Margin" Value="4,0" />
     <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
     <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.hotkeyToolbarButton">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Button.hotkeyToolbarButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Subtle}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource XerahS.Brush.Accent.Border}" />
+  </Style>
+
+  <Style Selector="Button.hotkeyToolbarButton:pressed">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtlePressed}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <Style Selector="Button.SettingsRow">
@@ -255,6 +504,6 @@
   </Style>
 
   <Style Selector="Button.SettingsRow:pressed">
-    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Subtle}" />
   </Style>
 </Styles>

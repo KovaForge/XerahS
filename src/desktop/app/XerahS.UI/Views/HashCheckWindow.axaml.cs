@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -71,19 +72,30 @@ public partial class HashCheckWindow : SurfaceWindow
         if (vm.IsMatch == true)
         {
             MatchIndicator.Text = "Match";
-            MatchIndicator.Foreground = new SolidColorBrush(Color.Parse("#22C55E"));
+            MatchIndicator.Foreground = GetThemeBrush(
+                "StatusSuccessForegroundBrush",
+                new SolidColorBrush(Color.Parse("#22C55E")));
             MatchIndicator.IsVisible = true;
         }
         else if (vm.IsMatch == false)
         {
             MatchIndicator.Text = "Mismatch";
-            MatchIndicator.Foreground = new SolidColorBrush(Color.Parse("#EF4444"));
+            MatchIndicator.Foreground = GetThemeBrush(
+                "StatusErrorForegroundBrush",
+                new SolidColorBrush(Color.Parse("#EF4444")));
             MatchIndicator.IsVisible = true;
         }
         else
         {
             MatchIndicator.IsVisible = false;
         }
+    }
+
+    private IBrush GetThemeBrush(string resourceKey, IBrush fallback)
+    {
+        return Application.Current?.TryGetResource(resourceKey, ActualThemeVariant, out var resource) == true && resource is IBrush brush
+            ? brush
+            : fallback;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)

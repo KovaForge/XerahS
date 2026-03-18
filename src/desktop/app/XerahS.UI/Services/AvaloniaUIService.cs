@@ -296,7 +296,7 @@ namespace XerahS.UI.Services
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                var dialog = new Window
+                var dialog = new Views.SurfaceWindow
                 {
                     Title = "Video Editor Unavailable",
                     Width = 680,

@@ -29,6 +29,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using XerahS.Services.Abstractions;
+using XerahS.UI.Views;
 
 namespace XerahS.UI.Services;
 
@@ -143,7 +144,7 @@ public sealed class AvaloniaDialogServiceAdapter : IDialogService
 
     private static Window CreateDialog(string title, double width, double height)
     {
-        return new Window
+        return new SurfaceWindow
         {
             Title = title,
             Width = width,

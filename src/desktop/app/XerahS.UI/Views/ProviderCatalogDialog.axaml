@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:XerahS.UI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
+             Classes="xerahs-surface"
              x:Class="XerahS.UI.Views.ProviderCatalogDialog"
              x:DataType="vm:ProviderCatalogViewModel">
 

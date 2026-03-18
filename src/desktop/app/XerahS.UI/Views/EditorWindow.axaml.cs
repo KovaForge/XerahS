@@ -37,6 +37,8 @@ namespace XerahS.UI.Views
         public EditorWindow()
         {
             InitializeComponent();
+            Classes.Remove("xerahs-surface");
+            Classes.Add("xerahs-editor-host");
 
             RequestedThemeVariant = ThemeManager.GetCurrentTheme();
             ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;

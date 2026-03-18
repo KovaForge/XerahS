@@ -56,7 +56,7 @@
                AutomationProperties.Name="OCR recognized text" />
 
       <!-- Processing overlay -->
-      <Border Background="#80000000"
+      <Border Background="{DynamicResource XerahS.Brush.Overlay.Modal}"
               CornerRadius="4"
               IsVisible="{Binding IsProcessing}"
               HorizontalAlignment="Stretch"
@@ -67,7 +67,7 @@
           <ProgressBar IsIndeterminate="True"
                        Width="200" />
           <TextBlock Text="Processing..."
-                     Foreground="White"
+                     Foreground="{DynamicResource XerahS.Brush.Overlay.Foreground}"
                      HorizontalAlignment="Center" />
         </StackPanel>
       </Border>

@@ -66,7 +66,7 @@ namespace XerahS.UI.Views
 
         private async Task ShowMessageDialog(string title, string message)
         {
-            var messageBox = new Window
+            var messageBox = new SurfaceWindow
             {
                 Title = title,
                 Width = 500,

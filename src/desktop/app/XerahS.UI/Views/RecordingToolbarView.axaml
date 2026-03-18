@@ -5,6 +5,7 @@
              mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="60"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             Classes="xerahs-surface"
              x:Class="XerahS.UI.Views.RecordingToolbarView"
              x:DataType="vm:RecordingViewModel">
     
@@ -12,7 +13,7 @@
         <vm:RecordingViewModel/>
     </Design.DataContext>
     
-    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="8"

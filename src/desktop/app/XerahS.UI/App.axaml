@@ -83,8 +83,6 @@
     </NativeMenu.Menu>
   
     <Application.Styles>
-        <!-- TODO: Re-enable dark theme when ready -->
-        <!-- <StyleInclude Source="avares://ShareX.Avalonia.UI/Themes/Dark/DarkTheme.axaml" /> -->
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <StyleInclude Source="avares://XerahS.UI/Themes/Typography.axaml" />

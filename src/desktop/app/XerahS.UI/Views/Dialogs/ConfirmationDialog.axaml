@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="XerahS.UI.Views.Dialogs.ConfirmationDialog"
+        Classes="xerahs-surface"
         Width="420"
         SizeToContent="Height"
         MinWidth="420"
