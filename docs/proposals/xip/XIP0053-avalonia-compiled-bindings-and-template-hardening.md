@@ -1,5 +1,4 @@
 # XIP0053 Avalonia Compiled Bindings and Template Hardening
-
 **Status**: Complete  
 **Priority**: High  
 **Audit date**: 2026-03-17  
