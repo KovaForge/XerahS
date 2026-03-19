@@ -37,12 +37,12 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.UI.ViewModels;
 using XerahS.Core.Hotkeys;
 using Avalonia; // For Application.Current
 using XerahS.Core.Tasks;
-using XerahS.Core.Managers;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
@@ -57,6 +57,7 @@ namespace XerahS.UI.Views
         private const double DefaultWindowHeight = 650;
         private const int MinimumPersistedWindowDimension = 200;
 
+        private readonly IDesktopTaskManager? _taskManager;
         private EditorView? _editorView = null;
         private DestinationSettingsView? _destinationSettingsView = null;
         private bool _isOpenImageInProgress;
@@ -71,8 +72,13 @@ namespace XerahS.UI.Views
         public IRelayCommand<string?> NavigateMenuCommand { get; }
         public IRelayCommand<WorkflowSettings?> RunWorkflowFromMenuCommand { get; }
 
-        public MainWindow()
+        public MainWindow() : this(null)
         {
+        }
+
+        public MainWindow(IDesktopTaskManager? taskManager)
+        {
+            _taskManager = taskManager;
             OpenImageMenuCommand = new AsyncRelayCommand(OpenImageFromFileAsync);
             ExitMenuCommand = new RelayCommand(Close);
             NavigateMenuCommand = new RelayCommand<string?>(NavigateFromMenuTag);
@@ -600,7 +606,7 @@ namespace XerahS.UI.Views
             // Subscribe to task completion to update Editor preview
             void HandleTaskCompleted(object? s, WorkerTask task)
             {
-                TaskManager.Instance.TaskCompleted -= HandleTaskCompleted;
+                _taskManager?.TaskCompleted -= HandleTaskCompleted;
 
                 if (task.Info?.Metadata?.Image is { } image && DataContext is MainViewModel vm)
                 {
@@ -620,7 +626,12 @@ namespace XerahS.UI.Views
                 }
             }
 
-            TaskManager.Instance.TaskCompleted += HandleTaskCompleted;
+            if (_taskManager == null)
+            {
+                return;
+            }
+
+            _taskManager.TaskCompleted += HandleTaskCompleted;
 
             // Hide main window before capture to avoid capturing the app itself
             // This only applies to navbar-triggered captures, not hotkeys
@@ -635,7 +646,7 @@ namespace XerahS.UI.Views
 
             try
             {
-                await TaskManager.Instance.StartTask(settings, image);
+                await _taskManager.StartTask(settings, image);
             }
             finally
             {

@@ -28,6 +28,7 @@ using ShareX.ImageEditor.Presentation.Rendering;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
 using System.IO;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 
@@ -41,11 +42,11 @@ public static class MainViewModelHelper
     /// <summary>
     /// Wires up the UploadRequested event to the XerahS upload pipeline.
     /// </summary>
-    public static void WireUploadRequested(MainViewModel viewModel)
+    public static void WireUploadRequested(MainViewModel viewModel, IDesktopTaskManager taskManager)
     {
         viewModel.UploadRequested += () =>
         {
-            _ = HandleUploadRequestedAsync(viewModel);
+            _ = HandleUploadRequestedAsync(viewModel, taskManager);
         };
     }
 
@@ -189,7 +190,7 @@ public static class MainViewModelHelper
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
     }
 
-    private static async Task HandleUploadRequestedAsync(MainViewModel viewModel)
+    private static async Task HandleUploadRequestedAsync(MainViewModel viewModel, IDesktopTaskManager taskManager)
     {
         DebugHelper.WriteLine("MainViewModelHelper: UploadRequested received");
 
@@ -215,7 +216,7 @@ public static class MainViewModelHelper
             DebugHelper.WriteLine($"MainViewModelHelper: TaskSettings created - Job={taskSettings.Job}, AfterCapture={taskSettings.AfterCaptureJob}, AfterUpload={taskSettings.AfterUploadJob}, DestId={taskSettings.DestinationInstanceId}");
 
             DebugHelper.WriteLine("MainViewModelHelper: Calling TaskManager.StartImageUploadTask...");
-            await Core.Managers.TaskManager.Instance.StartImageUploadTask(taskSettings, skBitmap.Copy());
+            await taskManager.StartImageUploadTask(taskSettings, skBitmap.Copy());
             DebugHelper.WriteLine("MainViewModelHelper: TaskManager.StartImageUploadTask completed");
         }
         catch (Exception ex)

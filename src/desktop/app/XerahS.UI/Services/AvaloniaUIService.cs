@@ -30,6 +30,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -44,8 +45,14 @@ namespace XerahS.UI.Services
 {
     public class AvaloniaUIService : IUIService
     {
+        private readonly IDesktopTaskManager _taskManager;
         private bool _wasMainWindowVisible;
         private Avalonia.Controls.WindowState _previousWindowState;
+
+        public AvaloniaUIService(IDesktopTaskManager taskManager)
+        {
+            _taskManager = taskManager;
+        }
 
         public async Task HideMainWindowAsync()
         {
@@ -110,7 +117,7 @@ namespace XerahS.UI.Services
                 editorViewModel.ApplicationName = AppResources.AppName;
 
                 // Wire up UploadRequested to trigger host app upload workflow
-                MainViewModelHelper.WireUploadRequested(editorViewModel);
+                MainViewModelHelper.WireUploadRequested(editorViewModel, _taskManager);
 
                 // Wire up CopyRequested to copy edited image (with annotations) to clipboard
                 MainViewModelHelper.WireCopyRequested(editorViewModel, () =>

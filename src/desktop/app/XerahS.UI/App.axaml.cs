@@ -28,10 +28,12 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.DependencyInjection;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Hosting.Diagnostics;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Media.Encoders;
@@ -49,8 +51,8 @@ public partial class App : Application
 {
     public static bool IsExiting { get; set; } = false;
     private static readonly TimeSpan ClipboardViewerAutoOpenCooldown = TimeSpan.FromSeconds(2);
-    private readonly IWorkflowOrchestrator _workflowOrchestrator = new WorkflowOrchestrator();
-    private readonly ITrayIconController _trayIconController = new TrayIconController();
+    private IWorkflowOrchestrator? _workflowOrchestrator;
+    private ITrayIconController? _trayIconController;
     private string _baseTitle = AppResources.ProductNameWithVersion;
     private EventHandler? _clipboardChangedHandler;
     private DateTime _lastClipboardViewerAutoOpenUtc = DateTime.MinValue;
@@ -88,6 +90,11 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var desktopHostProvider = PlatformServices.RootProvider
+                ?? throw new InvalidOperationException("Desktop host services were not initialized before Avalonia startup.");
+            var taskManager = desktopHostProvider.GetRequiredService<IDesktopTaskManager>();
+            var screenRecordingCoordinator = desktopHostProvider.GetRequiredService<IScreenRecordingCoordinator>();
+
             // Register host-level editor services before creating any editor view models.
             EditorServices.Diagnostics = new DelegateEditorDiagnosticsSink(diagnosticEvent =>
             {
@@ -106,7 +113,7 @@ public partial class App : Application
             mainViewModel.ShowTaskModeButtons = false;
 
             // Wire up UploadRequested for embedded editor in MainWindow
-            Services.MainViewModelHelper.WireUploadRequested(mainViewModel);
+            Services.MainViewModelHelper.WireUploadRequested(mainViewModel, taskManager);
 
             // Wire up CopyRequested for embedded editor in MainWindow (use edited snapshot when on Editor tab)
             Services.MainViewModelHelper.WireCopyRequested(mainViewModel, () =>
@@ -148,7 +155,7 @@ public partial class App : Application
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             }
 
-            desktop.MainWindow = new Views.MainWindow
+            desktop.MainWindow = new Views.MainWindow(taskManager)
             {
                 DataContext = mainViewModel,
             };
@@ -200,7 +207,7 @@ public partial class App : Application
             }
 
             // Register UI Service
-            Platform.Abstractions.PlatformServices.RegisterUIService(new Services.AvaloniaUIService());
+            Platform.Abstractions.PlatformServices.RegisterUIService(new Services.AvaloniaUIService(taskManager));
 
             // Register Toast Service
             Platform.Abstractions.PlatformServices.RegisterToastService(new Services.AvaloniaToastService());
@@ -215,7 +222,10 @@ public partial class App : Application
             // Build DI container from platform and app services (single composition root)
             Services.CompositionRoot.BuildAndSetRootProvider();
 
+            _workflowOrchestrator = new WorkflowOrchestrator(taskManager, screenRecordingCoordinator);
+            _trayIconController = new TrayIconController();
             _workflowOrchestrator.Start(desktop, _baseTitle);
+            TrayIconHelper.Instance.Initialize(screenRecordingCoordinator);
             _trayIconController.Initialize();
             InitializeClipboardMonitor(desktop.MainWindow);
 
@@ -250,7 +260,7 @@ public partial class App : Application
     /// Set by Program.cs to perform platform-specific async initialization.
     /// </summary>
     public static Action? PostUIInitializationCallback { get; set; }
-    public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator.WorkflowManager;
+    public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator?.WorkflowManager;
 
     /// <summary>
     /// Allows the settings UI to start or stop the clipboard monitor at runtime.
@@ -373,7 +383,7 @@ public partial class App : Application
 
     private void TrayIcon_Clicked(object? sender, EventArgs e)
     {
-        _trayIconController.HandleClicked();
+        _trayIconController?.HandleClicked();
     }
 
     private void OnAboutClick(object? sender, EventArgs e)

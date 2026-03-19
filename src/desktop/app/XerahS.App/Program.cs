@@ -24,10 +24,12 @@
 #endregion License Information (GPL v3)
 
 using Avalonia;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.App
 {
@@ -809,11 +811,18 @@ namespace XerahS.App
         {
             try
             {
+                var taskManager = PlatformServices.RootProvider?.GetService<ITaskManager>();
+                if (taskManager == null)
+                {
+                    XerahS.Common.DebugHelper.WriteLine("Shell integration: Task manager unavailable for incoming files.");
+                    return;
+                }
+
                 foreach (string file in files)
                 {
                     TaskSettings settings = CreateFileUploadTaskSettings();
                     settings.Job = WorkflowType.FileUpload;
-                    await TaskManager.Instance.StartFileTask(settings, file);
+                    await taskManager.StartFileTask(settings, file);
                 }
             }
             catch (Exception ex)
