@@ -16,7 +16,7 @@
                                FontWeight="Bold"/>
                     <TextBlock Text="Configure your S3 bucket for file uploads"
                                FontSize="13"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               Classes="adaptive-muted"
                                TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
@@ -38,7 +38,7 @@
                                      Classes="adaptive-input"
                                      FontSize="13"
                                      input:TextInputOptions.AutoCapitalization="False"/>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasAccessKeyError}"
@@ -54,7 +54,7 @@
                                      PasswordChar="*"
                                      Classes="adaptive-input"
                                      FontSize="13"/>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasSecretKeyError}"
@@ -81,7 +81,7 @@
                                      Classes="adaptive-input"
                                      FontSize="13"
                                      input:TextInputOptions.AutoCapitalization="False"/>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasBucketError}"
@@ -102,7 +102,7 @@
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasRegionError}"

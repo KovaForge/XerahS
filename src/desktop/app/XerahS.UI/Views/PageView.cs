@@ -33,4 +33,8 @@ namespace XerahS.UI.Views;
 /// </summary>
 public class PageView : Border
 {
+    public PageView()
+    {
+        Classes.Add("xerahs-surface");
+    }
 }

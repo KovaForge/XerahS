@@ -133,7 +133,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
     private async void OnTextInputRequested(object? sender, EventArgs e)
     {
-        var dialog = new Window
+        var dialog = new SurfaceWindow
         {
             Title = "Enter Text",
             Width = 450,
@@ -184,7 +184,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
     private async void OnURLInputRequested(object? sender, EventArgs e)
     {
-        var dialog = new Window
+        var dialog = new SurfaceWindow
         {
             Title = "Enter URL",
             Width = 450,

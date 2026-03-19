@@ -184,15 +184,14 @@
               IsVisible="{Binding IsModalOpen}"
               ZIndex="1000">
             <!-- Backdrop -->
-            <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" 
-                    Opacity="0.8"
+            <Border Background="{DynamicResource XerahS.Brush.Overlay.Modal}"
                     PointerPressed="OnBackdropPointerPressed"/>
             
             <!-- Modal Content Wrapper (Scrollable if needed) -->
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <Grid>
                     <!-- Modal Dialog -->
-                    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="8"

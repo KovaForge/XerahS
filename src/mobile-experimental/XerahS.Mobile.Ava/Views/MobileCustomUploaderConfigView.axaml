@@ -19,7 +19,7 @@
                                    FontWeight="Bold"/>
                         <TextBlock Text="Add and manage custom HTTP uploaders"
                                    FontSize="13"
-                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   Classes="adaptive-muted"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
@@ -45,14 +45,14 @@
                                         <Border Grid.Column="0"
                                                 Width="36" Height="36"
                                                 CornerRadius="18"
-                                                Background="{DynamicResource SystemAccentColor}"
+                                                Background="{DynamicResource ThemeAccentBrush}"
                                                 Margin="0,0,12,0"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="&#x2601;"
                                                        FontSize="18"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
-                                                       Foreground="White"/>
+                                                       Foreground="{DynamicResource ThemeAccentForegroundBrush}"/>
                                         </Border>
 
                                         <!-- Name and host -->
@@ -62,20 +62,20 @@
                                                        FontSize="14"/>
                                             <TextBlock Text="{Binding HostName}"
                                                        FontSize="12"
-                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                       Classes="adaptive-muted"/>
                                         </StackPanel>
 
                                         <!-- Active badge -->
                                         <Border Grid.Column="2"
                                                 IsVisible="{Binding IsActive}"
                                                 CornerRadius="10"
-                                                Background="#1A4CAF50"
+                                                Background="{DynamicResource ThemeSuccessBackgroundBrush}"
                                                 Padding="10,4"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="ACTIVE"
                                                        FontSize="10"
                                                        FontWeight="Bold"
-                                                       Foreground="#4CAF50"/>
+                                                       Foreground="{DynamicResource ThemeSuccessBrush}"/>
                                         </Border>
                                     </Grid>
                                 </DataTemplate>
@@ -85,7 +85,7 @@
                         <!-- Empty state -->
                         <Border IsVisible="{Binding !CustomUploaders.Count}"
                                 CornerRadius="8"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource ThemeMutedForegroundBrush}"
                                 BorderThickness="1"
                                 Opacity="0.4"
                                 Padding="20"
@@ -99,7 +99,7 @@
                                            FontSize="13"
                                            FontStyle="Italic"
                                            HorizontalAlignment="Center"
-                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                           Classes="adaptive-muted"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -184,7 +184,7 @@
                                 <TextBox Text="{Binding EditorName, Mode=TwoWay}"
                                          Watermark="My Custom Uploader"
                                          Classes="adaptive-input"/>
-                                <Border BorderBrush="#FF6B6B"
+                                <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                         BorderThickness="2"
                                         CornerRadius="8"
                                         IsVisible="{Binding HasNameError}"
@@ -203,7 +203,7 @@
                             </WrapPanel>
                             <TextBlock Text="Select at least one destination type"
                                        FontSize="12"
-                                       Foreground="#FF6B6B"
+                                       Classes="adaptive-danger"
                                        IsVisible="{Binding HasDestinationError}"/>
                         </StackPanel>
                     </StackPanel>
@@ -232,7 +232,7 @@
                                     <TextBox Text="{Binding RequestUrl, Mode=TwoWay}"
                                              Watermark="https://example.com/api/upload"
                                              Classes="adaptive-input"/>
-                                    <Border BorderBrush="#FF6B6B"
+                                    <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                             BorderThickness="2"
                                             CornerRadius="8"
                                             IsVisible="{Binding HasUrlError}"
@@ -258,7 +258,7 @@
                                           x:Name="HeadersList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                        <Border Background="{DynamicResource ThemeSurfaceVariantBrush}"
                                                 CornerRadius="8"
                                                 Padding="8"
                                                 Margin="0,2">
@@ -282,7 +282,7 @@
                                                         FontSize="12"
                                                         HorizontalContentAlignment="Center"
                                                         VerticalContentAlignment="Center"
-                                                        Foreground="#FF6B6B"/>
+                                                        Foreground="{DynamicResource ThemeErrorBrush}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -307,7 +307,7 @@
                                           x:Name="ParametersList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                        <Border Background="{DynamicResource ThemeSurfaceVariantBrush}"
                                                 CornerRadius="8"
                                                 Padding="8"
                                                 Margin="0,2">
@@ -331,7 +331,7 @@
                                                         FontSize="12"
                                                         HorizontalContentAlignment="Center"
                                                         VerticalContentAlignment="Center"
-                                                        Foreground="#FF6B6B"/>
+                                                        Foreground="{DynamicResource ThemeErrorBrush}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -382,7 +382,7 @@
                                           x:Name="ArgumentsList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                        <Border Background="{DynamicResource ThemeSurfaceVariantBrush}"
                                                 CornerRadius="8"
                                                 Padding="8"
                                                 Margin="0,2">
@@ -406,7 +406,7 @@
                                                         FontSize="12"
                                                         HorizontalContentAlignment="Center"
                                                         VerticalContentAlignment="Center"
-                                                        Foreground="#FF6B6B"/>
+                                                        Foreground="{DynamicResource ThemeErrorBrush}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>

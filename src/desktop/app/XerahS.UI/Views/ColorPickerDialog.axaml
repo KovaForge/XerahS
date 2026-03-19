@@ -18,6 +18,11 @@
     <Design.DataContext>
         <vm:ColorPickerViewModel />
     </Design.DataContext>
+    <Window.Styles>
+        <Style Selector="Button.ColorSwatchButton">
+            <Setter Property="ToolTip.Placement" Value="Top"/>
+        </Style>
+    </Window.Styles>
     <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
             Padding="24">
         <Grid ColumnDefinitions="2*, 24, *"

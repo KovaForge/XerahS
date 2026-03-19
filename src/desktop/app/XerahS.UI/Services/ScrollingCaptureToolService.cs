@@ -139,7 +139,7 @@ public static class ScrollingCaptureToolService
                     DataContext = selectorViewModel
                 };
 
-                var selectorWindow = new Window
+                var selectorWindow = new SurfaceWindow
                 {
                     Title = "Select Window to Capture",
                     Width = 400,

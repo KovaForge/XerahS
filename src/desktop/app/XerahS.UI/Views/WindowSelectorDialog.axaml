@@ -5,6 +5,7 @@
              xmlns:vm="using:XerahS.UI.ViewModels"
              xmlns:platform="using:XerahS.Platform.Abstractions"
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
+             Classes="xerahs-surface"
              x:Class="XerahS.UI.Views.WindowSelectorDialog"
              x:DataType="vm:WindowSelectorViewModel">
 

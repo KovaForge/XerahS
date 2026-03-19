@@ -93,7 +93,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             try
             {
                 var viewModel = new WindowSelectorViewModel();
-                var dialog = new Window
+                var dialog = new SurfaceWindow
                 {
                     Title = "Select Window to Capture",
                     Width = 400,

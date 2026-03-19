@@ -1,4 +1,4 @@
-﻿<Styles xmlns="https://github.com/avaloniaui"
+<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Styles.Resources>
@@ -7,53 +7,53 @@
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
-                    <Color x:Key="iOSPrimaryColor">#007AFF</Color>
-                    <Color x:Key="iOSBackgroundColor">#F2F2F7</Color>
-                    <Color x:Key="iOSNavbarColor">#F8F8F8</Color>
-                    <Color x:Key="iOSCardColor">#FFFFFF</Color>
-                    <Color x:Key="iOSInputColor">#E5E5EA</Color>
-                    <Color x:Key="iOSTextColor">#1C1C1E</Color>
+                    <Color x:Key="ThemeBackgroundColor">#FFF2F2F7</Color>
+                    <Color x:Key="ThemeSurfaceColor">#FFFFFFFF</Color>
+                    <Color x:Key="ThemeSurfaceVariantColor">#FFE5E5EA</Color>
+                    <Color x:Key="ThemeForegroundColor">#FF1C1C1E</Color>
+                    <Color x:Key="ThemeMutedForegroundColor">#FF6B7280</Color>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
-                    <Color x:Key="iOSPrimaryColor">#0A84FF</Color>
-                    <Color x:Key="iOSBackgroundColor">#000000</Color>
-                    <Color x:Key="iOSNavbarColor">#1C1C1E</Color>
-                    <Color x:Key="iOSCardColor">#1C1C1E</Color>
-                    <Color x:Key="iOSInputColor">#2C2C2E</Color>
-                    <Color x:Key="iOSTextColor">#E5E5EA</Color>
+                    <Color x:Key="ThemeBackgroundColor">#FF1B1B1F</Color>
+                    <Color x:Key="ThemeSurfaceColor">#FF2C2C2E</Color>
+                    <Color x:Key="ThemeSurfaceVariantColor">#FF3A3A3C</Color>
+                    <Color x:Key="ThemeForegroundColor">#FFF2F2F7</Color>
+                    <Color x:Key="ThemeMutedForegroundColor">#FFAEAEB2</Color>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
-            <SolidColorBrush x:Key="iOSPrimaryBrush" Color="{DynamicResource iOSPrimaryColor}"/>
-            <SolidColorBrush x:Key="iOSBackgroundBrush" Color="{DynamicResource iOSBackgroundColor}"/>
-            <SolidColorBrush x:Key="iOSNavbarBrush" Color="{DynamicResource iOSNavbarColor}"/>
-            <SolidColorBrush x:Key="iOSCardBrush" Color="{DynamicResource iOSCardColor}"/>
-            <SolidColorBrush x:Key="iOSInputBrush" Color="{DynamicResource iOSInputColor}"/>
-            <SolidColorBrush x:Key="iOSTextBrush" Color="{DynamicResource iOSTextColor}"/>
+            <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="{DynamicResource ThemeBackgroundColor}"/>
+            <SolidColorBrush x:Key="ThemeSurfaceBrush" Color="{DynamicResource ThemeSurfaceColor}"/>
+            <SolidColorBrush x:Key="ThemeSurfaceVariantBrush" Color="{DynamicResource ThemeSurfaceVariantColor}"/>
+            <SolidColorBrush x:Key="ThemeForegroundBrush" Color="{DynamicResource ThemeForegroundColor}"/>
+            <SolidColorBrush x:Key="ThemeMutedForegroundBrush" Color="{DynamicResource ThemeMutedForegroundColor}"/>
+            <SolidColorBrush x:Key="ThemeAccentBrush" Color="{DynamicResource SystemAccentColor}"/>
+            <SolidColorBrush x:Key="ThemeAccentForegroundBrush" Color="White"/>
         </ResourceDictionary>
     </Styles.Resources>
 
-    <Style Selector="UserControl[Tag=ios]">
-        <Setter Property="Background" Value="{StaticResource iOSBackgroundBrush}"/>
+    <Style Selector="UserControl">
+        <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] TextBlock">
+    <Style Selector="UserControl TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource iOSFont}"/>
-        <Setter Property="Foreground" Value="{StaticResource iOSTextBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Button">
+    <Style Selector="UserControl Button">
         <Setter Property="FontFamily" Value="{StaticResource iOSFont}"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] TextBox">
+    <Style Selector="UserControl TextBox">
         <Setter Property="FontFamily" Value="{StaticResource iOSFont}"/>
-        <Setter Property="Foreground" Value="{StaticResource iOSTextBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
     </Style>
 
     <Style Selector="Button.cupertino-primary">
-        <Setter Property="Background" Value="{StaticResource iOSPrimaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeAccentForegroundBrush}"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="16,12"/>
         <Setter Property="FontFamily" Value="{StaticResource iOSFont}"/>
@@ -68,7 +68,7 @@
 
     <Style Selector="Button.cupertino-secondary">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource iOSPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeAccentBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="FontFamily" Value="{StaticResource iOSFont}"/>
         <Setter Property="Padding" Value="12,8"/>
@@ -80,7 +80,7 @@
     </Style>
 
     <Style Selector="TextBox.cupertino-input">
-        <Setter Property="Background" Value="{StaticResource iOSInputBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeSurfaceVariantBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="12,10"/>
@@ -89,7 +89,7 @@
     </Style>
 
     <Style Selector="Grid.cupertino-navbar">
-        <Setter Property="Background" Value="{StaticResource iOSNavbarBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeSurfaceBrush}"/>
         <Setter Property="Height" Value="56"/>
     </Style>
 
@@ -102,15 +102,15 @@
     </Style>
 
     <Style Selector="Border.cupertino-card">
-        <Setter Property="Background" Value="{StaticResource iOSCardBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeSurfaceBrush}"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Padding" Value="16"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Button.adaptive-primary">
-        <Setter Property="Background" Value="{StaticResource iOSPrimaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+    <Style Selector="Button.adaptive-primary">
+        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeAccentForegroundBrush}"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="16,12"/>
         <Setter Property="FontFamily" Value="{StaticResource iOSFont}"/>
@@ -119,55 +119,55 @@
         <Setter Property="MinHeight" Value="44"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Button.adaptive-primary:pressed">
+    <Style Selector="Button.adaptive-primary:pressed">
         <Setter Property="Opacity" Value="0.6"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Button.adaptive-secondary">
+    <Style Selector="Button.adaptive-secondary">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource iOSPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeAccentBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="12,8"/>
         <Setter Property="MinHeight" Value="44"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Button.adaptive-secondary:pressed">
+    <Style Selector="Button.adaptive-secondary:pressed">
         <Setter Property="Opacity" Value="0.5"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] TextBox.adaptive-input">
-        <Setter Property="Background" Value="{StaticResource iOSInputBrush}"/>
+    <Style Selector="TextBox.adaptive-input">
+        <Setter Property="Background" Value="{DynamicResource ThemeSurfaceVariantBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="12,10"/>
         <Setter Property="MinHeight" Value="44"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] ComboBox.adaptive-input">
+    <Style Selector="ComboBox.adaptive-input">
         <Setter Property="MinHeight" Value="44"/>
         <Setter Property="CornerRadius" Value="10"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Grid.adaptive-navbar">
-        <Setter Property="Background" Value="{StaticResource iOSNavbarBrush}"/>
+    <Style Selector="Grid.adaptive-navbar">
+        <Setter Property="Background" Value="{DynamicResource ThemeSurfaceBrush}"/>
         <Setter Property="Height" Value="56"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] TextBlock.adaptive-navbar-title">
+    <Style Selector="TextBlock.adaptive-navbar-title">
         <Setter Property="FontSize" Value="17"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] Border.adaptive-card">
-        <Setter Property="Background" Value="{StaticResource iOSCardBrush}"/>
+    <Style Selector="Border.adaptive-card">
+        <Setter Property="Background" Value="{DynamicResource ThemeSurfaceBrush}"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Padding" Value="16"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
-    <Style Selector="UserControl[Tag=ios] ScrollViewer.adaptive-scroll">
+    <Style Selector="ScrollViewer.adaptive-scroll">
         <Setter Property="ScrollViewer.IsScrollInertiaEnabled" Value="True"/>
     </Style>
 
