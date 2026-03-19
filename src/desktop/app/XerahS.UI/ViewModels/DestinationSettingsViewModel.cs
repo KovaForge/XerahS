@@ -29,7 +29,6 @@ using Newtonsoft.Json.Linq;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Services.Abstractions;
-using XerahS.UI.Views;
 using XerahS.Uploaders;
 using XerahS.Uploaders.CustomUploader;
 using XerahS.Uploaders.LegacySupport;
