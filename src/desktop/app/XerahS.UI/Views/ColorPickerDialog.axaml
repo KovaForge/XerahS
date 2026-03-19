@@ -22,6 +22,9 @@
         <Style Selector="Button.ColorSwatchButton">
             <Setter Property="ToolTip.Placement" Value="Top"/>
         </Style>
+        <Style Selector="StackPanel.ColorSwatchItem">
+            <Setter Property="Width" Value="88"/>
+        </Style>
     </Window.Styles>
     <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
             Padding="24">
@@ -88,15 +91,15 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="x:Object">
-                                <StackPanel Spacing="4" Margin="0,0,6,6" Width="88">
+                                <StackPanel Classes="ColorSwatchItem" Spacing="4" Margin="0,0,6,6">
                                     <Button Command="{ReflectionBinding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"
                                             Classes="ColorSwatchButton"
-                                            Padding="0" Width="26" Height="26"
+                                            Padding="0" Height="26"
                                             Background="Transparent" BorderThickness="0"
                                             HorizontalContentAlignment="Stretch"
                                             VerticalContentAlignment="Stretch"
-                                            HorizontalAlignment="Center"
+                                            HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding Converter={StaticResource ColorToNameConverter}}"
                                             AutomationProperties.Name="{Binding Converter={StaticResource ColorToNameConverter}}">
                                         <Border CornerRadius="4" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
@@ -129,15 +132,15 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="x:Object">
-                                <StackPanel Spacing="4" Margin="0,0,6,6" Width="88">
+                                <StackPanel Classes="ColorSwatchItem" Spacing="4" Margin="0,0,6,6">
                                     <Button Command="{ReflectionBinding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"
                                             Classes="ColorSwatchButton"
-                                            Padding="0" Width="26" Height="26"
+                                            Padding="0" Height="26"
                                             Background="Transparent" BorderThickness="0"
                                             HorizontalContentAlignment="Stretch"
                                             VerticalContentAlignment="Stretch"
-                                            HorizontalAlignment="Center"
+                                            HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding Converter={StaticResource ColorToNameConverter}}"
                                             AutomationProperties.Name="{Binding Converter={StaticResource ColorToNameConverter}}">
                                         <Border CornerRadius="4" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
