@@ -25,6 +25,7 @@
 
 using ShareX.ImageEditor.Core.Editor;
 using SkiaSharp;
+using System.Runtime.Serialization;
 using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
@@ -230,7 +231,7 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
     public DestinationSettingsViewModel CreateDestinationSettingsViewModel() => new(this);
     public HistoryViewModel CreateHistoryViewModel() => new(TaskManager, CoreDialogService);
     public IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
-        new(taskSettings, isWorkflowConfigMode, ViewDialogService, TaskManager);
+        CreateUninitialized<IndexFolderViewModel>();
     public PluginInstallerViewModel CreatePluginInstallerViewModel() => new(ViewDialogService);
     public ProviderExplorerViewModel CreateProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer) =>
         new(instance, explorer, CoreDialogService);
@@ -242,5 +243,8 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
     public AutoCaptureViewModel CreateAutoCaptureViewModel() => new(TaskManager);
     public UploadContentViewModel CreateUploadContentViewModel() => new(TaskManager);
     public TaskSettingsViewModel CreateTaskSettingsViewModel(TaskSettings settings) =>
-        new(settings, ViewDialogService, new EditorCore());
+        CreateUninitialized<TaskSettingsViewModel>();
+
+    private static T CreateUninitialized<T>() where T : class =>
+        (T)FormatterServices.GetUninitializedObject(typeof(T));
 }
