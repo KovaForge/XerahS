@@ -9,25 +9,8 @@
 
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <Color x:Key="AnnotationToolbarSurfaceColor">#FFF4F5F7</Color>
-                    <Color x:Key="AnnotationToolbarBorderColor">#FFD7DCE3</Color>
-                    <Color x:Key="AnnotationToolbarTextColor">#FF111827</Color>
-                    <Color x:Key="AnnotationToolbarDividerColor">#FFC7CED8</Color>
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Dark">
-                    <Color x:Key="AnnotationToolbarSurfaceColor">#FF23272F</Color>
-                    <Color x:Key="AnnotationToolbarBorderColor">#FF3A404A</Color>
-                    <Color x:Key="AnnotationToolbarTextColor">#FFF3F4F6</Color>
-                    <Color x:Key="AnnotationToolbarDividerColor">#FF4A525E</Color>
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-            <SolidColorBrush x:Key="AnnotationToolbarSurfaceBrush" Color="{DynamicResource AnnotationToolbarSurfaceColor}"/>
-            <SolidColorBrush x:Key="AnnotationToolbarBorderBrush" Color="{DynamicResource AnnotationToolbarBorderColor}"/>
-            <SolidColorBrush x:Key="AnnotationToolbarTextBrush" Color="{DynamicResource AnnotationToolbarTextColor}"/>
-            <SolidColorBrush x:Key="AnnotationToolbarDividerBrush" Color="{DynamicResource AnnotationToolbarDividerColor}"/>
             <SolidColorBrush x:Key="AnnotationToolbarActiveBrush" Color="{DynamicResource SystemAccentColor}"/>
+            <SolidColorBrush x:Key="AnnotationToolbarActiveForegroundBrush" Color="{DynamicResource ShareX.Color.Text}"/>
             <converters:EqualsConverter x:Key="EqualsConverter"/>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -35,10 +18,10 @@
     <UserControl.Styles>
         <Style Selector="Button.editor-button">
             <Setter Property="Height" Value="40"/>
-            <Setter Property="Background" Value="{DynamicResource AnnotationToolbarSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AnnotationToolbarBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ShareX.Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ShareX.Brush.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{DynamicResource AnnotationToolbarTextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ShareX.Brush.Text}"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -46,8 +29,8 @@
         </Style>
 
         <Style Selector="Border.popup-border">
-            <Setter Property="Background" Value="{DynamicResource AnnotationToolbarSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AnnotationToolbarBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ShareX.Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ShareX.Brush.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="8"/>
@@ -57,10 +40,10 @@
         <Style Selector="Button.toolbar-button">
             <Setter Property="Height" Value="36"/>
             <Setter Property="MinWidth" Value="40"/>
-            <Setter Property="Background" Value="{DynamicResource AnnotationToolbarSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AnnotationToolbarBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ShareX.Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ShareX.Brush.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{DynamicResource AnnotationToolbarTextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ShareX.Brush.Text}"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="FontFamily" Value="{DynamicResource ShareX.FontFamily.Icon}"/>
@@ -71,12 +54,14 @@
 
             <Style Selector="^.active">
                 <Setter Property="Background" Value="{DynamicResource AnnotationToolbarActiveBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AnnotationToolbarActiveBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AnnotationToolbarActiveForegroundBrush}"/>
             </Style>
         </Style>
     </UserControl.Styles>
 
-    <Border Background="{DynamicResource AnnotationToolbarSurfaceBrush}"
-            BorderBrush="{DynamicResource AnnotationToolbarBorderBrush}"
+    <Border Background="{DynamicResource ShareX.Brush.Control.Background}"
+            BorderBrush="{DynamicResource ShareX.Brush.Border}"
             BorderThickness="1"
             CornerRadius="8"
             Padding="8">
@@ -167,7 +152,7 @@
                         ToolTip.Tip="Spotlight"
                         Content="{x:Static theming:EditorIcons.ToolSpotlight}"/>
 
-                <Border Width="1" Margin="4,0" Background="{DynamicResource AnnotationToolbarDividerBrush}"/>
+                <Border Width="1" Margin="4,0" Background="{DynamicResource ShareX.Brush.Separator}"/>
 
                 <Button Classes="toolbar-button"
                         MinWidth="44"

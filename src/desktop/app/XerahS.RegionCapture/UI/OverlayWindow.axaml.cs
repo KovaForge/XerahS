@@ -34,6 +34,7 @@ using Avalonia.Threading;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Presentation.Rendering;
+using ShareX.ImageEditor.Presentation.Theming;
 using XerahS.RegionCapture.UI.Controls;
 using SkiaSharp;
 using System.Diagnostics;
@@ -92,6 +93,7 @@ public partial class OverlayWindow : Window
         _captureControl = new RegionCaptureControl(_monitor);
         _viewModel = new RegionCaptureAnnotationViewModel();
         InitializeComponent();
+        InitializeThemeScope();
         DataContext = _viewModel;
     }
 
@@ -132,6 +134,7 @@ public partial class OverlayWindow : Window
         _viewModel.EditorCore.EditAnnotationRequested += OnEditAnnotationRequested;
 
         InitializeComponent();
+        InitializeThemeScope();
         DataContext = _viewModel;
 
         bool isWindows = OperatingSystem.IsWindows();
@@ -177,6 +180,7 @@ public partial class OverlayWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        ThemeManager.ThemeChanged -= OnThemeChanged;
         _windowClosed = true;
         base.OnClosed(e);
     }
@@ -284,6 +288,18 @@ public partial class OverlayWindow : Window
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+    }
+
+    private void InitializeThemeScope()
+    {
+        RequestedThemeVariant = ThemeManager.GetCurrentTheme();
+        ThemeManager.ThemeChanged -= OnThemeChanged;
+        ThemeManager.ThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged(object? sender, Avalonia.Styling.ThemeVariant theme)
+    {
+        Dispatcher.UIThread.Post(() => RequestedThemeVariant = theme);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
