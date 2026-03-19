@@ -41,7 +41,7 @@ namespace XerahS.UI.Views
             Classes.Add("xerahs-editor-host");
 
             RequestedThemeVariant = ThemeManager.GetCurrentTheme();
-            ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
+            ThemeManager.ThemeChanged += OnThemeChanged;
         }
 
         private void InitializeComponent()
@@ -68,6 +68,8 @@ namespace XerahS.UI.Views
 
         protected override void OnClosed(EventArgs e)
         {
+            ThemeManager.ThemeChanged -= OnThemeChanged;
+
             if (_viewModel != null)
             {
                 _viewModel.CloseRequested -= OnViewModelCloseRequested;
@@ -81,6 +83,11 @@ namespace XerahS.UI.Views
         {
             IsCloseRequestedByViewModel = true;
             Close();
+        }
+
+        private void OnThemeChanged(object? sender, Avalonia.Styling.ThemeVariant theme)
+        {
+            RequestedThemeVariant = theme;
         }
     }
 }

@@ -58,10 +58,6 @@
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
 
-      <FontFamily x:Key="ShareX.FontFamily.Default">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
-      <FontFamily x:Key="ShareX.FontFamily.Icon">avares://ShareX.ImageEditor/Assets#lucide</FontFamily>
-      <FontFamily x:Key="ShareX.FontFamily.Monospace">Cascadia Mono, Consolas, Courier New, Monospace</FontFamily>
-
       <SolidColorBrush x:Key="XerahS.Brush.Surface.Window"
                        Color="{DynamicResource XerahS.Color.Surface.Window}" />
       <SolidColorBrush x:Key="XerahS.Brush.Surface.Panel"
@@ -114,80 +110,15 @@
                        Color="{DynamicResource XerahS.Color.OnOverlay}"
                        Opacity="0.78" />
 
-      <SolidColorBrush x:Key="ShareX.Brush.Accent"
-                       Color="{DynamicResource SystemAccentColor}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Text"
-                       Color="{DynamicResource XerahS.Color.Text.Primary}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Text.Secondary"
-                       Color="{DynamicResource XerahS.Color.Text.Secondary}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Background.Main"
-                       Color="{DynamicResource XerahS.Color.Surface.Window}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Background.Panel"
-                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Background.Popup"
-                       Color="{DynamicResource XerahS.Color.Surface.Card}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Background.Toolbar"
-                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Border"
-                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Control.Background"
-                       Color="{DynamicResource XerahS.Color.Surface.Input}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Hover"
-                       Color="{DynamicResource XerahS.Color.Surface.InputHover}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Control.Border"
-                       Color="{DynamicResource XerahS.Color.Stroke.Control}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Control.Background.Disabled"
-                       Color="{DynamicResource XerahS.Color.Surface.Panel}" />
-      <SolidColorBrush x:Key="ShareX.Brush.Separator"
-                       Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
-
-      <DrawingBrush x:Key="ShareX.Brush.Checkered" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
-        <DrawingBrush.Drawing>
-          <DrawingGroup>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0,0,30,30" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
-              <GeometryDrawing.Geometry>
-                <GeometryGroup>
-                  <RectangleGeometry Rect="0,0,15,15" />
-                  <RectangleGeometry Rect="15,15,15,15" />
-                </GeometryGroup>
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-          </DrawingGroup>
-        </DrawingBrush.Drawing>
-      </DrawingBrush>
-      <DrawingBrush x:Key="ShareX.Brush.Checkered.Small" TileMode="Tile" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
-        <DrawingBrush.Drawing>
-          <DrawingGroup>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
-              <GeometryDrawing.Geometry>
-                <RectangleGeometry Rect="0,0,8,8" />
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
-              <GeometryDrawing.Geometry>
-                <GeometryGroup>
-                  <RectangleGeometry Rect="0,0,4,4" />
-                  <RectangleGeometry Rect="4,4,4,4" />
-                </GeometryGroup>
-              </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-          </DrawingGroup>
-        </DrawingBrush.Drawing>
-      </DrawingBrush>
       <DrawingBrush x:Key="CheckerBrush" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
         <DrawingBrush.Drawing>
           <DrawingGroup>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+            <GeometryDrawing Brush="{DynamicResource XerahS.Brush.Surface.Window}">
               <GeometryDrawing.Geometry>
                 <RectangleGeometry Rect="0,0,30,30" />
               </GeometryDrawing.Geometry>
             </GeometryDrawing>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+            <GeometryDrawing Brush="{DynamicResource XerahS.Brush.Surface.Panel}">
               <GeometryDrawing.Geometry>
                 <GeometryGroup>
                   <RectangleGeometry Rect="0,0,15,15" />
@@ -201,12 +132,12 @@
       <DrawingBrush x:Key="CheckerBrushSmall" TileMode="Tile" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
         <DrawingBrush.Drawing>
           <DrawingGroup>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Main}">
+            <GeometryDrawing Brush="{DynamicResource XerahS.Brush.Surface.Window}">
               <GeometryDrawing.Geometry>
                 <RectangleGeometry Rect="0,0,8,8" />
               </GeometryDrawing.Geometry>
             </GeometryDrawing>
-            <GeometryDrawing Brush="{DynamicResource ShareX.Brush.Background.Panel}">
+            <GeometryDrawing Brush="{DynamicResource XerahS.Brush.Surface.Panel}">
               <GeometryDrawing.Geometry>
                 <GeometryGroup>
                   <RectangleGeometry Rect="0,0,4,4" />
