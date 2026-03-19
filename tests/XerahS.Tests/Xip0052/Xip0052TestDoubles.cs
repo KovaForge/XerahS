@@ -61,28 +61,37 @@ internal sealed class FakeDesktopTaskManager : IDesktopTaskManager
     public int StartFileTaskCalls { get; private set; }
     public int StartImageUploadTaskCalls { get; private set; }
     public int StartTextTaskCalls { get; private set; }
+    public TaskSettings? LastTaskSettings { get; private set; }
+    public string? LastFilePath { get; private set; }
+    public string? LastText { get; private set; }
 
     public Task StartTask(TaskSettings? taskSettings, SKBitmap? inputImage = null)
     {
         StartTaskCalls++;
+        LastTaskSettings = taskSettings;
         return Task.CompletedTask;
     }
 
     public Task StartFileTask(TaskSettings? taskSettings, string filePath)
     {
         StartFileTaskCalls++;
+        LastTaskSettings = taskSettings;
+        LastFilePath = filePath;
         return Task.CompletedTask;
     }
 
     public Task StartImageUploadTask(TaskSettings? taskSettings, SKBitmap image)
     {
         StartImageUploadTaskCalls++;
+        LastTaskSettings = taskSettings;
         return Task.CompletedTask;
     }
 
     public Task StartTextTask(TaskSettings? taskSettings, string text)
     {
         StartTextTaskCalls++;
+        LastTaskSettings = taskSettings;
+        LastText = text;
         return Task.CompletedTask;
     }
 
@@ -121,11 +130,19 @@ internal sealed class FakeScreenRecordingCoordinator : IScreenRecordingCoordinat
     public Task? PlatformInitializationTask { get; set; }
 
     public int AbortCalls { get; private set; }
+    public int StartCalls { get; private set; }
     public int StopCalls { get; private set; }
     public int TogglePauseResumeCalls { get; private set; }
     public int SignalStopCalls { get; private set; }
+    public RecordingOptions? LastRecordingOptions { get; private set; }
 
-    public Task StartRecordingAsync(RecordingOptions options) => Task.CompletedTask;
+    public Task StartRecordingAsync(RecordingOptions options)
+    {
+        StartCalls++;
+        LastRecordingOptions = options;
+        return Task.CompletedTask;
+    }
+
     public Task<string?> StopRecordingAsync()
     {
         StopCalls++;
@@ -152,6 +169,16 @@ internal sealed class FakeScreenRecordingCoordinator : IScreenRecordingCoordinat
     public void RaiseStatusChanged(RecordingStatus status, TimeSpan duration)
     {
         _statusChanged?.Invoke(this, new RecordingStatusEventArgs(status, duration));
+    }
+
+    public void RaiseErrorOccurred(Exception error, bool isFatal = false)
+    {
+        _errorOccurred?.Invoke(this, new RecordingErrorEventArgs(error, isFatal));
+    }
+
+    public void RaiseRecordingStarted(bool isUsingFallback, RecordingOptions options)
+    {
+        _recordingStarted?.Invoke(this, new RecordingStartedEventArgs(isUsingFallback, options));
     }
 }
 
