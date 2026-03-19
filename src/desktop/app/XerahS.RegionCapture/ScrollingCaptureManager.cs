@@ -76,11 +76,15 @@ namespace XerahS.RegionCapture
             IProgress<ScrollingCaptureProgress>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            var result = new ScrollingCaptureResult();
+            var result = new ScrollingCaptureResult
+            {
+                Status = ScrollingCaptureStatus.Successful
+            };
             SKBitmap? stitchedResult = null;
             SKBitmap? previousFrame = null;
             int bestMatchCount = 0;
-            int lastBestMatchOffset = 0;
+            int bestMatchIndex = 0;
+            int bestIgnoreBottomOffset = 0;
 
             try
             {
@@ -132,7 +136,7 @@ namespace XerahS.RegionCapture
                         // First frame - use as initial result
                         stitchedResult = currentFrame.Copy();
                         previousFrame = currentFrame;
-                        lastResultHeight = stitchedResult?.Height ?? 0;
+                        lastResultHeight = stitchedResult.Height;
                     }
                     else
                     {
@@ -154,43 +158,49 @@ namespace XerahS.RegionCapture
                             currentFrame,
                             autoIgnoreBottomEdge,
                             ref bestMatchCount,
-                            ref lastBestMatchOffset);
+                            ref bestMatchIndex,
+                            ref bestIgnoreBottomOffset);
 
-                        if (stitchResult.NewImage != null)
+                        if (stitchResult.NewImage == null)
                         {
-                            stitchedResult?.Dispose();
-                            stitchedResult = stitchResult.NewImage;
-
-                            if (stitchResult.Status == ScrollingCaptureStatus.Failed && result.Status != ScrollingCaptureStatus.PartiallySuccessful)
-                            {
-                                result.Status = ScrollingCaptureStatus.Failed;
-                            }
-                            else if (stitchResult.Status == ScrollingCaptureStatus.PartiallySuccessful)
-                            {
-                                result.Status = ScrollingCaptureStatus.PartiallySuccessful;
-                            }
-
-                            // No-progress detection: stop if stitched height hasn't increased for several frames
-                            // (avoids infinite loop when scroll bar never reports bottom or content keeps changing)
-                            int currentHeight = stitchedResult?.Height ?? 0;
-                            if (currentHeight <= lastResultHeight + 2)
-                            {
-                                noProgressCount++;
-                                if (noProgressCount >= NoProgressLimit)
-                                {
-                                    DebugHelper.WriteLine("ScrollingCapture: No height progress - stopping to avoid infinite loop.");
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                noProgressCount = 0;
-                            }
-
-                            lastResultHeight = currentHeight;
+                            result.Status = stitchResult.Status;
+                            currentFrame.Dispose();
+                            break;
                         }
 
-                        previousFrame?.Dispose();
+                        stitchedResult?.Dispose();
+                        stitchedResult = stitchResult.NewImage;
+
+                        if (stitchResult.Status == ScrollingCaptureStatus.Failed &&
+                            result.Status != ScrollingCaptureStatus.PartiallySuccessful)
+                        {
+                            result.Status = ScrollingCaptureStatus.Failed;
+                        }
+                        else if (stitchResult.Status == ScrollingCaptureStatus.PartiallySuccessful)
+                        {
+                            result.Status = ScrollingCaptureStatus.PartiallySuccessful;
+                        }
+
+                        // No-progress detection: stop if stitched height hasn't increased for several frames
+                        // (avoids infinite loop when scroll bar never reports bottom or content keeps changing)
+                        int currentHeight = stitchedResult.Height;
+                        if (currentHeight <= lastResultHeight + 2)
+                        {
+                            noProgressCount++;
+                            if (noProgressCount >= NoProgressLimit)
+                            {
+                                DebugHelper.WriteLine("ScrollingCapture: No height progress - stopping to avoid infinite loop.");
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            noProgressCount = 0;
+                        }
+
+                        lastResultHeight = currentHeight;
+
+                        previousFrame.Dispose();
                         previousFrame = currentFrame;
 
                         if (scrollAtBottom)
@@ -210,7 +220,8 @@ namespace XerahS.RegionCapture
                     await Task.Delay(remainingDelay, cancellationToken);
                 }
 
-                if (result.Status != ScrollingCaptureStatus.Failed && result.Status != ScrollingCaptureStatus.PartiallySuccessful)
+                if (result.Status != ScrollingCaptureStatus.Failed &&
+                    result.Status != ScrollingCaptureStatus.PartiallySuccessful)
                 {
                     result.Status = ScrollingCaptureStatus.Successful;
                 }
@@ -236,7 +247,9 @@ namespace XerahS.RegionCapture
         private static bool AreFramesIdentical(SKBitmap a, SKBitmap b)
         {
             if (a.Width != b.Width || a.Height != b.Height)
+            {
                 return false;
+            }
 
             var spanA = a.GetPixelSpan();
             var spanB = b.GetPixelSpan();
@@ -252,151 +265,173 @@ namespace XerahS.RegionCapture
             SKBitmap currentFrame,
             bool autoIgnoreBottomEdge,
             ref int bestMatchCount,
-            ref int lastBestMatchOffset)
+            ref int bestMatchIndex,
+            ref int bestIgnoreBottomOffset)
         {
-            int width = result.Width;
-            int currentHeight = currentFrame.Height;
-            int resultHeight = result.Height;
+            int ignoreSideOffset = Math.Max(50, currentFrame.Width / 20);
+            ignoreSideOffset = Math.Min(ignoreSideOffset, currentFrame.Width / 3);
 
-            // Ignore side margins (scrollbar area) during comparison
-            int ignoreSideOffset = Math.Max(5, Math.Min(width / 3, 50));
+            int ignoreBottomOffset = CalculateIgnoreBottomOffset(
+                result,
+                currentFrame,
+                ignoreSideOffset,
+                autoIgnoreBottomEdge,
+                bestIgnoreBottomOffset);
 
-            // Auto-detect bottom edge offset (non-scrolling UI elements like status bars)
-            int ignoreBottomOffset = 0;
-            if (autoIgnoreBottomEdge)
+            int matchIndex = FindBestMatchIndex(
+                result,
+                currentFrame,
+                ignoreSideOffset,
+                ignoreBottomOffset,
+                out int matchCount);
+
+            bool bestGuess = false;
+
+            if (matchCount == 0 && bestMatchCount > 0)
             {
-                ignoreBottomOffset = DetectBottomEdgeOffset(result, currentFrame, ignoreSideOffset);
+                matchCount = bestMatchCount;
+                matchIndex = bestMatchIndex;
+                ignoreBottomOffset = bestIgnoreBottomOffset;
+                bestGuess = true;
             }
 
-            // Find the best overlap between bottom of result and top of current frame
-            int matchOffset = FindBestOverlap(result, currentFrame, ignoreSideOffset, ignoreBottomOffset, out int matchQuality);
-
-            if (matchOffset <= 0)
+            if (matchCount > 0)
             {
-                // No overlap found - try using last known good offset as fallback
-                if (bestMatchCount > 0 && lastBestMatchOffset > 0)
+                int matchHeight = currentFrame.Height - matchIndex - 1;
+                if (matchHeight > 0)
                 {
-                    matchOffset = lastBestMatchOffset;
+                    if (matchCount > bestMatchCount)
+                    {
+                        bestMatchCount = matchCount;
+                        bestMatchIndex = matchIndex;
+                        bestIgnoreBottomOffset = ignoreBottomOffset;
+                    }
+
                     return new StitchResult
                     {
-                        NewImage = CreateStitchedImage(result, currentFrame, matchOffset, ignoreBottomOffset),
-                        Status = ScrollingCaptureStatus.PartiallySuccessful
+                        NewImage = CreateStitchedImage(result, currentFrame, matchIndex, ignoreBottomOffset),
+                        Status = bestGuess ? ScrollingCaptureStatus.PartiallySuccessful : ScrollingCaptureStatus.Successful
                     };
                 }
-
-                // Complete failure - no overlap found and no fallback
-                return new StitchResult
-                {
-                    NewImage = CreateStitchedImage(result, currentFrame, currentHeight / 2, 0),
-                    Status = ScrollingCaptureStatus.Failed
-                };
             }
-
-            bestMatchCount++;
-            lastBestMatchOffset = matchOffset;
 
             return new StitchResult
             {
-                NewImage = CreateStitchedImage(result, currentFrame, matchOffset, ignoreBottomOffset),
-                Status = ScrollingCaptureStatus.Successful
+                Status = ScrollingCaptureStatus.Failed
             };
         }
 
         /// <summary>
-        /// Detects the bottom edge offset — how many bottom rows are identical between
-        /// consecutive frames (non-scrolling UI elements like status bars).
+        /// Calculates the bottom edge offset to ignore while matching.
         /// </summary>
-        private static int DetectBottomEdgeOffset(SKBitmap result, SKBitmap current, int ignoreSideOffset)
+        private static int CalculateIgnoreBottomOffset(
+            SKBitmap result,
+            SKBitmap current,
+            int ignoreSideOffset,
+            bool autoIgnoreBottomEdge,
+            int bestIgnoreBottomOffset)
         {
-            int width = result.Width;
-            int resultHeight = result.Height;
-            int currentHeight = current.Height;
-            int maxOffset = Math.Min(resultHeight / 3, currentHeight / 3);
+            if (!autoIgnoreBottomEdge)
+            {
+                return 0;
+            }
 
-            int bytesPerPixel = result.BytesPerPixel;
+            int ignoreBottomOffsetMax = current.Height / 3;
+            if (ignoreBottomOffsetMax <= 0)
+            {
+                return 0;
+            }
+
+            int ignoreBottomOffset = Math.Max(50, current.Height / 10);
+            ignoreBottomOffset = Math.Min(ignoreBottomOffset, ignoreBottomOffsetMax);
+
+            int bytesPerPixel = current.BytesPerPixel;
             int compareStart = ignoreSideOffset * bytesPerPixel;
-            int compareLength = (width - ignoreSideOffset * 2) * bytesPerPixel;
-
-            if (compareLength <= 0) return 0;
+            int compareLength = (current.Width - ignoreSideOffset * 2) * bytesPerPixel;
+            if (compareLength <= 0)
+            {
+                return 0;
+            }
 
             var resultSpan = result.GetPixelSpan();
             var currentSpan = current.GetPixelSpan();
             int resultStride = result.RowBytes;
             int currentStride = current.RowBytes;
 
-            for (int i = 0; i < maxOffset; i++)
+            for (int offset = 0; offset <= ignoreBottomOffsetMax; offset++)
             {
-                int resultRowStart = (resultHeight - 1 - i) * resultStride + compareStart;
-                int currentRowStart = (currentHeight - 1 - i) * currentStride + compareStart;
-
-                if (resultRowStart + compareLength > resultSpan.Length ||
-                    currentRowStart + compareLength > currentSpan.Length)
-                    break;
-
-                var resultRow = resultSpan.Slice(resultRowStart, compareLength);
-                var currentRow = currentSpan.Slice(currentRowStart, compareLength);
-
-                if (!resultRow.SequenceEqual(currentRow))
+                if (!RowsEqual(
+                    resultSpan,
+                    resultStride,
+                    result.Height - 1 - offset,
+                    currentSpan,
+                    currentStride,
+                    current.Height - 1 - offset,
+                    compareStart,
+                    compareLength))
                 {
-                    return i;
+                    ignoreBottomOffset += offset;
+                    break;
                 }
             }
 
-            return 0;
+            ignoreBottomOffset = Math.Max(ignoreBottomOffset, bestIgnoreBottomOffset);
+            return Math.Min(ignoreBottomOffset, ignoreBottomOffsetMax);
         }
 
         /// <summary>
-        /// Finds the best overlap between the bottom portion of the result and the top portion
-        /// of the current frame. Returns the offset (number of new pixels in the current frame).
+        /// Finds the row in the current frame where the overlap with the bottom of the result ends.
         /// </summary>
-        private static int FindBestOverlap(
+        private static int FindBestMatchIndex(
             SKBitmap result,
             SKBitmap current,
             int ignoreSideOffset,
             int ignoreBottomOffset,
-            out int matchQuality)
+            out int matchCount)
         {
-            matchQuality = 0;
-            int width = result.Width;
-            int resultHeight = result.Height;
-            int currentHeight = current.Height;
+            matchCount = 0;
 
-            int bytesPerPixel = result.BytesPerPixel;
+            int resultBottom = result.Height - ignoreBottomOffset - 1;
+            if (resultBottom < 0)
+            {
+                return -1;
+            }
+
+            int matchLimit = Math.Max(1, current.Height / 2);
+            int bytesPerPixel = current.BytesPerPixel;
             int compareStart = ignoreSideOffset * bytesPerPixel;
-            int compareLength = (width - ignoreSideOffset * 2) * bytesPerPixel;
-
-            if (compareLength <= 0) return -1;
+            int compareLength = (current.Width - ignoreSideOffset * 2) * bytesPerPixel;
+            if (compareLength <= 0)
+            {
+                return -1;
+            }
 
             var resultSpan = result.GetPixelSpan();
             var currentSpan = current.GetPixelSpan();
             int resultStride = result.RowBytes;
             int currentStride = current.RowBytes;
 
-            // Search for the bottom rows of result matching top rows of current
-            int searchLimit = Math.Min(currentHeight / 2, resultHeight);
-            int bestMatchStart = -1;
-            int bestMatchLength = 0;
+            int bestMatchIndex = -1;
 
-            for (int resultOffset = 1; resultOffset < searchLimit; resultOffset++)
+            for (int currentY = current.Height - 1; currentY >= 0 && matchCount < matchLimit; currentY--)
             {
-                int currentMatchLength = 0;
+                int currentMatchCount = 0;
 
-                // Check how many consecutive rows match starting from resultOffset rows up from bottom
-                for (int row = 0; row < currentHeight - ignoreBottomOffset && resultOffset + row < resultHeight; row++)
+                for (int y = 0;
+                     currentY - y >= 0 && resultBottom - y >= 0 && currentMatchCount < matchLimit;
+                     y++)
                 {
-                    int resultRowStart = (resultHeight - ignoreBottomOffset - resultOffset + row) * resultStride + compareStart;
-                    int currentRowStart = row * currentStride + compareStart;
-
-                    if (resultRowStart < 0 || resultRowStart + compareLength > resultSpan.Length ||
-                        currentRowStart + compareLength > currentSpan.Length)
-                        break;
-
-                    var resultRow = resultSpan.Slice(resultRowStart, compareLength);
-                    var currentRow = currentSpan.Slice(currentRowStart, compareLength);
-
-                    if (resultRow.SequenceEqual(currentRow))
+                    if (RowsEqual(
+                        resultSpan,
+                        resultStride,
+                        resultBottom - y,
+                        currentSpan,
+                        currentStride,
+                        currentY - y,
+                        compareStart,
+                        compareLength))
                     {
-                        currentMatchLength++;
+                        currentMatchCount++;
                     }
                     else
                     {
@@ -404,41 +439,40 @@ namespace XerahS.RegionCapture
                     }
                 }
 
-                if (currentMatchLength > bestMatchLength)
+                if (currentMatchCount > matchCount)
                 {
-                    bestMatchLength = currentMatchLength;
-                    bestMatchStart = resultOffset;
+                    matchCount = currentMatchCount;
+                    bestMatchIndex = currentY;
                 }
             }
 
-            // Require minimum match of 3 rows to be considered valid
-            if (bestMatchLength >= 3 && bestMatchStart > 0)
-            {
-                matchQuality = bestMatchLength;
-                // The new content starts after the overlapping rows
-                int newContentHeight = currentHeight - ignoreBottomOffset - bestMatchLength;
-                return Math.Max(1, newContentHeight);
-            }
-
-            return -1;
+            return bestMatchIndex;
         }
 
         /// <summary>
         /// Creates a new stitched image combining the existing result with new content from the current frame.
         /// </summary>
-        private static SKBitmap CreateStitchedImage(SKBitmap result, SKBitmap currentFrame, int newContentHeight, int ignoreBottomOffset)
+        private static SKBitmap CreateStitchedImage(
+            SKBitmap result,
+            SKBitmap currentFrame,
+            int matchIndex,
+            int ignoreBottomOffset)
         {
             int width = result.Width;
-            int resultUsableHeight = result.Height - ignoreBottomOffset;
-            int totalHeight = resultUsableHeight + newContentHeight;
+            int resultUsableHeight = Math.Max(0, result.Height - ignoreBottomOffset);
+            int matchHeight = currentFrame.Height - matchIndex - 1;
+            int totalHeight = resultUsableHeight + matchHeight;
 
             // Safety: cap total height to prevent memory issues
             if (totalHeight > 32768)
             {
                 DebugHelper.WriteLine($"ScrollingCapture: Result height {totalHeight} exceeds limit, capping at 32768.");
                 totalHeight = 32768;
-                newContentHeight = totalHeight - resultUsableHeight;
-                if (newContentHeight <= 0) return result.Copy();
+                matchHeight = totalHeight - resultUsableHeight;
+                if (matchHeight <= 0)
+                {
+                    return result.Copy();
+                }
             }
 
             var newResult = new SKBitmap(width, totalHeight);
@@ -449,16 +483,44 @@ namespace XerahS.RegionCapture
                 var dstResultRect = new SKRect(0, 0, width, resultUsableHeight);
                 canvas.DrawBitmap(result, srcResultRect, dstResultRect);
 
-                // Draw new content from current frame (the non-overlapping bottom portion)
-                int currentFrameNewStart = currentFrame.Height - ignoreBottomOffset - newContentHeight;
-                if (currentFrameNewStart < 0) currentFrameNewStart = 0;
-
-                var srcCurrentRect = new SKRect(0, currentFrameNewStart, width, currentFrame.Height - ignoreBottomOffset);
+                // Draw the non-overlapping bottom portion of the current frame.
+                int currentFrameNewStart = Math.Max(0, matchIndex + 1);
+                var srcCurrentRect = new SKRect(0, currentFrameNewStart, width, currentFrameNewStart + matchHeight);
                 var dstCurrentRect = new SKRect(0, resultUsableHeight, width, totalHeight);
                 canvas.DrawBitmap(currentFrame, srcCurrentRect, dstCurrentRect);
             }
 
             return newResult;
+        }
+
+        private static bool RowsEqual(
+            ReadOnlySpan<byte> resultSpan,
+            int resultStride,
+            int resultRow,
+            ReadOnlySpan<byte> currentSpan,
+            int currentStride,
+            int currentRow,
+            int compareStart,
+            int compareLength)
+        {
+            if (resultRow < 0 || currentRow < 0)
+            {
+                return false;
+            }
+
+            int resultRowStart = resultRow * resultStride + compareStart;
+            int currentRowStart = currentRow * currentStride + compareStart;
+
+            if (resultRowStart < 0 ||
+                currentRowStart < 0 ||
+                resultRowStart + compareLength > resultSpan.Length ||
+                currentRowStart + compareLength > currentSpan.Length)
+            {
+                return false;
+            }
+
+            return resultSpan.Slice(resultRowStart, compareLength)
+                .SequenceEqual(currentSpan.Slice(currentRowStart, compareLength));
         }
 
         private struct StitchResult
@@ -467,5 +529,4 @@ namespace XerahS.RegionCapture
             public ScrollingCaptureStatus Status;
         }
     }
-
 }

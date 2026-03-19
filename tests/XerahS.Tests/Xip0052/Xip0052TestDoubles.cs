@@ -25,7 +25,7 @@
 
 using ShareX.ImageEditor.Core.Editor;
 using SkiaSharp;
-using System.Runtime.Serialization;
+using System.Runtime.CompilerServices;
 using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
@@ -246,5 +246,5 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
         CreateUninitialized<TaskSettingsViewModel>();
 
     private static T CreateUninitialized<T>() where T : class =>
-        (T)FormatterServices.GetUninitializedObject(typeof(T));
+        (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
 }
