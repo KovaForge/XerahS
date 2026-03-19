@@ -47,15 +47,10 @@
                            FontWeight="Bold"/>
             </Border>
             
-            <!-- Task Description (Dropdown button) -->
-            <Button Grid.Column="3" 
-                    x:Name="TaskButton"
+            <!-- Task Description -->
+            <Border Grid.Column="3" 
                     HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Left"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Padding="5,2"
-                    Click="TaskButton_Click">
+                    Padding="5,2">
                 <StackPanel Orientation="Horizontal">
                     <StackPanel Spacing="2">
                         <TextBlock Text="{Binding Description}" 
@@ -68,10 +63,7 @@
                                    VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
-                <Button.ContextMenu>
-                    <ContextMenu x:Name="TaskContextMenu"/>
-                </Button.ContextMenu>
-            </Button>
+            </Border>
             
             <!-- Hotkey Capture Button -->
             <Border Grid.Column="4"

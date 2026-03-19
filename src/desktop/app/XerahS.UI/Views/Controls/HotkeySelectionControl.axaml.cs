@@ -28,7 +28,6 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using XerahS.Common;
-using XerahS.Core;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views.Controls;
@@ -142,23 +141,15 @@ public partial class HotkeySelectionControl : UserControl
             if (!listBoxItem.IsSelected)
             {
                 listBoxItem.IsSelected = true;
-                // We don't mark as handled because we want the button to still work (e.g. open menu)
+                // We don't mark as handled because child controls still need pointer input.
             }
         }
     }
-
-    // Remove the old handler if it exists or keep it for XAML compatibility if I don't remove it from XAML yet
-    // I will remove the XAML attribute in next step. For now I name this differently.
 
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         _viewModel = DataContext as HotkeyItemViewModel;
-
-        if (_viewModel != null)
-        {
-            PopulateTaskMenu();
-        }
     }
 
     private void OnLostFocus(object? sender, RoutedEventArgs e)
@@ -411,17 +402,6 @@ public partial class HotkeySelectionControl : UserControl
         }
     }
 
-    private void TaskButton_Click(object? sender, RoutedEventArgs e)
-    {
-        TaskContextMenu?.Open(TaskButton);
-    }
-
-    private void EditButton_Click(object? sender, RoutedEventArgs e)
-    {
-        // TODO: Open TaskSettings editor dialog
-        TaskContextMenu?.Open(TaskButton);
-    }
-
     #endregion
 
     #region Helpers
@@ -449,35 +429,6 @@ public partial class HotkeySelectionControl : UserControl
                key == Key.LeftShift || key == Key.RightShift ||
                key == Key.LWin || key == Key.RWin ||
                key == Key.DeadCharProcessed; // Also skip this pseudo-key
-    }
-
-    private void PopulateTaskMenu()
-    {
-        if (TaskContextMenu == null || _viewModel == null) return;
-
-        TaskContextMenu.Items.Clear();
-
-        var hotkeyTypes = Enum.GetValues(typeof(WorkflowType)).Cast<WorkflowType>();
-
-        foreach (var workflowType in hotkeyTypes)
-        {
-            var menuItem = new MenuItem
-            {
-                Header = EnumExtensions.GetDescription(workflowType),
-                Tag = workflowType
-            };
-
-            menuItem.Click += (s, e) =>
-            {
-                if (_viewModel != null && s is MenuItem mi && mi.Tag is WorkflowType type)
-                {
-                    _viewModel.Model.Job = type;
-                    _viewModel.Refresh();
-                }
-            };
-
-            TaskContextMenu.Items.Add(menuItem);
-        }
     }
 
     #endregion
