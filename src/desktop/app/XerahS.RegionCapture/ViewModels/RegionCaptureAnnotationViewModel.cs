@@ -29,19 +29,27 @@ using CommunityToolkit.Mvvm.Input;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
+using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
 
 namespace XerahS.RegionCapture.ViewModels;
 
-/// <summary>
-/// ViewModel for annotation toolbar in region capture overlay.
-/// Provides commands and properties that the AnnotationToolbar expects.
-/// XIP-0023: Integrates with EditorCore for annotation management.
-/// </summary>
 public partial class RegionCaptureAnnotationViewModel : ObservableObject
 {
+    private const float MinEffectStrength = 1;
+    private const float MaxBlurStrength = 200;
+    private const float MaxPixelateStrength = 200;
+    private const float MaxMagnifyStrength = 10;
+    private const float MaxSpotlightStrength = 100;
+
     private readonly EditorCore _editorCore;
-    private ImageEditorOptions? _options;
+    private ImageEditorOptions _options = new();
+    private bool _isLoadingToolOptions;
+    private Annotation? _selectedAnnotation;
+    private bool _canUndo;
+    private bool _canRedo;
+    private bool _hasSelectedAnnotation;
+    private bool _hasAnnotations;
 
     public RegionCaptureAnnotationViewModel()
     {
@@ -51,82 +59,39 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         _editorCore.InvalidateRequested += OnInvalidateRequested;
     }
 
-    /// <summary>
-    /// Loads editor options from settings into the ViewModel.
-    /// Call this after construction to restore saved preferences.
-    /// </summary>
+    public EditorCore EditorCore => _editorCore;
+
+    public event Action? InvalidateRequested;
+
+    public event Action? AnnotationsRestored;
+
     public void LoadOptions(ImageEditorOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
 
-        SelectedColor = ColorToHex(options.BorderColor);
-        FillColor = ColorToHex(options.FillColor);
-        StrokeWidth = options.Thickness;
-        FontSize = (int)options.TextFontSize;
-        ShadowEnabled = options.Shadow;
-    }
-
-    /// <summary>
-    /// Saves the current ViewModel state back to the options.
-    /// Call this before closing to persist user preferences.
-    /// </summary>
-    public void SaveOptions()
-    {
-        if (_options == null) return;
-
-        _options.BorderColor = HexToColor(SelectedColor);
-        _options.FillColor = HexToColor(FillColor);
-        _options.Thickness = StrokeWidth;
-        _options.TextFontSize = FontSize;
-        _options.Shadow = ShadowEnabled;
-    }
-
-    /// <summary>
-    /// Converts an Avalonia Color to hex string format.
-    /// </summary>
-    private static string ColorToHex(Color color)
-    {
-        return $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
-    }
-
-    /// <summary>
-    /// Converts a hex string to Avalonia Color.
-    /// </summary>
-    private static Color HexToColor(string hex)
-    {
-        if (string.IsNullOrEmpty(hex) || hex.Length < 7)
-            return Colors.Transparent;
-
+        _isLoadingToolOptions = true;
         try
         {
-            var a = byte.Parse(hex.Substring(1, 2), System.Globalization.NumberStyles.HexNumber);
-            var r = byte.Parse(hex.Substring(3, 2), System.Globalization.NumberStyles.HexNumber);
-            var g = byte.Parse(hex.Substring(5, 2), System.Globalization.NumberStyles.HexNumber);
-            var b = byte.Parse(hex.Substring(7, 2), System.Globalization.NumberStyles.HexNumber);
-            return Color.FromArgb(a, r, g, b);
+            if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+            {
+                LoadSelectedAnnotationOptions(SelectedAnnotation);
+            }
+            else
+            {
+                LoadOptionsForTool(ActiveTool);
+            }
+
+            UpdateToolOptionsVisibility();
         }
-        catch
+        finally
         {
-            return Colors.Transparent;
+            _isLoadingToolOptions = false;
         }
     }
 
-    /// <summary>
-    /// The underlying EditorCore instance for annotation management.
-    /// </summary>
-    public EditorCore EditorCore => _editorCore;
-
-    /// <summary>
-    /// Event raised when the canvas needs to be redrawn.
-    /// </summary>
-    public event Action? InvalidateRequested;
-
-    /// <summary>
-    /// Event raised when annotations are restored from undo/redo.
-    /// </summary>
-    public event Action? AnnotationsRestored;
-
-    #region Tool Selection
+    public void SaveOptions()
+    {
+    }
 
     [ObservableProperty]
     private EditorTool _activeTool = EditorTool.Select;
@@ -134,7 +99,27 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
     partial void OnActiveToolChanged(EditorTool value)
     {
         _editorCore.ActiveTool = value;
-        UpdateToolOptionsVisibility();
+
+        _isLoadingToolOptions = true;
+        try
+        {
+            OnPropertyChanged(nameof(EffectStrengthMaximum));
+
+            if (value == EditorTool.Select && SelectedAnnotation != null)
+            {
+                LoadSelectedAnnotationOptions(SelectedAnnotation);
+            }
+            else
+            {
+                LoadOptionsForTool(value);
+            }
+
+            UpdateToolOptionsVisibility();
+        }
+        finally
+        {
+            _isLoadingToolOptions = false;
+        }
     }
 
     [RelayCommand]
@@ -143,186 +128,299 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         ActiveTool = tool;
     }
 
-    #endregion
-
-    #region Tool Options Visibility
-
-    private bool _showBorderColor;
-    public bool ShowBorderColor
+    public Annotation? SelectedAnnotation
     {
-        get => _showBorderColor;
-        private set => SetProperty(ref _showBorderColor, value);
-    }
-
-    private bool _showFillColor;
-    public bool ShowFillColor
-    {
-        get => _showFillColor;
-        private set => SetProperty(ref _showFillColor, value);
-    }
-
-    private bool _showThickness;
-    public bool ShowThickness
-    {
-        get => _showThickness;
-        private set => SetProperty(ref _showThickness, value);
-    }
-
-    private bool _showFontSize;
-    public bool ShowFontSize
-    {
-        get => _showFontSize;
-        private set => SetProperty(ref _showFontSize, value);
-    }
-
-    private bool _showStrength;
-    public bool ShowStrength
-    {
-        get => _showStrength;
-        private set => SetProperty(ref _showStrength, value);
-    }
-
-    private bool _showShadow;
-    public bool ShowShadow
-    {
-        get => _showShadow;
-        private set => SetProperty(ref _showShadow, value);
-    }
-
-    private void UpdateToolOptionsVisibility()
-    {
-        ShowBorderColor = ActiveTool switch
-        {
-            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
-                or EditorTool.Freehand or EditorTool.Highlight or EditorTool.Text
-                or EditorTool.SpeechBalloon or EditorTool.Step => true,
-            _ => false
-        };
-
-        ShowFillColor = ActiveTool switch
-        {
-            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.SpeechBalloon or EditorTool.Step => true,
-            _ => false
-        };
-
-        ShowThickness = ActiveTool switch
-        {
-            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
-                or EditorTool.Freehand or EditorTool.SpeechBalloon or EditorTool.Step or EditorTool.SmartEraser => true,
-            _ => false
-        };
-
-        ShowFontSize = ActiveTool switch
-        {
-            EditorTool.Text or EditorTool.Step => true,
-            _ => false
-        };
-
-        ShowStrength = ActiveTool switch
-        {
-            EditorTool.Blur or EditorTool.Pixelate or EditorTool.Magnify or EditorTool.Spotlight => true,
-            _ => false
-        };
-
-        ShowShadow = ActiveTool switch
-        {
-            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
-                or EditorTool.Freehand or EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Step => true,
-            _ => false
-        };
-    }
-
-    #endregion
-
-    #region Colors and Stroke
-
-    private string _selectedColor = "#ef4444";
-    public string SelectedColor
-    {
-        get => _selectedColor;
+        get => _selectedAnnotation;
         set
         {
-            if (SetProperty(ref _selectedColor, value))
+            if (!SetProperty(ref _selectedAnnotation, value))
             {
-                _editorCore.StrokeColor = value;
-                OnPropertyChanged(nameof(SelectedColorBrush));
+                return;
+            }
+
+            _isLoadingToolOptions = true;
+            try
+            {
+                OnPropertyChanged(nameof(EffectStrengthMaximum));
+                if (ActiveTool == EditorTool.Select && value != null)
+                {
+                    LoadSelectedAnnotationOptions(value);
+                }
+
+                UpdateToolOptionsVisibility();
+            }
+            finally
+            {
+                _isLoadingToolOptions = false;
             }
         }
     }
+
+    [ObservableProperty]
+    private string _selectedColor = "#FFEF4444";
 
     public IBrush SelectedColorBrush
     {
-        get => new SolidColorBrush(Color.Parse(_selectedColor));
+        get => new SolidColorBrush(HexToColor(SelectedColor));
         set
         {
-            if (value is SolidColorBrush brush)
+            if (value is SolidColorBrush solidBrush)
             {
-                SelectedColor = $"#{brush.Color.A:X2}{brush.Color.R:X2}{brush.Color.G:X2}{brush.Color.B:X2}";
+                SelectedColor = ColorToHex(solidBrush.Color);
             }
         }
     }
 
-    private string _fillColor = "#00000000";
-    public string FillColor
+    partial void OnSelectedColorChanged(string value)
     {
-        get => _fillColor;
-        set
-        {
-            if (SetProperty(ref _fillColor, value))
-            {
-                // FillColor is stored locally, not in EditorCore
-                OnPropertyChanged(nameof(FillColorBrush));
-            }
-        }
+        OnPropertyChanged(nameof(SelectedColorBrush));
+        ApplyStrokeColor(value);
     }
+
+    [ObservableProperty]
+    private string _fillColor = "#00000000";
 
     public IBrush FillColorBrush
     {
-        get => new SolidColorBrush(Color.Parse(_fillColor));
+        get => new SolidColorBrush(HexToColor(FillColor));
         set
         {
-            if (value is SolidColorBrush brush)
+            if (value is SolidColorBrush solidBrush)
             {
-                FillColor = $"#{brush.Color.A:X2}{brush.Color.R:X2}{brush.Color.G:X2}{brush.Color.B:X2}";
+                FillColor = ColorToHex(solidBrush.Color);
             }
         }
     }
 
-    [ObservableProperty]
-    private int _strokeWidth = 3;
-
-    partial void OnStrokeWidthChanged(int value)
+    partial void OnFillColorChanged(string value)
     {
-        _editorCore.StrokeWidth = value;
+        OnPropertyChanged(nameof(FillColorBrush));
+        ApplyFillColor(value);
     }
 
     [ObservableProperty]
-    private float _fontSize = 24;
+    private string _textColor = "#FFFAFAFA";
 
-    // FontSize is stored locally, not in EditorCore
+    public IBrush TextColorBrush
+    {
+        get => new SolidColorBrush(HexToColor(TextColor));
+        set
+        {
+            if (value is SolidColorBrush solidBrush)
+            {
+                TextColor = ColorToHex(solidBrush.Color);
+            }
+        }
+    }
+
+    partial void OnTextColorChanged(string value)
+    {
+        OnPropertyChanged(nameof(TextColorBrush));
+        ApplyTextColor(value);
+    }
+
+    [ObservableProperty]
+    private int _strokeWidth = 4;
+
+    partial void OnStrokeWidthChanged(int value)
+    {
+        ApplyStrokeWidth(value);
+    }
+
+    [ObservableProperty]
+    private int _cornerRadius = 4;
+
+    partial void OnCornerRadiusChanged(int value)
+    {
+        int clamped = Math.Max(0, value);
+        if (clamped != value)
+        {
+            CornerRadius = clamped;
+            return;
+        }
+
+        ApplyCornerRadius(clamped);
+    }
+
+    [ObservableProperty]
+    private float _fontSize = 48;
+
+    partial void OnFontSizeChanged(float value)
+    {
+        ApplyFontSize(value);
+    }
 
     [ObservableProperty]
     private float _effectStrength = 15;
 
-    // EffectStrength is stored locally, not in EditorCore
+    partial void OnEffectStrengthChanged(float value)
+    {
+        float clamped = Math.Clamp(value, MinEffectStrength, EffectStrengthMaximum);
+        if (Math.Abs(clamped - value) > float.Epsilon)
+        {
+            EffectStrength = clamped;
+            return;
+        }
+
+        ApplyEffectStrength(clamped);
+    }
 
     [ObservableProperty]
-    private bool _shadowEnabled = false;
+    private bool _shadowEnabled;
 
-    // ShadowEnabled is stored locally, not in EditorCore
+    partial void OnShadowEnabledChanged(bool value)
+    {
+        ApplyShadowEnabled(value);
+    }
 
-    #endregion
+    [ObservableProperty]
+    private bool _textBold = true;
 
-    #region History Commands
+    partial void OnTextBoldChanged(bool value)
+    {
+        ApplyTextStyle(value, TextStyle.Bold);
+    }
 
-    private bool _canUndo;
+    [ObservableProperty]
+    private bool _textItalic;
+
+    partial void OnTextItalicChanged(bool value)
+    {
+        ApplyTextStyle(value, TextStyle.Italic);
+    }
+
+    [ObservableProperty]
+    private bool _textUnderline;
+
+    partial void OnTextUnderlineChanged(bool value)
+    {
+        ApplyTextStyle(value, TextStyle.Underline);
+    }
+
+    [RelayCommand]
+    private void ToggleShadow()
+    {
+        ShadowEnabled = !ShadowEnabled;
+    }
+
+    [RelayCommand]
+    private void ToggleTextBold()
+    {
+        TextBold = !TextBold;
+    }
+
+    [RelayCommand]
+    private void ToggleTextItalic()
+    {
+        TextItalic = !TextItalic;
+    }
+
+    [RelayCommand]
+    private void ToggleTextUnderline()
+    {
+        TextUnderline = !TextUnderline;
+    }
+
+    public float EffectStrengthMaximum => GetMaxEffectStrength(GetEffectiveToolForOptions());
+
+    public bool ShowBorderColor => GetToolOptionsContext() switch
+    {
+        EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+            or EditorTool.Freehand or EditorTool.SpeechBalloon or EditorTool.Text or EditorTool.Step => true,
+        _ => false
+    };
+
+    public bool ShowFillColor => GetToolOptionsContext() switch
+    {
+        EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.SpeechBalloon or EditorTool.Step or EditorTool.Highlight => true,
+        _ => false
+    };
+
+    public bool ShowTextColor => GetToolOptionsContext() switch
+    {
+        EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Step => true,
+        _ => false
+    };
+
+    public bool ShowThickness => GetToolOptionsContext() switch
+    {
+        EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+            or EditorTool.Freehand or EditorTool.SpeechBalloon or EditorTool.Step or EditorTool.Text => true,
+        _ => false
+    };
+
+    public bool ShowFontSize => GetToolOptionsContext() switch
+    {
+        EditorTool.Text or EditorTool.Step or EditorTool.SpeechBalloon => true,
+        _ => false
+    };
+
+    public bool ShowCornerRadius => GetToolOptionsContext() switch
+    {
+        EditorTool.Rectangle or EditorTool.SpeechBalloon => true,
+        _ => false
+    };
+
+    public bool ShowStrength => GetToolOptionsContext() switch
+    {
+        EditorTool.Blur or EditorTool.Pixelate or EditorTool.Magnify or EditorTool.Spotlight => true,
+        _ => false
+    };
+
+    public bool ShowShadow => GetToolOptionsContext() switch
+    {
+        EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+            or EditorTool.Freehand or EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Step => true,
+        _ => false
+    };
+
+    public bool ShowTextStyle => GetToolOptionsContext() switch
+    {
+        EditorTool.Text => true,
+        _ => false
+    };
+
+    public bool ShowToolOptionsSeparator =>
+        ShowBorderColor ||
+        ShowFillColor ||
+        ShowTextColor ||
+        ShowThickness ||
+        ShowFontSize ||
+        ShowCornerRadius ||
+        ShowStrength ||
+        ShowTextStyle ||
+        ShowShadow;
+
+    public string ActiveToolIcon => EditorIcons.ForTool(GetEffectiveDisplayTool());
+
+    public string ActiveToolName => GetEffectiveDisplayTool() switch
+    {
+        EditorTool.Select => "Select",
+        EditorTool.Rectangle => "Rectangle",
+        EditorTool.Ellipse => "Ellipse",
+        EditorTool.Line => "Line",
+        EditorTool.Arrow => "Arrow",
+        EditorTool.Freehand => "Freehand",
+        EditorTool.Text => "Text",
+        EditorTool.SpeechBalloon => "Speech Balloon",
+        EditorTool.Step => "Step",
+        EditorTool.Blur => "Blur",
+        EditorTool.Pixelate => "Pixelate",
+        EditorTool.Magnify => "Magnify",
+        EditorTool.Spotlight => "Spotlight",
+        EditorTool.SmartEraser => "Smart Eraser",
+        EditorTool.Highlight => "Highlight",
+        EditorTool.Crop => "Crop",
+        EditorTool.CutOut => "Cut Out",
+        _ => "Select"
+    };
+
     public bool CanUndo
     {
         get => _canUndo;
         private set => SetProperty(ref _canUndo, value);
     }
 
-    private bool _canRedo;
     public bool CanRedo
     {
         get => _canRedo;
@@ -335,6 +433,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         if (_editorCore.CanUndo)
         {
             _editorCore.Undo();
+            SelectedAnnotation = _editorCore.SelectedAnnotation;
         }
     }
 
@@ -344,22 +443,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         if (_editorCore.CanRedo)
         {
             _editorCore.Redo();
+            SelectedAnnotation = _editorCore.SelectedAnnotation;
         }
     }
 
-    private void OnHistoryChanged()
-    {
-        CanUndo = _editorCore.CanUndo;
-        CanRedo = _editorCore.CanRedo;
-        UndoCommand.NotifyCanExecuteChanged();
-        RedoCommand.NotifyCanExecuteChanged();
-    }
-
-    #endregion
-
-    #region Annotation Management
-
-    private bool _hasSelectedAnnotation;
     public bool HasSelectedAnnotation
     {
         get => _hasSelectedAnnotation;
@@ -372,7 +459,6 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         }
     }
 
-    private bool _hasAnnotations;
     public bool HasAnnotations
     {
         get => _hasAnnotations;
@@ -389,25 +475,35 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
     private void DeleteSelected()
     {
         _editorCore.DeleteSelected();
-        HasSelectedAnnotation = false;
+        SelectedAnnotation = _editorCore.SelectedAnnotation;
+        HasSelectedAnnotation = SelectedAnnotation != null;
         HasAnnotations = _editorCore.Annotations.Count > 0;
+        RequestCanvasRefresh();
     }
 
     [RelayCommand(CanExecute = nameof(HasAnnotations))]
     private void ClearAnnotations()
     {
         _editorCore.ClearAll();
+        SelectedAnnotation = null;
         HasAnnotations = false;
         HasSelectedAnnotation = false;
+        RequestCanvasRefresh();
     }
 
-    #endregion
-
-    #region Event Handlers
+    private void OnHistoryChanged()
+    {
+        CanUndo = _editorCore.CanUndo;
+        CanRedo = _editorCore.CanRedo;
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
+    }
 
     private void OnAnnotationsRestored()
     {
+        SelectedAnnotation = _editorCore.SelectedAnnotation;
         HasAnnotations = _editorCore.Annotations.Count > 0;
+        HasSelectedAnnotation = SelectedAnnotation != null;
         AnnotationsRestored?.Invoke();
     }
 
@@ -416,18 +512,579 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         InvalidateRequested?.Invoke();
     }
 
-    #endregion
-
-    #region Image Loading
-
-    /// <summary>
-    /// Loads the background image into EditorCore for annotation rendering.
-    /// </summary>
     public void LoadBackgroundImage(SKBitmap bitmap)
     {
         _editorCore.LoadImage(bitmap);
     }
 
-    #endregion
-}
+    public string GetResolvedTextColor()
+    {
+        if (IsTransparent(TextColor))
+        {
+            TextColor = ColorToHex(_options.TextTextColor);
+        }
 
+        return TextColor;
+    }
+
+    public byte GetSpotlightDarkenOpacity()
+    {
+        return ConvertSpotlightStrengthToOpacity(EffectStrength);
+    }
+
+    private void ApplyStrokeColor(string colorHex)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            if (SelectedAnnotation is not BaseEffectAnnotation &&
+                SelectedAnnotation is not SmartEraserAnnotation &&
+                SelectedAnnotation is not ImageAnnotation)
+            {
+                SelectedAnnotation.StrokeColor = colorHex;
+                RequestCanvasRefresh();
+            }
+
+            return;
+        }
+
+        Color color = HexToColor(colorHex);
+        switch (ActiveTool)
+        {
+            case EditorTool.Step:
+                _options.StepBorderColor = color;
+                break;
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonBorderColor = color;
+                break;
+            case EditorTool.Text:
+                _options.TextBorderColor = color;
+                break;
+            default:
+                _options.BorderColor = color;
+                break;
+        }
+
+        _editorCore.StrokeColor = colorHex;
+    }
+
+    private void ApplyFillColor(string colorHex)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case NumberAnnotation number:
+                    number.FillColor = colorHex;
+                    break;
+                case SpeechBalloonAnnotation balloon:
+                    balloon.FillColor = colorHex;
+                    break;
+                case RectangleAnnotation rectangle when rectangle is not SmartEraserAnnotation:
+                    rectangle.FillColor = colorHex;
+                    break;
+                case EllipseAnnotation ellipse:
+                    ellipse.FillColor = colorHex;
+                    break;
+                case HighlightAnnotation highlight:
+                    highlight.FillColor = colorHex;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        Color color = HexToColor(colorHex);
+        switch (ActiveTool)
+        {
+            case EditorTool.Step:
+                _options.StepFillColor = color;
+                break;
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonFillColor = color;
+                break;
+            case EditorTool.Highlight:
+                _options.HighlightFillColor = color;
+                break;
+            default:
+                _options.FillColor = color;
+                break;
+        }
+    }
+
+    private void ApplyTextColor(string colorHex)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case NumberAnnotation number:
+                    number.TextColor = colorHex;
+                    break;
+                case SpeechBalloonAnnotation balloon:
+                    balloon.TextColor = colorHex;
+                    break;
+                case TextAnnotation text:
+                    text.TextColor = colorHex;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        Color color = HexToColor(colorHex);
+        switch (ActiveTool)
+        {
+            case EditorTool.Step:
+                _options.StepTextColor = color;
+                break;
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonTextColor = color;
+                break;
+            case EditorTool.Text:
+                _options.TextTextColor = color;
+                break;
+        }
+    }
+
+    private void ApplyStrokeWidth(int value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            if (SelectedAnnotation is SmartEraserAnnotation ||
+                SelectedAnnotation is BaseEffectAnnotation ||
+                SelectedAnnotation is SpotlightAnnotation)
+            {
+                return;
+            }
+
+            SelectedAnnotation.StrokeWidth = value;
+            RequestCanvasRefresh();
+            return;
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.Step:
+                _options.StepThickness = value;
+                break;
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonThickness = value;
+                break;
+            case EditorTool.Text:
+                _options.TextThickness = value;
+                break;
+            default:
+                _options.Thickness = value;
+                break;
+        }
+
+        _editorCore.StrokeWidth = value;
+    }
+
+    private void ApplyCornerRadius(int value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case RectangleAnnotation rectangle when rectangle is not SmartEraserAnnotation:
+                    rectangle.CornerRadius = value;
+                    break;
+                case SpeechBalloonAnnotation balloon:
+                    balloon.CornerRadius = value;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        if (ActiveTool is EditorTool.Rectangle or EditorTool.SpeechBalloon)
+        {
+            _options.CornerRadius = value;
+        }
+    }
+
+    private void ApplyFontSize(float value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case NumberAnnotation number:
+                    number.FontSize = value;
+                    break;
+                case SpeechBalloonAnnotation balloon:
+                    balloon.FontSize = value;
+                    break;
+                case TextAnnotation text:
+                    text.FontSize = value;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.Step:
+                _options.StepFontSize = value;
+                break;
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonFontSize = value;
+                break;
+            case EditorTool.Text:
+                _options.TextFontSize = value;
+                break;
+        }
+    }
+
+    private void ApplyEffectStrength(float value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case SpotlightAnnotation spotlight:
+                    spotlight.DarkenOpacity = ConvertSpotlightStrengthToOpacity(value);
+                    RequestCanvasRefresh();
+                    return;
+                case BaseEffectAnnotation effect:
+                    effect.Amount = value;
+                    RequestCanvasRefresh();
+                    return;
+                default:
+                    return;
+            }
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.Blur:
+                _options.BlurStrength = value;
+                break;
+            case EditorTool.Pixelate:
+                _options.PixelateStrength = value;
+                break;
+            case EditorTool.Magnify:
+                _options.MagnifierStrength = value;
+                break;
+            case EditorTool.Spotlight:
+                _options.SpotlightStrength = value;
+                break;
+        }
+    }
+
+    private void ApplyShadowEnabled(bool value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            if (SelectedAnnotation is not BaseEffectAnnotation &&
+                SelectedAnnotation is not SmartEraserAnnotation &&
+                SelectedAnnotation is not SpotlightAnnotation)
+            {
+                SelectedAnnotation.ShadowEnabled = value;
+                RequestCanvasRefresh();
+            }
+
+            return;
+        }
+
+        _options.Shadow = value;
+    }
+
+    private void ApplyTextStyle(bool value, TextStyle style)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation is TextAnnotation selectedText)
+        {
+            switch (style)
+            {
+                case TextStyle.Bold:
+                    selectedText.IsBold = value;
+                    break;
+                case TextStyle.Italic:
+                    selectedText.IsItalic = value;
+                    break;
+                case TextStyle.Underline:
+                    selectedText.IsUnderline = value;
+                    break;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        switch (style)
+        {
+            case TextStyle.Bold:
+                _options.TextBold = value;
+                break;
+            case TextStyle.Italic:
+                _options.TextItalic = value;
+                break;
+            case TextStyle.Underline:
+                _options.TextUnderline = value;
+                break;
+        }
+    }
+
+    private void LoadOptionsForTool(EditorTool tool)
+    {
+        switch (tool)
+        {
+            case EditorTool.Rectangle:
+            case EditorTool.Ellipse:
+            case EditorTool.Line:
+            case EditorTool.Arrow:
+            case EditorTool.Freehand:
+                SelectedColor = ColorToHex(_options.BorderColor);
+                FillColor = ColorToHex(_options.FillColor);
+                StrokeWidth = _options.Thickness;
+                CornerRadius = _options.CornerRadius;
+                ShadowEnabled = _options.Shadow;
+                break;
+            case EditorTool.Text:
+                SelectedColor = ColorToHex(_options.TextBorderColor);
+                TextColor = ColorToHex(_options.TextTextColor);
+                StrokeWidth = _options.TextThickness;
+                ShadowEnabled = _options.Shadow;
+                FontSize = _options.TextFontSize;
+                TextBold = _options.TextBold;
+                TextItalic = _options.TextItalic;
+                TextUnderline = _options.TextUnderline;
+                break;
+            case EditorTool.SpeechBalloon:
+                SelectedColor = ColorToHex(_options.SpeechBalloonBorderColor);
+                FillColor = ColorToHex(_options.SpeechBalloonFillColor);
+                TextColor = ColorToHex(_options.SpeechBalloonTextColor);
+                StrokeWidth = _options.SpeechBalloonThickness;
+                CornerRadius = _options.CornerRadius;
+                ShadowEnabled = _options.Shadow;
+                FontSize = _options.SpeechBalloonFontSize;
+                TextBold = _options.TextBold;
+                TextItalic = _options.TextItalic;
+                TextUnderline = _options.TextUnderline;
+                break;
+            case EditorTool.Step:
+                SelectedColor = ColorToHex(_options.StepBorderColor);
+                FillColor = ColorToHex(_options.StepFillColor);
+                TextColor = ColorToHex(_options.StepTextColor);
+                StrokeWidth = _options.StepThickness;
+                ShadowEnabled = _options.Shadow;
+                FontSize = _options.StepFontSize;
+                TextBold = _options.TextBold;
+                TextItalic = _options.TextItalic;
+                TextUnderline = _options.TextUnderline;
+                break;
+            case EditorTool.Highlight:
+                FillColor = ColorToHex(_options.HighlightFillColor);
+                break;
+            case EditorTool.Blur:
+                EffectStrength = _options.BlurStrength;
+                break;
+            case EditorTool.Pixelate:
+                EffectStrength = _options.PixelateStrength;
+                break;
+            case EditorTool.Magnify:
+                EffectStrength = _options.MagnifierStrength;
+                break;
+            case EditorTool.Spotlight:
+                EffectStrength = _options.SpotlightStrength;
+                break;
+        }
+    }
+
+    private void LoadSelectedAnnotationOptions(Annotation annotation)
+    {
+        if (annotation is not ImageAnnotation &&
+            annotation is not BaseEffectAnnotation &&
+            annotation is not SmartEraserAnnotation)
+        {
+            SelectedColor = annotation.StrokeColor;
+            StrokeWidth = (int)annotation.StrokeWidth;
+            ShadowEnabled = annotation.ShadowEnabled;
+        }
+
+        switch (annotation)
+        {
+            case NumberAnnotation number:
+                FontSize = number.FontSize;
+                FillColor = number.FillColor;
+                if (!string.IsNullOrWhiteSpace(number.TextColor))
+                {
+                    TextColor = number.TextColor;
+                }
+                break;
+            case TextAnnotation text:
+                FontSize = text.FontSize;
+                TextBold = text.IsBold;
+                TextItalic = text.IsItalic;
+                TextUnderline = text.IsUnderline;
+                if (!string.IsNullOrWhiteSpace(text.TextColor))
+                {
+                    TextColor = text.TextColor;
+                }
+                break;
+            case SpeechBalloonAnnotation balloon:
+                FontSize = balloon.FontSize;
+                FillColor = balloon.FillColor;
+                CornerRadius = balloon.CornerRadius;
+                if (!string.IsNullOrWhiteSpace(balloon.TextColor))
+                {
+                    TextColor = balloon.TextColor;
+                }
+                break;
+            case RectangleAnnotation rectangle when rectangle is not SmartEraserAnnotation:
+                FillColor = rectangle.FillColor;
+                CornerRadius = rectangle.CornerRadius;
+                break;
+            case EllipseAnnotation ellipse:
+                FillColor = ellipse.FillColor;
+                break;
+            case SpotlightAnnotation spotlight:
+                EffectStrength = ConvertSpotlightOpacityToStrength(spotlight.DarkenOpacity);
+                break;
+            case BaseEffectAnnotation effect:
+                EffectStrength = effect.Amount;
+                if (effect is HighlightAnnotation highlight)
+                {
+                    FillColor = highlight.FillColor;
+                }
+                break;
+        }
+    }
+
+    private void UpdateToolOptionsVisibility()
+    {
+        OnPropertyChanged(nameof(ShowBorderColor));
+        OnPropertyChanged(nameof(ShowFillColor));
+        OnPropertyChanged(nameof(ShowTextColor));
+        OnPropertyChanged(nameof(ShowThickness));
+        OnPropertyChanged(nameof(ShowFontSize));
+        OnPropertyChanged(nameof(ShowCornerRadius));
+        OnPropertyChanged(nameof(ShowStrength));
+        OnPropertyChanged(nameof(ShowShadow));
+        OnPropertyChanged(nameof(ShowTextStyle));
+        OnPropertyChanged(nameof(ShowToolOptionsSeparator));
+        OnPropertyChanged(nameof(ActiveToolIcon));
+        OnPropertyChanged(nameof(ActiveToolName));
+        OnPropertyChanged(nameof(EffectStrengthMaximum));
+    }
+
+    private EditorTool? GetToolOptionsContext()
+    {
+        return ActiveTool == EditorTool.Select ? SelectedAnnotation?.ToolType : ActiveTool;
+    }
+
+    private EditorTool GetEffectiveToolForOptions()
+    {
+        return GetToolOptionsContext() ?? ActiveTool;
+    }
+
+    private EditorTool GetEffectiveDisplayTool()
+    {
+        return GetToolOptionsContext() ?? EditorTool.Select;
+    }
+
+    private void RequestCanvasRefresh()
+    {
+        InvalidateRequested?.Invoke();
+    }
+
+    private static float GetMaxEffectStrength(EditorTool tool) => tool switch
+    {
+        EditorTool.Blur => MaxBlurStrength,
+        EditorTool.Pixelate => MaxPixelateStrength,
+        EditorTool.Magnify => MaxMagnifyStrength,
+        EditorTool.Spotlight => MaxSpotlightStrength,
+        _ => 30
+    };
+
+    private static byte ConvertSpotlightStrengthToOpacity(float strength)
+    {
+        return (byte)Math.Clamp(strength / MaxSpotlightStrength * 255, 0, 255);
+    }
+
+    private static float ConvertSpotlightOpacityToStrength(byte opacity)
+    {
+        return opacity / 255f * MaxSpotlightStrength;
+    }
+
+    private static bool IsTransparent(string colorHex)
+    {
+        return HexToColor(colorHex).A == 0;
+    }
+
+    private static string ColorToHex(Color color)
+    {
+        return $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
+    }
+
+    private static Color HexToColor(string hex)
+    {
+        return Color.TryParse(hex, out Color parsedColor) ? parsedColor : Colors.Transparent;
+    }
+
+    private enum TextStyle
+    {
+        Bold,
+        Italic,
+        Underline
+    }
+}

@@ -50,18 +50,20 @@ public partial class AnnotationToolbar : UserControl
 
     public event EventHandler<IBrush>? ColorChanged;
     public event EventHandler<IBrush>? FillColorChanged;
+    public event EventHandler<IBrush>? TextColorChanged;
     public event EventHandler<int>? WidthChanged;
+    public event EventHandler<int>? CornerRadiusChanged;
     public event EventHandler<float>? FontSizeChanged;
     public event EventHandler<float>? StrengthChanged;
-    public event EventHandler? ShadowButtonClick;
 
     // Compatibility helpers for future UI wiring.
     public void RaiseColorChanged(IBrush brush) => ColorChanged?.Invoke(this, brush);
     public void RaiseFillColorChanged(IBrush brush) => FillColorChanged?.Invoke(this, brush);
+    public void RaiseTextColorChanged(IBrush brush) => TextColorChanged?.Invoke(this, brush);
     public void RaiseWidthChanged(int width) => WidthChanged?.Invoke(this, width);
+    public void RaiseCornerRadiusChanged(int cornerRadius) => CornerRadiusChanged?.Invoke(this, cornerRadius);
     public void RaiseFontSizeChanged(float fontSize) => FontSizeChanged?.Invoke(this, fontSize);
     public void RaiseStrengthChanged(float strength) => StrengthChanged?.Invoke(this, strength);
-    public void RaiseShadowButtonClick() => ShadowButtonClick?.Invoke(this, EventArgs.Empty);
 
     public AnnotationToolbar()
     {
@@ -90,9 +92,19 @@ public partial class AnnotationToolbar : UserControl
             fillPicker.ColorChanged += (_, brush) => RaiseFillColorChanged(brush);
         }
 
+        if (this.FindControl<ColorPickerDropdown>("TextColorPicker") is ColorPickerDropdown textColorPicker)
+        {
+            textColorPicker.ColorChanged += (_, brush) => RaiseTextColorChanged(brush);
+        }
+
         if (this.FindControl<WidthPickerDropdown>("StrokeWidthPicker") is WidthPickerDropdown widthPicker)
         {
             widthPicker.WidthChanged += (_, width) => RaiseWidthChanged(width);
+        }
+
+        if (this.FindControl<CornerRadiusPickerDropdown>("CornerRadiusPicker") is CornerRadiusPickerDropdown cornerRadiusPicker)
+        {
+            cornerRadiusPicker.CornerRadiusChanged += (_, cornerRadius) => RaiseCornerRadiusChanged(cornerRadius);
         }
 
         if (this.FindControl<FontSizePickerDropdown>("FontSizePicker") is FontSizePickerDropdown fontSizePicker)
@@ -104,16 +116,6 @@ public partial class AnnotationToolbar : UserControl
         {
             strengthSlider.StrengthChanged += (_, strength) => RaiseStrengthChanged(strength);
         }
-
-        if (this.FindControl<Button>("ShadowToggleButton") is Button shadowToggle)
-        {
-            shadowToggle.Click += OnShadowToggleClicked;
-        }
-    }
-
-    private void OnShadowToggleClicked(object? sender, RoutedEventArgs e)
-    {
-        RaiseShadowButtonClick();
     }
 
     private void OnLoaded(object? sender, RoutedEventArgs e)

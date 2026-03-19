@@ -4,7 +4,9 @@
              xmlns:converters="clr-namespace:ShareX.ImageEditor.Presentation.Converters;assembly=ShareX.ImageEditor"
              xmlns:controls="clr-namespace:ShareX.ImageEditor.Presentation.Controls;assembly=ShareX.ImageEditor"
              xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+             xmlns:vm="using:XerahS.RegionCapture.ViewModels"
              x:Class="XerahS.RegionCapture.UI.Controls.AnnotationToolbar"
+             x:DataType="vm:RegionCaptureAnnotationViewModel"
              MinWidth="860">
 
     <UserControl.Resources>
@@ -26,15 +28,6 @@
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <Style Selector="Border.popup-border">
-            <Setter Property="Background" Value="{DynamicResource ShareX.Brush.Control.Background}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource ShareX.Brush.Border}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="8"/>
-            <Setter Property="BoxShadow" Value="0 4 16 #40000000"/>
         </Style>
 
         <Style Selector="Button.toolbar-button">
@@ -101,7 +94,7 @@
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Freehand}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Freehand}"
-                        ToolTip.Tip="Freehand (P)"
+                        ToolTip.Tip="Freehand (F)"
                         Content="{x:Static theming:EditorIcons.ToolFreehand}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Text}"
@@ -113,32 +106,8 @@
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Step}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Step}"
-                        ToolTip.Tip="Step"
+                        ToolTip.Tip="Step (N)"
                         Content="{x:Static theming:EditorIcons.ToolStep}"/>
-                <Button Classes="toolbar-button"
-                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=SmartEraser}"
-                        Command="{Binding SelectToolCommand}"
-                        CommandParameter="{x:Static models:EditorTool.SmartEraser}"
-                        ToolTip.Tip="Smart Eraser"
-                        Content="{x:Static theming:EditorIcons.ToolSmartEraser}"/>
-                <Button Classes="toolbar-button"
-                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Blur}"
-                        Command="{Binding SelectToolCommand}"
-                        CommandParameter="{x:Static models:EditorTool.Blur}"
-                        ToolTip.Tip="Blur"
-                        Content="{x:Static theming:EditorIcons.ToolBlur}"/>
-                <Button Classes="toolbar-button"
-                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Pixelate}"
-                        Command="{Binding SelectToolCommand}"
-                        CommandParameter="{x:Static models:EditorTool.Pixelate}"
-                        ToolTip.Tip="Pixelate"
-                        Content="{x:Static theming:EditorIcons.ToolPixelate}"/>
-                <Button Classes="toolbar-button"
-                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Magnify}"
-                        Command="{Binding SelectToolCommand}"
-                        CommandParameter="{x:Static models:EditorTool.Magnify}"
-                        ToolTip.Tip="Magnify"
-                        Content="{x:Static theming:EditorIcons.ToolMagnify}"/>
                 <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Highlight}"
                         Command="{Binding SelectToolCommand}"
@@ -146,10 +115,34 @@
                         ToolTip.Tip="Highlight (H)"
                         Content="{x:Static theming:EditorIcons.ToolHighlight}"/>
                 <Button Classes="toolbar-button"
+                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=SmartEraser}"
+                        Command="{Binding SelectToolCommand}"
+                        CommandParameter="{x:Static models:EditorTool.SmartEraser}"
+                        ToolTip.Tip="Smart Eraser (W)"
+                        Content="{x:Static theming:EditorIcons.ToolSmartEraser}"/>
+                <Button Classes="toolbar-button"
+                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Blur}"
+                        Command="{Binding SelectToolCommand}"
+                        CommandParameter="{x:Static models:EditorTool.Blur}"
+                        ToolTip.Tip="Blur (B)"
+                        Content="{x:Static theming:EditorIcons.ToolBlur}"/>
+                <Button Classes="toolbar-button"
+                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Pixelate}"
+                        Command="{Binding SelectToolCommand}"
+                        CommandParameter="{x:Static models:EditorTool.Pixelate}"
+                        ToolTip.Tip="Pixelate (P)"
+                        Content="{x:Static theming:EditorIcons.ToolPixelate}"/>
+                <Button Classes="toolbar-button"
+                        Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Magnify}"
+                        Command="{Binding SelectToolCommand}"
+                        CommandParameter="{x:Static models:EditorTool.Magnify}"
+                        ToolTip.Tip="Magnify (M)"
+                        Content="{x:Static theming:EditorIcons.ToolMagnify}"/>
+                <Button Classes="toolbar-button"
                         Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Spotlight}"
                         Command="{Binding SelectToolCommand}"
                         CommandParameter="{x:Static models:EditorTool.Spotlight}"
-                        ToolTip.Tip="Spotlight"
+                        ToolTip.Tip="Spotlight (S)"
                         Content="{x:Static theming:EditorIcons.ToolSpotlight}"/>
 
                 <Border Width="1" Margin="4,0" Background="{DynamicResource ShareX.Brush.Separator}"/>
@@ -176,11 +169,31 @@
                         Content="{x:Static theming:EditorIcons.ActionClearAll}"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Spacing="6">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="6"
+                        IsVisible="{Binding ShowToolOptionsSeparator}">
+                <Border Background="Transparent"
+                        Width="40"
+                        Height="40"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        ToolTip.Tip="{Binding ActiveToolName}">
+                    <TextBlock Text="{Binding ActiveToolIcon}"
+                               FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                               FontSize="18"
+                               FontWeight="Normal"
+                               Foreground="{DynamicResource ShareX.Brush.Separator}"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               Width="24"/>
+                </Border>
+
                 <controls:ColorPickerDropdown x:Name="StrokeColorPicker"
                                               SelectedColor="{Binding SelectedColorBrush, Mode=TwoWay}"
                                               Height="40"
                                               IsVisible="{Binding ShowBorderColor}"
+                                              ShowBorderHole="True"
                                               ToolTip.Tip="Border color"/>
 
                 <controls:ColorPickerDropdown x:Name="FillColorPicker"
@@ -189,11 +202,24 @@
                                               IsVisible="{Binding ShowFillColor}"
                                               ToolTip.Tip="Fill color"/>
 
+                <controls:ColorPickerDropdown x:Name="TextColorPicker"
+                                              SelectedColor="{Binding TextColorBrush, Mode=TwoWay}"
+                                              Height="40"
+                                              IsVisible="{Binding ShowTextColor}"
+                                              ShowTextLabel="True"
+                                              ToolTip.Tip="Text color"/>
+
                 <controls:WidthPickerDropdown x:Name="StrokeWidthPicker"
                                               SelectedWidth="{Binding StrokeWidth, Mode=TwoWay}"
                                               Height="40"
                                               IsVisible="{Binding ShowThickness}"
                                               ToolTip.Tip="Thickness"/>
+
+                <controls:CornerRadiusPickerDropdown x:Name="CornerRadiusPicker"
+                                                     SelectedCornerRadius="{Binding CornerRadius, Mode=TwoWay}"
+                                                     Height="40"
+                                                     IsVisible="{Binding ShowCornerRadius}"
+                                                     ToolTip.Tip="Corner radius"/>
 
                 <controls:FontSizePickerDropdown x:Name="FontSizePicker"
                                                  SelectedFontSize="{Binding FontSize, Mode=TwoWay}"
@@ -203,13 +229,36 @@
 
                 <controls:StrengthSlider x:Name="EffectStrengthSlider"
                                          SelectedStrength="{Binding EffectStrength, Mode=TwoWay}"
+                                         Maximum="{Binding EffectStrengthMaximum}"
                                          IsVisible="{Binding ShowStrength}"
                                          ToolTip.Tip="Effect strength"/>
 
+                <Button Classes="toolbar-button"
+                        MinWidth="44"
+                        Classes.active="{Binding TextBold}"
+                        Command="{Binding ToggleTextBoldCommand}"
+                        IsVisible="{Binding ShowTextStyle}"
+                        ToolTip.Tip="Toggle bold"
+                        Content="{x:Static theming:EditorIcons.FormatBold}"/>
+                <Button Classes="toolbar-button"
+                        MinWidth="44"
+                        Classes.active="{Binding TextItalic}"
+                        Command="{Binding ToggleTextItalicCommand}"
+                        IsVisible="{Binding ShowTextStyle}"
+                        ToolTip.Tip="Toggle italic"
+                        Content="{x:Static theming:EditorIcons.FormatItalic}"/>
+                <Button Classes="toolbar-button"
+                        MinWidth="44"
+                        Classes.active="{Binding TextUnderline}"
+                        Command="{Binding ToggleTextUnderlineCommand}"
+                        IsVisible="{Binding ShowTextStyle}"
+                        ToolTip.Tip="Toggle underline"
+                        Content="{x:Static theming:EditorIcons.FormatUnderline}"/>
                 <Button x:Name="ShadowToggleButton"
                         Classes="toolbar-button"
                         MinWidth="44"
                         Classes.active="{Binding ShadowEnabled}"
+                        Command="{Binding ToggleShadowCommand}"
                         IsVisible="{Binding ShowShadow}"
                         ToolTip.Tip="Toggle shadow"
                         Content="{x:Static theming:EditorIcons.MenuTheme}"/>

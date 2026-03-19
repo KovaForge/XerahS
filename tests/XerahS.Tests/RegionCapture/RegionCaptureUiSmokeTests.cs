@@ -63,6 +63,8 @@ public class RegionCaptureUiSmokeTests
 
             Assert.That(toolbar.FindControl<Button>("ShadowToggleButton"), Is.Not.Null);
             Assert.That(toolbar.FindControl<Control>("StrokeColorPicker"), Is.Not.Null);
+            Assert.That(toolbar.FindControl<Control>("TextColorPicker"), Is.Not.Null);
+            Assert.That(toolbar.FindControl<Control>("CornerRadiusPicker"), Is.Not.Null);
         }
         finally
         {

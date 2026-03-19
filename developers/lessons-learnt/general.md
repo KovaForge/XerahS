@@ -213,6 +213,10 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never put OS-specific wallpaper lookup inside `ShareX.ImageEditor` view models; always expose it through `ShareX.ImageEditor.Hosting` and implement the real lookup in `XerahS.Platform.Abstractions` because the editor is shared across hosts and platforms.
 - Never use the XerahS `[vX.Y.Z]` commit prefix when committing inside `ShareX.ImageEditor` or other shared library submodules; always use `[Type] Use concise description` there because those libraries are versioned independently of the XerahS app.
 
+### RegionCapture Toolbar Parity
+
+- Never model the RegionCapture overlay toolbar as one shared annotation-options state. Mirror `ShareX.ImageEditor`'s per-tool option matrix instead, including `Select` reflecting the currently selected annotation type, or tools like Highlight, Smart Eraser, Rectangle, Text, and Step will silently expose the wrong controls and create annotations with mismatched defaults.
+
 ---
 
 ## Linux Capture UX
