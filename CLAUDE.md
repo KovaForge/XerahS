@@ -13,4 +13,5 @@ If any instruction conflicts, `AGENTS.md` wins.
 Repo-specific reminders:
 - For non-trivial work, start with `Entering plan mode for this task...` when the host supports explicit plan mode.
 - Planning is mandatory for meaningful changes, but waiting for approval is only required when the user asks for it or the design is ambiguous or high-risk.
+- When work is large, multi-step, or clearly parallelizable, delegation is required when the host supports it; follow `developers/guidelines/AGENT_WORKFLOW.md` and `docs/architecture/MULTI_AGENT_COORDINATION.md` instead of keeping the whole task in one agent context.
 - Do not bypass verification, build timeout, TFM, or package-version rules from `AGENTS.md`.
