@@ -23,36 +23,21 @@
 
 #endregion License Information (GPL v3)
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace XerahS.Bootstrap
 {
     /// <summary>
-    /// Result of ShareX bootstrap initialization.
+    /// Shared composition entry point for non-Avalonia desktop hosts.
     /// </summary>
-    public class BootstrapResult
+    public static class DesktopHostComposition
     {
-        /// <summary>
-        /// Platform services were initialized successfully.
-        /// </summary>
-        public bool PlatformServicesInitialized { get; set; }
-
-        /// <summary>
-        /// Configuration files were loaded successfully.
-        /// </summary>
-        public bool ConfigurationLoaded { get; set; }
-
-        /// <summary>
-        /// Recording services were initialized successfully.
-        /// </summary>
-        public bool RecordingInitialized { get; set; }
-
-        /// <summary>
-        /// Root service provider built from the shared desktop host composition.
-        /// </summary>
-        public IServiceProvider? ServiceProvider { get; internal set; }
-
-        /// <summary>
-        /// Overall success (all requested operations completed).
-        /// </summary>
-        public bool Success => PlatformServicesInitialized && ConfigurationLoaded;
+        public static IServiceProvider CreateServiceProvider(Action<IServiceCollection>? configureServices = null)
+        {
+            var services = new ServiceCollection();
+            services.AddXerahSDesktopHostServices();
+            configureServices?.Invoke(services);
+            return services.BuildServiceProvider();
+        }
     }
 }

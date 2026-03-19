@@ -25,10 +25,9 @@
 
 using System.CommandLine;
 using XerahS.Bootstrap;
-using XerahS.CLI;
 using XerahS.CLI.Commands;
 using XerahS.CLI.Services;
-using System.CommandLine.Parsing;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
 
 namespace XerahS.CLI
@@ -62,20 +61,26 @@ namespace XerahS.CLI
                     return 1;
                 }
 
+                IServiceProvider services = result.ServiceProvider
+                    ?? throw new InvalidOperationException("Bootstrap completed without a service provider.");
+
+                var taskManager = services.GetRequiredService<IDesktopTaskManager>();
+                var recordingCoordinator = services.GetRequiredService<IScreenRecordingCoordinator>();
+
                 // Build command tree
                 var rootCommand = new RootCommand("XerahS CLI - ShareX workflow automation");
 
                 // Add commands
-                rootCommand.Add(WorkflowCommand.Create());
-                rootCommand.Add(RecordCommand.Create());
-                rootCommand.Add(CaptureCommand.Create());
+                rootCommand.Add(WorkflowCommand.Create(taskManager, recordingCoordinator));
+                rootCommand.Add(RecordCommand.Create(recordingCoordinator));
+                rootCommand.Add(CaptureCommand.Create(taskManager));
                 rootCommand.Add(ListCommand.Create());
                 rootCommand.Add(ConfigCommand.Create());
                 rootCommand.Add(BackupSettingsCommand.Create());
                 rootCommand.Add(VerifyRegionCaptureCommand.Create());
                 rootCommand.Add(CompareCaptureCommand.Create());
-                rootCommand.Add(VerifyRecordingCommand.Create());
-                rootCommand.Add(VerifyGifRecordingCommand.Create());
+                rootCommand.Add(VerifyRecordingCommand.Create(recordingCoordinator));
+                rootCommand.Add(VerifyGifRecordingCommand.Create(recordingCoordinator));
                 rootCommand.Add(VerifyVideoEditorCommand.Create());
                 rootCommand.Add(OpenVideoEditorCommand.Create());
                 rootCommand.Add(WatchFolderDaemonCommand.Create());

@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Bootstrap
@@ -63,5 +64,10 @@ namespace XerahS.Bootstrap
         /// Toast notification service implementation.
         /// </summary>
         public IToastService? ToastService { get; set; }
+
+        /// <summary>
+        /// Optional hook for adding or overriding host services on top of the shared desktop composition.
+        /// </summary>
+        public Action<IServiceCollection>? ConfigureServices { get; set; }
     }
 }

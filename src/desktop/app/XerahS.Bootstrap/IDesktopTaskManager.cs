@@ -23,36 +23,26 @@
 
 #endregion License Information (GPL v3)
 
+using SkiaSharp;
+using XerahS.Core;
+using XerahS.Core.Tasks;
+
 namespace XerahS.Bootstrap
 {
     /// <summary>
-    /// Result of ShareX bootstrap initialization.
+    /// Host-facing abstraction over the desktop task manager singleton.
     /// </summary>
-    public class BootstrapResult
+    public interface IDesktopTaskManager
     {
-        /// <summary>
-        /// Platform services were initialized successfully.
-        /// </summary>
-        public bool PlatformServicesInitialized { get; set; }
+        event EventHandler<WorkerTask>? TaskCompleted;
+        event EventHandler<WorkerTask>? TaskStarted;
 
-        /// <summary>
-        /// Configuration files were loaded successfully.
-        /// </summary>
-        public bool ConfigurationLoaded { get; set; }
+        IEnumerable<WorkerTask> Tasks { get; }
 
-        /// <summary>
-        /// Recording services were initialized successfully.
-        /// </summary>
-        public bool RecordingInitialized { get; set; }
-
-        /// <summary>
-        /// Root service provider built from the shared desktop host composition.
-        /// </summary>
-        public IServiceProvider? ServiceProvider { get; internal set; }
-
-        /// <summary>
-        /// Overall success (all requested operations completed).
-        /// </summary>
-        public bool Success => PlatformServicesInitialized && ConfigurationLoaded;
+        Task StartTask(TaskSettings? taskSettings, SKBitmap? inputImage = null);
+        Task StartFileTask(TaskSettings? taskSettings, string filePath);
+        Task StartImageUploadTask(TaskSettings? taskSettings, SKBitmap image);
+        Task StartTextTask(TaskSettings? taskSettings, string text);
+        void StopAllTasks();
     }
 }

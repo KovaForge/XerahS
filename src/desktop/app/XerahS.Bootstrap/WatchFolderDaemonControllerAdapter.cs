@@ -23,36 +23,14 @@
 
 #endregion License Information (GPL v3)
 
+using XerahS.Core.Managers;
+
 namespace XerahS.Bootstrap
 {
-    /// <summary>
-    /// Result of ShareX bootstrap initialization.
-    /// </summary>
-    public class BootstrapResult
+    internal sealed class WatchFolderDaemonControllerAdapter(WatchFolderManager watchFolderManager) : IWatchFolderDaemonController
     {
-        /// <summary>
-        /// Platform services were initialized successfully.
-        /// </summary>
-        public bool PlatformServicesInitialized { get; set; }
+        public void StartOrReloadFromCurrentSettings() => watchFolderManager.StartOrReloadFromCurrentSettings();
 
-        /// <summary>
-        /// Configuration files were loaded successfully.
-        /// </summary>
-        public bool ConfigurationLoaded { get; set; }
-
-        /// <summary>
-        /// Recording services were initialized successfully.
-        /// </summary>
-        public bool RecordingInitialized { get; set; }
-
-        /// <summary>
-        /// Root service provider built from the shared desktop host composition.
-        /// </summary>
-        public IServiceProvider? ServiceProvider { get; internal set; }
-
-        /// <summary>
-        /// Overall success (all requested operations completed).
-        /// </summary>
-        public bool Success => PlatformServicesInitialized && ConfigurationLoaded;
+        public Task<bool> StopAsync(TimeSpan timeout) => watchFolderManager.StopAsync(timeout);
     }
 }

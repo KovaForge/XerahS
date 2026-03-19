@@ -25,7 +25,6 @@
 
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -64,9 +63,8 @@ namespace XerahS.Bootstrap
                 result.PlatformServicesInitialized = true;
 
                 // 4. Build DI container and wire up RootProvider
-                var services = new ServiceCollection();
-                services.AddXerahSPlatformServices();
-                var provider = services.BuildServiceProvider();
+                var provider = DesktopHostComposition.CreateServiceProvider(options.ConfigureServices);
+                result.ServiceProvider = provider;
                 PlatformServices.SetRootProvider(provider);
 
                 // 5. Initialize recording (async, critical for ScreenRecorder)

@@ -23,36 +23,28 @@
 
 #endregion License Information (GPL v3)
 
+using XerahS.Core.Managers;
+using XerahS.RegionCapture.ScreenRecording;
+
 namespace XerahS.Bootstrap
 {
     /// <summary>
-    /// Result of ShareX bootstrap initialization.
+    /// Host-facing abstraction over the shared screen recording coordinator.
     /// </summary>
-    public class BootstrapResult
+    public interface IScreenRecordingCoordinator
     {
-        /// <summary>
-        /// Platform services were initialized successfully.
-        /// </summary>
-        public bool PlatformServicesInitialized { get; set; }
+        event EventHandler<RecordingStatusEventArgs>? StatusChanged;
+        event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
+        event EventHandler<RecordingStartedEventArgs>? RecordingStarted;
 
-        /// <summary>
-        /// Configuration files were loaded successfully.
-        /// </summary>
-        public bool ConfigurationLoaded { get; set; }
+        bool IsRecording { get; }
+        bool IsPaused { get; }
+        bool IsUsingFallback { get; }
+        Task? PlatformInitializationTask { get; set; }
 
-        /// <summary>
-        /// Recording services were initialized successfully.
-        /// </summary>
-        public bool RecordingInitialized { get; set; }
-
-        /// <summary>
-        /// Root service provider built from the shared desktop host composition.
-        /// </summary>
-        public IServiceProvider? ServiceProvider { get; internal set; }
-
-        /// <summary>
-        /// Overall success (all requested operations completed).
-        /// </summary>
-        public bool Success => PlatformServicesInitialized && ConfigurationLoaded;
+        Task StartRecordingAsync(RecordingOptions options);
+        Task<string?> StopRecordingAsync();
+        Task AbortRecordingAsync();
+        Task TogglePauseResumeAsync();
     }
 }

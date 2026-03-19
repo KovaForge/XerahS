@@ -24,19 +24,17 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Drawing;
-using XerahS.CLI;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
-using XerahS.Core.Managers;
 using XerahS.RegionCapture.ScreenRecording;
 
 namespace XerahS.CLI.Commands
 {
     public static class RecordCommand
     {
-        public static Command Create()
+        public static Command Create(IScreenRecordingCoordinator recordingCoordinator)
         {
             var recordCommand = new Command("record", "Screen recording operations");
 
@@ -76,7 +74,7 @@ namespace XerahS.CLI.Commands
                 if (fps == 0) fps = 30;
                 if (bitrate == 0) bitrate = 4000;
 
-                Environment.ExitCode = StartRecordingAsync(mode, region, fps, codec, bitrate,
+                Environment.ExitCode = StartRecordingAsync(recordingCoordinator, mode, region, fps, codec, bitrate,
                     audio, microphone, output).GetAwaiter().GetResult();
             });
 
@@ -84,14 +82,14 @@ namespace XerahS.CLI.Commands
             var stopCommand = new Command("stop", "Stop active recording");
             stopCommand.SetAction((parseResult) =>
             {
-                Environment.ExitCode = StopRecordingAsync().GetAwaiter().GetResult();
+                Environment.ExitCode = StopRecordingAsync(recordingCoordinator).GetAwaiter().GetResult();
             });
 
             // Abort recording subcommand
             var abortCommand = new Command("abort", "Abort recording without saving");
             abortCommand.SetAction((parseResult) =>
             {
-                Environment.ExitCode = AbortRecordingAsync().GetAwaiter().GetResult();
+                Environment.ExitCode = AbortRecordingAsync(recordingCoordinator).GetAwaiter().GetResult();
             });
 
             recordCommand.Add(startCommand);
@@ -101,7 +99,7 @@ namespace XerahS.CLI.Commands
             return recordCommand;
         }
 
-        private static async Task<int> StartRecordingAsync(string mode, string? region,
+        private static async Task<int> StartRecordingAsync(IScreenRecordingCoordinator recordingCoordinator, string mode, string? region,
             int fps, string codec, int bitrate, bool audio, bool microphone, string? output)
         {
             try
@@ -164,24 +162,22 @@ namespace XerahS.CLI.Commands
                 };
 
                 Console.WriteLine($"Starting recording: {mode} mode, {fps}fps, {codec} codec");
-                // Initialize platform services
-            // In CLI, we might need a minimal initialization
-            ScreenRecordingManager.PlatformInitializationTask = Task.CompletedTask;
-            
-            // Initialize Settings
-            SettingsManager.LoadAllSettings();
+                recordingCoordinator.PlatformInitializationTask = Task.CompletedTask;
+                SettingsManager.LoadAllSettings();
 
-            if (string.IsNullOrWhiteSpace(outputPath))
-            {
-                outputPath = GetDefaultRecordingPath(captureMode);
                 if (string.IsNullOrWhiteSpace(outputPath))
                 {
-                    Console.Error.WriteLine("Recording output path could not be resolved.");
-                    return 1;
+                    outputPath = GetDefaultRecordingPath(captureMode);
+                    if (string.IsNullOrWhiteSpace(outputPath))
+                    {
+                        Console.Error.WriteLine("Recording output path could not be resolved.");
+                        return 1;
+                    }
+
+                    recordingOptions.OutputPath = outputPath;
                 }
-            }
-            var manager = ScreenRecordingManager.Instance;
-            await manager.StartRecordingAsync(recordingOptions);
+
+                await recordingCoordinator.StartRecordingAsync(recordingOptions);
 
                 Console.WriteLine($"Recording started. Output: {recordingOptions.OutputPath}");
                 Console.WriteLine("Press ENTER to stop recording...");
@@ -190,7 +186,7 @@ namespace XerahS.CLI.Commands
                 Console.ReadLine();
 
                 Console.WriteLine("Stopping recording...");
-                var finalPath = await manager.StopRecordingAsync();
+                var finalPath = await recordingCoordinator.StopRecordingAsync();
                 
                 if (!string.IsNullOrEmpty(finalPath))
                 {
@@ -211,20 +207,18 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> StopRecordingAsync()
+        private static async Task<int> StopRecordingAsync(IScreenRecordingCoordinator recordingCoordinator)
         {
             try
             {
-                var manager = ScreenRecordingManager.Instance;
-
-                if (!manager.IsRecording)
+                if (!recordingCoordinator.IsRecording)
                 {
                     Console.WriteLine("No active recording.");
                     return 0;
                 }
 
                 Console.WriteLine("Stopping recording...");
-                var outputPath = await manager.StopRecordingAsync();
+                var outputPath = await recordingCoordinator.StopRecordingAsync();
 
                 if (!string.IsNullOrEmpty(outputPath))
                 {
@@ -245,20 +239,18 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> AbortRecordingAsync()
+        private static async Task<int> AbortRecordingAsync(IScreenRecordingCoordinator recordingCoordinator)
         {
             try
             {
-                var manager = ScreenRecordingManager.Instance;
-
-                if (!manager.IsRecording)
+                if (!recordingCoordinator.IsRecording)
                 {
                     Console.WriteLine("No active recording.");
                     return 0;
                 }
 
                 Console.WriteLine("Aborting recording...");
-                await manager.AbortRecordingAsync();
+                await recordingCoordinator.AbortRecordingAsync();
                 Console.WriteLine("Recording aborted.");
 
                 return 0;
