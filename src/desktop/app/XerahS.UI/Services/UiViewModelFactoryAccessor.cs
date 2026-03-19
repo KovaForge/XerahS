@@ -23,37 +23,19 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
-using XerahS.UI.Services;
-using XerahS.UI.ViewModels;
+using XerahS.Platform.Abstractions;
 
-namespace XerahS.UI.Views;
+namespace XerahS.UI.Services;
 
-public partial class PluginInstallerDialog : SurfaceWindow
+public static class UiViewModelFactoryAccessor
 {
-    public PluginInstallerDialog()
+    public static IUiViewModelFactory GetRequired()
     {
-        InitializeComponent();
-        DataContextChanged += (_, _) => WireCloseRequest(DataContext as PluginInstallerViewModel);
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
-
-    private void WireCloseRequest(PluginInstallerViewModel? viewModel)
-    {
-        if (viewModel == null)
+        if (PlatformServices.RootProvider?.GetService(typeof(IUiViewModelFactory)) is IUiViewModelFactory factory)
         {
-            return;
+            return factory;
         }
 
-        viewModel.RequestClose = result =>
-        {
-            Dispatcher.UIThread.Post(() => Close(result ?? false));
-        };
+        throw new InvalidOperationException("UI view model factory is not available.");
     }
 }

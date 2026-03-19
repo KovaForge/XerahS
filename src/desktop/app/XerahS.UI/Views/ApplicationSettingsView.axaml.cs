@@ -27,6 +27,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using XerahS.Core;
+using XerahS.UI.Services;
 using XerahS.UI.Controls;
 
 namespace XerahS.UI.Views
@@ -47,21 +48,13 @@ namespace XerahS.UI.Views
                 propertyGrid.PropertyValueChanged += (_, _) => SettingsManager.SaveApplicationConfig();
             }
 
+            var uiFactory = UiViewModelFactoryAccessor.GetRequired();
+
             // Wire up the edit requester
             vm.HotkeySettings.EditHotkeyRequester = async (settings) =>
             {
-                var editVm = new ViewModels.WorkflowEditorViewModel(settings);
-                var dialog = new WorkflowEditorView
-                {
-                    DataContext = editVm
-                };
-
-                if (VisualRoot is Window window)
-                {
-                    return await dialog.ShowDialog<bool>(window);
-                }
-
-                return false;
+                var editorViewModel = uiFactory.CreateWorkflowEditorViewModel(settings);
+                return await uiFactory.ViewDialogService.ShowWorkflowEditorAsync(editorViewModel);
             };
 
             vm.EditWatchFolderRequester = async (editVm) =>

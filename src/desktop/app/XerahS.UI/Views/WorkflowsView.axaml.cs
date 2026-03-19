@@ -25,8 +25,8 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using XerahS.Common;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
-using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI.Views;
 
@@ -36,42 +36,9 @@ public partial class WorkflowsView : PageView
     {
         InitializeComponent();
         DebugHelper.WriteLine("[WorkflowsView] ctor start");
-        var vm = new WorkflowsViewModel();
+        var vm = UiViewModelFactoryAccessor.GetRequired().CreateWorkflowsViewModel();
         DataContext = vm;
         DebugHelper.WriteLine($"[WorkflowsView] DataContext set: {vm.GetType().Name}, Workflows={vm.Workflows.Count}");
-
-        // Wire up the edit requester (same pattern as ApplicationSettingsView)
-        vm.EditHotkeyRequester = async (settings) =>
-        {
-            DebugHelper.WriteLine($"[WorkflowsView] EditHotkeyRequester called. WorkflowId={settings.Id}, Job={settings.Job}");
-            var editVm = new WorkflowEditorViewModel(settings);
-            var dialog = new WorkflowEditorView
-            {
-                DataContext = editVm
-            };
-
-            if (VisualRoot is Window window)
-            {
-                DebugHelper.WriteLine("[WorkflowsView] Showing WorkflowEditorView dialog");
-                return await dialog.ShowDialog<bool>(window);
-            }
-
-            DebugHelper.WriteLine("[WorkflowsView] VisualRoot is not a Window; cannot show WorkflowEditorView dialog.");
-            return false;
-        };
-
-        // Wire up confirmation dialog
-        vm.ConfirmByUi = async (title, message) =>
-        {
-            DebugHelper.WriteLine($"[WorkflowsView] ConfirmByUi called. Title={title}");
-            if (VisualRoot is Window window)
-            {
-                var dialog = new ConfirmationDialog(title, message);
-                return await dialog.ShowDialog<bool>(window);
-            }
-
-            return false;
-        };
     }
 
     private void InitializeComponent()

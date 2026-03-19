@@ -42,7 +42,6 @@ using XerahS.Common.Helpers;
 using XerahS.Core;
 using XerahS.Core.Helpers;
 using XerahS.UI.Services;
-using XerahS.UI.Views;
 
 namespace XerahS.UI.ViewModels
 {
@@ -356,10 +355,10 @@ namespace XerahS.UI.ViewModels
         }
 
         [RelayCommand]
-        public async Task OpenEffectBrowserDialogAsync()
-        {
-            await _dialogService.ShowDialogAsync<ImageEffectsBrowserDialog>(this);
-        }
+    public async Task OpenEffectBrowserDialogAsync()
+    {
+            await _dialogService.ShowImageEffectsBrowserAsync(this);
+    }
 
         public bool TryAddEffectByBrowserId(string effectId)
         {

@@ -22,13 +22,13 @@
 */
 
 #endregion License Information (GPL v3)
-using XerahS.Platform.Abstractions;
 using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json.Linq;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Services.Abstractions;
 using XerahS.UI.Views;
 using XerahS.Uploaders;
 using XerahS.Uploaders.CustomUploader;
@@ -49,14 +49,16 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     private CategoryViewModel? _selectedCategory;
 
     private readonly IViewDialogService _dialogService;
+    private readonly IDialogService _coreDialogService;
+    private readonly IUiViewModelFactory _uiViewModelFactory;
     private bool _isInitialized;
 
-    public DestinationSettingsViewModel(IViewDialogService? dialogService = null)
+    public DestinationSettingsViewModel(IUiViewModelFactory uiViewModelFactory)
     {
-        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+        _uiViewModelFactory = uiViewModelFactory;
+        _dialogService = uiViewModelFactory.ViewDialogService;
+        _coreDialogService = uiViewModelFactory.CoreDialogService;
     }
-
-    public event Func<string, string, Task>? ShowMessageDialog;
 
     public async Task Initialize()
     {
@@ -144,7 +146,8 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     {
         try
         {
-            await _dialogService.ShowDialogAsync<PluginInstallerDialog, bool>(new PluginInstallerViewModel());
+            var viewModel = _uiViewModelFactory.CreatePluginInstallerViewModel();
+            await _dialogService.ShowPluginInstallerAsync(viewModel);
         }
         catch (Exception ex)
         {
@@ -245,8 +248,8 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     {
         try
         {
-            var viewModel = new CustomUploaderEditorViewModel();
-            var result = await _dialogService.ShowDialogAsync<CustomUploaderEditorDialog, bool>(viewModel);
+            var viewModel = _uiViewModelFactory.CreateCustomUploaderEditorViewModel();
+            var result = await _dialogService.ShowCustomUploaderEditorAsync(viewModel);
 
             if (result)
             {
@@ -525,12 +528,6 @@ public partial class DestinationSettingsViewModel : ViewModelBase
 
     private async Task ShowMessageDialogAsync(string title, string message)
     {
-        if (ShowMessageDialog != null)
-        {
-            await ShowMessageDialog.Invoke(title, message);
-            return;
-        }
-
-        DebugHelper.WriteLine($"[DestinationSettings] {title}: {message}");
+        await _coreDialogService.ShowMessageAsync(title, message);
     }
 }

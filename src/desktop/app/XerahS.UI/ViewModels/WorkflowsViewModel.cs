@@ -28,6 +28,8 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
+using XerahS.UI.Services;
 using System;
 using System.Collections.ObjectModel;
 
@@ -36,6 +38,9 @@ namespace XerahS.UI.ViewModels;
 public partial class WorkflowsViewModel : ViewModelBase
 {
     public ObservableCollection<HotkeyItemViewModel> Workflows { get; } = new();
+    private readonly IUiViewModelFactory _uiViewModelFactory;
+    private readonly IDialogService _coreDialogService;
+    private readonly IViewDialogService _viewDialogService;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RemoveWorkflowCommand))]
@@ -53,13 +58,11 @@ public partial class WorkflowsViewModel : ViewModelBase
 
     private XerahS.Core.Hotkeys.WorkflowManager? _manager;
 
-    /// <summary>
-    /// Delegate to request editing a hotkey. Set by the View.
-    /// </summary>
-    public Func<WorkflowSettings, Task<bool>>? EditHotkeyRequester { get; set; }
-
-    public WorkflowsViewModel()
+    public WorkflowsViewModel(IUiViewModelFactory uiViewModelFactory)
     {
+        _uiViewModelFactory = uiViewModelFactory;
+        _coreDialogService = uiViewModelFactory.CoreDialogService;
+        _viewDialogService = uiViewModelFactory.ViewDialogService;
         DebugHelper.WriteLine("[WorkflowsVM] ctor start");
         if (global::Avalonia.Application.Current is App app)
         {
@@ -125,26 +128,23 @@ public partial class WorkflowsViewModel : ViewModelBase
         // Ensure the new workflow has an ID
         newSettings.EnsureId();
 
-        if (EditHotkeyRequester != null)
+        var saved = await ShowWorkflowEditorAsync(newSettings);
+        if (saved)
         {
-            var saved = await EditHotkeyRequester(newSettings);
-            if (saved)
+            if (newSettings.Job != WorkflowType.None)
             {
-                if (newSettings.Job != WorkflowType.None)
+                if (_manager != null)
                 {
-                    if (_manager != null)
-                    {
-                        _manager.Workflows.Add(newSettings);
-                        _manager.RegisterHotkey(newSettings);
-                    }
-                    else
-                    {
-                        SettingsManager.WorkflowsConfig.Hotkeys.Add(newSettings);
-                    }
-
-                    SaveHotkeys();
-                    LoadWorkflows();
+                    _manager.Workflows.Add(newSettings);
+                    _manager.RegisterHotkey(newSettings);
                 }
+                else
+                {
+                    SettingsManager.WorkflowsConfig.Hotkeys.Add(newSettings);
+                }
+
+                SaveHotkeys();
+                LoadWorkflows();
             }
         }
     }
@@ -154,11 +154,11 @@ public partial class WorkflowsViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEditWorkflow))]
     private async Task EditWorkflow()
     {
-        DebugHelper.WriteLine($"[WorkflowsVM] EditWorkflow invoked. Selected={(SelectedWorkflow != null ? SelectedWorkflow.Model.Id : "null")}, CanEdit={CanEditWorkflow()}, HasRequester={EditHotkeyRequester != null}");
-        if (SelectedWorkflow != null && EditHotkeyRequester != null)
+        DebugHelper.WriteLine($"[WorkflowsVM] EditWorkflow invoked. Selected={(SelectedWorkflow != null ? SelectedWorkflow.Model.Id : "null")}, CanEdit={CanEditWorkflow()}");
+        if (SelectedWorkflow != null)
         {
             var editedModel = SelectedWorkflow.Model;
-            var changed = await EditHotkeyRequester(editedModel);
+            var changed = await ShowWorkflowEditorAsync(editedModel);
             if (changed)
             {
                 // Re-register all workflows so edited hotkeys become active immediately.
@@ -313,23 +313,13 @@ public partial class WorkflowsViewModel : ViewModelBase
 
 
 
-    /// <summary>
-    /// Delegate to request confirmation from the UI.
-    /// Arguments: Title, Message
-    /// Returns: True if confirmed, False otherwise
-    /// </summary>
-    public Func<string, string, Task<bool>>? ConfirmByUi { get; set; }
-
     [RelayCommand]
     private async Task Reset()
     {
-        if (ConfirmByUi != null)
+        var confirmed = await _coreDialogService.ShowConfirmationAsync("Reset Workflows", "Are you sure you want to reset all workflows to default settings? This cannot be undone.");
+        if (!confirmed)
         {
-            var confirmed = await ConfirmByUi("Reset Workflows", "Are you sure you want to reset all workflows to default settings? This cannot be undone.");
-            if (!confirmed)
-            {
-                return;
-            }
+            return;
         }
 
         if (_manager != null)
@@ -359,4 +349,10 @@ public partial class WorkflowsViewModel : ViewModelBase
     }
 
     public string PinButtonText => SelectedWorkflow?.PinnedToTray == true ? "Unpin from Tray" : "Pin to Tray";
+
+    private async Task<bool> ShowWorkflowEditorAsync(WorkflowSettings settings)
+    {
+        var editorViewModel = _uiViewModelFactory.CreateWorkflowEditorViewModel(settings);
+        return await _viewDialogService.ShowWorkflowEditorAsync(editorViewModel);
+    }
 }

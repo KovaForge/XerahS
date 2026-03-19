@@ -29,6 +29,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
@@ -92,6 +93,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _uploadCts;
     private Bitmap? _selectedPreviewImage;
     private string _selectedFileMetadata = "No file selected.";
+    private readonly IDesktopTaskManager _taskManager;
 
     public ObservableCollection<UploadQueueItem> Items { get; } = new();
 
@@ -159,8 +161,9 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
     public event EventHandler? TextInputRequested;
     public event EventHandler? URLInputRequested;
 
-    public UploadContentViewModel()
+    public UploadContentViewModel(IDesktopTaskManager taskManager)
     {
+        _taskManager = taskManager;
         Items.CollectionChanged += (_, _) => UpdateStatus();
     }
 
@@ -404,7 +407,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         void OnTaskStarted(object? sender, WorkerTask task)
         {
             capturedTask = task;
-            TaskManager.Instance.TaskStarted -= OnTaskStarted;
+            _taskManager.TaskStarted -= OnTaskStarted;
 
             task.Info.UploadProgressChanged += progress =>
             {
@@ -415,7 +418,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             };
         }
 
-        TaskManager.Instance.TaskStarted += OnTaskStarted;
+        _taskManager.TaskStarted += OnTaskStarted;
 
         try
         {
@@ -430,12 +433,12 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             {
                 case EDataType.Image when item.Image != null:
                     settings.Job = WorkflowType.PrintScreen;
-                    await TaskManager.Instance.StartTask(settings, item.Image);
+                    await _taskManager.StartTask(settings, item.Image);
                     break;
 
                 case EDataType.File when !string.IsNullOrEmpty(item.FilePath):
                     settings.Job = WorkflowType.FileUpload;
-                    await TaskManager.Instance.StartFileTask(settings, item.FilePath);
+                    await _taskManager.StartFileTask(settings, item.FilePath);
                     break;
 
                 case EDataType.Text when !string.IsNullOrEmpty(item.TextContent):
@@ -443,7 +446,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
                     DebugHelper.WriteLine(
                         $"[UploadContentDebug] Starting text upload task. textLength={item.TextContent.Length}, " +
                         $"textPreview=\"{GetTextPreview(item.TextContent)}\"");
-                    await TaskManager.Instance.StartTextTask(settings, item.TextContent);
+                    await _taskManager.StartTextTask(settings, item.TextContent);
                     break;
 
                 case EDataType.URL when !string.IsNullOrEmpty(item.TextContent):
@@ -451,7 +454,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
                     DebugHelper.WriteLine(
                         $"[UploadContentDebug] Starting URL upload task. urlLength={item.TextContent.Length}, " +
                         $"urlPreview=\"{GetTextPreview(item.TextContent)}\"");
-                    await TaskManager.Instance.StartTextTask(settings, item.TextContent);
+                    await _taskManager.StartTextTask(settings, item.TextContent);
                     break;
 
                 default:
@@ -483,7 +486,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            TaskManager.Instance.TaskStarted -= OnTaskStarted;
+            _taskManager.TaskStarted -= OnTaskStarted;
         }
     }
 

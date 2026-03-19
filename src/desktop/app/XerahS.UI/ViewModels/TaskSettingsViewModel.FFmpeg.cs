@@ -27,7 +27,6 @@ using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
-using XerahS.UI.Views;
 
 namespace XerahS.UI.ViewModels
 {
@@ -156,7 +155,7 @@ namespace XerahS.UI.ViewModels
             var ffmpegOptions = taskSettings.CaptureSettings.FFmpegOptions ?? new FFmpegOptions();
             taskSettings.CaptureSettings.FFmpegOptions = ffmpegOptions;
             var vm = new FFmpegOptionsViewModel(ffmpegOptions);
-            await _dialogService.ShowDialogAsync<FFmpegOptionsWindow>(vm);
+            await _dialogService.ShowFFmpegOptionsAsync(vm);
             RefreshFFmpegState();
         }
 
@@ -290,9 +289,9 @@ namespace XerahS.UI.ViewModels
 
         private void RefreshOpenFFmpegOptionsWindows()
         {
-            foreach (var window in _dialogService.GetOpenWindows().OfType<FFmpegOptionsWindow>())
+            foreach (var openWindow in _dialogService.GetOpenWindows())
             {
-                if (window.DataContext is FFmpegOptionsViewModel vm)
+                if (openWindow is Avalonia.Controls.Window window && window.DataContext is FFmpegOptionsViewModel vm)
                 {
                     vm.RefreshDetectedPath();
                 }

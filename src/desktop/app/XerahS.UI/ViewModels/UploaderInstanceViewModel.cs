@@ -27,6 +27,7 @@ using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
 using XerahS.Uploaders.PluginSystem;
 using System.Collections.ObjectModel;
+using XerahS.UI.Services;
 
 namespace XerahS.UI.ViewModels;
 
@@ -416,16 +417,16 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     /// The provider must implement <see cref="IUploaderExplorer"/>.
     /// </summary>
     [RelayCommand]
-    private void OpenExplorer()
+    private async Task OpenExplorer()
     {
         var provider = ProviderCatalog.GetProvider(ProviderId);
         if (provider is not IUploaderExplorer explorer) return;
 
         try
         {
-            var vm = new ProviderExplorerViewModel(Instance, explorer);
-            var window = new Views.ProviderExplorerWindow { DataContext = vm };
-            window.Show();
+            var factory = UiViewModelFactoryAccessor.GetRequired();
+            var viewModel = factory.CreateProviderExplorerViewModel(Instance, explorer);
+            await factory.ViewDialogService.ShowProviderExplorerAsync(viewModel);
         }
         catch (Exception ex)
         {

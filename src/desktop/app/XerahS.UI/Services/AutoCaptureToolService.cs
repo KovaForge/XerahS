@@ -26,6 +26,7 @@
 using Avalonia.Controls;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -71,7 +72,7 @@ public static class AutoCaptureToolService
             }
         }
 
-        var viewModel = new AutoCaptureViewModel();
+        var viewModel = UiViewModelFactoryAccessor.GetRequired().CreateAutoCaptureViewModel();
         _window = new AutoCaptureWindow();
         _window.Initialize(viewModel);
 

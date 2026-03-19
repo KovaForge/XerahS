@@ -26,6 +26,7 @@
 using Avalonia.Controls;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -77,7 +78,7 @@ public static class UploadContentToolService
             }
         }
 
-        var viewModel = new UploadContentViewModel();
+        var viewModel = UiViewModelFactoryAccessor.GetRequired().CreateUploadContentViewModel();
         _window = new UploadContentWindow();
         _window.Initialize(viewModel);
 
