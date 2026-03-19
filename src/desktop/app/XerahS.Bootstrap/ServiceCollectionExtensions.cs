@@ -27,6 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.Bootstrap
 {
@@ -70,9 +71,11 @@ namespace XerahS.Bootstrap
             }
 
             services.TryAddSingleton(_ => TaskManager.Instance);
+            services.TryAddSingleton<ITaskManager>(_ => TaskManager.Instance);
             services.TryAddSingleton<IDesktopTaskManager, DesktopTaskManagerAdapter>();
 
             services.TryAddSingleton(_ => ScreenRecordingManager.Instance);
+            services.TryAddSingleton<IScreenRecordingManager>(_ => ScreenRecordingManager.Instance);
             services.TryAddSingleton<IScreenRecordingCoordinator, ScreenRecordingCoordinatorAdapter>();
 
             services.TryAddSingleton(_ => WatchFolderManager.Instance);

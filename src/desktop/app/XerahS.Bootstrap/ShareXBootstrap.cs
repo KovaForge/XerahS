@@ -25,9 +25,14 @@
 
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Helpers;
+using XerahS.Core.Managers;
+using XerahS.Core.Tasks;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.Bootstrap
 {
@@ -65,6 +70,13 @@ namespace XerahS.Bootstrap
                 // 4. Build DI container and wire up RootProvider
                 var provider = DesktopHostComposition.CreateServiceProvider(options.ConfigureServices);
                 result.ServiceProvider = provider;
+
+                var taskManager = provider.GetRequiredService<ITaskManager>();
+                var screenRecordingManager = provider.GetRequiredService<IScreenRecordingManager>();
+                XerahS.Core.Helpers.TaskHelpers.TaskManagerService = taskManager;
+                WatchFolderManager.Instance.TaskManagerService = taskManager;
+                WorkerTask.RecordingManagerService = screenRecordingManager;
+
                 PlatformServices.SetRootProvider(provider);
 
                 // 5. Initialize recording (async, critical for ScreenRecorder)

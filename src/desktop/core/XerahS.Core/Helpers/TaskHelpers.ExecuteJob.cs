@@ -25,6 +25,7 @@
 
 using XerahS.Common;
 using XerahS.Core.Managers;
+using XerahS.Services.Abstractions;
 
 using XerahS.Platform.Abstractions;
 
@@ -32,6 +33,11 @@ namespace XerahS.Core.Helpers;
 
 public static partial class TaskHelpers
 {
+    /// <summary>
+    /// Task manager abstraction used by workflow execution. Defaults to the singleton for compatibility.
+    /// </summary>
+    public static ITaskManager TaskManagerService { get; set; } = TaskManager.Instance;
+
     /// <summary>
     /// Execute a workflow using its complete settings.
     /// This is the preferred method - avoids ambiguity with WorkflowType lookup.
@@ -137,7 +143,7 @@ public static partial class TaskHelpers
             // Start the task via TaskManager
             // This ensures it appears in the UI and follows the standard lifecycle
             TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "Calling TaskManager.StartTask");
-            await TaskManager.Instance.StartTask(taskSettings);
+            await TaskManagerService.StartTask(taskSettings);
             TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "TaskManager.StartTask completed");
         }
         catch (Exception ex)
