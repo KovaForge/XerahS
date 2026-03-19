@@ -45,11 +45,20 @@ namespace XerahS.UI.Services
 {
     public class AvaloniaUIService : IUIService
     {
-        private readonly IDesktopTaskManager _taskManager;
+        private IDesktopTaskManager? _taskManager;
         private bool _wasMainWindowVisible;
         private Avalonia.Controls.WindowState _previousWindowState;
 
+        public AvaloniaUIService()
+        {
+        }
+
         public AvaloniaUIService(IDesktopTaskManager taskManager)
+        {
+            _taskManager = taskManager;
+        }
+
+        public void Configure(IDesktopTaskManager taskManager)
         {
             _taskManager = taskManager;
         }
@@ -102,6 +111,11 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
         {
+            if (_taskManager == null)
+            {
+                throw new InvalidOperationException("AvaloniaUIService requires an IDesktopTaskManager before showing the editor.");
+            }
+
             var tcs = new TaskCompletionSource<SKBitmap?>();
 
             await Dispatcher.UIThread.InvokeAsync(() =>

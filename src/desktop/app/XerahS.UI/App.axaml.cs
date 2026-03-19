@@ -90,10 +90,27 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var uiService = new Services.AvaloniaUIService();
+
+            // Register UI Service
+            Platform.Abstractions.PlatformServices.RegisterUIService(uiService);
+
+            // Register Toast Service
+            Platform.Abstractions.PlatformServices.RegisterToastService(new Services.AvaloniaToastService());
+
+            // Register Image Encoder Service (supports PNG, JPEG, BMP, GIF, WEBP, TIFF via Skia; AVIF via FFmpeg)
+            PlatformServices.RegisterImageEncoderService(
+                ImageEncoderService.CreateDefault(() => PathsManager.GetFFmpegPath()));
+
+            // Build DI container from platform and app services (single composition root)
+            Services.CompositionRoot.BuildAndSetRootProvider();
+
             var desktopHostProvider = PlatformServices.RootProvider
-                ?? throw new InvalidOperationException("Desktop host services were not initialized before Avalonia startup.");
+                ?? throw new InvalidOperationException("Desktop host services were not initialized during Avalonia startup.");
             var taskManager = desktopHostProvider.GetRequiredService<IDesktopTaskManager>();
             var screenRecordingCoordinator = desktopHostProvider.GetRequiredService<IScreenRecordingCoordinator>();
+
+            uiService.Configure(taskManager);
 
             // Register host-level editor services before creating any editor view models.
             EditorServices.Diagnostics = new DelegateEditorDiagnosticsSink(diagnosticEvent =>
@@ -206,21 +223,8 @@ public partial class App : Application
                 desktop.MainWindow.Opened += hideOnFirstOpen;
             }
 
-            // Register UI Service
-            Platform.Abstractions.PlatformServices.RegisterUIService(new Services.AvaloniaUIService(taskManager));
-
-            // Register Toast Service
-            Platform.Abstractions.PlatformServices.RegisterToastService(new Services.AvaloniaToastService());
-
-            // Register Image Encoder Service (supports PNG, JPEG, BMP, GIF, WEBP, TIFF via Skia; AVIF via FFmpeg)
-            PlatformServices.RegisterImageEncoderService(
-                ImageEncoderService.CreateDefault(() => PathsManager.GetFFmpegPath()));
-
             // Wire up Editor clipboard to platform implementation
             EditorServices.Clipboard = new Services.EditorClipboardAdapter();
-
-            // Build DI container from platform and app services (single composition root)
-            Services.CompositionRoot.BuildAndSetRootProvider();
 
             _workflowOrchestrator = new WorkflowOrchestrator(taskManager, screenRecordingCoordinator);
             _trayIconController = new TrayIconController();

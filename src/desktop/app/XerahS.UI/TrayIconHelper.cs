@@ -214,6 +214,17 @@ public class TrayIconHelper : INotifyPropertyChanged
         _screenRecordingCoordinator.StatusChanged += OnRecordingStatusChanged;
         _screenRecordingCoordinator.RecordingStarted += OnRecordingStarted;
         _screenRecordingCoordinator.ErrorOccurred += OnRecordingError;
+
+        _currentRecordingStatus = _screenRecordingCoordinator.IsPaused
+            ? RecordingStatus.Paused
+            : _screenRecordingCoordinator.IsRecording
+                ? RecordingStatus.Recording
+                : RecordingStatus.Idle;
+
+        OnPropertyChanged(nameof(CurrentTrayIcon));
+        OnPropertyChanged(nameof(TrayToolTipText));
+        OnPropertyChanged(nameof(IsRecordingActive));
+        BuildTrayMenu();
     }
 
     /// <summary>
