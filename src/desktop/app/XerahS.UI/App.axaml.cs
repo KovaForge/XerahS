@@ -125,7 +125,7 @@ public partial class App : Application
             });
             EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
 
-            var mainViewModel = new MainViewModel();
+            var mainViewModel = new MainViewModel(Services.ThemeService.CreateImageEditorOptions());
             mainViewModel.ApplicationName = AppResources.AppName;
             mainViewModel.ShowTaskModeButtons = false;
 

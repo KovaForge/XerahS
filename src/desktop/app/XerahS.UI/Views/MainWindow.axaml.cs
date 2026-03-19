@@ -44,7 +44,6 @@ using XerahS.Core.Hotkeys;
 using Avalonia; // For Application.Current
 using XerahS.Core.Tasks;
 using ShareX.ImageEditor.Core.Annotations;
-using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI.Views.Dialogs;
@@ -93,10 +92,6 @@ namespace XerahS.UI.Views
             if (menuItemVideoEditor != null)
                 menuItemVideoEditor.IsVisible = false;
 #endif
-
-            // Set initial theme and subscribe to changes
-            RequestedThemeVariant = ThemeManager.GetCurrentTheme();
-            ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
 
             BuildNavigationNodes();
 
