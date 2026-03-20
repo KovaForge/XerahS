@@ -136,3 +136,10 @@ SwiftPackageManager.build/
 /build/logs
 /build/r2r-eval-no-r2r
 /build/r2r-eval-r2r
+
+# Autoresearch bundle and generated run state
+.autoresearch/*
+!.autoresearch/AUTORESEARCH_PS1.md
+!.autoresearch/autoresearch.ps1
+!.autoresearch/missions/
+!.autoresearch/missions/*.md
