@@ -26,6 +26,7 @@
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ShareX.ImageEditor.Core.Abstractions;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
@@ -34,7 +35,7 @@ using SkiaSharp;
 
 namespace XerahS.RegionCapture.ViewModels;
 
-public partial class RegionCaptureAnnotationViewModel : ObservableObject
+public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnotationToolbarAdapter
 {
     private const float MinEffectStrength = 1;
     private const float MaxBlurStrength = 200;
@@ -158,6 +159,12 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectedColor = "#FFEF4444";
+
+    public string StrokeColor
+    {
+        get => SelectedColor;
+        set => SelectedColor = value;
+    }
 
     public IBrush SelectedColorBrush
     {
@@ -391,6 +398,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         ShowTextStyle ||
         ShowShadow;
 
+    public bool ShowToolOptions => ShowToolOptionsSeparator;
+
     public string ActiveToolIcon => EditorIcons.ForTool(GetEffectiveDisplayTool());
 
     public string ActiveToolName => GetEffectiveDisplayTool() switch
@@ -427,6 +436,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         private set => SetProperty(ref _canRedo, value);
     }
 
+    public bool HasSelection => HasSelectedAnnotation;
+
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
     {
@@ -454,6 +465,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         {
             if (SetProperty(ref _hasSelectedAnnotation, value))
             {
+                OnPropertyChanged(nameof(HasSelection));
                 DeleteSelectedCommand.NotifyCanExecuteChanged();
             }
         }
@@ -797,6 +809,11 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
                     return;
                 case BaseEffectAnnotation effect:
                     effect.Amount = value;
+                    if (_editorCore.SourceImage != null)
+                    {
+                        effect.UpdateEffect(_editorCore.SourceImage);
+                    }
+
                     RequestCanvasRefresh();
                     return;
                 default:
@@ -1087,4 +1104,14 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject
         Italic,
         Underline
     }
+
+    void IAnnotationToolbarAdapter.SelectTool(EditorTool tool) => SelectToolCommand.Execute(tool);
+
+    void IAnnotationToolbarAdapter.Undo() => UndoCommand.Execute(null);
+
+    void IAnnotationToolbarAdapter.Redo() => RedoCommand.Execute(null);
+
+    void IAnnotationToolbarAdapter.DeleteSelection() => DeleteSelectedCommand.Execute(null);
+
+    void IAnnotationToolbarAdapter.ClearSelection() => ClearAnnotationsCommand.Execute(null);
 }

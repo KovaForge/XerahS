@@ -2,6 +2,7 @@ using Avalonia.Media;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Hosting;
+using SkiaSharp;
 using XerahS.RegionCapture.ViewModels;
 
 namespace XerahS.Tests.RegionCapture;
@@ -135,5 +136,38 @@ public class RegionCaptureAnnotationViewModelTests
 
         viewModel.ActiveTool = EditorTool.Spotlight;
         Assert.That(viewModel.EffectStrength, Is.EqualTo(42));
+    }
+
+    [Test]
+    public void SelectTool_ChangingSelectedEffectStrength_RegeneratesEffectBitmap()
+    {
+        var viewModel = new RegionCaptureAnnotationViewModel
+        {
+            ActiveTool = EditorTool.Select
+        };
+
+        var sourceBitmap = new SKBitmap(24, 24);
+        using (var canvas = new SKCanvas(sourceBitmap))
+        {
+            canvas.Clear(SKColors.CornflowerBlue);
+        }
+
+        viewModel.LoadBackgroundImage(sourceBitmap);
+
+        var blurAnnotation = new BlurAnnotation
+        {
+            StartPoint = new SKPoint(2, 2),
+            EndPoint = new SKPoint(18, 18),
+            Amount = 8
+        };
+
+        viewModel.SelectedAnnotation = blurAnnotation;
+        viewModel.EffectStrength = 20;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(blurAnnotation.Amount, Is.EqualTo(20));
+            Assert.That(blurAnnotation.EffectBitmap, Is.Not.Null);
+        });
     }
 }

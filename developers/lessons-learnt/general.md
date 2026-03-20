@@ -216,6 +216,8 @@ This forces the build system to include the correct Windows SDK reference assemb
 ### RegionCapture Toolbar Parity
 
 - Never model the RegionCapture overlay toolbar as one shared annotation-options state. Mirror `ShareX.ImageEditor`'s per-tool option matrix instead, including `Select` reflecting the currently selected annotation type, or tools like Highlight, Smart Eraser, Rectangle, Text, and Step will silently expose the wrong controls and create annotations with mismatched defaults.
+- Never reimplement RegionCapture effect-tool behavior with host-only state when `ShareX.ImageEditor.Core.Editor.EditorCore` already exposes the needed pipeline hooks; always reuse `EditorCore.SampleCanvasColor`, `Annotation.HitTest`, and `BaseEffectAnnotation.UpdateEffect(...)` for Smart Eraser, Spotlight, Blur, Pixelate, and Magnify because local one-off paths drift from ImageEditor and silently break tool-specific editing behavior.
+- Never keep duplicate annotation toolbar controls or view-owned effect fill logic in `XerahS.RegionCapture` when `ShareX.ImageEditor` is the lower shared dependency. Put the shared toolbar in `ShareX.ImageEditor.Presentation.Controls` and the bitmap-backed effect brush updater in `ShareX.ImageEditor.Presentation.Rendering`, then have both `EditorView` and `OverlayWindow` consume those shared pieces so button availability and Blur/Pixelate/Magnify rendering stay aligned.
 
 ---
 

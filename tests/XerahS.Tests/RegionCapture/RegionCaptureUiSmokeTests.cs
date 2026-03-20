@@ -27,8 +27,8 @@ using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Presentation.Controls;
 using XerahS.RegionCapture.UI;
-using XerahS.RegionCapture.UI.Controls;
 using XerahS.RegionCapture.ViewModels;
 
 namespace XerahS.Tests.RegionCapture;
