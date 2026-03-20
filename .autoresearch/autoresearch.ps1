@@ -200,23 +200,22 @@ function Expand-Template {
 function New-CommandSnippet {
     param([string]$CommandText)
 
-    return @(
-        '$__cmd = ' + (Quote-PowerShellLiteral $CommandText),
-        'Write-Host ("Running: " + $__cmd)',
-        'Invoke-Expression $__cmd',
-        'if ($null -eq $LASTEXITCODE) { exit 0 }',
+    # Avoid relying on newline preservation in nested snippet injection.
+    # Semicolons keep the generated runner valid even if $Snippet is flattened.
+    return (
+        '$__cmd = ' + (Quote-PowerShellLiteral $CommandText) + '; ' +
+        'Write-Host ("Running: " + $__cmd); ' +
+        'Invoke-Expression $__cmd; ' +
+        'if ($null -eq $LASTEXITCODE) { exit 0 }; ' +
         'exit [int]$LASTEXITCODE'
-    ) -join [Environment]::NewLine
+    )
 }
 
 function New-ValidationSnippet {
     param([string[]]$Commands)
 
     if ($Commands.Count -eq 0) {
-        return @(
-            'Write-Host "No validation commands configured."',
-            'exit 0'
-        ) -join [Environment]::NewLine
+        return 'Write-Host "No validation commands configured."; exit 0'
     }
 
     $lines = New-Object System.Collections.Generic.List[string]
@@ -228,7 +227,8 @@ function New-ValidationSnippet {
     }
 
     $lines.Add('exit 0')
-    return $lines -join [Environment]::NewLine
+    # Semicolon-separated to remain valid even if line endings get flattened.
+    return ($lines -join '; ')
 }
 
 function Invoke-LoggedSnippet {
@@ -239,12 +239,15 @@ function Invoke-LoggedSnippet {
     )
 
     $runnerPath = [System.IO.Path]::ChangeExtension($LogPath, ".runner.ps1")
-    $runner = @(
-        '$ErrorActionPreference = "Stop"',
-        'Set-StrictMode -Version Latest',
-        'Set-Location -LiteralPath ' + (Quote-PowerShellLiteral $WorkingDirectory),
-        $Snippet
-    ) -join [Environment]::NewLine
+    # Build the runner as a single expandable string so line breaks inside $Snippet are preserved.
+    # Also escape `$ so we don't interpolate the host `$ErrorActionPreference` variable here.
+    $workingDirLiteral = Quote-PowerShellLiteral $WorkingDirectory
+    $runner = @"
+`$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+Set-Location -LiteralPath $workingDirLiteral
+$Snippet
+"@
 
     Write-Utf8File -Path $runnerPath -Content $runner
 
