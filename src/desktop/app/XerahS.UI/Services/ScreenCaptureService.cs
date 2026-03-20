@@ -104,77 +104,8 @@ namespace XerahS.UI.Services
                 }
             }
 
-            SKRectI selection = SKRectI.Empty;
-
-            try
-            {
-                await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    XerahS.Platform.Abstractions.CursorInfo? cursorInfo = null;
-                    if (options?.ShowCursor == true)
-                    {
-                        try
-                        {
-                            cursorInfo = await _platformImpl.CaptureCursorAsync();
-                        }
-                        catch
-                        {
-                            // Ignore cursor capture errors
-                        }
-                    }
-
-                    bool useFastOverlay = OperatingSystem.IsLinux() || (options?.UseTransparentOverlay ?? false);
-
-                    SkiaSharp.SKBitmap? backgroundForMagnifier = null;
-                    if (!useFastOverlay)
-                    {
-                        try
-                        {
-                            backgroundForMagnifier = await _platformImpl.CaptureFullScreenAsync(new CaptureOptions
-                            {
-                                ShowCursor = false,
-                                UseModernCapture = options?.UseModernCapture ?? true,
-                                LinuxRegionSelectorPreference = LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options)
-                            });
-                        }
-                        catch
-                        {
-                            // Ignore
-                        }
-                    }
-
-                    var captureService = new RegionCaptureService
-                    {
-                        Options = new XerahS.RegionCapture.RegionCaptureOptions
-                        {
-                            ShowCursor = options?.ShowCursor ?? false,
-                            BackgroundImage = backgroundForMagnifier,
-                            UseTransparentOverlay = useFastOverlay,
-                            EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(options?.WorkflowId),
-                        }
-                    };
-
-                    XerahS.RegionCapture.Models.RegionSelectionResult? result;
-                    try
-                    {
-                        result = await captureService.CaptureRegionAsync(cursorInfo);
-                    }
-                    finally
-                    {
-                        RegionCaptureAnnotationOptionsStore.Persist();
-                    }
-
-                    if (result is not null)
-                    {
-                        var r = result.Value.Region;
-                        selection = new SKRectI((int)r.X, (int)r.Y, (int)r.Right, (int)r.Bottom);
-                    }
-                });
-            }
-            catch
-            {
-                // Ignore errors to ensure robustness
-            }
+            bool useFastOverlay = OperatingSystem.IsLinux() || (options?.UseTransparentOverlay ?? false);
+            SKRectI selection = await OverlayRegionCaptureSession.SelectRegionAsync(_platformImpl, options, useFastOverlay);
 
             if (OperatingSystem.IsLinux())
             {
@@ -331,50 +262,18 @@ namespace XerahS.UI.Services
             }
 
             DebugHelper.WriteLine($"[RegionCapture] Milestone: region capture UI invoked (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
-            SKRectI selection = SKRectI.Empty;
-            SKBitmap? annotationLayer = null;
-            XerahS.RegionCapture.Models.PixelPoint annotationMonitorOrigin = default;
-            try
-            {
-                await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    var captureService = new RegionCaptureService
-                    {
-                        Options = new XerahS.RegionCapture.RegionCaptureOptions
-                        {
-                            ShowCursor = effectiveOptions?.ShowCursor ?? false,
-                            BackgroundImage = fullScreenBitmap,
-                            UseTransparentOverlay = useFastOverlay,
-                            EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(effectiveOptions?.WorkflowId),
-                            SessionStartUtc = sessionStartUtc,
-                        }
-                    };
-
-                    XerahS.RegionCapture.Models.RegionSelectionResult? result;
-                    try
-                    {
-                        result = await captureService.CaptureRegionAsync(ghostCursor);
-                    }
-                    finally
-                    {
-                        RegionCaptureAnnotationOptionsStore.Persist();
-                    }
-
-                    if (result is not null)
-                    {
-                        var r = result.Value.Region;
-                        selection = new SKRectI((int)r.X, (int)r.Y, (int)r.Right, (int)r.Bottom);
-                        annotationLayer = result.Value.AnnotationLayer;
-                        annotationMonitorOrigin = result.Value.MonitorOrigin;
-                    }
-                });
-                double elapsedMs = (DateTime.UtcNow - sessionStartUtc).TotalMilliseconds;
-                DebugHelper.WriteLine($"[RegionCapture] Milestone: region UI returned (+{elapsedMs:F0} ms)");
-            }
-            catch
-            {
-                // Ignore errors
-            }
+            OverlayRegionCaptureSession.OverlayRegionCaptureResult overlayResult =
+                await OverlayRegionCaptureSession.CaptureRegionAsync(
+                    effectiveOptions,
+                    sessionStartUtc,
+                    useFastOverlay,
+                    fullScreenBitmap,
+                    ghostCursor);
+            SKRectI selection = overlayResult.Selection;
+            SKBitmap? annotationLayer = overlayResult.AnnotationLayer;
+            XerahS.RegionCapture.Models.PixelPoint annotationMonitorOrigin = overlayResult.AnnotationMonitorOrigin;
+            double elapsedMs = (DateTime.UtcNow - sessionStartUtc).TotalMilliseconds;
+            DebugHelper.WriteLine($"[RegionCapture] Milestone: region UI returned (+{elapsedMs:F0} ms)");
 
             if (selection.IsEmpty || selection.Width <= 0 || selection.Height <= 0)
             {

@@ -28,6 +28,7 @@ using Avalonia.Headless.NUnit;
 using NUnit.Framework;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
+using XerahS.Tests.Xip0052;
 using XerahS.UI.ViewModels;
 using HotkeyInfo = XerahS.Platform.Abstractions.HotkeyInfo;
 
@@ -37,6 +38,8 @@ namespace XerahS.Tests.Hotkeys;
 [NonParallelizable]
 public class WorkflowEditorViewModelTests
 {
+    private static readonly FakeUiViewModelFactory ViewModelFactory = new();
+
     [AvaloniaTest]
     public void Save_DoesNotMutateSourceWorkflowUntilCommitted()
     {
@@ -49,7 +52,7 @@ public class WorkflowEditorViewModelTests
             }
         };
 
-        var viewModel = new WorkflowEditorViewModel(workflow, loadUploaderCategories: false)
+        var viewModel = new WorkflowEditorViewModel(workflow, ViewModelFactory, loadUploaderCategories: false)
         {
             Description = "Area capture",
             SelectedJob = WorkflowType.ActiveWindow,
@@ -88,7 +91,7 @@ public class WorkflowEditorViewModelTests
             }
         };
 
-        var viewModel = new WorkflowEditorViewModel(workflow, loadUploaderCategories: false);
+        var viewModel = new WorkflowEditorViewModel(workflow, ViewModelFactory, loadUploaderCategories: false);
         viewModel.SelectedJob = WorkflowType.ActiveWindow;
 
         Assert.That(viewModel.Description, Is.EqualTo("Active window capture"));
@@ -106,7 +109,7 @@ public class WorkflowEditorViewModelTests
             }
         };
 
-        var viewModel = new WorkflowEditorViewModel(workflow, loadUploaderCategories: false);
+        var viewModel = new WorkflowEditorViewModel(workflow, ViewModelFactory, loadUploaderCategories: false);
         viewModel.SelectedJob = WorkflowType.ActiveWindow;
 
         Assert.That(viewModel.Description, Is.EqualTo("My custom workflow"));

@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -30,7 +31,14 @@ namespace XerahS.Common.Helpers
     [SupportedOSPlatform("windows")]
     public static class ShortcutHelpers
     {
-        public static bool SetShortcut(bool create, Environment.SpecialFolder specialFolder, string shortcutName, string targetPath, string arguments = "")
+        public static bool SetShortcut(
+            bool create,
+            Environment.SpecialFolder specialFolder,
+            string shortcutName,
+            string targetPath,
+            string arguments = "",
+            string? iconLocation = null,
+            string? description = null)
         {
             string shortcutPath = GetShortcutPath(specialFolder, shortcutName);
             if (string.IsNullOrEmpty(shortcutPath))
@@ -38,10 +46,16 @@ namespace XerahS.Common.Helpers
                 return false;
             }
 
-            return SetShortcut(create, shortcutPath, targetPath, arguments);
+            return SetShortcut(create, shortcutPath, targetPath, arguments, iconLocation, description);
         }
 
-        public static bool SetShortcut(bool create, string shortcutPath, string targetPath, string arguments = "")
+        public static bool SetShortcut(
+            bool create,
+            string shortcutPath,
+            string targetPath,
+            string arguments = "",
+            string? iconLocation = null,
+            string? description = null)
         {
             if (string.IsNullOrEmpty(shortcutPath) || string.IsNullOrEmpty(targetPath))
             {
@@ -52,7 +66,7 @@ namespace XerahS.Common.Helpers
             {
                 if (create)
                 {
-                    return CreateShortcut(shortcutPath, targetPath, arguments);
+                    return CreateShortcut(shortcutPath, targetPath, arguments, iconLocation, description);
                 }
                 else
                 {
@@ -68,20 +82,26 @@ namespace XerahS.Common.Helpers
             return false;
         }
 
-        public static bool CheckShortcut(Environment.SpecialFolder specialFolder, string shortcutName, string targetPath)
+        public static bool CheckShortcut(
+            Environment.SpecialFolder specialFolder,
+            string shortcutName,
+            string targetPath,
+            string arguments = "")
         {
             string shortcutPath = GetShortcutPath(specialFolder, shortcutName);
-            return CheckShortcut(shortcutPath, targetPath);
+            return CheckShortcut(shortcutPath, targetPath, arguments);
         }
 
-        public static bool CheckShortcut(string shortcutPath, string targetPath)
+        public static bool CheckShortcut(string shortcutPath, string targetPath, string arguments = "")
         {
             if (!string.IsNullOrEmpty(shortcutPath) && !string.IsNullOrEmpty(targetPath) && File.Exists(shortcutPath))
             {
                 try
                 {
-                    string? shortcutTargetPath = GetShortcutTargetPath(shortcutPath);
-                    return !string.IsNullOrEmpty(shortcutTargetPath) && shortcutTargetPath.Equals(targetPath, StringComparison.OrdinalIgnoreCase);
+                    ShortcutInfo? shortcut = GetShortcutInfo(shortcutPath);
+                    return shortcut != null &&
+                           shortcut.TargetPath.Equals(targetPath, StringComparison.OrdinalIgnoreCase) &&
+                           string.Equals(shortcut.Arguments.Trim(), arguments.Trim(), StringComparison.OrdinalIgnoreCase);
                 }
                 catch (Exception e)
                 {
@@ -104,7 +124,12 @@ namespace XerahS.Common.Helpers
             return Path.Combine(folderPath, shortcutName);
         }
 
-        private static bool CreateShortcut(string shortcutPath, string targetPath, string arguments = "")
+        private static bool CreateShortcut(
+            string shortcutPath,
+            string targetPath,
+            string arguments = "",
+            string? iconLocation = null,
+            string? description = null)
         {
             // TODO: [Avalonia] Shortcuts (.lnk) are Windows specific. 
             // Consider alternatives for Linux/macOS (.desktop files / aliases).
@@ -114,19 +139,35 @@ namespace XerahS.Common.Helpers
                 {
                     DeleteShortcut(shortcutPath);
 
+                    object? shellObject = null;
+                    object? shortcutObject = null;
+
                     try
                     {
                         Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
                         if (shellType != null)
                         {
-                            dynamic? shell = Activator.CreateInstance(shellType);
-                            dynamic? shortcut = shell?.CreateShortcut(shortcutPath);
+                            shellObject = Activator.CreateInstance(shellType);
+                            dynamic? shell = shellObject;
+                            shortcutObject = shell?.CreateShortcut(shortcutPath);
+                            dynamic? shortcut = shortcutObject;
 
                             if (shortcut != null)
                             {
                                 shortcut.TargetPath = targetPath;
                                 shortcut.Arguments = arguments;
                                 shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath) ?? string.Empty;
+
+                                if (!string.IsNullOrWhiteSpace(iconLocation))
+                                {
+                                    shortcut.IconLocation = iconLocation;
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(description))
+                                {
+                                    shortcut.Description = description;
+                                }
+
                                 shortcut.Save();
                                 return true;
                             }
@@ -136,26 +177,43 @@ namespace XerahS.Common.Helpers
                     {
                         DebugHelper.WriteException(ex);
                     }
+                    finally
+                    {
+                        ReleaseComObject(shortcutObject);
+                        ReleaseComObject(shellObject);
+                    }
                 }
             }
 
             return false;
         }
 
-        private static string? GetShortcutTargetPath(string shortcutPath)
+        public static ShortcutInfo? GetShortcutInfo(string shortcutPath)
         {
+            if (string.IsNullOrEmpty(shortcutPath) || !File.Exists(shortcutPath))
+            {
+                return null;
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                object? shellObject = null;
+                object? shortcutObject = null;
+
                 try
                 {
                     Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
                     if (shellType != null)
                     {
-                        dynamic? shell = Activator.CreateInstance(shellType);
-                        dynamic? shortcut = shell?.CreateShortcut(shortcutPath);
+                        shellObject = Activator.CreateInstance(shellType);
+                        dynamic? shell = shellObject;
+                        shortcutObject = shell?.CreateShortcut(shortcutPath);
+                        dynamic? shortcut = shortcutObject;
                         if (shortcut != null)
                         {
-                            return shortcut.TargetPath;
+                            return new ShortcutInfo(
+                                (string?)shortcut.TargetPath ?? string.Empty,
+                                (string?)shortcut.Arguments ?? string.Empty);
                         }
                     }
                 }
@@ -163,8 +221,14 @@ namespace XerahS.Common.Helpers
                 {
                     DebugHelper.WriteException(ex);
                 }
+                finally
+                {
+                    ReleaseComObject(shortcutObject);
+                    ReleaseComObject(shellObject);
+                }
             }
-            return string.Empty;
+
+            return null;
         }
 
         private static bool DeleteShortcut(string shortcutPath)
@@ -177,5 +241,15 @@ namespace XerahS.Common.Helpers
 
             return false;
         }
+
+        private static void ReleaseComObject(object? value)
+        {
+            if (value != null && Marshal.IsComObject(value))
+            {
+                Marshal.FinalReleaseComObject(value);
+            }
+        }
+
+        public sealed record ShortcutInfo(string TargetPath, string Arguments);
     }
 }

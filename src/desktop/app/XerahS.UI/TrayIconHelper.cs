@@ -28,6 +28,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
@@ -50,6 +51,7 @@ public class TrayIconHelper : INotifyPropertyChanged
 {
     private static TrayIconHelper? _instance;
     public static TrayIconHelper Instance => _instance ??= new TrayIconHelper();
+    private IScreenRecordingCoordinator? _screenRecordingCoordinator;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -192,10 +194,37 @@ public class TrayIconHelper : INotifyPropertyChanged
         // Subscribe to settings changes
         SettingsManager.SettingsChanged += OnSettingsChanged;
 
-        // Subscribe to recording state changes to update tray icon and menu
-        ScreenRecordingManager.Instance.StatusChanged += OnRecordingStatusChanged;
-        ScreenRecordingManager.Instance.RecordingStarted += OnRecordingStarted;
-        ScreenRecordingManager.Instance.ErrorOccurred += OnRecordingError;
+    }
+
+    public void Initialize(IScreenRecordingCoordinator screenRecordingCoordinator)
+    {
+        if (ReferenceEquals(_screenRecordingCoordinator, screenRecordingCoordinator))
+        {
+            return;
+        }
+
+        if (_screenRecordingCoordinator != null)
+        {
+            _screenRecordingCoordinator.StatusChanged -= OnRecordingStatusChanged;
+            _screenRecordingCoordinator.RecordingStarted -= OnRecordingStarted;
+            _screenRecordingCoordinator.ErrorOccurred -= OnRecordingError;
+        }
+
+        _screenRecordingCoordinator = screenRecordingCoordinator;
+        _screenRecordingCoordinator.StatusChanged += OnRecordingStatusChanged;
+        _screenRecordingCoordinator.RecordingStarted += OnRecordingStarted;
+        _screenRecordingCoordinator.ErrorOccurred += OnRecordingError;
+
+        _currentRecordingStatus = _screenRecordingCoordinator.IsPaused
+            ? RecordingStatus.Paused
+            : _screenRecordingCoordinator.IsRecording
+                ? RecordingStatus.Recording
+                : RecordingStatus.Idle;
+
+        OnPropertyChanged(nameof(CurrentTrayIcon));
+        OnPropertyChanged(nameof(TrayToolTipText));
+        OnPropertyChanged(nameof(IsRecordingActive));
+        BuildTrayMenu();
     }
 
     /// <summary>
@@ -373,9 +402,14 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private async Task PauseResumeRecordingAsync()
     {
+        if (_screenRecordingCoordinator == null)
+        {
+            return;
+        }
+
         try
         {
-            await ScreenRecordingManager.Instance.TogglePauseResumeAsync();
+            await _screenRecordingCoordinator.TogglePauseResumeAsync();
         }
         catch (Exception ex)
         {
@@ -388,9 +422,14 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private async Task StopRecordingAsync()
     {
+        if (_screenRecordingCoordinator == null)
+        {
+            return;
+        }
+
         try
         {
-            await ScreenRecordingManager.Instance.StopRecordingAsync();
+            await _screenRecordingCoordinator.StopRecordingAsync();
         }
         catch (Exception ex)
         {
@@ -403,9 +442,14 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private async Task AbortRecordingAsync()
     {
+        if (_screenRecordingCoordinator == null)
+        {
+            return;
+        }
+
         try
         {
-            await ScreenRecordingManager.Instance.AbortRecordingAsync();
+            await _screenRecordingCoordinator.AbortRecordingAsync();
         }
         catch (Exception ex)
         {

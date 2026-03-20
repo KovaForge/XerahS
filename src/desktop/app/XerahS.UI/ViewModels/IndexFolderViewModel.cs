@@ -35,6 +35,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using XerahS.Common;
 using XerahS.Common.Converters;
+using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.Indexer;
 using XerahS.Core.Managers;
@@ -50,6 +51,7 @@ public partial class IndexFolderViewModel : ViewModelBase
     private CancellationTokenSource? _indexingCancellationTokenSource;
     private readonly Progress<XerahS.Indexer.IndexerProgress> _indexerProgress;
     private readonly IViewDialogService _dialogService;
+    private readonly IDesktopTaskManager _taskManager;
 
     [ObservableProperty]
     private string _folderPath = string.Empty;
@@ -82,14 +84,10 @@ public partial class IndexFolderViewModel : ViewModelBase
     [ObservableProperty]
     private string _folderPathError = string.Empty;
 
-    public IndexFolderViewModel()
-        : this(null, false)
+    public IndexFolderViewModel(TaskSettings? taskSettings, bool isWorkflowConfigMode, IViewDialogService dialogService, IDesktopTaskManager taskManager)
     {
-    }
-
-    public IndexFolderViewModel(TaskSettings? taskSettings, bool isWorkflowConfigMode, IViewDialogService? dialogService = null)
-    {
-        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+        _dialogService = dialogService;
+        _taskManager = taskManager;
         var workflow = SettingsManager.GetFirstWorkflow(WorkflowType.IndexFolder);
         _taskSettings = taskSettings ?? workflow?.TaskSettings ?? new TaskSettings { Job = WorkflowType.IndexFolder };
         _isWorkflowConfigMode = isWorkflowConfigMode;
@@ -563,7 +561,7 @@ public partial class IndexFolderViewModel : ViewModelBase
         var settings = GetUploadTaskSettings();
         settings.Job = WorkflowType.FileUpload;
 
-        await TaskManager.Instance.StartFileTask(settings, GeneratedFilePath);
+        await _taskManager.StartFileTask(settings, GeneratedFilePath);
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]

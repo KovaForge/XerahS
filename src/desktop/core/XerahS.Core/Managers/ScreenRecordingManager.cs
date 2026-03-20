@@ -27,6 +27,7 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
 using XerahS.RegionCapture.ScreenRecording;
+using XerahS.Services.Abstractions;
 using System.Runtime.InteropServices;
 
 namespace XerahS.Core.Managers;
@@ -36,7 +37,7 @@ namespace XerahS.Core.Managers;
 /// Coordinates recording state across UI and workflow pipelines
 /// Stage 5: Workflow Pipeline Integration
 /// </summary>
-public class ScreenRecordingManager
+public class ScreenRecordingManager : IScreenRecordingManager
 {
     private static readonly Lazy<ScreenRecordingManager> _lazy = new(() => new ScreenRecordingManager());
     public static ScreenRecordingManager Instance => _lazy.Value;
@@ -220,6 +221,16 @@ public class ScreenRecordingManager
         RecordingOptions optionsToStart = PrepareRecordingOptions(options, isResume: false);
 
         await StartRecordingCoreAsync(optionsToStart, preferFallback);
+    }
+
+    async Task IScreenRecordingManager.StartRecordingAsync(object options)
+    {
+        if (options is not RecordingOptions recordingOptions)
+        {
+            throw new ArgumentException("Recording options must be a RecordingOptions instance.", nameof(options));
+        }
+
+        await StartRecordingAsync(recordingOptions);
     }
 
     /// <summary>

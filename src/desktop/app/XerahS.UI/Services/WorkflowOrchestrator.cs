@@ -28,6 +28,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using ShareX.ImageEditor.Presentation.ViewModels;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -39,10 +40,18 @@ namespace XerahS.UI.Services;
 public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 {
     private readonly object _uploadTitleLock = new();
+    private readonly IDesktopTaskManager _taskManager;
+    private readonly IScreenRecordingCoordinator _screenRecordingCoordinator;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private Core.Hotkeys.WorkflowManager? _workflowManager;
     private int _activeUploadCount;
     private string _baseTitle = AppResources.ProductNameWithVersion;
+
+    public WorkflowOrchestrator(IDesktopTaskManager taskManager, IScreenRecordingCoordinator screenRecordingCoordinator)
+    {
+        _taskManager = taskManager;
+        _screenRecordingCoordinator = screenRecordingCoordinator;
+    }
 
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowManager;
 
@@ -54,10 +63,10 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         ConfigureWorkerTaskCallbacks();
         InitializeHotkeys();
 
-        Core.Managers.TaskManager.Instance.TaskCompleted -= OnWorkflowTaskCompleted;
-        Core.Managers.TaskManager.Instance.TaskStarted -= OnWorkflowTaskStarted;
-        Core.Managers.TaskManager.Instance.TaskCompleted += OnWorkflowTaskCompleted;
-        Core.Managers.TaskManager.Instance.TaskStarted += OnWorkflowTaskStarted;
+        _taskManager.TaskCompleted -= OnWorkflowTaskCompleted;
+        _taskManager.TaskStarted -= OnWorkflowTaskStarted;
+        _taskManager.TaskCompleted += OnWorkflowTaskCompleted;
+        _taskManager.TaskStarted += OnWorkflowTaskStarted;
     }
 
     private void ConfigureWorkerTaskCallbacks()
@@ -174,7 +183,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         {
             var owner = _desktop?.MainWindow;
 
-            if (ToolWorkflowDispatcher.TryDispatch(workflowType, owner, taskSettings, out var dispatchTask))
+            if (ToolWorkflowDispatcher.TryDispatch(workflowType, owner, taskSettings, _taskManager, out var dispatchTask))
             {
                 await dispatchTask;
                 return;
@@ -310,7 +319,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         void HandleTaskCompleted(object? s, Core.Tasks.WorkerTask task)
         {
-            Core.Managers.TaskManager.Instance.TaskCompleted -= HandleTaskCompleted;
+            _taskManager.TaskCompleted -= HandleTaskCompleted;
             OnTaskCompleted(task, EventArgs.Empty);
 
             bool isScreenRecord = category == EnumExtensions.WorkflowType_Category_ScreenRecord;
@@ -329,7 +338,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             }
         }
 
-        Core.Managers.TaskManager.Instance.TaskCompleted += HandleTaskCompleted;
+        _taskManager.TaskCompleted += HandleTaskCompleted;
 
         if (settings.Job == Core.WorkflowType.CustomWindow)
         {
@@ -347,25 +356,25 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
                                  settings.Job == Core.WorkflowType.StartScreenRecorderGIF;
 
         if (settings.Job == Core.WorkflowType.PauseScreenRecording &&
-            (Core.Managers.ScreenRecordingManager.Instance.IsRecording || Core.Managers.ScreenRecordingManager.Instance.IsPaused))
+            (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
             DebugHelper.WriteLine("Pause/Resume hotkey triggered - toggling recording pause state...");
-            await Core.Managers.ScreenRecordingManager.Instance.TogglePauseResumeAsync();
+            await _screenRecordingCoordinator.TogglePauseResumeAsync();
             return;
         }
 
         if (settings.Job == Core.WorkflowType.AbortScreenRecording &&
-            (Core.Managers.ScreenRecordingManager.Instance.IsRecording || Core.Managers.ScreenRecordingManager.Instance.IsPaused))
+            (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
             DebugHelper.WriteLine("Abort hotkey triggered - aborting recording...");
-            await Core.Managers.ScreenRecordingManager.Instance.AbortRecordingAsync();
+            await _screenRecordingCoordinator.AbortRecordingAsync();
             return;
         }
 
-        if (isRecordingHotkey && (Core.Managers.ScreenRecordingManager.Instance.IsRecording || Core.Managers.ScreenRecordingManager.Instance.IsPaused))
+        if (isRecordingHotkey && (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
             DebugHelper.WriteLine("Screen Recording active - flagging Stop Signal to existing task...");
-            Core.Managers.ScreenRecordingManager.Instance.SignalStop();
+            _screenRecordingCoordinator.SignalStop();
             return;
         }
 

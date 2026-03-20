@@ -28,6 +28,7 @@ using Avalonia.Platform.Storage;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -39,7 +40,12 @@ namespace XerahS.UI.Services;
 /// </summary>
 internal static class ToolWorkflowDispatcher
 {
-    public static bool TryDispatch(WorkflowType workflowType, Window? owner, TaskSettings? taskSettings, out Task dispatchTask)
+    public static bool TryDispatch(
+        WorkflowType workflowType,
+        Window? owner,
+        TaskSettings? taskSettings,
+        IDesktopTaskManager taskManager,
+        out Task dispatchTask)
     {
         var effectiveTaskSettings = taskSettings ?? new TaskSettings { Job = workflowType };
 
@@ -55,7 +61,7 @@ internal static class ToolWorkflowDispatcher
                 return true;
 
             case WorkflowType.ScrollingCapture:
-                dispatchTask = ScrollingCaptureToolService.HandleWorkflowAsync(workflowType, owner, effectiveTaskSettings);
+                dispatchTask = ScrollingCaptureToolService.HandleWorkflowAsync(workflowType, owner, taskManager, effectiveTaskSettings);
                 return true;
 
             case WorkflowType.ImageEditor:

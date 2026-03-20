@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
@@ -35,7 +36,7 @@ public partial class RecordingView : PageView
     public RecordingView()
     {
         InitializeComponent();
-        _viewModel = new RecordingViewModel();
+        _viewModel = UiViewModelFactoryAccessor.GetRequired().CreateRecordingViewModel();
         DataContext = _viewModel;
     }
 }

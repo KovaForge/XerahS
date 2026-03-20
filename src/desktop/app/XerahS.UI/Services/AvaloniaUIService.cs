@@ -30,6 +30,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -44,8 +45,23 @@ namespace XerahS.UI.Services
 {
     public class AvaloniaUIService : IUIService
     {
+        private IDesktopTaskManager? _taskManager;
         private bool _wasMainWindowVisible;
         private Avalonia.Controls.WindowState _previousWindowState;
+
+        public AvaloniaUIService()
+        {
+        }
+
+        public AvaloniaUIService(IDesktopTaskManager taskManager)
+        {
+            _taskManager = taskManager;
+        }
+
+        public void Configure(IDesktopTaskManager taskManager)
+        {
+            _taskManager = taskManager;
+        }
 
         public async Task HideMainWindowAsync()
         {
@@ -95,6 +111,11 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
         {
+            if (_taskManager == null)
+            {
+                throw new InvalidOperationException("AvaloniaUIService requires an IDesktopTaskManager before showing the editor.");
+            }
+
             var tcs = new TaskCompletionSource<SKBitmap?>();
 
             await Dispatcher.UIThread.InvokeAsync(() =>
@@ -103,14 +124,14 @@ namespace XerahS.UI.Services
                 var editorWindow = new Views.EditorWindow();
 
                 // Create independent ViewModel for this editor instance
-                var editorOptions = taskMode ? new ImageEditorOptions { ShowExitConfirmation = false } : null;
+                var editorOptions = ThemeService.CreateImageEditorOptions(showExitConfirmation: !taskMode);
                 var editorViewModel = new MainViewModel(editorOptions);
                 editorViewModel.ShowTaskModeButtons = taskMode;
                 editorViewModel.TaskMode = taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
                 // Wire up UploadRequested to trigger host app upload workflow
-                MainViewModelHelper.WireUploadRequested(editorViewModel);
+                MainViewModelHelper.WireUploadRequested(editorViewModel, _taskManager);
 
                 // Wire up CopyRequested to copy edited image (with annotations) to clipboard
                 MainViewModelHelper.WireCopyRequested(editorViewModel, () =>

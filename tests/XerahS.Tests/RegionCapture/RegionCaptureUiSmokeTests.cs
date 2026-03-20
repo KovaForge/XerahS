@@ -27,8 +27,8 @@ using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Presentation.Controls;
 using XerahS.RegionCapture.UI;
-using XerahS.RegionCapture.UI.Controls;
 using XerahS.RegionCapture.ViewModels;
 
 namespace XerahS.Tests.RegionCapture;
@@ -63,6 +63,8 @@ public class RegionCaptureUiSmokeTests
 
             Assert.That(toolbar.FindControl<Button>("ShadowToggleButton"), Is.Not.Null);
             Assert.That(toolbar.FindControl<Control>("StrokeColorPicker"), Is.Not.Null);
+            Assert.That(toolbar.FindControl<Control>("TextColorPicker"), Is.Not.Null);
+            Assert.That(toolbar.FindControl<Control>("CornerRadiusPicker"), Is.Not.Null);
         }
         finally
         {

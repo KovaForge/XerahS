@@ -25,6 +25,7 @@
 using XerahS.Common;
 using XerahS.Core.Helpers;
 using XerahS.Media;
+using XerahS.Services.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Collections.Concurrent;
@@ -42,6 +43,7 @@ namespace XerahS.Core.Managers
         private volatile bool _acceptNewFiles = true;
         private int _activeProcessingCount;
         private bool _isDisposed;
+        public ITaskManager TaskManagerService { get; set; } = TaskManager.Instance;
 
         private WatchFolderManager()
         {
@@ -200,7 +202,7 @@ namespace XerahS.Core.Managers
                     fileToProcess = MoveToScreenshotsFolder(fileToProcess, clonedSettings);
                 }
 
-                await TaskManager.Instance.StartFileTask(clonedSettings, fileToProcess);
+                await TaskManagerService.StartFileTask(clonedSettings, fileToProcess);
             }
             finally
             {

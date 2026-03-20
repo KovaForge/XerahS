@@ -23,12 +23,11 @@
 
 #endregion License Information (GPL v3)
 
-using System;
 using System.CommandLine;
 using System.IO;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
-using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
 using XerahS.Media;
 using XerahS.RegionCapture.ScreenRecording;
@@ -40,7 +39,7 @@ public static class VerifyGifRecordingCommand
     private const int DefaultDuration = 5;
     private const int DefaultMaxWidth = 1280;
 
-    public static Command Create()
+    public static Command Create(IScreenRecordingCoordinator recordingCoordinator)
     {
         var cmd = new Command("verify-gif-recording", "Verify GIF recording and conversion workflow");
 
@@ -80,13 +79,13 @@ public static class VerifyGifRecordingCommand
             int resolvedMaxWidth = maxWidth ?? DefaultMaxWidth;
             if (resolvedMaxWidth < 0) resolvedMaxWidth = 0;
 
-            Environment.ExitCode = RunVerifyGifAsync(duration, outputPath, resolvedMaxWidth, debug).GetAwaiter().GetResult();
+            Environment.ExitCode = RunVerifyGifAsync(recordingCoordinator, duration, outputPath, resolvedMaxWidth, debug).GetAwaiter().GetResult();
         });
 
         return cmd;
     }
 
-    private static async Task<int> RunVerifyGifAsync(int duration, string? outputPath, int maxWidth, bool debug)
+    private static async Task<int> RunVerifyGifAsync(IScreenRecordingCoordinator recordingCoordinator, int duration, string? outputPath, int maxWidth, bool debug)
     {
         try
         {
@@ -136,7 +135,7 @@ public static class VerifyGifRecordingCommand
             await Task.Delay(duration * 1000);
 
             Console.WriteLine("Stopping recording...");
-            await ScreenRecordingManager.Instance.StopRecordingAsync();
+            await recordingCoordinator.StopRecordingAsync();
 
             Console.WriteLine("Waiting for task completion (GIF conversion)...");
             await task;

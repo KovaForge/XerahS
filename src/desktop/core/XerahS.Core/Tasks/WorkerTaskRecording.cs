@@ -43,6 +43,11 @@ namespace XerahS.Core.Tasks
     {
         #region Recording Handlers (Stage 5)
 
+        private static ScreenRecordingWorkflowCoordinator CreateRecordingCoordinator()
+        {
+            return new ScreenRecordingWorkflowCoordinator(RecordingManagerService);
+        }
+
         internal async Task HandleStartRecordingAsync(CaptureMode mode, IntPtr windowHandle = default, Rectangle? region = null)
         {
             var taskSettings = Info.TaskSettings ?? new TaskSettings();
@@ -97,19 +102,20 @@ namespace XerahS.Core.Tasks
                 DebugHelper.WriteLine($"Output path: {recordingOptions.OutputPath}");
 
                 // 1. Start recording
-                await ScreenRecordingManager.Instance.StartRecordingAsync(recordingOptions);
-                recordingOptions.OutputPath = ScreenRecordingManager.Instance.PlannedOutputPath ?? recordingOptions.OutputPath;
+                var recordingCoordinator = CreateRecordingCoordinator();
+                await recordingCoordinator.StartRecordingAsync(recordingOptions);
+                recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
                 Info.FilePath = recordingOptions.OutputPath;
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
 
                 // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Waiting for stop signal...");
-                await ScreenRecordingManager.Instance.WaitForStopSignalAsync();
+                await recordingCoordinator.WaitForStopSignalAsync();
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Stop signal received. Resuming...");
 
                 // 3. Stop recording
                 DebugHelper.WriteLine("Stopping recording...");
-                string? outputPath = await ScreenRecordingManager.Instance.StopRecordingAsync();
+                string? outputPath = await recordingCoordinator.StopRecordingAsync();
                 DebugHelper.WriteLine($"[GIF] StopRecordingAsync returned: {(string.IsNullOrEmpty(outputPath) ? "(null)" : outputPath)} (exists={(!string.IsNullOrEmpty(outputPath) && File.Exists(outputPath))})");
                 string? expectedOutputPath = recordingOptions.OutputPath;
                 bool expectedOutputExists = !string.IsNullOrEmpty(expectedOutputPath) && File.Exists(expectedOutputPath);
@@ -360,19 +366,19 @@ namespace XerahS.Core.Tasks
 
         internal async Task HandleStopRecordingAsync()
         {
-             ScreenRecordingManager.Instance.SignalStop();
+             CreateRecordingCoordinator().SignalStop();
              await Task.CompletedTask;
         }
 
         internal async Task HandleAbortRecordingAsync()
         {
              // Legacy handler
-             await ScreenRecordingManager.Instance.AbortRecordingAsync();
+             await CreateRecordingCoordinator().AbortRecordingAsync();
         }
 
         internal async Task HandlePauseRecordingAsync()
         {
-             await ScreenRecordingManager.Instance.TogglePauseResumeAsync();
+             await CreateRecordingCoordinator().TogglePauseResumeAsync();
         }
 
         private static string? ResolveGifFFmpegPath(FFmpegOptions? ffmpegOptions)

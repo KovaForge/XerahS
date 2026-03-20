@@ -46,6 +46,11 @@ namespace XerahS.Bootstrap
         public bool RecordingInitialized { get; set; }
 
         /// <summary>
+        /// Root service provider built from the shared desktop host composition.
+        /// </summary>
+        public IServiceProvider? ServiceProvider { get; internal set; }
+
+        /// <summary>
         /// Overall success (all requested operations completed).
         /// </summary>
         public bool Success => PlatformServicesInitialized && ConfigurationLoaded;

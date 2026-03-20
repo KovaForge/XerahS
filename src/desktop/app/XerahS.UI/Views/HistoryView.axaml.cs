@@ -26,6 +26,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using XerahS.History;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
@@ -41,7 +42,7 @@ namespace XerahS.UI.Views
             InitializeComponent();
             _gridHistoryListBox = this.FindControl<ListBox>("GridHistoryListBox");
             _listHistoryListBox = this.FindControl<ListBox>("ListHistoryListBox");
-            DataContext = new HistoryViewModel();
+            DataContext = UiViewModelFactoryAccessor.GetRequired().CreateHistoryViewModel();
         }
 
         private void InitializeComponent()

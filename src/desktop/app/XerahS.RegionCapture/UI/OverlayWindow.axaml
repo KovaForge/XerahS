@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:controls="clr-namespace:XerahS.RegionCapture.UI.Controls;assembly=XerahS.RegionCapture"
+        xmlns:controls="clr-namespace:ShareX.ImageEditor.Presentation.Controls;assembly=ShareX.ImageEditor"
         x:Class="XerahS.RegionCapture.UI.OverlayWindow"
         SystemDecorations="None"
         TransparencyLevelHint="Transparent"

@@ -34,7 +34,7 @@ using Avalonia.Threading;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Presentation.Rendering;
-using XerahS.RegionCapture.UI.Controls;
+using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -92,6 +92,7 @@ public partial class OverlayWindow : Window
         _captureControl = new RegionCaptureControl(_monitor);
         _viewModel = new RegionCaptureAnnotationViewModel();
         InitializeComponent();
+        InitializeThemeScope();
         DataContext = _viewModel;
     }
 
@@ -132,6 +133,7 @@ public partial class OverlayWindow : Window
         _viewModel.EditorCore.EditAnnotationRequested += OnEditAnnotationRequested;
 
         InitializeComponent();
+        InitializeThemeScope();
         DataContext = _viewModel;
 
         bool isWindows = OperatingSystem.IsWindows();
@@ -177,6 +179,7 @@ public partial class OverlayWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        ThemeManager.ThemeChanged -= OnThemeChanged;
         _windowClosed = true;
         base.OnClosed(e);
     }
@@ -286,6 +289,18 @@ public partial class OverlayWindow : Window
         AvaloniaXamlLoader.Load(this);
     }
 
+    private void InitializeThemeScope()
+    {
+        RequestedThemeVariant = ThemeManager.GetCurrentTheme();
+        ThemeManager.ThemeChanged -= OnThemeChanged;
+        ThemeManager.ThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged(object? sender, Avalonia.Styling.ThemeVariant theme)
+    {
+        Dispatcher.UIThread.Post(() => RequestedThemeVariant = theme);
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -336,12 +351,17 @@ public partial class OverlayWindow : Window
                 case Key.V: _viewModel.SelectToolCommand.Execute(EditorTool.Select); e.Handled = true; break;
                 case Key.R: _viewModel.SelectToolCommand.Execute(EditorTool.Rectangle); e.Handled = true; break;
                 case Key.E: _viewModel.SelectToolCommand.Execute(EditorTool.Ellipse); e.Handled = true; break;
-                case Key.A: _viewModel.SelectToolCommand.Execute(EditorTool.Arrow); e.Handled = true; break;
                 case Key.L: _viewModel.SelectToolCommand.Execute(EditorTool.Line); e.Handled = true; break;
+                case Key.A: _viewModel.SelectToolCommand.Execute(EditorTool.Arrow); e.Handled = true; break;
+                case Key.F: _viewModel.SelectToolCommand.Execute(EditorTool.Freehand); e.Handled = true; break;
                 case Key.T: _viewModel.SelectToolCommand.Execute(EditorTool.Text); e.Handled = true; break;
+                case Key.N: _viewModel.SelectToolCommand.Execute(EditorTool.Step); e.Handled = true; break;
                 case Key.H: _viewModel.SelectToolCommand.Execute(EditorTool.Highlight); e.Handled = true; break;
-                case Key.P: _viewModel.SelectToolCommand.Execute(EditorTool.Freehand); e.Handled = true; break;
+                case Key.W: _viewModel.SelectToolCommand.Execute(EditorTool.SmartEraser); e.Handled = true; break;
                 case Key.B: _viewModel.SelectToolCommand.Execute(EditorTool.Blur); e.Handled = true; break;
+                case Key.P: _viewModel.SelectToolCommand.Execute(EditorTool.Pixelate); e.Handled = true; break;
+                case Key.M: _viewModel.SelectToolCommand.Execute(EditorTool.Magnify); e.Handled = true; break;
+                case Key.S: _viewModel.SelectToolCommand.Execute(EditorTool.Spotlight); e.Handled = true; break;
             }
         }
         else if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
@@ -424,6 +444,13 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        if (_viewModel.ActiveTool == EditorTool.Spotlight &&
+            TryBeginSpotlightSelectionInteraction(skPoint))
+        {
+            e.Pointer.Capture(_annotationCanvas);
+            return;
+        }
+
         // Clear any previous preview state before forwarding the new press to EditorCore.
         if (_currentShape != null)
         {
@@ -455,32 +482,16 @@ public partial class OverlayWindow : Window
             _currentAnnotation = _viewModel.EditorCore.Annotations[_viewModel.EditorCore.Annotations.Count - 1];
             _isDrawing = true;
 
-            // Apply ViewModel properties that EditorCore doesn't manage
-            _currentAnnotation.FillColor = _viewModel.FillColor;
-            _currentAnnotation.ShadowEnabled = _viewModel.ShadowEnabled;
+            ApplyToolbarDefaultsToAnnotation(_currentAnnotation);
 
-            if (_currentAnnotation is TextAnnotation textAnn)
-                textAnn.FontSize = _viewModel.FontSize;
-            else if (_currentAnnotation is NumberAnnotation numAnn)
-                numAnn.FontSize = _viewModel.FontSize;
-            else if (_currentAnnotation is SpeechBalloonAnnotation balloonAnn)
-                balloonAnn.FontSize = _viewModel.FontSize;
-
-            if (_currentAnnotation is BaseEffectAnnotation effectAnn)
-                effectAnn.Amount = _viewModel.EffectStrength;
-
-            // Override highlighter color to yellow (matching original behavior)
-            if (_currentAnnotation is HighlightAnnotation)
-                _currentAnnotation.StrokeColor = "#FFFF00";
-
-            // SmartEraser: always resolve color from the frozen screen snapshot first.
-            // This avoids overlay-color contamination and prevents a persistent red fallback brush.
+            // Reuse the shared editor sampling path first, then fall back to monitor-specific sources.
             if (_currentAnnotation is SmartEraserAnnotation smartEraserAnn)
             {
-                var sampledColor = ResolveSmartEraserStrokeColor(skPoint);
+                var sampledColor = ResolveSmartEraserColor(skPoint);
                 if (!string.IsNullOrWhiteSpace(sampledColor))
                 {
                     smartEraserAnn.StrokeColor = sampledColor;
+                    smartEraserAnn.FillColor = sampledColor;
                 }
             }
 
@@ -592,15 +603,83 @@ public partial class OverlayWindow : Window
         }
     }
 
+    private bool TryBeginSpotlightSelectionInteraction(SKPoint point)
+    {
+        var editorCore = _viewModel.EditorCore;
+        var selectedBefore = editorCore.SelectedAnnotation;
+        SpotlightAnnotation? hitSpotlight = HitTestTopMostSpotlight(point);
+        if (hitSpotlight == null)
+        {
+            if (selectedBefore is not null and not SpotlightAnnotation)
+            {
+                _suppressInvalidateRequested = true;
+                try
+                {
+                    editorCore.Deselect();
+                }
+                finally
+                {
+                    _suppressInvalidateRequested = false;
+                }
+
+                SyncAnnotationState();
+                RebuildAnnotationCanvas();
+            }
+
+            return false;
+        }
+
+        _selectionInteractionActive = true;
+        _suppressInvalidateRequested = true;
+        try
+        {
+            editorCore.Select(hitSpotlight);
+            editorCore.OnPointerPressed(point);
+        }
+        finally
+        {
+            _suppressInvalidateRequested = false;
+        }
+
+        SyncAnnotationState();
+        if (!ReferenceEquals(selectedBefore, editorCore.SelectedAnnotation))
+        {
+            RebuildAnnotationCanvas();
+        }
+
+        return true;
+    }
+
+    private SpotlightAnnotation? HitTestTopMostSpotlight(SKPoint point)
+    {
+        var annotations = _viewModel.EditorCore.Annotations;
+        for (int i = annotations.Count - 1; i >= 0; i--)
+        {
+            if (annotations[i] is SpotlightAnnotation spotlight &&
+                spotlight.HitTest(point))
+            {
+                return spotlight;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>
-    /// Attempts to resolve SmartEraser color using a robust fallback chain:
-    /// 1) Full virtual-screen background bitmap with monitor mapping,
-    /// 2) Editor source image,
-    /// 3) Current editor snapshot (background + existing annotations),
+     /// Attempts to resolve SmartEraser color using a robust fallback chain:
+    /// 1) Shared EditorCore snapshot sampling,
+    /// 2) Full virtual-screen background bitmap with monitor mapping,
+    /// 3) Editor source image,
     /// 4) Windows live-screen sampling (last resort).
     /// </summary>
-    private string? ResolveSmartEraserStrokeColor(SKPoint logicalPoint)
+    private string? ResolveSmartEraserColor(SKPoint logicalPoint)
     {
+        string? sharedSample = _viewModel.EditorCore.SampleCanvasColor(logicalPoint);
+        if (!string.IsNullOrWhiteSpace(sharedSample))
+        {
+            return sharedSample;
+        }
+
         if (TrySampleVirtualBackgroundColor(logicalPoint, out string? virtualColor))
         {
             return virtualColor;
@@ -609,12 +688,6 @@ public partial class OverlayWindow : Window
         if (TrySampleBitmapColor(_viewModel.EditorCore.SourceImage, logicalPoint, out string? sourceColor))
         {
             return sourceColor;
-        }
-
-        using var snapshot = _viewModel.EditorCore.GetSnapshot();
-        if (TrySampleBitmapColor(snapshot, logicalPoint, out string? snapshotColor))
-        {
-            return snapshotColor;
         }
 
 #if WINDOWS
@@ -706,6 +779,55 @@ public partial class OverlayWindow : Window
         return $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
     }
 
+    private void ApplyToolbarDefaultsToAnnotation(Annotation annotation)
+    {
+        annotation.FillColor = _viewModel.FillColor;
+        annotation.ShadowEnabled = _viewModel.ShadowEnabled;
+
+        switch (annotation)
+        {
+            case TextAnnotation textAnnotation:
+                textAnnotation.FontSize = _viewModel.FontSize;
+                textAnnotation.TextColor = _viewModel.GetResolvedTextColor();
+                textAnnotation.IsBold = _viewModel.TextBold;
+                textAnnotation.IsItalic = _viewModel.TextItalic;
+                textAnnotation.IsUnderline = _viewModel.TextUnderline;
+                break;
+            case NumberAnnotation numberAnnotation:
+                numberAnnotation.FontSize = _viewModel.FontSize;
+                numberAnnotation.FillColor = _viewModel.FillColor;
+                numberAnnotation.TextColor = _viewModel.TextColor;
+                break;
+            case SpeechBalloonAnnotation speechBalloonAnnotation:
+                speechBalloonAnnotation.FontSize = _viewModel.FontSize;
+                speechBalloonAnnotation.FillColor = _viewModel.FillColor;
+                speechBalloonAnnotation.TextColor = _viewModel.TextColor;
+                speechBalloonAnnotation.CornerRadius = _viewModel.CornerRadius;
+                break;
+            case SmartEraserAnnotation smartEraserAnnotation:
+                smartEraserAnnotation.StrokeWidth = 0;
+                smartEraserAnnotation.ShadowEnabled = false;
+                if (!string.IsNullOrWhiteSpace(smartEraserAnnotation.StrokeColor))
+                {
+                    smartEraserAnnotation.FillColor = smartEraserAnnotation.StrokeColor;
+                }
+                break;
+            case RectangleAnnotation rectangleAnnotation when rectangleAnnotation is not SmartEraserAnnotation:
+                rectangleAnnotation.CornerRadius = _viewModel.CornerRadius;
+                break;
+            case HighlightAnnotation highlightAnnotation:
+                highlightAnnotation.FillColor = _viewModel.FillColor;
+                break;
+            case SpotlightAnnotation spotlightAnnotation:
+                spotlightAnnotation.CanvasSize = new SKSize((float)Math.Max(1, Width), (float)Math.Max(1, Height));
+                spotlightAnnotation.DarkenOpacity = _viewModel.GetSpotlightDarkenOpacity();
+                break;
+            case BaseEffectAnnotation effectAnnotation:
+                effectAnnotation.Amount = _viewModel.EffectStrength;
+                break;
+        }
+    }
+
 #if WINDOWS
     [DllImport("user32.dll")]
     private static extern IntPtr GetDC(IntPtr hWnd);
@@ -731,6 +853,11 @@ public partial class OverlayWindow : Window
                 AnnotationVisualMode.Preview,
                 Width,
                 Height);
+
+            if (annotation is BaseEffectAnnotation)
+            {
+                AnnotationEffectVisualUpdater.UpdateEffectVisual(shape, _viewModel.EditorCore.SourceImage);
+            }
         }
         return shape;
     }
@@ -746,6 +873,11 @@ public partial class OverlayWindow : Window
             AnnotationVisualMode.Preview,
             Width,
             Height);
+
+        if (annotation is BaseEffectAnnotation)
+        {
+            AnnotationEffectVisualUpdater.UpdateEffectVisual(shape, _viewModel.EditorCore.SourceImage);
+        }
     }
 
     #endregion
@@ -836,6 +968,12 @@ public partial class OverlayWindow : Window
                     AnnotationVisualFactory.UpdateVisualControl(
                         visual, annotation, AnnotationVisualMode.Persisted,
                         canvasWidth, canvasHeight);
+
+                    if (annotation is BaseEffectAnnotation)
+                    {
+                        AnnotationEffectVisualUpdater.UpdateEffectVisual(visual, _viewModel.EditorCore.SourceImage);
+                    }
+
                     _annotationCanvas.Children.Insert(0, visual);
                     _persistedAnnotationVisuals.Add(visual);
                 }
@@ -873,6 +1011,7 @@ public partial class OverlayWindow : Window
 
         _viewModel.HasAnnotations = hasAnnotations;
         _viewModel.HasSelectedAnnotation = hasSelectedAnnotation;
+        _viewModel.SelectedAnnotation = _viewModel.EditorCore.SelectedAnnotation;
 
         bool shouldInvalidateCapture = false;
         if (_captureControl.HasAnnotations != hasAnnotations)

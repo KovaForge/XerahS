@@ -24,14 +24,10 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using XerahS.CLI;
-using System.CommandLine.Binding;
-using System.CommandLine.Parsing;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
-using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
@@ -40,7 +36,7 @@ namespace XerahS.CLI.Commands
 {
     public static class CaptureCommand
     {
-        public static Command Create()
+        public static Command Create(IDesktopTaskManager taskManager)
         {
             var captureCommand = new Command("capture", "Screen capture operations");
             
@@ -55,7 +51,7 @@ namespace XerahS.CLI.Commands
             {
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureScreenAsync(output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureScreenAsync(taskManager, output, upload).GetAwaiter().GetResult();
             });
 
             // Window capture subcommand
@@ -66,7 +62,7 @@ namespace XerahS.CLI.Commands
             {
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureWindowAsync(output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureWindowAsync(taskManager, output, upload).GetAwaiter().GetResult();
             });
 
             // Region capture subcommand
@@ -80,7 +76,7 @@ namespace XerahS.CLI.Commands
                 var region = parseResult.GetValue(regionOption);
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureRegionAsync(region!, output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureRegionAsync(taskManager, region!, output, upload).GetAwaiter().GetResult();
             });
 
             // Transparent region capture subcommand
@@ -91,7 +87,7 @@ namespace XerahS.CLI.Commands
             {
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureTransparentAsync(output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureTransparentAsync(taskManager, output, upload).GetAwaiter().GetResult();
             });
 
             captureCommand.Add(screenCommand);
@@ -119,14 +115,14 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> RunTask(TaskSettings taskSettings, SkiaSharp.SKBitmap? image = null)
+        private static async Task<int> RunTask(IDesktopTaskManager taskManager, TaskSettings taskSettings, SkiaSharp.SKBitmap? image = null)
         {
             var tcs = new TaskCompletionSource<bool>();
 
             EventHandler<WorkerTask>? handler = null;
             handler = (sender, task) =>
             {
-                TaskManager.Instance.TaskCompleted -= handler;
+                taskManager.TaskCompleted -= handler;
                 
                 // Wait a bit for async history/clipboard ops (though they should be awaited in task)
                 // But History is added at end of task.
@@ -177,7 +173,7 @@ namespace XerahS.CLI.Commands
                 tcs.SetResult(success);
             };
 
-            TaskManager.Instance.TaskCompleted += handler;
+            taskManager.TaskCompleted += handler;
 
             // Execute
             if (image != null)
@@ -203,7 +199,7 @@ namespace XerahS.CLI.Commands
             return await tcs.Task ? 0 : 1;
         }
 
-        private static async Task<int> CaptureScreenAsync(string? output, bool upload)
+        private static async Task<int> CaptureScreenAsync(IDesktopTaskManager taskManager, string? output, bool upload)
         {
             try
             {
@@ -211,7 +207,7 @@ namespace XerahS.CLI.Commands
                 var taskSettings = new TaskSettings();
                 taskSettings.Job = WorkflowType.PrintScreen;
                 ConfigureTask(taskSettings, output, upload);
-                return await RunTask(taskSettings);
+                return await RunTask(taskManager, taskSettings);
             }
             catch (Exception ex)
             {
@@ -221,7 +217,7 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureWindowAsync(string? output, bool upload)
+        private static async Task<int> CaptureWindowAsync(IDesktopTaskManager taskManager, string? output, bool upload)
         {
             try
             {
@@ -229,7 +225,7 @@ namespace XerahS.CLI.Commands
                 var taskSettings = new TaskSettings();
                 taskSettings.Job = WorkflowType.ActiveWindow;
                 ConfigureTask(taskSettings, output, upload);
-                return await RunTask(taskSettings);
+                return await RunTask(taskManager, taskSettings);
             }
             catch (Exception ex)
             {
@@ -239,7 +235,7 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureRegionAsync(string region, string? output, bool upload)
+        private static async Task<int> CaptureRegionAsync(IDesktopTaskManager taskManager, string region, string? output, bool upload)
         {
             try
             {
@@ -266,7 +262,7 @@ namespace XerahS.CLI.Commands
                 taskSettings.Job = WorkflowType.RectangleRegion;
                 ConfigureTask(taskSettings, output, upload);
                 
-                return await RunTask(taskSettings, image);
+                return await RunTask(taskManager, taskSettings, image);
             }
             catch (Exception ex)
             {
@@ -276,7 +272,7 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureTransparentAsync(string? output, bool upload)
+        private static async Task<int> CaptureTransparentAsync(IDesktopTaskManager taskManager, string? output, bool upload)
         {
             try
             {
@@ -284,7 +280,7 @@ namespace XerahS.CLI.Commands
                 var taskSettings = new TaskSettings();
                 taskSettings.Job = WorkflowType.RectangleTransparent;
                 ConfigureTask(taskSettings, output, upload);
-                return await RunTask(taskSettings);
+                return await RunTask(taskManager, taskSettings);
             }
             catch (Exception ex)
             {

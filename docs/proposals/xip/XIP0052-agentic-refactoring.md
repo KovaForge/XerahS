@@ -1,9 +1,13 @@
 # XIP0052: Agentic Refactoring & Architectural Modernization
 
-**Status**: PHASE 2 PROPOSAL (partial groundwork already implemented)
+**Status**: COMPLETE (implemented 2026-03-19)
 **Priority**: High
 **Audit date**: 2026-03-16
 **Related**: XIP0038
+
+## Completion Note
+
+XIP0052 was completed on 2026-03-19. The desktop hosts now share one core registration path, manager-heavy desktop consumers have been moved onto injected host abstractions, view models no longer depend on `PlatformServices.RootProvider` or concrete window types, overlay capture orchestration has been extracted out of `ScreenCaptureService`, and targeted composition / MVVM / manager-boundary tests now cover the refactor seams.
 
 ---
 

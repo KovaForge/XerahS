@@ -28,10 +28,10 @@ using System.Drawing;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Bootstrap;
 using SkiaSharp;
 using XerahS.Common;
 using XerahS.Core;
-using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels;
@@ -41,6 +41,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
     private readonly System.Timers.Timer _captureTimer;
     private readonly DispatcherTimer _statusTimer;
     private readonly Stopwatch _stopwatch = new();
+    private readonly IDesktopTaskManager _taskManager;
     private int _delayMs;
     private Rectangle _customRegion;
     private bool _isFullScreenCapture;
@@ -84,8 +85,9 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _isSelectRegionEnabled;
 
-    public AutoCaptureViewModel()
+    public AutoCaptureViewModel(IDesktopTaskManager taskManager)
     {
+        _taskManager = taskManager;
         _captureTimer = new System.Timers.Timer();
         _captureTimer.Elapsed += (_, _) => Dispatcher.UIThread.Post(OnCaptureTimerElapsed);
 
@@ -254,7 +256,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
     {
         if (!IsRunning) return;
 
-        if (WaitUploads && TaskManager.Instance.Tasks.Any(t => t.IsBusy))
+        if (WaitUploads && _taskManager.Tasks.Any(t => t.IsBusy))
         {
             _captureTimer.Interval = 1000;
             return;
@@ -329,7 +331,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
                     ?? new TaskSettingsUpload(),
             };
 
-            await TaskManager.Instance.StartTask(taskSettings, bitmap);
+            await _taskManager.StartTask(taskSettings, bitmap);
 
             DebugHelper.WriteLine($"AutoCapture: Capture #{CaptureCount} submitted to pipeline ({bitmap.Width}x{bitmap.Height}).");
         }

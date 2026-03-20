@@ -23,7 +23,6 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Platform.Abstractions;
 using XerahS.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -37,9 +36,9 @@ public partial class PluginInstallerViewModel : ViewModelBase
 {
     private readonly IViewDialogService _dialogService;
 
-    public PluginInstallerViewModel(IViewDialogService? dialogService = null)
+    public PluginInstallerViewModel(IViewDialogService dialogService)
     {
-        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+        _dialogService = dialogService;
     }
     [ObservableProperty]
     private string _packageFilePath = string.Empty;

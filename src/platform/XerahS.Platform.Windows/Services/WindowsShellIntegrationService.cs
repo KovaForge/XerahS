@@ -26,6 +26,7 @@
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using XerahS.Common;
+using XerahS.Common.Helpers;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Windows.Services;
@@ -40,7 +41,9 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
     private const string FilesContextMenuCommandPath = @"Software\Classes\*\shell\XerahSUpload\command";
     private const string DirectoryContextMenuPath = @"Software\Classes\Directory\shell\XerahSUpload";
     private const string DirectoryContextMenuCommandPath = @"Software\Classes\Directory\shell\XerahSUpload\command";
-    private const string SendToScriptName = "XerahS.cmd";
+    private const string SendToShortcutName = "XerahS";
+    private const string SendToLegacyScriptName = "XerahS.cmd";
+    private const string SendToShortcutDescription = "Send selected files to XerahS";
     private const string SendToFlag = "--send-to";
     private const string SendToScriptMarker = "REM XerahS SendTo Integration";
 
@@ -51,9 +54,11 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
     private readonly string ShellPluginIconPath;
     private readonly string ShellPluginCommandPath;
 
+    private readonly string ProcessPath;
     private readonly string ApplicationPath;
     private readonly string ShellPluginIconValue;
     private readonly string ShellPluginCommandValue;
+    private readonly string SendToShortcutIconLocation;
 
     public WindowsShellIntegrationService()
     {
@@ -62,9 +67,11 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         ShellPluginIconPath = $@"{ShellPluginAssociatePath}\DefaultIcon";
         ShellPluginCommandPath = $@"{ShellPluginAssociatePath}\shell\open\command";
 
-        ApplicationPath = $"\"{Environment.ProcessPath}\"";
+        ProcessPath = Environment.ProcessPath ?? string.Empty;
+        ApplicationPath = $"\"{ProcessPath}\"";
         ShellPluginIconValue = $"{ApplicationPath},0"; // Extract icon from .exe
         ShellPluginCommandValue = $"{ApplicationPath} -InstallPlugin \"%1\"";
+        SendToShortcutIconLocation = $"{ProcessPath},0";
     }
 
     public bool SupportsPluginExtensionRegistration => OperatingSystem.IsWindows();
@@ -182,14 +189,16 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
 
         try
         {
-            string scriptPath = GetSendToScriptPath();
-            if (!File.Exists(scriptPath))
+            RepairCompatibleSendToShortcutIfNeeded();
+            MigrateLegacySendToScriptIfNeeded();
+
+            if (IsManagedSendToShortcutPresent())
             {
-                return false;
+                DeleteManagedLegacySendToScript();
+                return true;
             }
 
-            string content = File.ReadAllText(scriptPath);
-            return IsManagedSendToScript(content);
+            return IsManagedLegacySendToScriptPresent();
         }
         catch (Exception ex)
         {
@@ -205,8 +214,8 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
 
         try
         {
-            string scriptPath = GetSendToScriptPath();
-            string? directoryPath = Path.GetDirectoryName(scriptPath);
+            string shortcutPath = GetSendToShortcutPath();
+            string? directoryPath = Path.GetDirectoryName(shortcutPath);
             if (!string.IsNullOrWhiteSpace(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
@@ -214,13 +223,35 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
 
             if (enable)
             {
-                File.WriteAllText(scriptPath, BuildSendToScript());
+                if (string.IsNullOrWhiteSpace(ProcessPath) || !File.Exists(ProcessPath))
+                {
+                    return false;
+                }
+
+                if (File.Exists(shortcutPath) && !IsCompatibleSendToShortcutPresent())
+                {
+                    DebugHelper.WriteLine(
+                        $"Windows shell integration: Refusing to overwrite non-managed Send To shortcut '{shortcutPath}'.");
+                    return false;
+                }
+
+                if (!ShortcutHelpers.SetShortcut(
+                        true,
+                        shortcutPath,
+                        ProcessPath,
+                        SendToFlag,
+                        SendToShortcutIconLocation,
+                        SendToShortcutDescription))
+                {
+                    return false;
+                }
             }
-            else if (File.Exists(scriptPath))
+            else
             {
-                File.Delete(scriptPath);
+                DeleteManagedSendToShortcut();
             }
 
+            DeleteManagedLegacySendToScript();
             return IsSendToIntegrationEnabled() == enable;
         }
         catch (Exception ex)
@@ -308,32 +339,146 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         return false;
     }
 
-    private static string GetSendToScriptPath()
+    private bool IsManagedSendToShortcutPresent()
     {
-        string sendToPath = Environment.GetFolderPath(Environment.SpecialFolder.SendTo);
-        return Path.Combine(sendToPath, SendToScriptName);
+        return ShortcutHelpers.CheckShortcut(GetSendToShortcutPath(), ProcessPath, SendToFlag);
     }
 
-    private string BuildSendToScript()
+    private bool IsCompatibleSendToShortcutPresent()
     {
-        return
-$"""
-@echo off
-{SendToScriptMarker}
-"{Environment.ProcessPath}" {SendToFlag} %*
-""";
+        ShortcutHelpers.ShortcutInfo? shortcut = ShortcutHelpers.GetShortcutInfo(GetSendToShortcutPath());
+        if (shortcut == null)
+        {
+            return false;
+        }
+
+        return string.Equals(shortcut.Arguments.Trim(), SendToFlag, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(
+                   Path.GetFileName(shortcut.TargetPath),
+                   Path.GetFileName(ProcessPath),
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsManagedLegacySendToScriptPresent()
+    {
+        string scriptPath = GetLegacySendToScriptPath();
+        if (!File.Exists(scriptPath))
+        {
+            return false;
+        }
+
+        string content = File.ReadAllText(scriptPath);
+        return IsManagedSendToScript(content);
+    }
+
+    private void RepairCompatibleSendToShortcutIfNeeded()
+    {
+        if (IsManagedSendToShortcutPresent() || !IsCompatibleSendToShortcutPresent())
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ProcessPath) || !File.Exists(ProcessPath))
+        {
+            return;
+        }
+
+        ShortcutHelpers.SetShortcut(
+            true,
+            GetSendToShortcutPath(),
+            ProcessPath,
+            SendToFlag,
+            SendToShortcutIconLocation,
+            SendToShortcutDescription);
+    }
+
+    private void MigrateLegacySendToScriptIfNeeded()
+    {
+        string shortcutPath = GetSendToShortcutPath();
+        if (IsManagedSendToShortcutPresent())
+        {
+            return;
+        }
+
+        if (!IsManagedLegacySendToScriptPresent())
+        {
+            return;
+        }
+
+        if (File.Exists(shortcutPath))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ProcessPath) || !File.Exists(ProcessPath))
+        {
+            return;
+        }
+
+        if (ShortcutHelpers.SetShortcut(
+                true,
+                shortcutPath,
+                ProcessPath,
+                SendToFlag,
+                SendToShortcutIconLocation,
+                SendToShortcutDescription))
+        {
+            DeleteManagedLegacySendToScript();
+        }
+    }
+
+    private void DeleteManagedSendToShortcut()
+    {
+        string shortcutPath = GetSendToShortcutPath();
+        if (IsCompatibleSendToShortcutPresent())
+        {
+            ShortcutHelpers.SetShortcut(false, shortcutPath, ProcessPath);
+        }
+    }
+
+    private void DeleteManagedLegacySendToScript()
+    {
+        string scriptPath = GetLegacySendToScriptPath();
+        if (!File.Exists(scriptPath))
+        {
+            return;
+        }
+
+        try
+        {
+            string content = File.ReadAllText(scriptPath);
+            if (IsManagedSendToScript(content))
+            {
+                File.Delete(scriptPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex);
+        }
+    }
+
+    private static string GetSendToShortcutPath()
+    {
+        string sendToPath = Environment.GetFolderPath(Environment.SpecialFolder.SendTo);
+        return Path.Combine(sendToPath, $"{SendToShortcutName}.lnk");
+    }
+
+    private static string GetLegacySendToScriptPath()
+    {
+        string sendToPath = Environment.GetFolderPath(Environment.SpecialFolder.SendTo);
+        return Path.Combine(sendToPath, SendToLegacyScriptName);
     }
 
     private bool IsManagedSendToScript(string content)
     {
-        string processPath = Environment.ProcessPath ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(processPath))
+        if (string.IsNullOrWhiteSpace(ProcessPath))
         {
             return false;
         }
 
         return content.Contains(SendToScriptMarker, StringComparison.OrdinalIgnoreCase) &&
-               content.Contains(processPath, StringComparison.OrdinalIgnoreCase) &&
+               content.Contains(ProcessPath, StringComparison.OrdinalIgnoreCase) &&
                content.Contains(SendToFlag, StringComparison.OrdinalIgnoreCase);
     }
 

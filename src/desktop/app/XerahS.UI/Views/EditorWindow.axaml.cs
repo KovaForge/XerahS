@@ -24,7 +24,6 @@
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
 
 namespace XerahS.UI.Views
@@ -39,9 +38,6 @@ namespace XerahS.UI.Views
             InitializeComponent();
             Classes.Remove("xerahs-surface");
             Classes.Add("xerahs-editor-host");
-
-            RequestedThemeVariant = ThemeManager.GetCurrentTheme();
-            ThemeManager.ThemeChanged += OnThemeChanged;
         }
 
         private void InitializeComponent()
@@ -68,8 +64,6 @@ namespace XerahS.UI.Views
 
         protected override void OnClosed(EventArgs e)
         {
-            ThemeManager.ThemeChanged -= OnThemeChanged;
-
             if (_viewModel != null)
             {
                 _viewModel.CloseRequested -= OnViewModelCloseRequested;
@@ -83,11 +77,6 @@ namespace XerahS.UI.Views
         {
             IsCloseRequestedByViewModel = true;
             Close();
-        }
-
-        private void OnThemeChanged(object? sender, Avalonia.Styling.ThemeVariant theme)
-        {
-            RequestedThemeVariant = theme;
         }
     }
 }

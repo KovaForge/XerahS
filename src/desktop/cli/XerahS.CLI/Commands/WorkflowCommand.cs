@@ -24,20 +24,17 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using XerahS.CLI;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
-using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
-using System.Runtime.InteropServices;
 
 namespace XerahS.CLI.Commands
 {
     public static class WorkflowCommand
     {
-        public static Command Create()
+        public static Command Create(IDesktopTaskManager taskManager, IScreenRecordingCoordinator recordingCoordinator)
         {
             var runCommand = new Command("run", "Execute a workflow by ID");
 
@@ -69,13 +66,13 @@ namespace XerahS.CLI.Commands
                 var exitOnComplete = parseResult.GetValue(exitOnCompleteOption);
                 var region = parseResult.GetValue(regionOption);
 
-                Environment.ExitCode = RunWorkflowAsync(workflowId, duration, dumpFrame, exitOnComplete, region).GetAwaiter().GetResult();
+                Environment.ExitCode = RunWorkflowAsync(taskManager, recordingCoordinator, workflowId, duration, dumpFrame, exitOnComplete, region).GetAwaiter().GetResult();
             });
 
             return runCommand;
         }
 
-        private static async Task<int> RunWorkflowAsync(string workflowId, int duration, bool dumpFrame, bool exitOnComplete, string? region)
+        private static async Task<int> RunWorkflowAsync(IDesktopTaskManager taskManager, IScreenRecordingCoordinator recordingCoordinator, string workflowId, int duration, bool dumpFrame, bool exitOnComplete, string? region)
         {
             try
             {
@@ -123,10 +120,10 @@ namespace XerahS.CLI.Commands
                             Console.WriteLine($"Recording started. Waiting for {duration} seconds...");
                             await Task.Delay(duration * 1000);
                             Console.WriteLine("Stopping recording...");
-                            await ScreenRecordingManager.Instance.StopRecordingAsync();
+                            await recordingCoordinator.StopRecordingAsync();
                         }
 
-                        TaskManager.Instance.TaskCompleted -= handler;
+                        taskManager.TaskCompleted -= handler;
                         bool success = task.Status == Core.TaskStatus.Completed;
                         tcs.SetResult(success);
 
@@ -138,7 +135,7 @@ namespace XerahS.CLI.Commands
                     }
                 };
 
-                TaskManager.Instance.TaskCompleted += handler;
+                taskManager.TaskCompleted += handler;
                 
                 if (!string.IsNullOrEmpty(region))
                 {
@@ -221,11 +218,11 @@ namespace XerahS.CLI.Commands
                 if (success)
                 {
                     // If manually stopped via duration, it might already be stopped.
-                    if (ScreenRecordingManager.Instance.IsRecording && duration == 0)
+                    if (recordingCoordinator.IsRecording && duration == 0)
                     {
                         Console.WriteLine("Recording active. Waiting 5 seconds before stopping (default)...");
                         await Task.Delay(5000);
-                        await ScreenRecordingManager.Instance.StopRecordingAsync();
+                        await recordingCoordinator.StopRecordingAsync();
                     }
 
                     Console.WriteLine($"Workflow completed successfully: {workflowId}");

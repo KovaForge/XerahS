@@ -24,10 +24,10 @@
 #endregion License Information (GPL v3)
 
 using System.Runtime.Loader;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
-using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 using XerahS.WatchFolder.Daemon.Services;
 
@@ -118,7 +118,11 @@ internal static class Program
             return 1;
         }
 
-        WatchFolderManager.Instance.StartOrReloadFromCurrentSettings();
+        IServiceProvider services = bootstrap.ServiceProvider
+            ?? throw new InvalidOperationException("Bootstrap completed without a service provider.");
+        var watchFolderController = services.GetRequiredService<IWatchFolderDaemonController>();
+
+        watchFolderController.StartOrReloadFromCurrentSettings();
 
         try
         {
@@ -128,7 +132,7 @@ internal static class Program
         {
         }
 
-        bool stopped = await WatchFolderManager.Instance.StopAsync(TimeSpan.FromSeconds(options.StopTimeoutSeconds));
+        bool stopped = await watchFolderController.StopAsync(TimeSpan.FromSeconds(options.StopTimeoutSeconds));
         return stopped ? 0 : 1;
     }
 

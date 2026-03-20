@@ -30,6 +30,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using XerahS.Common;
 using XerahS.Common.Converters;
+using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.History;
@@ -140,12 +141,14 @@ namespace XerahS.UI.ViewModels
         public string PageInfo => $"Page {CurrentPage} of {Math.Max(1, TotalPages)} ({TotalItems} items)"; // Prevent "Page 1 of 0" looking weird
 
         private readonly HistoryManagerSQLite _historyManager;
+        private readonly IDesktopTaskManager _taskManager;
         private CancellationTokenSource? _thumbnailCancellationTokenSource;
         private readonly IDialogService _coreDialogService;
 
-        public HistoryViewModel()
+        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService)
         {
-            _coreDialogService = PlatformServices.RootProvider?.GetService(typeof(IDialogService)) as IDialogService ?? new AvaloniaDialogServiceAdapter();
+            _taskManager = taskManager;
+            _coreDialogService = coreDialogService;
             HistoryItems = new ObservableCollection<HistoryItem>();
             SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
@@ -406,7 +409,7 @@ namespace XerahS.UI.ViewModels
             {
                 var settings = GetUploadTaskSettings();
                 settings.Job = WorkflowType.FileUpload;
-                await TaskManager.Instance.StartFileTask(settings, item.FilePath);
+                await _taskManager.StartFileTask(settings, item.FilePath);
             }
             catch (Exception ex)
             {

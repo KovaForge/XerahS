@@ -38,6 +38,7 @@ using XerahS.Core.Hotkeys;
 using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
+using XerahS.UI.Services;
 using System.Diagnostics;
 
 namespace XerahS.UI.ViewModels;
@@ -48,6 +49,7 @@ public partial class WorkflowEditorViewModel : ViewModelBase
     private bool _isLoadingSelection;
     private readonly WorkflowSettings _sourceModel;
     private readonly bool _loadUploaderCategories;
+    private readonly IUiViewModelFactory _uiViewModelFactory;
     private bool _descriptionAutoSyncEnabled;
     private static readonly JsonSerializerSettings CloneJsonSettings = new()
     {
@@ -142,13 +144,14 @@ public partial class WorkflowEditorViewModel : ViewModelBase
     public TaskSettingsViewModel TaskSettings { get; private set; }
     public IndexFolderViewModel IndexFolderConfig { get; }
 
-    public WorkflowEditorViewModel(WorkflowSettings model, bool loadUploaderCategories = true)
+    public WorkflowEditorViewModel(WorkflowSettings model, IUiViewModelFactory uiViewModelFactory, bool loadUploaderCategories = true)
     {
         var sw = Stopwatch.StartNew();
         DebugHelper.WriteLine($"[WorkflowEditorVM] ctor start. Job={model.Job}, Id={model.Id}");
 
         _sourceModel = model ?? throw new ArgumentNullException(nameof(model));
         _loadUploaderCategories = loadUploaderCategories;
+        _uiViewModelFactory = uiViewModelFactory;
         _model = CloneWorkflow(model);
         _model.TaskSettings ??= new TaskSettings();
         _model.EnsureId();
@@ -159,10 +162,8 @@ public partial class WorkflowEditorViewModel : ViewModelBase
         LogStep(sw, "basic fields set");
 
         // Initialize TaskSettings VM
-        var dialogService = PlatformServices.RootProvider?.GetService(typeof(XerahS.UI.Services.IViewDialogService)) as XerahS.UI.Services.IViewDialogService 
-                            ?? new XerahS.UI.Services.AvaloniaDialogService();
-        TaskSettings = new TaskSettingsViewModel(_model.TaskSettings, dialogService);
-        IndexFolderConfig = new IndexFolderViewModel(_model.TaskSettings, true);
+        TaskSettings = _uiViewModelFactory.CreateTaskSettingsViewModel(_model.TaskSettings);
+        IndexFolderConfig = _uiViewModelFactory.CreateIndexFolderViewModel(_model.TaskSettings, true);
         LogStep(sw, "task settings viewmodels created");
 
         LoadJobCategories();

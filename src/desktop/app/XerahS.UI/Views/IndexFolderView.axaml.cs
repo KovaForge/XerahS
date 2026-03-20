@@ -25,6 +25,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
@@ -37,7 +38,7 @@ public partial class IndexFolderView : SurfaceWindow
 
         if (DataContext == null)
         {
-            DataContext = new IndexFolderViewModel();
+            DataContext = UiViewModelFactoryAccessor.GetRequired().CreateIndexFolderViewModel();
         }
     }
 

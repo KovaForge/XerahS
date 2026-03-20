@@ -143,7 +143,13 @@ namespace XerahS.UI.Views
                 return false;
             }
 
-            if (ToolNavigationHelper.TryHandleToolsTag(tag, this, contentFrame, ExecuteWorkflowFromNavigationAsync, out openedExternalWindow))
+            if (ToolNavigationHelper.TryHandleToolsTag(
+                    tag,
+                    this,
+                    contentFrame,
+                    _taskManager ?? throw new InvalidOperationException("Task manager is required for tool navigation."),
+                    ExecuteWorkflowFromNavigationAsync,
+                    out openedExternalWindow))
             {
                 return true;
             }
