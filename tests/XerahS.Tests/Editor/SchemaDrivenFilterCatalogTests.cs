@@ -58,17 +58,22 @@ public class SchemaDrivenFilterCatalogTests
     {
         var panel = new EffectBrowserPanel();
         var filtersCategory = panel.Categories.Single(category => category.Name == "Filters");
-        Dictionary<string, EffectItem> effectsById = filtersCategory.AllEffects
+        Dictionary<string, EffectItem> filterEffectsById = filtersCategory.AllEffects
+            .ToDictionary(effect => effect.EffectId, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, EffectItem> allEffectsById = panel.Categories
+            .Where(category => category.Name != "Favorites")
+            .SelectMany(category => category.AllEffects)
             .ToDictionary(effect => effect.EffectId, StringComparer.OrdinalIgnoreCase);
 
         Assert.Multiple(() =>
         {
             foreach (FilterDefinition definition in FilterCatalog.Definitions)
             {
-                Assert.That(effectsById.TryGetValue(definition.Id, out EffectItem? effectItem), Is.True, definition.Id);
+                Assert.That(allEffectsById.TryGetValue(definition.Id, out EffectItem? effectItem), Is.True, definition.Id);
                 Assert.That(effectItem!.Name, Is.EqualTo(definition.BrowserLabel), definition.Id);
                 Assert.That(effectItem.Icon, Is.EqualTo(definition.Icon), definition.Id);
                 Assert.That(effectItem.Description, Is.EqualTo(definition.Description), definition.Id);
+                Assert.That(filterEffectsById.ContainsKey(definition.Id), Is.EqualTo(definition.IncludeInFiltersCategory), definition.Id);
             }
         });
     }
@@ -131,12 +136,12 @@ public class SchemaDrivenFilterCatalogTests
         FilterDefinition definition = GetDefinition("glow");
         var dialog = new SchemaDrivenFilterDialog(definition);
 
-        SliderFilterParameterState size = dialog.ParameterStates.OfType<SliderFilterParameterState>().Single(parameter => parameter.Key == "size");
-        SliderFilterParameterState strength = dialog.ParameterStates.OfType<SliderFilterParameterState>().Single(parameter => parameter.Key == "strength");
-        SliderFilterParameterState offsetX = dialog.ParameterStates.OfType<SliderFilterParameterState>().Single(parameter => parameter.Key == "offset_x");
-        SliderFilterParameterState offsetY = dialog.ParameterStates.OfType<SliderFilterParameterState>().Single(parameter => parameter.Key == "offset_y");
-        ColorFilterParameterState color = dialog.ParameterStates.OfType<ColorFilterParameterState>().Single(parameter => parameter.Key == "color");
-        CheckboxFilterParameterState autoResize = dialog.ParameterStates.OfType<CheckboxFilterParameterState>().Single(parameter => parameter.Key == "auto_resize");
+        SliderFilterParameterState size = GetParameterState<SliderFilterParameterState>(dialog, "size");
+        SliderFilterParameterState strength = GetParameterState<SliderFilterParameterState>(dialog, "strength");
+        SliderFilterParameterState offsetX = GetParameterState<SliderFilterParameterState>(dialog, "offset_x");
+        SliderFilterParameterState offsetY = GetParameterState<SliderFilterParameterState>(dialog, "offset_y");
+        ColorFilterParameterState color = GetParameterState<ColorFilterParameterState>(dialog, "color");
+        CheckboxFilterParameterState autoResize = GetParameterState<CheckboxFilterParameterState>(dialog, "auto_resize");
 
         size.Value = 12;
         strength.Value = 65;
@@ -163,11 +168,91 @@ public class SchemaDrivenFilterCatalogTests
         AssertBitmapsEqual(expected, actual);
     }
 
+    [AvaloniaTest]
+    public void SchemaDrivenFilterDialog_ASCIIArt_Apply_Uses_Configured_Text_And_Checkboxes()
+    {
+        FilterDefinition definition = GetDefinition("ascii_art");
+        var dialog = new SchemaDrivenFilterDialog(definition);
+
+        GetParameterState<SliderFilterParameterState>(dialog, "cell_size").Value = 10;
+        GetParameterState<SliderFilterParameterState>(dialog, "contrast").Value = 145;
+        GetParameterState<CheckboxFilterParameterState>(dialog, "invert").Value = true;
+        GetParameterState<CheckboxFilterParameterState>(dialog, "dark_background").Value = false;
+        GetParameterState<CheckboxFilterParameterState>(dialog, "use_source_color").Value = false;
+        GetParameterState<TextFilterParameterState>(dialog, "character_set").Value = "@. ";
+
+        EffectEventArgs args = CaptureApply(dialog);
+
+        using SKBitmap source = CreateSampleBitmap();
+        using SKBitmap expectedInput = source.Copy();
+        using SKBitmap actualInput = source.Copy();
+        using SKBitmap expected = new ASCIIArtImageEffect
+        {
+            CellSize = 10,
+            Contrast = 145,
+            CharacterSet = "@. ",
+            Invert = true,
+            DarkBackground = false,
+            UseSourceColor = false
+        }.Apply(expectedInput);
+        using SKBitmap actual = args.EffectOperation(actualInput);
+
+        Assert.That(args.StatusMessage, Is.EqualTo("Applied ASCII art"));
+        AssertBitmapsEqual(expected, actual);
+    }
+
+    [AvaloniaTest]
+    public void SchemaDrivenFilterDialog_ConvolutionMatrix_Apply_Uses_Configured_Numeric_Settings()
+    {
+        FilterDefinition definition = GetDefinition("convolution_matrix");
+        var dialog = new SchemaDrivenFilterDialog(definition);
+
+        GetParameterState<NumericFilterParameterState>(dialog, "x1_y0").Value = -1;
+        GetParameterState<NumericFilterParameterState>(dialog, "x0_y1").Value = -1;
+        GetParameterState<NumericFilterParameterState>(dialog, "x1_y1").Value = 5;
+        GetParameterState<NumericFilterParameterState>(dialog, "x2_y1").Value = -1;
+        GetParameterState<NumericFilterParameterState>(dialog, "x1_y2").Value = -1;
+        GetParameterState<NumericFilterParameterState>(dialog, "factor").Value = 2.5m;
+        GetParameterState<NumericFilterParameterState>(dialog, "offset").Value = 6;
+
+        EffectEventArgs args = CaptureApply(dialog);
+
+        using SKBitmap source = CreateSampleBitmap();
+        using SKBitmap expectedInput = source.Copy();
+        using SKBitmap actualInput = source.Copy();
+        using SKBitmap expected = new ConvolutionMatrixImageEffect
+        {
+            X0Y0 = 0,
+            X1Y0 = -1,
+            X2Y0 = 0,
+            X0Y1 = -1,
+            X1Y1 = 5,
+            X2Y1 = -1,
+            X0Y2 = 0,
+            X1Y2 = -1,
+            X2Y2 = 0,
+            Factor = 2.5,
+            Offset = 6
+        }.Apply(expectedInput);
+        using SKBitmap actual = args.EffectOperation(actualInput);
+
+        Assert.That(args.StatusMessage, Is.EqualTo("Applied Convolution matrix"));
+        AssertBitmapsEqual(expected, actual);
+    }
+
     private static FilterDefinition GetDefinition(string id)
     {
         Assert.That(FilterCatalog.TryGetDefinition(id, out FilterDefinition? definition), Is.True, id);
         Assert.That(definition, Is.Not.Null, id);
         return definition!;
+    }
+
+    private static TState GetParameterState<TState>(SchemaDrivenFilterDialog dialog, string key)
+        where TState : FilterParameterState
+    {
+        return dialog.ParameterStates
+            .OfType<TState>()
+            .Single(parameter => parameter.Key == key);
     }
 
     private static EffectEventArgs CaptureApply(SchemaDrivenFilterDialog dialog)
