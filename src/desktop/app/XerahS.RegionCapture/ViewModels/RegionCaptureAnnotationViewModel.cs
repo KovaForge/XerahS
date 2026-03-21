@@ -31,6 +31,7 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.Theming;
+using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
 
 namespace XerahS.RegionCapture.ViewModels;
@@ -44,6 +45,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private const float MaxSpotlightStrength = 100;
 
     private readonly EditorCore _editorCore;
+    private readonly ToolInfoModel _toolInfo = new();
     private ImageEditorOptions _options = new();
     private bool _isLoadingToolOptions;
     private Annotation? _selectedAnnotation;
@@ -423,6 +425,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         EditorTool.CutOut => "Cut Out",
         _ => "Select"
     };
+
+    public ToolInfoModel ToolInfo => _toolInfo;
 
     public bool CanUndo
     {
@@ -1042,6 +1046,53 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         OnPropertyChanged(nameof(ActiveToolIcon));
         OnPropertyChanged(nameof(ActiveToolName));
         OnPropertyChanged(nameof(EffectStrengthMaximum));
+        RefreshToolInfo();
+    }
+
+    private void RefreshToolInfo()
+    {
+        _toolInfo.Title = ActiveToolName;
+        _toolInfo.Icon = ActiveToolIcon;
+
+        _toolInfo.ShowPrimaryColor = ShowBorderColor;
+        _toolInfo.PrimaryColor = ShowBorderColor ? Color.Parse(SelectedColor) : Colors.Transparent;
+
+        _toolInfo.ShowSecondaryColor = ShowFillColor;
+        _toolInfo.SecondaryColor = ShowFillColor ? Color.Parse(FillColor) : Colors.Transparent;
+
+        _toolInfo.ShowTextColor = ShowTextColor;
+        _toolInfo.TextColor = ShowTextColor ? Color.Parse(TextColor) : Colors.Transparent;
+
+        _toolInfo.ShowThickness = ShowThickness;
+        _toolInfo.Thickness = StrokeWidth;
+
+        _toolInfo.ShowFontSize = ShowFontSize;
+        _toolInfo.FontSize = FontSize;
+
+        _toolInfo.ShowStrength = ShowStrength;
+        _toolInfo.Strength = EffectStrength;
+
+        _toolInfo.ShowTextStyle = ShowTextStyle;
+        _toolInfo.IsBold = TextBold;
+        _toolInfo.IsItalic = TextItalic;
+        _toolInfo.IsUnderline = TextUnderline;
+
+        _toolInfo.ShowShadow = ShowShadow;
+        _toolInfo.ShadowEnabled = ShadowEnabled;
+
+        if (_selectedAnnotation != null)
+        {
+            var bounds = _selectedAnnotation.GetBounds();
+            _toolInfo.ShowDimensions = true;
+            _toolInfo.InfoWidth = Math.Round(bounds.Width);
+            _toolInfo.InfoHeight = Math.Round(bounds.Height);
+        }
+        else
+        {
+            _toolInfo.ShowDimensions = false;
+            _toolInfo.InfoWidth = 0;
+            _toolInfo.InfoHeight = 0;
+        }
     }
 
     private EditorTool? GetToolOptionsContext()
