@@ -11,101 +11,40 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ## Unreleased
 
 
-## v0.20.3
-
-### Fixes
-- **Core**: Accent scrollbar thumbs app wide (7db2f3ed)
-- **Core**: Detach window content before wrapping (637899a7)
-- **Core**: Expand shared Fluent surface bridge (57f55361)
-- **Core**: Improve hotkey toolbar contrast (05d73905)
-- **Core**: Keep index folder controls visible (17ffcb04)
-- **Core**: Make hotkey move labels explicit (dee46e8d)
-- **Core**: Map primary text brush to theme (4268d657)
-- **Core**: Normalize hotkey control card surfaces (ec599b8b)
-- **Core**: Normalize tool window surfaces (19b4424f)
-- **Core**: Paint color picker root surfaces (ec782d3d)
-- **Core**: Paint hash check window surface (7a314245)
-- **Core**: Paint image analyzer root surface (8c025fb4)
-- **Core**: Paint image combiner root surface (4d411ce0)
-- **Core**: Paint image splitter root surface (87946d13)
-- **Core**: Paint image thumbnailer root surface (550ab5f8)
-- **Core**: Paint index folder root gutter (e59362e7)
-- **Core**: Paint index folder surfaces explicitly (5a7ea131)
-- **Core**: Paint video tool window surfaces (4b88f19c)
-- **Core**: Place color picker swatch tooltips above chips (dc6bb5ba)
-- **Core**: Preserve capable X11 modern region capture (6a90f696)
-- **Core**: Publish native Windows clipboard image formats (43bbccbe)
-- **Core**: Restore neutral scrollbars and disable auto-hide (d77b4a4f)
-- **Core**: Show workflow move button labels (cca26574)
-- **Core**: Update ShareX.ImageEditor move-down icon (24093641)
-- **Core**: Update ShareX.ImageEditor move-up icon (857b192d)
-- **Core**: Use accent buttons in color picker (7cbeef73)
-- **Core**: Use accent buttons in image combiner (2160e463)
-- **Core**: Use accent buttons in image splitter (d2e82af6)
-- **Core**: Use accent buttons in image thumbnailer (b2bed6c1)
-- **Core**: Use accent buttons in upload content (2b661408)
-- **Core**: Use accent buttons in video converter (77eaede2)
-- **Core**: Use accent buttons in video thumbnailer (553bc915)
-- **Core**: Widen image combiner options layout (c20f703e)
-
-### Refactor
-- **Core**: Centralize desktop theme styles (8254e13c)
-- **Core**: Expand theme surface compatibility (b2e17ebd)
-- **Core**: Make accent the default button style (6895b18e)
-- **Core**: Move window surfaces into host bases (68ff55e9)
-- **Core**: Replace Linux UseModernCapture semantics (3852768d)
-- **Core**: Unify shared container surfaces (0fbada88)
-
-### Documentation
-- **Core**: Add 2026-03-13 release and UI cleanup blog draft. (3afbe52c)
-- **Core**: Add 2026-03-14 Linux selector blog draft. (d133df18)
-- **Core**: Add XIP0051 Linux selector preferences (1cf8aa43)
-- **Core**: Record Linux selector UX lessons (f68f6300)
-- **Core**: Record X11 portal fallback guardrails (506f8dac)
-
-### Changed
-- **Core**: Add Linux region selector settings UI (298ce627)
-- **Core**: Add Linux selector preference plumbing (48036c10)
-- **Core**: Clarify Linux capture settings UI (94e4d020)
-- **Core**: Hide editor task buttons in XerahS hosts (a5be14e6)
-- **Core**: Hide task buttons in main editor host (0bffed33)
-- **Core**: Keep annotate editor task UI in XerahS (5809651a)
-- **Core**: Remove stale editor toolbar references (43b7c8f9)
-- **Core**: Show File Save and Save As only when image loaded in editor (b10a5338)
-- **Core**: Sort View Zoom menu alphabetically; zoom enabled only with image (1cca79ec)
-- **Core**: Update editor integration and tools navigation (9d4e09be)
-- **Core**: Update run-debug-app.sh (80677704)
-- **Core**: Wire annotate editor task actions (5560ea1b)
-- **Update ShareX.ImageEditor**: disable Copy when no image (119d6324)
-
-### Build
-- **Chocolatey**: Fix CRLF checksum replacement and normalize pack output paths in release sync so recovery packaging can find generated packages `(16af5a18, 075be629)`
-
-
-## v0.20.2
+## v0.20.5
 
 ### Features
-- **VideoEditor**: Integrate ShareX.VideoEditor into the desktop app with host wiring, `open-video-editor` CLI support, diagnostics, packaged WebUI assets, and FFmpeg/ffprobe-backed UI and headless trim flows `(267351e8, 1e345954, e81f1671, 9e2b917a, f0d954bc, f645d0f8, cbfc28d6, 2f684a0e, 9637f7fe, 45f16227)`
-- **Uploaders**: Add Nextcloud and native Immich uploader plugins, plus scaffolding and design notes for future uploader extensions `(bea34b98, b8bbfc15, a531c6a0, 5b112930, 4164b5c5)`
-- **History**: Add image combine actions and lay groundwork for history multi-selection workflows `(e52d4311, 9da0b6b2, a662c8ac)`
+- **VideoEditor**: Integrate ShareX.VideoEditor with desktop host wiring, `open-video-editor` CLI support, diagnostics, FFmpeg/ffprobe-backed UI and headless trim, and packaged WebUI assets `(267351e8, 1e345954, e81f1671, 9e2b917a, f0d954bc, f645d0f8, cbfc28d6, 2f684a0e, 9637f7fe, 45f16227)`
+- **Uploaders**: Add Nextcloud and native Immich uploader plugins with scaffolding and design notes `(bea34b98, b8bbfc15, a531c6a0, 5b112930, 4164b5c5)`
+- **History**: Add image combine actions and multi-selection groundwork `(e52d4311, 9da0b6b2, a662c8ac)`
+- **Theme**: Track OS system accent colour app-wide via `SystemAccentColor` `(60837e44)`
 
 ### Fixes
-- **VideoEditor**: Harden startup, dependency resolution, repo layout, and packaged WebUI/bootstrap handling across submodule updates `(7a814699, adcbec9a, d4e1a449, 6be3f5b1, aaeee1de, bff513c2, f181f624, ec098878, 450ed938, 294b338b, 935a1ea3, c02c7bd0, 75f34059, 1fa78e6a, 39a0e65d, 451699c2, 5da69b45, 9ec27e11)`
-- **Custom Uploaders**: Inline the editor in settings while preserving names, hiding duplicate labels, and making inline names read-only `(75701a4c, d3a67428, af4635a3, 95325504)`
-- **Linux/Desktop**: Detect wallpaper providers across desktop environments, preload and normalize wallpaper sources, and restore ImageEditor wallpaper backgrounds through platform abstractions `(3401968f, 4b12b6df, f59aa050, 551b1967, 4e6528d3, ee3c3981, 85fe2871, 5a131ce1, 43907c07, bc12e966)`
-- **UI/ImageEditor**: Restore overlay theming and capture polish, including region capture toolbar icons, uploader theme inheritance, preview bitmap cloning, screenshots path picker, remembered window size, editor upload routing, Windows overlay alignment, pin export, pinned-window drag, and ShareX.ImageEditor background/context updates `(e1606785, 4d71abc5, 60629966, 794dcaee, eb7f99fd, a2b49176, fa6fda17, 79b62291, 6e8441c0, 3ce020e4, 8f9d8be4, 93fe5f0e, d2d95606, 9f691ab6, 735f08b7, bfb3f5bc, c98458dc, e133763c)`
+- **VideoEditor**: Harden startup, dependency resolution, packaged WebUI/bootstrap, FFmpeg path propagation, playback sync, and reopen lifecycle `(7a814699, adcbec9a, d4e1a449, 6be3f5b1, aaeee1de, bff513c2, f181f624, ec098878, 450ed938, 294b338b, 935a1ea3, c02c7bd0, 75f34059, 1fa78e6a, 39a0e65d, 451699c2, 5da69b45, 9ec27e11)`
+- **Custom Uploaders**: Inline editor in settings while preserving names, hiding duplicate labels, and making inline names read-only `(75701a4c, d3a67428, af4635a3, 95325504)`
+- **Linux Wallpaper**: Detect wallpaper providers across desktop environments, preload and normalize sources, and restore ImageEditor wallpaper backgrounds through platform abstractions `(3401968f, 4b12b6df, f59aa050, 551b1967, 4e6528d3, ee3c3981, 85fe2871, 5a131ce1, 43907c07, bc12e966)`
+- **UI/Theme Surfaces**: Normalize all tool window, hotkey control, card, and index folder surfaces; restore scrollbars; apply accent buttons across color picker, image splitter/combiner/thumbnailer, video converter/thumbnailer, upload content, and hash check window `(7db2f3ed, 637899a7, 57f55361, 05d73905, 17ffcb04, dee46e8d, 4268d657, ec599b8b, 19b4424f, ec782d3d, 7a314245, 8c025fb4, 4d411ce0, 87946d13, 550ab5f8, e59362e7, 5a7ea131, 4b88f19c, dc6bb5ba, d77b4a4f, cca26574, 7cbeef73, 2160e463, d2e82af6, b2bed6c1, 2b661408, 77eaede2, 553bc915, c20f703e)`
+- **ImageEditor**: Region capture toolbar icons, overlay alignment, pin export, pinned-window drag, preview bitmap cloning, screenshotspath picker, remembered window size, and submodule updates `(e1606785, 4d71abc5, 60629966, 794dcaee, eb7f99fd, a2b49176, fa6fda17, 79b62291, 6e8441c0, 3ce020e4, 8f9d8be4, 93fe5f0e, d2d95606, 9f691ab6, 735f08b7, bfb3f5bc, c98458dc, e133763c, 43bbccbe, 857b192d, 24093641, 119d6324)`
+- **Linux Region Capture**: Restore X11 fallbacks, enable Wayland overlay selector with portal capture, harden selector preference handling, and drain portal hotkey rebinds before dispose `(a510da3f, 6a90f696, 6f96bbac, 968c236c, b69fe286, e55618f0)`
+- **Shell Integration**: Wire startup and shell integration entries for Windows, Linux, and macOS `(ffd1b400, fc366b80, 2b724b9c, 498ce04d)`
+- **Workflow/Editor UI**: Stage workflow editor changes until save; disable File Save/Save As when no image; sort View Zoom alphabetically; wire annotate editor task actions and hide task buttons in correct host contexts `(181f8230, e8689dc8, 1cca79ec, b10a5338, 5560ea1b, 5809651a, a5be14e6, 0bffed33, 9d4e09be, 43b7c8f9)`
+- **Settings**: Fix ScrollViewer not scrolling to bottom; fix Destination Settings provider panel flicker; fix About view Social groupBox width `(f5d91f46, 8846173d, 9b62687f)`
+- **Linux**: Avoid Avalonia dispatcher sync-context capture in portal watchers `(809bd1aa)`
 - **Build Targets**: Fix Windows-to-macOS packaging cross-compilation and Linux desktop build targeting `(501ebaaa, f466d80a)`
 
 ### Refactor
-- **Core/UI**: Share history and toast context menus and align app typography and theme contracts with refreshed ImageEditor styling `(20739eea, 6f4a0e69, ae27f5eb)`
+- **Theme (XIP0050)**: Remove FluentAvalonia package; introduce shared surface window and page base controls; centralize desktop theme styles; make accent the default button style `(6818ba10, 5b3fb8c6, cdc17b83, 4795bfc5, 8254e13c, 6895b18e, 0fbada88, b2e17ebd, 68ff55e9, dc79432a)`
+- **DI/MVVM (XIP0052)**: Migrate to Microsoft.Extensions.DependencyInjection; inject task and recording managers; extract pipeline from WorkerTask; consolidate desktop composition `(a1c37be1, ef40ed9a, 7b0e9930, 4a98b5f3, f98c2b03, 8f0beac7, 80e6ac43, f4cf60de, c0a80d6e)`
+- **Linux Capture**: Replace UseModernCapture semantics with per-selector preference plumbing and settings UI `(3852768d, 298ce627, 48036c10, 94e4d020)`
+- **Core/UI**: Share history and toast context menus; align app typography `(20739eea, 6f4a0e69, ae27f5eb)`
 
 ### Build
-- **Release Automation**: Normalize editor projects to Any CPU, automate and harden Chocolatey release sync, and add desktop bootstrap helpers for fresh clones and arm64 toolchain detection `(c4c0ed5d, 7c6cb235, 07282313, bf240e76, 41834128)`
-- **VideoEditor**: Update the hybrid web/native toolchain requirements for the WebUI build `(1383ccfa)`
+- **Release Automation**: Normalize editor projects to Any CPU, automate and harden Chocolatey release sync, fix CRLF pack output paths, and add fresh-clone bootstrap helpers `(c4c0ed5d, 7c6cb235, 07282313, bf240e76, 41834128, 16af5a18, 075be629)`
+- **VideoEditor**: Update hybrid web/native toolchain requirements for the WebUI build `(1383ccfa)`
 
 ### Documentation
-- **Developer Workflow**: Document fresh-clone setup, shared agent workflow, shared-library commit conventions, explicit GitHub issue handling, and FFmpeg Ubuntu PipeWire guidance `(e577b3fe, 8ba6112a, 975ac87d, 00f5c095, 5d10aabe, ffac673b)`
-- **Architecture**: Rework VEIP0001 for the hybrid web/native VideoEditor direction, add the Immich uploader design XIP, and refresh FAQ/theme guidance `(bbed6737, 4164b5c5, 82c2274a, c5d50d61)`
+- **Developer Workflow**: Document fresh-clone setup, shared agent workflow, shared-library commit conventions, explicit GitHub issue handling, and FFmpeg guidance `(e577b3fe, 8ba6112a, 975ac87d, 00f5c095, 5d10aabe, ffac673b)`
+- **Architecture**: Add VEIP0001 hybrid VideoEditor direction, Immich plugin XIP, XIP0050 (FluentAvalonia removal), XIP0051 (Linux selector preferences), XIP0052 (agentic DI refactoring) `(bbed6737, 4164b5c5, 82c2274a, c5d50d61, 6021c3ab, 1cf8aa43, 503e4438)`
 
 ### Testing
 - **Region Capture**: Add UI smoke tests for region capture flows `(d293e5b2)`

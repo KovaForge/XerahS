@@ -153,17 +153,27 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 
 ### Step-by-Step Process
 
-1. **Identify Last Git Tag**
-   ```bash
-   git tag -l | Sort-Object -Descending | Select-Object -First 1
-   ```
-   This determines the boundary for version consolidation.
+1. **Identify Latest and Previous Stable Tags via GitHub MCP (preferred)**
 
-2. **Get Commits Since Last Tag**
+   Use `mcp_io_github_git_list_releases` with `owner=ShareX`, `repo=XerahS` (set `perPage=10`).
+   - **Latest stable tag** = first result where `prerelease: false` and `draft: false`.
+   - **Previous stable tag** = second result where `prerelease: false` and `draft: false`.
+   - All intermediate pre-releases (e.g. v0.20.2, v0.20.3, v0.20.4) are collapsed into the single latest stable tag heading.
+
+   Fallback if GitHub MCP unavailable:
    ```bash
-   git log v0.X.Y..HEAD --oneline --no-decorate
+   git tag -l --sort=-version:refname | Select-Object -First 5
    ```
-   Analyze all commits that need to be documented.
+   Then manually identify the two most recent non-prerelease tags by checking the CI release workflow (pre-releases have `prerelease: true` in their GitHub release).
+
+2. **Get Commits Between the Two Stable Tags**
+   ```bash
+   git log v0.PREV..v0.LATEST --oneline --no-decorate
+   ```
+   This gives the exact set of commits to document under the latest stable tag heading.
+
+3. **Check Current Version in Directory.Build.props**
+   Read the `<Version>` property to determine the target version number.
 
 3. **Check Current Version in Directory.Build.props**
    Read the `<Version>` property to determine the target version number.
