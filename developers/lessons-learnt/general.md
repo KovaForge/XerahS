@@ -13,9 +13,10 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 ## table of Contents
 
 1.  [UI & Theming](#ui--theming)
-2.  [Build & Configuration](#build--configuration)
-3.  [Plugin System](#plugin-system)
-4.  [Android / Avalonia](#android--avalonia)
+2.  [Changelog & Documentation Tooling](#changelog--documentation-tooling)
+3.  [Build & Configuration](#build--configuration)
+4.  [Plugin System](#plugin-system)
+5.  [Android / Avalonia](#android--avalonia)
 
 ---
 
@@ -131,6 +132,16 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 - Never trust region-capture modifier updates to key events alone; always resample the current `KeyModifiers` from pointer movement/release while dragging because modifier-only transitions can be missed under pointer capture and leave the selection geometry stuck in the wrong mode.
 - Never advertise Linux selector modes that the current session cannot actually honor, and never let an explicit selector silently fall through to a different interactive backend; always filter the UI using live selector diagnostics and keep `Automatic` as the only cross-backend fallback mode because otherwise specific selector choices become misleading and bug reports get polluted by fallback behavior.
 
+
+---
+
+## Changelog & Documentation Tooling
+
+- Never use `git tag -l | Sort-Object -Descending` to find the latest release tag; always use `git tag -l --sort=-version:refname` or (preferred) `mcp_io_github_git_list_releases` filtering for `prerelease:false, draft:false` because plain lexicographic sort puts `v0.7.7` after `v0.20.5`.
+- Never attempt `replace_string_in_file` on multi-line changelog blocks; always use PowerShell `[System.IO.File]::ReadAllText` + `[System.Text.RegularExpressions.Regex]::Replace` with `(?s)` dotall mode because the changelog can contain multi-byte UTF-8 sequences (e.g. `§`) that round-trip as mojibake (`Ã‚Â§`) and break exact-text matching.
+- Never forget a mojibake normalization pass after a PowerShell `WriteAllText` to a changelog; always run `$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)` before writing because double-encoded `§` can slip through even when the source text looked correct.
+- Never leave raw `\n{3,}` runs in CHANGELOG.md after regex block removal; always normalize with `-replace "\n{3,}", "\n\n"` (on LF-normalized content) because removing multi-line sections leaves stray blank lines that accumulate across consolidations.
+- Never create separate changelog headings for each prerelease tag between two stable releases; always consolidate all prerelease sections into a single heading for the stable tag, using `git log <prev_stable>..<latest_stable> --oneline --no-decorate` to enumerate commits that belong under that heading.
 
 ---
 

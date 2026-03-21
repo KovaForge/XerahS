@@ -175,9 +175,6 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 3. **Check Current Version in Directory.Build.props**
    Read the `<Version>` property to determine the target version number.
 
-3. **Check Current Version in Directory.Build.props**
-   Read the `<Version>` property to determine the target version number.
-
 4. **Consolidate Version Headings**
    - Remove ALL version headings between the last git tag and current HEAD
    - Create a SINGLE heading for the next minor version (from Directory.Build.props)
@@ -201,14 +198,65 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 
 ### Example Command Sequence
 ```powershell
-# Get last tag
-$lastTag = git tag -l | Sort-Object -Descending | Select-Object -First 1
+# Get last two stable tags via GitHub MCP (preferred)
+# mcp_io_github_git_list_releases owner=ShareX repo=XerahS perPage=20
+# Filter for prerelease:false, draft:false → first = latest stable, second = previous stable
 
-# Get commits since tag
-git log $lastTag..HEAD --oneline --no-decorate
+# Fallback: version-aware git sort (NOT plain Sort-Object -Descending — that is lexicographic)
+$stableTags = git tag -l --sort=-version:refname | Where-Object { $_ -notmatch 'alpha|beta|rc' }
+$latestTag  = $stableTags | Select-Object -First 1
+$prevTag    = $stableTags | Select-Object -Skip 1 -First 1
+
+# Get commits between the two stable tags
+git log "$prevTag..$latestTag" --oneline --no-decorate
 
 # Check current version
 $version = Select-String -Path "Directory.Build.props" -Pattern '<Version>(.*)</Version>' | ForEach-Object { $_.Matches.Groups[1].Value }
 
-# Update CHANGELOG.md with consolidated entries
+# Update CHANGELOG.md with consolidated entries (see encoding-safe method below)
 ```
+
+### Encoding-Safe Multi-Line Block Replacement
+
+**Why**: `replace_string_in_file` requires an exact literal match. CHANGELOG.md can contain multi-byte UTF-8 sequences (e.g. `§` in section references like `§7a`) that tools or round-trips can silently corrupt into mojibake (`Ã‚Â§`). Exact-match tools will fail on these blocks. Use PowerShell `[System.IO.File]` + `Regex` instead — it reads raw bytes and is immune to mojibake mismatches.
+
+**Pattern** (replace all prerelease sections between two stable headings with new consolidated content):
+
+```powershell
+$cl = 'docs/CHANGELOG.md'
+$c  = [System.IO.File]::ReadAllText($cl, [System.Text.Encoding]::UTF8)
+
+$newSection = @'
+## v0.X.Y
+
+### Features
+- ...
+
+### Fixes
+- ...
+
+'@
+
+# (?s) = dotall (. matches newlines); match from first prerelease heading up to (but not including) the previous stable heading
+$c = [System.Text.RegularExpressions.Regex]::Replace(
+    $c,
+    '(?s)## v0\.FIRST_PRERELEASE.*?(?=## v0\.PREV_STABLE)',
+    $newSection
+)
+
+# Normalize stray mojibake: Â§ → §  (UTF-8 double-encoding artifact)
+$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)
+
+# Collapse 3+ consecutive blank lines down to 2
+$c = $c -replace "\r\n", "`n"
+$c = $c -replace "`n{3,}", "`n`n"
+$c = $c -replace "`n", "`r`n"   # restore CRLF if the repo uses it
+
+[System.IO.File]::WriteAllText($cl, $c, [System.Text.Encoding]::UTF8)
+```
+
+**Key points**:
+- `(?s)` makes `.` match newlines so the pattern spans the whole block.
+- The lookahead `(?=## v0\.PREV_STABLE)` stops the match at the previous stable heading — it is **not** consumed.
+- The mojibake normalization pass (`[char]0x00C2 + [char]0x00A7 → [char]0x00A7`) should always run after a regex write to guard against double-encoding.
+- Blank-line normalization (`\n{3,}` → `\n\n`) prevents the file from accumulating excess whitespace after sections are removed.
