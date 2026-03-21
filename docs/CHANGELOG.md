@@ -9,6 +9,43 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ## Unreleased
 
+## v0.20.11
+
+### Features
+- **Clipboard Monitor**: Add cross-platform clipboard monitoring with toggle in Application Settings > Integration tab; register on Windows, Linux, and macOS; suppress origin loops and harden async reads; default to disabled `(baaea3d7, 4ebdb46c, d6e947ba, f0215255, 14cc7e9b, 7c0e8054, 9f00e0b5)`
+- **Tool Info Panel (IEIP0002)**: Implement ToolInfo adapter in RegionCapture; update dimensions during shape resize via handles; tune visual prominence `(76200251, 1f1e4878, 2878a023, cf28f368)`
+- **Creative ImageEditor Filters**: Integrate creative image effects and filters into the ImageEditor `(80eca12f, aa62a121)`
+
+### Fixes
+- **Menus**: Fix startup command binding regression across platforms, clipboard monitor focus-stealing, tool windows hidden behind main window, and menu dismissal on Linux `(a3ca8fc8, 5fc0eae3, fe97e969, fb8ad6c4, dee38279)`
+- **Annotation Toolbar**: Restore fixed-width, square, centered-split, right-side layout and tool options; share annotation toolbar with ImageEditor `(2a6e64f3, 0ca7ad9d, b6b0e72f, a5a22032, 613ad215, 151cec4c, 7e0ac98b)`
+- **Recording**: Apply CLI duration across recorder jobs, wire stop signal to active sessions, route start to last region, configure custom region recording fallback `(7d0e43e6, 60ae1aa6, b6518f96, 19497c23)`
+- **Send To**: Wire Windows pipeline, harden Linux entry generation, make macOS fallback explicit, use native Windows shortcut `(e805d850, 042319e3, d508dc5c, 56a769a6)`
+- **Theme**: Normalize effect property controls to XerahS theme; align task image effect editing with ImageEditor UX; add ShareX resource compatibility and correct surface tokens `(93f9b1b9, 30805eff, 75821964)`
+- **ImageEditor**: Restore Task Settings Add Effect enumeration; keep effect browser dialogs visible on Linux; prevent startup crash in native theme resources `(021c308b, 9ca1ea1c, d2c238fb)`
+- **Scrolling Capture**: Correct stitching `(4c4b7c73)`
+- **Cross-Assembly Views**: Resolve registration and update IEIP0003 `(3cc83c40)`
+- **Linux Upload Content**: Prevent clipboard hang `(c84e2b03)`
+- **macOS**: Skip native dylib rebuild when sources unchanged `(ae83aaa7)`
+- **History/Explorer**: Replace emoji glyphs with Lucide font icons `(a19afd49)`
+- **Plugins**: Clean plugin folders safely across app and user roots `(541a7a9d)`
+- **Tools Navigation**: Improve tools navigation and upload window activation `(f693b0f9)`
+- **Release Scripts**: Fix tag name collision and redirect `find_tag_run_id` status to stderr `(148bc37d, 1e686af2)`
+
+### Refactor
+- **Fluent Theming**: Migrate XerahS UI to native Fluent theming; adopt OS-aware accent across desktop UI and RegionCapture; align app and RegionCapture theming; defer editor accent to ImageEditor; apply ImageEditor system theme support `(59501d03, 9a929846, 3ce2cca8, ce84ab7d, ac4f2555, dd9d2f05, 6bd443cc)`
+- **Compiled Bindings (XIP0053)**: Enable compiled bindings defaults, harden ViewLocator with explicit mappings, complete guardrails `(5eb3a8fc, 962bacd3, e854aed4)`
+- **DI/Host (XIP0052)**: Inject task and recording managers through host services, extract overlay capture sessions, harden MVVM workflow boundaries, finalize host startup wiring, consolidate desktop composition `(4a98b5f3, f98c2b03, 80e6ac43, f4cf60de, 8f0beac7, c0a80d6e)`
+- **Mobile Theming**: Add adaptive theme tokens and switch Mobile.Ava and Mobile.Maui views to shared theme resources `(73138429, 0a59a9a6, 0a7a3b52, cf0851c9)`
+- **UI Polish**: Move host icon surface into XerahS UI, remove inline workflow type dropdown, center button content, standardize color swatch tile width and names, preserve previous color on selection changes `(46b3273f, 401839c4, af34e206, 4d7d8d0f, 3297c862, 2d5ed933, 2fe7deef)`
+- **Annotation Toolbar**: Refactor toolbar styles in ShareX.ImageEditor `(11f0dc9e)`
+
+### Build
+- **VideoEditor**: Update submodule for Tailwind 4.2.2 and playback/WebUI fixes `(fb11f425, fa7c0b58, 8d212da7, ca253d20, 4c0a7413)`
+- Exclude Windows clipboard tests on non-Windows platforms `(70811abf)`
+
+### Testing
+- Add XIP0052 composition boundary and injected manager coverage; stabilize manager tests `(0c9e5caa, 3c600ee6, f7c0e4cc)`
 ## v0.20.5
 
 ### Features
