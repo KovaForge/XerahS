@@ -25,6 +25,8 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using CommunityToolkit.Mvvm.ComponentModel;
+using System;
+using System.Linq;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -64,7 +66,7 @@ public class ViewLocator : IDataTemplate
         }
 
         var name = vmType.FullName!.Replace("ViewModel", "View").Replace("ViewModels", "Views");
-        var type = Type.GetType(name);
+        var type = ResolveViewType(name);
 
         if (type != null)
         {
@@ -74,6 +76,20 @@ public class ViewLocator : IDataTemplate
         }
 
         return new TextBlock { Text = "Not Found: " + name };
+    }
+
+    private static Type? ResolveViewType(string fullName)
+    {
+        Type? type = Type.GetType(fullName, throwOnError: false);
+        if (type != null)
+        {
+            return type;
+        }
+
+        return AppDomain.CurrentDomain
+            .GetAssemblies()
+            .Select(assembly => assembly.GetType(fullName, throwOnError: false))
+            .FirstOrDefault(candidate => candidate != null);
     }
 
     public bool Match(object? data)
