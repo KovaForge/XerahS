@@ -1,6 +1,6 @@
 ﻿---
 name: publish-release
-description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then optionally set pre-release. On failures, inspect logs, fix root cause, and retry with the next patch release."
+description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -14,7 +14,7 @@ Use this skill to run release steps in strict order:
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
 - Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
 - Step 6: Ensure standard release notes block is present on the GitHub release
-- Step 7: If requested, set the successful release as pre-release
+- Step 7: Set the successful release as pre-release by default (opt out only when intentionally publishing stable)
 
 Step 3 performs:
 - Pre-check: Run `dotnet build src/desktop/XerahS.sln`; do not proceed if build fails.
@@ -50,10 +50,16 @@ From repository root:
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh
 ```
 
-Automated monitor + pre-release (recommended):
+Automated monitor + default pre-release (recommended):
 
 ```bash
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
+```
+
+Stable release opt-out example:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --no-prerelease --bump z --yes
 ```
 
 Manual monitor (fallback, PowerShell example):
@@ -126,9 +132,10 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Append the standard changelog + macOS troubleshooting block if missing.
    - Write body: `gh release edit v<new-version> --notes-file <file>`
 
-7. Step 7 - Set pre-release (when requested)
+7. Step 7 - Set pre-release (default behavior)
    - `gh release edit v<new-version> --prerelease`
    - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
+   - Stable opt-out: skip this step only when intentionally publishing stable.
 
 8. Optional post-release Chocolatey maintenance
    - The tag workflow should already have produced and smoke-tested `xerahs.<new-version>.nupkg`.
@@ -149,7 +156,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 6. If failed, inspect logs, fix root cause, and retry with next patch version.
 7. Continue retry loop until release workflow is successful.
 8. Ensure standard release notes content is present on the successful release.
-9. If requested, mark successful release as pre-release.
+9. Mark successful release as pre-release by default; only skip when explicitly publishing stable.
 
 ## Guardrails
 
@@ -177,6 +184,8 @@ When executing this skill:
 6. Ensure release notes include changelog link + macOS troubleshooting block.
 7. If requested, set the final successful release to pre-release.
 8. Report final version, commit hash, branch push status, tag push status, run URL, and pre-release status.
+
+Default pre-release policy: unless explicitly instructed otherwise, keep `--set-prerelease` enabled. Use `--no-prerelease` only for intentional stable publishes.
 
 ## Notes (lessons learnt)
 
