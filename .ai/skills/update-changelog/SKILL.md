@@ -153,17 +153,24 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 
 ### Step-by-Step Process
 
-1. **Identify Last Git Tag**
-   ```bash
-   git tag -l | Sort-Object -Descending | Select-Object -First 1
-   ```
-   This determines the boundary for version consolidation.
+1. **Identify Latest and Previous Stable Tags via GitHub MCP (preferred)**
 
-2. **Get Commits Since Last Tag**
+   Use `mcp_io_github_git_list_releases` with `owner=ShareX`, `repo=XerahS` (set `perPage=10`).
+   - **Latest stable tag** = first result where `prerelease: false` and `draft: false`.
+   - **Previous stable tag** = second result where `prerelease: false` and `draft: false`.
+   - All intermediate pre-releases (e.g. v0.20.2, v0.20.3, v0.20.4) are collapsed into the single latest stable tag heading.
+
+   Fallback if GitHub MCP unavailable:
    ```bash
-   git log v0.X.Y..HEAD --oneline --no-decorate
+   git tag -l --sort=-version:refname | Select-Object -First 5
    ```
-   Analyze all commits that need to be documented.
+   Then manually identify the two most recent non-prerelease tags by checking the CI release workflow (pre-releases have `prerelease: true` in their GitHub release).
+
+2. **Get Commits Between the Two Stable Tags**
+   ```bash
+   git log v0.PREV..v0.LATEST --oneline --no-decorate
+   ```
+   This gives the exact set of commits to document under the latest stable tag heading.
 
 3. **Check Current Version in Directory.Build.props**
    Read the `<Version>` property to determine the target version number.
@@ -191,14 +198,65 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 
 ### Example Command Sequence
 ```powershell
-# Get last tag
-$lastTag = git tag -l | Sort-Object -Descending | Select-Object -First 1
+# Get last two stable tags via GitHub MCP (preferred)
+# mcp_io_github_git_list_releases owner=ShareX repo=XerahS perPage=20
+# Filter for prerelease:false, draft:false → first = latest stable, second = previous stable
 
-# Get commits since tag
-git log $lastTag..HEAD --oneline --no-decorate
+# Fallback: version-aware git sort (NOT plain Sort-Object -Descending — that is lexicographic)
+$stableTags = git tag -l --sort=-version:refname | Where-Object { $_ -notmatch 'alpha|beta|rc' }
+$latestTag  = $stableTags | Select-Object -First 1
+$prevTag    = $stableTags | Select-Object -Skip 1 -First 1
+
+# Get commits between the two stable tags
+git log "$prevTag..$latestTag" --oneline --no-decorate
 
 # Check current version
 $version = Select-String -Path "Directory.Build.props" -Pattern '<Version>(.*)</Version>' | ForEach-Object { $_.Matches.Groups[1].Value }
 
-# Update CHANGELOG.md with consolidated entries
+# Update CHANGELOG.md with consolidated entries (see encoding-safe method below)
 ```
+
+### Encoding-Safe Multi-Line Block Replacement
+
+**Why**: `replace_string_in_file` requires an exact literal match. CHANGELOG.md can contain multi-byte UTF-8 sequences (e.g. `§` in section references like `§7a`) that tools or round-trips can silently corrupt into mojibake (`Ã‚Â§`). Exact-match tools will fail on these blocks. Use PowerShell `[System.IO.File]` + `Regex` instead — it reads raw bytes and is immune to mojibake mismatches.
+
+**Pattern** (replace all prerelease sections between two stable headings with new consolidated content):
+
+```powershell
+$cl = 'docs/CHANGELOG.md'
+$c  = [System.IO.File]::ReadAllText($cl, [System.Text.Encoding]::UTF8)
+
+$newSection = @'
+## v0.X.Y
+
+### Features
+- ...
+
+### Fixes
+- ...
+
+'@
+
+# (?s) = dotall (. matches newlines); match from first prerelease heading up to (but not including) the previous stable heading
+$c = [System.Text.RegularExpressions.Regex]::Replace(
+    $c,
+    '(?s)## v0\.FIRST_PRERELEASE.*?(?=## v0\.PREV_STABLE)',
+    $newSection
+)
+
+# Normalize stray mojibake: Â§ → §  (UTF-8 double-encoding artifact)
+$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)
+
+# Collapse 3+ consecutive blank lines down to 2
+$c = $c -replace "\r\n", "`n"
+$c = $c -replace "`n{3,}", "`n`n"
+$c = $c -replace "`n", "`r`n"   # restore CRLF if the repo uses it
+
+[System.IO.File]::WriteAllText($cl, $c, [System.Text.Encoding]::UTF8)
+```
+
+**Key points**:
+- `(?s)` makes `.` match newlines so the pattern spans the whole block.
+- The lookahead `(?=## v0\.PREV_STABLE)` stops the match at the previous stable heading — it is **not** consumed.
+- The mojibake normalization pass (`[char]0x00C2 + [char]0x00A7 → [char]0x00A7`) should always run after a regex write to guard against double-encoding.
+- Blank-line normalization (`\n{3,}` → `\n\n`) prevents the file from accumulating excess whitespace after sections are removed.
