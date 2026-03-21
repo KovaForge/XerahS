@@ -424,7 +424,6 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         _ => "Select"
     };
 
-
     public bool CanUndo
     {
         get => _canUndo;

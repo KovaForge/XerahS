@@ -9,6 +9,12 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ## Unreleased
 
+## v0.20.12
+
+### Fixes
+- **RegionCapture Toolbar**: Revert `RegionCaptureAnnotationViewModel` to the pre-ToolInfo adapter behavior to restore stable annotation toolbar interactions.
+- **RegionCapture Icons**: Load `ImageEditorStyles.axaml` in the overlay window so toolbar buttons render distinct Lucide icons instead of fallback glyphs.
+
 ## v0.20.11
 
 ### Features
