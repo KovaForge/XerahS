@@ -9,6 +9,37 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ## Unreleased
 
+
+## v0.20.15
+
+### Fixes
+- **Core**: Stop toast notification when AfterCaptureWindow is cancelled (51dc50ae)
+- **Core**: upload fallback from File to Image category (3aceb524)
+- **Hotkeys**: activate X11 fallback when portal bind is cancelled (response=1) (0939672f)
+- **Imgur**: Use cross-platform URLHelpers for OAuth browser launch (656e2975)
+- **Linux**: Prevent Avalonia DBus TaskCanceledException from crashing the app (e65bcc56)
+- **Paths**: always create user-writable plugins folder in EnsureDirectoriesExist (fb1c443b)
+
+### Build
+- **Aur**: incorporate upstream improvements to PKGBUILD (ec08bbb0)
+- **Build**: update aur package build script to clean up artifacts (9811d0a5)
+- **Core**: Add MSI packaging via WiX alongside EXE installers (a948921e)
+- **Core**: Default publish-release to pre-release (bd3e9c53)
+- **Core**: Fix CS8604 and ignore benign DBus ServiceUnknown exception (f5e6d2d0)
+- **Core**: add reusable AUR packaging and fix executable permissions (06fff733)
+
+### Documentation
+- **Core**: Add 2026-03-20 annotation toolbar and theme unification blog draft. (edd2b92f)
+- **Core**: Add 2026-03-21 IEIP0002 tool info panel and IEIP0003 filter catalog blog draft. (a6d87b36)
+- **Core**: Add 2026-03-22 after-capture cancel toast fix blog draft. (dfeaed38)
+- **Core**: move PLUGIN_SDK.md from docs/developers/ to developers/guidelines/ (e4e407ea)
+- **Linux**: add INSTALL.md with AUR build and install instructions (fb6ec404)
+
+### Changed
+- **Core**: Fix Imgur OAuth login UX and client ID defaults (6cba98fd)
+- **Core**: Fix region selector preference ignored during hotkey-triggered captures (ee254f7b)
+- **Core**: Update Imgur Plugin to use token OAuth flow (630749d0)
+
 ## v0.20.12
 
 ### Fixes
