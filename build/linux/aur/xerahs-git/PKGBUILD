@@ -13,6 +13,11 @@ depends=('glibc' 'gcc-libs' 'hicolor-icon-theme')
 optdepends=(
     'gnome-shell-extension-appindicator: system tray icon on GNOME'
     'webkit2gtk-4.1: video editor webview support'
+    'wl-clipboard: Wayland clipboard support'
+    'xclip: X11 clipboard support'
+    'xdotool: X11 window management'
+    'grim: Wayland screenshot utility'
+    'slurp: Wayland region selection for screenshots'
 )
 makedepends=('git' 'dotnet-sdk')
 options=('!strip' '!debug')
@@ -90,9 +95,6 @@ X-GNOME-UsesNotifications=true
 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
 DESKTOP
 
-    local icon_path=''
-    icon_path=$(find "$pkgdir/usr/lib/xerahs" -type f -name 'Logo.png' | head -n 1 || true)
-    if [[ -n "$icon_path" ]]; then
-        install -Dm644 "$icon_path" "$pkgdir/usr/share/pixmaps/xerahs.png"
-    fi
+    install -Dm644 "$srcdir/XerahS/src/desktop/app/XerahS.UI/Assets/Logo.png" \
+        "$pkgdir/usr/share/icons/hicolor/256x256/apps/xerahs.png"
 }
