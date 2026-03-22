@@ -62,6 +62,7 @@ public partial class CategoryViewModel : ViewModelBase
     {
         try
         {
+            DebugHelper.WriteLine($"[CategoryViewModel] AddFromCatalog called for category: {Category}");
             var viewModel = new ProviderCatalogViewModel(Category);
             var mainVm = MainViewModel.Current;
 
@@ -83,8 +84,20 @@ public partial class CategoryViewModel : ViewModelBase
                 viewModel.OnCancelled += Cleanup;
 
                 // Show Modal (set ViewModel, DataTemplate handles View)
-                mainVm.ModalContent = viewModel;
-                mainVm.IsModalOpen = true;
+                // Dispatch to ensure Avalonia processes the property changes in a fresh
+                // layout/render cycle. On Linux/X11 the IsVisible binding on the modal
+                // overlay Grid may not invalidate correctly when set synchronously inside
+                // a RelayCommand handler.
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    mainVm.ModalContent = viewModel;
+                    mainVm.IsModalOpen = true;
+                    DebugHelper.WriteLine("[CategoryViewModel] Modal opened for provider catalog");
+                });
+            }
+            else
+            {
+                DebugHelper.WriteLine("[CategoryViewModel] ERROR: MainViewModel.Current is null — cannot open catalog modal");
             }
         }
         catch (Exception ex)
