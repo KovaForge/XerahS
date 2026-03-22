@@ -330,7 +330,7 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine($"All uploaders in category {category} failed: {allErrors}");
             }
 
-            // If primary category failed (or had no uploaders), try File category as fallback
+            // If primary category failed (or had no uploaders), try cross-category fallback
             if (category != UploaderCategory.File)
             {
                 DebugHelper.WriteLine($"Trying File category uploaders as fallback...");
@@ -341,7 +341,18 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
-            return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and File fallback." };
+            // If File category failed and the file is an image, try Image-category uploaders
+            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsImageFile(info.FileName))
+            {
+                DebugHelper.WriteLine("File is an image; trying Image category uploaders as fallback...");
+                var imageFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Image, info, excludeInstanceId, attemptedInstanceIds);
+                if (imageFallbackResult != null && !imageFallbackResult.IsError && !string.IsNullOrEmpty(imageFallbackResult.URL))
+                {
+                    return imageFallbackResult;
+                }
+            }
+
+            return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
         }
 
         /// <summary>
