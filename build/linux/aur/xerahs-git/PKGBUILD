@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+pkgname=xerahs-git
+pkgver=0.20.13.r2431.ga948921e
+pkgrel=1
+pkgdesc='Cross-platform screen capture and sharing tool'
+arch=('x86_64')
+url='https://github.com/ShareX/XerahS'
+license=('GPL3')
+provides=('xerahs')
+conflicts=('xerahs')
+depends=('glibc' 'gcc-libs' 'hicolor-icon-theme')
+optdepends=(
+    'gnome-shell-extension-appindicator: system tray icon on GNOME'
+    'webkit2gtk-4.1: video editor webview support'
+)
+makedepends=('git' 'dotnet-sdk')
+options=('!strip' '!debug')
+
+_xerahs_repo_root="${XERAHS_REPO_ROOT:?Set XERAHS_REPO_ROOT to the repository root before running makepkg.}"
+source=("git+file://${_xerahs_repo_root}")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$srcdir/XerahS"
+
+    local base_version
+    local revision_count
+    local short_hash
+
+    base_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)
+    revision_count=$(git rev-list --count HEAD)
+    short_hash=$(git rev-parse --short HEAD)
+
+    printf '%s.r%s.g%s\n' "$base_version" "$revision_count" "$short_hash"
+}
+
+prepare() {
+    cd "$srcdir/XerahS"
+    git submodule update --init --recursive
+}
+
+build() {
+    cd "$srcdir/XerahS"
+
+    export XERAHS_ARCHITECTURES='linux-x64'
+    export XERAHS_PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
+
+    ./build/linux/package-linux.sh
+}
+
+package() {
+    cd "$srcdir/XerahS"
+
+    local app_version
+    local publish_tarball
+
+    app_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)
+    publish_tarball="$srcdir/XerahS/dist/XerahS-${app_version}-linux-x64.tar.gz"
+
+    install -d "$pkgdir/usr/lib/xerahs"
+    bsdtar -xf "$publish_tarball" -C "$pkgdir/usr/lib/xerahs"
+
+    if [[ -f "$pkgdir/usr/lib/xerahs/XerahS" ]]; then
+        chmod 755 "$pkgdir/usr/lib/xerahs/XerahS"
+    fi
+
+    if [[ -f "$pkgdir/usr/lib/xerahs/xerahs-watchfolder-daemon" ]]; then
+        chmod 755 "$pkgdir/usr/lib/xerahs/xerahs-watchfolder-daemon"
+    fi
+
+    install -d "$pkgdir/usr/bin"
+    ln -s ../lib/xerahs/XerahS "$pkgdir/usr/bin/xerahs"
+
+    install -Dm644 LICENSE.txt "$pkgdir/usr/share/licenses/$pkgname/LICENSE.txt"
+
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/xerahs.desktop" <<'DESKTOP'
+[Desktop Entry]
+Name=XerahS
+Comment=Cross-platform screen capture and sharing tool
+GenericName=Screen Capture
+Exec=/usr/bin/xerahs %U
+Icon=xerahs
+Terminal=false
+Type=Application
+Categories=Utility;Graphics;GTK;
+Keywords=screenshot;screen;capture;share;upload;
+StartupWMClass=xerahs
+X-GNOME-UsesNotifications=true
+X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
+DESKTOP
+
+    local icon_path=''
+    icon_path=$(find "$pkgdir/usr/lib/xerahs" -type f -name 'Logo.png' | head -n 1 || true)
+    if [[ -n "$icon_path" ]]; then
+        install -Dm644 "$icon_path" "$pkgdir/usr/share/pixmaps/xerahs.png"
+    fi
+}
