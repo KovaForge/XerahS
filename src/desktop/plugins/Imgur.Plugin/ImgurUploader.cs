@@ -61,41 +61,55 @@ public class ImgurUploader : ImageUploader, IOAuth2
     {
         try
         {
-            if (Uri.TryCreate(input, UriKind.Absolute, out Uri? uri))
+            string normalizedInput = input?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(normalizedInput))
+            {
+                return false;
+            }
+
+            string tokenPayload = normalizedInput;
+
+            if (Uri.TryCreate(normalizedInput, UriKind.Absolute, out Uri? uri))
             {
                 string fragment = uri.Fragment.TrimStart('#');
-                if (string.IsNullOrEmpty(fragment)) 
+                if (string.IsNullOrEmpty(fragment))
                 {
                     fragment = uri.Query.TrimStart('?');
                 }
 
-                var parsedArgs = URLHelpers.ParseQueryString(fragment);
-                string? accessToken = parsedArgs?["access_token"];
-                string? refreshToken = parsedArgs?["refresh_token"];
-                string? expiresInStr = parsedArgs?["expires_in"];
-                
-                if (!string.IsNullOrEmpty(accessToken))
+                tokenPayload = fragment;
+            }
+            else
+            {
+                tokenPayload = normalizedInput.TrimStart('#').TrimStart('?');
+            }
+
+            var parsedArgs = URLHelpers.ParseQueryString(tokenPayload);
+            string? accessToken = parsedArgs?["access_token"];
+            string? refreshToken = parsedArgs?["refresh_token"];
+            string? expiresInStr = parsedArgs?["expires_in"];
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                var token = new OAuth2Token
                 {
-                    var token = new OAuth2Token
-                    {
-                        access_token = accessToken,
-                        refresh_token = refreshToken ?? "",
-                        token_type = "Bearer"
-                    };
+                    access_token = accessToken,
+                    refresh_token = refreshToken ?? "",
+                    token_type = "Bearer"
+                };
 
-                    if (int.TryParse(expiresInStr, out int expiresIn))
-                    {
-                        token.expires_in = expiresIn;
-                    }
-                    else
-                    {
-                        token.expires_in = 315360000;
-                    }
-
-                    token.UpdateExpireDate();
-                    AuthInfo.Token = token;
-                    return true;
+                if (int.TryParse(expiresInStr, out int expiresIn))
+                {
+                    token.expires_in = expiresIn;
                 }
+                else
+                {
+                    token.expires_in = 315360000;
+                }
+
+                token.UpdateExpireDate();
+                AuthInfo.Token = token;
+                return true;
             }
         }
         catch

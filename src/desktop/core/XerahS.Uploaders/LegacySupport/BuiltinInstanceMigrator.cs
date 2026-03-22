@@ -346,7 +346,7 @@ public static class BuiltinInstanceMigrator
             ["UseGIFV"] = source.ImgurUseGIFV,
             ["UploadToSelectedAlbum"] = source.ImgurUploadSelectedAlbum,
             ["SelectedAlbum"] = null,
-            ["ClientId"] = "30d41ft9z9r8jtt"        // Default ShareX client ID
+            ["ClientId"] = string.Empty
         };
 
         string settingsJson = json.ToString(Formatting.Indented);

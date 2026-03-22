@@ -24,6 +24,12 @@
                        TextWrapping="Wrap"
                        MaxWidth="400"
                        HorizontalAlignment="Left"/>
+            <TextBlock Text="The built-in legacy ID is not valid for login. Register your own app and paste its Client ID here."
+                       FontSize="11"
+                       Foreground="{DynamicResource SystemAccentColor}"
+                       TextWrapping="Wrap"
+                       MaxWidth="460"
+                       HorizontalAlignment="Left"/>
         </StackPanel>
 
         <!-- Account Type -->
@@ -51,10 +57,10 @@
                 </StackPanel>
 
                 <StackPanel Spacing="5" IsVisible="{Binding !IsLoggedIn}">
-                    <TextBlock Text="Step 2: Enter the redirect URL from Imgur" FontSize="12"/>
+                    <TextBlock Text="Step 2: Paste the full callback URL from Imgur" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <TextBox Text="{Binding AuthCallbackUrl}" 
-                                 Watermark="Paste full URL here" 
+                                 Watermark="Paste full callback URL here" 
                                  Width="350"/>
                         <Button Content="Complete Login" 
                                 Command="{Binding CompleteLoginCommand}"
