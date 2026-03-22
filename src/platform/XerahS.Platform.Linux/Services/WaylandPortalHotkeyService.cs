@@ -314,6 +314,11 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             }
             catch (OperationCanceledException) { }
             catch (ObjectDisposedException) when (_disposed) { }
+            catch (PortalBindFailedException ex) when (ex.ResponseCode == 1)
+            {
+                DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind cancelled by user (response=1); enabling X11 fallback");
+                ActivateFallbackHotkeys("portal BindShortcuts cancelled by user (response=1)");
+            }
             catch (PortalBindFailedException ex) when (ex.ResponseCode == 2)
             {
                 DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Portal bind failed with non-recoverable response (2); enabling X11 fallback");
