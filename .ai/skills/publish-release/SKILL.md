@@ -41,6 +41,7 @@ Step 6 performs:
   - `### macOS Troubleshooting ("App is damaged")` section with Gatekeeper `xattr -cr` guidance.
 - After the release is published, the tag workflow also builds, smoke-tests, and attaches `xerahs.X.Y.Z.nupkg` to the GitHub release.
 - `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z` remains the manual recovery path for re-syncing checksums or repacking.
+- Expected Windows release assets per architecture: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`.
 
 ## Primary Command
 
@@ -131,6 +132,7 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Read current body: `gh release view v<new-version> --json body`
    - Append the standard changelog + macOS troubleshooting block if missing.
    - Write body: `gh release edit v<new-version> --notes-file <file>`
+   - Verify all **8 Windows assets** are attached (`-win-x64.exe`, `-win-x64.msi`, `-win-arm64.exe`, `-win-arm64.msi`) plus macOS and Linux assets.
 
 7. Step 7 - Set pre-release (default behavior)
    - `gh release edit v<new-version> --prerelease`
@@ -193,6 +195,10 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Build before bump: avoid tagging broken trees.
 - Changelog optional: do not block if `CHANGELOG.md` does not exist unless user requires it.
 - Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
+- **Windows packaging produces 4 assets per release**: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`. The EXE is built by Inno Setup; the MSI is built by WiX Toolset v4 (`build/windows/XerahS-setup.wxs`). Both are produced by `build/windows/package-windows.ps1` in the same loop iteration.
+- **WiX prerequisite (CI & local)**: `dotnet tool install --global wix` + `wix extension add --global WixToolset.UI.wixext`. The `release-build-all-platforms.yml` workflow installs WiX automatically in the `build-windows` job. For local MSI builds: install WiX first; if not present the script emits a warning and skips MSI.
+- **MSI install layout**: per-user, no UAC elevation required. Binaries → `%LocalAppData%\Programs\XerahS\`; Plugins → `%USERPROFILE%\Documents\XerahS\Plugins\`; Start Menu shortcut created automatically.
+- **Winget manifest**: both `InstallerType: nullsoft` (EXE) and `InstallerType: wix` (MSI) entries must be included for each architecture when submitting to winget-pkgs. See `build/windows/winget/manifests/0.16.0/ShareX.XerahS.yaml` as the template.
 - Chocolatey asset naming: `build/windows/chocolatey/tools/chocolateyInstall.ps1` resolves `XerahS-<version>-win-x64.exe` or `XerahS-<version>-win-arm64.exe` from `ChocolateyPackageVersion`, so release bumps should not hardcode installer filenames there.
 - Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.

@@ -13,7 +13,15 @@ Installers:
     InstallerUrl: https://github.com/ShareX/XerahS/releases/download/v0.16.0/XerahS-0.16.0-win-x64.exe
     InstallerSha256: 
     InstallerType: nullsoft
+  - Architecture: x64
+    InstallerUrl: https://github.com/ShareX/XerahS/releases/download/v0.16.0/XerahS-0.16.0-win-x64.msi
+    InstallerSha256: 
+    InstallerType: wix
   - Architecture: arm64
     InstallerUrl: https://github.com/ShareX/XerahS/releases/download/v0.16.0/XerahS-0.16.0-win-arm64.exe
     InstallerSha256: 
     InstallerType: nullsoft
+  - Architecture: arm64
+    InstallerUrl: https://github.com/ShareX/XerahS/releases/download/v0.16.0/XerahS-0.16.0-win-arm64.msi
+    InstallerSha256: 
+    InstallerType: wix
