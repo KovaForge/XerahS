@@ -81,8 +81,6 @@ $skipMsi = $null -eq $wixCmd
 if ($skipMsi) {
     Write-Warning "WiX CLI (wix.exe) not found in PATH - MSI packages will not be built."
     Write-Warning "Install: dotnet tool install --global wix"
-    Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext" — MSI packages will not be built."
-    Write-Warning "Install: dotnet tool install --global wix"
     Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext"
 } else {
     Write-Host "WiX CLI: $($wixCmd.Source)"

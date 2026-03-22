@@ -10,6 +10,12 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ## Unreleased
 
 
+
+## v0.20.16
+
+### Changed
+- No user-facing commits were detected in this range.
+
 ## v0.20.15
 
 ### Fixes
