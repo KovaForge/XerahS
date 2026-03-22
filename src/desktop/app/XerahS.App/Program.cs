@@ -350,8 +350,16 @@ namespace XerahS.App
             {
                 try
                 {
-                    XerahS.Common.DebugHelper.WriteException(eventArgs.Exception, "Unobserved task exception");
-                    XerahS.Common.DebugHelper.Flush();
+                    bool isIgnorableAvaloniaDbusException = 
+                        eventArgs.Exception?.InnerException != null &&
+                        eventArgs.Exception.InnerException.GetType().FullName == "Tmds.DBus.Protocol.DBusException" &&
+                        eventArgs.Exception.InnerException.Message.Contains("ServiceUnknown");
+
+                    if (!isIgnorableAvaloniaDbusException)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
+                        XerahS.Common.DebugHelper.Flush();
+                    }
                 }
                 catch
                 {
