@@ -51,11 +51,11 @@
                 </StackPanel>
 
                 <StackPanel Spacing="5" IsVisible="{Binding !IsLoggedIn}">
-                    <TextBlock Text="Step 2: Enter PIN from Imgur" FontSize="12"/>
+                    <TextBlock Text="Step 2: Enter the redirect URL from Imgur" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBox Text="{Binding Pin}" 
-                                 Watermark="Enter PIN" 
-                                 Width="150"/>
+                        <TextBox Text="{Binding AuthCallbackUrl}" 
+                                 Watermark="Paste full URL here" 
+                                 Width="350"/>
                         <Button Content="Complete Login" 
                                 Command="{Binding CompleteLoginCommand}"
                                 Classes="accent"/>

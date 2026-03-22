@@ -73,7 +73,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     private string? _statusMessage;
 
     [ObservableProperty]
-    private string _pin = string.Empty;
+    private string _authCallbackUrl = string.Empty;
 
     [ObservableProperty]
     private bool _isLoggedIn;
@@ -111,22 +111,22 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     private void CompleteLogin()
     {
         EnsureUploader();
-        if (_uploader == null || string.IsNullOrWhiteSpace(Pin))
+        if (_uploader == null || string.IsNullOrWhiteSpace(AuthCallbackUrl))
         {
-            StatusMessage = "Please enter the PIN from Imgur";
+            StatusMessage = "Please enter the URL from Imgur";
             return;
         }
 
-        if (_uploader.GetAccessToken(Pin))
+        if (_uploader.GetAccessToken(AuthCallbackUrl))
         {
             IsLoggedIn = true;
             StatusMessage = "Logged in successfully!";
-            Pin = string.Empty;
+            AuthCallbackUrl = string.Empty;
             PersistToken();
         }
         else
         {
-            StatusMessage = "Login failed. Please check the PIN.";
+            StatusMessage = "Login failed. Please check the URL.";
         }
     }
 
