@@ -33,7 +33,7 @@ export XERAHS_REPO_ROOT="$ROOT"
 cd "$AUR_DIR"
 rm -f ./*.pkg.tar.zst ./*.pkg.tar.zst.sig ./*.src.tar.gz
 
-makepkg --cleanbuild --force --noconfirm
+makepkg --clean --cleanbuild --force --noconfirm
 
 shopt -s nullglob
 packages=(./*.pkg.tar.zst)
@@ -53,3 +53,7 @@ echo "Built Arch package(s):"
 for package_path in "$OUTPUT_DIR"/*.pkg.tar.zst; do
     echo "  $package_path"
 done
+
+# Clean up remaining build artifacts in the AUR directory
+echo "Cleaning up build artifacts from AUR directory..."
+rm -rf src/ pkg/ XerahS/ ./*.pkg.tar.zst ./*.pkg.tar.zst.sig ./*.src.tar.gz
