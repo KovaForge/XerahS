@@ -36,9 +36,10 @@ namespace XerahS.Core.Tasks.Processors
         /// <summary>
         /// Executes after-capture tasks for the current job.
         /// </summary>
-        public async Task ProcessAsync(TaskInfo info, CancellationToken token)
+        /// <returns><c>true</c> to continue the pipeline; <c>false</c> if the user cancelled.</returns>
+        public async Task<bool> ProcessAsync(TaskInfo info, CancellationToken token)
         {
-            if (info.Metadata?.Image == null) return;
+            if (info.Metadata?.Image == null) return true;
 
             var settings = info.TaskSettings;
             DebugHelper.WriteLine(
@@ -61,7 +62,7 @@ namespace XerahS.Core.Tasks.Processors
                     if (result.Cancel)
                     {
                         DebugHelper.WriteLine("After capture window cancelled; aborting workflow.");
-                        return;
+                        return false;
                     }
 
                     settings.AfterCaptureJob = result.Capture;
@@ -85,7 +86,7 @@ namespace XerahS.Core.Tasks.Processors
                     if (processed == null)
                     {
                         DebugHelper.WriteLine("Error: Applying image effects resulted in null image.");
-                        return;
+                        return true;
                     }
 
                     if (!ReferenceEquals(processed, info.Metadata.Image))
@@ -174,7 +175,7 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
-            await Task.CompletedTask;
+            return true;
         }
 
         private async Task SaveImageToFileAsync(TaskInfo info)

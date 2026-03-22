@@ -41,7 +41,13 @@ namespace XerahS.Core.Tasks.Pipeline
         {
             // Execute Capture Job (File Save, Clipboard, etc)
             var captureProcessor = new CaptureJobProcessor();
-            await captureProcessor.ProcessAsync(context.Info, token);
+            bool captureWantsToContinue = await captureProcessor.ProcessAsync(context.Info, token);
+            if (!captureWantsToContinue)
+            {
+                DebugHelper.WriteLine("Capture job cancelled by user; stopping pipeline.");
+                context.Status = TaskStatus.Canceled;
+                return PipelineStageResult.Stop;
+            }
 
             // Execute Upload Job
             var uploadProcessor = new UploadJobProcessor();
