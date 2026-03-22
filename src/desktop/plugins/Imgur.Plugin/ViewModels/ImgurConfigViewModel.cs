@@ -96,10 +96,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
         string url = _uploader.GetAuthorizationURL();
         try
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            }
+            XerahS.Common.URLHelpers.OpenURL(url);
         }
         catch (Exception ex)
         {
