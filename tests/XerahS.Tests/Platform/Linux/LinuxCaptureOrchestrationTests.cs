@@ -371,7 +371,7 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
-    public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_RequiresNativePathOnly()
+    public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_SupportsNativeAndOverlay()
     {
         var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
         var capability = LinuxRegionCaptureCapabilityDetector.Detect(
@@ -384,7 +384,7 @@ public class LinuxCaptureOrchestrationTests
         Assert.Multiple(() =>
         {
             Assert.That(capability.SupportsNativeRegionCapture, Is.True);
-            Assert.That(capability.SupportsLegacyOverlayCapture, Is.False);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
             Assert.That(capability.Reason, Does.Contain("XDG Screenshot portal"));
         });
     }

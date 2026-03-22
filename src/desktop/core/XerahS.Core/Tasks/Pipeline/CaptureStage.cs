@@ -127,7 +127,7 @@ namespace XerahS.Core.Tasks.Pipeline
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
-                LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+                LinuxRegionSelectorPreference = SettingsManager.DefaultTaskSettings.CaptureSettings.LinuxRegionSelectorPreference,
                 ShowCursor = captureSettings.ShowCursor,
                 UseTransparentOverlay = useTransparentOverlay,
                 CaptureShadow = captureSettings.CaptureShadow,
