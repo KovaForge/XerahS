@@ -104,7 +104,7 @@ namespace XerahS.UI.Services
                 }
             }
 
-            bool useFastOverlay = OperatingSystem.IsLinux() || (options?.UseTransparentOverlay ?? false);
+            bool useFastOverlay = options?.UseTransparentOverlay ?? false;
             SKRectI selection = await OverlayRegionCaptureSession.SelectRegionAsync(_platformImpl, options, useFastOverlay);
 
             if (OperatingSystem.IsLinux())
@@ -233,7 +233,7 @@ namespace XerahS.UI.Services
                 }
             }
 
-            bool useFastOverlay = OperatingSystem.IsLinux() || (effectiveOptions?.UseTransparentOverlay ?? false);
+            bool useFastOverlay = effectiveOptions?.UseTransparentOverlay ?? false;
             SKBitmap? fullScreenBitmap = null;
             if (!useFastOverlay)
             {
