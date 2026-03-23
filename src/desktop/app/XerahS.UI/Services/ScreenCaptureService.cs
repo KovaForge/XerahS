@@ -328,6 +328,7 @@ namespace XerahS.UI.Services
                 UseModernCapture = effectiveOptions?.UseModernCapture ?? true,
                 LinuxRegionSelectorPreference = effectiveOptions?.LinuxRegionSelectorPreference ??
                     LinuxInteractiveRegionSelectorPreference.Automatic,
+                UseTransparentOverlay = effectiveOptions?.UseTransparentOverlay ?? false,
                 WorkflowId = effectiveOptions?.WorkflowId,
                 WorkflowCategory = effectiveOptions?.WorkflowCategory
             };
