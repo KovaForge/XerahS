@@ -259,6 +259,25 @@ namespace XerahS.Platform.Linux
         {
             DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Input rect (from UI): Left={rect.Left}, Top={rect.Top}, Right={rect.Right}, Bottom={rect.Bottom}, Size={rect.Right - rect.Left:F0}x{rect.Bottom - rect.Top:F0}");
 
+            var context = LinuxRuntimeContextDetector.Detect();
+            if (ShouldUseDirectGnomeAreaCapture(options, context))
+            {
+                var areaRect = CreateDirectAreaCaptureRect(rect);
+                DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Using GNOME direct area capture for logical rect L={areaRect.Left}, T={areaRect.Top}, R={areaRect.Right}, B={areaRect.Bottom}, Size={areaRect.Width}x{areaRect.Height}");
+
+                if (areaRect.Width > 0 && areaRect.Height > 0)
+                {
+                    var directAreaBitmap = await GnomeDbusScreenCapture.CaptureAreaAsync(areaRect).ConfigureAwait(false);
+                    if (directAreaBitmap != null)
+                    {
+                        DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: GNOME direct area capture succeeded: {directAreaBitmap.Width}x{directAreaBitmap.Height}");
+                        return directAreaBitmap;
+                    }
+
+                    DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: GNOME direct area capture returned null; falling back to full-screen crop path.");
+                }
+            }
+
             // Capture full screen with the same options and crop.
             var fullBitmap = await CaptureFullScreenAsync(options);
             if (fullBitmap == null)
@@ -535,6 +554,22 @@ namespace XerahS.Platform.Linux
                 "none" => "No provider",
                 _ => providerId
             };
+        }
+
+        internal static bool ShouldUseDirectGnomeAreaCapture(CaptureOptions? options, ILinuxCaptureContext context)
+        {
+            return context.IsWayland &&
+                options?.UseTransparentOverlay == true &&
+                string.Equals(context.Desktop, "GNOME", StringComparison.Ordinal);
+        }
+
+        internal static SKRectI CreateDirectAreaCaptureRect(SKRect rect)
+        {
+            return new SKRectI(
+                (int)Math.Floor(rect.Left),
+                (int)Math.Floor(rect.Top),
+                (int)Math.Ceiling(rect.Right),
+                (int)Math.Ceiling(rect.Bottom));
         }
 
         private static bool ShouldForceInteractivePortalFullScreen(CaptureOptions? options)

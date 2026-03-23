@@ -28,6 +28,7 @@ using System.Threading;
 using NUnit.Framework;
 using SkiaSharp;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Linux;
 using XerahS.Platform.Linux.Capture.Contracts;
 using XerahS.Platform.Linux.Capture.Detection;
 using XerahS.Platform.Linux.Capture.Orchestration;
@@ -307,6 +308,52 @@ public class LinuxCaptureOrchestrationTests
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseCancelled), Is.False);
             Assert.That(PortalScreenCapture.ShouldTryFallbackLookup(PortalScreenCapture.PortalResponseFailed), Is.True);
         });
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_GnomeWaylandTransparentOverlay_UsesDirectAreaCapture()
+    {
+        var context = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions { UseTransparentOverlay = true };
+
+        Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(options, context), Is.True);
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_DirectAreaCapture_IsNotUsedForKdeOrNonTransparentCapture()
+    {
+        var gnomeContext = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var kdeContext = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "KDE",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = false }, gnomeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = true }, kdeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = true }, new LinuxCaptureContext(false, "GNOME", "X11", false, true)), Is.False);
+        });
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_CreateDirectAreaCaptureRect_RoundsOutward()
+    {
+        var rect = LinuxScreenCaptureService.CreateDirectAreaCaptureRect(new SKRect(10.2f, 20.4f, 110.6f, 220.1f));
+
+        Assert.That(rect, Is.EqualTo(new SKRectI(10, 20, 111, 221)));
     }
 
     [Test]
