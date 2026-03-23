@@ -115,6 +115,7 @@ public class WorkflowsConfig : SettingsBase<WorkflowsConfig>
     public static List<WorkflowSettings> GetDefaultWorkflowList()
     {
         var list = new List<WorkflowSettings>();
+        bool preferTransparentRegionWorkflow = ShouldUseTransparentRegionWorkflowByDefault();
 
         // WF01: Full screen capture (Ctrl + Shift + F)
         var wf01 = new WorkflowSettings(WorkflowType.PrintScreen, new HotkeyInfo(Key.F, KeyModifiers.Control | KeyModifiers.Shift));
@@ -129,8 +130,9 @@ public class WorkflowsConfig : SettingsBase<WorkflowsConfig>
         list.Add(wf02);
 
         // WF03: Region capture (Ctrl + Shift + X)
-        var wf03 = new WorkflowSettings(WorkflowType.RectangleRegion, new HotkeyInfo(Key.X, KeyModifiers.Control | KeyModifiers.Shift));
-        wf03.TaskSettings.Description = "Region capture";
+        var regionWorkflowType = preferTransparentRegionWorkflow ? WorkflowType.RectangleTransparent : WorkflowType.RectangleRegion;
+        var wf03 = new WorkflowSettings(regionWorkflowType, new HotkeyInfo(Key.X, KeyModifiers.Control | KeyModifiers.Shift));
+        wf03.TaskSettings.Description = preferTransparentRegionWorkflow ? "Region capture (Transparent)" : "Region capture";
         wf03.TaskSettings.CaptureSettings.UseModernCapture = true;
         list.Add(wf03);
 
@@ -164,5 +166,38 @@ public class WorkflowsConfig : SettingsBase<WorkflowsConfig>
         list.Add(wf06);
 
         return list;
+    }
+
+    private static bool ShouldUseTransparentRegionWorkflowByDefault()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return false;
+        }
+
+        string[] desktopHints =
+        {
+            Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty,
+            Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ?? string.Empty,
+            Environment.GetEnvironmentVariable("DESKTOP_SESSION") ?? string.Empty
+        };
+
+        foreach (string hint in desktopHints)
+        {
+            foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                string normalized = token.ToUpperInvariant();
+                if (normalized.Contains("GNOME", StringComparison.Ordinal) ||
+                    normalized.Contains("UBUNTU", StringComparison.Ordinal) ||
+                    normalized.Contains("UNITY", StringComparison.Ordinal) ||
+                    normalized.Contains("BUDGIE", StringComparison.Ordinal) ||
+                    normalized.Contains("PANTHEON", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

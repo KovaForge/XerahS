@@ -650,6 +650,11 @@ namespace XerahS.Core.Tasks.Pipeline
                 return true;
             }
 
+            if (workflowType != WorkflowType.RectangleRegion)
+            {
+                return false;
+            }
+
             if (!OperatingSystem.IsLinux())
             {
                 return false;

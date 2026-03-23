@@ -130,7 +130,7 @@ namespace XerahS.Platform.Linux
 
         Task<(SKBitmap? bitmap, uint response)> ILinuxCaptureRuntime.TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
         {
-            bool forceInteractive = kind != LinuxCaptureKind.FullScreen;
+            bool forceInteractive = kind != LinuxCaptureKind.FullScreen || ShouldForceInteractivePortalFullScreen(options);
             return PortalScreenCapture.CaptureAsync(forceInteractive, allowInteractiveFallback: false);
         }
 
@@ -535,6 +535,41 @@ namespace XerahS.Platform.Linux
                 "none" => "No provider",
                 _ => providerId
             };
+        }
+
+        private static bool ShouldForceInteractivePortalFullScreen(CaptureOptions? options)
+        {
+            if (!IsWayland || options?.UseTransparentOverlay != true)
+            {
+                return false;
+            }
+
+            string[] desktopHints =
+            {
+                Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("DESKTOP_SESSION") ?? string.Empty
+            };
+
+            foreach (string hint in desktopHints)
+            {
+                foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    string normalized = token.ToUpperInvariant();
+                    if (normalized.Contains("GNOME", StringComparison.Ordinal) ||
+                        normalized.Contains("UBUNTU", StringComparison.Ordinal) ||
+                        normalized.Contains("UNITY", StringComparison.Ordinal) ||
+                        normalized.Contains("BUDGIE", StringComparison.Ordinal) ||
+                        normalized.Contains("PANTHEON", StringComparison.Ordinal))
+                    {
+                        DebugHelper.WriteLine(
+                            "LinuxScreenCaptureService: forcing interactive portal full-screen request for transparent-overlay region capture on GNOME Wayland.");
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }
