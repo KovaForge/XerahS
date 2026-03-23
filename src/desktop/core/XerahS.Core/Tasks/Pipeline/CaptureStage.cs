@@ -121,8 +121,7 @@ namespace XerahS.Core.Tasks.Pipeline
             var isScreenCaptureDelay = workflowCategory == EnumExtensions.WorkflowType_Category_ScreenCapture && captureDelaySeconds > 0;
             var isScreenRecordDelay = workflowCategory == EnumExtensions.WorkflowType_Category_ScreenRecord && captureDelaySeconds > 0;
 
-            // UseTransparentOverlay is true only for RectangleTransparent workflow
-            var useTransparentOverlay = taskSettings.Job == WorkflowType.RectangleTransparent;
+            var useTransparentOverlay = ShouldUseTransparentOverlay(taskSettings.Job);
             var linuxRegionSelectorPreference = ResolveLinuxRegionSelectorPreference(captureSettings);
 
             var captureOptions = new CaptureOptions
@@ -642,6 +641,91 @@ namespace XerahS.Core.Tasks.Pipeline
                 $"CaptureStage: Linux selector preference source={(shouldUseDefaultPreference ? "default task settings" : "task settings")} (task={taskPreference}, default={defaultPreference}).");
 
             return shouldUseDefaultPreference ? defaultPreference : taskPreference;
+        }
+
+        private static bool ShouldUseTransparentOverlay(WorkflowType workflowType)
+        {
+            if (workflowType == WorkflowType.RectangleTransparent)
+            {
+                return true;
+            }
+
+            if (!OperatingSystem.IsLinux())
+            {
+                return false;
+            }
+
+            if (RequiresLinuxTransparentOverlayForMixedDpi())
+            {
+                DebugHelper.WriteLine(
+                    $"CaptureStage: forcing UseTransparentOverlay=true for workflow '{workflowType}' on Fedora GNOME mixed-DPI path.");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool RequiresLinuxTransparentOverlayForMixedDpi()
+        {
+            string? distroId = TryGetLinuxDistroId();
+            if (!string.Equals(distroId, "fedora", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string[] desktopHints =
+            {
+                Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("DESKTOP_SESSION") ?? string.Empty
+            };
+
+            foreach (string hint in desktopHints)
+            {
+                foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    string normalized = token.ToUpperInvariant();
+                    if (normalized.Contains("GNOME", StringComparison.Ordinal) ||
+                        normalized.Contains("UBUNTU", StringComparison.Ordinal) ||
+                        normalized.Contains("UNITY", StringComparison.Ordinal) ||
+                        normalized.Contains("BUDGIE", StringComparison.Ordinal) ||
+                        normalized.Contains("PANTHEON", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static string? TryGetLinuxDistroId()
+        {
+            const string osReleasePath = "/etc/os-release";
+            if (!File.Exists(osReleasePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                foreach (string rawLine in File.ReadLines(osReleasePath))
+                {
+                    if (!rawLine.StartsWith("ID=", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    string value = rawLine["ID=".Length..].Trim().Trim('"', '\'');
+                    return value;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"CaptureStage: unable to parse {osReleasePath}: {ex.Message}");
+            }
+
+            return null;
         }
 
         private static bool ShouldUseDefaultLinuxRegionSelectorPreferenceForDesktop()
