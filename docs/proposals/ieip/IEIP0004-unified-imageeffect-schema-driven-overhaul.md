@@ -1,60 +1,56 @@
 # IEIP0004: Unified ImageEffect Schema-Driven Overhaul
 
 ## Status
-- Status: Drafted on March 23, 2026.
+- Status: Implemented on March 23, 2026.
 - Type: Architecture proposal for `ShareX.ImageEditor`.
-- Scope: Extending the IEIP0003 schema-driven contract to the remaining three `ImageEffectCategory` categories — Adjustments, Manipulations, and Drawings.
-- Builds on: IEIP0003 (Filters) — the existing `FilterCatalog` / `FilterDefinition` / `SchemaDrivenFilterDialog` infrastructure is preserved and used as the reference pattern.
+- Scope: All four `ImageEffectCategory` categories — Adjustments, Manipulations, Drawings, and Filters — under a single consistent contract.
+- Builds on: IEIP0003 established the schema-driven pattern for Filters. This proposal promotes that pattern into shared infrastructure used by all four categories equally.
 
 ## Summary
-IEIP0003 established a schema-driven definition contract for **Filters** — a `FilterCatalog` with `FilterDefinition` entries, a `SchemaDrivenFilterDialog` that renders controls from parameter metadata, and catalog-driven browser and dialog registration. This proposal extends the same contract pattern to the remaining three categories — **Adjustments**, **Manipulations**, and **Drawings** — so that all ImageEffects work under similar contracts.
+IEIP0003 introduced a schema-driven definition contract for Filters. This proposal promotes that contract into shared, category-agnostic infrastructure so that **all four** ImageEffect categories — Adjustments, Manipulations, Drawings, and Filters — use the same definition types, the same parameter schema, and the same generic dialog.
 
-The existing Filter implementation is not modified. Instead, three new parallel catalogs are introduced following the same architecture.
+Filters do **not** remain a solo implementation. The existing `FilterCatalog` / `FilterDefinition` / `SchemaDrivenFilterDialog` types are refactored into shared types that all categories consume equally. Each category gets its own catalog partial, but they all build on the same foundation.
 
 ## Motivation
 
-| Category | Effect classes | Bespoke dialog code-behinds | Schema-driven |
+| Category | Effect classes | Bespoke dialog files | Schema-driven |
 |---|---|---|---|
 | Filters | 85 | ~5 manual + catalog | 66+ via `FilterCatalog` ✅ |
 | Adjustments | 27 | 23 | 0 ❌ |
 | Manipulations | 13 | 14 | 0 ❌ |
 | Drawings | 12 | 11 | 0 ❌ |
 
-The Filters category has proven the schema pattern works at scale. The remaining ~48 bespoke dialogs in Adjustments, Manipulations, and Drawings still follow the old manual pattern: handwritten AXAML dialogs, manual `EffectDialogRegistry._factories` entries, and manual `EffectBrowserPanel.InitializeEffects()` registration.
-
-## Current Architecture (Post-IEIP0003)
-
-The IEIP0003 infrastructure that we are extending:
-
-| Component | File(s) | Role |
-|---|---|---|
-| `FilterDefinition` | `Presentation/Filters/FilterDefinition.cs` | Typed descriptor: ID, name, icon, params, factory |
-| `FilterParameterDefinition` | `Presentation/Filters/` | Parameter types: slider, checkbox, enum, color, numeric, text |
-| `FilterCatalog` | `Presentation/Filters/FilterCatalog.cs` + partials | Central registry with helper builders |
-| `SchemaDrivenFilterDialog` | `Presentation/Views/Dialogs/Filters/` | Generic dialog that renders controls from parameter schema |
-| `EffectDialogRegistry` | `Presentation/Views/Dialogs/` | Checks `FilterCatalog` first, falls back to `_factories` dict |
-| `EffectBrowserPanel` | `Presentation/Controls/` | Calls `AddCatalogDrivenFilters()` for Filters; manual for other categories |
-
-## Goals
-- Create analogous catalogs for Adjustments, Manipulations, and Drawings following the Filter contract pattern.
-- Eliminate the remaining ~48 bespoke dialog files where possible.
-- Eliminate manual browser registration for all four categories.
-- Eliminate manual factory entries in `EffectDialogRegistry._factories`.
-- Preserve all existing effect IDs, favorites, recent lists, and aliases.
-- Preserve the existing Filter infrastructure unchanged.
-- Preserve the current live preview/apply/cancel workflow.
-
-## Non-Goals
-- No modifications to the existing `FilterCatalog`, `FilterDefinition`, or `SchemaDrivenFilterDialog` types.
-- No changes to the `ImageEffect` base class or `ImageEffectCategory` enum.
-- No changes to core algorithm implementations.
-- No external plugin/assembly loading.
+The Filters category proved the schema pattern works. The remaining ~48 bespoke dialogs follow the old manual pattern. This proposal eliminates the divergence by lifting the Filter infrastructure into shared types and extending it to all categories.
 
 ## Proposal
 
-### 1. Create a shared `EffectDefinition` base
+### 1. Extract shared parameter and definition types
 
-Extract the common shape shared across all categories into a base type that the existing `FilterDefinition` and the new category-specific definitions can align to:
+Move the existing parameter definition types out of `Presentation/Filters/` into a shared `Presentation/Effects/` namespace. All four categories reference the same types:
+
+| Current (Filters-only) | New (shared) |
+|---|---|
+| `FilterParameterDefinition` | `EffectParameterDefinition` |
+| `SliderFilterParameterDefinition` | `SliderParameterDefinition` |
+| `CheckboxFilterParameterDefinition` | `CheckboxParameterDefinition` |
+| `EnumFilterParameterDefinition` | `EnumParameterDefinition` |
+| `ColorFilterParameterDefinition` | `ColorParameterDefinition` |
+| `NumericFilterParameterDefinition` | `NumericParameterDefinition` |
+| `TextFilterParameterDefinition` | `TextParameterDefinition` |
+| `FilterParameterState` | `EffectParameterState` |
+| `FilterOptionDefinition` | `EffectOptionDefinition` |
+
+Add a new shared parameter type:
+
+| New type | Purpose |
+|---|---|
+| `FilePathParameterDefinition` | File picker (text field + browse button) |
+
+The `FilePathParameterDefinition` renders a text input with a browse button. It stores a file path string and supports optional file-type filters (e.g., `"Image files|*.png;*.jpg;*.bmp"`). This unlocks `DrawBackgroundImageEffect`, `DrawImageEffect`, and `DisplacementMapImageEffect` for the generic dialog.
+
+### 2. Create shared `EffectDefinition`
+
+A common definition type used by all four categories:
 
 ```csharp
 public class EffectDefinition
@@ -68,168 +64,261 @@ public class EffectDefinition
     public Func<ImageEffect> CreateEffect { get; }
     public IReadOnlyList<EffectParameterDefinition> Parameters { get; }
     public string? CustomEditorKey { get; }
+    public bool ApplyImmediately { get; }
 }
 ```
 
-> [!NOTE]
-> The existing `FilterDefinition` uses `FilterParameterDefinition` and `FilterParameterState` types. The new categories should reuse the same parameter definition type hierarchy (slider, checkbox, enum, color, numeric, text) since these controls are category-agnostic. Whether to achieve this through inheritance, composition, or a shared base interface (`IEffectParameterDefinition`) is an implementation detail — the key requirement is that the parameter schema types are shared, not duplicated per category.
+The `ApplyImmediately` flag controls parameterless effects:
+- When `true`, the browser invokes the effect directly without opening a dialog.
+- Used for Invert, Black & White, Polaroid, Edge Detect, Emboss, Mean Removal, Smooth.
+- These effects are still registered in the catalog for consistent ID management, favorites, and search.
 
-### 2. Create per-category catalogs
+The existing `FilterDefinition` is replaced by `EffectDefinition`. Since Filters are the only category that previously had a definition type, this is a clean rename + extension (adding `Category`, `CustomEditorKey`, `ApplyImmediately`).
 
-Following the `FilterCatalog` pattern, create:
+### 3. Rename the generic dialog
+
+| Current | New |
+|---|---|
+| `SchemaDrivenFilterDialog` | `SchemaDrivenEffectDialog` |
+
+Accepts `EffectDefinition` (the shared type) so it serves all four categories identically.
+
+### 4. Create a unified `ImageEffectCatalog`
+
+A single `ImageEffectCatalog` (partial class) replaces the existing `FilterCatalog` with per-category definition files:
+
+```
+Presentation/Effects/
+├── EffectDefinition.cs                          # Shared definition type
+├── EffectParameterDefinition.cs                 # Shared parameter types (8 types)
+├── ImageEffectCatalog.cs                        # Core: lookup, helpers, parameter builders
+├── ImageEffectCatalog.Adjustments.cs            # 27 Adjustment definitions
+├── ImageEffectCatalog.Drawings.cs               # 12 Drawing definitions
+├── ImageEffectCatalog.Filters.cs                # 85 Filter definitions (migrated from FilterCatalog.Definitions.cs)
+├── ImageEffectCatalog.Manipulations.cs          # 13 Manipulation definitions
+└── ImageEffectCatalog.Metadata.cs               # Merged browser labels, icons, descriptions for all categories
+```
+
+The `ImageEffectCatalog.cs` core file contains:
+- `Definitions` property (all definitions across all categories).
+- `GetByCategory(ImageEffectCategory)` method.
+- `TryGetDefinition(string id, out EffectDefinition?)` method.
+- Shared helper builders: `IntSlider<T>`, `FloatSlider<T>`, `BoolParameter<T>`, `EnumParameter<T>`, `ColorParameter<T>`, `IntNumeric<T>`, `DoubleNumeric<T>`, `TextParameter<T>`, `FilePathParameter<T>`.
+
+The existing `FilterCatalog.Definitions.cs` content moves into `ImageEffectCatalog.Filters.cs`. The existing `FilterCatalog.Metadata.cs` merges into `ImageEffectCatalog.Metadata.cs`. The `Presentation/Filters/` directory is removed.
+
+### 5. Adjustment definitions
+
+All 27 Adjustments are schema-eligible:
+
+| Effect | Controls |
+|---|---|
+| `BrightnessImageEffect` | Slider |
+| `ContrastImageEffect` | Slider |
+| `HueImageEffect` | Slider |
+| `SaturationImageEffect` | Slider |
+| `GammaImageEffect` | Slider |
+| `AlphaImageEffect` | Slider |
+| `ExposureImageEffect` | Slider |
+| `ThresholdImageEffect` | Slider |
+| `PosterizeImageEffect` | Slider |
+| `SolarizeImageEffect` | Slider |
+| `VibranceImageEffect` | Slider |
+| `SepiaImageEffect` | Slider |
+| `GrayscaleImageEffect` | Enum |
+| `ColorizeImageEffect` | 3× Slider |
+| `ShadowsHighlightsImageEffect` | 2× Slider |
+| `TemperatureTintImageEffect` | 2× Slider |
+| `LevelsImageEffect` | 5× Slider |
+| `SelectiveColorImageEffect` | Enum + Sliders |
+| `ReplaceColorImageEffect` | 2× Color + Slider |
+| `DuotoneGradientMapImageEffect` | 2× Color + 2× Slider |
+| `ColorMatrixImageEffect` | 20× Numeric |
+| `FilmEmulationImageEffect` | Enum + 3× Slider |
+| `AutoContrastImageEffect` | Slider + Checkbox |
+| `InvertImageEffect` | Parameterless — `ApplyImmediately = true` |
+| `BlackAndWhiteImageEffect` | Parameterless — `ApplyImmediately = true` |
+| `PolaroidImageEffect` | Parameterless — `ApplyImmediately = true` |
+
+**23 bespoke Adjustment dialog files deleted.**
+
+### 6. Manipulation definitions
+
+| Effect | Controls | Schema? |
+|---|---|---|
+| `SkewImageEffect` | 2× Slider + Checkbox | ✅ |
+| `PinchBulgeImageEffect` | 4× Slider | ✅ |
+| `TwirlImageEffect` | 4× Slider | ✅ |
+| `RoundedCornersImageEffect` | Slider | ✅ |
+| `ScaleImageEffect` | 2× Slider | ✅ |
+| `FlipImageEffect` | Enum | ✅ |
+| `RotateImageEffect` | Slider | ✅ |
+| `Rotate3DImageEffect` | Multiple Sliders | ✅ |
+| `Rotate3DBoxImageEffect` | Multiple Sliders | ✅ |
+| `AutoCropImageEffect` | Slider | ✅ |
+| `DisplacementMapImageEffect` | Slider + FilePath | ✅ (with `FilePathParameterDefinition`) |
+| `PerspectiveWarpImageEffect` | 4 corner points | ❌ bespoke (canvas interaction) |
+| `ResizeImageEffect` | Width, Height, Maintain | ❌ bespoke (linked dimensions) |
+
+**~10 bespoke Manipulation dialog files deleted.** 3 remain bespoke via `CustomEditorKey`.
+
+### 7. Drawing definitions
+
+| Effect | Controls | Schema? |
+|---|---|---|
+| `DrawBackgroundEffect` | Color | ✅ |
+| `DrawCheckerboardEffect` | Slider + 2× Color | ✅ |
+| `WoodenFrameImageEffect` | Multiple Sliders | ✅ |
+| `DrawBackgroundImageEffect` | FilePath + Enum + Slider | ✅ (with `FilePathParameterDefinition`) |
+| `DrawImageEffect` | FilePath + Enum + Slider | ✅ (with `FilePathParameterDefinition`) |
+| `DrawLineEffect` | Start/End, Color, Thickness | ❌ bespoke (spatial) |
+| `DrawParticlesEffect` | FolderPath, Count | ❌ bespoke (folder picker) |
+| `DrawShapeEffect` | Shape, Position, Size, Color | ❌ bespoke (spatial) |
+| `DrawTextEffect` | Text, Font, Size, Color, Position | ❌ bespoke (text + font + spatial) |
+| `TextWatermarkEffect` | Text, Font, Size, Colors | ❌ bespoke (complex) |
+
+**~5 bespoke Drawing dialog files deleted.** 5 remain bespoke via `CustomEditorKey`.
+
+### 8. Update `EffectDialogRegistry`
+
+Simplified to a single catalog lookup:
+
+```csharp
+public static bool TryCreate(string effectId, out UserControl? dialog)
+{
+    if (!ImageEffectCatalog.TryGetDefinition(effectId, out var definition) || definition == null)
+    {
+        dialog = null;
+        return false;
+    }
+
+    if (!string.IsNullOrEmpty(definition.CustomEditorKey))
+    {
+        dialog = CreateBespokeEditor(definition.CustomEditorKey);
+        return dialog != null;
+    }
+
+    dialog = new SchemaDrivenEffectDialog(definition);
+    return true;
+}
+```
+
+The `_factories` dictionary is eliminated entirely. Bespoke editors are resolved through `CustomEditorKey` → a small switch/dictionary in `CreateBespokeEditor()`.
+
+### 9. Update `EffectBrowserPanel`
+
+Replace `InitializeEffects()` with catalog-driven construction:
+
+```csharp
+private void InitializeEffects()
+{
+    Categories.Add(_recentCategory);
+    Categories.Add(_favoritesCategory);
+
+    foreach (ImageEffectCategory categoryEnum in Enum.GetValues<ImageEffectCategory>())
+    {
+        var category = new EffectCategory(categoryEnum.ToString());
+
+        foreach (var definition in ImageEffectCatalog.GetByCategory(categoryEnum))
+        {
+            if (definition.ApplyImmediately)
+            {
+                category.AddEffect(definition.BrowserLabel, definition.Icon,
+                    definition.Description, () => ApplyImmediate(definition), definition.Id);
+            }
+            else
+            {
+                category.AddEffect(definition.BrowserLabel, definition.Icon,
+                    definition.Description, () => RaiseDialog(definition.Id), definition.Id);
+            }
+        }
+
+        Categories.Add(category);
+    }
+}
+```
+
+All 7 `Raise(*)` event handlers (InvertRequested, etc.) and the `AddCatalogDrivenFilters()` method are removed. Every effect in every category is now registered identically.
+
+## Target File Layout (Post-IEIP0004)
 
 ```
 Presentation/
-├── Filters/                                    # ← UNCHANGED
-│   ├── FilterCatalog.cs
-│   ├── FilterCatalog.Definitions.cs
-│   ├── FilterCatalog.Metadata.cs
-│   └── FilterDefinition.cs
-│
-├── Adjustments/                                # ← NEW
-│   ├── AdjustmentCatalog.cs
-│   ├── AdjustmentCatalog.Definitions.cs
-│   └── AdjustmentCatalog.Metadata.cs
-│
-├── Manipulations/                              # ← NEW
-│   ├── ManipulationCatalog.cs
-│   ├── ManipulationCatalog.Definitions.cs
-│   └── ManipulationCatalog.Metadata.cs
-│
-└── Drawings/                                   # ← NEW
-    ├── DrawingCatalog.cs
-    ├── DrawingCatalog.Definitions.cs
-    └── DrawingCatalog.Metadata.cs
+├── Effects/                                    # ← NEW shared infrastructure
+│   ├── EffectDefinition.cs
+│   ├── EffectParameterDefinition.cs            # 8 parameter types (incl. FilePath)
+│   ├── ImageEffectCatalog.cs                   # Core + helpers
+│   ├── ImageEffectCatalog.Adjustments.cs
+│   ├── ImageEffectCatalog.Drawings.cs
+│   ├── ImageEffectCatalog.Filters.cs           # Migrated from FilterCatalog.Definitions.cs
+│   ├── ImageEffectCatalog.Manipulations.cs
+│   └── ImageEffectCatalog.Metadata.cs          # All categories
+├── Controls/
+│   └── EffectBrowserPanel.axaml.cs             # Catalog-driven, no manual entries
+└── Views/Dialogs/
+    ├── EffectDialogRegistry.cs                 # Catalog-only lookup
+    ├── SchemaDrivenEffectDialog.axaml[.cs]     # Generic dialog for all categories
+    └── Bespoke/                                # ~8 remaining bespoke editors
+        ├── PerspectiveWarpDialog.axaml[.cs]
+        ├── ResizeImageDialog.axaml[.cs]
+        ├── ResizeCanvasDialog.axaml[.cs]
+        ├── CropImageDialog.axaml[.cs]
+        ├── DrawLineDialog.axaml[.cs]
+        ├── DrawParticlesDialog.axaml[.cs]
+        ├── DrawShapeDialog.axaml[.cs]
+        ├── DrawTextDialog.axaml[.cs]
+        └── TextWatermarkDialog.axaml[.cs]
 ```
 
-Each catalog follows the same pattern as `FilterCatalog`:
-- A static partial class with `BuildDefinitions()` and `BuildPresentationMetadata()`.
-- Helper methods for typed parameter builders (`IntSlider<T>`, `FloatSlider<T>`, `BoolParameter<T>`, etc.) — likely shared from a common utility or base class.
-- Definitions list and lookup by ID.
-
-### 3. Generalize the generic dialog
-
-Create a `SchemaDrivenEffectDialog` (or extend the existing `SchemaDrivenFilterDialog` to accept any `EffectDefinition`-shaped input) so that Adjustments, Manipulations, and Drawings can use the same generic parameter-rendering UI.
-
-If the existing `SchemaDrivenFilterDialog` is already generic enough in its rendering logic, the simplest path is to make it accept the shared base type rather than `FilterDefinition` specifically.
-
-### 4. Migrate Adjustments to catalog
-
-The 27 Adjustment effects mostly expose simple numeric properties:
-
-| Effect | Parameters | Controls |
-|---|---|---|
-| `BrightnessImageEffect` | Amount | Slider |
-| `ContrastImageEffect` | Amount | Slider |
-| `HueImageEffect` | Amount | Slider |
-| `SaturationImageEffect` | Amount | Slider |
-| `GammaImageEffect` | Amount | Slider |
-| `AlphaImageEffect` | Amount | Slider |
-| `ExposureImageEffect` | Amount | Slider |
-| `ThresholdImageEffect` | Threshold | Slider |
-| `PosterizeImageEffect` | Levels | Slider |
-| `SolarizeImageEffect` | Threshold | Slider |
-| `VibranceImageEffect` | Amount | Slider |
-| `GrayscaleImageEffect` | Method | Enum |
-| `SepiaImageEffect` | Intensity | Slider |
-| `ColorizeImageEffect` | Hue, Saturation, Lightness | 3× Slider |
-| `SelectiveColorImageEffect` | Channel + adjustments | Enum + Sliders |
-| `ReplaceColorImageEffect` | Source, Target, Tolerance | 2× Color + Slider |
-| `DuotoneGradientMapImageEffect` | Colors + Midpoint + Contrast | 2× Color + 2× Slider |
-| `ShadowsHighlightsImageEffect` | Shadows, Highlights | 2× Slider |
-| `TemperatureTintImageEffect` | Temperature, Tint | 2× Slider |
-| `LevelsImageEffect` | InputBlack/White, Gamma, OutputBlack/White | 5× Slider |
-| `ColorMatrixImageEffect` | 5×4 matrix | 20× Numeric |
-| `FilmEmulationImageEffect` | Preset, Grain, Fade, Vignette | Enum + 3× Slider |
-| `AutoContrastImageEffect` | ClipPercent, PreserveColor | Slider + Checkbox |
-| `InvertImageEffect` | *(none)* | Parameterless |
-| `BlackAndWhiteImageEffect` | *(none)* | Parameterless |
-| `PolaroidImageEffect` | *(none)* | Parameterless |
-
-**Parameterless effects** (Invert, Black & White, Polaroid) are currently applied instantly via direct events (`Raise(InvertRequested)`). They should be registered in the catalog with empty parameter lists. Whether they continue to apply instantly or gain a minimal dialog is an open question (see Open Questions below).
-
-### 5. Migrate Manipulations to catalog
-
-| Effect | Parameters | Controls | Schema-eligible? |
-|---|---|---|---|
-| `SkewImageEffect` | Horiz, Vert, AutoResize | 2× Slider + Checkbox | ✅ |
-| `PinchBulgeImageEffect` | Amount, Radius, CenterX/Y | 4× Slider | ✅ |
-| `TwirlImageEffect` | Angle, Radius, CenterX/Y | 4× Slider | ✅ |
-| `RoundedCornersImageEffect` | Radius | Slider | ✅ |
-| `ScaleImageEffect` | ScaleX, ScaleY | 2× Slider | ✅ |
-| `FlipImageEffect` | Direction | Enum | ✅ |
-| `RotateImageEffect` | Angle | Slider | ✅ |
-| `Rotate3DImageEffect` | RotateX/Y/Z, etc. | Multiple Sliders | ✅ |
-| `Rotate3DBoxImageEffect` | Multiple params | Multiple Sliders | ✅ |
-| `AutoCropImageEffect` | Threshold | Slider | ✅ |
-| `PerspectiveWarpImageEffect` | 4 corner points | *(bespoke — canvas)* | ❌ |
-| `DisplacementMapImageEffect` | Scale + Filename | *(bespoke — file picker)* | ❌ |
-| `ResizeImageEffect` | Width, Height, Maintain | *(bespoke — linked dims)* | ❌ |
-
-> [!NOTE]
-> `PerspectiveWarpImageEffect`, `DisplacementMapImageEffect`, and resize/crop dialogs require spatial canvas interaction, file pickers, or linked-dimension logic. These remain bespoke editors via `CustomEditorKey`.
-
-### 6. Migrate Drawings to catalog
-
-| Effect | Parameters | Schema-eligible? |
-|---|---|---|
-| `DrawBackgroundEffect` | Color | ✅ (Color picker) |
-| `DrawCheckerboardEffect` | CellSize, Color1, Color2 | ✅ (Slider + 2× Color) |
-| `WoodenFrameImageEffect` | Frame params | ✅ (Multiple Sliders) |
-| `DrawBackgroundImageEffect` | Filename, Placement, Opacity | ❌ (file picker) |
-| `DrawImageEffect` | Filename, Placement, Size, Opacity | ❌ (file picker + canvas) |
-| `DrawLineEffect` | Start/End points, Color, Thickness | ❌ (spatial) |
-| `DrawParticlesEffect` | FolderPath, Count, etc. | ❌ (folder picker) |
-| `DrawShapeEffect` | Shape, Position, Size, Color | ❌ (spatial) |
-| `DrawTextEffect` | Text, Font, Size, Color, Position | ❌ (text + font + spatial) |
-| `TextWatermarkEffect` | Text, Font, Size, Colors | ❌ (complex) |
-
-> [!IMPORTANT]
-> Drawings have the highest ratio of bespoke-to-schema effects. Most require file/folder/font pickers or canvas-based spatial placement. All Drawing effects should still be registered in the catalog (for browser inventory and ID stability), but only 3 will use the generic dialog. The rest use `CustomEditorKey` escape hatches pointing to their existing bespoke editors.
-
-### 7. Update `EffectDialogRegistry` and `EffectBrowserPanel`
-
-Update `EffectDialogRegistry.TryCreate` to check all four catalogs:
-
-```csharp
-if (FilterCatalog.TryGetDefinition(effectId, out var filterDef))     { ... }
-if (AdjustmentCatalog.TryGetDefinition(effectId, out var adjDef))    { ... }
-if (ManipulationCatalog.TryGetDefinition(effectId, out var manipDef)){ ... }
-if (DrawingCatalog.TryGetDefinition(effectId, out var drawDef))      { ... }
-```
-
-Update `EffectBrowserPanel.InitializeEffects()` to call `AddCatalogDrivenEffects()` per category, mirroring the existing `AddCatalogDrivenFilters()` pattern. Remove the manual `AddEffect` calls and direct event handlers that are replaced by catalog entries.
+The `Presentation/Filters/` directory is removed entirely.
 
 ## Implementation Plan
 
-### Phase 1: Shared parameter infrastructure
-- Extract shared parameter definition types if they are currently tightly coupled to `FilterDefinition`. If the existing `FilterParameterDefinition` hierarchy is already usable by other categories, simply reference it.
-- Create a shared `EffectDefinition` base or interface that new catalogs can implement alongside the existing `FilterDefinition`.
+### Phase 1: Shared infrastructure
+- Create `Presentation/Effects/` directory.
+- Extract and rename parameter types from `FilterParameterDefinition` → `EffectParameterDefinition` hierarchy.
+- Add `FilePathParameterDefinition`.
+- Create `EffectDefinition` (with `Category`, `CustomEditorKey`, `ApplyImmediately`).
+- Create `ImageEffectCatalog.cs` with core lookup + shared helper builders.
+- Migrate `FilterCatalog.Definitions.cs` → `ImageEffectCatalog.Filters.cs`.
+- Migrate `FilterCatalog.Metadata.cs` → `ImageEffectCatalog.Metadata.cs` (Filter entries).
+- Rename `SchemaDrivenFilterDialog` → `SchemaDrivenEffectDialog`, accept `EffectDefinition`.
+- Add `FilePathParameterDefinition` rendering to the generic dialog.
+- Remove `Presentation/Filters/` directory.
+- Build to verify no regressions.
 
 ### Phase 2: Adjustment catalog + migration
-- Create `AdjustmentCatalog` with definitions for all 27 Adjustment effects.
-- Route eligible effects through the generic dialog.
-- Remove bespoke Adjustment dialog files (23 files).
+- Add `ImageEffectCatalog.Adjustments.cs` with all 27 definitions.
+- Add Adjustment metadata to `ImageEffectCatalog.Metadata.cs`.
+- Delete 23 bespoke Adjustment dialog files.
 - Remove Adjustment entries from `EffectDialogRegistry._factories`.
-- Update `EffectBrowserPanel` to read Adjustments from catalog.
+- Build + verify.
 
 ### Phase 3: Manipulation catalog + migration
-- Create `ManipulationCatalog` with definitions for all 13 Manipulation effects.
-- Mark bespoke-required effects (`PerspectiveWarp`, `DisplacementMap`, resize/crop) with `CustomEditorKey`.
-- Remove bespoke dialogs for schema-eligible effects (~9 files).
-- Update `EffectBrowserPanel` and `EffectDialogRegistry`.
+- Add `ImageEffectCatalog.Manipulations.cs` with all 13 definitions.
+- Mark PerspectiveWarp, Resize, ResizeCanvas, Crop with `CustomEditorKey`.
+- Add Manipulation metadata to `ImageEffectCatalog.Metadata.cs`.
+- Delete ~10 bespoke Manipulation dialog files (keep bespoke editors).
+- Remove Manipulation entries from `EffectDialogRegistry._factories`.
+- Build + verify.
 
 ### Phase 4: Drawing catalog + migration
-- Create `DrawingCatalog` with definitions for all 12 Drawing effects.
-- Schema-drive the 3 eligible effects; mark the rest with `CustomEditorKey`.
-- Remove bespoke dialogs for schema-eligible effects (~3 files).
-- Update `EffectBrowserPanel` and `EffectDialogRegistry`.
+- Add `ImageEffectCatalog.Drawings.cs` with all 12 definitions.
+- Mark DrawLine, DrawParticles, DrawShape, DrawText, TextWatermark with `CustomEditorKey`.
+- Add Drawing metadata to `ImageEffectCatalog.Metadata.cs`.
+- Delete ~5 bespoke Drawing dialog files (keep bespoke editors).
+- Remove Drawing entries from `EffectDialogRegistry._factories`.
+- Build + verify.
 
-### Phase 5: Browser consolidation + cleanup
-- Rewrite `EffectBrowserPanel.InitializeEffects()` to use `AddCatalogDrivenEffects()` per category.
-- Remove `Raise(*)` events for parameterless effects that move to catalog (if applicable).
-- Delete emptied bespoke dialog `.axaml` and `.axaml.cs` files.
-- Remove unused `using` directives and event declarations from `EffectBrowserPanel.axaml.cs`.
+### Phase 5: Browser + registry consolidation
+- Rewrite `EffectBrowserPanel.InitializeEffects()` to catalog-driven loop.
+- Add `ApplyImmediate()` method for parameterless effects.
+- Remove all `Raise(*)` events and handlers.
+- Remove `AddCatalogDrivenFilters()`.
+- Simplify `EffectDialogRegistry` to catalog-only lookup.
+- Move remaining bespoke dialogs to `Views/Dialogs/Bespoke/`.
+- Delete emptied dialog subdirectories.
+- Build + final verification.
 
 ## Verification
 
@@ -238,22 +327,53 @@ Update `EffectBrowserPanel.InitializeEffects()` to call `AddCatalogDrivenEffects
   - `src/desktop/app/XerahS.UI/XerahS.UI.csproj`
   - `tests/XerahS.Tests/XerahS.Tests.csproj`
 - Automated tests:
-  - Each new catalog exposes definitions with stable IDs matching existing browser/registry IDs.
-  - Generic dialog binds parameter values to effect instances for all parameter types.
-  - Parameterless effects render correctly (apply-only or with minimal dialog).
+  - `ImageEffectCatalog.Definitions` contains entries from all 4 categories with stable IDs.
+  - `GetByCategory()` returns correct subsets.
+  - Generic dialog renders all 8 parameter types (slider, checkbox, enum, color, numeric, text, file path).
+  - `ApplyImmediately` effects execute without opening a dialog.
   - Preview updates when parameter values change.
-  - Browser renders all categories from their respective catalogs.
+  - Browser renders all categories from the catalog.
+  - File path parameter opens a file picker and stores the selected path.
 - Manual smoke:
-  - Open effects from each category in the browser and verify preview/apply/cancel.
+  - Open effects from each category in the browser, verify preview/apply/cancel.
+  - Verify parameterless effects (Invert, B&W, Polaroid) apply instantly.
   - Verify bespoke editors (PerspectiveWarp, DrawText, etc.) still function.
-  - Verify favorites, recent lists, and search all work with catalog-driven IDs.
+  - Verify favorites, recent lists, and search work across all categories.
 
 ## Risks
-- **Drawings bespoke ratio**: ~9 of 12 Drawing effects need bespoke editors. The catalog still provides value for browser registration and ID management, but fewer dialog files are eliminated.
-- **Parameterless effects UX**: Moving Invert/BlackAndWhite/Polaroid from instant-apply events to catalog entries may change UX unless an `ApplyImmediately` flag is added.
-- **Shared parameter types**: If `FilterParameterDefinition` is tightly coupled to `FilterDefinition`, decoupling requires refactoring. If it is already generic, this is a non-issue.
+- **Phase 1 rename scope**: Renaming `FilterParameterDefinition` → `EffectParameterDefinition` and `FilterCatalog` → `ImageEffectCatalog` touches many existing Filter definitions. This must be done atomically with build verification.
+- **File path parameter UX**: `FilePathParameterDefinition` introduces a native file picker dependency. Must integrate with the existing `IViewDialogService` or platform file picker abstraction.
+- **Bespoke editor routing**: The `CustomEditorKey` → bespoke editor mapping must cover all 8–9 remaining bespoke dialogs cleanly.
+- **ID stability**: All effect IDs must remain identical to preserve favorites, recents, and aliases.
 
-## Open Questions
-1. Should parameterless effects open a minimal dialog or apply instantly? If instant, add an `ApplyImmediately` flag on the definition.
-2. Should the parameter definition types be shared as-is or extracted into a common base to avoid cross-referencing `Presentation/Filters/` from other catalog namespaces?
-3. Should a `FilePathEffectParameterDefinition` be added to unlock more Drawings/Manipulations, or deferred?
+## Implementation Outcome (March 23, 2026)
+
+IEIP0004 has now been implemented in `ShareX.ImageEditor` and verified with a successful project build.
+
+### Phase completion
+
+- Phase 1 (shared schema infrastructure): Completed.
+- Phase 2 (adjustment migration): Completed.
+- Phase 3 (manipulation migration): Completed.
+- Phase 4 (drawing migration): Completed.
+- Phase 5 (browser/registry consolidation): Completed.
+
+### Commits delivered
+
+- `6f27900`: shared schema infrastructure, unified catalog, filter migration, schema dialog rename, file-path parameter support.
+- `6bef4d9`: removed obsolete bespoke adjustment dialogs after catalog migration.
+- `70e16f3`: removed obsolete bespoke manipulation/drawing dialogs after catalog migration.
+- `f14289e`: browser and registry switched to unified catalog dispatch with immediate-apply handling.
+
+### Benefits achieved
+
+- One unified effect contract now powers all categories (`EffectDefinition`, shared parameter/state types, and `ImageEffectCatalog` partials).
+- Large reduction in bespoke dialog maintenance surface through schema-driven rendering.
+- Generic dialog now supports file-path parameters with integrated browse picker support.
+- `EffectDialogRegistry` now resolves by catalog definition + `CustomEditorKey` instead of a large per-effect factory table.
+- Effect browser category population is fully catalog-driven, improving consistency for search, favorites, and recent effects.
+
+### Notes on final shape
+
+- `SelectiveColor` remains bespoke (`CustomEditorKey`) because its multi-range state model is materially more complex than single-parameter schema controls.
+- Metadata now has a safe fallback for unmapped effect IDs so newly cataloged entries remain discoverable even before explicit metadata copywriting is added.
