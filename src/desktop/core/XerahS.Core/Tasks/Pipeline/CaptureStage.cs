@@ -123,11 +123,12 @@ namespace XerahS.Core.Tasks.Pipeline
 
             // UseTransparentOverlay is true only for RectangleTransparent workflow
             var useTransparentOverlay = taskSettings.Job == WorkflowType.RectangleTransparent;
+            var linuxRegionSelectorPreference = ResolveLinuxRegionSelectorPreference(captureSettings);
 
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
-                LinuxRegionSelectorPreference = SettingsManager.DefaultTaskSettings.CaptureSettings.LinuxRegionSelectorPreference,
+                LinuxRegionSelectorPreference = linuxRegionSelectorPreference,
                 ShowCursor = captureSettings.ShowCursor,
                 UseTransparentOverlay = useTransparentOverlay,
                 CaptureShadow = captureSettings.CaptureShadow,
@@ -624,6 +625,57 @@ namespace XerahS.Core.Tasks.Pipeline
                 return;
 
             await _workerTask.HandleStartRecordingAsync(CaptureMode.Region, region: recordingRegion);
+        }
+
+        private static LinuxInteractiveRegionSelectorPreference ResolveLinuxRegionSelectorPreference(TaskSettingsCapture captureSettings)
+        {
+            var taskPreference = captureSettings.LinuxRegionSelectorPreference;
+            var defaultPreference = SettingsManager.DefaultTaskSettings.CaptureSettings?.LinuxRegionSelectorPreference ?? taskPreference;
+
+            if (!OperatingSystem.IsLinux())
+            {
+                return taskPreference;
+            }
+
+            bool shouldUseDefaultPreference = ShouldUseDefaultLinuxRegionSelectorPreferenceForDesktop();
+            DebugHelper.WriteLine(
+                $"CaptureStage: Linux selector preference source={(shouldUseDefaultPreference ? "default task settings" : "task settings")} (task={taskPreference}, default={defaultPreference}).");
+
+            return shouldUseDefaultPreference ? defaultPreference : taskPreference;
+        }
+
+        private static bool ShouldUseDefaultLinuxRegionSelectorPreferenceForDesktop()
+        {
+            string[] hints =
+            {
+                Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("DESKTOP_SESSION") ?? string.Empty
+            };
+
+            foreach (string hint in hints)
+            {
+                foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    string normalized = token.ToUpperInvariant();
+
+                    if (normalized.Contains("KDE", StringComparison.Ordinal) || normalized.Contains("PLASMA", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    if (normalized.Contains("GNOME", StringComparison.Ordinal) ||
+                        normalized.Contains("UBUNTU", StringComparison.Ordinal) ||
+                        normalized.Contains("UNITY", StringComparison.Ordinal) ||
+                        normalized.Contains("BUDGIE", StringComparison.Ordinal) ||
+                        normalized.Contains("PANTHEON", StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

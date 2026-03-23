@@ -131,10 +131,7 @@ namespace XerahS.Platform.Linux
         Task<(SKBitmap? bitmap, uint response)> ILinuxCaptureRuntime.TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
         {
             bool forceInteractive = kind != LinuxCaptureKind.FullScreen;
-            // GNOME portal backends can reject non-interactive full-screen screenshots (response=2).
-            // Allowing the built-in interactive retry keeps region/full-screen capture working when
-            // policy/backend behavior changes across distro updates.
-            return PortalScreenCapture.CaptureAsync(forceInteractive, allowInteractiveFallback: true);
+            return PortalScreenCapture.CaptureAsync(forceInteractive, allowInteractiveFallback: false);
         }
 
         async Task<SKBitmap?> ILinuxCaptureRuntime.TryKdeDbusCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
