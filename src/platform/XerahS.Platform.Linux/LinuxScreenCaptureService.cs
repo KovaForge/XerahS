@@ -131,6 +131,9 @@ namespace XerahS.Platform.Linux
         Task<(SKBitmap? bitmap, uint response)> ILinuxCaptureRuntime.TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
         {
             bool forceInteractive = kind != LinuxCaptureKind.FullScreen || ShouldForceInteractivePortalFullScreen(options);
+            // Do not enable allowInteractiveFallback: on GNOME, the portal can emit response=2 while the
+            // capture path is still acceptable; a silent-then-interactive retry then prompts twice or
+            // misreports failure. Prefer a single interactive request when needed (e.g. overlay path).
             return PortalScreenCapture.CaptureAsync(forceInteractive, allowInteractiveFallback: false);
         }
 
