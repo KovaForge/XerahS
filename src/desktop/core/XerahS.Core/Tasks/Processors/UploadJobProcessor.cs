@@ -155,8 +155,6 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             UploaderInstance? targetInstance = null;
-            bool shouldPersistHealedDestination = false;
-            string? healReason = null;
 
             if (!string.IsNullOrEmpty(targetInstanceId))
             {
@@ -164,7 +162,6 @@ namespace XerahS.Core.Tasks.Processors
                 if (targetInstance == null)
                 {
                     DebugHelper.WriteLine($"Configured destination instance not found: {targetInstanceId}");
-                    healReason = $"configured instance missing ({targetInstanceId})";
                 }
                 else if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
                 {
@@ -179,12 +176,7 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             // Not Auto - use the configured instance directly
-            targetInstance ??= ResolvePreferredInstance(instanceManager, category, info.FileName);
-            if (targetInstance != null && string.IsNullOrEmpty(targetInstanceId))
-            {
-                shouldPersistHealedDestination = true;
-                healReason ??= "configured destination is empty";
-            }
+            targetInstance ??= instanceManager.GetDefaultInstance(category);
 
             if (targetInstance == null && category == UploaderCategory.File)
             {
@@ -210,11 +202,6 @@ namespace XerahS.Core.Tasks.Processors
                 var errorMsg = $"No uploader instance configured (plugin system) for category {category}.";
                 DebugHelper.WriteLine(errorMsg);
                 return new UploadResult { IsSuccess = false, Response = errorMsg };
-            }
-
-            if (shouldPersistHealedDestination && !InstanceManager.IsAutoProvider(targetInstance.ProviderId))
-            {
-                PersistHealedDestination(info, targetInstance, healReason ?? "automatic recovery");
             }
 
             var primaryResult = TryUploadWithInstance(targetInstance, info);
@@ -506,68 +493,6 @@ namespace XerahS.Core.Tasks.Processors
         {
             using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return uploader.Upload(stream, Path.GetFileName(filePath));
-        }
-
-        private static void PersistHealedDestination(TaskInfo info, UploaderInstance targetInstance, string reason)
-        {
-            try
-            {
-                var newInstanceId = targetInstance.InstanceId;
-                if (string.IsNullOrWhiteSpace(newInstanceId))
-                {
-                    return;
-                }
-
-                if (info.DataType == EDataType.URL)
-                {
-                    info.TaskSettings.UrlShortenerDestinationInstanceId = newInstanceId;
-                }
-                else
-                {
-                    info.TaskSettings.DestinationInstanceId = newInstanceId;
-                }
-
-                var workflow = !string.IsNullOrEmpty(info.TaskSettings.WorkflowId)
-                    ? SettingsManager.GetWorkflowById(info.TaskSettings.WorkflowId)
-                    : null;
-
-                if (workflow?.TaskSettings != null)
-                {
-                    if (info.DataType == EDataType.URL)
-                    {
-                        workflow.TaskSettings.UrlShortenerDestinationInstanceId = newInstanceId;
-                    }
-                    else
-                    {
-                        workflow.TaskSettings.DestinationInstanceId = newInstanceId;
-                    }
-
-                    SettingsManager.SaveWorkflowsConfig();
-                    DebugHelper.WriteLine(
-                        $"Auto-healed upload destination for workflow '{info.TaskSettings.WorkflowId}' ({info.DataType}) -> '{targetInstance.DisplayName}' ({newInstanceId}). Reason: {reason}");
-                    return;
-                }
-
-                if (SettingsManager.DefaultTaskSettings != null)
-                {
-                    if (info.DataType == EDataType.URL)
-                    {
-                        SettingsManager.DefaultTaskSettings.UrlShortenerDestinationInstanceId = newInstanceId;
-                    }
-                    else
-                    {
-                        SettingsManager.DefaultTaskSettings.DestinationInstanceId = newInstanceId;
-                    }
-
-                    SettingsManager.SaveWorkflowsConfig();
-                    DebugHelper.WriteLine(
-                        $"Auto-healed default upload destination ({info.DataType}) -> '{targetInstance.DisplayName}' ({newInstanceId}). Reason: {reason}");
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Failed to persist healed upload destination");
-            }
         }
 
         private static bool IsSuccessfulUploadResult(UploadResult? result)
