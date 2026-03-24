@@ -1,5 +1,4 @@
 # XIP0055 Send-To Upload Behavior Control
-
 **Status**: PROPOSED  
 **Priority**: High  
 **Audit date**: 2026-03-24  
@@ -277,4 +276,3 @@ Manual log checks:
 2. Dedicated "Upload with XerahS" context-menu flow remains upload-first and unchanged.
 3. Folder and image Send-to paths can trigger `IndexFolder` and `PinToScreenFromFile` from the prompt when applicable.
 4. No regressions in non-Send-to upload workflows.
-

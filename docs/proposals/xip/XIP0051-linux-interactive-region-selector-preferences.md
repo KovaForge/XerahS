@@ -1,5 +1,4 @@
-# XIP0051 — Linux Interactive Region Selector Preferences
-
+# XIP0051 Linux Interactive Region Selector Preferences
 **Status**: Proposed
 **Priority**: High
 **Affected platform**: Linux
@@ -39,7 +38,7 @@ This is one of the most important decision points because some selectors only wo
 
 #### Desktop environment / window manager
 
-This is the user’s desktop shell or environment.
+This is the userΓÇÖs desktop shell or environment.
 
 Examples:
 
@@ -310,7 +309,7 @@ The important rule is:
 
 ## User-Selected Behavior
 
-The first implementation should treat the user’s choice as a **preferred first provider**, not an absolute requirement.
+The first implementation should treat the userΓÇÖs choice as a **preferred first provider**, not an absolute requirement.
 
 ### Recommended v1 behavior
 
@@ -377,7 +376,7 @@ Automatic will prefer: Desktop native selector
 
 ## Implementation Plan
 
-### Phase 1 — Model and diagnostics
+### Phase 1 ΓÇö Model and diagnostics
 
 Add:
 
@@ -397,7 +396,7 @@ Deliverables:
 - runtime diagnostics object
 - no behavior change yet except richer logging
 
-### Phase 2 — UI
+### Phase 2 ΓÇö UI
 
 Add a Linux-only settings card:
 
@@ -412,7 +411,7 @@ Deliverables:
 - bindings and descriptions
 - localized/clear labels
 
-### Phase 3 — Preference-aware selector resolution
+### Phase 3 ΓÇö Preference-aware selector resolution
 
 Teach Linux region capture orchestration to:
 
@@ -427,7 +426,7 @@ Deliverables:
 - preference-based first-provider routing for recording region selection
 - no regression to existing automatic flows
 
-### Phase 4 — Harden and refine
+### Phase 4 ΓÇö Harden and refine
 
 Add:
 
@@ -436,7 +435,7 @@ Add:
 - better support text for why a provider is unavailable
 - migration guidance for users currently toggling only `UseModernCapture`
 
-### Phase 5 — Optional future work
+### Phase 5 ΓÇö Optional future work
 
 Potential extensions:
 
@@ -508,7 +507,7 @@ This XIP does not require deciding that immediately.
 
 ## Risks
 
-### Risk 1 — UI complexity
+### Risk 1 ΓÇö UI complexity
 
 Linux capture is already conceptually dense. Too many exposed options would confuse users.
 
@@ -518,7 +517,7 @@ Mitigation:
 - hide unavailable options
 - prefer friendly labels
 
-### Risk 2 — False confidence from detection
+### Risk 2 ΓÇö False confidence from detection
 
 A provider may appear available but still misbehave at runtime.
 
@@ -528,7 +527,7 @@ Mitigation:
 - log preferred provider and actual provider
 - retain automatic fallback
 
-### Risk 3 — Regressing currently working systems
+### Risk 3 ΓÇö Regressing currently working systems
 
 Changing provider ordering can reintroduce old Linux failures.
 
@@ -538,7 +537,7 @@ Mitigation:
 - isolate preference logic from existing fallback safety rules
 - expand tests around capability and ordering
 
-### Risk 4 — Settings duplication
+### Risk 4 ΓÇö Settings duplication
 
 Application-level and task-level settings can create unclear precedence.
 

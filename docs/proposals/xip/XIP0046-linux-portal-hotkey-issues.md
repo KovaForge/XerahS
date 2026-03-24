@@ -1,5 +1,4 @@
-# XIP0046 — Linux Portal & Hotkey Issues
-
+# XIP0046 Linux Portal & Hotkey Issues
 **Status**: OPEN
 **Priority**: High
 **Related**: Issues [#63](https://github.com/ShareX/XerahS/issues/63), [#64](https://github.com/ShareX/XerahS/issues/64)
@@ -14,7 +13,7 @@ GitHub issues #63 and #64 document a cluster of related Linux platform problems 
 
 ## Issues Identified
 
-### Issue A — Print Key Cannot Be Registered as Hotkey (X11/XWayland)
+### Issue A ΓÇö Print Key Cannot Be Registered as Hotkey (X11/XWayland)
 
 **Source**: [#63](https://github.com/ShareX/XerahS/issues/63)
 **Severity**: High
@@ -28,17 +27,17 @@ GitHub issues #63 and #64 document a cluster of related Linux platform problems 
 LinuxHotkeyService: Unable to map key Print
 ```
 
-**Root cause**: Avalonia's `Key` enum has two separate entries — `Key.Print` (28) and `Key.PrintScreen` / `Key.Snapshot` (30). On Linux X11, the physical Print Screen key is reported as `Key.Print`, not `Key.PrintScreen`.
+**Root cause**: Avalonia's `Key` enum has two separate entries ΓÇö `Key.Print` (28) and `Key.PrintScreen` / `Key.Snapshot` (30). On Linux X11, the physical Print Screen key is reported as `Key.Print`, not `Key.PrintScreen`.
 
 #### Fix Guidance
 
 **File**: `src/XerahS.Platform.Linux/Services/LinuxHotkeyService.cs`
 
-1. **Add `Key.Print` → `"Print"` mapping** to `SpecialKeyNames`:
+1. **Add `Key.Print` ΓåÆ `"Print"` mapping** to `SpecialKeyNames`:
    ```csharp
    { Key.PrintScreen, "Print" },
    { Key.Print, "Print" },       // Avalonia reports PrintScreen as Key.Print on Linux
-   { Key.Snapshot, "Print" },    // alias — defensive mapping
+   { Key.Snapshot, "Print" },    // alias ΓÇö defensive mapping
    ```
 
 2. **Also add `Key.Snapshot`** as a defensive alias, since `Key.Snapshot` is defined as value 30 (same as `Key.PrintScreen`) in Avalonia but some keyboard layouts or future Avalonia versions could route through it.
@@ -48,19 +47,19 @@ LinuxHotkeyService: Unable to map key Print
 4. **Verify with `xev`** on the target system that keycode 107 resolves to keysym `Print` (`0xff61`). Some keyboard layouts may map Print Screen to `Sys_Req` when combined with Alt.
 
 > [!IMPORTANT]
-> A fix was already pushed in commit `aa579f0`. The fix needs tester confirmation — see test matrix in issue #63 comment.
+> A fix was already pushed in commit `aa579f0`. The fix needs tester confirmation ΓÇö see test matrix in issue #63 comment.
 
 ---
 
-### Issue B — XDG Portal Screenshot UI Varies Across Desktop Environments
+### Issue B ΓÇö XDG Portal Screenshot UI Varies Across Desktop Environments
 
 **Source**: [#64](https://github.com/ShareX/XerahS/issues/64)
 **Severity**: Medium (expected behavior, but UX impact)
-**Status**: Open — documentation + mitigation needed
+**Status**: Open ΓÇö documentation + mitigation needed
 
 **Problem**: The XDG Portal `Screenshot` method produces different UIs depending on the portal backend (`xdg-desktop-portal-kde`, `-gtk`, `-wlr`). Users report a "weird looking" dialog that doesn't match their desktop theme or expected workflow.
 
-**Root cause**: The XDG Portal specification defines the API contract (`Screenshot(parent_window, options)`), but each backend implements its own UI. The `interactive` option is a **hint**, not a command — the compositor decides what UI to show. This is by design in the Freedesktop specification.
+**Root cause**: The XDG Portal specification defines the API contract (`Screenshot(parent_window, options)`), but each backend implements its own UI. The `interactive` option is a **hint**, not a command ΓÇö the compositor decides what UI to show. This is by design in the Freedesktop specification.
 
 #### Fix Guidance
 
@@ -88,15 +87,15 @@ This is **not a bug in XerahS** but requires mitigation:
 
 ---
 
-### Issue C — Portal Region Selection Not Available on Some KDE Backends
+### Issue C ΓÇö Portal Region Selection Not Available on Some KDE Backends
 
-**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) — comments by Lu9-ST and shindouj
+**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) ΓÇö comments by Lu9-ST and shindouj
 **Severity**: High
-**Status**: Open — core UX blocker for region capture on KDE
+**Status**: Open ΓÇö core UX blocker for region capture on KDE
 
 **Problem**: On KDE Plasma, the portal's `Screenshot` dialog (with `interactive=true`) shows a "Request screenshot" window that only captures the full screen. There is **no region selection** option. The portal window itself sometimes appears in the captured screenshot. Users must then crop in the XerahS editor, which is a poor workflow.
 
-**Root cause**: The `interactive` option in the Portal Screenshot API is a hint — KDE's `xdg-desktop-portal-kde` often delegates to Spectacle's portal integration, which may not expose rectangle selection through the portal dialog. The Freedesktop specification explicitly states: *"Whether the dialog should offer customization before taking a screenshot"* — it does **not** guarantee region selection.
+**Root cause**: The `interactive` option in the Portal Screenshot API is a hint ΓÇö KDE's `xdg-desktop-portal-kde` often delegates to Spectacle's portal integration, which may not expose rectangle selection through the portal dialog. The Freedesktop specification explicitly states: *"Whether the dialog should offer customization before taking a screenshot"* ΓÇö it does **not** guarantee region selection.
 
 #### Fix Guidance
 
@@ -121,20 +120,20 @@ This is **not a bug in XerahS** but requires mitigation:
    3. If available, offer it as a capture provider alongside the portal.
 
 3. **Add a "Capture method" preference** in settings:
-   - `Auto (Portal)` — current default
-   - `CLI Tool` — uses DE-specific CLI tool
-   - `Portal + Editor crop` — takes full screenshot via portal, opens editor for cropping
+   - `Auto (Portal)` ΓÇö current default
+   - `CLI Tool` ΓÇö uses DE-specific CLI tool
+   - `Portal + Editor crop` ΓÇö takes full screenshot via portal, opens editor for cropping
 
 4. **Hide the portal window before capture**: If using the `Screenshot` portal, consider adding a short delay after the portal dialog closes to ensure the portal window is not captured in the screenshot. Alternatively, set `modal=true` to let the compositor handle window stacking.
 
 > [!WARNING]
-> KDE's portal Screenshot behavior fixed a self-capture bug in Plasma 6.4.2. Users on older versions will see the portal window in their screenshots. Recommend users update `xdg-desktop-portal-kde` to ≥ 6.4.2.
+> KDE's portal Screenshot behavior fixed a self-capture bug in Plasma 6.4.2. Users on older versions will see the portal window in their screenshots. Recommend users update `xdg-desktop-portal-kde` to ΓëÑ 6.4.2.
 
 ---
 
-### Issue D — GlobalShortcuts Portal Hotkey Silently Fails to Fire
+### Issue D ΓÇö GlobalShortcuts Portal Hotkey Silently Fails to Fire
 
-**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) — Bo0sted's Phase 2 report
+**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) ΓÇö Bo0sted's Phase 2 report
 **Severity**: High
 **Status**: Covered by [XIP0044](file:///c:/Users/liveu/source/repos/ShareX%20Team/XerahS/docs/proposals/xip/XIP0044-linux-global-hotkeys-not-firing-when-app-backgrounded.md)
 
@@ -143,12 +142,12 @@ This is **not a bug in XerahS** but requires mitigation:
 > [!IMPORTANT]
 > This issue is **the same root cause** identified in XIP0044. The Bo0sted Phase 2 report described
 > `BindShortcuts response=0` with hotkeys "successfully registered" but never firing. XIP0044's
-> deep-dive found THREE contributing causes — all now fixed:
+> deep-dive found THREE contributing causes ΓÇö all now fixed:
 >
-> 1. **App ID mismatch** (`"XerahS"` vs `"xerahs"`) → portal rejected bind silently (Fix 1, commit `4413c031`)
-> 2. **`parentWindow=<empty>` startup race** → compositor accepted bind but didn't route events (Fix 5, current branch)
-> 3. **CTS `ObjectDisposedException`** in debounce → rebind silently crashed (Fix 3, commit `1cb75370`)
-> 4. **Packaging symlink** → `xdg-desktop-portal` couldn't match exe to `.desktop` file (Fix 2, commit `271265ca`)
+> 1. **App ID mismatch** (`"XerahS"` vs `"xerahs"`) ΓåÆ portal rejected bind silently (Fix 1, commit `4413c031`)
+> 2. **`parentWindow=<empty>` startup race** ΓåÆ compositor accepted bind but didn't route events (Fix 5, current branch)
+> 3. **CTS `ObjectDisposedException`** in debounce ΓåÆ rebind silently crashed (Fix 3, commit `1cb75370`)
+> 4. **Packaging symlink** ΓåÆ `xdg-desktop-portal` couldn't match exe to `.desktop` file (Fix 2, commit `271265ca`)
 >
 > See XIP0044 for full root cause analysis, code changes, and verification steps.
 
@@ -159,11 +158,11 @@ this XIP was superseded by the confirmed `parentWindow` startup race in XIP0044.
 
 ---
 
-### Issue E — InputCapture Portal Session Creation Fails (Error 2)
+### Issue E ΓÇö InputCapture Portal Session Creation Fails (Error 2)
 
-**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) — Bo0sted's Phase 2 report
+**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) ΓÇö Bo0sted's Phase 2 report
 **Severity**: Low (non-fatal, app continues with fallback)
-**Status**: Open — cosmetic/logging issue
+**Status**: Open ΓÇö cosmetic/logging issue
 
 **Problem**: The `InputCapture` portal interface is present on D-Bus, but `CreateSession` returns error code 2. The `WaylandPortalInputService` logs:
 ```
@@ -185,7 +184,7 @@ WaylandPortalInputService: CreateSession failed (2)
    Log("WaylandPortalInputService: CreateSession failed (2)");
    // Use:
    Log("WaylandPortalInputService: CreateSession rejected by portal backend (response=2). " +
-       "This is expected on KDE Plasma — InputCapture support varies by compositor. " +
+       "This is expected on KDE Plasma ΓÇö InputCapture support varies by compositor. " +
        "Falling back to GlobalShortcuts portal.");
    ```
 
@@ -195,21 +194,21 @@ WaylandPortalInputService: CreateSession failed (2)
 
 ---
 
-### Issue F — Cancelling Portal Opens Spectacle Unexpectedly
+### Issue F ΓÇö Cancelling Portal Opens Spectacle Unexpectedly
 
-**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) — shindouj comment, Bo0sted confirmation
+**Source**: [#64](https://github.com/ShareX/XerahS/issues/64) ΓÇö shindouj comment, Bo0sted confirmation
 **Severity**: Medium
 **Status**: Fix pushed (`ee6d0fa`), awaiting tester confirmation
 
 **Problem**: When the user cancels the portal Screenshot dialog on KDE, Spectacle opens unexpectedly. This is disruptive and confusing. One user (`Bo0sted`) reports that even removing all Spectacle hotkey bindings in KDE settings does not prevent Spectacle from opening.
 
-**Root cause**: KDE's portal backend internally delegates screenshot requests to Spectacle. When the portal request is cancelled (Response=1), some versions of `xdg-desktop-portal-kde` still signal Spectacle to open. This is a known KDE bug, partially fixed in `xdg-desktop-portal-kde` ≥ 6.4.2.
+**Root cause**: KDE's portal backend internally delegates screenshot requests to Spectacle. When the portal request is cancelled (Response=1), some versions of `xdg-desktop-portal-kde` still signal Spectacle to open. This is a known KDE bug, partially fixed in `xdg-desktop-portal-kde` ΓëÑ 6.4.2.
 
 Additionally, XerahS's previous code would fall back to CLI capture tools after a portal cancel, which could indirectly invoke Spectacle via the system's default screenshot tool chain.
 
 #### Fix Guidance
 
-1. **Respect portal cancel — no fallback (already fixed)**:
+1. **Respect portal cancel ΓÇö no fallback (already fixed)**:
    Commit `ee6d0fa` addresses this:
    ```csharp
    if (result.IsCancelled)
@@ -221,14 +220,14 @@ Additionally, XerahS's previous code would fall back to CLI capture tools after 
    ```
    After a portal cancel, XerahS now stops immediately without trying CLI tools.
 
-2. **Upstream KDE fix**: Recommend users update to `xdg-desktop-portal-kde` ≥ 6.4.2, which fixes the interactive screenshot portal self-capture and cancel handling bugs.
+2. **Upstream KDE fix**: Recommend users update to `xdg-desktop-portal-kde` ΓëÑ 6.4.2, which fixes the interactive screenshot portal self-capture and cancel handling bugs.
 
 3. **Add user-facing note**: In the XerahS troubleshooting guide, document:
    - If Spectacle opens after cancelling a region capture, update `xdg-desktop-portal-kde`.
-   - If Spectacle continues to open after updating, check for system-level Spectacle shortcuts in KDE Settings → Shortcuts → Spectacle and remove/rebind them.
+   - If Spectacle continues to open after updating, check for system-level Spectacle shortcuts in KDE Settings ΓåÆ Shortcuts ΓåÆ Spectacle and remove/rebind them.
 
 > [!NOTE]
-> The fix in `ee6d0fa` prevents XerahS from *causing* the Spectacle launch. However, some KDE systems may still launch Spectacle server-side when the portal Screenshot interface is invoked — this is a KDE bug outside XerahS's control.
+> The fix in `ee6d0fa` prevents XerahS from *causing* the Spectacle launch. However, some KDE systems may still launch Spectacle server-side when the portal Screenshot interface is invoked ΓÇö this is a KDE bug outside XerahS's control.
 
 ---
 
@@ -238,9 +237,9 @@ Additionally, XerahS's previous code would fall back to CLI capture tools after 
 |-------|------------|------------|--------|
 | **A** | Print key hotkey mapping | Fix pushed, needs testing | `aa579f0` |
 | **B** | Portal UI varies by DE | Documentation + logging done | `ee6d0fa` |
-| **C** | Portal lacks region selection on KDE | **Fixed** — Spectacle/gnome-screenshot CLI fallbacks | `17a52cdc` |
-| **D** | GlobalShortcuts hotkey doesn't fire | **Covered by XIP0044** — root cause fixed | See XIP0044 |
-| **E** | InputCapture CreateSession fails | **Fixed** — improved logging | `c6e9dd21` |
+| **C** | Portal lacks region selection on KDE | **Fixed** ΓÇö Spectacle/gnome-screenshot CLI fallbacks | `17a52cdc` |
+| **D** | GlobalShortcuts hotkey doesn't fire | **Covered by XIP0044** ΓÇö root cause fixed | See XIP0044 |
+| **E** | InputCapture CreateSession fails | **Fixed** ΓÇö improved logging | `c6e9dd21` |
 | **F** | Cancel portal opens Spectacle | Fix pushed, needs testing | `ee6d0fa` |
 
 ---
@@ -252,8 +251,8 @@ Additionally, XerahS's previous code would fall back to CLI capture tools after 
 - Close the issues once testers verify on KDE + GNOME + wlroots backends.
 
 ### For Issue C (fixed)
-- Test on KDE Plasma Wayland: trigger region capture → verify `spectacle --region` is invoked.
-- Test on GNOME Wayland: trigger region capture → verify `gnome-screenshot -a` is invoked.
+- Test on KDE Plasma Wayland: trigger region capture ΓåÆ verify `spectacle --region` is invoked.
+- Test on GNOME Wayland: trigger region capture ΓåÆ verify `gnome-screenshot -a` is invoked.
 - Verify the portal is still tried first; CLI fallback only activates when portal doesn't provide region capture.
 
 ### For Issue D (covered by XIP0044)
@@ -261,4 +260,3 @@ Additionally, XerahS's previous code would fall back to CLI capture tools after 
 
 ### For Issue E (fixed)
 - Verify log output on KDE Plasma shows descriptive message instead of terse `CreateSession failed (2)`.
-

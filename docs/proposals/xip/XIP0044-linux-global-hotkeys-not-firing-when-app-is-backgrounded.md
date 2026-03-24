@@ -1,5 +1,4 @@
 # XIP0044 Linux Global Hotkeys Not Firing When App Is Backgrounded
-
 **Status**: In Progress
 **Priority**: High
 **Affected platform**: Linux (Wayland / XWayland)
@@ -25,7 +24,7 @@ The hotkey subsystem has two backends:
 | Backend | API | Global? | XWayland limitation |
 |---|---|---|---|
 | `LinuxHotkeyService` (X11 fallback) | `XGrabKey` / `XNextEvent` | Only for X11 compositor | Events never delivered when a Wayland-native window has focus |
-| `WaylandPortalHotkeyService` | XDG GlobalShortcuts portal | Yes — compositor-level | No limitation; compositor delivers via D-Bus signal |
+| `WaylandPortalHotkeyService` | XDG GlobalShortcuts portal | Yes ΓÇö compositor-level | No limitation; compositor delivers via D-Bus signal |
 
 `XGrabKey` registers successfully (kernel sees the key), but the X11 event queue is only
 served when an X11-window (or XWayland) surface has keyboard focus. Under a full Wayland
@@ -33,7 +32,7 @@ session (GNOME Shell), most windows are Wayland-native, so hotkeys appear "broke
 the majority of the desktop lifetime.
 
 The **XDG GlobalShortcuts portal** (`org.freedesktop.portal.GlobalShortcuts`) is the
-correct solution: the compositor (GNOME Shell ≥ 45 / KDE Plasma ≥ 6) owns the binding and
+correct solution: the compositor (GNOME Shell ΓëÑ 45 / KDE Plasma ΓëÑ 6) owns the binding and
 delivers an `Activated` D-Bus signal regardless of which surface has focus.
 
 ### Why the portal fallback is currently being triggered (v0.19.2 installed)
@@ -44,18 +43,18 @@ any GNOME permission dialog. The root cause is an **app ID mismatch**:
 1. Avalonia sets the Wayland `xdg_toplevel.app_id` from `Application.Name` if set, or
    `Process.GetCurrentProcess().ProcessName` otherwise.
 2. Without `Application.Name` set, the process name resolves to `"XerahS"` (capital X).
-3. `xdg-desktop-portal` looks for `"XerahS.desktop"` — not found.
+3. `xdg-desktop-portal` looks for `"XerahS.desktop"` ΓÇö not found.
 4. It also tries matching `/proc/PID/exe` against `Exec=` fields of all `.desktop` files.
    The installed `.desktop` file (`xerahs.desktop`) has `Exec=/usr/bin/xerahs`, but
-   `/usr/bin/xerahs` does not exist (packaging bug — binary is at `/usr/lib/xerahs/XerahS`).
+   `/usr/bin/xerahs` does not exist (packaging bug ΓÇö binary is at `/usr/lib/xerahs/XerahS`).
 5. With no app ID resolved, GNOME rejects `BindShortcuts` with `response=2`.
-6. `WaylandPortalHotkeyService` activates X11 fallback → hotkeys broken globally.
+6. `WaylandPortalHotkeyService` activates X11 fallback ΓåÆ hotkeys broken globally.
 
 ### Secondary bug: CTS `ObjectDisposedException` in debounce
 
 Commit `1db0a454` introduced `ScheduleRebind()` which debounces portal rebinds. The
 implementation called `old?.Dispose()` synchronously on the previous
-`CancellationTokenSource`. Because `Task.Run` queues the lambda asynchronously, call N−1's
+`CancellationTokenSource`. Because `Task.Run` queues the lambda asynchronously, call NΓêÆ1's
 lambda may not have started executing yet when call N disposes its CTS. When it eventually
 runs, `cts.Token` throws `ObjectDisposedException`.
 
@@ -71,7 +70,7 @@ System.ObjectDisposedException: The CancellationTokenSource has been disposed.
 
 ## Fixes Required
 
-### Fix 1 — Set `Application.Name = "xerahs"` (DONE: commit `4413c031`)
+### Fix 1 ΓÇö Set `Application.Name = "xerahs"` (DONE: commit `4413c031`)
 
 `App.axaml.cs` `Initialize()` now sets `Name = "xerahs"` so Avalonia advertises
 `"xerahs"` as the Wayland `xdg_toplevel.app_id`, matching `xerahs.desktop`.
@@ -91,11 +90,11 @@ public override void Initialize()
 **Verification**: Portal log must show `CreateSession response=0` followed by
 `BindShortcuts response=0` and one (single) GNOME permission dialog on first run.
 
-### Fix 2 — Packaging: real symlink + correct StartupWMClass (DONE: commit `271265ca`)
+### Fix 2 ΓÇö Packaging: real symlink + correct StartupWMClass (DONE: commit `271265ca`)
 
 The packaging script was creating `/usr/bin/xerahs` as a shell wrapper script rather than
 a real symlink. `xdg-desktop-portal` resolves the `Exec=` path in the `.desktop` file when
-doing exe-based app ID detection; a wrapper script is opaque (`/usr/bin/xerahs` ≠
+doing exe-based app ID detection; a wrapper script is opaque (`/usr/bin/xerahs` Γëá
 `/usr/lib/xerahs/XerahS`), so matching failed. A real relative symlink
 (`../lib/xerahs/XerahS`) resolves to the actual binary and allows matching.
 
@@ -112,7 +111,7 @@ For existing installations of v0.19.3 and earlier:
 sudo ln -sf /usr/lib/xerahs/XerahS /usr/bin/xerahs
 ```
 
-### Fix 2b — Developer "Debug Build" Gotcha (Documented)
+### Fix 2b ΓÇö Developer "Debug Build" Gotcha (Documented)
 
 If you are running XerahS directly via `dotnet run` or from `bin/Debug/net10.0/XerahS`, the XDG GlobalShortcuts portal will still reject `BindShortcuts` with `response=2`. 
 This happens because the portal matches the DBus caller's `/proc/PID/exe` against the `Exec=` line of the system `.desktop` file. Your debug path does not match `/usr/bin/xerahs`.
@@ -120,7 +119,7 @@ This happens because the portal matches the DBus caller's `/proc/PID/exe` agains
 **Workaround for local testing:**
 Create a `.desktop` file in `~/.local/share/applications/xerahs.desktop` with the `Exec=` line pointing to your exact debug binary path, and then run `update-desktop-database ~/.local/share/applications/`.
 
-### Fix 3 — Debounce CTS ObjectDisposedException (DONE: in-progress branch)
+### Fix 3 ΓÇö Debounce CTS ObjectDisposedException (DONE: in-progress branch)
 
 `ScheduleRebind()` must not call `old?.Dispose()` synchronously. Only cancel the old CTS;
 let it be collected by GC after the old task exits.
@@ -132,7 +131,7 @@ old?.Dispose();
 
 // After (fixed):
 old?.Cancel();
-// Do not dispose here — old task lambda may not have started yet and still
+// Do not dispose here ΓÇö old task lambda may not have started yet and still
 // holds a reference via closure; disposing causes ObjectDisposedException on cts.Token.
 ```
 
@@ -141,7 +140,7 @@ for the common case (last active CTS). Cancelled-and-replaced CTSes are GC'd aft
 (quickly-cancelled) lambda exits. CancellationTokenSource has no finalizer and holds no
 unmanaged resources unless `WaitHandle` was ever accessed (it was not), so GC is safe.
 
-### Fix 5 — `parentWindow=<empty>` due to startup race (DONE — current branch)
+### Fix 5 ΓÇö `parentWindow=<empty>` due to startup race (DONE ΓÇö current branch)
 
 #### What was found (v0.19.4 debug log, 2026-03-02)
 
@@ -150,31 +149,31 @@ The v0.19.4 debug build diagnostic line showed:
 WaylandPortalHotkeyService: BindShortcuts payload: [...], parentWindow=<empty>, app_id=xerahs
 ```
 
-- `app_id=xerahs` ✓ — Fix 1 (`Application.Name = "xerahs"`) IS working correctly.
-- `parentWindow=<empty>` ✗ — this is the remaining cause of `response=2`.
+- `app_id=xerahs` Γ£ô ΓÇö Fix 1 (`Application.Name = "xerahs"`) IS working correctly.
+- `parentWindow=<empty>` Γ£ù ΓÇö this is the remaining cause of `response=2`.
 
-#### Why parentWindow is empty — the startup race
+#### Why parentWindow is empty ΓÇö the startup race
 
 `NativeWindowHandleProvider` is set in `MainWindow.OnWindowOpened`, which fires when the
 main window renders for the first time. `ScheduleRebind()` fires after only a 100ms debounce.
 
 On slow builds (debug mode with 47-second startup time) the sequence is:
-1. Hotkeys registered → `ScheduleRebind()` queued with 100ms delay
-2. **100ms debounce fires → `BindShortcutsAsync` runs with `NativeWindowHandleProvider == null`**
-3. `parentWindow = ""` → portal cannot verify caller identity → `response=2`
-4. X11 fallback activated → hotkeys only work when app is focused
-5. *(40+ seconds later)* Window opens → `OnWindowOpened` sets `NativeWindowHandleProvider`
-   — but no retry is triggered
+1. Hotkeys registered ΓåÆ `ScheduleRebind()` queued with 100ms delay
+2. **100ms debounce fires ΓåÆ `BindShortcutsAsync` runs with `NativeWindowHandleProvider == null`**
+3. `parentWindow = ""` ΓåÆ portal cannot verify caller identity ΓåÆ `response=2`
+4. X11 fallback activated ΓåÆ hotkeys only work when app is focused
+5. *(40+ seconds later)* Window opens ΓåÆ `OnWindowOpened` sets `NativeWindowHandleProvider`
+   ΓÇö but no retry is triggered
 
 The debug build 47-second startup makes this race deterministic, but it can also occur
 on slower hardware in production builds.
 
 #### Investigation attempts that were NOT needed
 
-- Inspecting `libwayland-client.so`, `zxdg_exporter_v2` protocol, Avalonia DLL symbols —
+- Inspecting `libwayland-client.so`, `zxdg_exporter_v2` protocol, Avalonia DLL symbols ΓÇö
   this was explored in case the fix required Wayland xdg-foreign export, but the root
   cause turned out to be purely a timing/retry issue, not a missing handle type.
-- Avalonia.FreeDesktop DLL reflection — strings search showed `parentWindow` is used by
+- Avalonia.FreeDesktop DLL reflection ΓÇö strings search showed `parentWindow` is used by
   Avalonia's own file chooser portal code, confirming Avalonia passes `"x11:XID"` for
   X11/XWayland windows and empty for native Wayland. Since we appear to run under X11
   (Avalonia.X11 backend with XWayland), the XID path should work once timing is fixed.
@@ -183,9 +182,9 @@ on slower hardware in production builds.
 
 `MainWindow.OnWindowOpened` now logs:
 ```
-MainWindow: OnWindowOpened — platform handle descriptor=XID, handle=<some intptr>
+MainWindow: OnWindowOpened ΓÇö platform handle descriptor=XID, handle=<some intptr>
 ```
-(or `wl_surface` if running under a pure native Wayland Avalonia backend — future case.)
+(or `wl_surface` if running under a pure native Wayland Avalonia backend ΓÇö future case.)
 This log line was added to confirm the descriptor value in the next test run.
 
 #### Fix applied
@@ -195,8 +194,8 @@ Added as a new default interface method so existing macOS/Windows implementation
 
 **`WaylandPortalHotkeyService.NotifyWindowReady()`**:
 Called from `OnWindowOpened` after `NativeWindowHandleProvider` is set. If the portal is
-in "unavailable" fallback state (`_portalUnavailableForSession == true`) — meaning the
-initial bind failed with response=2 — it resets the flag and calls `ScheduleRebind()`.
+in "unavailable" fallback state (`_portalUnavailableForSession == true`) ΓÇö meaning the
+initial bind failed with response=2 ΓÇö it resets the flag and calls `ScheduleRebind()`.
 The retry now runs with a valid `parentWindow` (e.g. `"x11:0x1234ab"`).
 
 **`RebindShortcutsAsync` fallback cleanup**:
@@ -210,15 +209,15 @@ becomes the sole delivery path.
 
 **Expected log sequence after fix** (v0.19.5+):
 ```
-MainWindow: OnWindowOpened — platform handle descriptor=XID, handle=<intptr>
-WaylandPortalHotkeyService: NotifyWindowReady — window handle now available; resetting portal-unavailable flag and retrying bind.
+MainWindow: OnWindowOpened ΓÇö platform handle descriptor=XID, handle=<intptr>
+WaylandPortalHotkeyService: NotifyWindowReady ΓÇö window handle now available; resetting portal-unavailable flag and retrying bind.
 WaylandPortalHotkeyService: CreateSession response=0 (Success)
 WaylandPortalHotkeyService: BindShortcuts payload: [...], parentWindow=x11:0x..., app_id=xerahs
 WaylandPortalHotkeyService: BindShortcuts response=0 (Success)
 WaylandPortalHotkeyService: Portal bind succeeded; releasing X11 fallback hotkeys.
 ```
 
-### Fix 4 — Complete Portal Strategy: Session Persistence and Configuration (DONE)
+### Fix 4 ΓÇö Complete Portal Strategy: Session Persistence and Configuration (DONE)
 
 Currently `RebindShortcutsAsync` closes and recreates the portal session on every hotkey change.
 This is an anti-pattern according to the `xdg-desktop-portal` design philosophy. The XDG GlobalShortcuts
@@ -243,10 +242,10 @@ To fix this and provide a native Wayland experience:
 
 When the portal responds with `response=0` to `BindShortcuts` for the first time:
 - GNOME shows a dialog: "XerahS wants to register global shortcuts. Allow?"
-- User clicks **Allow** → bindings are active; no dialog on subsequent app starts
+- User clicks **Allow** ΓåÆ bindings are active; no dialog on subsequent app starts
   (permission stored in GNOME's portal permission table keyed by app ID)
-- User clicks **Deny** → `response=2` on future calls until permission is reset via
-  GNOME Settings → Privacy → File and Application Permissions
+- User clicks **Deny** ΓåÆ `response=2` on future calls until permission is reset via
+  GNOME Settings ΓåÆ Privacy ΓåÆ File and Application Permissions
 
 ---
 
@@ -255,15 +254,15 @@ When the portal responds with `response=0` to `BindShortcuts` for the first time
 1. Ensure no installed XerahS instance is running: `pkill -f xerahs`
 2. Run debug build: `./run-debug-app.sh`
 3. Check log for (in order):
-   - `MainWindow: OnWindowOpened — platform handle descriptor=XID, handle=<non-zero>`
-   - `WaylandPortalHotkeyService: NotifyWindowReady — ...resetting...retrying bind`
+   - `MainWindow: OnWindowOpened ΓÇö platform handle descriptor=XID, handle=<non-zero>`
+   - `WaylandPortalHotkeyService: NotifyWindowReady ΓÇö ...resetting...retrying bind`
    - `WaylandPortalHotkeyService: BindShortcuts payload: [...], parentWindow=x11:0x..., app_id=xerahs`
    - `WaylandPortalHotkeyService: CreateSession response=0 (Success)`
    - `WaylandPortalHotkeyService: BindShortcuts response=0 (Success)`
    - `WaylandPortalHotkeyService: Portal bind succeeded; releasing X11 fallback hotkeys.`
    - **No** `PortalBindFailedException`, **no** `Activating X11 fallback` (after the retry)
    - **No** `ObjectDisposedException`
-4. One GNOME permission dialog appears (first run only) — click **Allow**
+4. One GNOME permission dialog appears (first run only) ΓÇö click **Allow**
 5. Minimise XerahS
 6. Press `Ctrl+Shift+F` (or any registered hotkey) from any other app
 7. Confirm the capture/action fires correctly
@@ -277,12 +276,12 @@ to export the surface handle as `"wayland:EXPORTEDTOKEN"`. See Open Questions it
 
 ## Open Questions
 
-1. **Fallback for older portals**: `ConfigureShortcuts` is part of portal v2 (xdg-desktop-portal ≥ 1.18).
+1. **Fallback for older portals**: `ConfigureShortcuts` is part of portal v2 (xdg-desktop-portal ΓëÑ 1.18).
    For older portals, users can still manually assign keys in standard GNOME Settings -> Keyboard,
    but we need a strategy for how the XerahS UI gracefully falls back or shows instructions if the
    `ConfigureShortcuts` call fails.
 
-2. **KDE Plasma support**: KDE Plasma ≥ 6 implements the GlobalShortcuts portal. The aforementioned
+2. **KDE Plasma support**: KDE Plasma ΓëÑ 6 implements the GlobalShortcuts portal. The aforementioned
    "Bind Once + ConfigureShortcuts" architecture natively aligns with KDE's approach as well. Once
    the refactor is complete, we should verify the flow on Plasma 6 Wayland.
 
@@ -294,11 +293,11 @@ to export the surface handle as `"wayland:EXPORTEDTOKEN"`. See Open Questions it
    (i.e. Avalonia is using a native Wayland backend, not X11/XWayland), `parentWindow` will
    still be empty because we only handle the "XID" case. The fix requires implementing
    `zxdg_exporter_v2` via P/Invoke into `libwayland-client.so`:
-   - `wl_proxy_get_display(wl_surface*)` → `wl_display*`
-   - `wl_display_get_registry(display)` → `wl_registry*`
+   - `wl_proxy_get_display(wl_surface*)` ΓåÆ `wl_display*`
+   - `wl_display_get_registry(display)` ΓåÆ `wl_registry*`
    - Listen for `zxdg_exporter_v2` global in `wl_registry::global` event
-   - Call `zxdg_exporter_v2.export_toplevel(wl_surface)` → `zxdg_exported_v2*`
-   - Receive `zxdg_exported_v2::handle` event → string token
+   - Call `zxdg_exporter_v2.export_toplevel(wl_surface)` ΓåÆ `zxdg_exported_v2*`
+   - Receive `zxdg_exported_v2::handle` event ΓåÆ string token
    - Format: `"wayland:{token}"` as `parentWindow`
 
    This approach was NOT pursued yet because it's complex and we first need to confirm
@@ -313,11 +312,11 @@ to export the surface handle as `"wayland:EXPORTEDTOKEN"`. See Open Questions it
 |---|---|---|
 | 2026-02-28 | `151a94b3` | Fix `BuildPreferredTrigger` GLib format, parent window handle |
 | 2026-03-01 | `4413c031` | Set `Application.Name = "xerahs"` to match `xerahs.desktop` app ID |
-| 2026-03-02 | `1db0a454` | Debounce `ScheduleRebind()` — reduce 8 portal calls to 1 at startup |
+| 2026-03-02 | `1db0a454` | Debounce `ScheduleRebind()` ΓÇö reduce 8 portal calls to 1 at startup |
 | 2026-03-02 | `1cb75370` | Fix CTS `ObjectDisposedException` in `ScheduleRebind` |
 | 2026-03-02 | `271265ca` | Packaging: real symlink, `StartupWMClass=xerahs`, DEB symlink tar entry |
 | 2026-03-02 | `271265ca` | Add `app_id` + `parentWindow` diagnostic log to `BindShortcutsAsync` |
 | 2026-03-02 | `0c44e21b` | Fix build: `IHotkeyService.ShowInteractiveConfigurationAsync` as default interface method |
 | 2026-03-02 | *(current)* | Fix startup race: `NotifyWindowReady()` retries portal after window opens; cleans up X11 fallback on success; logs `HandleDescriptor` |
-| *(future)* | — | Verify `HandleDescriptor=XID` in log; confirm `parentWindow=x11:0x...` and `response=0` |
-| *(future)* | — | If `HandleDescriptor=wl_surface`: implement `zxdg_exporter_v2` P/Invoke for native Wayland handle |
+| *(future)* | ΓÇö | Verify `HandleDescriptor=XID` in log; confirm `parentWindow=x11:0x...` and `response=0` |
+| *(future)* | ΓÇö | If `HandleDescriptor=wl_surface`: implement `zxdg_exporter_v2` P/Invoke for native Wayland handle |

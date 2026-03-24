@@ -1,5 +1,4 @@
 # XIP0048 Nextcloud Native Plugin Design
-
 XIP0048: Nextcloud Native Plugin Design
 
 ## Goal

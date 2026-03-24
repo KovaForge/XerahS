@@ -1,5 +1,4 @@
 # XIP0049 Immich Native Plugin Design
-
 XIP0049: Immich Native Plugin Design
 
 ## Goal
