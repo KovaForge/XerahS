@@ -188,6 +188,8 @@ This XIP explicitly requires the following project skills to be part of implemen
    - Use for control hierarchy, spacing consistency, and interaction density decisions in `HistoryView` and related shared components.
 2. `.ai/skills/design-ui-window`
    - Use for any new dialog/window flows (History settings, optional import/stats presentation windows) including layout and action ergonomics.
+3. Avalonia docs MCP
+   - Draw implementation details from Avalonia official documentation via MCP for control behavior, virtualization patterns, selection models, drag-and-drop APIs, and desktop interaction best practices.
 
 Definition of done for UI scope includes evidence that both skill playbooks were applied during implementation review.
 
@@ -204,6 +206,7 @@ Definition of done for UI scope includes evidence that both skill playbooks were
 7. Context menu enables/disables actions based on item count and available fields (URL/file/image/text).
 8. Advanced filter panel supports URL/date/type/host filtering and reset behavior.
 9. History supports drag-out file export for existing selected files on supported platforms.
+10. History supports selecting multiple items and deleting them in one action with clear confirmation messaging.
 
 ## Non-Functional Requirements
 
