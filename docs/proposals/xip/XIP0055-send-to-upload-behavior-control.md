@@ -88,6 +88,8 @@ Prompt actions:
 - `Upload now` -> existing `WorkflowType.FileUpload` path
 - `Open in Upload Content` -> queue/review flow
 - `Open in Image Editor` (only when selection is image-compatible)
+- `Pin to Screen` (only when selection is image-compatible) -> `WorkflowType.PinToScreenFromFile`
+- `Index folder` (only when selection contains folders) -> `WorkflowType.IndexFolder`
 - `Cancel`
 
 Prompt characteristics:
@@ -105,6 +107,29 @@ Replace hardcoded Send-to dispatch (`WorkflowType.FileUpload`) with:
 3. Dispatch according to selected action.
 4. On cancel, do nothing and return success.
 
+### Action intelligence and workflow mapping
+
+Send-to input should be classified before rendering actions:
+
+- `allFiles`: one or more files, no directories.
+- `allFolders`: one or more directories, no files.
+- `mixed`: both files and directories.
+- `allImages`: all selected files are image-compatible.
+
+Action availability rules:
+
+- Always available: `Upload now`, `Open in Upload Content`, `Cancel`.
+- `Open in Image Editor` and `Pin to Screen`: available only for `allImages`.
+- `Index folder`: available for `allFolders`; for `mixed`, show as `Index folders only` and apply only to directory entries.
+
+Action to workflow mapping:
+
+- `Upload now` -> `WorkflowType.FileUpload`
+- `Open in Upload Content` -> open Upload Content window with pre-populated entries (no auto-upload)
+- `Open in Image Editor` -> `WorkflowType.ImageEditor` per image file
+- `Pin to Screen` -> `WorkflowType.PinToScreenFromFile` per image file
+- `Index folder` -> `WorkflowType.IndexFolder` per folder
+
 ---
 
 ## Functional Requirements
@@ -112,9 +137,10 @@ Replace hardcoded Send-to dispatch (`WorkflowType.FileUpload`) with:
 1. Send-to argument processing must show the prompt before task creation.
 2. `Upload now` must remain functionally identical to current FileUpload behavior.
 3. `Open in Upload Content` must not auto-start upload unless user explicitly triggers it in that UI.
-4. `Open in Image Editor` must be available only when file type supports it.
-5. Selected prompt action must be logged once per Send-to invocation for diagnostics.
-6. Multi-file Send-to operations must apply the chosen action consistently to the batch.
+4. `Open in Image Editor` and `Pin to Screen` must be available only when file type supports them.
+5. `Index folder` must be available when at least one folder is present in Send-to input.
+6. Selected prompt action must be logged once per Send-to invocation for diagnostics.
+7. Multi-item Send-to operations must apply chosen action consistently, with documented behavior for mixed file/folder sets.
 
 ## Non-Functional Requirements
 
@@ -145,6 +171,8 @@ flowchart TD
     promptWindow -->|UploadNow| uploadPath[DispatchAsFileUpload]
     promptWindow -->|UploadContent| queuePath[OpenUploadContentWithFiles]
     promptWindow -->|ImageEditor| editorPath[OpenImageEditor]
+    promptWindow -->|PinToScreen| pinPath[DispatchPinToScreenFromFile]
+    promptWindow -->|IndexFolder| indexPath[DispatchIndexFolder]
     promptWindow -->|Cancel| stopPath[NoActionExit]
     uploadPath --> finalizationUpload[UploadRequiredFinalization]
 ```
@@ -161,7 +189,8 @@ flowchart TD
 
 - `src/desktop/app/XerahS.App/Program.cs`
   - Show Send-to prompt in `ProcessIncomingArguments(...)` flow.
-  - Route selected action to upload, upload-content window, image editor, or cancel.
+  - Classify incoming file/folder/image set and route selected action.
+  - Route selected action to upload, upload-content window, image editor, pin-to-screen, index-folder, or cancel.
 
 ### Task pipeline / job semantics
 
@@ -186,6 +215,8 @@ Prompt actions:
 - `Upload now`
 - `Open in Upload Content`
 - `Open in Image Editor` (when applicable)
+- `Pin to Screen` (when applicable)
+- `Index folder` (when folders are selected)
 - `Cancel`
 
 ---
@@ -204,6 +235,9 @@ Prompt actions:
 4. **Routing complexity increase**: more action branches in Send-to dispatch.  
    **Mitigation**: centralize action-to-workflow mapping and add routing tests.
 
+5. **Mixed file/folder ambiguity**: users may expect one action to apply to all entries.  
+   **Mitigation**: show clear action scope text (for example, "Index folders only") and summary before confirm.
+
 ---
 
 ## Verification Matrix
@@ -213,13 +247,16 @@ Prompt actions:
 | No uploaders configured, Send-to image | Prompt -> Upload now | Upload path runs and fails clearly (expected current behavior) |
 | No uploaders configured, Send-to image | Prompt -> Open in Upload Content | File opens in queue UI without auto-upload |
 | Send-to image | Prompt -> Open in Image Editor | Editor opens with sent file |
+| Send-to image | Prompt -> Pin to Screen | Image pins to screen via file workflow |
+| Send-to folder | Prompt -> Index folder | Folder indexing workflow runs |
 | Send-to file (non-image) | Prompt | Image-editor option hidden/disabled |
+| Send-to mixed (file + folder) | Prompt -> Index folder | Folder entries are indexed; files are skipped with info note |
 | Multi-file Send-to | Prompt -> Upload now | All files dispatched through FileUpload path |
 | Prompt canceled | Prompt -> Cancel | No task started; no error surface |
 
 Manual log checks:
 
-- Confirm no "Auto destination selected..." messages in SaveOnly path.
+- Confirm chosen prompt action is logged once with item classification (`allFiles`, `allFolders`, `mixed`, `allImages`).
 - Confirm behavior decision log appears once per Send-to batch.
 
 ---
@@ -228,8 +265,8 @@ Manual log checks:
 
 1. Implement Send-to prompt window (view + viewmodel).
 2. Wire prompt into Send-to argument handling and action dispatch.
-3. Add contextual enable/disable logic for image-only actions.
-4. Add tests for dispatch routing and cancel behavior.
+3. Add contextual enable/disable logic for image-only and folder-only actions.
+4. Add tests for classification/routing (files, folders, mixed) and cancel behavior.
 5. Publish release note clarifying "Upload with XerahS" vs Send-to prompt behavior.
 
 ---
@@ -238,6 +275,6 @@ Manual log checks:
 
 1. Send-to no longer implies immediate upload without user confirmation.
 2. Dedicated "Upload with XerahS" context-menu flow remains upload-first and unchanged.
-3. Support diagnostics can identify selected Send-to prompt action from logs.
+3. Folder and image Send-to paths can trigger `IndexFolder` and `PinToScreenFromFile` from the prompt when applicable.
 4. No regressions in non-Send-to upload workflows.
 
