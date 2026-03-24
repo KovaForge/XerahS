@@ -57,9 +57,10 @@ git push
 
 ## Commit Message Rules
 
-1. Prefix every commit with the new version: `[vX.Y.Z]`.
+1. Prefix XerahS app commits with the **current** root `Directory.Build.props` `<Version>` as `[vX.Y.Z]` (today `0.20.18`). Do **not** increment the patch in the commit message while `<Version>` is unchanged (no `[v0.20.19]` or higher until `Directory.Build.props` is bumped). Effective from XerahS commit `62ff53d357f6480df26d103361f240ac028a62b5` onward.
 2. Include a type token such as `[Fix]`, `[Feature]`, `[Build]`, `[Docs]`, `[Refactor]`.
 3. Keep the description concise and specific.
+4. Submodule-only commits in shared libraries (e.g. `ShareX.ImageEditor`): omit `[vX.Y.Z]`; use `[Type] description` per `AGENTS.md`.
 
 ## Git Hook Expectations
 
