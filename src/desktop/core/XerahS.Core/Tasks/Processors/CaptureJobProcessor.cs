@@ -275,12 +275,16 @@ namespace XerahS.Core.Tasks.Processors
             var configuredInstanceId = info.TaskSettings.GetDestinationInstanceIdForDataType(EDataType.Image);
             UploaderInstance? targetInstance = null;
 
+            bool shouldPersistHealedDestination = false;
+            string? healReason = null;
+
             if (!string.IsNullOrEmpty(configuredInstanceId))
             {
                 targetInstance = instanceManager.GetInstance(configuredInstanceId);
                 if (targetInstance == null)
                 {
                     DebugHelper.WriteLine($"Configured image uploader instance not found: {configuredInstanceId}");
+                    healReason = $"configured instance missing ({configuredInstanceId})";
                 }
             }
 
@@ -292,6 +296,11 @@ namespace XerahS.Core.Tasks.Processors
 
             // Not Auto - use the configured instance directly
             targetInstance ??= instanceManager.GetDefaultInstance(UploaderCategory.Image);
+            if (targetInstance != null && string.IsNullOrEmpty(configuredInstanceId))
+            {
+                shouldPersistHealedDestination = true;
+                healReason ??= "configured image destination is empty";
+            }
             
             if (targetInstance != null && InstanceManager.IsAutoProvider(targetInstance.ProviderId))
             {
@@ -300,8 +309,27 @@ namespace XerahS.Core.Tasks.Processors
 
             if (targetInstance == null)
             {
+                var repairedCandidate = GetPrioritizedInstances(instanceManager, UploaderCategory.Image, configuredInstanceId)
+                    .FirstOrDefault();
+                if (repairedCandidate != null)
+                {
+                    targetInstance = repairedCandidate;
+                    shouldPersistHealedDestination = true;
+                    healReason ??= "configured/default image destination unavailable";
+                    DebugHelper.WriteLine(
+                        $"Recovered image destination by selecting '{repairedCandidate.DisplayName}' ({repairedCandidate.InstanceId}).");
+                }
+            }
+
+            if (targetInstance == null)
+            {
                 DebugHelper.WriteLine("No image uploader instance configured.");
                 return null;
+            }
+
+            if (shouldPersistHealedDestination && !InstanceManager.IsAutoProvider(targetInstance.ProviderId))
+            {
+                PersistHealedImageDestination(info, targetInstance, healReason ?? "automatic recovery");
             }
 
             return TryUploadWithInstance(targetInstance, info.FilePath);
@@ -481,6 +509,45 @@ namespace XerahS.Core.Tasks.Processors
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "Failed to persist ShowAfterCaptureWindow setting");
+            }
+        }
+
+        private static void PersistHealedImageDestination(TaskInfo info, UploaderInstance targetInstance, string reason)
+        {
+            try
+            {
+                var newInstanceId = targetInstance.InstanceId;
+                if (string.IsNullOrWhiteSpace(newInstanceId))
+                {
+                    return;
+                }
+
+                info.TaskSettings.DestinationInstanceId = newInstanceId;
+
+                var workflow = !string.IsNullOrEmpty(info.TaskSettings.WorkflowId)
+                    ? SettingsManager.GetWorkflowById(info.TaskSettings.WorkflowId)
+                    : null;
+
+                if (workflow?.TaskSettings != null)
+                {
+                    workflow.TaskSettings.DestinationInstanceId = newInstanceId;
+                    SettingsManager.SaveWorkflowsConfig();
+                    DebugHelper.WriteLine(
+                        $"Auto-healed image destination for workflow '{info.TaskSettings.WorkflowId}' -> '{targetInstance.DisplayName}' ({newInstanceId}). Reason: {reason}");
+                    return;
+                }
+
+                if (SettingsManager.DefaultTaskSettings != null)
+                {
+                    SettingsManager.DefaultTaskSettings.DestinationInstanceId = newInstanceId;
+                    SettingsManager.SaveWorkflowsConfig();
+                    DebugHelper.WriteLine(
+                        $"Auto-healed default image destination -> '{targetInstance.DisplayName}' ({newInstanceId}). Reason: {reason}");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Failed to persist healed image destination");
             }
         }
 
