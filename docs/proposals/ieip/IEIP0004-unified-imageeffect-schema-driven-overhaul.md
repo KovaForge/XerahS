@@ -378,6 +378,34 @@ IEIP0004 has now been implemented in `ShareX.ImageEditor` and verified with a su
 - `SelectiveColor` remains bespoke (`CustomEditorKey`) because its multi-range state model is materially more complex than single-parameter schema controls.
 - Metadata now has a safe fallback for unmapped effect IDs so newly cataloged entries remain discoverable even before explicit metadata copywriting is added.
 
+### Lessons learnt (integration & browser wiring, March 2026)
+
+These points came from finishing catalog-driven browser behavior, parity checks against the pre-IEIP `FilterCatalog` + `EffectBrowserPanel` shape, and follow-up cleanups.
+
+1. **Icons require metadata, not only catalog definitions**  
+   `ImageEffectCatalog.GetMetadata` falls back to `BuildFallbackMetadata`, which uses an **empty** icon string. Any effect id present in a catalog partial but missing from `ImageEffectCatalog.Metadata.cs` will show **no icon** in the browser. Treat metadata coverage as part of the definition of “done” for a new effect (a simple audit: set of catalog ids ⊆ set of metadata keys).
+
+2. **Category placement must mirror the old “include in Filters UI” rule**  
+   The legacy `FilterCatalog` metadata flag `IncludeInFiltersCategory: false` meant “definition exists, but **do not** list under the Filters category in the browser” (e.g. manipulation-like warps, `remove_background`, `border`). In the unified catalog, that maps to assigning **`ImageEffectCategory.Manipulations`** or **`.Drawings`** only—not duplicating the same id under Filters for row-count parity. Wrong placement confuses users and inflates the Filters list.
+
+3. **Do not encode branch names or “develop row count” in product code**  
+   Temporary arrays or methods whose only job was to duplicate rows so the browser matched another branch’s count are **high-churn debt**. Prefer stable product rules (one row per logical effect per category unless there is an explicit UX requirement).
+
+4. **Host / view-model shortcuts are not registry effects**  
+   Quick actions (rotate 90°, flip horizontal/vertical, `editor_auto_crop`, etc.) may have **metadata + browser rows** but no `ImageEffect` pipeline the same way as catalog dialogs. They need an explicit dispatch path (e.g. host handler before `EffectDialogRegistry.TryCreate`) so `RaiseDialog(effectId)` does not no-op.
+
+5. **Browser `Action` delegates must close over the live panel instance**  
+   `EffectItem` stores `Action` callbacks. Shortcuts must use something like `() => RaiseDialog(effectId)` on the **instance**; a static placeholder that never forwards to the panel breaks clicks with no obvious build error.
+
+6. **Registry dispatch and menu paths should share one wiring helper per bespoke dialog**  
+   When the same control is opened from a menu event and from `EffectDialogRegistry` (e.g. `CropImageDialog`), consolidate initialization, apply, and cancel in **one** method so behavior and comments (e.g. core crop / history) stay in sync.
+
+7. **Search should match descriptions where users expect it**  
+   If the browser filter only matches name text, users lose discoverability that the old UI had when descriptions were searchable. Keep name **or** description (and any other exposed fields) aligned with product expectations.
+
+8. **Fallback metadata is for discovery, not an excuse to skip copy**  
+   Fallback labels/descriptions help avoid crashes, but they should remain rare; relying on them for many ids undermines consistent naming and icons (see item 1).
+
 ## Post-Merge Audit (March 24, 2026)
 
 After merging `develop` into the active ImageEditor branch, the working tree no longer matches the implemented IEIP0004 architecture. The new effect classes were brought in, but core schema infrastructure and wiring regressed in this merge state.
