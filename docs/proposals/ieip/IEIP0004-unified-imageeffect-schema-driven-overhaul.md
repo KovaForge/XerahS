@@ -377,3 +377,56 @@ IEIP0004 has now been implemented in `ShareX.ImageEditor` and verified with a su
 
 - `SelectiveColor` remains bespoke (`CustomEditorKey`) because its multi-range state model is materially more complex than single-parameter schema controls.
 - Metadata now has a safe fallback for unmapped effect IDs so newly cataloged entries remain discoverable even before explicit metadata copywriting is added.
+
+## Post-Merge Audit (March 24, 2026)
+
+After merging `develop` into the active ImageEditor branch, the working tree no longer matches the implemented IEIP0004 architecture. The new effect classes were brought in, but core schema infrastructure and wiring regressed in this merge state.
+
+### Audit verdict
+
+- **Overall compliance:** **Not compliant** in current merged working tree.
+- **New effects landed:** Yes (new filter/manipulation effect classes are present).
+- **Architecture contract preserved:** No (unified schema-driven architecture is partially rolled back).
+
+### Confirmed regressions vs IEIP0004
+
+1. **Unresolved merge conflicts remain**
+   - Conflict markers are present in:
+     - `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/Dialogs/Filters/SchemaDrivenFilterDialog.axaml`
+     - `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/Dialogs/Filters/SchemaDrivenFilterDialog.axaml.cs`
+     - `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/EditorView.EffectsHost.cs`
+   - This prevents a valid, coherent post-merge implementation.
+
+2. **Shared `Presentation/Effects` infrastructure is rolled back**
+   - `Presentation/Effects/*` catalog and definition files are deleted/renamed back to `Presentation/Filters/*`.
+   - `ImageEffectCatalog`/`EffectDefinition`/`EffectParameterDefinition` are replaced by `FilterCatalog`/`FilterDefinition`/`FilterParameterDefinition`.
+
+3. **Generic dialog is rolled back to Filters-only**
+   - `SchemaDrivenEffectDialog` is removed.
+   - `SchemaDrivenFilterDialog` is active and wired to `FilterDefinition`.
+   - This breaks the IEIP0004 goal of one dialog contract for all categories.
+
+4. **Dialog registry is no longer catalog-only**
+   - `EffectDialogRegistry` again uses a large `_factories` map plus a filters-only catalog fallback.
+   - IEIP0004 required catalog-first lookup across all categories with `CustomEditorKey` only for bespoke cases.
+
+5. **Effect browser is no longer fully catalog-driven**
+   - `EffectBrowserPanel` has manual category/effect registration and many explicit raise handlers.
+   - IEIP0004 required all categories to be populated from a unified catalog with `ApplyImmediately` support.
+
+### Adoption checklist to restore IEIP0004 (required)
+
+- Resolve all remaining merge conflict markers.
+- Reinstate `Presentation/Effects/` shared infrastructure:
+  - `EffectDefinition`
+  - `EffectParameterDefinition` + state hierarchy
+  - `ImageEffectCatalog` partials (`Adjustments`, `Drawings`, `Filters`, `Manipulations`, `Metadata`)
+- Restore unified generic dialog (`SchemaDrivenEffectDialog`) and its shared parameter handling (including file path browsing).
+- Re-apply catalog-only `EffectDialogRegistry` resolution with `CustomEditorKey` routing for bespoke editors.
+- Re-apply fully catalog-driven `EffectBrowserPanel` category/effect construction (including `ApplyImmediately` behavior).
+- Re-home newly merged effects into the correct unified catalog partial(s) instead of manual browser/registry wiring.
+- Re-run IEIP0004 verification build/tests before considering the merge complete.
+
+### Updated implementation state
+
+IEIP0004 remains the target architecture and was previously implemented, but the **current post-merge branch state is a regression snapshot** that must be reconciled using the adoption checklist above.
