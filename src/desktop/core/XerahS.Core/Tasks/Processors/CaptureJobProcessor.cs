@@ -308,9 +308,8 @@ namespace XerahS.Core.Tasks.Processors
         }
 
         /// <summary>
-        /// Tries to upload using multiple instances with fallback logic.
-        /// When one instance fails, it tries the next available instance.
-        /// Falls back to File category uploaders if the primary category fails.
+        /// Tries to upload using multiple instances with fallback logic (Auto destination only on the capture path).
+        /// Fixed image destinations do not use this method after a failed attempt—see docs/architecture/UPLOAD_DESTINATION_AND_FALLBACK.md.
         /// </summary>
         private static UploadResult? TryUploadWithFallback(InstanceManager instanceManager, UploaderCategory category, string filePath, string? excludeInstanceId, HashSet<string>? attemptedInstanceIds = null)
         {

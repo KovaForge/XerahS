@@ -281,8 +281,9 @@ namespace XerahS.Core.Tasks.Processors
 
         /// <summary>
         /// Tries to upload using multiple instances with fallback logic.
-        /// When one instance fails, it tries the next available instance.
-        /// Falls back to File category uploaders if the primary category fails.
+        /// Used when the workflow destination is Auto, when no Image uploader exists (File-category fallback),
+        /// and when a fixed Image uploader fails on the general upload path (then other image uploaders are tried).
+        /// See docs/architecture/UPLOAD_DESTINATION_AND_FALLBACK.md for capture vs non-capture differences.
         /// </summary>
         private static UploadResult? TryUploadWithFallback(InstanceManager instanceManager, UploaderCategory category, TaskInfo info, string? excludeInstanceId, HashSet<string>? attemptedInstanceIds = null)
         {
