@@ -217,7 +217,8 @@
                                     <ComboBox ItemsSource="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).AvailableDestinations}"
                                               SelectedItem="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).SelectedDestination}"
                                               HorizontalAlignment="Stretch"
-                                              AutomationProperties.Name="Select Destination">
+                                              AutomationProperties.Name="Select Destination"
+                                              ToolTip.Tip="Auto tries your configured uploaders in order until one succeeds. Any other destination uploads only to that uploader (configure it under Destination Settings). See documentation for details on image uploads and fallback behavior.">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                                  <StackPanel Orientation="Horizontal" Spacing="8">
