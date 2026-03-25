@@ -37,7 +37,7 @@ There is also a second mismatch:
 - `src/desktop/app/XerahS.UI/ViewModels/CustomUploaderEditorViewModel.cs`
   - Contains `TestUploaderAsync()` (but it is currently not exposed in `CustomUploaderEditorDialog.axaml`).
 - `src/desktop/app/XerahS.UI/Views/CustomUploaderEditorDialog.axaml`
-  - Header/actions include `Import...`, `Export...`, `Cancel`, `Save`.
+  - Header/actions include `Import...`, `Export...`, `Cancel`, **Save to Plugins** (primary action that closes the dialog with success after validation).
 
 ### Instance editing vs `.sxcu` source
 - `src/desktop/app/XerahS.UI/ViewModels/UploaderInstanceViewModel.cs`
@@ -50,7 +50,7 @@ There is also a second mismatch:
 
 ## Goals
 1. Reduce the “do it twice” workflow:
-   - After saving a Custom Uploader definition, users should be able to create instances immediately (optionally defaulting selected categories).
+   - After the user presses **Save to Plugins** in `CustomUploaderEditorDialog`, destination instances are **created automatically** for every destination category that matches the **Destination Types** checkboxes in the editor (no extra confirmation step required for the default flow).
 2. Provide an in-editor `Test` workflow that helps users validate URL/result parsing without needing to perform a real upload every time.
 3. Offer a clear, intentional way to propagate instance edits back to the `.sxcu` definition (or clearly explain why instance overrides do not affect the definition).
 4. Improve clarity about the difference between:
@@ -66,24 +66,32 @@ There is also a second mismatch:
 ---
 
 ## Proposed Design
-### 1) Instance auto-creation after `Add Custom Uploader`
-After the user hits `Save` in `CustomUploaderEditorDialog`, prompt (or inline-option) whether to create instances now.
+### 1) Instance auto-creation on **Save to Plugins**
+When the user presses **Save to Plugins** in `CustomUploaderEditorDialog` and the save succeeds (`.sxcu` written under `PathsManager.PluginsFolder`, catalog reloaded), **automatically create one `UploaderInstance` per enabled destination type** in the corresponding destination category tab.
 
-Behavior proposal:
-- Use the destination types selected inside the editor (`IsImageUploader`, `IsTextUploader`, `IsFileUploader`, etc.).
-- Show checkboxes in the `Add Custom Uploader` completion flow:
-  - `Create Image uploader instance`
-  - `Create Text uploader instance`
-  - `Create File uploader instance`
-  - `Create URL shortener instance`
-  - `Create URL sharing instance`
-- When confirmed:
-  - Ensure the custom uploader provider is loaded (already done via `ProviderCatalog.LoadCustomUploaders`).
-  - Create `UploaderInstance` entries for each selected category (reuse `AutoCreateCustomUploaderInstances(...)` logic, or refactor it into a shared helper).
-  - Optionally offer `Set Default` per category (or auto-set the first created instance).
+Mapping (editor checkbox → `UploaderCategory` / UI category):
+
+| Destination Types (editor) | Instance created under |
+|----------------------------|-------------------------|
+| Image Uploader | **Image Uploaders** (`UploaderCategory.Image`) |
+| Text Uploader | **Text Uploaders** (`UploaderCategory.Text`) |
+| File Uploader | **File Uploaders** (`UploaderCategory.File`) |
+| URL Shortener | **URL Shorteners** (`UploaderCategory.UrlShortener`) |
+| URL Sharing | `UploaderCategory.UrlSharing` per `CustomUploaderProvider.ConvertDestinationType` (today the destination sidebar may only list Image / Text / File / URL Shorteners; if URL Sharing has no dedicated tab, instance creation still follows the enum and any future category UI). |
+
+Rules:
+- **Image only** ticked → create instance **only** in Image Uploaders.
+- **File only** ticked → create instance **only** in File Uploaders.
+- **Multiple** types ticked → create one instance per corresponding category (same pattern as `AutoCreateCustomUploaderInstances(...)` today: loop `provider.SupportedCategories` after reload, or derive categories from `CustomUploaderItem.DestinationType` before/after save).
+- **Skip** creating an instance for category `C` if an instance for this provider already exists in `C` (idempotent; same as import path duplicate-instance behavior).
+- Optional (later UX polish): a single post-save summary dialog listing which categories received a new instance; not required for the core behavior.
+
+Implementation:
+- Reuse or extract shared logic from `DestinationSettingsViewModel.AutoCreateCustomUploaderInstances(...)` so both **Import ShareX Config** and **Add Custom Uploader → Save to Plugins** use the same instance-creation rules.
+- After creation, call `category.LoadInstances()` for affected categories (or all categories) so the sidebar lists update immediately.
 
 Expected UX impact:
-- The “Add from Catalog” step becomes optional for the common case.
+- **Add from Catalog** is no longer required to get a runnable custom uploader for the categories the user already declared in the editor.
 
 ### 2) Add a real `Test` button in the custom uploader dialog
 Add a `Test` button to `CustomUploaderEditorDialog.axaml` bound to `TestUploaderCommand` from `CustomUploaderEditorViewModel`.
@@ -129,11 +137,10 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
 
 ## Implementation Summary
 ### Stage A (UI and UX improvements without persistence model changes)
-1. Wire `TestUploaderAsync()` into `CustomUploaderEditorDialog.axaml`.
-2. After `AddCustomUploader()` saves `.sxcu`:
-   - ask whether to create instances
-   - create instances immediately using editor destination type selections
-3. Update completion dialog text to reference auto-created instances (instead of only “available in catalog”).
+1. Wire `TestUploaderAsync()` into `CustomUploaderEditorDialog.axaml` (optional: label `Test` or similar).
+2. After `AddCustomUploader()` saves `.sxcu` on **Save to Plugins**:
+   - **Automatically** create `UploaderInstance` entries for each category implied by the editor’s Destination Types (Image → Image Uploaders, File → File Uploaders, etc.); no extra checkbox sheet unless we add an optional “advanced” opt-out later.
+3. Update completion dialog text to state how many instances were created and for which categories (or “ready in Image and File uploaders”), not only “available in catalog”.
 
 ### Stage B (optional persistence enhancement: save-back)
 1. Add `Save to .sxcu` action in the inline custom uploader editor (inside `UploaderInstanceViewModel` UI).
@@ -149,7 +156,7 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
 ---
 
 ## Acceptance Criteria
-1. A user can create a Custom Uploader and have ready-to-use destination instances created immediately for at least one selected destination type.
+1. When the user configures Destination Types in the editor (e.g. **Image Uploader** only) and presses **Save to Plugins**, a `.sxcu` is written and **at least one** matching destination instance exists without using **Add from Catalog** (e.g. Image-only → instance appears under **Image Uploaders**; File ticked → under **File Uploaders**; both ticked → instances in both).
 2. The custom uploader editor contains an accessible `Test` control that validates config and provides meaningful preview information.
 3. Inline edits clearly either:
    - affect only the instance, or
@@ -160,7 +167,10 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
 
 ## Suggested Tests (Implementation Work)
 1. Unit test or integration test:
-   - create custom uploader definition, confirm auto-created instances per selected category
+   - Save to Plugins with **Image Uploader** only → exactly one new instance under Image Uploaders, none under Text/File/URL.
+   - Save to Plugins with **File Uploader** only → exactly one under File Uploaders.
+   - Save to Plugins with Image + File → instances in both categories.
+   - Re-save equivalent uploader → idempotent (no duplicate instances per category).
 2. Regression test:
    - legacy import path continues to auto-create instances
 3. Save-back test (if Stage B is implemented):
