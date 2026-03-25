@@ -250,6 +250,13 @@ public partial class App : Application
                     _clipboardChangedHandler = null;
                 }
                 PlatformServices.ClipboardMonitor.Stop();
+                // OOBE/first-run planning:
+                // Keep `IsFirstTimeRun=true` during the first session so UI (e.g. migration buttons) can show,
+                // then persist it as completed when the app exits.
+                if (XerahS.Core.SettingsManager.Settings.IsFirstTimeRun)
+                {
+                    XerahS.Core.SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+                }
                 XerahS.Core.SettingsManager.SaveAllSettings();
                 DebugHelper.Shutdown();
             };

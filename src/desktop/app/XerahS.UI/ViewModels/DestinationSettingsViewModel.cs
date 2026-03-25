@@ -47,6 +47,9 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     [ObservableProperty]
     private CategoryViewModel? _selectedCategory;
 
+    [ObservableProperty]
+    private bool _showImportShareXConfig;
+
     private readonly IViewDialogService _dialogService;
     private readonly IDialogService _coreDialogService;
     private readonly IUiViewModelFactory _uiViewModelFactory;
@@ -103,6 +106,10 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         Common.DebugHelper.WriteLine("[DestinationSettings] ========================================");
 
         LoadCategories();
+
+        // Show the one-time legacy import button only on the first app run.
+        ShowImportShareXConfig = SettingsManager.Settings.IsFirstTimeRun;
+
         _isInitialized = true;
     }
 
