@@ -309,14 +309,14 @@ namespace XerahS.Core.Tasks.Processors
 
         /// <summary>
         /// Tries to upload using multiple instances with fallback logic.
-        /// On the capture path this runs when Auto is selected and recurses for File-category fallback.
-        /// A fixed (non-Auto) image destination does not use this after a failed upload—see docs/architecture/UPLOAD_DESTINATION_AND_FALLBACK.md.
+        /// When one instance fails, it tries the next available instance.
+        /// Falls back to File category uploaders if the primary category fails.
         /// </summary>
         private static UploadResult? TryUploadWithFallback(InstanceManager instanceManager, UploaderCategory category, string filePath, string? excludeInstanceId, HashSet<string>? attemptedInstanceIds = null)
         {
             attemptedInstanceIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
-            DebugHelper.WriteLine($"[UploadFallback] Iterating uploaders with fallback for category {category}.");
+            DebugHelper.WriteLine($"Auto destination selected; trying uploaders with fallback for category {category}.");
 
             // Get all available instances for this category that haven't been attempted yet
             var allInstances = GetPrioritizedInstances(instanceManager, category, excludeInstanceId)
