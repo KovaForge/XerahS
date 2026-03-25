@@ -17,6 +17,8 @@ This creates UX friction compared to ShareX, where a custom uploader results in 
 There is also a second mismatch:
 - Inline editing of an instance updates the instance `SettingsJson` (and persists it into `uploader-instances.json`), but it does not clearly provide a way to update the underlying `.sxcu` definition. As a result, users can end up with changes that exist only as per-instance overrides, while the plugin catalog source remains unchanged.
 
+Without **instance identity on disk**, multiple `.sxcu` files or multiple instances can be hard to tell apart when browsing `Plugins/` or comparing exports: the user cannot see at a glance which file corresponds to which **destination instance** in `uploader-instances.json`.
+
 ---
 
 ## Current Implementation Notes (Code Audit)
@@ -53,6 +55,7 @@ There is also a second mismatch:
    - After the user presses **Save to Plugins** in `CustomUploaderEditorDialog`, destination instances are **created automatically** for every destination category that matches the **Destination Types** checkboxes in the editor (no extra confirmation step required for the default flow).
 2. Provide an in-editor `Test` workflow that helps users validate URL/result parsing without needing to perform a real upload every time.
 3. Offer a clear, intentional way to propagate instance edits back to the `.sxcu` definition (or clearly explain why instance overrides do not affect the definition).
+   - **Persist uploader instance identity on the `.sxcu` artifact** so each file (and its backing instance(s)) can be **distinguished** in the filesystem and when round-tripping configuration (see §3).
 4. Improve clarity about the difference between:
    - *Custom uploader definition* (the `.sxcu` provider in Plugins)
    - *Destination instance* (a per-category instance that runtime uses)
@@ -109,22 +112,46 @@ Test proposal (phase 2, optional):
   - user explicitly enables `Perform network test`
   - request payload is generated from dummy content
 
-### 3) Instance edit save-back to `.sxcu`
+### 3) Instance edit save-back to `.sxcu` **and** distinguishable `.sxcu` per instance binding
+
+#### 3a) Save-back action (user intent: definition = source of truth)
 Add an explicit command in the custom uploader inline editor (when editing a `custom_` provider instance) to:
-- `Save changes to .sxcu definition`
+- `Save changes to .sxcu definition` (or **Save definition to Plugins**)
 
 Policy proposal:
-- Overwrite the underlying `.sxcu` with the editor’s current state (`CustomUploaderEditorViewModel.ToItem()`).
-- Confirm with a warning that the change affects other instances that use the same provider definition.
+- Overwrite the underlying `.sxcu` with the editor’s current state (`CustomUploaderEditorViewModel.ToItem()`), **including** the XerahS instance metadata from §3b below.
+- Confirm with a warning when **more than one** `UploaderInstance` shares the same `ProviderId` / file path: the write affects every instance that uses that definition, unless the user chooses **Save as new .sxcu** (fork) first.
 
 Implementation needs:
 - Map the current provider to its `.sxcu` source via `CustomUploaderProvider.FilePath`.
-- Write back using `CustomUploaderRepository.SaveToFile(item, filePath)`.
+- Write back using `CustomUploaderRepository.SaveToFile(item, filePath)` (or serialize through a helper that merges ShareX-compatible fields + `XerahS` metadata).
 - Reload providers and refresh all destination categories.
 
 Fallback policy:
 - If `FilePath` cannot be resolved, disable the action and show a tooltip:
   - `This instance cannot be mapped back to a .sxcu source file.`
+
+#### 3b) **Requirement: append / record uploader instance identity so each `.sxcu` can be distinguished**
+
+XerahS **must** persist enough information on the saved `.sxcu` that operators (and future tooling) can relate **this file** to **one or more `UploaderInstance.InstanceId` values**, without guessing from display name alone.
+
+**JSON (preferred minimum):**
+- Add an optional root object, e.g. `XerahS` (name agreed at implementation time), carried alongside the standard ShareX `CustomUploaderItem` fields, for example:
+  - `instanceIds`: array of GUID strings — every **destination instance** that was created or last **bound** to this definition when the file was written (after **Save to Plugins** with auto-create, populate with the new instance(s); after save-back from one instance, include at least that instance’s id and any others sharing the file).
+  - Optional: `primaryInstanceId` when exactly one instance “owns” a file after a fork.
+- Serialization **must** remain usable as a custom uploader: ShareX and XerahS should **ignore** keys they do not understand on import (document any risk if ShareX rewrites JSON and drops unknown keys).
+
+**Filename (optional but recommended when forking / collision):**
+- When the user duplicates an instance or uses **Save as new .sxcu**, emit a **unique** filename that encodes disambiguation, e.g. `{base}__xerahs-{first8-of-instanceId}.sxcu`, so two divergent configs are not both named `imgfish.sxcu` with unrelated contents.
+
+**UI explanation (required for the goal “clear, intentional”):**
+- In Provider Settings for a custom uploader instance, show a short line:
+  - **Definition file:** `...\Plugins\{file}.sxcu`
+  - **Bound instance ID(s):** `{guid}` (read from `XerahS.instanceIds` when present, else from current `InstanceId`)
+- Tooltip or help: **Instance-only edits** update `uploader-instances.json` until the user uses **Save changes to .sxcu**; then the `.sxcu` on disk and `instanceIds` metadata should match the intentional propagation.
+
+**Compatibility note:**
+- Imported ShareX `.sxcu` files will have no `XerahS` block until first XerahS save; first **Save to Plugins** or save-back should **append** the block when instances exist.
 
 ### 4) Optional: multi-category add from catalog
 For custom uploaders (or any provider with multiple supported categories), enhance `ProviderCatalogViewModel.AddSelected()` to support:
@@ -142,13 +169,15 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
    - **Automatically** create `UploaderInstance` entries for each category implied by the editor’s Destination Types (Image → Image Uploaders, File → File Uploaders, etc.); no extra checkbox sheet unless we add an optional “advanced” opt-out later.
 3. Update completion dialog text to state how many instances were created and for which categories (or “ready in Image and File uploaders”), not only “available in catalog”.
 
-### Stage B (optional persistence enhancement: save-back)
-1. Add `Save to .sxcu` action in the inline custom uploader editor (inside `UploaderInstanceViewModel` UI).
-2. Implement save-back:
+### Stage B (persistence: save-back + instance metadata on `.sxcu`)
+1. Add `Save to .sxcu` / **Save definition to Plugins** action in the inline custom uploader editor (inside `UploaderInstanceViewModel` UI).
+2. Extend serialization so each written `.sxcu` **appends** XerahS metadata (`XerahS.instanceIds`, etc. per §3b) whenever XerahS creates or updates the file.
+3. Implement save-back:
    - resolve `CustomUploaderProvider.FilePath`
-   - overwrite `.sxcu` using `CustomUploaderRepository.SaveToFile`
+   - overwrite `.sxcu` using `CustomUploaderRepository.SaveToFile` (or shared serializer) so metadata and item body stay consistent
    - reload catalog and refresh categories
-3. Add confirmation/warning UI.
+4. Add confirmation/warning UI when multiple instances share one definition; optional **Save as new .sxcu** with disambiguated filename.
+5. Surface **definition path + bound instance ID(s)** in the instance settings panel (§3b).
 
 ### Stage C (optional catalog multi-add)
 1. Extend provider catalog modal to allow adding instances to multiple categories at once (starting with “all supported categories”).
@@ -161,7 +190,8 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
 3. Inline edits clearly either:
    - affect only the instance, or
    - can be saved back to the `.sxcu` definition via an explicit action.
-4. No existing workflows (especially legacy ShareX config import) regress.
+4. **Every `.sxcu` written or updated by XerahS** for a custom uploader that has at least one destination instance **records** the bound **`UploaderInstance.InstanceId`(s)** in persisted metadata (§3b), so files are distinguishable and traceable; the UI shows definition path and bound IDs.
+5. No existing workflows (especially legacy ShareX config import) regress; ShareX-compatible fields remain valid for import elsewhere.
 
 ---
 
@@ -173,7 +203,9 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
    - Re-save equivalent uploader → idempotent (no duplicate instances per category).
 2. Regression test:
    - legacy import path continues to auto-create instances
-3. Save-back test (if Stage B is implemented):
+3. Save-back + metadata tests (Stage B):
+   - After **Save to Plugins** with auto-created instances, open the new `.sxcu` on disk: `XerahS.instanceIds` (or equivalent) contains the new instance GUID(s).
+   - After save-back from one instance, metadata includes that instance id; after **Save as new .sxcu**, filename or metadata distinguishes the fork from the original.
    - editing an instance and saving back overwrites the `.sxcu` and reloads the provider catalog
 
 ---
@@ -187,6 +219,7 @@ This reduces “repeat Add from Catalog per category” even in catalog-driven w
 6. `src/desktop/app/XerahS.UI/ViewModels/UploaderInstanceViewModel.cs` (for save-back wiring)
 7. `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs` (reload/refresh helpers if needed)
 8. `src/desktop/core/XerahS.Uploaders/CustomUploader/CustomUploaderProvider.cs` (if small helper methods are needed)
+9. `src/desktop/core/XerahS.Uploaders/CustomUploader/CustomUploaderItem.cs` or dedicated DTO / wrapper for **root JSON** that includes optional `XerahS` metadata without breaking ShareX round-trip (exact shape TBD in implementation)
 
 ---
 
