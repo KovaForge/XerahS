@@ -289,7 +289,7 @@ namespace XerahS.Core.Tasks.Processors
         {
             attemptedInstanceIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
-            DebugHelper.WriteLine($"Auto destination selected; trying uploaders with fallback for category {category}.");
+            DebugHelper.WriteLine($"[UploadFallback] Iterating uploaders with fallback for category {category}.");
 
             // Get all available instances for this category that haven't been attempted yet
             var allInstances = GetPrioritizedInstances(instanceManager, category, excludeInstanceId, info.FileName)
