@@ -25,6 +25,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
+using XerahS.UI.Services;
 using XerahS.Uploaders.PluginSystem;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using System.Collections.ObjectModel;
@@ -83,17 +84,7 @@ public partial class CategoryViewModel : ViewModelBase
 
                 viewModel.OnCancelled += Cleanup;
 
-                // Show Modal (set ViewModel, DataTemplate handles View)
-                // Dispatch to ensure Avalonia processes the property changes in a fresh
-                // layout/render cycle. On Linux/X11 the IsVisible binding on the modal
-                // overlay Grid may not invalidate correctly when set synchronously inside
-                // a RelayCommand handler.
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    mainVm.ModalContent = viewModel;
-                    mainVm.IsModalOpen = true;
-                    DebugHelper.WriteLine("[CategoryViewModel] Modal opened for provider catalog");
-                });
+                ModalOpenService.Open(mainVm, viewModel, "CategoryViewModel");
             }
             else
             {
