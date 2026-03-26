@@ -201,6 +201,13 @@ namespace XerahS.UI.Services
                 try
                 {
                     Exception? startupFailure = null;
+                    VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
+                    if (!launchPolicy.AllowInteractiveLaunch)
+                    {
+                        await ShowVideoEditorStartupErrorAsync("The video editor is unavailable on this platform/session.");
+                        return null;
+                    }
+
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
@@ -230,6 +237,7 @@ namespace XerahS.UI.Services
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
                         FFprobePath = ffprobePath,
                         Theme = ResolveTheme(),
+                        EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };
 
                     var events = new VideoEditorEvents
