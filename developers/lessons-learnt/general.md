@@ -41,6 +41,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 - Never duplicate semantic control classes like `section-header`, `caption`, `readonly`, or status colors inside individual views; always define them once in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` and back them with palette tokens in `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Theming/ImageEditorTheme.axaml` because local copies stop whole-app theme changes from propagating consistently.
 - Never store a border thickness token as `x:Double` when it will feed `BorderThickness`; always declare it as `Thickness` because Avalonia style setters will reject a numeric resource value for a `Thickness` property at runtime even when inline `BorderThickness="1"` looks valid.
 - Never bind workflow-edit dialogs directly to the live `WorkflowSettings` instance; always edit a working copy, apply it only on `OK`, and show the real job separately from the custom description because otherwise `Cancel` is not real and workflow names can silently drift away from the task they actually execute.
+- Never use decorative Unicode glyphs in button labels, status text, or debug prefixes unless the file already intentionally depends on them and the round-trip encoding has been verified; always prefer ASCII-safe labels such as `...`, `[OK]`, `[ERROR]`, and `[FAIL]` because editor and PowerShell write paths can silently turn those glyphs into mojibake in source and UI.
 
 ### ContextMenu vs. ContextFlyout
 
