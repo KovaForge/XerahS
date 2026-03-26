@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using XerahS.Common;
 
 namespace XerahS.Uploaders.CustomUploader;
@@ -37,6 +38,11 @@ public class LoadedCustomUploader
     /// The parsed CustomUploaderItem configuration.
     /// </summary>
     public CustomUploaderItem Item { get; }
+
+    /// <summary>
+    /// Optional XerahS-specific metadata stored alongside the ShareX-compatible root fields.
+    /// </summary>
+    public CustomUploaderXerahSMetadata? Metadata { get; }
 
     /// <summary>
     /// Full path to the source .sxcu or .json file.
@@ -58,9 +64,10 @@ public class LoadedCustomUploader
     /// </summary>
     public bool IsValid => LoadError == null;
 
-    public LoadedCustomUploader(CustomUploaderItem item, string filePath)
+    public LoadedCustomUploader(CustomUploaderItem item, string filePath, CustomUploaderXerahSMetadata? metadata = null)
     {
         Item = item;
+        Metadata = metadata;
         FilePath = filePath;
         FileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
         LoadError = null;
@@ -69,6 +76,7 @@ public class LoadedCustomUploader
     public LoadedCustomUploader(string filePath, string error)
     {
         Item = CustomUploaderItem.Init();
+        Metadata = null;
         FilePath = filePath;
         FileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
         LoadError = error;
@@ -165,7 +173,9 @@ public static class CustomUploaderRepository
     {
         try
         {
-            var item = JsonConvert.DeserializeObject<CustomUploaderItem>(json);
+            var root = JObject.Parse(json);
+            var metadata = ExtractMetadata(root);
+            var item = root.ToObject<CustomUploaderItem>();
 
             if (item == null)
             {
@@ -189,7 +199,7 @@ public static class CustomUploaderRepository
                 return new LoadedCustomUploader(sourcePath, $"Compatibility check failed: {ex.Message}");
             }
 
-            return new LoadedCustomUploader(item, sourcePath);
+            return new LoadedCustomUploader(item, sourcePath, metadata);
         }
         catch (JsonException ex)
         {
@@ -239,15 +249,34 @@ public static class CustomUploaderRepository
     /// <returns>True if saved successfully.</returns>
     public static bool SaveToFile(CustomUploaderItem item, string filePath)
     {
+        return SaveToFile(item, filePath, metadata: null);
+    }
+
+    /// <summary>
+    /// Saves a custom uploader to a file with optional XerahS-specific metadata.
+    /// </summary>
+    /// <param name="item">The custom uploader item to save.</param>
+    /// <param name="filePath">Destination file path.</param>
+    /// <param name="metadata">Optional metadata persisted under the root XerahS object.</param>
+    /// <returns>True if saved successfully.</returns>
+    public static bool SaveToFile(CustomUploaderItem item, string filePath, CustomUploaderXerahSMetadata? metadata)
+    {
         try
         {
-            var json = JsonConvert.SerializeObject(item, Formatting.Indented, new JsonSerializerSettings
+            var serializer = JsonSerializer.Create(new JsonSerializerSettings
             {
                 DefaultValueHandling = DefaultValueHandling.Ignore,
                 NullValueHandling = NullValueHandling.Ignore
             });
+            var root = JObject.FromObject(item, serializer);
+            var normalizedMetadata = metadata?.Normalize();
 
-            File.WriteAllText(filePath, json);
+            if (normalizedMetadata?.HasBindings == true)
+            {
+                root["XerahS"] = JObject.FromObject(normalizedMetadata, serializer);
+            }
+
+            File.WriteAllText(filePath, root.ToString(Formatting.Indented));
             DebugHelper.WriteLine($"[CustomUploader] Saved uploader to: {filePath}");
             return true;
         }
@@ -314,6 +343,29 @@ public static class CustomUploaderRepository
         lock (_lock)
         {
             _loadedUploaders.Remove(filePath);
+        }
+    }
+
+    private static CustomUploaderXerahSMetadata? ExtractMetadata(JObject root)
+    {
+        var metadataProperty = root.Properties()
+            .FirstOrDefault(property => string.Equals(property.Name, "XerahS", StringComparison.OrdinalIgnoreCase));
+
+        if (metadataProperty == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var metadata = metadataProperty.Value.ToObject<CustomUploaderXerahSMetadata>()?.Normalize();
+            metadataProperty.Remove();
+            return metadata?.HasBindings == true ? metadata : null;
+        }
+        catch
+        {
+            metadataProperty.Remove();
+            return null;
         }
     }
 }

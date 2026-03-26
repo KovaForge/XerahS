@@ -112,13 +112,13 @@ public static class ProviderCatalog
                     else
                     {
                         failureCount++;
-                        DebugHelper.WriteLine($"[Plugins] ✗ FAILED: {metadata.Manifest.Name} - {metadata.LoadError}");
+                        DebugHelper.WriteLine($"[Plugins] Ã¢Å“â€” FAILED: {metadata.Manifest.Name} - {metadata.LoadError}");
                     }
                 }
                 catch (Exception ex)
                 {
                     failureCount++;
-                    DebugHelper.WriteLine($"[Plugins] ✗ ERROR loading {metadata.Manifest.Name}: {ex.Message}");
+                    DebugHelper.WriteLine($"[Plugins] Ã¢Å“â€” ERROR loading {metadata.Manifest.Name}: {ex.Message}");
                     DebugHelper.WriteLine($"[Plugins]   Stack: {ex.StackTrace}");
                 }
             }
@@ -340,18 +340,18 @@ public static class ProviderCatalog
                     _pluginMetadata[provider.ProviderId] = metadata;
 
                     loadedCount++;
-                    DebugHelper.WriteLine($"[CustomUploader] ✓ Loaded: {provider.Name} ({provider.ProviderId}) - Categories: {string.Join(", ", provider.SupportedCategories)}");
+                    DebugHelper.WriteLine($"[CustomUploader] Ã¢Å“â€œ Loaded: {provider.Name} ({provider.ProviderId}) - Categories: {string.Join(", ", provider.SupportedCategories)}");
                 }
                 catch (Exception ex)
                 {
-                    DebugHelper.WriteLine($"[CustomUploader] ✗ Error creating provider for {uploader.FilePath}: {ex.Message}");
+                    DebugHelper.WriteLine($"[CustomUploader] Ã¢Å“â€” Error creating provider for {uploader.FilePath}: {ex.Message}");
                 }
             }
 
             // Log failures
             foreach (var uploader in loaded.Where(u => !u.IsValid))
             {
-                DebugHelper.WriteLine($"[CustomUploader] ✗ Failed to load {uploader.FilePath}: {uploader.LoadError}");
+                DebugHelper.WriteLine($"[CustomUploader] Ã¢Å“â€” Failed to load {uploader.FilePath}: {uploader.LoadError}");
             }
         }
 
@@ -410,6 +410,21 @@ public static class ProviderCatalog
     }
 
     /// <summary>
+    /// Gets a custom uploader provider by its backing file path.
+    /// </summary>
+    /// <param name="filePath">Full path to the custom uploader definition file.</param>
+    /// <returns>The matching provider if one is loaded; otherwise null.</returns>
+    public static CustomUploaderProvider? GetCustomUploaderProviderByFilePath(string filePath)
+    {
+        lock (_lock)
+        {
+            return _providers.Values
+                .OfType<CustomUploaderProvider>()
+                .FirstOrDefault(provider => string.Equals(provider.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    /// <summary>
     /// Reloads a specific custom uploader file
     /// </summary>
     /// <param name="filePath">Path to the .sxcu file to reload</param>
@@ -429,7 +444,8 @@ public static class ProviderCatalog
 
             // Remove old provider with same file if exists
             var existingKey = _providers.Keys.FirstOrDefault(k =>
-                _providers[k] is CustomUploaderProvider cp && cp.FilePath == filePath);
+                _providers[k] is CustomUploaderProvider cp &&
+                string.Equals(cp.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
 
             if (existingKey != null)
             {
