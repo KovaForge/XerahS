@@ -18,7 +18,7 @@ Approach this like a systems thinker.
 7. Choose best approach
 8. Give step-by-step execution
 9. Highlight failure points
-10. Draft post-v1 improvements as a new markdown proposal under docs/proposals: use subfolder xip/ for app-wide or cross-cutting work, ieip/ for image editor, veip/ for video editor. Pick the next free XIP#### / IEIP#### / VEIP#### ID (match existing numbering in that folder), name the file PREFIX####-descriptive-slug.md using the correct prefix for that subfolder and the same slug style as sibling files, and follow the proposal structure and naming rules in .ai/skills/write-xip/SKILL.md plus the style of existing proposals in that subfolder.
+10. Create one new markdown proposal under docs/proposals whose body includes, in this order: (a) a section that summarises steps 1-9 in the file itself, and (b) post-v1 improvements. Use subfolder xip/ for app-wide or cross-cutting work, ieip/ for image editor, veip/ for video editor. Pick the next free XIP#### / IEIP#### / VEIP#### ID (match existing numbering in that folder), name the file PREFIX####-descriptive-slug.md using the correct prefix for that subfolder and the same slug style as sibling files, and follow the proposal structure and naming rules in .ai/skills/write-xip/SKILL.md plus the style of existing proposals in that subfolder.
 
 Problem:
 [paste problem description here]
