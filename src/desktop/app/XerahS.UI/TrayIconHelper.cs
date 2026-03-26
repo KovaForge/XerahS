@@ -407,6 +407,12 @@ public class TrayIconHelper : INotifyPropertyChanged
             return;
         }
 
+        if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+        {
+            DebugHelper.WriteLine("TrayIconHelper: Pause/resume is unavailable for the active recording backend.");
+            return;
+        }
+
         try
         {
             await _screenRecordingCoordinator.TogglePauseResumeAsync();
@@ -531,7 +537,8 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private void AddRecordingMenuItems()
     {
-        bool canPauseResume = _currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused;
+        bool canPauseResume = _screenRecordingCoordinator?.CurrentCapabilities.SupportsPauseResume == true &&
+            (_currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused);
         bool canStop = _currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused;
         bool canAbort = _currentRecordingStatus is RecordingStatus.Recording
             or RecordingStatus.Paused

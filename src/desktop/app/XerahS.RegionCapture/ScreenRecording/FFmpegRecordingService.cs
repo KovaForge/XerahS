@@ -63,6 +63,12 @@ public class FFmpegRecordingService : IRecordingService
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
 
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return RecordingRuntimeCapabilities.SegmentedRestart;
+    }
+
     public Task StartRecordingAsync(RecordingOptions options)
     {
         Console.WriteLine("[FFmpegRecordingService] StartRecordingAsync called");

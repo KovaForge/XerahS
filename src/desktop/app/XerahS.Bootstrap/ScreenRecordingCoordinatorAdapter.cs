@@ -51,6 +51,7 @@ namespace XerahS.Bootstrap
         public bool IsRecording => manager.IsRecording;
         public bool IsPaused => manager.IsPaused;
         public bool IsUsingFallback => manager.IsUsingFallback;
+        public RecordingRuntimeCapabilities CurrentCapabilities => manager.CurrentCapabilities;
 
         public Task? PlatformInitializationTask
         {

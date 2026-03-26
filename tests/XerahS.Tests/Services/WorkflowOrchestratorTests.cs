@@ -27,6 +27,7 @@ using System.Reflection;
 using NUnit.Framework;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
+using XerahS.RegionCapture.ScreenRecording;
 using XerahS.Tests.Xip0052;
 using XerahS.UI.Services;
 using HotkeyInfo = XerahS.Platform.Abstractions.HotkeyInfo;
@@ -46,6 +47,23 @@ public class WorkflowOrchestratorTests
         InvokeHotkey(orchestrator, WorkflowType.PauseScreenRecording);
 
         Assert.That(coordinator.TogglePauseResumeCalls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PauseRecordingHotkey_DoesNotToggleWhenCoordinatorDisablesPause()
+    {
+        var taskManager = new FakeDesktopTaskManager();
+        var coordinator = new FakeScreenRecordingCoordinator
+        {
+            IsRecording = true,
+            CurrentCapabilities = RecordingRuntimeCapabilities.None
+        };
+
+        var orchestrator = new WorkflowOrchestrator(taskManager, coordinator);
+
+        InvokeHotkey(orchestrator, WorkflowType.PauseScreenRecording);
+
+        Assert.That(coordinator.TogglePauseResumeCalls, Is.EqualTo(0));
     }
 
     [Test]

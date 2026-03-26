@@ -68,6 +68,20 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
 
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        // wf-recorder can be safely restarted without re-opening the portal session flow.
+        // Portal-backed GStreamer/FFmpeg recording requires a fresh portal session and should
+        // not be exposed through the shared segmented pause path.
+        return CanUseWfRecorder(options)
+            ? RecordingRuntimeCapabilities.SegmentedRestart
+            : new RecordingRuntimeCapabilities(
+                RecordingPauseBehavior.Unsupported,
+                RequiresPersistentSession: true);
+    }
+
     public Task StartRecordingAsync(RecordingOptions options)
     {
         if (options == null) throw new ArgumentNullException(nameof(options));
