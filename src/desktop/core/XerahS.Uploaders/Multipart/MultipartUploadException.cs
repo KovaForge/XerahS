@@ -23,21 +23,22 @@
 
 #endregion License Information (GPL v3)
 
-namespace XerahS.Uploaders
-{
-    public abstract class FileUploader : GenericUploader
-    {
-        public virtual UploadResult? UploadFile(string filePath)
-        {
-            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-            {
-                using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    return Upload(stream, Path.GetFileName(filePath));
-                }
-            }
+namespace XerahS.Uploaders.Multipart;
 
-            return null;
-        }
+public sealed class MultipartUploadException : Exception
+{
+    public MultipartUploadException(
+        string message,
+        string? uploadId,
+        IReadOnlyList<CompletedPart> completedParts,
+        Exception? innerException = null)
+        : base(message, innerException)
+    {
+        UploadId = uploadId;
+        CompletedParts = completedParts ?? Array.Empty<CompletedPart>();
     }
+
+    public string? UploadId { get; }
+
+    public IReadOnlyList<CompletedPart> CompletedParts { get; }
 }
