@@ -111,19 +111,34 @@
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="0,1,0,0"
                 Padding="24">
-            <StackPanel Orientation="Horizontal" 
-                        HorizontalAlignment="Right"
-                        Spacing="12">
-                <Button Content="Cancel" 
-                        Command="{Binding CancelCommand}"
-                        MinWidth="90"
-                        AutomationProperties.Name="Cancel Selection"/>
-                <Button Content="Add Selected" 
-                        Command="{Binding AddSelectedCommand}"
-                        Classes="accent"
-                        MinWidth="110"
-                        AutomationProperties.Name="Add Selected Provider"/>
-            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0"
+                            Spacing="6"
+                            IsVisible="{Binding CanAddToAllSupportedCategories}">
+                    <CheckBox Content="Add to all supported categories"
+                              IsChecked="{Binding AddToAllSupportedCategories}"
+                              AutomationProperties.Name="Add To All Supported Categories"/>
+                    <TextBlock Text="{Binding MultiCategorySelectionSummary, StringFormat='Supported categories: {0}'}"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal" 
+                            HorizontalAlignment="Right"
+                            Spacing="12">
+                    <Button Content="Cancel" 
+                            Command="{Binding CancelCommand}"
+                            MinWidth="90"
+                            AutomationProperties.Name="Cancel Selection"/>
+                    <Button Content="Add Selected" 
+                            Command="{Binding AddSelectedCommand}"
+                            Classes="accent"
+                            MinWidth="110"
+                            AutomationProperties.Name="Add Selected Provider"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

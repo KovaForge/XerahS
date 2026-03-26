@@ -147,6 +147,11 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         categoryVm?.LoadInstances();
     }
 
+    partial void OnSelectedCategoryChanged(CategoryViewModel? value)
+    {
+        value?.LoadInstances();
+    }
+
     [RelayCommand]
     private async Task OpenPluginInstaller()
     {
