@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\src\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
