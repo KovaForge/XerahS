@@ -93,7 +93,7 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
 
-                                    <Button Grid.Column="4" Content="⋮" Padding="8,4"
+                                    <Button Grid.Column="4" Content="..." Padding="8,4"
                                             AutomationProperties.Name="Instance Options">
                                         <Button.Flyout>
                                             <MenuFlyout>
@@ -184,6 +184,49 @@
                                              Background="{DynamicResource ControlAltFillColorDefaultBrush}"
                                              AutomationProperties.Name="Instance ID"/>
                                 </Grid>
+                            </StackPanel>
+
+                            <StackPanel Spacing="12"
+                                        IsVisible="{Binding SelectedCategory.SelectedInstance.IsCustomUploaderInstance}">
+                                <TextBlock Text="Definition Binding" FontWeight="SemiBold" FontSize="16"/>
+                                <TextBlock Text="{Binding SelectedCategory.SelectedInstance.DefinitionSaveHelpText}"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           TextWrapping="Wrap"/>
+                                <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, 16, Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Definition file:" VerticalAlignment="Top"/>
+                                    <TextBox Grid.Row="0" Grid.Column="2"
+                                             Text="{Binding SelectedCategory.SelectedInstance.DefinitionFilePath}"
+                                             Watermark="This instance cannot be mapped back to a .sxcu source file."
+                                             IsReadOnly="True"
+                                             Background="{DynamicResource ControlAltFillColorDefaultBrush}"
+                                             TextWrapping="Wrap"
+                                             ToolTip.Tip="{Binding SelectedCategory.SelectedInstance.DefinitionBindingUnavailableReason}"
+                                             AutomationProperties.Name="Custom Uploader Definition File"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Bound instance ID(s):" VerticalAlignment="Top"/>
+                                    <TextBox Grid.Row="2" Grid.Column="2"
+                                             Text="{Binding SelectedCategory.SelectedInstance.BoundInstanceIdsDisplay}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             MinHeight="68"
+                                             Background="{DynamicResource ControlAltFillColorDefaultBrush}"
+                                             TextWrapping="Wrap"
+                                             ToolTip.Tip="Reads XerahS.instanceIds when available, otherwise falls back to the current instance binding."
+                                             AutomationProperties.Name="Bound Instance IDs"/>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button Content="Save Definition to Plugins"
+                                            Command="{Binding SelectedCategory.SelectedInstance.SaveDefinitionToPluginsCommand}"
+                                            IsEnabled="{Binding SelectedCategory.SelectedInstance.CanManageDefinition}"
+                                            Classes="accent"
+                                            ToolTip.Tip="{Binding SelectedCategory.SelectedInstance.DefinitionBindingUnavailableReason}"
+                                            AutomationProperties.Name="Save Definition to Plugins"/>
+                                    <Button Content="Save as New .sxcu"
+                                            Command="{Binding SelectedCategory.SelectedInstance.SaveDefinitionAsNewCommand}"
+                                            IsEnabled="{Binding SelectedCategory.SelectedInstance.CanManageDefinition}"
+                                            ToolTip.Tip="{Binding SelectedCategory.SelectedInstance.DefinitionBindingUnavailableReason}"
+                                            AutomationProperties.Name="Save Definition As New"/>
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- File Type Scope -->

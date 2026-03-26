@@ -25,6 +25,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
+using XerahS.Uploaders.CustomUploader;
 using XerahS.Uploaders.PluginSystem;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -45,8 +46,15 @@ public partial class ProviderCatalogViewModel : ViewModelBase
     [ObservableProperty]
     private ProviderViewModel? _selectedProvider;
 
+    [ObservableProperty]
+    private bool _addToAllSupportedCategories = true;
+
     public Action<List<UploaderInstance>>? OnInstancesAdded { get; set; }
     public Action? OnCancelled { get; set; }
+
+    public bool CanAddToAllSupportedCategories => SelectedProvider?.SupportsMultipleCategories == true;
+
+    public string MultiCategorySelectionSummary => SelectedProvider?.SupportedCategoriesSummary ?? string.Empty;
 
     public ProviderCatalogViewModel(UploaderCategory category)
     {
@@ -69,6 +77,21 @@ public partial class ProviderCatalogViewModel : ViewModelBase
         }
 
         DebugHelper.WriteLine($"[ProviderCatalog] Total providers in AvailableProviders: {AvailableProviders.Count}");
+    }
+
+    partial void OnSelectedProviderChanged(ProviderViewModel? value)
+    {
+        if (value?.SupportsMultipleCategories != true)
+        {
+            AddToAllSupportedCategories = false;
+        }
+        else if (!AddToAllSupportedCategories)
+        {
+            AddToAllSupportedCategories = true;
+        }
+
+        OnPropertyChanged(nameof(CanAddToAllSupportedCategories));
+        OnPropertyChanged(nameof(MultiCategorySelectionSummary));
     }
 
 
@@ -104,17 +127,44 @@ public partial class ProviderCatalogViewModel : ViewModelBase
                 return;
             }
 
-            var instance = new UploaderInstance
-            {
-                ProviderId = provider.ProviderId,
-                Category = Category,
-                DisplayName = $"{provider.Name} ({Category})",
-                SettingsJson = provider.GetDefaultSettings(Category)
-            };
+            var targetCategories = GetTargetCategories(provider);
+            var createdInstances = new List<UploaderInstance>();
 
-            InstanceManager.Instance.AddInstance(instance);
+            foreach (var targetCategory in targetCategories)
+            {
+                bool alreadyExists = InstanceManager.Instance.GetInstancesByCategory(targetCategory)
+                    .Any(instance => string.Equals(instance.ProviderId, provider.ProviderId, StringComparison.OrdinalIgnoreCase));
+
+                if (alreadyExists)
+                {
+                    DebugHelper.WriteLine($"[ProviderCatalog] Skipping duplicate instance for {provider.ProviderId} in {targetCategory}");
+                    continue;
+                }
+
+                var instance = new UploaderInstance
+                {
+                    ProviderId = provider.ProviderId,
+                    Category = targetCategory,
+                    DisplayName = $"{provider.Name} ({targetCategory})",
+                    SettingsJson = provider.GetDefaultSettings(targetCategory)
+                };
+
+                InstanceManager.Instance.AddInstance(instance);
+                createdInstances.Add(instance);
+            }
+
+            if (provider is CustomUploaderProvider customUploaderProvider)
+            {
+                var boundInstanceIds = CustomUploaderDefinitionBindingService.GetBoundInstanceIds(customUploaderProvider.ProviderId);
+                CustomUploaderDefinitionBindingService.SaveDefinition(
+                    customUploaderProvider.Item,
+                    customUploaderProvider.FilePath,
+                    boundInstanceIds);
+                ProviderCatalog.ReloadCustomUploader(customUploaderProvider.FilePath);
+            }
+
             DebugHelper.WriteLine($"[ProviderCatalog] Instance added, invoking OnInstancesAdded callback...");
-            OnInstancesAdded?.Invoke(new List<UploaderInstance> { instance });
+            OnInstancesAdded?.Invoke(createdInstances);
             DebugHelper.WriteLine($"[ProviderCatalog] OnInstancesAdded callback invoked");
         }
         catch (Exception ex)
@@ -127,6 +177,13 @@ public partial class ProviderCatalogViewModel : ViewModelBase
     private void Cancel()
     {
         OnCancelled?.Invoke();
+    }
+
+    private UploaderCategory[] GetTargetCategories(IUploaderProvider provider)
+    {
+        return AddToAllSupportedCategories
+            ? provider.SupportedCategories.Distinct().ToArray()
+            : new[] { Category };
     }
 }
 
@@ -164,12 +221,17 @@ public partial class ProviderViewModel : ViewModelBase
 
     public UploaderCategory[] SupportedCategories { get; }
 
+    public bool SupportsMultipleCategories => SupportedCategories.Length > 1;
+
+    public string SupportedCategoriesSummary { get; }
+
     public ProviderViewModel(IUploaderProvider provider, UploaderCategory? filterCategory = null)
     {
         _providerId = provider.ProviderId;
         _name = provider.Name;
         _description = provider.Description;
         SupportedCategories = provider.SupportedCategories;
+        SupportedCategoriesSummary = string.Join(", ", SupportedCategories.Select(category => category.ToString()));
 
         // Display supported file types for the filter category if provided
         if (filterCategory.HasValue)
