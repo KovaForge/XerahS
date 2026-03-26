@@ -112,13 +112,13 @@ public static class ProviderCatalog
                     else
                     {
                         failureCount++;
-                        DebugHelper.WriteLine($"[Plugins] Ã¢Å“â€” FAILED: {metadata.Manifest.Name} - {metadata.LoadError}");
+                        DebugHelper.WriteLine($"[Plugins] [FAIL] {metadata.Manifest.Name} - {metadata.LoadError}");
                     }
                 }
                 catch (Exception ex)
                 {
                     failureCount++;
-                    DebugHelper.WriteLine($"[Plugins] Ã¢Å“â€” ERROR loading {metadata.Manifest.Name}: {ex.Message}");
+                    DebugHelper.WriteLine($"[Plugins] [ERROR] loading {metadata.Manifest.Name}: {ex.Message}");
                     DebugHelper.WriteLine($"[Plugins]   Stack: {ex.StackTrace}");
                 }
             }
@@ -340,18 +340,18 @@ public static class ProviderCatalog
                     _pluginMetadata[provider.ProviderId] = metadata;
 
                     loadedCount++;
-                    DebugHelper.WriteLine($"[CustomUploader] Ã¢Å“â€œ Loaded: {provider.Name} ({provider.ProviderId}) - Categories: {string.Join(", ", provider.SupportedCategories)}");
+                    DebugHelper.WriteLine($"[CustomUploader] [OK] Loaded: {provider.Name} ({provider.ProviderId}) - Categories: {string.Join(", ", provider.SupportedCategories)}");
                 }
                 catch (Exception ex)
                 {
-                    DebugHelper.WriteLine($"[CustomUploader] Ã¢Å“â€” Error creating provider for {uploader.FilePath}: {ex.Message}");
+                    DebugHelper.WriteLine($"[CustomUploader] [ERROR] creating provider for {uploader.FilePath}: {ex.Message}");
                 }
             }
 
             // Log failures
             foreach (var uploader in loaded.Where(u => !u.IsValid))
             {
-                DebugHelper.WriteLine($"[CustomUploader] Ã¢Å“â€” Failed to load {uploader.FilePath}: {uploader.LoadError}");
+                DebugHelper.WriteLine($"[CustomUploader] [FAIL] Failed to load {uploader.FilePath}: {uploader.LoadError}");
             }
         }
 

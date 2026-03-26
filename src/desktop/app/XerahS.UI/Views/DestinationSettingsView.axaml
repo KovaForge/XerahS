@@ -93,7 +93,7 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
 
-                                    <Button Grid.Column="4" Content="Ã¢â€¹Â®" Padding="8,4"
+                                    <Button Grid.Column="4" Content="..." Padding="8,4"
                                             AutomationProperties.Name="Instance Options">
                                         <Button.Flyout>
                                             <MenuFlyout>

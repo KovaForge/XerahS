@@ -188,7 +188,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             VerifyPluginConfiguration();
 
             // Update status message to show success
-            VerificationMessage = $"Ã¢Å“â€œ Cleaned {deletedCount} duplicate DLL(s) - Please restart the application";
+            VerificationMessage = $"Cleaned {deletedCount} duplicate DLL(s). Please restart the application.";
         }
         else
         {
