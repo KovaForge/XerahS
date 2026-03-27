@@ -68,5 +68,16 @@ namespace XerahS.Platform.Abstractions
         /// Shows the After Upload window with upload results and actions.
         /// </summary>
         Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info);
+
+        /// <summary>
+        /// Shows the Send-to action prompt and returns the chosen action.
+        /// Implementations may return a fallback upload decision when interactive UI is unavailable.
+        /// </summary>
+        Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection);
+
+        /// <summary>
+        /// Executes a non-upload Send-to action against the provided selection.
+        /// </summary>
+        Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection);
     }
 }

@@ -24,6 +24,8 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using Avalonia.Threading;
+using System.Linq;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.Services;
@@ -42,17 +44,69 @@ public static class UploadContentToolService
     /// </param>
     public static Task HandleWorkflowAsync(WorkflowType job, Window? owner, bool background = false)
     {
-        ShowWindow(owner, background);
+        var window = ShowWindow(owner, background);
 
         if (job is WorkflowType.ClipboardUploadWithContentViewer or WorkflowType.ClipboardViewer)
         {
-            _window?.ViewModel?.LoadFromClipboardCommand.Execute(null);
+            window.ViewModel?.LoadFromClipboardCommand.Execute(null);
         }
 
         return Task.CompletedTask;
     }
 
-    private static void ShowWindow(Window? owner, bool background)
+    public static async Task ShowSelectionAsync(
+        IEnumerable<string>? filePaths,
+        IEnumerable<string>? folderPaths,
+        Window? owner)
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var window = ShowWindow(owner, background: false);
+            var viewModel = window.ViewModel;
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            UploadQueueItem? firstAddedItem = null;
+            int addedFileCount = 0;
+            int addedFolderCount = 0;
+
+            foreach (var filePath in filePaths ?? Enumerable.Empty<string>())
+            {
+                var addedItem = viewModel.AddFileItem(filePath);
+                if (addedItem != null)
+                {
+                    firstAddedItem ??= addedItem;
+                    addedFileCount++;
+                }
+            }
+
+            foreach (var folderPath in folderPaths ?? Enumerable.Empty<string>())
+            {
+                var addedItem = viewModel.AddFolderFiles(folderPath);
+                if (addedItem != null)
+                {
+                    firstAddedItem ??= addedItem;
+                }
+
+                if (!string.IsNullOrWhiteSpace(folderPath))
+                {
+                    addedFolderCount++;
+                }
+            }
+
+            if (firstAddedItem != null)
+            {
+                viewModel.SelectedItem = firstAddedItem;
+            }
+
+            DebugHelper.WriteLine(
+                $"UploadContent: Seeded Send-to selection with {addedFileCount} direct file(s) and {addedFolderCount} folder item(s).");
+        });
+    }
+
+    private static UploadContentWindow ShowWindow(Window? owner, bool background)
     {
         if (_window != null)
         {
@@ -70,7 +124,7 @@ public static class UploadContentToolService
                     _window.Activate();
                 }
 
-                return;
+                return _window;
             }
             catch
             {
@@ -102,5 +156,6 @@ public static class UploadContentToolService
         }
 
         DebugHelper.WriteLine($"UploadContent: Window shown (background={background}).");
+        return _window;
     }
 }

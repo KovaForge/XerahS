@@ -304,9 +304,12 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         return item;
     }
 
-    public void AddFolderFiles(string folderPath)
+    public UploadQueueItem? AddFolderFiles(string folderPath)
     {
-        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath)) return;
+        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+        {
+            return null;
+        }
 
         var files = Directory.GetFiles(folderPath);
         UploadQueueItem? firstAddedItem = null;
@@ -325,6 +328,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         }
 
         DebugHelper.WriteLine($"UploadContent: Added {files.Length} files from folder '{folderPath}'.");
+        return firstAddedItem;
     }
 
     public void AddTextItem(string text)

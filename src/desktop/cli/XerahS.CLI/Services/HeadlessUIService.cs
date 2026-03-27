@@ -165,6 +165,24 @@ namespace XerahS.CLI.Services
             return Task.CompletedTask;
         }
 
+        public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+        {
+            Console.WriteLine("[INFO] Send-to prompt not available in CLI mode. Falling back to upload.");
+
+            return Task.FromResult(new SendToPromptResult
+            {
+                Action = SendToAction.UploadNow,
+                IsFallback = true,
+                Reason = "CLI mode cannot display the Send-to prompt."
+            });
+        }
+
+        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection)
+        {
+            Console.WriteLine($"[INFO] Send-to action '{action}' is not available in CLI mode.");
+            return Task.CompletedTask;
+        }
+
         private static void LogVideoEditorFfmpegResolution(
             string? hostPath,
             string? detectedPath,

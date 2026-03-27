@@ -48,4 +48,16 @@ internal sealed class HeadlessUIService : IUIService
     }
 
     public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info) => Task.CompletedTask;
+
+    public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+    {
+        return Task.FromResult(new SendToPromptResult
+        {
+            Action = SendToAction.UploadNow,
+            IsFallback = true,
+            Reason = "Headless UI service cannot display the Send-to prompt."
+        });
+    }
+
+    public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
 }
