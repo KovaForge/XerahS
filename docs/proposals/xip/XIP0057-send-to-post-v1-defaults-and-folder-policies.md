@@ -9,11 +9,12 @@
 ## Problem Statement
 XIP0055 introduces the critical v1 correction: Send-to no longer implies upload, and users must choose an explicit action before XerahS starts work.
 
-That fixes the main UX failure, but it intentionally leaves three second-order problems unsolved:
+That fixes the main UX failure, but it intentionally leaves four second-order problems unsolved:
 
 1. Users who always take the same action still pay the prompt cost on every Send-to invocation.
 2. Folder-containing Send-to selections still need a more explicit, user-visible policy for how non-index actions treat directories.
-3. Multi-item image actions can become mechanically correct but operationally noisy when they open or pin many items at once.
+3. Upload-capable Send-to actions can bypass normal XerahS file naming behavior and leak source/provider placeholder names into the final URL, such as `_pb.jpg`, instead of using the configured name pattern.
+4. Multi-item image actions can become mechanically correct but operationally noisy when they open or pin many items at once.
 
 These are good v1 tradeoffs because they keep the first release scoped and safe. They should still be addressed as a follow-up so Send-to grows into a stable, configurable intake surface instead of remaining a one-off prompt.
 
@@ -22,8 +23,9 @@ These are good v1 tradeoffs because they keep the first release scoped and safe.
 ## Goals
 1. Add an explicit, reversible way to remember Send-to choices without hiding intent.
 2. Make folder handling transparent for `Upload now` and `Open in Upload Content`.
-3. Improve batch ergonomics for image-editor and pin-to-screen Send-to actions.
-4. Preserve the distinction between `Send to XerahS` and `Upload with XerahS`.
+3. Preserve XerahS file naming parity for Send-to actions that result in upload.
+4. Improve batch ergonomics for image-editor and pin-to-screen Send-to actions.
+5. Preserve the distinction between `Send to XerahS` and `Upload with XerahS`.
 
 ## Non-Goals
 - Replacing the Send-to prompt with silent behavior by default.
@@ -68,7 +70,29 @@ The prompt should show a short scope summary when folders are present, for examp
 
 This removes ambiguity for mixed selections and makes logs match what users actually approved.
 
-### 3) Batch execution policy for image actions
+### 3) Upload naming parity with standard workflows
+Any Send-to action that results in upload should resolve the upload name through the same naming policy used by normal XerahS uploads.
+
+Observed symptom:
+
+- the uploaded asset can retain a placeholder or source-derived name such as `_pb.jpg`
+- the final URL therefore no longer reflects the configured XerahS name pattern
+
+Post-v1 design rules:
+
+- `Upload now` and `Open in Upload Content` must converge on the same naming resolution path before upload begins.
+- If the source item does not already have an XerahS-generated upload name, XerahS should materialize a staged file or staged upload item whose name is derived from the active task settings name pattern.
+- Generated names must respect the same collision handling rules used by normal XerahS uploads.
+- Folder expansion policy and naming policy must compose cleanly: each resolved file gets its own generated upload name after folder expansion, not before.
+- The Upload Content UI should surface the resolved upload name when feasible so users can verify what will be sent.
+
+Diagnostics:
+
+- log the original source path
+- log whether a staging/materialization step occurred
+- log the resolved upload name used for the outgoing upload
+
+### 4) Batch execution policy for image actions
 When Send-to receives many image files, `Open in Image Editor` and `Pin to Screen` need pacing and visibility.
 
 Add a batch execution policy:
@@ -81,12 +105,14 @@ For pin-to-screen batches:
 - show a completion toast or summary with the number of successfully pinned images
 - surface skipped or failed files once, instead of one failure per file when possible
 
-### 4) Prompt summary and diagnostics hardening
+### 5) Prompt summary and diagnostics hardening
 Extend Send-to diagnostics so one batch decision can always be reconstructed from the log:
 
 - remembered rule used or not used
 - folder policy used
+- naming policy used
 - number of file items resolved from folders
+- number of staged file names generated
 - number of editor/pin actions started, skipped, or failed
 
 ---
@@ -95,8 +121,10 @@ Extend Send-to diagnostics so one batch decision can always be reconstructed fro
 1. Users can optionally remember a Send-to choice and clear it later.
 2. Remembered Send-to choices are scoped and never affect `Upload with XerahS`.
 3. Folder-containing Send-to selections show an explicit folder policy for non-index actions.
-4. Batch image actions offer a predictable execution policy and avoid uncontrolled window bursts.
-5. Logs clearly show the rule and folder policy used for each Send-to batch.
+4. Send-to uploads use the same effective naming policy as equivalent non-Send-to uploads.
+5. `Upload now` and `Open in Upload Content` do not diverge in generated upload names for the same input and task settings.
+6. Batch image actions offer a predictable execution policy and avoid uncontrolled window bursts.
+7. Logs clearly show the rule, folder policy, and naming policy used for each Send-to batch.
 
 ---
 
@@ -106,7 +134,10 @@ Extend Send-to diagnostics so one batch decision can always be reconstructed fro
 3. Folder policy `Do not expand folders` results in zero folder-derived upload-content or upload items.
 4. Folder policy `Include top-level files` excludes nested files.
 5. Folder policy `Include files recursively` includes nested files and logs the resolved count.
-6. Batch execution policy respects the configured threshold before opening many editor windows.
+6. Send-to `Upload now` applies the configured XerahS name pattern before upload instead of leaking the source/provider placeholder name.
+7. Send-to `Open in Upload Content` resolves the same upload name that `Upload now` would produce for the same input.
+8. Generated Send-to upload names remain collision-safe when multiple files resolve from folders.
+9. Batch execution policy respects the configured threshold before opening many editor windows.
 
 ---
 
@@ -118,12 +149,15 @@ Extend Send-to diagnostics so one batch decision can always be reconstructed fro
 5. `src/desktop/app/XerahS.App/SendToIntegrationCoordinator.cs`
 6. `src/desktop/core/XerahS.Core/SendTo/*`
 7. `src/platform/XerahS.Platform.Abstractions/IUIService.cs`
-8. `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`
+8. `src/desktop/app/XerahS.UI/Services/UploadContentToolService.cs`
+9. `src/desktop/app/XerahS.UI/ViewModels/UploadContentViewModel.cs`
+10. `src/desktop/core/XerahS.Core/Tasks/*`
+11. `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`
 
 ---
 
 ## Verification Commands
 ```powershell
-dotnet build src/desktop/app/XerahS.sln -m:1
+dotnet build src/desktop/XerahS.sln -m:1
 dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -m:1
 ```
