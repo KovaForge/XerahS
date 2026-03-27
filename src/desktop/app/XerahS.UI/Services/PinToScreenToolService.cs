@@ -64,6 +64,50 @@ public static class PinToScreenToolService
         }
     }
 
+    public static Task PinFilesAsync(IEnumerable<string>? filePaths)
+    {
+        int pinnedCount = 0;
+        int skippedCount = 0;
+
+        foreach (string filePath in filePaths ?? Enumerable.Empty<string>())
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            try
+            {
+                var bitmap = SKBitmap.Decode(filePath);
+                if (bitmap == null)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                PinToScreenManager.PinImage(bitmap, null, GetOptions());
+                pinnedCount++;
+            }
+            catch (Exception ex)
+            {
+                skippedCount++;
+                DebugHelper.WriteException(ex, $"PinToScreen: Failed to pin '{filePath}'.");
+            }
+        }
+
+        if (pinnedCount == 0)
+        {
+            ShowToast("Pin to Screen", "No compatible image files were available to pin.");
+        }
+        else if (skippedCount > 0)
+        {
+            ShowToast("Pin to Screen", $"Pinned {pinnedCount} image(s); skipped {skippedCount} item(s).");
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static async Task PinToScreenAsync(Window? owner)
     {
         // Show startup dialog to let user choose source

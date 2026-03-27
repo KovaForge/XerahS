@@ -28,6 +28,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using XerahS.Core;
 using XerahS.Core.Managers;
+using XerahS.Core.SendTo;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 
@@ -42,6 +43,13 @@ namespace XerahS.App
         private const string PipeName = "XerahS-Pipe-1F42DA49-7B2A-4E6F-8A3C-D56F09E0C481";
         private const string SendToFlag = "--send-to";
         private const string LegacyInstallPluginFlag = "-InstallPlugin";
+
+        private sealed class IncomingPathSet
+        {
+            public List<string> Files { get; } = [];
+
+            public List<string> Folders { get; } = [];
+        }
 
         [STAThread]
         public static void Main(string[] args)
@@ -715,26 +723,59 @@ namespace XerahS.App
                 return;
             }
 
-            List<string> files = ExtractSendToFilePaths(args);
-            if (files.Count == 0)
+            bool isSendToInvocation = IsSendToInvocation(args);
+            IncomingPathSet pathSet = ExtractIncomingPaths(args, includeDirectories: isSendToInvocation);
+
+            if (pathSet.Files.Count == 0 && pathSet.Folders.Count == 0)
             {
                 XerahS.Common.DebugHelper.WriteLine(
-                    $"Shell integration ({source}): No valid file paths found in arguments.");
+                    isSendToInvocation
+                        ? $"Shell integration ({source}): No valid file or folder paths found in Send-to arguments."
+                        : $"Shell integration ({source}): No valid file paths found in arguments.");
+                return;
+            }
+
+            if (isSendToInvocation)
+            {
+                SendToSelection selection = SendToSelectionClassifier.Create(pathSet.Files, pathSet.Folders);
+
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"Shell integration ({source}): Scheduling Send-to prompt for {selection.ItemCount} item(s).");
+
+                _ = Task.Run(() => HandleSendToInvocationAsync(selection, source));
                 return;
             }
 
             XerahS.Common.DebugHelper.WriteLine(
-                $"Shell integration ({source}): Scheduling upload for {files.Count} file(s).");
-            _ = Task.Run(() => UploadFilesFromIntegrationAsync(files));
+                $"Shell integration ({source}): Scheduling upload for {pathSet.Files.Count} file(s).");
+            _ = Task.Run(() => UploadFilesFromIntegrationAsync(pathSet.Files));
         }
 
-        private static List<string> ExtractSendToFilePaths(IEnumerable<string> args)
+        private static bool IsSendToInvocation(IEnumerable<string> args)
+        {
+            foreach (string rawArg in args)
+            {
+                if (string.IsNullOrWhiteSpace(rawArg))
+                {
+                    continue;
+                }
+
+                if (rawArg.Trim().Equals(SendToFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static IncomingPathSet ExtractIncomingPaths(IEnumerable<string> args, bool includeDirectories)
         {
             var comparer = OperatingSystem.IsWindows()
                 ? StringComparer.OrdinalIgnoreCase
                 : StringComparer.Ordinal;
             var uniquePaths = new HashSet<string>(comparer);
-            var files = new List<string>();
+            IncomingPathSet paths = new();
 
             bool skipNextAsPluginPath = false;
 
@@ -769,18 +810,20 @@ namespace XerahS.App
                     continue;
                 }
 
-                if (!File.Exists(normalizedPath))
+                if (File.Exists(normalizedPath))
                 {
-                    continue;
+                    if (uniquePaths.Add(normalizedPath))
+                    {
+                        paths.Files.Add(normalizedPath);
+                    }
                 }
-
-                if (uniquePaths.Add(normalizedPath))
+                else if (includeDirectories && Directory.Exists(normalizedPath) && uniquePaths.Add(normalizedPath))
                 {
-                    files.Add(normalizedPath);
+                    paths.Folders.Add(normalizedPath);
                 }
             }
 
-            return files;
+            return paths;
         }
 
         private static bool TryNormalizeLocalPath(string input, out string normalizedPath)
@@ -836,6 +879,30 @@ namespace XerahS.App
             catch (Exception ex)
             {
                 XerahS.Common.DebugHelper.WriteException(ex, "Shell integration: Failed to upload incoming files.");
+            }
+        }
+
+        private static async Task HandleSendToInvocationAsync(SendToSelection selection, string source)
+        {
+            try
+            {
+                var taskManager = PlatformServices.RootProvider?.GetService<ITaskManager>();
+                if (taskManager == null)
+                {
+                    XerahS.Common.DebugHelper.WriteLine("Shell integration: Task manager unavailable for Send-to items.");
+                    return;
+                }
+
+                SendToIntegrationCoordinator coordinator = new(
+                    PlatformServices.UI,
+                    taskManager,
+                    CreateFileUploadTaskSettings);
+
+                await coordinator.HandleAsync(selection, source);
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Shell integration: Failed to process Send-to items.");
             }
         }
 

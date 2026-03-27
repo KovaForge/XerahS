@@ -30,6 +30,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
+using System.IO;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
@@ -471,6 +472,140 @@ namespace XerahS.UI.Services
                     window.Show();
                 }
             });
+        }
+
+        public async Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+        {
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var viewModel = new SendToPromptViewModel(selection);
+                var window = new Views.SendToPromptWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = TryGetDialogOwner();
+                if (CanUseDialogOwner(owner))
+                {
+                    await window.ShowDialog(owner!);
+                }
+                else
+                {
+                    var closedTcs = new TaskCompletionSource<bool>();
+                    window.Closed += (_, _) => closedTcs.TrySetResult(true);
+                    window.Show();
+                    await closedTcs.Task;
+                }
+
+                return new SendToPromptResult
+                {
+                    Action = viewModel.SelectedAction
+                };
+            });
+        }
+
+        public async Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection)
+        {
+            if (action is SendToAction.Cancel or SendToAction.UploadNow)
+            {
+                return;
+            }
+
+            Window? owner = TryGetDialogOwner();
+
+            switch (action)
+            {
+                case SendToAction.OpenUploadContent:
+                    await UploadContentToolService.ShowSelectionAsync(selection.FilePaths, selection.FolderPaths, owner);
+                    break;
+
+                case SendToAction.OpenImageEditor:
+                    await OpenSelectedImagesInEditorAsync(selection);
+                    break;
+
+                case SendToAction.PinToScreen:
+                    await PinSelectedImagesAsync(selection);
+                    break;
+
+                case SendToAction.IndexFolders:
+                    await OpenSelectedFoldersInIndexFolderAsync(selection, owner);
+                    break;
+            }
+        }
+
+        private async Task OpenSelectedImagesInEditorAsync(SendToSelection selection)
+        {
+            if (!selection.CanOpenImageEditor)
+            {
+                return;
+            }
+
+            foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                {
+                    continue;
+                }
+
+                using var bitmap = SkiaSharp.SKBitmap.Decode(filePath);
+                if (bitmap == null)
+                {
+                    continue;
+                }
+
+                await ShowEditorAsync(bitmap);
+            }
+        }
+
+        private static Task PinSelectedImagesAsync(SendToSelection selection)
+        {
+            if (!selection.CanPinToScreen)
+            {
+                return Task.CompletedTask;
+            }
+
+            return PinToScreenToolService.PinFilesAsync(selection.FilePaths);
+        }
+
+        private async Task OpenSelectedFoldersInIndexFolderAsync(SendToSelection selection, Window? owner)
+        {
+            if (!selection.CanIndexFolders)
+            {
+                return;
+            }
+
+            foreach (var folderPath in selection.FolderPaths ?? Array.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+                {
+                    continue;
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var viewModel = UiViewModelFactoryAccessor.GetRequired().CreateIndexFolderViewModel();
+                    viewModel.FolderPath = folderPath;
+
+                    var window = new Views.IndexFolderView
+                    {
+                        DataContext = viewModel
+                    };
+
+                    if (CanUseDialogOwner(owner))
+                    {
+                        window.Show(owner!);
+                    }
+                    else
+                    {
+                        window.Show();
+                    }
+
+                    if (viewModel.CanStartIndexing)
+                    {
+                        _ = viewModel.IndexFolderCommand.ExecuteAsync(null);
+                    }
+                });
+            }
         }
     }
 }

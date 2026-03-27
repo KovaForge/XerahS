@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
