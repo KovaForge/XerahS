@@ -34,6 +34,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
 using SkiaSharp;
@@ -59,6 +60,7 @@ namespace XerahS.UI.Views
         private readonly IDesktopTaskManager? _taskManager;
         private EditorView? _editorView = null;
         private DestinationSettingsView? _destinationSettingsView = null;
+        private MainViewModel? _mainViewModel;
         private bool _isOpenImageInProgress;
 
         /// <summary>
@@ -83,8 +85,14 @@ namespace XerahS.UI.Views
             NavigateMenuCommand = new RelayCommand<string?>(NavigateFromMenuTag);
             RunWorkflowFromMenuCommand = new RelayCommand<WorkflowSettings?>(RunWorkflowFromMenu);
             InitializeComponent();
+            DataContextChanged += OnMainWindowDataContextChanged;
             KeyDown += OnKeyDown;
             ApplyInitialWindowPlacement();
+
+            if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)
+            {
+                contentFrame.PropertyChanged += OnContentFramePropertyChanged;
+            }
 
 #if !DEBUG
             // Video Editor is a work-in-progress; hide it in release builds.
@@ -103,6 +111,75 @@ namespace XerahS.UI.Views
 
             LoadUserWorkflows();
             NavigateTo("Editor");
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            DataContextChanged -= OnMainWindowDataContextChanged;
+
+            if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)
+            {
+                contentFrame.PropertyChanged -= OnContentFramePropertyChanged;
+            }
+
+            if (_mainViewModel != null)
+            {
+                _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+                _mainViewModel = null;
+            }
+
+            base.OnClosed(e);
+        }
+
+        private void OnMainWindowDataContextChanged(object? sender, EventArgs e)
+        {
+            if (_mainViewModel != null)
+            {
+                _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+            }
+
+            if (sender is not MainWindow window || window.DataContext is not MainViewModel nextVm)
+            {
+                _mainViewModel = null;
+                UpdateShellModalVisibility();
+                return;
+            }
+
+            _mainViewModel = nextVm;
+            _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
+            UpdateShellModalVisibility();
+        }
+
+        private void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(MainViewModel.IsModalOpen) or nameof(MainViewModel.ModalContent))
+            {
+                UpdateShellModalVisibility();
+            }
+        }
+
+        private void OnContentFramePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == ContentControl.ContentProperty)
+            {
+                UpdateShellModalVisibility();
+            }
+        }
+
+        private void UpdateShellModalVisibility()
+        {
+            Grid? overlay = this.FindControl<Grid>("MainWindowModalOverlay");
+            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
+
+            if (overlay == null)
+            {
+                return;
+            }
+
+            bool isEditorContent = contentFrame?.Content is EditorView;
+            bool isModalOpen = _mainViewModel?.IsModalOpen == true;
+
+            overlay.IsVisible = isModalOpen && !isEditorContent;
         }
 
         private void NavigateFromMenuTag(string? navTag)
