@@ -271,6 +271,7 @@ namespace XerahS.Platform.Linux
             DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Input rect (from UI): Left={rect.Left}, Top={rect.Top}, Right={rect.Right}, Bottom={rect.Bottom}, Size={rect.Right - rect.Left:F0}x{rect.Bottom - rect.Top:F0}");
 
             var context = LinuxRuntimeContextDetector.Detect();
+            var fullScreenFallbackOptions = options;
             if (ShouldUseDirectGnomeAreaCapture(options, context))
             {
                 var areaRect = CreateDirectAreaCaptureRect(rect);
@@ -286,11 +287,12 @@ namespace XerahS.Platform.Linux
                     }
 
                     DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: GNOME direct area capture returned null; falling back to full-screen crop path.");
+                    fullScreenFallbackOptions = CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, context);
                 }
             }
 
             // Capture full screen with the same options and crop.
-            var fullBitmap = await CaptureFullScreenAsync(options);
+            var fullBitmap = await CaptureFullScreenAsync(fullScreenFallbackOptions);
             if (fullBitmap == null)
             {
                 DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: CaptureFullScreenAsync returned null");
@@ -589,6 +591,39 @@ namespace XerahS.Platform.Linux
                 (int)Math.Floor(rect.Top),
                 (int)Math.Ceiling(rect.Right),
                 (int)Math.Ceiling(rect.Bottom));
+        }
+
+        internal static CaptureOptions? CreateFullScreenFallbackOptionsAfterDirectAreaFailure(
+            CaptureOptions? options,
+            ILinuxCaptureContext context)
+        {
+            if (!ShouldSkipPortalAfterOverlaySelection(options, context))
+            {
+                return options;
+            }
+
+            DebugHelper.WriteLine(
+                "LinuxScreenCaptureService: GNOME direct area capture failed; allowing portal full-screen fallback for the follow-up crop.");
+
+            return new CaptureOptions
+            {
+                UseModernCapture = options?.UseModernCapture ?? true,
+                LinuxRegionSelectorPreference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic,
+                LinuxForceLegacyCapturePath = options?.LinuxForceLegacyCapturePath ?? false,
+                LinuxDisallowPortalAfterOverlaySelection = false,
+                ShowCursor = options?.ShowCursor ?? true,
+                CaptureTransparent = options?.CaptureTransparent ?? false,
+                UseTransparentOverlay = options?.UseTransparentOverlay ?? false,
+                CaptureShadow = options?.CaptureShadow ?? true,
+                CaptureClientArea = options?.CaptureClientArea ?? false,
+                WorkflowId = options?.WorkflowId,
+                WorkflowCategory = options?.WorkflowCategory,
+                CaptureStartDelaySeconds = options?.CaptureStartDelaySeconds ?? 0,
+                CaptureStartDelayCancellationToken = options?.CaptureStartDelayCancellationToken ?? default,
+                VirtualScreenBoundsForCrop = options?.VirtualScreenBoundsForCrop,
+                PhysicalVirtualScreenBoundsForCrop = options?.PhysicalVirtualScreenBoundsForCrop,
+                PhysicalRectForCrop = options?.PhysicalRectForCrop
+            };
         }
 
         private static bool ShouldForceInteractivePortalFullScreen(CaptureOptions? options)

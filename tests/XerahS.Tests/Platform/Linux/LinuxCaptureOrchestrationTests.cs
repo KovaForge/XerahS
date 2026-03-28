@@ -364,6 +364,35 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void LinuxScreenCaptureService_GnomeWaylandOverlayFollowUp_DirectAreaFailure_ReenablesPortalFallback()
+    {
+        var context = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions
+        {
+            LinuxDisallowPortalAfterOverlaySelection = true,
+            UseTransparentOverlay = true,
+            WorkflowId = "rectangle-transparent"
+        };
+
+        var fallbackOptions = LinuxScreenCaptureService.CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, context);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fallbackOptions, Is.Not.Null);
+            Assert.That(fallbackOptions, Is.Not.SameAs(options));
+            Assert.That(fallbackOptions!.LinuxDisallowPortalAfterOverlaySelection, Is.False);
+            Assert.That(fallbackOptions.UseTransparentOverlay, Is.True);
+            Assert.That(fallbackOptions.WorkflowId, Is.EqualTo("rectangle-transparent"));
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(fallbackOptions, context), Is.False);
+        });
+    }
+
+    [Test]
     public void LinuxScreenCaptureService_DirectAreaCapture_IsNotUsedForKdeOrNonTransparentCapture()
     {
         var gnomeContext = new LinuxCaptureContext(
