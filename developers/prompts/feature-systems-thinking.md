@@ -12,7 +12,7 @@ Approach this like a systems thinker.
 1. Define the core problem clearly
 2. Identify assumptions
 3. List constraints and unknowns
-4. Use subagents to do research on the feature and bring back findings into making the implementation more robust
+4. Use subagents to do online research on the feature and bring back findings into making the implementation more robust
 5. Break into sub-problems
 6. Propose 3 different approaches
 7. Compare tradeoffs
