@@ -71,7 +71,18 @@ public sealed class WaylandPortalInputService : IInputService
                 _connection = new Connection(Address.Session);
                 _connection.ConnectAsync().GetAwaiter().GetResult();
                 _portal = _connection.CreateProxy<IInputCapture>(PortalBusName, PortalObjectPath);
-                InitializeAsync().GetAwaiter().GetResult();
+                
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await InitializeAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "WaylandPortalInputService: Asynchronous initialization failed");
+                    }
+                });
             }
             finally
             {
