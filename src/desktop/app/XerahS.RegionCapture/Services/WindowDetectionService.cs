@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 using System.Runtime.CompilerServices;
 using XerahS.RegionCapture.Models;
+using PlatformWindowInfo = XerahS.Platform.Abstractions.WindowInfo;
 
 namespace XerahS.RegionCapture.Services;
 
@@ -33,16 +34,57 @@ namespace XerahS.RegionCapture.Services;
 /// </summary>
 public sealed class WindowDetectionService
 {
+    private static readonly object ExcludedHandlesLock = new();
+    private static readonly HashSet<nint> ExcludedHandles = [];
     private IReadOnlyList<WindowInfo> _windows = [];
     private readonly object _lock = new();
     private DateTime _lastRefresh = DateTime.MinValue;
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromMilliseconds(100);
+    private readonly Func<IReadOnlyList<WindowInfo>> _enumerateVisibleWindows;
 
     /// <summary>
     /// Gets the list of visible windows, refreshing if stale.
     /// </summary>
     private volatile bool _isRefreshing;
     private readonly object _refreshLock = new();
+
+    public WindowDetectionService()
+        : this(EnumerateVisibleWindows)
+    {
+    }
+
+    internal WindowDetectionService(Func<IReadOnlyList<WindowInfo>> enumerateVisibleWindows)
+    {
+        _enumerateVisibleWindows = enumerateVisibleWindows ?? throw new ArgumentNullException(nameof(enumerateVisibleWindows));
+    }
+
+    /// <summary>
+    /// Registers a native overlay handle so hover detection ignores the overlay itself.
+    /// </summary>
+    public static void ExcludeHandle(nint handle)
+    {
+        if (handle == 0)
+            return;
+
+        lock (ExcludedHandlesLock)
+        {
+            ExcludedHandles.Add(handle);
+        }
+    }
+
+    /// <summary>
+    /// Removes a native overlay handle from the exclusion list.
+    /// </summary>
+    public static void RemoveExcludedHandle(nint handle)
+    {
+        if (handle == 0)
+            return;
+
+        lock (ExcludedHandlesLock)
+        {
+            ExcludedHandles.Remove(handle);
+        }
+    }
 
     /// <summary>
     /// Gets the list of visible windows, refreshing if stale.
@@ -70,11 +112,7 @@ public sealed class WindowDetectionService
         {
             try
             {
-#if WINDOWS
-                var windows = Platform.Windows.NativeWindowService.EnumerateVisibleWindows();
-#else
-                var windows = new List<WindowInfo>();
-#endif
+                var windows = _enumerateVisibleWindows();
                 lock (_lock)
                 {
                     _windows = windows;
@@ -99,13 +137,88 @@ public sealed class WindowDetectionService
     {
         lock (_lock)
         {
-#if WINDOWS
-            _windows = Platform.Windows.NativeWindowService.EnumerateVisibleWindows();
-#else
-            _windows = [];
-#endif
+            _windows = _enumerateVisibleWindows();
             _lastRefresh = DateTime.UtcNow;
         }
+    }
+
+    internal static IReadOnlyList<WindowInfo> EnumerateVisibleWindows()
+    {
+#if WINDOWS
+        return FilterExcludedWindows(Platform.Windows.NativeWindowService.EnumerateVisibleWindows());
+#else
+        try
+        {
+            return ConvertPlatformWindows(XerahS.Platform.Abstractions.PlatformServices.Window.GetAllWindows());
+        }
+        catch (InvalidOperationException)
+        {
+            return [];
+        }
+#endif
+    }
+
+    internal static IReadOnlyList<WindowInfo> ConvertPlatformWindows(IEnumerable<PlatformWindowInfo> windows)
+    {
+        ArgumentNullException.ThrowIfNull(windows);
+
+        var visibleWindows = new List<WindowInfo>();
+        int zOrder = 0;
+
+        foreach (var window in windows)
+        {
+            if (!ShouldIncludePlatformWindow(window))
+                continue;
+
+            var bounds = ToPixelRect(window.Bounds);
+            visibleWindows.Add(new WindowInfo(
+                Handle: window.Handle,
+                Title: window.Title,
+                ClassName: window.ClassName,
+                Bounds: bounds,
+                VisualBounds: bounds,
+                IsMinimized: window.IsMinimized,
+                ZOrder: zOrder++));
+        }
+
+        return visibleWindows;
+    }
+
+    internal static bool ShouldIncludePlatformWindow(PlatformWindowInfo window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        if (window.Handle == IntPtr.Zero || IsExcludedHandle(window.Handle))
+            return false;
+
+        if (!window.IsVisible || window.IsMinimized)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(window.Title))
+            return false;
+
+        return window.Bounds.Width > 1 && window.Bounds.Height > 1;
+    }
+
+    private static IReadOnlyList<WindowInfo> FilterExcludedWindows(IEnumerable<WindowInfo> windows)
+    {
+        return windows.Where(window => !IsExcludedHandle(window.Handle)).ToArray();
+    }
+
+    private static bool IsExcludedHandle(nint handle)
+    {
+        if (handle == 0)
+            return false;
+
+        lock (ExcludedHandlesLock)
+        {
+            return ExcludedHandles.Contains(handle);
+        }
+    }
+
+    private static PixelRect ToPixelRect(System.Drawing.Rectangle bounds)
+    {
+        return new PixelRect(bounds.X, bounds.Y, bounds.Width, bounds.Height);
     }
 
     /// <summary>

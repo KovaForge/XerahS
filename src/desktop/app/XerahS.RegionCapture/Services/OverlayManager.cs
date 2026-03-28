@@ -105,12 +105,8 @@ public sealed class OverlayManager : IDisposable
                 primaryOverlay.Show();
                 primaryOverlay.Activate();
                 primaryOverlay.Focus();
-#if WINDOWS
-                if (primaryOverlay.TryGetPlatformHandle()?.Handle is { } primaryHandle)
-                {
-                    Platform.Windows.NativeWindowService.ExcludeHandle(primaryHandle);
-                }
-#endif
+                var primaryHandle = primaryOverlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                WindowDetectionService.ExcludeHandle(primaryHandle);
             }
 
             // Show remaining overlays
@@ -120,12 +116,8 @@ public sealed class OverlayManager : IDisposable
                     continue;
                 overlay.Show();
                 overlay.Activate();
-#if WINDOWS
-                if (overlay.TryGetPlatformHandle()?.Handle is { } handle)
-                {
-                    Platform.Windows.NativeWindowService.ExcludeHandle(handle);
-                }
-#endif
+                var handle = overlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                WindowDetectionService.ExcludeHandle(handle);
             }
 
             if (options?.SessionStartUtc is { } start)
@@ -147,12 +139,8 @@ public sealed class OverlayManager : IDisposable
     {
         foreach (var overlay in _overlays)
         {
-#if WINDOWS
-            if (overlay.TryGetPlatformHandle()?.Handle is { } handle)
-            {
-                Platform.Windows.NativeWindowService.RemoveExcludedHandle(handle);
-            }
-#endif
+            var handle = overlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            WindowDetectionService.RemoveExcludedHandle(handle);
 
             try
             {

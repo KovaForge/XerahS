@@ -211,30 +211,52 @@ namespace XerahS.Platform.Linux
 
         public Rectangle GetWindowBounds(IntPtr handle)
         {
-            DebugHelper.WriteLine($"LinuxWindowService: GetWindowBounds called for handle {handle} (0x{handle:X})");
+            return GetWindowBoundsCore(handle, logDiagnostics: true);
+        }
+
+        private Rectangle GetWindowBoundsCore(IntPtr handle, bool logDiagnostics)
+        {
+            if (logDiagnostics)
+            {
+                DebugHelper.WriteLine($"LinuxWindowService: GetWindowBounds called for handle {handle} (0x{handle:X})");
+            }
+
             if (_display == IntPtr.Zero)
             {
-                DebugHelper.WriteLine("LinuxWindowService: GetWindowBounds: Display is IntPtr.Zero");
+                if (logDiagnostics)
+                {
+                    DebugHelper.WriteLine("LinuxWindowService: GetWindowBounds: Display is IntPtr.Zero");
+                }
+
                 return Rectangle.Empty;
             }
 
             var attrs = new XWindowAttributes();
             int result = NativeMethods.XGetWindowAttributes(_display, handle, ref attrs);
-            DebugHelper.WriteLine($"LinuxWindowService: XGetWindowAttributes returned: {result}");
+            if (logDiagnostics)
+            {
+                DebugHelper.WriteLine($"LinuxWindowService: XGetWindowAttributes returned: {result}");
+            }
 
             if (result != 0)
             {
-                DebugHelper.WriteLine($"LinuxWindowService: XWindowAttributes (relative): x={attrs.x}, y={attrs.y}, width={attrs.width}, height={attrs.height}, map_state={attrs.map_state}, border_width={attrs.border_width}");
+                if (logDiagnostics)
+                {
+                    DebugHelper.WriteLine($"LinuxWindowService: XWindowAttributes (relative): x={attrs.x}, y={attrs.y}, width={attrs.width}, height={attrs.height}, map_state={attrs.map_state}, border_width={attrs.border_width}");
+                }
 
                 // Check if window is actually viewable
-                string mapStateStr = attrs.map_state switch
+                if (logDiagnostics)
                 {
-                    0 => "IsUnviewable",
-                    1 => "IsViewable",
-                    2 => "IsUnmapped",
-                    _ => $"Unknown({attrs.map_state})"
-                };
-                DebugHelper.WriteLine($"LinuxWindowService: Window map state: {mapStateStr}");
+                    string mapStateStr = attrs.map_state switch
+                    {
+                        0 => "IsUnviewable",
+                        1 => "IsViewable",
+                        2 => "IsUnmapped",
+                        _ => $"Unknown({attrs.map_state})"
+                    };
+                    DebugHelper.WriteLine($"LinuxWindowService: Window map state: {mapStateStr}");
+                }
 
                 // Translate coordinates to root window (absolute screen coordinates)
                 // The coordinates from XGetWindowAttributes are relative to the parent window
@@ -250,18 +272,24 @@ namespace XerahS.Platform.Linux
                     out child
                 );
 
-                DebugHelper.WriteLine($"LinuxWindowService: XTranslateCoordinates returned: {translateResult}, absolute: x={absoluteX}, y={absoluteY}");
+                if (logDiagnostics)
+                {
+                    DebugHelper.WriteLine($"LinuxWindowService: XTranslateCoordinates returned: {translateResult}, absolute: x={absoluteX}, y={absoluteY}");
+                }
 
                 // Use the absolute coordinates instead of the relative ones
                 var rect = new Rectangle(absoluteX, absoluteY, attrs.width, attrs.height);
-                DebugHelper.WriteLine($"LinuxWindowService: GetWindowBounds returning: {rect}");
+                if (logDiagnostics)
+                {
+                    DebugHelper.WriteLine($"LinuxWindowService: GetWindowBounds returning: {rect}");
+                }
 
                 // Sanity check
-                if (attrs.width <= 0 || attrs.height <= 0)
+                if (logDiagnostics && (attrs.width <= 0 || attrs.height <= 0))
                 {
                     DebugHelper.WriteLine("LinuxWindowService: WARNING: Window has invalid dimensions!");
                 }
-                if (absoluteX < -10000 || absoluteY < -10000 || absoluteX > 10000 || absoluteY > 10000)
+                if (logDiagnostics && (absoluteX < -10000 || absoluteY < -10000 || absoluteX > 10000 || absoluteY > 10000))
                 {
                     DebugHelper.WriteLine("LinuxWindowService: WARNING: Window coordinates seem out of reasonable range!");
                 }
@@ -269,7 +297,11 @@ namespace XerahS.Platform.Linux
                 return rect;
             }
 
-            DebugHelper.WriteLine("LinuxWindowService: XGetWindowAttributes failed, returning Rectangle.Empty");
+            if (logDiagnostics)
+            {
+                DebugHelper.WriteLine("LinuxWindowService: XGetWindowAttributes failed, returning Rectangle.Empty");
+            }
+
             return Rectangle.Empty;
         }
 
@@ -327,30 +359,50 @@ namespace XerahS.Platform.Linux
             var list = new List<WindowInfo>();
             if (NativeMethods.XQueryTree(_display, _rootWindow, out IntPtr root, out IntPtr parent, out IntPtr children, out uint nchildren) != 0)
             {
-                if (nchildren > 0 && children != IntPtr.Zero)
+                try
                 {
+                    if (nchildren == 0 || children == IntPtr.Zero)
+                    {
+                        return list.ToArray();
+                    }
+
                     IntPtr[] windowHandles = new IntPtr[nchildren];
                     Marshal.Copy(children, windowHandles, 0, (int)nchildren);
-                    NativeMethods.XFree(children); // Must free the list
 
-                    // In X11, children are ordered bottom-to-top.
-                    // Reverse to get Z-order top-to-bottom if needed, but GetAllWindows usually doesn't imply order.
-
-                    foreach (var handle in windowHandles)
+                    // In X11, root children are returned bottom-to-top.
+                    // Reverse them so the caller sees topmost windows first.
+                    for (int i = windowHandles.Length - 1; i >= 0; i--)
                     {
-                        var bounds = GetWindowBounds(handle);
-                        // Basic filter: Check if visible? Or just return all?
-                        // Windows implementation returns active only? No, it returns foreground.
-                        // But intent is all.
+                        var handle = windowHandles[i];
+                        if (handle == IntPtr.Zero || handle == _rootWindow)
+                            continue;
+
+                        if (!IsWindowVisible(handle))
+                            continue;
+
+                        string title = GetWindowText(handle);
+                        if (string.IsNullOrWhiteSpace(title))
+                            continue;
+
+                        var bounds = GetWindowBoundsCore(handle, logDiagnostics: false);
+                        if (bounds.Width <= 1 || bounds.Height <= 1)
+                            continue;
 
                         list.Add(new WindowInfo
                         {
                             Handle = handle,
-                            Title = GetWindowText(handle),
+                            Title = title,
                             ClassName = GetWindowClassName(handle),
                             Bounds = bounds,
-                            IsVisible = IsWindowVisible(handle)
+                            IsVisible = true
                         });
+                    }
+                }
+                finally
+                {
+                    if (children != IntPtr.Zero)
+                    {
+                        NativeMethods.XFree(children);
                     }
                 }
             }
