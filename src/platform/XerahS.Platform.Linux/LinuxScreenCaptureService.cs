@@ -603,7 +603,7 @@ namespace XerahS.Platform.Linux
             }
 
             DebugHelper.WriteLine(
-                "LinuxScreenCaptureService: GNOME direct area capture failed; allowing portal full-screen fallback for the follow-up crop.");
+                "LinuxScreenCaptureService: GNOME direct area capture failed; restoring v0.20.12-style full-screen fallback for the follow-up crop.");
 
             return new CaptureOptions
             {
@@ -613,7 +613,9 @@ namespace XerahS.Platform.Linux
                 LinuxDisallowPortalAfterOverlaySelection = false,
                 ShowCursor = options?.ShowCursor ?? true,
                 CaptureTransparent = options?.CaptureTransparent ?? false,
-                UseTransparentOverlay = options?.UseTransparentOverlay ?? false,
+                // Match the pre-direct-area fallback path: once the fast transparent-overlay path
+                // has already failed, fall back to a normal full-screen capture request/crop flow.
+                UseTransparentOverlay = false,
                 CaptureShadow = options?.CaptureShadow ?? true,
                 CaptureClientArea = options?.CaptureClientArea ?? false,
                 WorkflowId = options?.WorkflowId,

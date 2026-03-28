@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Collections.Generic;
+using System.Drawing;
 using System.Threading;
 using NUnit.Framework;
 using SkiaSharp;
@@ -364,7 +365,7 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
-    public void LinuxScreenCaptureService_GnomeWaylandOverlayFollowUp_DirectAreaFailure_ReenablesPortalFallback()
+    public void LinuxScreenCaptureService_GnomeWaylandOverlayFollowUp_DirectAreaFailure_RestoresLegacyFullscreenFallback()
     {
         var context = new LinuxCaptureContext(
             isWayland: true,
@@ -376,7 +377,11 @@ public class LinuxCaptureOrchestrationTests
         {
             LinuxDisallowPortalAfterOverlaySelection = true,
             UseTransparentOverlay = true,
-            WorkflowId = "rectangle-transparent"
+            WorkflowId = "rectangle-transparent",
+            WorkflowCategory = "ScreenCapture",
+            VirtualScreenBoundsForCrop = new Rectangle(10, 20, 300, 200),
+            PhysicalVirtualScreenBoundsForCrop = new Rectangle(0, 0, 600, 400),
+            PhysicalRectForCrop = new Rectangle(100, 120, 200, 140)
         };
 
         var fallbackOptions = LinuxScreenCaptureService.CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, context);
@@ -386,10 +391,34 @@ public class LinuxCaptureOrchestrationTests
             Assert.That(fallbackOptions, Is.Not.Null);
             Assert.That(fallbackOptions, Is.Not.SameAs(options));
             Assert.That(fallbackOptions!.LinuxDisallowPortalAfterOverlaySelection, Is.False);
-            Assert.That(fallbackOptions.UseTransparentOverlay, Is.True);
+            Assert.That(fallbackOptions.UseTransparentOverlay, Is.False);
             Assert.That(fallbackOptions.WorkflowId, Is.EqualTo("rectangle-transparent"));
+            Assert.That(fallbackOptions.WorkflowCategory, Is.EqualTo("ScreenCapture"));
+            Assert.That(fallbackOptions.VirtualScreenBoundsForCrop, Is.EqualTo(new Rectangle(10, 20, 300, 200)));
+            Assert.That(fallbackOptions.PhysicalVirtualScreenBoundsForCrop, Is.EqualTo(new Rectangle(0, 0, 600, 400)));
+            Assert.That(fallbackOptions.PhysicalRectForCrop, Is.EqualTo(new Rectangle(100, 120, 200, 140)));
             Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(fallbackOptions, context), Is.False);
         });
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_DirectAreaFailureFallback_NonGuardedContexts_ReturnOriginalOptions()
+    {
+        var kdeContext = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "KDE",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions
+        {
+            LinuxDisallowPortalAfterOverlaySelection = true,
+            UseTransparentOverlay = true
+        };
+
+        var fallbackOptions = LinuxScreenCaptureService.CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, kdeContext);
+
+        Assert.That(fallbackOptions, Is.SameAs(options));
     }
 
     [Test]

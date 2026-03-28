@@ -38,6 +38,21 @@ The project keeps **`allowInteractiveFallback: false`** when calling it from `Li
 
 A short **inline comment** in `LinuxScreenCaptureService.cs` documents this for future maintainers.
 
+## Guardrail: direct-area failure must restore the old full-screen fallback
+
+GNOME Wayland now has two distinct stages in the overlay follow-up path:
+
+1. Try the fast **GNOME Shell `ScreenshotArea`** path when the overlay workflow requests it.
+2. If that stage fails, restore the **`v0.20.12` full-screen capture + crop fallback** instead of staying on the transparent-overlay fast path.
+
+That fallback contract is intentional:
+
+- Clear **`LinuxDisallowPortalAfterOverlaySelection`** so the portal provider can participate again.
+- Clear **`UseTransparentOverlay`** so the follow-up capture behaves like the old full-screen crop path, not the newer GNOME-specific transparent-overlay path.
+- Preserve crop metadata (`VirtualScreenBoundsForCrop`, `PhysicalVirtualScreenBoundsForCrop`, `PhysicalRectForCrop`) and workflow metadata so the returned bitmap can still be cropped correctly.
+
+If a future change keeps `UseTransparentOverlay=true` after direct-area failure, the code is no longer reproducing the last known good fallback behavior from `v0.20.12`.
+
 ## Research: what `Response = 2` means in the spec
 
 All screenshot (and other) portal calls complete via **`org.freedesktop.portal.Request::Response`**. The documented codes are ([Request documentation](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Request.html)):
@@ -73,5 +88,6 @@ The Screenshot portal returns a **`uri`** in the results vardict on success ([Sc
 ## Maintainer checklist when touching this area
 
 1. Any new **`CaptureOptions`** clone for **post-overlay** capture must preserve flags that Linux uses for **GNOME / Wayland** policy (`UseTransparentOverlay`, crop bounds, etc.).
+   Exception: when GNOME direct-area capture has already failed, the fallback clone should intentionally reset `UseTransparentOverlay=false` and `LinuxDisallowPortalAfterOverlaySelection=false` to restore the `v0.20.12` full-screen crop path.
 2. Re-enabling **`allowInteractiveFallback`** should be a **conscious product decision** (test on GNOME, Fedora, mixed-DPI), not only a “portal failed” convenience.
 3. If **`Response=2` with a valid `uri`** is ever reproduced reliably, capture **portal + gnome-shell + xdg-desktop-portal-gnome versions** and consider filing upstream with a minimal repro.
