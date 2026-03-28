@@ -4,7 +4,7 @@
 **Created**: 2026-03-28
 **Updated**: 2026-03-28
 **Area**: Linux, UI, RegionCapture
-**Goal**: Bring Linux overlay window hover/preselection to Windows parity where the session stack exposes global window metadata, without regressing unsupported sessions such as native Wayland.
+**Goal**: Bring Linux overlay window hover/preselection to Windows parity on KDE/GNOME X11 or XWayland sessions that expose global window metadata, without regressing unsupported sessions such as native Wayland.
 **Related**: XIP0047, XIP0051
 
 ---
@@ -18,6 +18,7 @@ The direct cause was architectural, not visual:
 - `XerahS.RegionCapture/Services/WindowDetectionService.cs` enumerated windows only behind `#if WINDOWS`.
 - Non-Windows builds always refreshed an empty window list, so hover-state window snapping could never activate.
 - Linux already had `PlatformServices.Window.GetAllWindows()`, but the overlay path was not using it.
+- After the first parity wiring, Linux still relied on raw X11 root children plus `XFetchName`, which is too weak for KDE/GNOME managed windows and can collapse back to an empty hover list.
 
 ### 2. Assumptions
 - Windows behavior is the feature reference: hover a window, highlight it, click or confirm to capture that window rectangle.
@@ -27,7 +28,7 @@ The direct cause was architectural, not visual:
 
 ### 3. Constraints and unknowns
 - `WindowDetectionService` refreshes frequently, so Linux enumeration must be cheap enough for overlay interaction.
-- `LinuxWindowService.GetAllWindows()` previously returned raw X11 root children without topmost ordering or strong filtering.
+- KDE and GNOME commonly expose managed top-level windows through EWMH (`_NET_CLIENT_LIST_STACKING`, `_NET_WM_NAME`, `_NET_FRAME_EXTENTS`) rather than only through raw X11 root-child traversal.
 - `LinuxWindowService.GetWindowBounds()` contained verbose debug logging that would become a hot-path cost if reused every refresh.
 - Native Wayland support remains session-dependent and in many cases unavailable.
 
@@ -63,8 +64,8 @@ It solves the actual missing behavior for Linux sessions that can expose top-lev
 4. Keep Windows on `NativeWindowService.EnumerateVisibleWindows()`.
 5. Project non-Windows `IWindowService.GetAllWindows()` results into RegionCapture window models.
 6. Add shared overlay-handle exclusion so hover detection ignores overlay windows on every platform.
-7. Tighten Linux X11 enumeration to return topmost meaningful windows only.
-8. Silence hot-path Linux bounds logging by adding a quiet enumeration path.
+7. Replace raw X11 root-child enumeration with EWMH managed-window enumeration for KDE/GNOME X11 and XWayland sessions.
+8. Read Linux titles and outer bounds from `_NET_WM_VISIBLE_NAME` / `_NET_WM_NAME` and `_NET_FRAME_EXTENTS`, while filtering `_NET_WM_WINDOW_TYPE` and `_NET_WM_STATE`.
 9. Add focused detector tests plus region-capture regression verification.
 10. Build the desktop solution and commit the verified runtime chunk before documenting the proposal.
 
@@ -75,9 +76,9 @@ The work was intentionally split into logical chunks:
 2. Proposal documentation, staged separately so review can distinguish runtime behavior from design record.
 
 ### 10. Failure points
-- Native Wayland sessions may still expose no global window list, so window preselection remains unavailable there.
+- Native Wayland sessions still expose no portable global window list, so window preselection remains unavailable there without compositor-specific helpers.
 - Wayland sessions that do expose an X11/XWayland display still only see X11/XWayland windows, not every native GNOME/KDE Wayland surface.
-- Some Linux desktops may report incomplete or unusual top-level window metadata.
+- Some X11 desktops or lightweight window managers may not publish the full EWMH properties, so Linux falls back to the older root-child heuristic.
 - X11 window title sourcing is still only as good as the current Linux window service.
 - If overlay handles are not available from the backend, exclusion falls back to normal platform filtering.
 
@@ -99,7 +100,7 @@ Before this change, Linux overlay mode could display the crosshair and support r
 
 - Windows continues to use the existing DWM-backed native enumerator.
 - Non-Windows platforms can project `IWindowService.GetAllWindows()` into RegionCapture window models.
-- Linux X11/XWayland window enumeration is filtered and ordered for hover-selection use.
+- Linux X11/XWayland window enumeration now prefers the EWMH managed-window stack and expands client bounds to frame bounds for hover-selection use.
 - Overlay handles are excluded from detection so the overlay never becomes its own snap target.
 
 This is intentionally capability-aware rather than pretending every Linux session can offer Windows-equivalent metadata. Where the platform cannot expose global window information, the overlay keeps region capture behavior without false preselection promises.
@@ -116,14 +117,15 @@ This is intentionally capability-aware rather than pretending every Linux sessio
 - `OverlayManager` now registers and unregisters overlay platform handles with `WindowDetectionService` on all platforms.
 - This removes the Windows-only exclusion path and makes the behavior consistent for Linux/X11 overlays as well.
 
-### Phase 3: Linux X11 window-list hardening
+### Phase 3: Linux X11 managed-window enumeration
 - `LinuxWindowService.GetAllWindows()` now:
-  - reverses X11 root-child order so callers see topmost windows first,
-  - skips invisible windows,
-  - skips untitled windows,
-  - skips zero-sized windows,
-  - avoids enumerating the root window itself.
-- `LinuxWindowService.GetWindowBounds()` now uses a quiet internal path for enumeration so overlay refreshes do not flood the debug log.
+  - prefers `_NET_CLIENT_LIST_STACKING` so KDE/GNOME callers see the actual managed-window stack instead of raw root children,
+  - falls back to root-child traversal only when the window manager does not expose EWMH stacking data,
+  - reads window titles from `_NET_WM_VISIBLE_NAME` / `_NET_WM_NAME` before falling back to `XFetchName`,
+  - filters out hidden or non-window surfaces using `_NET_WM_WINDOW_TYPE` and `_NET_WM_STATE`,
+  - skips override-redirect and zero-sized windows.
+- `LinuxWindowService.GetWindowBounds()` now applies `_NET_FRAME_EXTENTS` so hover highlights match the full outer window frame instead of only the client surface when the window manager exposes frame metadata.
+- `NativeMethods` now includes the X11 property interop needed to read managed-window metadata.
 
 ### Phase 4: Verification
 - Added focused detector tests for filtering/projection and topmost-hit behavior.
@@ -150,8 +152,8 @@ This is intentionally capability-aware rather than pretending every Linux sessio
 ## Deliverables
 1. Platform-aware overlay window detection in `XerahS.RegionCapture`.
 2. Cross-platform overlay-handle exclusion wiring in `OverlayManager`.
-3. Hardened Linux X11 top-level window enumeration for hover selection.
-4. Automated tests covering detector filtering and topmost-hit behavior.
+3. Hardened Linux X11/EWMH managed-window enumeration for hover selection.
+4. Automated tests covering detector filtering, topmost-hit behavior, and Linux frame/type/state helpers.
 5. This proposal documenting scope, tradeoffs, and post-v1 follow-up.
 
 ---
@@ -160,7 +162,9 @@ This is intentionally capability-aware rather than pretending every Linux sessio
 1. `src/desktop/app/XerahS.RegionCapture/Services/WindowDetectionService.cs`
 2. `src/desktop/app/XerahS.RegionCapture/Services/OverlayManager.cs`
 3. `src/platform/XerahS.Platform.Linux/LinuxWindowService.cs`
-4. `tests/XerahS.Tests/RegionCapture/WindowDetectionServiceTests.cs`
+4. `src/platform/XerahS.Platform.Linux/NativeMethods.cs`
+5. `tests/XerahS.Tests/RegionCapture/WindowDetectionServiceTests.cs`
+6. `tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs`
 
 ---
 
@@ -177,7 +181,7 @@ WindowDetectionService
     +--> Non-Windows: PlatformServices.Window.GetAllWindows()
               |
               v
-        LinuxWindowService (X11/XWayland when available)
+        LinuxWindowService (EWMH-managed X11/XWayland windows when available)
               |
               v
         topmost filtered window list
@@ -194,6 +198,7 @@ window highlight -> click/confirm -> snapped capture rect
 ## Verification Commands
 ```powershell
 dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter "FullyQualifiedName~WindowDetectionServiceTests" -m:1
+dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter "FullyQualifiedName~LinuxWindowServiceTests" -m:1
 dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter "FullyQualifiedName~XerahS.Tests.RegionCapture" -m:1
 dotnet build src/desktop/XerahS.sln -m:1
 ```
