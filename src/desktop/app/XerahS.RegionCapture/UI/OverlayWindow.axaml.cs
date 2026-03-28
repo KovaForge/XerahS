@@ -40,6 +40,7 @@ using SkiaSharp;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using XerahS.Common;
+using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture.Services;
 using XerahS.RegionCapture.ViewModels;
@@ -96,6 +97,7 @@ public partial class OverlayWindow : Window
         _captureControl = new RegionCaptureControl(_monitor);
         _viewModel = new RegionCaptureAnnotationViewModel();
         InitializeComponent();
+        Title = PlatformWindowTitles.RegionCaptureOverlay;
         InitializeThemeScope();
         DataContext = _viewModel;
     }
@@ -137,6 +139,7 @@ public partial class OverlayWindow : Window
         _viewModel.EditorCore.EditAnnotationRequested += OnEditAnnotationRequested;
 
         InitializeComponent();
+        Title = PlatformWindowTitles.RegionCaptureOverlay;
         InitializeThemeScope();
         DataContext = _viewModel;
 

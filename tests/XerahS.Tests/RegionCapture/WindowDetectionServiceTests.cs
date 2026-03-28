@@ -27,6 +27,7 @@ using System.Drawing;
 using NUnit.Framework;
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture.Services;
+using XerahS.Platform.Abstractions;
 using PlatformWindowInfo = XerahS.Platform.Abstractions.WindowInfo;
 
 namespace XerahS.Tests.RegionCapture;
@@ -134,19 +135,158 @@ public class WindowDetectionServiceTests
         Assert.That(hoveredWindow!.Handle, Is.EqualTo((nint)101));
     }
 
-    [TestCase(false, true, (int)WindowPreselectionSupportLevel.Full, null)]
-    [TestCase(true, true, (int)WindowPreselectionSupportLevel.Partial, "Wayland session: only X11/XWayland windows can be snapped.")]
-    [TestCase(true, false, (int)WindowPreselectionSupportLevel.Unsupported, "Wayland session: window snapping is unavailable.")]
+    [Test]
+    public void GetWindowAtPoint_PrefersDirectWaylandProbe_WhenHandled()
+    {
+        IReadOnlyList<XerahS.RegionCapture.Models.WindowInfo> windows =
+        [
+            new(
+                Handle: (nint)101,
+                Title: "Enumerated",
+                ClassName: "EnumeratedClass",
+                Bounds: new PixelRect(0, 0, 300, 200),
+                VisualBounds: new PixelRect(0, 0, 300, 200),
+                IsMinimized: false,
+                ZOrder: 0)
+        ];
+
+        var directWindow = new XerahS.RegionCapture.Models.WindowInfo(
+            Handle: (nint)202,
+            Title: "Direct",
+            ClassName: "DirectClass",
+            Bounds: new PixelRect(10, 20, 150, 120),
+            VisualBounds: new PixelRect(10, 20, 150, 120),
+            IsMinimized: false,
+            ZOrder: 0);
+
+        var service = new WindowDetectionService(
+            () => windows,
+            _ => new WindowPointQueryResult(Handled: true, Window: directWindow));
+
+        XerahS.RegionCapture.Models.WindowInfo? hoveredWindow =
+            service.GetWindowAtPoint(new PixelPoint(25, 25));
+
+        Assert.That(hoveredWindow, Is.Not.Null);
+        Assert.That(hoveredWindow!.Handle, Is.EqualTo((nint)202));
+    }
+
+    [TestCase(false, true, null, false, (int)WindowPreselectionSupportLevel.Full, null)]
+    [TestCase(true, true, "GNOME", false, (int)WindowPreselectionSupportLevel.Partial, "Wayland session: native window snapping helper is unavailable; only X11/XWayland windows can be snapped.")]
+    [TestCase(true, false, "GNOME", false, (int)WindowPreselectionSupportLevel.Unsupported, "Wayland session: native window snapping helper is unavailable on this compositor.")]
+    [TestCase(true, false, "HYPRLAND", true, (int)WindowPreselectionSupportLevel.Full, null)]
+    [TestCase(true, true, "SWAY", true, (int)WindowPreselectionSupportLevel.Full, null)]
     public void GetLinuxWindowPreselectionCapability_ReturnsExpectedSupportLevel(
         bool isWaylandSession,
         bool hasX11Display,
+        string? compositor,
+        bool helperAvailable,
         int expectedLevel,
         string? expectedMessage)
     {
-        var capability = WindowDetectionService.GetLinuxWindowPreselectionCapability(isWaylandSession, hasX11Display);
+        var capability = WindowDetectionService.GetLinuxWindowPreselectionCapability(
+            isWaylandSession,
+            hasX11Display,
+            compositor,
+            _ => helperAvailable);
 
         Assert.That(capability.Level, Is.EqualTo((WindowPreselectionSupportLevel)expectedLevel));
         Assert.That(capability.UserMessage, Is.EqualTo(expectedMessage));
         Assert.That(capability.IsEnabled, Is.EqualTo((WindowPreselectionSupportLevel)expectedLevel != WindowPreselectionSupportLevel.Unsupported));
+    }
+
+    [Test]
+    public void GetLinuxWindowPreselectionCapability_PrefersDirectCapabilityWhenEnabled()
+    {
+        var capability = WindowDetectionService.GetLinuxWindowPreselectionCapability(
+            isWaylandSession: true,
+            hasX11Display: false,
+            compositor: "GNOME",
+            _ => false,
+            new WindowPointQueryCapability(WindowPointQuerySupportLevel.Full, null));
+
+        Assert.That(capability.Level, Is.EqualTo(WindowPreselectionSupportLevel.Full));
+        Assert.That(capability.UserMessage, Is.Null);
+    }
+
+    [Test]
+    public void GetLinuxWindowPreselectionCapability_MapsPartialDirectCapability()
+    {
+        var capability = WindowDetectionService.GetLinuxWindowPreselectionCapability(
+            isWaylandSession: true,
+            hasX11Display: false,
+            compositor: "WAYLAND",
+            _ => false,
+            new WindowPointQueryCapability(
+                WindowPointQuerySupportLevel.Partial,
+                "Wayland session: helper only exposes the active workspace."));
+
+        Assert.That(capability.Level, Is.EqualTo(WindowPreselectionSupportLevel.Partial));
+        Assert.That(capability.UserMessage, Is.EqualTo("Wayland session: helper only exposes the active workspace."));
+    }
+
+    [Test]
+    public void TryConvertPhysicalToLogicalPoint_UsesMonitorScaleAndOverlayBounds()
+    {
+        IReadOnlyList<MonitorInfo> monitors =
+        [
+            new MonitorInfo(
+                "Display 1",
+                new PixelRect(0, 0, 200, 100),
+                new PixelRect(0, 0, 200, 100),
+                2.0,
+                true,
+                OverlayBoundsOverride: new PixelRect(0, 0, 100, 50))
+        ];
+
+        bool converted = WindowDetectionService.TryConvertPhysicalToLogicalPoint(
+            new PixelPoint(50, 40),
+            monitors,
+            out Point logicalPoint);
+
+        Assert.That(converted, Is.True);
+        Assert.That(logicalPoint, Is.EqualTo(new Point(25, 20)));
+    }
+
+    [Test]
+    public void ConvertLogicalPlatformWindow_ConvertsBoundsToPhysicalAndFiltersOverlay()
+    {
+        IReadOnlyList<MonitorInfo> monitors =
+        [
+            new MonitorInfo(
+                "Display 1",
+                new PixelRect(0, 0, 300, 200),
+                new PixelRect(0, 0, 300, 200),
+                1.5,
+                true,
+                OverlayBoundsOverride: new PixelRect(0, 0, 200, 133.33333333333334))
+        ];
+
+        var overlayWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)12,
+            Title = PlatformWindowTitles.RegionCaptureOverlay,
+            Bounds = new Rectangle(0, 0, 100, 100),
+            IsVisible = true
+        };
+
+        var normalWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)34,
+            Title = "Notes",
+            ClassName = "org.example.Notes",
+            Bounds = new Rectangle(10, 20, 80, 40),
+            IsVisible = true
+        };
+
+        Assert.That(
+            WindowDetectionService.ConvertLogicalPlatformWindow(overlayWindow, monitors),
+            Is.Null);
+
+        var converted = WindowDetectionService.ConvertLogicalPlatformWindow(normalWindow, monitors);
+
+        Assert.That(converted, Is.Not.Null);
+        Assert.That(converted!.Handle, Is.EqualTo((nint)34));
+        Assert.That(converted.Bounds, Is.EqualTo(new PixelRect(15, 30, 120, 60)));
+        Assert.That(converted.ClassName, Is.EqualTo("org.example.Notes"));
     }
 }

@@ -27,10 +27,11 @@ using XerahS.Platform.Abstractions;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
+using XerahS.Platform.Linux.Wayland.WindowQuery;
 
 namespace XerahS.Platform.Linux
 {
-    public class LinuxWindowService : IWindowService, IDisposable
+    public class LinuxWindowService : IWindowService, ILogicalWindowPointQueryService, IDisposable
     {
         private const long MaxPropertyLongLength = 4096;
         private static readonly string[] ExcludedWindowTypeNames =
@@ -54,9 +55,12 @@ namespace XerahS.Platform.Linux
         private readonly IntPtr _display;
         private readonly IntPtr _rootWindow;
         private readonly Dictionary<string, IntPtr> _atomCache = new(StringComparer.Ordinal);
+        private readonly IWaylandWindowPointQueryHelper _waylandWindowPointQueryHelper;
 
         public LinuxWindowService()
         {
+            _waylandWindowPointQueryHelper = WaylandWindowPointQueryHelperFactory.Create();
+
             try
             {
                 _display = NativeMethods.XOpenDisplay(null);
@@ -76,6 +80,16 @@ namespace XerahS.Platform.Linux
                 DebugHelper.WriteLine("  Window management features may be limited.");
                 _display = IntPtr.Zero;
             }
+        }
+
+        public WindowPointQueryCapability GetLogicalWindowPointQueryCapability()
+        {
+            return _waylandWindowPointQueryHelper.Capability;
+        }
+
+        public WindowInfo? GetWindowAtLogicalPoint(System.Drawing.Point logicalPoint)
+        {
+            return _waylandWindowPointQueryHelper.GetWindowAtPoint(logicalPoint);
         }
 
         public void Dispose()

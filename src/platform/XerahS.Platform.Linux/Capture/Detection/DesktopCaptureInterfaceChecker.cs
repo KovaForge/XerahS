@@ -52,7 +52,7 @@ internal static class DesktopCaptureInterfaceChecker
         return HasInterface(KdeScreenshotBusName, KdeScreenshotObjectPath, KdeScreenshotInterfaceName);
     }
 
-    private static bool HasInterface(string busName, string objectPath, string interfaceName)
+    public static bool HasInterface(string busName, string objectPath, string interfaceName)
     {
         string cacheKey = $"{busName}|{objectPath}|{interfaceName}";
         return Cache.GetOrAdd(cacheKey, _ => CheckInterface(busName, objectPath, interfaceName));
