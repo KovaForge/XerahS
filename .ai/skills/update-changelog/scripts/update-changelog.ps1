@@ -4,7 +4,8 @@ param(
     [string]$ChangelogPath = "docs/CHANGELOG.md",
     [switch]$Apply,
     [switch]$IncludeMerges,
-    [string]$OutputPath
+    [string]$OutputPath,
+    [switch]$NoConsolidation
 )
 
 Set-StrictMode -Version Latest
@@ -155,6 +156,58 @@ function Categorize-Commit([string]$Subject) {
     }
 }
 
+function Get-ConsolidationBucket {
+    param(
+        [string]$Subject,
+        [string]$Category,
+        [string]$Component
+    )
+
+    if ($Subject -match '(?i)ShareX\.ImageEditor') {
+        return @{
+            GroupKey = "$Category|$Component|__consolidate_sharex_imageeditor__"
+            Summary  = "ShareX.ImageEditor submodule updates"
+        }
+    }
+
+    if ($Category -eq 'Documentation') {
+        if ($Subject -match '(?i)(Add|Update)\s+2026-\d{2}-\d{2}.*blog') {
+            return @{
+                GroupKey = "Documentation|__blog_series__|__consolidate_blog_drafts__"
+                Summary  = "Blog drafts (2026 series, add/update)"
+            }
+        }
+        if ($Subject -match '(?i)\b(XIP\d+|IEIP\d+)') {
+            return @{
+                GroupKey = "Documentation|__xip_ieip__|__consolidate_xip_ieip_docs__"
+                Summary  = "XIP/IEIP proposals and related documentation"
+            }
+        }
+        if ($Component -eq 'Linux') {
+            return @{
+                GroupKey = "Documentation|Linux|__consolidate_linux_docs__"
+                Summary  = "Linux install and capture documentation"
+            }
+        }
+    }
+
+    if ($Category -eq 'Changed' -and $Subject -match '(?i)(Create|Update)\s+(IEIP|XIP)\d+|(IEIP|XIP)\d+[^\n]*\.md\b') {
+        return @{
+            GroupKey = "Changed|__ieip_xip_md__|__consolidate_proposal_md__"
+            Summary  = "IEIP/XIP proposal documents (create/update)"
+        }
+    }
+
+    if (($Category -eq 'Changed' -or $Category -eq 'Features') -and $Subject -match '(?i)multipart(\s+upload)?|S3\s+multipart') {
+        return @{
+            GroupKey = "$Category|$Component|__consolidate_multipart__"
+            Summary  = "Multipart upload support (S3, abstractions, coverage)"
+        }
+    }
+
+    return $null
+}
+
 function Get-CommitRows([string]$FromTag, [bool]$IncludeMerges) {
     $range = if ([string]::IsNullOrWhiteSpace($FromTag)) { "HEAD" } else { "$FromTag..HEAD" }
     $logArgs = @("log", $range, "--pretty=format:%h%x1f%s%x1f%an")
@@ -193,7 +246,7 @@ function Get-CommitRows([string]$FromTag, [bool]$IncludeMerges) {
     return $rows
 }
 
-function Build-ChangelogSection([string]$Version, [object[]]$CommitRows) {
+function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar) {
     $grouped = @{}
     foreach ($row in $CommitRows) {
         if ($row.Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
@@ -201,13 +254,26 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows) {
         }
 
         $parsed = Categorize-Commit $row.Subject
-        $key = "{0}|{1}|{2}" -f $parsed.Category, $parsed.Component, $parsed.Description
+        $description = $parsed.Description
+        $key = $null
+
+        if ($ConsolidateSimilar) {
+            $bucket = Get-ConsolidationBucket -Subject $row.Subject -Category $parsed.Category -Component $parsed.Component
+            if ($null -ne $bucket) {
+                $key = $bucket.GroupKey
+                $description = $bucket.Summary
+            }
+        }
+
+        if ($null -eq $key) {
+            $key = "{0}|{1}|{2}" -f $parsed.Category, $parsed.Component, $parsed.Description
+        }
 
         if (-not $grouped.ContainsKey($key)) {
             $grouped[$key] = [pscustomobject]@{
                 Category = $parsed.Category
                 Component = $parsed.Component
-                Description = $parsed.Description
+                Description = $description
                 Hashes = New-Object System.Collections.Generic.List[string]
             }
         }
@@ -281,7 +347,8 @@ Set-Location $repoRoot
 $resolvedVersion = Resolve-Version -RepoRoot $repoRoot -RequestedVersion $Version
 $resolvedFromTag = Resolve-FromTag -RequestedTag $FromTag
 $commits = @(Get-CommitRows -FromTag $resolvedFromTag -IncludeMerges:$IncludeMerges)
-$section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits
+$consolidate = -not $NoConsolidation
+$section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits -ConsolidateSimilar:$consolidate
 
 if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
     $resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) { $OutputPath } else { Join-Path $repoRoot $OutputPath }
@@ -303,6 +370,7 @@ Write-Host "Target version : v$resolvedVersion"
 $fromTagLabel = if ([string]::IsNullOrWhiteSpace($resolvedFromTag)) { "(none)" } else { $resolvedFromTag }
 Write-Host "From tag       : $fromTagLabel"
 Write-Host "Commits parsed : $($commits.Count)"
+Write-Host "Consolidation  : $(if ($consolidate) { 'on (similar commits merged)' } else { 'off (-NoConsolidation)' })"
 if ($Apply) {
     Write-Host "Applied to     : $ChangelogPath"
 }

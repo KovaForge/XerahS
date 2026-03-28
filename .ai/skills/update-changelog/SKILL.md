@@ -5,7 +5,7 @@ description: Rules and workflows for updating CHANGELOG.md, including version gr
 
 ## Automation Script (Recommended)
 
-Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories.
+Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below).
 
 Script path:
 
@@ -31,11 +31,18 @@ Apply directly to `docs/CHANGELOG.md`:
 powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -Apply
 ```
 
+Per-commit lines only (disables automatic similarity merge):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -NoConsolidation
+```
+
 Notes:
 - `-Version` defaults to root `Directory.Build.props`.
 - `-FromTag` defaults to `git describe --tags --abbrev=0`.
 - The script upserts `## vX.Y.Z` (replaces existing section for that version or inserts after `## Unreleased`).
-- Keep manual review for consolidation quality and contributor attribution rules.
+- **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same *similarity bucket* (for example: **ShareX.ImageEditor** in the subject, **2026-… blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
+- Always **manually review** for wording, missed merges, and contributor attribution (`#PR`, `@user`) before publishing.
 
 ## Version Grouping Strategy
 
@@ -80,6 +87,8 @@ Group changes within each version using standard categories:
 
 ### Entry Consolidation to Reduce Line Count
 **CRITICAL**: Consolidate related commits into single entries to keep the changelog concise and readable.
+
+The automation script does this **by default**; agents should still **edit the draft** for narrative quality and any merges the heuristics miss.
 
 #### Guidelines:
 - **Group by Component and Purpose**: Combine multiple commits that affect the same component and serve the same purpose.
