@@ -76,6 +76,7 @@ The work was intentionally split into logical chunks:
 
 ### 10. Failure points
 - Native Wayland sessions may still expose no global window list, so window preselection remains unavailable there.
+- Wayland sessions that do expose an X11/XWayland display still only see X11/XWayland windows, not every native GNOME/KDE Wayland surface.
 - Some Linux desktops may report incomplete or unusual top-level window metadata.
 - X11 window title sourcing is still only as good as the current Linux window service.
 - If overlay handles are not available from the backend, exclusion falls back to normal platform filtering.
@@ -128,6 +129,12 @@ This is intentionally capability-aware rather than pretending every Linux sessio
 - Added focused detector tests for filtering/projection and topmost-hit behavior.
 - Re-ran the RegionCapture test slice.
 - Rebuilt the desktop solution successfully with zero warnings and zero errors.
+
+### Phase 5: KDE/GNOME session guidance
+- `RegionCaptureControl` now surfaces capability-aware instructions instead of always promising full window snapping.
+- Linux X11 sessions keep the standard `Click to snap window` guidance.
+- Wayland sessions with an available X11/XWayland display now show `Click to snap supported windows`.
+- Wayland sessions without an exposed X display remove the snap-to-window promise and show that window snapping is unavailable.
 
 ---
 
