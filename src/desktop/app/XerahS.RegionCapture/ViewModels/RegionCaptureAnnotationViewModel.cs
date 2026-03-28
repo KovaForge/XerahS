@@ -62,6 +62,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
 
     public EditorCore EditorCore => _editorCore;
 
+    public bool ImageEditorMode => false;
+
     public event Action? InvalidateRequested;
 
     public event Action? AnnotationsRestored;
