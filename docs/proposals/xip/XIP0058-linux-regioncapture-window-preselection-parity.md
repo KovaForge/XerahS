@@ -1,204 +1,260 @@
-# XIP0058 Linux RegionCapture Window Preselection Parity
+# XIP0058 Linux RegionCapture Native Wayland Window Preselection Parity
 **Status**: Completed
 **Priority**: High
 **Created**: 2026-03-28
 **Updated**: 2026-03-28
-**Area**: Linux, UI, RegionCapture
-**Goal**: Bring Linux overlay window hover/preselection to Windows parity on KDE/GNOME X11 or XWayland sessions that expose global window metadata, without regressing unsupported sessions such as native Wayland.
+**Area**: Linux, Wayland, UI, RegionCapture
+**Goal**: Extend XIP0058 from X11/XWayland window preselection parity to native Wayland parity by routing hover snapping through compositor-specific helpers while preserving the existing Windows and X11 paths.
 **Related**: XIP0047, XIP0051
 
 ---
 
 ## Systems Analysis Summary
 ### 1. Core problem
-Linux region capture overlay mode could not pre-select a hovered window before drag/confirm, while Windows could.
+XIP0058 previously solved Linux window preselection only for X11/XWayland sessions that could enumerate top-level windows globally.
 
-The direct cause was architectural, not visual:
+Native Wayland still had a missing end-to-end path:
 
-- `XerahS.RegionCapture/Services/WindowDetectionService.cs` enumerated windows only behind `#if WINDOWS`.
-- Non-Windows builds always refreshed an empty window list, so hover-state window snapping could never activate.
-- Linux already had `PlatformServices.Window.GetAllWindows()`, but the overlay path was not using it.
-- After the first parity wiring, Linux still relied on raw X11 root children plus `XFetchName`, which is too weak for KDE/GNOME managed windows and can collapse back to an empty hover list.
+- the overlay cursor position existed in physical capture pixels,
+- compositor/desktop helpers operate in logical compositor space,
+- helper results needed to be mapped back into physical RegionCapture rectangles,
+- and overlay windows needed to be excluded consistently so the overlay never snapped to itself.
+
+Without that full path, native Wayland sessions still behaved as partial or unsupported even when compositor-specific helper APIs or tools were available.
 
 ### 2. Assumptions
-- Windows behavior is the feature reference: hover a window, highlight it, click or confirm to capture that window rectangle.
-- Linux parity should be implemented where platform APIs can expose real top-level windows.
-- Native Wayland sessions may not allow portable global window enumeration, so parity there is a capability problem, not only a missing code path.
-- Overlay windows themselves must be excluded from detection or the feature becomes self-targeting.
+- Windows remains the fidelity reference for hover-based window snapping.
+- Native Wayland parity should use compositor-specific helpers, not pretend there is a portable global window enumeration API.
+- A topmost-window-at-point query is sufficient for hover/click parity on native Wayland; a full desktop-wide window catalog is not required.
+- Overlay windows must be excluded by a shared identifier, not by ad hoc title checks in each call site.
 
 ### 3. Constraints and unknowns
-- `WindowDetectionService` refreshes frequently, so Linux enumeration must be cheap enough for overlay interaction.
-- KDE and GNOME commonly expose managed top-level windows through EWMH (`_NET_CLIENT_LIST_STACKING`, `_NET_WM_NAME`, `_NET_FRAME_EXTENTS`) rather than only through raw X11 root-child traversal.
-- `LinuxWindowService.GetWindowBounds()` contained verbose debug logging that would become a hot-path cost if reused every refresh.
-- Native Wayland support remains session-dependent and in many cases unavailable.
+- Native Wayland helpers use logical compositor coordinates, while RegionCapture selection and snapping are expressed in physical pixels.
+- Helper availability differs by desktop/compositor:
+  - GNOME depends on Shell D-Bus access,
+  - KDE depends on `kdotool`,
+  - Hyprland depends on `hyprctl`,
+  - Sway depends on `swaymsg`.
+- The hot path must stay lightweight: no noisy per-refresh logging and only short-lived helper invocations.
+- The repository test project is Windows-targeted; on this Linux host, `dotnet test` reached VSTest successfully but still reported `No test is available`, so verification needed an additional fallback.
 
 ### 4. Sub-problems
-1. Enable non-Windows window detection in the overlay.
-2. Preserve Windows-specific DWM/visual-bounds behavior.
-3. Make Linux X11 window enumeration meaningful for hover selection.
-4. Exclude active overlay windows from detection across platforms.
-5. Add targeted verification for detector behavior without depending on a live X11 session in tests.
+1. Define a platform abstraction for logical compositor-space point queries.
+2. Implement compositor-specific helpers for native Wayland sessions.
+3. Convert physical overlay cursor points into logical compositor points.
+4. Convert logical helper window rectangles back into physical capture rectangles.
+5. Expose capability-aware UI messaging for full, partial, and unsupported sessions.
+6. Exclude RegionCapture overlay windows from helper results.
+7. Add focused verification for helper parsers and logical/physical conversion.
 
 ### 5. Three approaches
-1. Minimal wiring only:
-   Use `PlatformServices.Window.GetAllWindows()` on Linux and stop there.
-2. Session-specific Linux implementation:
-   Add X11-aware ordering/filtering/exclusion while leaving unsupported sessions inert.
-3. Full compositor integration:
-   Add Wayland compositor-specific window enumeration for GNOME/KDE/wlroots in v1.
+1. Keep X11/XWayland-only parity and leave native Wayland unsupported.
+2. Add helper-backed point query per compositor/desktop for native Wayland while retaining the existing X11 enumeration path.
+3. Reimplement a portable Wayland toplevel-enumeration stack in-process.
 
 ### 6. Tradeoffs
-- Approach 1 is fast to ship but risky because raw Linux window lists can be noisy, unordered, and can include the overlay itself.
-- Approach 2 reaches practical parity on X11/XWayland with bounded scope and preserves current behavior on unsupported sessions.
-- Approach 3 aims at broader parity but is high-risk, compositor-fragmented, and too large for a safe v1 fix.
+- Approach 1 is the smallest change but fails the actual goal.
+- Approach 2 fits the Wayland security model, keeps scope bounded, and avoids destabilizing the existing Windows/X11 path.
+- Approach 3 may be attractive long-term, but it is materially larger, more brittle, and unnecessary for the hover-snapping goal.
 
 ### 7. Chosen approach
 Approach 2 was the best fit.
 
-It solves the actual missing behavior for Linux sessions that can expose top-level windows, keeps Windows on its existing high-fidelity native path, and avoids promising parity where native Wayland security boundaries prevent it.
+It delivers native Wayland snapping where real compositor helpers exist, preserves X11/XWayland behavior, and keeps unsupported sessions honest instead of over-promising parity.
 
 ### 8. Step-by-step execution
-1. Audit Windows overlay hover detection and confirm Linux returned no windows.
-2. Confirm proposal numbering/style and related Linux capture XIPs.
-3. Refactor `WindowDetectionService` into a platform-aware detector.
-4. Keep Windows on `NativeWindowService.EnumerateVisibleWindows()`.
-5. Project non-Windows `IWindowService.GetAllWindows()` results into RegionCapture window models.
-6. Add shared overlay-handle exclusion so hover detection ignores overlay windows on every platform.
-7. Replace raw X11 root-child enumeration with EWMH managed-window enumeration for KDE/GNOME X11 and XWayland sessions.
-8. Read Linux titles and outer bounds from `_NET_WM_VISIBLE_NAME` / `_NET_WM_NAME` and `_NET_FRAME_EXTENTS`, while filtering `_NET_WM_WINDOW_TYPE` and `_NET_WM_STATE`.
-9. Add focused detector tests plus region-capture regression verification.
-10. Build the desktop solution and commit the verified runtime chunk before documenting the proposal.
+1. Add a logical point-query platform abstraction and capability model.
+2. Add a shared RegionCapture overlay title constant for helper-side self-exclusion.
+3. Implement compositor-specific Wayland point-query helpers for:
+   - GNOME Shell D-Bus eval,
+   - KDE `kdotool`,
+   - Hyprland `hyprctl`,
+   - Sway `swaymsg`.
+4. Add a factory that selects the right helper from the current desktop/compositor.
+5. Expose helper capability and point-query calls from `LinuxWindowService`.
+6. Extend `WindowDetectionService` with native Wayland direct-query support, caching, and physical/logical coordinate translation.
+7. Keep the existing Windows/X11 list-based path intact for sessions that still enumerate windows natively.
+8. Update Linux capability messaging so the overlay only promises full snapping when a helper is actually available.
+9. Add focused parser/conversion tests for the helper and RegionCapture conversion paths.
+10. Verify with `dotnet build`, a `dotnet test` attempt, and a temporary reflection-based verification harness for the helper/parser/conversion methods when VSTest discovery remained unavailable on this Linux host.
 
 ### 9. Git staging strategy
-The work was intentionally split into logical chunks:
+The work was intentionally split into two commits:
 
-1. Runtime implementation plus tests, staged and committed only after targeted tests and `dotnet build src/desktop/XerahS.sln -m:1` passed.
-2. Proposal documentation, staged separately so review can distinguish runtime behavior from design record.
+1. Runtime implementation plus focused tests.
+2. This proposal update.
 
 ### 10. Failure points
-- Native Wayland sessions still expose no portable global window list, so window preselection remains unavailable there without compositor-specific helpers.
-- Wayland sessions that do expose an X11/XWayland display still only see X11/XWayland windows, not every native GNOME/KDE Wayland surface.
-- Some X11 desktops or lightweight window managers may not publish the full EWMH properties, so Linux falls back to the older root-child heuristic.
-- X11 window title sourcing is still only as good as the current Linux window service.
-- If overlay handles are not available from the backend, exclusion falls back to normal platform filtering.
-
----
-
-## Post-v1 Improvements
-- Add compositor-aware diagnostics that explicitly tell users when window preselection is unavailable because the session is native Wayland.
-- Improve Linux title retrieval by checking richer EWMH/ICCCM metadata when `XFetchName` is insufficient.
-- Cache Linux window snapshots per refresh cycle with additional invalidation rules if enumeration cost becomes noticeable on busy desktops.
-- Explore optional compositor-specific integrations for GNOME/KDE when they can be done without destabilizing the portable overlay path.
-- Surface an overlay capability indicator in Linux diagnostics so support logs show whether window preselection was expected to work in that session.
+- GNOME parity depends on `org.gnome.Shell` eval access; hardened or restricted shells can still disable the helper.
+- KDE parity depends on `kdotool` being installed and returning parseable geometry.
+- Hyprland/Sway parity depends on `hyprctl` / `swaymsg` being present and their JSON staying compatible with the parser assumptions.
+- Native Wayland parity is implemented as a topmost-window-at-point query, not as a complete desktop-wide window inventory.
+- On this Linux host, `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -m:1` built the project graph but VSTest still reported `No test is available` for the Windows-targeted test assembly, so the helper/parser/conversion behavior was additionally verified with a temporary reflection harness.
 
 ---
 
 ## Overview
-This XIP records the completed fix for Linux overlay window preselection parity.
+This proposal records the completion of native Wayland window preselection parity on top of the earlier X11/XWayland work.
 
-Before this change, Linux overlay mode could display the crosshair and support rectangular selection, but it could not snap to the hovered window because the hover detector had no non-Windows source of top-level windows. The implementation now uses a platform-aware detection path:
+Before this change, RegionCapture already had:
 
-- Windows continues to use the existing DWM-backed native enumerator.
-- Non-Windows platforms can project `IWindowService.GetAllWindows()` into RegionCapture window models.
-- Linux X11/XWayland window enumeration now prefers the EWMH managed-window stack and expands client bounds to frame bounds for hover-selection use.
-- Overlay handles are excluded from detection so the overlay never becomes its own snap target.
+- Windows parity through the DWM-backed native path,
+- Linux X11/XWayland parity through managed-window enumeration,
+- capability-aware UI text for sessions that could only snap supported windows.
 
-This is intentionally capability-aware rather than pretending every Linux session can offer Windows-equivalent metadata. Where the platform cannot expose global window information, the overlay keeps region capture behavior without false preselection promises.
+What it still lacked was the native Wayland bridge from cursor point to compositor-owned topmost window metadata. The completed implementation adds that bridge through compositor-specific helpers and translates the result back into physical RegionCapture space so hover highlights and click-to-snap behave like the existing Windows/X11 experience.
 
 ---
 
 ## Implemented Design
-### Phase 1: Platform-aware detector
-- `WindowDetectionService` now owns shared overlay-handle exclusion.
-- Windows still uses `NativeWindowService.EnumerateVisibleWindows()` for visual-bounds fidelity.
-- Non-Windows now converts `PlatformServices.Window.GetAllWindows()` into `XerahS.RegionCapture.Models.WindowInfo`.
+### Phase 1: Platform abstraction
+- Added `ILogicalWindowPointQueryService` plus `WindowPointQueryCapability`.
+- This keeps native Wayland point-query behavior explicit instead of overloading the older `GetAllWindows()` abstraction.
 
-### Phase 2: Overlay exclusion
-- `OverlayManager` now registers and unregisters overlay platform handles with `WindowDetectionService` on all platforms.
-- This removes the Windows-only exclusion path and makes the behavior consistent for Linux/X11 overlays as well.
+### Phase 2: Shared overlay exclusion
+- Added `PlatformWindowTitles.RegionCaptureOverlay`.
+- `OverlayWindow` now uses that shared title so every Wayland helper can exclude the overlay with one stable identifier.
+- Added `WindowQueryConstants.RegionCaptureOverlayTitle` for helper-side reuse.
 
-### Phase 3: Linux X11 managed-window enumeration
-- `LinuxWindowService.GetAllWindows()` now:
-  - prefers `_NET_CLIENT_LIST_STACKING` so KDE/GNOME callers see the actual managed-window stack instead of raw root children,
-  - falls back to root-child traversal only when the window manager does not expose EWMH stacking data,
-  - reads window titles from `_NET_WM_VISIBLE_NAME` / `_NET_WM_NAME` before falling back to `XFetchName`,
-  - filters out hidden or non-window surfaces using `_NET_WM_WINDOW_TYPE` and `_NET_WM_STATE`,
-  - skips override-redirect and zero-sized windows.
-- `LinuxWindowService.GetWindowBounds()` now applies `_NET_FRAME_EXTENTS` so hover highlights match the full outer window frame instead of only the client surface when the window manager exposes frame metadata.
-- `NativeMethods` now includes the X11 property interop needed to read managed-window metadata.
+### Phase 3: Compositor-specific helpers
+- Added `WaylandWindowPointQueryHelperFactory` to select the native Wayland helper based on the detected compositor/desktop.
+- Added helper implementations for:
+  - `GnomeShellWindowPointQueryHelper`
+  - `KdeKdotoolWindowPointQueryHelper`
+  - `HyprlandWindowPointQueryHelper`
+  - `SwayWindowPointQueryHelper`
+- Added `WaylandWindowPointQueryCommandRunner` for short-lived helper invocations and command availability checks.
+- `DesktopCaptureInterfaceChecker.HasInterface(...)` was widened so the GNOME helper can reuse the existing D-Bus capability probe.
 
-### Phase 4: Verification
-- Added focused detector tests for filtering/projection and topmost-hit behavior.
-- Re-ran the RegionCapture test slice.
-- Rebuilt the desktop solution successfully with zero warnings and zero errors.
+### Phase 4: Linux service wiring
+- `LinuxWindowService` now implements `ILogicalWindowPointQueryService`.
+- It exposes helper capability and helper-backed point queries without regressing the older X11 window-management implementation.
 
-### Phase 5: KDE/GNOME session guidance
-- `RegionCaptureControl` now surfaces capability-aware instructions instead of always promising full window snapping.
-- Linux X11 sessions keep the standard `Click to snap window` guidance.
-- Wayland sessions with an available X11/XWayland display now show `Click to snap supported windows`.
-- Wayland sessions without an exposed X display remove the snap-to-window promise and show that window snapping is unavailable.
+### Phase 5: RegionCapture integration
+- `WindowDetectionService` now:
+  - caches direct native Wayland point-query results,
+  - converts physical overlay points to logical compositor points,
+  - converts logical helper rectangles back into physical capture rectangles,
+  - filters helper results that resolve back to the RegionCapture overlay,
+  - keeps X11/Windows list-based behavior as the fallback path.
+- Capability reporting now recognizes:
+  - full support when a direct helper is enabled,
+  - partial support when only X11/XWayland fallback remains,
+  - unsupported sessions when neither helper nor X11 fallback is available.
+
+### Phase 6: Verification
+- Added focused tests for:
+  - helper parser behavior (`Hyprland`, `Sway`, `GNOME`, `KDE`),
+  - physical/logical coordinate conversion,
+  - logical-window-to-physical-window projection,
+  - capability mapping.
+- `dotnet build src/desktop/XerahS.sln -m:1` succeeded with 0 warnings and 0 errors.
+- `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -m:1` built successfully but VSTest still reported `No test is available` on this Linux host for the Windows-targeted test assembly.
+- A temporary reflection-based verification harness successfully exercised:
+  - `HyprlandWindowPointQueryHelper.SelectWindowFromClientsJson(...)`,
+  - `SwayWindowPointQueryHelper.SelectWindowFromTreeJson(...)`,
+  - `WindowDetectionService.TryConvertPhysicalToLogicalPoint(...)`,
+  - `WindowDetectionService.ConvertLogicalPlatformWindow(...)`.
 
 ---
 
 ## Non-Negotiable Rules
-- Do not replace the Windows native DWM-based hover path with a lower-fidelity generic implementation.
-- Do not claim portable native Wayland parity unless the session exposes a real global window list.
-- Do not let overlay windows participate in hover preselection.
-- Do not turn Linux window enumeration into a hot logging path during overlay interaction.
-- Keep window-preselection behavior capability-aware: supported where available, inert where unsupported.
+- Do not regress the existing Windows DWM-backed snapping path.
+- Do not degrade X11/XWayland behavior to fit native Wayland helpers.
+- Do not claim native Wayland parity when helper capability is unavailable.
+- Do not let the RegionCapture overlay participate in helper results.
+- Keep helper usage lightweight and capability-aware.
 
 ---
 
 ## Deliverables
-1. Platform-aware overlay window detection in `XerahS.RegionCapture`.
-2. Cross-platform overlay-handle exclusion wiring in `OverlayManager`.
-3. Hardened Linux X11/EWMH managed-window enumeration for hover selection.
-4. Automated tests covering detector filtering, topmost-hit behavior, and Linux frame/type/state helpers.
-5. This proposal documenting scope, tradeoffs, and post-v1 follow-up.
+1. `ILogicalWindowPointQueryService` and capability model.
+2. Shared RegionCapture overlay-title constant for helper filtering.
+3. Native Wayland compositor/desktop helpers for GNOME, KDE, Hyprland, and Sway.
+4. Linux service wiring from helper capability/query to RegionCapture.
+5. Focused tests for helper parsing and logical/physical conversion.
+6. This updated proposal.
 
 ---
 
 ## Affected Components
-1. `src/desktop/app/XerahS.RegionCapture/Services/WindowDetectionService.cs`
-2. `src/desktop/app/XerahS.RegionCapture/Services/OverlayManager.cs`
-3. `src/platform/XerahS.Platform.Linux/LinuxWindowService.cs`
-4. `src/platform/XerahS.Platform.Linux/NativeMethods.cs`
-5. `tests/XerahS.Tests/RegionCapture/WindowDetectionServiceTests.cs`
-6. `tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs`
+1. `src/platform/XerahS.Platform.Abstractions/ILogicalWindowPointQueryService.cs`
+2. `src/platform/XerahS.Platform.Abstractions/PlatformWindowTitles.cs`
+3. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WaylandWindowPointQueryHelperFactory.cs`
+4. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WaylandWindowPointQueryCommandRunner.cs`
+5. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/GnomeShellWindowPointQueryHelper.cs`
+6. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs`
+7. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/HyprlandWindowPointQueryHelper.cs`
+8. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/SwayWindowPointQueryHelper.cs`
+9. `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WindowQueryConstants.cs`
+10. `src/platform/XerahS.Platform.Linux/Capture/Detection/DesktopCaptureInterfaceChecker.cs`
+11. `src/platform/XerahS.Platform.Linux/LinuxWindowService.cs`
+12. `src/desktop/app/XerahS.RegionCapture/Services/WindowDetectionService.cs`
+13. `src/desktop/app/XerahS.RegionCapture/UI/OverlayWindow.axaml.cs`
+14. `tests/XerahS.Tests/RegionCapture/WindowDetectionServiceTests.cs`
+15. `tests/XerahS.Tests/Platform/Linux/WaylandWindowPointQueryHelperTests.cs`
 
 ---
 
 ## Architecture Summary
 ```text
-OverlayManager
+RegionCaptureControl (physical cursor point)
     |
-    | registers overlay native handles for exclusion
     v
-WindowDetectionService
+WindowDetectionService.GetWindowAtPoint(...)
     |
-    +--> Windows: NativeWindowService.EnumerateVisibleWindows()
+    +--> Windows / X11 / XWayland:
+    |       existing list-based window detection
     |
-    +--> Non-Windows: PlatformServices.Window.GetAllWindows()
-              |
-              v
-        LinuxWindowService (EWMH-managed X11/XWayland windows when available)
-              |
-              v
-        topmost filtered window list
-              |
-              v
-RegionCaptureControl hover state
-              |
-              v
-window highlight -> click/confirm -> snapped capture rect
+    +--> Native Wayland:
+            physical point
+                |
+                v
+            TryConvertPhysicalToLogicalPoint(...)
+                |
+                v
+            LinuxWindowService.GetWindowAtLogicalPoint(...)
+                |
+                v
+            WaylandWindowPointQueryHelperFactory
+                |
+                +--> GNOME Shell helper
+                +--> KDE kdotool helper
+                +--> Hyprland hyprctl helper
+                +--> Sway swaymsg helper
+                |
+                v
+            logical compositor-space window
+                |
+                v
+            ConvertLogicalPlatformWindow(...)
+                |
+                v
+            physical RegionCapture window bounds
+                |
+                v
+            hover highlight -> click -> snapped capture rect
 ```
 
 ---
 
-## Verification Commands
+## Verification
+### Build
 ```powershell
-dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter "FullyQualifiedName~WindowDetectionServiceTests" -m:1
-dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter "FullyQualifiedName~LinuxWindowServiceTests" -m:1
-dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter "FullyQualifiedName~XerahS.Tests.RegionCapture" -m:1
 dotnet build src/desktop/XerahS.sln -m:1
 ```
+
+### Test attempt
+```powershell
+dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -m:1
+```
+
+### Host-specific fallback verification
+When VSTest discovery is unavailable on a Linux host for the Windows-targeted test assembly, run a temporary reflection harness that:
+
+1. calls `HyprlandWindowPointQueryHelper.SelectWindowFromClientsJson(...)`,
+2. calls `SwayWindowPointQueryHelper.SelectWindowFromTreeJson(...)`,
+3. calls `WindowDetectionService.TryConvertPhysicalToLogicalPoint(...)`,
+4. calls `WindowDetectionService.ConvertLogicalPlatformWindow(...)`.
+
+The current implementation was verified that way and returned `verification-ok`.
