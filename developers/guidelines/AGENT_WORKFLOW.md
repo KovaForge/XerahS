@@ -58,6 +58,7 @@ This document adapts a cross-agent workflow to the XerahS repository. It is writ
 
 - Never report completion without evidence.
 - Run the smallest relevant verification automatically when possible: `dotnet build`, `dotnet test`, targeted project builds, linters, formatters, or a manual reproduction path.
+- In XerahS, a version-only root `Directory.Build.props` bump is the narrow exception: if that is the only tracked change, review the diff and version alignment instead of running a fresh `dotnet build`.
 - Respect XerahS guardrails while verifying:
   - Stop any single build that exceeds 5 minutes
   - Do not disable warnings-as-errors

@@ -8,6 +8,7 @@
 ## Critical Instructions
 1. **Build Integrity**
    - `dotnet build` must pass with **0 errors** before any push.
+   - Exception: if the only tracked change is a version-only bump in the root `Directory.Build.props`, a fresh `dotnet build` is not required before push. In that case, verify the diff is limited to the intended version change and keep the commit prefix aligned with the new version.
    - **Never** disable `<TreatWarningsAsErrors>`. Fix the warnings.
    - **Target Framework**: `net10.0-windows10.0.26100.0` (do not use `net10.0-windows` alone).
    - **SkiaSharp**: stay on **2.88.9** (do not upgrade to 3.x).
