@@ -12,116 +12,38 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ## v0.21.0
 
 ### Features
-- **Core**: Add custom uploader catalog multi-add (07fee6a1)
-- **Core**: Add Send-to behavior prompt (6e552f83)
-- **Core**: Implement custom uploader saveback flow (11badd97)
+- **Custom uploaders & Send-to**: Catalog multi-add, save-back flow, and Send-to behavior prompt `(07fee6a1, 11badd97, 6e552f83)`
 
 ### Fixes
-- **Core**: align overlay capture behavior with Windows for feature parity (4688c133)
-- **Core**: Bump ShareX.ImageEditor (border/remove-background categories) (9767ecc2)
-- **Core**: Bump ShareX.ImageEditor (develop effect browser parity) (9c74ef23)
-- **Core**: Bump ShareX.ImageEditor (host shortcut browser rows) (521eb39d)
-- **Core**: Centralize modal opening across platforms (be448902)
-- **Core**: dispatch modal open to UI thread to fix Add from Catalog on Linux (326d1049)
-- **Core**: Gate unsupported recording pause on Wayland (2a6a0b50)
-- **Core**: Harden video editor launch on Linux Wayland (06659ec3)
-- **Core**: Repair auto-crop dialog via submodule (7354a04f)
-- **Core**: Repair uploader mojibake labels (486c8320)
-- **Core**: Restore compatibility with latest ImageEditor effects (e59fc0c2)
-- **Core**: Stop toast notification when AfterCaptureWindow is cancelled (51dc50ae)
-- **Core**: Update image editor empty-state actions (334822f7)
-- **Core**: upload fallback from File to Image category (3aceb524)
-- **Hotkeys**: activate X11 fallback when portal bind is cancelled (response=1) (0939672f)
-- **Imgur**: Use cross-platform URLHelpers for OAuth browser launch (656e2975)
-- **Linux**: allow interactive portal retry for fullscreen capture failures (377425be)
-- **Linux**: force transparent overlay on Fedora GNOME mixed-DPI (a3685245)
-- **Linux**: pass UseTransparentOverlay into post-overlay CaptureRectAsync (b65e9848)
-- **Linux**: Prevent Avalonia DBus TaskCanceledException from crashing the app (e65bcc56)
-- **Linux**: restore Fedora portal path and keep KDE selector defaults (08e4ed7e)
-- **Linux**: stabilize GNOME transparent capture and default workflow (c0c04c84)
-- **Linux**: use GNOME direct area capture for transparent region crop (a72a6e6c)
-- **Paths**: always create user-writable plugins folder in EnsureDirectoriesExist (fb1c443b)
-- **Ui**: align effect browser and theme resource with unified editor API (0ad4bfb4)
-- **Upload**: auto-heal stale destination instance IDs (f1e87b3a)
+- **ShareX.ImageEditor**: Submodule updates for effect browser parity, categories/borders, host shortcut rows, auto-crop dialog, empty-state actions, crop dedupe, and latest-effects compatibility `(9767ecc2, 9c74ef23, 521eb39d, 7354a04f, 334822f7, e59fc0c2, cdb03b49)`
+- **Overlay & capture parity**: Align Linux overlay capture with Windows; fix region selector preference on hotkey-triggered captures `(4688c133, ee254f7b)`
+- **Modals & catalog**: Centralize modal opening; dispatch opens on UI thread for Add from Catalog on Linux `(be448902, 326d1049)`
+- **Recording & video editor**: Gate unsupported pause on Wayland; harden editor launch `(2a6a0b50, 06659ec3)`
+- **Core**: Upload fallback File→Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
+- **Hotkeys / Imgur**: X11 fallback when portal bind cancelled; cross-platform OAuth URL helpers `(0939672f, 656e2975)`
+- **Linux (Wayland / GNOME / KDE)**: Portal retry, transparent overlay and mixed-DPI, `UseTransparentOverlay` plumbing, DBus crash guard, selector defaults, GNOME crop workflow `(377425be, a3685245, b65e9848, e65bcc56, 08e4ed7e, c0c04c84, a72a6e6c)`
+- **Paths / UI / upload**: User-writable plugins folder; effect browser aligned with unified editor API; auto-heal stale destination instance IDs `(fb1c443b, 0ad4bfb4, f1e87b3a)`
 
 ### Refactor
-- **Core**: Bump ShareX.ImageEditor (crop dialog dedupe) (cdb03b49)
-- **Core**: Remove upload destination auto-persist and simplify resolution (33beb845)
+- **Core**: Remove upload destination auto-persist and simplify resolution `(33beb845)`
 
 ### Build
-- **Aur**: incorporate upstream improvements to PKGBUILD (ec08bbb0)
-- **Build**: update aur package build script to clean up artifacts (9811d0a5)
-- **Core**: Add MSI packaging via WiX alongside EXE installers (a948921e)
-- **Core**: add reusable AUR packaging and fix executable permissions (06fff733)
-- **Core**: Align upload fallback comments and debug log wording (9b2e33db)
-- **Core**: Bump ShareX.ImageEditor (develop-parity effect names) (6d4a3939)
-- **Core**: Bump ShareX.ImageEditor (remove filter duplicate parity) (4377f217)
-- **Core**: Bump ShareX.ImageEditor (revert 85e0c7e apply UX) (e5acc011)
-- **Core**: bump ShareX.ImageEditor submodule (schema dialog DataContext fix) (337bc8aa)
-- **Core**: Clarify upload fallback debug log line (4ab11c88)
-- **Core**: Default publish-release to pre-release (bd3e9c53)
-- **Core**: Enforce LF line endings (90fa44b6)
-- **Core**: Fix CS8604 and ignore benign DBus ServiceUnknown exception (f5e6d2d0)
-- **Core**: Point ShareX.ImageEditor at IEIP0004 refactor branch (f49f8cb2)
-- **Core**: Switch ShareX.ImageEditor to develop branch (31348f9f)
-- **Core**: Update ShareX.ImageEditor submodule (e06a47ed)
+- **AUR & Windows**: PKGBUILD and script updates; reusable AUR packaging; permissions; MSI via WiX `(ec08bbb0, 9811d0a5, 06fff733, a948921e)`
+- **ShareX.ImageEditor**: Submodule tracking (IEIP0004 branch, develop, parity/revert/schema fixes) `(6d4a3939, 4377f217, e5acc011, 337bc8aa, f49f8cb2, 31348f9f, e06a47ed)`
+- **Tooling & quality**: Upload fallback logging/comments; default publish-release to prerelease; LF enforcement; CS8604/DBus `(9b2e33db, 4ab11c88, bd3e9c53, 90fa44b6, f5e6d2d0)`
 
 ### Documentation
-- **Core**: Add 2026-03-20 annotation toolbar and theme unification blog draft. (edd2b92f)
-- **Core**: Add 2026-03-21 IEIP0002 tool info panel and IEIP0003 filter catalog blog draft. (a6d87b36)
-- **Core**: Add 2026-03-22 after-capture cancel toast fix blog draft. (dfeaed38)
-- **Core**: Add 2026-03-23 linux parity and schema rollout blog draft. (c6a2df06)
-- **Core**: Add 2026-03-24 linux capture and XIP planning blog draft. (cfe5d8c6)
-- **Core**: Add 2026-03-25 IEIP0004 parity and upload cleanup blog draft. (5b3ae91a)
-- **Core**: Add 2026-03-26 multipart upload and Wayland hardening blog draft. (0c4cf944)
-- **Core**: Add hardening notes for hotkeys and recording controls (612d547c)
-- **Core**: Add mojibake prevention rule (eb7e5d8d)
-- **Core**: Add Send-to post-v1 proposal (cbe8f323)
-- **Core**: Add systems-thinking feature prompt under developers/prompts (8bdf1cc0)
-- **Core**: Add workflow destination tooltip for Auto vs fixed uploaders (230bdf02)
-- **Core**: Add XIP0054 for S3 multipart upload (1aa8ed28)
-- **Core**: add XIP0055 send-to prompt workflow proposal (de12cba2)
-- **Core**: add XIP0056 history feature parity proposal (4495a4bb)
-- **Core**: Align commit version prefix with Directory.Build.props (9777ead6)
-- **Core**: Clarify step 10 summary lives in proposal markdown (dc73a7b6)
-- **Core**: Consolidate XIP proposals (renames, removals, updates) (62ff53d3)
-- **Core**: Correct capture TryUploadWithFallback XML summary (73ad1148)
-- **Core**: Document upload destination fallback and image path differences (ac9e42e0)
-- **Core**: Expand Send-to naming follow-up (7bc160ea)
-- **Core**: expand XIP0055 send-to action intelligence (e39283b6)
-- **Core**: finalize IEIP0004 with implemented outcomes (eb3dcc96)
-- **Core**: move PLUGIN_SDK.md from docs/developers/ to developers/guidelines/ (e4e407ea)
-- **Core**: Restore XIP0054 S3 multipart upload proposal (126a07f1)
-- **Core**: Update 2026-03-21 tool info and editor blog draft. (621ba13a)
-- **Core**: Update 2026-03-22 packaging and imgur blog draft. (0bdf100d, d21c61a8)
-- **Core**: Update 2026-03-23 linux parity and editor effects blog draft. (760aa548)
-- **Core**: update XIP0056 with bulk delete and avalonia mcp guidance (83767f4c)
-- **Core**: XIP0056 custom uploader UX improvements (89f6d0a5)
-- **Core**: XIP0056 instance metadata on sxcu and save-back (96e99345)
-- **IEIP0004**: add lessons learnt from catalog browser integration (c920beee)
-- **Linux**: add GNOME Wayland portal and overlay capture notes (5397a7f3)
-- **Linux**: add INSTALL.md with AUR build and install instructions (fb6ec404)
-- **Linux**: explain disabled portal interactive fallback on GNOME (6fa792a6)
+- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series — add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
+- **XIPs & proposals**: XIP0054–0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
+- **IEIP0004 / Linux**: Lessons from catalog browser integration; INSTALL.md; GNOME Wayland portal/overlay notes; interactive fallback explanation `(c920beee, fb6ec404, 5397a7f3, 6fa792a6)`
+- **Developers**: Move `PLUGIN_SDK.md` to `developers/guidelines/` `(e4e407ea)`
 
 ### Changed
-- **Core**: Add multipart uploader abstractions (1033f4d4)
-- **Core**: Add multipart uploader coverage (66383717)
-- **Core**: Add S3 multipart upload support (af844088)
-- **Core**: Bump ShareX.ImageEditor (robust effect apply behavior) (a3f690e2)
-- **Core**: Bump ShareX.ImageEditor (schema dialog binding diagnostics) (dd19a5b0)
-- **Core**: Bump ShareX.ImageEditor (schema slider write-back fix) (ae8a1765)
-- **Core**: Create IEIP0004-unified-imageeffect-schema-driven-overhaul.md (999f6dcf)
-- **Core**: Create IEIP0005-image_effects_redesign.md (39c9757c)
-- **Core**: Fix Imgur OAuth login UX and client ID defaults (6cba98fd)
-- **Core**: Fix region selector preference ignored during hotkey-triggered captures (ee254f7b)
-- **Core**: Hide legacy ShareX uploader import after first run (c014052b)
-- **Core**: Save to Plugins label and XIP0056 auto-instance spec (53f6eea0)
-- **Core**: Sync ShareX.ImageEditor submodule to upstream develop. (05b24ba1)
-- **Core**: Update Directory.Build.props (c7a74ee2)
-- **Core**: Update feature-systems-thinking.md (d91ceb35)
-- **Core**: Update IEIP0004-unified-imageeffect-schema-driven-overhaul.md (6b6ab9a4)
-- **Core**: Update Imgur Plugin to use token OAuth flow (630749d0)
-- **Core**: Update ShareX.ImageEditor (0feae29e, b61ea536, e7f10fd2)
+- **Multipart upload**: Abstractions, coverage, and S3 multipart support `(1033f4d4, 66383717, af844088)`
+- **ShareX.ImageEditor / IEIP**: Schema-driven effects overhaul and IEIP0005 doc; effect apply, schema dialog binding/slider; ongoing submodule sync `(999f6dcf, 39c9757c, a3f690e2, dd19a5b0, ae8a1765, 05b24ba1, 0feae29e, b61ea536, e7f10fd2, 6b6ab9a4)`
+- **Imgur**: OAuth UX, token flow, and client ID defaults `(6cba98fd, 630749d0)`
+- **Custom uploaders**: Hide legacy import after first run; Save to Plugins label and XIP0056 auto-instance metadata `(c014052b, 53f6eea0)`
+- **Meta**: `Directory.Build.props` and feature-systems-thinking prompt updates `(c7a74ee2, d91ceb35)`
 
 ## v0.20.12
 
