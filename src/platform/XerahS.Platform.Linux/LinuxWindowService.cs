@@ -26,13 +26,34 @@ using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace XerahS.Platform.Linux
 {
     public class LinuxWindowService : IWindowService, IDisposable
     {
+        private const long MaxPropertyLongLength = 4096;
+        private static readonly string[] ExcludedWindowTypeNames =
+        [
+            "_NET_WM_WINDOW_TYPE_DESKTOP",
+            "_NET_WM_WINDOW_TYPE_DOCK",
+            "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU",
+            "_NET_WM_WINDOW_TYPE_POPUP_MENU",
+            "_NET_WM_WINDOW_TYPE_TOOLTIP",
+            "_NET_WM_WINDOW_TYPE_NOTIFICATION",
+            "_NET_WM_WINDOW_TYPE_COMBO",
+            "_NET_WM_WINDOW_TYPE_DND",
+            "_NET_WM_WINDOW_TYPE_SPLASH"
+        ];
+        private static readonly string[] ExcludedWindowStateNames =
+        [
+            "_NET_WM_STATE_HIDDEN",
+            "_NET_WM_STATE_SKIP_PAGER",
+            "_NET_WM_STATE_SKIP_TASKBAR"
+        ];
         private readonly IntPtr _display;
         private readonly IntPtr _rootWindow;
+        private readonly Dictionary<string, IntPtr> _atomCache = new(StringComparer.Ordinal);
 
         public LinuxWindowService()
         {
@@ -182,6 +203,17 @@ namespace XerahS.Platform.Linux
         public string GetWindowText(IntPtr handle)
         {
             if (_display == IntPtr.Zero) return string.Empty;
+
+            if (TryGetUtf8StringProperty(handle, "_NET_WM_VISIBLE_NAME", out string visibleName))
+            {
+                return visibleName;
+            }
+
+            if (TryGetUtf8StringProperty(handle, "_NET_WM_NAME", out string title))
+            {
+                return title;
+            }
+
             if (NativeMethods.XFetchName(_display, handle, out IntPtr namePtr) != 0 && namePtr != IntPtr.Zero)
             {
                 try
@@ -279,6 +311,11 @@ namespace XerahS.Platform.Linux
 
                 // Use the absolute coordinates instead of the relative ones
                 var rect = new Rectangle(absoluteX, absoluteY, attrs.width, attrs.height);
+                if (TryGetFrameExtents(handle, out var frameExtents))
+                {
+                    rect = ApplyFrameExtents(rect, frameExtents.Left, frameExtents.Right, frameExtents.Top, frameExtents.Bottom);
+                }
+
                 if (logDiagnostics)
                 {
                     DebugHelper.WriteLine($"LinuxWindowService: GetWindowBounds returning: {rect}");
@@ -357,56 +394,305 @@ namespace XerahS.Platform.Linux
             if (_display == IntPtr.Zero) return Array.Empty<WindowInfo>();
 
             var list = new List<WindowInfo>();
-            if (NativeMethods.XQueryTree(_display, _rootWindow, out IntPtr root, out IntPtr parent, out IntPtr children, out uint nchildren) != 0)
+            var seenHandles = new HashSet<IntPtr>();
+
+            foreach (var handle in EnumerateCandidateWindows())
             {
-                try
+                if (handle == IntPtr.Zero || handle == _rootWindow || !seenHandles.Add(handle))
+                    continue;
+
+                if (!TryCreateWindowInfo(handle, out var windowInfo))
+                    continue;
+
+                list.Add(windowInfo);
+            }
+
+            return list.ToArray();
+        }
+
+        private IEnumerable<IntPtr> EnumerateCandidateWindows()
+        {
+            if (TryGetManagedWindowHandles(out var managedWindows))
+            {
+                for (int i = managedWindows.Length - 1; i >= 0; i--)
                 {
-                    if (nchildren == 0 || children == IntPtr.Zero)
-                    {
-                        return list.ToArray();
-                    }
-
-                    IntPtr[] windowHandles = new IntPtr[nchildren];
-                    Marshal.Copy(children, windowHandles, 0, (int)nchildren);
-
-                    // In X11, root children are returned bottom-to-top.
-                    // Reverse them so the caller sees topmost windows first.
-                    for (int i = windowHandles.Length - 1; i >= 0; i--)
-                    {
-                        var handle = windowHandles[i];
-                        if (handle == IntPtr.Zero || handle == _rootWindow)
-                            continue;
-
-                        if (!IsWindowVisible(handle))
-                            continue;
-
-                        string title = GetWindowText(handle);
-                        if (string.IsNullOrWhiteSpace(title))
-                            continue;
-
-                        var bounds = GetWindowBoundsCore(handle, logDiagnostics: false);
-                        if (bounds.Width <= 1 || bounds.Height <= 1)
-                            continue;
-
-                        list.Add(new WindowInfo
-                        {
-                            Handle = handle,
-                            Title = title,
-                            ClassName = GetWindowClassName(handle),
-                            Bounds = bounds,
-                            IsVisible = true
-                        });
-                    }
+                    yield return managedWindows[i];
                 }
-                finally
+
+                yield break;
+            }
+
+            if (!TryGetRootChildWindows(out var rootChildren))
+                yield break;
+
+            for (int i = rootChildren.Length - 1; i >= 0; i--)
+            {
+                yield return rootChildren[i];
+            }
+        }
+
+        private bool TryGetManagedWindowHandles(out IntPtr[] handles)
+        {
+            return TryGetWindowHandleArrayProperty(_rootWindow, "_NET_CLIENT_LIST_STACKING", out handles) && handles.Length > 0;
+        }
+
+        private bool TryGetRootChildWindows(out IntPtr[] handles)
+        {
+            handles = Array.Empty<IntPtr>();
+
+            if (NativeMethods.XQueryTree(_display, _rootWindow, out _, out _, out IntPtr children, out uint childCount) == 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (childCount == 0 || children == IntPtr.Zero)
                 {
-                    if (children != IntPtr.Zero)
-                    {
-                        NativeMethods.XFree(children);
-                    }
+                    return false;
+                }
+
+                handles = new IntPtr[childCount];
+                Marshal.Copy(children, handles, 0, (int)childCount);
+                return true;
+            }
+            finally
+            {
+                if (children != IntPtr.Zero)
+                {
+                    NativeMethods.XFree(children);
                 }
             }
-            return list.ToArray();
+        }
+
+        private bool TryCreateWindowInfo(IntPtr handle, out WindowInfo windowInfo)
+        {
+            windowInfo = default!;
+
+            if (!TryGetWindowAttributes(handle, out var attrs))
+                return false;
+
+            if (attrs.map_state != NativeMethods.IsViewable || attrs.override_redirect)
+                return false;
+
+            if (HasAnyPropertyAtom(handle, "_NET_WM_WINDOW_TYPE", ExcludedWindowTypeNames) ||
+                HasAnyPropertyAtom(handle, "_NET_WM_STATE", ExcludedWindowStateNames))
+            {
+                return false;
+            }
+
+            string title = GetWindowText(handle);
+            if (string.IsNullOrWhiteSpace(title))
+                return false;
+
+            var bounds = GetWindowBoundsCore(handle, logDiagnostics: false);
+            if (bounds.Width <= 1 || bounds.Height <= 1)
+                return false;
+
+            windowInfo = new WindowInfo
+            {
+                Handle = handle,
+                Title = title,
+                ClassName = GetWindowClassName(handle),
+                Bounds = bounds,
+                IsVisible = true
+            };
+
+            return true;
+        }
+
+        private bool TryGetWindowAttributes(IntPtr handle, out XWindowAttributes attributes)
+        {
+            attributes = new XWindowAttributes();
+            return _display != IntPtr.Zero && NativeMethods.XGetWindowAttributes(_display, handle, ref attributes) != 0;
+        }
+
+        private bool HasAnyPropertyAtom(IntPtr handle, string propertyName, IEnumerable<string> atomNames)
+        {
+            if (!TryGetWindowHandleArrayProperty(handle, propertyName, out var propertyAtoms) || propertyAtoms.Length == 0)
+                return false;
+
+            foreach (var atomName in atomNames)
+            {
+                IntPtr atom = GetAtom(atomName);
+                if (atom == IntPtr.Zero)
+                    continue;
+
+                for (int i = 0; i < propertyAtoms.Length; i++)
+                {
+                    if (propertyAtoms[i] == atom)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryGetWindowHandleArrayProperty(IntPtr handle, string propertyName, out IntPtr[] values)
+        {
+            values = Array.Empty<IntPtr>();
+
+            if (!TryGetProperty(handle, propertyName, out var property))
+                return false;
+
+            using (property)
+            {
+                if (property.Format != 32 || property.ItemCount <= 0)
+                    return false;
+
+                values = ReadIntPtrArray(property.Data, property.ItemCount);
+                return values.Length > 0;
+            }
+        }
+
+        private bool TryGetUtf8StringProperty(IntPtr handle, string propertyName, out string value)
+        {
+            value = string.Empty;
+
+            if (!TryGetProperty(handle, propertyName, out var property))
+                return false;
+
+            using (property)
+            {
+                if (property.Format != 8 || property.ItemCount <= 0)
+                    return false;
+
+                int length = checked((int)property.ItemCount);
+                var bytes = new byte[length];
+                Marshal.Copy(property.Data, bytes, 0, length);
+                value = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
+                return !string.IsNullOrWhiteSpace(value);
+            }
+        }
+
+        private bool TryGetFrameExtents(IntPtr handle, out FrameExtents extents)
+        {
+            extents = default;
+
+            if (!TryGetProperty(handle, "_NET_FRAME_EXTENTS", out var property))
+                return false;
+
+            using (property)
+            {
+                if (property.Format != 32 || property.ItemCount < 4)
+                    return false;
+
+                var values = ReadIntPtrArray(property.Data, property.ItemCount);
+                if (values.Length < 4)
+                    return false;
+
+                int left = ToInt32(values[0]);
+                int right = ToInt32(values[1]);
+                int top = ToInt32(values[2]);
+                int bottom = ToInt32(values[3]);
+
+                if (left < 0 || right < 0 || top < 0 || bottom < 0)
+                    return false;
+
+                extents = new FrameExtents(left, right, top, bottom);
+                return true;
+            }
+        }
+
+        private bool TryGetProperty(IntPtr handle, string propertyName, out XProperty property)
+        {
+            property = default;
+
+            if (_display == IntPtr.Zero)
+                return false;
+
+            IntPtr propertyAtom = GetAtom(propertyName);
+            if (propertyAtom == IntPtr.Zero)
+                return false;
+
+            int result = NativeMethods.XGetWindowProperty(
+                _display,
+                handle,
+                propertyAtom,
+                0,
+                MaxPropertyLongLength,
+                false,
+                IntPtr.Zero,
+                out IntPtr actualType,
+                out int actualFormat,
+                out IntPtr itemCount,
+                out _,
+                out IntPtr data);
+
+            if (result != 0 || actualType == IntPtr.Zero || data == IntPtr.Zero)
+            {
+                if (data != IntPtr.Zero)
+                {
+                    NativeMethods.XFree(data);
+                }
+
+                return false;
+            }
+
+            long count = itemCount.ToInt64();
+            if (count <= 0)
+            {
+                NativeMethods.XFree(data);
+                return false;
+            }
+
+            property = new XProperty(data, count, actualFormat);
+            return true;
+        }
+
+        private IntPtr GetAtom(string atomName)
+        {
+            if (_display == IntPtr.Zero)
+                return IntPtr.Zero;
+
+            if (_atomCache.TryGetValue(atomName, out var atom))
+                return atom;
+
+            atom = NativeMethods.XInternAtom(_display, atomName, only_if_exists: false);
+            _atomCache[atomName] = atom;
+            return atom;
+        }
+
+        private static IntPtr[] ReadIntPtrArray(IntPtr data, long itemCount)
+        {
+            int length = checked((int)itemCount);
+            var values = new IntPtr[length];
+            Marshal.Copy(data, values, 0, length);
+            return values;
+        }
+
+        private static int ToInt32(IntPtr value)
+        {
+            long intValue = value.ToInt64();
+            return checked((int)intValue);
+        }
+
+        internal static Rectangle ApplyFrameExtents(Rectangle clientBounds, int left, int right, int top, int bottom)
+        {
+            if (left == 0 && right == 0 && top == 0 && bottom == 0)
+                return clientBounds;
+
+            return new Rectangle(
+                clientBounds.X - left,
+                clientBounds.Y - top,
+                clientBounds.Width + left + right,
+                clientBounds.Height + top + bottom);
+        }
+
+        internal static bool ContainsExcludedWindowTypeName(IEnumerable<string> windowTypes)
+        {
+            ArgumentNullException.ThrowIfNull(windowTypes);
+
+            return windowTypes.Any(windowType =>
+                ExcludedWindowTypeNames.Contains(windowType, StringComparer.Ordinal));
+        }
+
+        internal static bool ContainsExcludedWindowStateName(IEnumerable<string> windowStates)
+        {
+            ArgumentNullException.ThrowIfNull(windowStates);
+
+            return windowStates.Any(windowState =>
+                ExcludedWindowStateNames.Contains(windowState, StringComparer.Ordinal));
         }
 
         public uint GetWindowProcessId(IntPtr handle)
@@ -443,6 +729,49 @@ namespace XerahS.Platform.Linux
             // Click-through windows are not easily supported on X11/Wayland without compositor extensions.
             // This is a no-op for Linux; recording borders will still be visible but interactable.
             return false;
+        }
+
+        private readonly struct XProperty : IDisposable
+        {
+            public XProperty(IntPtr data, long itemCount, int format)
+            {
+                Data = data;
+                ItemCount = itemCount;
+                Format = format;
+            }
+
+            public IntPtr Data { get; }
+
+            public long ItemCount { get; }
+
+            public int Format { get; }
+
+            public void Dispose()
+            {
+                if (Data != IntPtr.Zero)
+                {
+                    NativeMethods.XFree(Data);
+                }
+            }
+        }
+
+        private readonly struct FrameExtents
+        {
+            public FrameExtents(int left, int right, int top, int bottom)
+            {
+                Left = left;
+                Right = right;
+                Top = top;
+                Bottom = bottom;
+            }
+
+            public int Left { get; }
+
+            public int Right { get; }
+
+            public int Top { get; }
+
+            public int Bottom { get; }
         }
     }
 }
