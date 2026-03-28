@@ -67,6 +67,7 @@ public sealed class RegionCaptureControl : UserControl
     private readonly Bitmap? _ghostCursorBitmap;
     private readonly SkiaSharp.SKBitmap? _backgroundBitmap;
     private readonly Bitmap? _backgroundAvBitmap;
+    private readonly WindowPreselectionCapability _windowPreselectionCapability;
 
     // Keyboard state tracking
     private SelectionModifier _activeModifiers = SelectionModifier.None;
@@ -134,7 +135,9 @@ public sealed class RegionCaptureControl : UserControl
 
         _dimOpacity = options.DimOpacity;
         _mode = options.Mode;
-        _enableWindowSnapping = options.EnableWindowSnapping && _mode != RegionCaptureMode.ScreenColorPicker;
+        bool requestedWindowSnapping = options.EnableWindowSnapping && _mode != RegionCaptureMode.ScreenColorPicker;
+        _windowPreselectionCapability = WindowDetectionService.GetWindowPreselectionCapability();
+        _enableWindowSnapping = requestedWindowSnapping && _windowPreselectionCapability.IsEnabled;
         _enableMagnifier = options.EnableMagnifier;
         _enableKeyboardNudge = options.EnableKeyboardNudge;
         _backgroundBitmap = options.BackgroundImage;
@@ -185,6 +188,8 @@ public sealed class RegionCaptureControl : UserControl
                 _ghostCursorBitmap = null;
             }
         }
+
+        LogWindowPreselectionCapability(requestedWindowSnapping);
     }
 
     /// <summary>
@@ -1038,6 +1043,57 @@ public sealed class RegionCaptureControl : UserControl
     private static readonly IBrush AnnotateModeBrush = new SolidColorBrush(Color.FromArgb(220, 255, 140, 0)); // Orange
     private static readonly IBrush RegionModeBrush = new SolidColorBrush(Color.FromArgb(220, 0, 174, 255));   // Blue
     private static readonly IBrush ReminderBrush = new SolidColorBrush(Color.FromArgb(220, 50, 205, 50));     // Green
+    private static readonly IBrush CapabilityBrush = new SolidColorBrush(Color.FromArgb(220, 216, 184, 116));
+
+    private void LogWindowPreselectionCapability(bool requestedWindowSnapping)
+    {
+        if (!requestedWindowSnapping || !OperatingSystem.IsLinux())
+            return;
+
+        switch (_windowPreselectionCapability.Level)
+        {
+            case WindowPreselectionSupportLevel.Partial:
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"[RegionCapture] Window preselection is limited on this Linux session. {_windowPreselectionCapability.UserMessage}");
+                break;
+            case WindowPreselectionSupportLevel.Unsupported:
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"[RegionCapture] Window preselection is unavailable on this Linux session. {_windowPreselectionCapability.UserMessage}");
+                break;
+        }
+    }
+
+    private string GetInstructionText()
+    {
+        if (_mode == RegionCaptureMode.ScreenColorPicker)
+        {
+            return "Click to pick a color | Esc to cancel";
+        }
+
+        if (_mode == RegionCaptureMode.Ruler)
+        {
+            return "Drag to measure distance and area | Arrow keys: adjust | Enter: finish | Esc: cancel";
+        }
+
+        if (_enableWindowSnapping)
+        {
+            return _windowPreselectionCapability.Level == WindowPreselectionSupportLevel.Partial
+                ? "Drag to select region | Click to snap supported windows | Ctrl: toggle mode | Enter: finish | Esc: cancel"
+                : "Drag to select region | Click to snap window | Ctrl: toggle mode | Enter: finish | Esc: cancel";
+        }
+
+        return "Drag to select region | Ctrl: toggle mode | Enter: finish | Esc: cancel";
+    }
+
+    private string? GetCapabilityMessage()
+    {
+        if (_mode == RegionCaptureMode.ScreenColorPicker || _mode == RegionCaptureMode.Ruler)
+            return null;
+
+        return _windowPreselectionCapability.Level is WindowPreselectionSupportLevel.Partial or WindowPreselectionSupportLevel.Unsupported
+            ? _windowPreselectionCapability.UserMessage
+            : null;
+    }
 
     private void DrawInstructions(DrawingContext context)
     {
@@ -1069,15 +1125,7 @@ public sealed class RegionCaptureControl : UserControl
             }
 
             // Draw instructions
-            var instructions = "Drag to select region | Click to snap window | Ctrl: toggle mode | Enter: finish | Esc: cancel";
-            if (_mode == RegionCaptureMode.ScreenColorPicker)
-            {
-                instructions = "Click to pick a color | Esc to cancel";
-            }
-            else if (_mode == RegionCaptureMode.Ruler)
-            {
-                instructions = "Drag to measure distance and area | Arrow keys: adjust | Enter: finish | Esc: cancel";
-            }
+            var instructions = GetInstructionText();
             var formatted = new FormattedText(
                 instructions,
                 System.Globalization.CultureInfo.CurrentCulture,
@@ -1093,6 +1141,24 @@ public sealed class RegionCaptureControl : UserControl
             context.DrawText(formatted, new Point(x, yOffset));
 
             yOffset += formatted.Height + 16;
+
+            if (GetCapabilityMessage() is { } capabilityMessage)
+            {
+                var noteFormatted = new FormattedText(
+                    capabilityMessage,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI", FontStyle.Normal, FontWeight.Normal),
+                    11,
+                    CapabilityBrush);
+
+                var noteX = (Bounds.Width - noteFormatted.Width) / 2;
+                var noteRect = new Rect(noteX - 12, yOffset - 4, noteFormatted.Width + 24, noteFormatted.Height + 8);
+                context.DrawRectangle(InfoBackgroundBrush, null, noteRect, 4, 4);
+                context.DrawText(noteFormatted, new Point(noteX, yOffset));
+
+                yOffset += noteFormatted.Height + 16;
+            }
         }
 
         // Draw "Press Enter to finish" reminder when annotations exist and region is selected

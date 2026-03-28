@@ -133,4 +133,20 @@ public class WindowDetectionServiceTests
         Assert.That(hoveredWindow, Is.Not.Null);
         Assert.That(hoveredWindow!.Handle, Is.EqualTo((nint)101));
     }
+
+    [TestCase(false, true, (int)WindowPreselectionSupportLevel.Full, null)]
+    [TestCase(true, true, (int)WindowPreselectionSupportLevel.Partial, "Wayland session: only X11/XWayland windows can be snapped.")]
+    [TestCase(true, false, (int)WindowPreselectionSupportLevel.Unsupported, "Wayland session: window snapping is unavailable.")]
+    public void GetLinuxWindowPreselectionCapability_ReturnsExpectedSupportLevel(
+        bool isWaylandSession,
+        bool hasX11Display,
+        int expectedLevel,
+        string? expectedMessage)
+    {
+        var capability = WindowDetectionService.GetLinuxWindowPreselectionCapability(isWaylandSession, hasX11Display);
+
+        Assert.That(capability.Level, Is.EqualTo((WindowPreselectionSupportLevel)expectedLevel));
+        Assert.That(capability.UserMessage, Is.EqualTo(expectedMessage));
+        Assert.That(capability.IsEnabled, Is.EqualTo((WindowPreselectionSupportLevel)expectedLevel != WindowPreselectionSupportLevel.Unsupported));
+    }
 }

@@ -28,6 +28,20 @@ using PlatformWindowInfo = XerahS.Platform.Abstractions.WindowInfo;
 
 namespace XerahS.RegionCapture.Services;
 
+internal enum WindowPreselectionSupportLevel
+{
+    Full,
+    Partial,
+    Unsupported
+}
+
+internal readonly record struct WindowPreselectionCapability(
+    WindowPreselectionSupportLevel Level,
+    string? UserMessage)
+{
+    public bool IsEnabled => Level != WindowPreselectionSupportLevel.Unsupported;
+}
+
 /// <summary>
 /// High-performance window detection service using spatial indexing.
 /// Provides instant window detection under the cursor for smart snapping.
@@ -140,6 +154,39 @@ public sealed class WindowDetectionService
             _windows = _enumerateVisibleWindows();
             _lastRefresh = DateTime.UtcNow;
         }
+    }
+
+    internal static WindowPreselectionCapability GetWindowPreselectionCapability()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return new(WindowPreselectionSupportLevel.Full, null);
+        }
+
+        bool isWaylandSession = MonitorEnumerationService.IsWaylandSession();
+        bool hasX11Display = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
+        return GetLinuxWindowPreselectionCapability(isWaylandSession, hasX11Display);
+    }
+
+    internal static WindowPreselectionCapability GetLinuxWindowPreselectionCapability(
+        bool isWaylandSession,
+        bool hasX11Display)
+    {
+        if (!isWaylandSession)
+        {
+            return new(WindowPreselectionSupportLevel.Full, null);
+        }
+
+        if (hasX11Display)
+        {
+            return new(
+                WindowPreselectionSupportLevel.Partial,
+                "Wayland session: only X11/XWayland windows can be snapped.");
+        }
+
+        return new(
+            WindowPreselectionSupportLevel.Unsupported,
+            "Wayland session: window snapping is unavailable.");
     }
 
     internal static IReadOnlyList<WindowInfo> EnumerateVisibleWindows()
