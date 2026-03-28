@@ -18,6 +18,7 @@ Options:
   --dry-run                          Print actions without changing git state
   --no-tag                           Skip tag creation/push
   --no-push                          Skip branch/tag push
+  --allow-empty                      If nothing is staged after git add -A, commit with --allow-empty
   -h, --help                         Show this help
 USAGE
 }
@@ -174,6 +175,7 @@ ASSUME_YES=0
 DRY_RUN=0
 NO_TAG=0
 NO_PUSH=0
+ALLOW_EMPTY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -211,6 +213,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-push)
       NO_PUSH=1
+      shift
+      ;;
+    --allow-empty)
+      ALLOW_EMPTY=1
       shift
       ;;
     -h|--help)
@@ -328,6 +334,9 @@ if [[ $DRY_RUN -eq 1 ]]; then
       echo "[DRY RUN] Would run: git push origin $tag_name"
     fi
   fi
+  if [[ $ALLOW_EMPTY -eq 1 ]]; then
+    echo "[DRY RUN] If staging empty: would use git commit --allow-empty"
+  fi
   exit 0
 fi
 
@@ -341,11 +350,15 @@ fi
 git add -A
 
 if git diff --cached --quiet; then
-  echo "Error: no staged changes. Nothing to commit." >&2
-  exit 1
+  if [[ $ALLOW_EMPTY -eq 1 ]]; then
+    git commit --allow-empty -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
+  else
+    echo "Error: no staged changes. Nothing to commit. (Use --allow-empty for no-bump tag-only commits.)" >&2
+    exit 1
+  fi
+else
+  git commit -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
 fi
-
-git commit -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
 
 if [[ $NO_PUSH -eq 0 ]]; then
   git push origin "$current_branch"
