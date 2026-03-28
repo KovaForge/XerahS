@@ -130,6 +130,14 @@ namespace XerahS.Platform.Linux
 
         Task<(SKBitmap? bitmap, uint response)> ILinuxCaptureRuntime.TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
         {
+            if (kind == LinuxCaptureKind.FullScreen &&
+                ShouldSkipPortalAfterOverlaySelection(options, LinuxRuntimeContextDetector.Detect()))
+            {
+                DebugHelper.WriteLine(
+                    "LinuxScreenCaptureService: skipping portal full-screen capture because the XerahS overlay follow-up on GNOME Wayland must not reopen portal UI after region selection.");
+                return Task.FromResult<(SKBitmap? bitmap, uint response)>((null, PortalScreenCapture.PortalResponseFailed));
+            }
+
             bool forceInteractive = kind != LinuxCaptureKind.FullScreen || ShouldForceInteractivePortalFullScreen(options);
             // Do not enable allowInteractiveFallback: on GNOME, the portal can emit response=2 while the
             // capture path is still acceptable; a silent-then-interactive retry then prompts twice or
@@ -562,7 +570,15 @@ namespace XerahS.Platform.Linux
         internal static bool ShouldUseDirectGnomeAreaCapture(CaptureOptions? options, ILinuxCaptureContext context)
         {
             return context.IsWayland &&
-                options?.UseTransparentOverlay == true &&
+                string.Equals(context.Desktop, "GNOME", StringComparison.Ordinal) &&
+                (options?.UseTransparentOverlay == true ||
+                 options?.LinuxDisallowPortalAfterOverlaySelection == true);
+        }
+
+        internal static bool ShouldSkipPortalAfterOverlaySelection(CaptureOptions? options, ILinuxCaptureContext context)
+        {
+            return context.IsWayland &&
+                options?.LinuxDisallowPortalAfterOverlaySelection == true &&
                 string.Equals(context.Desktop, "GNOME", StringComparison.Ordinal);
         }
 

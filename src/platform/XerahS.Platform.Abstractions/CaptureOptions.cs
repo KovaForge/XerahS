@@ -34,6 +34,11 @@ namespace XerahS.Platform.Abstractions
         public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
             LinuxInteractiveRegionSelectorPreference.Automatic;
         public bool LinuxForceLegacyCapturePath { get; set; } = false;
+        /// <summary>
+        /// Linux-only guard used by the XerahS overlay flow after the user has already chosen a region.
+        /// When true, the follow-up bitmap capture must not re-open the XDG portal selector/dialog again.
+        /// </summary>
+        public bool LinuxDisallowPortalAfterOverlaySelection { get; set; } = false;
         public bool ShowCursor { get; set; } = true;
         /// <summary>
         /// For window captures: capture transparent regions of the window.

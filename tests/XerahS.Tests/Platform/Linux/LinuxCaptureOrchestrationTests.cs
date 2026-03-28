@@ -242,6 +242,27 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void PortalProvider_GnomeWaylandOverlayFollowUp_SkipsPortalReentry()
+    {
+        var runtime = new NoOpRuntime();
+        var portalProvider = new PortalCaptureProvider(runtime);
+        var request = new LinuxCaptureRequest(
+            LinuxCaptureKind.FullScreen,
+            new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true });
+
+        var gnomeContext = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+        var kdeContext = new LinuxCaptureContext(isWayland: true, desktop: "KDE", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(portalProvider.CanHandle(request, gnomeContext), Is.False,
+                "Portal must not reopen after an overlay selection on GNOME Wayland.");
+            Assert.That(portalProvider.CanHandle(request, kdeContext), Is.True,
+                "The guard is specific to GNOME overlay follow-up capture.");
+        });
+    }
+
+    [Test]
     public async Task Coordinator_CancelledProvider_StopsFurtherFallback()
     {
         int portalCalls = 0;
@@ -325,6 +346,24 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void LinuxScreenCaptureService_GnomeWaylandOverlayFollowUp_UsesDirectAreaCaptureAndSkipsPortal()
+    {
+        var context = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(options, context), Is.True);
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(options, context), Is.True);
+        });
+    }
+
+    [Test]
     public void LinuxScreenCaptureService_DirectAreaCapture_IsNotUsedForKdeOrNonTransparentCapture()
     {
         var gnomeContext = new LinuxCaptureContext(
@@ -345,6 +384,9 @@ public class LinuxCaptureOrchestrationTests
             Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = false }, gnomeContext), Is.False);
             Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = true }, kdeContext), Is.False);
             Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = true }, new LinuxCaptureContext(false, "GNOME", "X11", false, true)), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true }, kdeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true }, kdeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true }, new LinuxCaptureContext(false, "GNOME", "X11", false, true)), Is.False);
         });
     }
 

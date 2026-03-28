@@ -26,6 +26,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using XerahS.Platform.Linux.Capture.Contracts;
+using XerahS.Platform.Linux;
 
 namespace XerahS.Platform.Linux.Capture.Providers;
 
@@ -44,6 +45,12 @@ internal sealed class PortalCaptureProvider : ILinuxCaptureProvider
 
     public bool CanHandle(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
+        if (request.Kind == LinuxCaptureKind.FullScreen &&
+            LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(request.Options, context))
+        {
+            return false;
+        }
+
         if (context.IsSandboxed)
         {
             return context.ShouldTryPortal;
