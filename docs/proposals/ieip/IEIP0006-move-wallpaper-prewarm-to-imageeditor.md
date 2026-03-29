@@ -1,43 +1,53 @@
-# IEIP0006: Move Linux Wallpaper Prewarm to ImageEditor
+# IEIP0006: Move Wallpaper Prewarm to ImageEditor
 
 ## Status
-- Status: Implemented on March 29, 2026.
+- Status: Complete on March 30, 2026.
 
 ## Motivation
-Historically, the prewarming of Linux desktop wallpapers (converting unsupported formats like `.jxl` into cached `.png` files via thumbnailers or `ffmpeg`) was initiated by host application startup code rather than by the editor itself.
-Because the `ShareX.ImageEditor` component relies directly on the desktop wallpaper for its background context, and because other hosts (like the original Windows ShareX or the standalone `ShareX.ImageEditor.Loader`) might also integrate this editor, the responsibility for pre-loading or prewarming the background image should be owned by the Image Editor itself rather than the host applications. Moving this behavior will improve encapsulation, simplify both `XerahS` and `Loader` codebases, and ensure the editor always has its background ready without relying on host-specific startup tasks.
+Historically, the editor wallpaper path mixed shared editor behavior with host-specific implementations. That left Linux wallpaper conversion/prewarm tied to host integration details and duplicated wallpaper-resolution code across hosts.
+
+Because `ShareX.ImageEditor` depends on desktop wallpaper metadata for its canvas background, the default wallpaper lookup and prewarm behavior should live in the shared editor host layer rather than in XerahS-specific abstractions. That way XerahS, `ShareX.ImageEditor.App`, and third-party hosts all benefit from the same behavior by using the same registration entry point.
 
 ## Goals
-- Move the initiation of wallpaper prewarming/conversion out of `MainWindow.axaml.cs` and other host startup sequences.
-- Introduce a mechanism within `ShareX.ImageEditor` (or its Avalonia Integration layer) to asynchronously request the desktop wallpaper during initialization.
-- Simplify all host applications (including `ShareX.ImageEditor.Loader`) by centralizing the wallpaper initialization logic.
-- Maintain the concurrent locking mechanism (e.g., `WallpaperConversionLocks`) in the platform services to guarantee that the expensive conversion operation only runs exactly once per wallpaper.
+- Move wallpaper prewarm initiation into `ShareX.ImageEditor`.
+- Keep the default Windows, Linux, and macOS wallpaper services in `ShareX.ImageEditor.Hosting`.
+- Make prewarm explicit so Windows and macOS can remain no-op while Linux can pre-convert unsupported wallpaper formats.
+- Let host applications opt into the shared behavior through `EditorServices.EnsureDefaultDesktopWallpaperService()`.
 
 ## Non-Goals
-- Modifying the underlying Linux wallpaper conversion logic, paths, or dependencies (e.g., `LinuxDesktopWallpaperProvider` itself will remain in platform services).
-- Changing how wallpapers are fetched on Windows or macOS.
+- Replacing the external Linux conversion strategy (`ffmpeg`, `glycin-thumbnailer`, `gdk-pixbuf-thumbnailer`) with a new managed decoder.
+- Introducing a native AppKit binding layer for macOS wallpaper lookup.
+- Removing the ability for a host to provide a custom wallpaper service override when it has a good reason to do so.
 
-## Proposed Changes
-1. **Extend `IDesktopWallpaperService` (Optional)**:
-   - If necessary, expose a `PrewarmAsync()` or `PrepareAsync()` method on the wallpaper service contract (`EditorDesktopWallpaperAdapter`), enabling the editor to signal the platform layer to begin processing.
-   
-2. **Editor Initialization**:
-   - Update `ShareX.ImageEditor`'s startup or view-model initialization to dispatch a background task that requests the desktop wallpaper. By simply requesting the wallpaper early in an async context, the underlying platform service will hit the `TryConvertWallpaper` lock and perform the conversion before the UI actually needs to render it.
+## Implemented Design
+1. **Shared wallpaper contract**
+   - `IDesktopWallpaperService` now exposes `RequiresDesktopWallpaperPrewarm` and `PrewarmDesktopWallpaper()`, allowing the editor to distinguish "wallpaper lookup is supported" from "this platform benefits from background preparation."
 
-3. **Cleanup Host Code**:
-   - Remove any specific wallpaper prewarming ties from `MainWindow.axaml.cs` so XerahS doesn't need to manually optimize the editor's dependencies.
-   - Remove or simplify redundant wallpaper logic from `ShareX.ImageEditor.Loader` and other integration hosts, reducing the required boilerplate.
+2. **Editor-owned startup**
+   - `ShareX.ImageEditor` starts wallpaper prewarm during `MainViewModel` initialization through `EditorServices.StartDesktopWallpaperPrewarm(...)`, instead of waiting for a host-specific settings-panel action.
+
+3. **Shared default host services**
+   - `EditorServices.EnsureDefaultDesktopWallpaperService()` now selects built-in wallpaper services from `ShareX.ImageEditor.Hosting`:
+   - Windows: direct wallpaper-path lookup, no prewarm required.
+   - Linux: wallpaper lookup plus `.jxl` conversion/cache prewarm.
+   - macOS: wallpaper lookup with no prewarm required.
+
+4. **Host simplification**
+   - `ShareX.ImageEditor.App` and XerahS now both use the shared default registration path.
+   - Third-party hosts can get the same behavior by calling `EditorServices.EnsureDefaultDesktopWallpaperService()` or going through `AvaloniaIntegration.Initialize()`.
 
 ## Verification
-- Launch XerahS on a GNOME environment with a `.jxl` wallpaper.
-- Verify that the image editor opens without a UI lag spike on its first invocation.
-- Verify that the background conversion process (`ffmpeg` or `glycin-thumbnailer`) runs exactly once.
-- Verify that the host application compiles and runs without regression.
+- `dotnet build ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj -c Debug -m:1 -nr:false`
+- `dotnet build ShareX.ImageEditor/src/ShareX.ImageEditor.App/ShareX.ImageEditor.App.csproj -c Debug -m:1 -nr:false`
+- `dotnet build src/desktop/XerahS.sln -c Debug -m:1 -nr:false -p:BuildWebUI=false`
+- `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -c Debug -f net10.0-windows10.0.26100.0 --filter EditorWallpaperPrewarmTests -m:1 -nr:false -p:BuildWebUI=false`
 
 ## Implementation Notes
-- `ShareX.ImageEditor` now starts wallpaper prewarming during `MainViewModel` initialization instead of waiting for the settings panel to open.
-- Default wallpaper-service registration for standalone hosts was centralized in `EditorServices.EnsureDefaultDesktopWallpaperService()`, allowing `ShareX.ImageEditor.Loader` to drop its duplicate Windows wallpaper resolver.
-- XerahS continues to provide its own platform-aware adapter (`EditorDesktopWallpaperAdapter`), so Linux `.jxl` conversion still flows through `LinuxDesktopWallpaperProvider` and its existing conversion lock.
+- The deleted `ShareX.ImageEditor.Loader/DesktopWallpaperService.cs` was only a duplicated Windows resolver. Its role is now covered by the shared hosting services in `ShareX.ImageEditor`.
+- Linux prewarm is implemented in `ShareX.ImageEditor.Hosting.LinuxDesktopWallpaperService`, so the editor no longer depends on XerahS platform abstractions for wallpaper preparation.
+- Windows intentionally does not prewarm because wallpaper lookup is already a direct file-path read.
+- macOS intentionally does not prewarm. Apple exposes wallpaper URL and presentation metadata through `NSWorkspace`, and the current default service keeps lookup shell-based until a future AppKit binding is justified.
+- XerahS may still keep its own platform wallpaper services for app-level features, but the editor host path no longer depends on them.
 
 ## Alternatives Considered: Native C# JXL Decoding
 An alternative to pre-converting the wallpaper via `ffmpeg` or `glycin-thumbnailer` is decoding `.jxl` natively within the Avalonia/C# application. However, this is currently not viable:

@@ -223,7 +223,7 @@ This forces the build system to include the correct Windows SDK reference assemb
 ### ImageEditor Host Export Wiring
 
 - Never partially wire a hosted component's host-facing commands/events; always audit the full host contract and connect every supported action because UI enablement and behavior can depend on subscriber presence, making omissions look like broken features instead of integration gaps.
-- Never put OS-specific wallpaper lookup inside `ShareX.ImageEditor` view models; always expose it through `ShareX.ImageEditor.Hosting` and implement the real lookup in `XerahS.Platform.Abstractions` because the editor is shared across hosts and platforms.
+- Never put shared editor wallpaper lookup or prewarm behind `XerahS.Platform.Abstractions`; always keep the default Windows/Linux/macOS wallpaper services in `ShareX.ImageEditor.Hosting` and let hosts opt into them through `EditorServices.EnsureDefaultDesktopWallpaperService()` because the editor is shared across standalone hosts and third-party apps, not just XerahS.
 - Never use the XerahS `[vX.Y.Z]` commit prefix when committing inside `ShareX.ImageEditor` or other shared library submodules; always use `[Type] Use concise description` there because those libraries are versioned independently of the XerahS app.
 - Never design a new `.sxie` loading path from scratch without first checking `src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs`, `src/desktop/core/XerahS.Common/Helpers/LegacyImageEffectImporter.cs`, and `src/desktop/app/XerahS.UI/ViewModels/ImageEffectsViewModel.cs`; always reuse the existing `.xsie`/legacy `.sxie` preset pipeline where possible because XerahS already serializes, imports, and instantiates `ShareX.ImageEditor.Core.ImageEffects.ImageEffect` objects.
 

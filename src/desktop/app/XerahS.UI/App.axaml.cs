@@ -132,7 +132,7 @@ public partial class App : Application
                     Common.DebugHelper.WriteLine(diagnosticEvent.ExceptionText!);
                 }
             });
-            EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
+            EditorServices.EnsureDefaultDesktopWallpaperService();
 
             var mainViewModel = new MainViewModel(Services.ThemeService.CreateImageEditorOptions());
             mainViewModel.ApplicationName = AppResources.AppName;

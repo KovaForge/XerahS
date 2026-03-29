@@ -51,9 +51,10 @@ public class EditorWallpaperPrewarmTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(wallpaperService.WaitForLookupStarted(), Is.True);
+            Assert.That(wallpaperService.WaitForPrewarmStarted(), Is.True);
             Assert.That(wallpaperService.WaitForCompletion(), Is.True);
-            Assert.That(wallpaperService.LookupCount, Is.EqualTo(1));
+            Assert.That(wallpaperService.PrewarmCount, Is.EqualTo(1));
+            Assert.That(wallpaperService.LookupCount, Is.EqualTo(0));
         });
     }
 
@@ -67,49 +68,68 @@ public class EditorWallpaperPrewarmTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(wallpaperService.WaitForLookupStarted(), Is.True);
+            Assert.That(wallpaperService.WaitForPrewarmStarted(), Is.True);
             Assert.That(wallpaperService.WaitForCompletion(), Is.True);
-            Assert.That(wallpaperService.LookupCount, Is.EqualTo(1));
+            Assert.That(wallpaperService.PrewarmCount, Is.EqualTo(1));
+            Assert.That(wallpaperService.LookupCount, Is.EqualTo(0));
         });
 
         _ = new MainViewModel(new ImageEditorOptions());
 
         Assert.That(
-            SpinWait.SpinUntil(() => wallpaperService.LookupCount > 1, 200),
+            SpinWait.SpinUntil(() => wallpaperService.PrewarmCount > 1, 200),
             Is.False,
-            "Constructing another editor instance should reuse the completed wallpaper prewarm instead of starting another lookup.");
+            "Constructing another editor instance should reuse the completed wallpaper prewarm instead of starting another prewarm.");
+    }
+
+    [Test]
+    public void Constructor_DoesNotStartWallpaperPrewarm_WhenServiceDoesNotRequireIt()
+    {
+        using var wallpaperService = new TrackingDesktopWallpaperService(requiresPrewarm: false);
+        EditorServices.DesktopWallpaper = wallpaperService;
+
+        _ = new MainViewModel(new ImageEditorOptions());
+
+        Assert.That(
+            SpinWait.SpinUntil(() => wallpaperService.PrewarmCount > 0, 200),
+            Is.False,
+            "Services that do not require wallpaper prewarm should not be scheduled by the editor.");
     }
 
     private sealed class TrackingDesktopWallpaperService : IDesktopWallpaperService, IDisposable
     {
-        private readonly ManualResetEventSlim _lookupStarted = new(false);
+        private readonly ManualResetEventSlim _prewarmStarted = new(false);
         private readonly ManualResetEventSlim _allowCompletion;
-        private readonly ManualResetEventSlim _lookupCompleted = new(false);
+        private readonly ManualResetEventSlim _prewarmCompleted = new(false);
+        private readonly bool _requiresPrewarm;
+        private int _prewarmCount;
         private int _lookupCount;
 
-        public TrackingDesktopWallpaperService(bool blockLookup = false)
+        public TrackingDesktopWallpaperService(bool blockPrewarm = false, bool requiresPrewarm = true)
         {
-            _allowCompletion = new ManualResetEventSlim(!blockLookup);
+            _allowCompletion = new ManualResetEventSlim(!blockPrewarm);
+            _requiresPrewarm = requiresPrewarm;
         }
 
         public bool IsSupported => true;
+        public bool RequiresDesktopWallpaperPrewarm => _requiresPrewarm;
 
         public int LookupCount => Volatile.Read(ref _lookupCount);
+        public int PrewarmCount => Volatile.Read(ref _prewarmCount);
 
         public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
         {
             Interlocked.Increment(ref _lookupCount);
-            _lookupStarted.Set();
-            _allowCompletion.Wait(TimeSpan.FromSeconds(2));
-
-            wallpaper = new DesktopWallpaperInfo
-            {
-                Path = @"C:\temp\wallpaper.png",
-                Layout = DesktopWallpaperLayout.Fill
-            };
-
-            _lookupCompleted.Set();
+            wallpaper = null;
             return true;
+        }
+
+        public void PrewarmDesktopWallpaper()
+        {
+            Interlocked.Increment(ref _prewarmCount);
+            _prewarmStarted.Set();
+            _allowCompletion.Wait(TimeSpan.FromSeconds(2));
+            _prewarmCompleted.Set();
         }
 
         public void Release()
@@ -117,21 +137,21 @@ public class EditorWallpaperPrewarmTests
             _allowCompletion.Set();
         }
 
-        public bool WaitForLookupStarted(int timeoutMilliseconds = 1000)
+        public bool WaitForPrewarmStarted(int timeoutMilliseconds = 1000)
         {
-            return _lookupStarted.Wait(timeoutMilliseconds);
+            return _prewarmStarted.Wait(timeoutMilliseconds);
         }
 
         public bool WaitForCompletion(int timeoutMilliseconds = 1000)
         {
-            return _lookupCompleted.Wait(timeoutMilliseconds);
+            return _prewarmCompleted.Wait(timeoutMilliseconds);
         }
 
         public void Dispose()
         {
-            _lookupStarted.Dispose();
+            _prewarmStarted.Dispose();
             _allowCompletion.Dispose();
-            _lookupCompleted.Dispose();
+            _prewarmCompleted.Dispose();
         }
     }
 }
