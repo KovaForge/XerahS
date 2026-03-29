@@ -5,11 +5,12 @@
 
 ## Motivation
 Currently, the prewarming of Linux desktop wallpapers (converting unsupported formats like `.jxl` into cached `.png` files via thumbnailers or `ffmpeg`) is initiated by the host application (e.g., during `MainWindow.axaml.cs` initialization with `PreWarmDestinationSettingsAsync`). 
-Because the `ShareX.ImageEditor` component relies directly on the desktop wallpaper for its background context, and because other hosts (like the original Windows ShareX) might also integrate this editor, the responsibility for pre-loading or prewarming the background image should be owned by the Image Editor itself rather than the host's main window. Moving this behavior will improve encapsulation and ensure the editor always has its background ready without relying on host-specific startup tasks.
+Because the `ShareX.ImageEditor` component relies directly on the desktop wallpaper for its background context, and because other hosts (like the original Windows ShareX or the standalone `ShareX.ImageEditor.Loader`) might also integrate this editor, the responsibility for pre-loading or prewarming the background image should be owned by the Image Editor itself rather than the host applications. Moving this behavior will improve encapsulation, simplify both `XerahS` and `Loader` codebases, and ensure the editor always has its background ready without relying on host-specific startup tasks.
 
 ## Goals
-- Move the initiation of wallpaper prewarming/conversion out of `MainWindow.axaml.cs`.
+- Move the initiation of wallpaper prewarming/conversion out of `MainWindow.axaml.cs` and other host startup sequences.
 - Introduce a mechanism within `ShareX.ImageEditor` (or its Avalonia Integration layer) to asynchronously request the desktop wallpaper during initialization.
+- Simplify all host applications (including `ShareX.ImageEditor.Loader`) by centralizing the wallpaper initialization logic.
 - Maintain the concurrent locking mechanism (e.g., `WallpaperConversionLocks`) in the platform services to guarantee that the expensive conversion operation only runs exactly once per wallpaper.
 
 ## Non-Goals
@@ -25,6 +26,7 @@ Because the `ShareX.ImageEditor` component relies directly on the desktop wallpa
 
 3. **Cleanup Host Code**:
    - Remove any specific wallpaper prewarming ties from `MainWindow.axaml.cs` so XerahS doesn't need to manually optimize the editor's dependencies.
+   - Remove or simplify redundant wallpaper logic from `ShareX.ImageEditor.Loader` and other integration hosts, reducing the required boilerplate.
 
 ## Verification
 - Launch XerahS on a GNOME environment with a `.jxl` wallpaper.
