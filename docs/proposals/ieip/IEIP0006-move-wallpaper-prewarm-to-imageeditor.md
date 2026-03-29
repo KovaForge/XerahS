@@ -1,10 +1,10 @@
 # IEIP0006: Move Linux Wallpaper Prewarm to ImageEditor
 
 ## Status
-- Status: Draft
+- Status: Implemented on March 29, 2026.
 
 ## Motivation
-Currently, the prewarming of Linux desktop wallpapers (converting unsupported formats like `.jxl` into cached `.png` files via thumbnailers or `ffmpeg`) is initiated by the host application (e.g., during `MainWindow.axaml.cs` initialization with `PreWarmDestinationSettingsAsync`). 
+Historically, the prewarming of Linux desktop wallpapers (converting unsupported formats like `.jxl` into cached `.png` files via thumbnailers or `ffmpeg`) was initiated by host application startup code rather than by the editor itself.
 Because the `ShareX.ImageEditor` component relies directly on the desktop wallpaper for its background context, and because other hosts (like the original Windows ShareX or the standalone `ShareX.ImageEditor.Loader`) might also integrate this editor, the responsibility for pre-loading or prewarming the background image should be owned by the Image Editor itself rather than the host applications. Moving this behavior will improve encapsulation, simplify both `XerahS` and `Loader` codebases, and ensure the editor always has its background ready without relying on host-specific startup tasks.
 
 ## Goals
@@ -33,6 +33,11 @@ Because the `ShareX.ImageEditor` component relies directly on the desktop wallpa
 - Verify that the image editor opens without a UI lag spike on its first invocation.
 - Verify that the background conversion process (`ffmpeg` or `glycin-thumbnailer`) runs exactly once.
 - Verify that the host application compiles and runs without regression.
+
+## Implementation Notes
+- `ShareX.ImageEditor` now starts wallpaper prewarming during `MainViewModel` initialization instead of waiting for the settings panel to open.
+- Default wallpaper-service registration for standalone hosts was centralized in `EditorServices.EnsureDefaultDesktopWallpaperService()`, allowing `ShareX.ImageEditor.Loader` to drop its duplicate Windows wallpaper resolver.
+- XerahS continues to provide its own platform-aware adapter (`EditorDesktopWallpaperAdapter`), so Linux `.jxl` conversion still flows through `LinuxDesktopWallpaperProvider` and its existing conversion lock.
 
 ## Alternatives Considered: Native C# JXL Decoding
 An alternative to pre-converting the wallpaper via `ffmpeg` or `glycin-thumbnailer` is decoding `.jxl` natively within the Avalonia/C# application. However, this is currently not viable:
