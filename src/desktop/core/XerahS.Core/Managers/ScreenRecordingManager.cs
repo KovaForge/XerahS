@@ -865,7 +865,8 @@ public class ScreenRecordingManager : IScreenRecordingManager
                             string? dir = Path.GetDirectoryName(resolvedOutput);
                             if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
                             {
-                                var files = Directory.GetFiles(dir, "*.mp4");
+                                string searchPattern = "*" + Path.GetExtension(resolvedOutput);
+                                var files = Directory.GetFiles(dir, searchPattern);
                                 DebugHelper.WriteLine($"ScreenRecordingManager: Files in {dir}: {string.Join(", ", files.Select(Path.GetFileName))}");
                             }
                         }

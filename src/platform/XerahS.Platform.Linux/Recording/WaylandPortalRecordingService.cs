@@ -56,6 +56,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     private bool _disposed;
     private bool _stopRequested;
     private Timer? _durationTimer;
+    private string? _gstreamerOutputPath;
 
     private Connection? _connection;
     private IScreenCastPortal? _portal;
@@ -252,6 +253,10 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             // early check and this point.
             if (_stopRequested) { stderrOutput = string.Empty; return false; }
 
+            // Extract the output file path from the GStreamer args so we can check for
+            // partial recordings on failure. The path follows filesink location="..."
+            _gstreamerOutputPath = ExtractGStreamerOutputPath(args);
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = executable,
@@ -278,6 +283,32 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             if (process.ExitCode != 0)
             {
                 DebugHelper.WriteLine($"[WaylandPortalRecording] GStreamer stderr:\n{stderrOutput}");
+
+                // If the user did not request the stop through XerahS, the portal session
+                // may have been terminated externally (e.g. GNOME's screencast indicator).
+                // When that happens GStreamer receives a broken PipeWire stream and exits
+                // with a not-negotiated error, but it may have already flushed valid data
+                // to the segment file. Treat this as a successful (partial) recording
+                // rather than a fatal crash so the user gets their video.
+                if (!_stopRequested && !string.IsNullOrEmpty(_gstreamerOutputPath))
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(_gstreamerOutputPath);
+                        if (fileInfo.Exists && fileInfo.Length > 0)
+                        {
+                            DebugHelper.WriteLine(
+                                $"[WaylandPortalRecording] GStreamer exited with error but segment file exists " +
+                                $"({fileInfo.Length} bytes). Treating as external stop (partial recording recovered).");
+                            return false; // treat as success — don't retry, don't error
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteLine($"[WaylandPortalRecording] Error checking segment file: {ex.Message}");
+                    }
+                }
+
                 return !_stopRequested; // failed → caller should retry (unless user stopped)
             }
 
@@ -289,6 +320,36 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             stderrOutput = ex.Message;
             return false; // unexpected exception: don't retry
         }
+    }
+
+    /// <summary>
+    /// Extracts the output file path from a GStreamer pipeline argument string.
+    /// Looks for the filesink location="..." pattern.
+    /// </summary>
+    internal static string? ExtractGStreamerOutputPath(string args)
+    {
+        // Pattern: filesink location="/path/to/file.webm"
+        const string marker = "filesink location=";
+        int idx = args.IndexOf(marker, StringComparison.Ordinal);
+        if (idx < 0) return null;
+
+        int pathStart = idx + marker.Length;
+        if (pathStart >= args.Length) return null;
+
+        // Handle quoted path
+        if (args[pathStart] == '"')
+        {
+            int closeQuote = args.IndexOf('"', pathStart + 1);
+            return closeQuote > pathStart
+                ? args.Substring(pathStart + 1, closeQuote - pathStart - 1)
+                : null;
+        }
+
+        // Unquoted: take until next space
+        int spaceIdx = args.IndexOf(' ', pathStart);
+        return spaceIdx > pathStart
+            ? args.Substring(pathStart, spaceIdx - pathStart)
+            : args.Substring(pathStart);
     }
 
     /// <summary>
