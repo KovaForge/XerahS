@@ -33,3 +33,9 @@ Because the `ShareX.ImageEditor` component relies directly on the desktop wallpa
 - Verify that the image editor opens without a UI lag spike on its first invocation.
 - Verify that the background conversion process (`ffmpeg` or `glycin-thumbnailer`) runs exactly once.
 - Verify that the host application compiles and runs without regression.
+
+## Alternatives Considered: Native C# JXL Decoding
+An alternative to pre-converting the wallpaper via `ffmpeg` or `glycin-thumbnailer` is decoding `.jxl` natively within the Avalonia/C# application. However, this is currently not viable:
+- **SkiaSharp**: While SkiaSharp exposes the `SKEncodedImageFormat.Jpegxl` enum, the official pre-compiled native binaries distributed via NuGet do not include the `libjxl` dependency (due to its size and experimental nature). Enabling it would require maintaining a custom compiled fork of Skia/SkiaSharp, which contradicts the project's requirement to stay on the standard SkiaSharp 2.88.9 release.
+- **Alternative .NET Libraries**: Tools like `Magick.NET`, `NetVips`, `PhotoSauce.NativeCodecs.Libjxl`, and `jxl.Net` provide JXL support by wrapping the native `libjxl` binary. However, introducing a heavy dependency like ImageMagick or libvips solely to decode a Linux desktop background adds unacceptable bloat to the application. 
+Given these constraints, the out-of-process background conversion (via pre-installed OS thumbnailers or `ffmpeg`) combined with proper prewarming remains the most lightweight and reliable approach.
