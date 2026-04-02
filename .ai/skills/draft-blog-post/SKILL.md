@@ -108,6 +108,7 @@ Every processed day must include all of these sections:
 - No processed day may remain a skeleton.
 - Do not leave any targeted month (e.g. February 2026) with placeholder-only files.
 - Do **not** invent commits, features, fixes, or technical changes.
+- If a day has no commits across any of the three repositories, state "No development activity today." or "Took a break today." in the Summary and mark other sections as "None" or "No changes."
 
 ## Commit rules
 
@@ -150,7 +151,7 @@ A day is only considered complete when:
 - all three repositories have been checked for that UTC+8 day;
 - one combined daily blog file exists in the XerahS repo;
 - all required sections are fully populated with real, commit-grounded content;
-- no placeholders remain;
+- no placeholders (TBD, placeholders from script) remain;
 - the day's file has exactly one matching docs commit in chronological order.
 
 ## Scheduling (Cursor Automations, cron, or Task Scheduler)
