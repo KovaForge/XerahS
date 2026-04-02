@@ -355,7 +355,7 @@ namespace XerahS.UI.ViewModels
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
-                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap);
+                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
             }
             catch (Exception ex)
             {

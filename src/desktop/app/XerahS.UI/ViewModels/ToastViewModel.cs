@@ -470,7 +470,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 using var bitmap = SKBitmap.Decode(_config.FilePath);
                 if (bitmap != null)
                 {
-                    await PlatformServices.UI.ShowEditorAsync(bitmap);
+                    await PlatformServices.UI.ShowEditorAsync(bitmap, sourceFilePath: _config.FilePath);
                 }
             }
             else

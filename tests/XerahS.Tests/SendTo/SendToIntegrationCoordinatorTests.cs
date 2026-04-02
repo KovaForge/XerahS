@@ -188,7 +188,7 @@ public class SendToIntegrationCoordinatorTests
 
         public Task RestoreMainWindowAsync() => Task.CompletedTask;
 
-        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false) => Task.FromResult<SKBitmap?>(image);
+        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false) => Task.FromResult<SKBitmap?>(image);
 
         public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
 

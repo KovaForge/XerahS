@@ -46,9 +46,10 @@ namespace XerahS.Platform.Abstractions
 
         /// <summary>
         /// Shows the image editor with the provided image and returns the edited image.
+        /// When sourceFilePath is provided, Save can overwrite the original file.
         /// When taskMode is true, the editor behaves like an in-workflow annotation step.
         /// </summary>
-        Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false);
+        Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false);
 
         /// <summary>
         /// Shows the video editor for the given video file. Returns the exported output path

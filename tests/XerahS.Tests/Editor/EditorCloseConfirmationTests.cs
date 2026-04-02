@@ -26,11 +26,14 @@
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using NUnit.Framework;
+using ShareX.ImageEditor.Core.ImageEffects.Filters;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
-using ShareX.ImageEditor.Presentation.Views;
+using SkiaSharp;
 using XerahS.Tests.Xip0052;
-using XerahS.UI.Views;
+using EmbeddedEditorView = ShareX.ImageEditor.Presentation.Views.EditorView;
+using HostEditorWindow = XerahS.UI.Views.EditorWindow;
+using MainWindow = XerahS.UI.Views.MainWindow;
 
 namespace XerahS.Tests.Editor;
 
@@ -90,7 +93,7 @@ public class EditorCloseConfirmationTests
 
             Assert.Multiple(() =>
             {
-                Assert.That(contentFrame?.Content, Is.TypeOf<EditorView>());
+                Assert.That(contentFrame?.Content, Is.TypeOf<EmbeddedEditorView>());
                 Assert.That(viewModel.IsModalOpen, Is.True);
                 Assert.That(overlay?.IsVisible, Is.False);
             });
@@ -129,12 +132,113 @@ public class EditorCloseConfirmationTests
 
             Assert.Multiple(() =>
             {
-                Assert.That(contentFrame?.Content, Is.Not.TypeOf<EditorView>());
+                Assert.That(contentFrame?.Content, Is.Not.TypeOf<EmbeddedEditorView>());
                 Assert.That(overlay?.IsVisible, Is.True);
             });
         }
         finally
         {
+            if (window.IsVisible)
+            {
+                window.Close();
+            }
+        }
+    }
+
+    [AvaloniaTest]
+    public void HostEditorWindow_Shows_ExitConfirmation_When_User_Closes_Dirty_Window()
+    {
+        var viewModel = new MainViewModel(new ImageEditorOptions
+        {
+            ShowExitConfirmation = true
+        })
+        {
+            IsDirty = true
+        };
+        var window = new HostEditorWindow
+        {
+            Width = 1200,
+            Height = 800,
+            DataContext = viewModel
+        };
+
+        try
+        {
+            window.Show();
+            window.Close();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(window.IsVisible, Is.True);
+                Assert.That(viewModel.IsModalOpen, Is.True);
+            });
+        }
+        finally
+        {
+            if (viewModel.IsModalOpen)
+            {
+                viewModel.CloseModalCommand.Execute(null);
+            }
+
+            viewModel.IsDirty = false;
+            viewModel.RequestClose();
+
+            if (window.IsVisible)
+            {
+                window.Close();
+            }
+        }
+    }
+
+    [AvaloniaTest]
+    public void HostEditorWindow_Shows_ExitConfirmation_After_BorderEffect_Edit()
+    {
+        var viewModel = new MainViewModel(new ImageEditorOptions
+        {
+            ShowExitConfirmation = true
+        });
+        var window = new HostEditorWindow
+        {
+            Width = 1200,
+            Height = 800,
+            DataContext = viewModel
+        };
+
+        using var bitmap = new SKBitmap(16, 16);
+        bitmap.Erase(SKColors.CornflowerBlue);
+
+        try
+        {
+            viewModel.UpdatePreview(bitmap.Copy());
+            viewModel.LastSavedPath = "C:\\temp\\history-image.png";
+            viewModel.ImageFilePath = "C:\\temp\\history-image.png";
+            viewModel.IsDirty = false;
+
+            window.Show();
+
+            viewModel.StartEffectPreview();
+            viewModel.ApplyEffect(new BorderImageEffect().Apply, "Applied Border");
+
+            Assert.That(viewModel.IsDirty, Is.True, "Applying a border effect should mark the editor dirty.");
+
+            window.Close();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(window.IsVisible, Is.True);
+                Assert.That(viewModel.IsModalOpen, Is.True);
+            });
+        }
+        finally
+        {
+            if (viewModel.IsModalOpen)
+            {
+                viewModel.CloseModalCommand.Execute(null);
+            }
+
+            viewModel.IsDirty = false;
+            viewModel.RequestClose();
+
             if (window.IsVisible)
             {
                 window.Close();

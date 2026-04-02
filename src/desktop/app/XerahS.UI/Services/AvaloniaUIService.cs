@@ -110,7 +110,7 @@ namespace XerahS.UI.Services
             });
         }
 
-        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
+        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
         {
             if (_taskManager == null)
             {
@@ -153,10 +153,21 @@ namespace XerahS.UI.Services
 
                 // Initialize the preview image
                 editorViewModel.UpdatePreview(image);
+                if (!string.IsNullOrWhiteSpace(sourceFilePath))
+                {
+                    editorViewModel.LastSavedPath = sourceFilePath;
+                    editorViewModel.ImageFilePath = sourceFilePath;
+                    editorViewModel.IsDirty = false;
+                }
 
                 // Handle window closing to capture result
                 editorWindow.Closing += (s, e) =>
                 {
+                    if (!editorWindow.IsCloseRequestedByViewModel)
+                    {
+                        return;
+                    }
+
                     try
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
@@ -553,7 +564,7 @@ namespace XerahS.UI.Services
                     continue;
                 }
 
-                await ShowEditorAsync(bitmap);
+                await ShowEditorAsync(bitmap, sourceFilePath: filePath);
             }
         }
 
