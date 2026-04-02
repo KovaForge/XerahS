@@ -473,14 +473,32 @@
     <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
+  <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Subtle}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource XerahS.Brush.Accent.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
   <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button:pointerover">
     <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtleHover}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
+  <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtleHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
   <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button:pressed">
     <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtlePressed}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtlePressed}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
 
   <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button.accent">
@@ -490,11 +508,29 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
+  <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Solid}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
   <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button.accent:pointerover">
     <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidHover}" />
   </Style>
 
+  <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
   <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button.accent:pressed">
     <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidPressed}" />
+  </Style>
+
+  <Style Selector=":is(Control).xerahs-editor-host Border.xerahs-confirmation-dialog Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidPressed}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
 </Styles>
