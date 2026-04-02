@@ -279,7 +279,7 @@ else
 fi
 tag_name="v${new_version}"
 
-if git rev-parse "$tag_name" >/dev/null 2>&1; then
+if git show-ref --verify --quiet "refs/tags/${tag_name}"; then
   echo "Error: local tag '$tag_name' already exists." >&2
   exit 1
 fi

@@ -113,7 +113,14 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Run `dotnet build src/desktop/XerahS.sln`; abort if it fails.
    - Read current version from root `Directory.Build.props`.
    - Compute next version: patch `Z+1`, minor `Y+1.0`, major `X+1.0.0`.
-   - Ensure tag `v<new-version>` does not exist locally or on `origin`.
+    - Ensure tag `v<new-version>` does not exist locally or on `origin`.
+    - PowerShell-safe local check (avoid false positives from `if (git rev-parse <tag>)`):
+       - `git show-ref --verify --quiet "refs/tags/v<new-version>"`
+       - `if ($LASTEXITCODE -eq 0) { throw "Local tag exists" }`
+    - PowerShell-safe remote check:
+       - `git ls-remote --exit-code --tags origin "refs/tags/v<new-version>" *> $null`
+       - `if ($LASTEXITCODE -eq 0) { throw "Remote tag exists" }`
+    - For `--no-bump`: if `v<current-version>` already exists, do not try to recreate it. Use `--no-tag` for commit-only flow, or bump patch for a new tag.
    - Update all tracked `Directory.Build.props` files containing `<Version>`.
    - Update `build/windows/chocolatey/xerahs.nuspec` `<version>` to match.
    - `git add -A` -> `git commit -m "[v<new-version>] [CI] Release v<new-version>"` -> `git push origin <current-branch>` -> `git tag -a v<new-version> -m "v<new-version>"` -> `git push origin v<new-version>`.
@@ -173,6 +180,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 - Abort on detached HEAD.
 - Abort if version format is not `X.Y.Z`.
 - Abort if matching tag already exists locally or remotely.
+- In PowerShell manual flow, use `git show-ref --verify --quiet "refs/tags/<tag>"` and `git ls-remote --exit-code --tags` with `$LASTEXITCODE` checks for tag existence.
 - Support `--no-push` and `--no-tag` when partial flow is needed.
 
 ## Agent usage (Cursor / Codex)
@@ -192,6 +200,7 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 ## Notes (lessons learnt)
 
 - Windows/PowerShell: bash may be unavailable; manual fallback must be first-class.
+- Windows/PowerShell: avoid `if (git rev-parse <tag>)` for local tag existence checks; use `git show-ref --verify --quiet refs/tags/<tag>` and inspect `$LASTEXITCODE`.
 - Build before bump: avoid tagging broken trees.
 - Changelog optional: do not block if `CHANGELOG.md` does not exist unless user requires it.
 - Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
