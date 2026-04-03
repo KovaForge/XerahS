@@ -53,6 +53,11 @@ public class WindowsHotkeyService : IHotkeyService
     private int _messageThreadId;
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
+    public event EventHandler? HotkeysChanged
+    {
+        add { }
+        remove { }
+    }
     public bool IsSuspended { get; set; }
     public Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
 

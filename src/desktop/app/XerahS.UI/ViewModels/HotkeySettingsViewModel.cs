@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Core;
@@ -50,9 +51,18 @@ public partial class HotkeySettingsViewModel : ViewModelBase
         if (global::Avalonia.Application.Current is App app)
         {
             _manager = app.WorkflowManager;
+            if (_manager != null)
+            {
+                _manager.WorkflowsChanged += OnManagerWorkflowsChanged;
+            }
         }
 
         LoadHotkeys();
+    }
+
+    private void OnManagerWorkflowsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(LoadHotkeys);
     }
 
     private void LoadHotkeys()

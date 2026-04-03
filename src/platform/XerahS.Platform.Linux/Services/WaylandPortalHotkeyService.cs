@@ -67,6 +67,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private int _activeRebindOperations;
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
+    public event EventHandler? HotkeysChanged;
     public bool IsSuspended
     {
         get => _isSuspended;
@@ -153,6 +154,11 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             var requestPath = await _portal.ConfigureShortcutsAsync((ObjectPath)_sessionHandle, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
             var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
             var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
+            if (response == 0)
+            {
+                await RefreshShortcutsFromPortalAsync().ConfigureAwait(false);
+            }
+
             return response == 0; // Success
         }
         catch (Exception ex)
@@ -483,12 +489,17 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts payload: [{payload}], parentWindow={(string.IsNullOrEmpty(parentWindow) ? "<empty>" : parentWindow)}, app_id={appName}");
         var requestPath = await _portal!.BindShortcutsAsync(sessionHandle, bindings, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
         var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts response={response} ({DescribePortalResponse(response)})");
 
         if (response != 0)
         {
             throw new PortalBindFailedException(response, $"WaylandPortalHotkeyService: BindShortcuts failed ({response}, {DescribePortalResponse(response)})");
+        }
+
+        if (TryGetShortcutResults(results, out var shortcuts))
+        {
+            ApplyPortalShortcutSnapshot(shortcuts);
         }
     }
 
@@ -552,8 +563,17 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
 
         DebugHelper.WriteLine("WaylandPortalHotkeyService: ShortcutsChanged signal received. DE updated bindings.");
-        // Synchronizing back to Avalonia Key representations is complex. We rely on the DE for now, 
-        // but UI could be notified here to refresh via ListShortcuts if needed.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RefreshShortcutsFromPortalAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Failed to refresh shortcuts after ShortcutsChanged");
+            }
+        });
     }
 
     private static void OnPortalWatchError(Exception ex)
@@ -725,6 +745,120 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     internal void ScheduleRebindForTesting()
     {
         ScheduleRebind();
+    }
+
+    private async Task RefreshShortcutsFromPortalAsync()
+    {
+        if (_disposed || _portal == null || _connection == null || _sessionHandle == null)
+        {
+            return;
+        }
+
+        await _bindSemaphore.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_disposed || _portal == null || _connection == null || _sessionHandle == null)
+            {
+                return;
+            }
+
+            var requestPath = await _portal.ListShortcutsAsync((ObjectPath)_sessionHandle, new Dictionary<string, object>()).ConfigureAwait(false);
+            var request = _connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
+            var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+            DebugHelper.WriteLine($"WaylandPortalHotkeyService: ListShortcuts response={response} ({DescribePortalResponse(response)})");
+
+            if (response != 0)
+            {
+                return;
+            }
+
+            if (TryGetShortcutResults(results, out var shortcuts))
+            {
+                ApplyPortalShortcutSnapshot(shortcuts);
+            }
+        }
+        finally
+        {
+            _bindSemaphore.Release();
+        }
+    }
+
+    private bool ApplyPortalShortcutSnapshot(ValueTuple<string, IDictionary<string, object>>[] shortcuts)
+    {
+        bool changed = false;
+        var shortcutsById = shortcuts.ToDictionary(shortcut => shortcut.Item1, shortcut => shortcut.Item2);
+
+        lock (_hotkeyLock)
+        {
+            foreach (var entry in _registered)
+            {
+                string shortcutId = entry.Key.ToString();
+                var hotkeyInfo = entry.Value;
+
+                if (shortcutsById.TryGetValue(shortcutId, out var metadata))
+                {
+                    string? triggerDescription = GetTriggerDescription(metadata);
+                    if (!string.Equals(hotkeyInfo.NativeTriggerDescription, triggerDescription, StringComparison.Ordinal))
+                    {
+                        hotkeyInfo.NativeTriggerDescription = triggerDescription;
+                        changed = true;
+                    }
+
+                    if (hotkeyInfo.Status != PlatformHotkeyStatus.Registered)
+                    {
+                        hotkeyInfo.Status = PlatformHotkeyStatus.Registered;
+                        changed = true;
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(hotkeyInfo.NativeTriggerDescription))
+                    {
+                        hotkeyInfo.NativeTriggerDescription = null;
+                        changed = true;
+                    }
+
+                    if (hotkeyInfo.Status != PlatformHotkeyStatus.Failed)
+                    {
+                        hotkeyInfo.Status = PlatformHotkeyStatus.Failed;
+                        changed = true;
+                    }
+                }
+            }
+        }
+
+        if (changed)
+        {
+            HotkeysChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        return changed;
+    }
+
+    private static bool TryGetShortcutResults(
+        IDictionary<string, object> results,
+        out ValueTuple<string, IDictionary<string, object>>[] shortcuts)
+    {
+        if (results.TryGetResult("shortcuts", out ValueTuple<string, IDictionary<string, object>>[]? value) &&
+            value != null)
+        {
+            shortcuts = value;
+            return true;
+        }
+
+        shortcuts = Array.Empty<ValueTuple<string, IDictionary<string, object>>>();
+        return false;
+    }
+
+    private static string? GetTriggerDescription(IDictionary<string, object> metadata)
+    {
+        if (!metadata.TryGetValue("trigger_description", out var raw) || raw == null)
+        {
+            return null;
+        }
+
+        var value = raw.ToString();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private static string MapKeyName(Key key)

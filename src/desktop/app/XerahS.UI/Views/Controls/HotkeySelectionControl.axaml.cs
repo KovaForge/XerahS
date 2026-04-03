@@ -413,7 +413,7 @@ public partial class HotkeySelectionControl : UserControl
             var info = _viewModel.Model.HotkeyInfo;
             if (info.IsValid)
             {
-                HotkeyButton.Content = info.ToString();
+                HotkeyButton.Content = info.GetDisplayString();
             }
             else
             {

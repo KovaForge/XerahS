@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
@@ -67,10 +68,19 @@ public partial class WorkflowsViewModel : ViewModelBase
         if (global::Avalonia.Application.Current is App app)
         {
             _manager = app.WorkflowManager;
+            if (_manager != null)
+            {
+                _manager.WorkflowsChanged += OnManagerWorkflowsChanged;
+            }
         }
 
         LoadWorkflows();
         DebugHelper.WriteLine($"[WorkflowsVM] ctor end. Workflows={Workflows.Count}");
+    }
+
+    private void OnManagerWorkflowsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(LoadWorkflows);
     }
 
     private void LoadWorkflows()

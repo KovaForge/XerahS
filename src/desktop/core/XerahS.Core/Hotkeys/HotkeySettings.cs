@@ -112,7 +112,7 @@ public class WorkflowSettings
 
     public override string ToString()
     {
-        return $"{EnumExtensions.GetDescription(Job)}: {HotkeyInfo}";
+        return $"{EnumExtensions.GetDescription(Job)}: {HotkeyInfo.GetDisplayString()}";
     }
 
     /// <summary>
