@@ -133,6 +133,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 - Never define Tmds.DBus proxy interfaces as nested or inaccessible types; always expose them as top-level public interfaces because the dynamic proxy assembly cannot implement inaccessible interfaces.
 - Never trust region-capture modifier updates to key events alone; always resample the current `KeyModifiers` from pointer movement/release while dragging because modifier-only transitions can be missed under pointer capture and leave the selection geometry stuck in the wrong mode.
 - Never advertise Linux selector modes that the current session cannot actually honor, and never let an explicit selector silently fall through to a different interactive backend; always filter the UI using live selector diagnostics and keep `Automatic` as the only cross-backend fallback mode because otherwise specific selector choices become misleading and bug reports get polluted by fallback behavior.
+- Never let `src/desktop/app/XerahS.RegionCapture/Platform/Windows/NativeWindowService.cs` use a weaker inclusion filter than `src/platform/XerahS.Platform.Windows/WindowsWindowService.cs`; always exclude cloaked, no-activate, disabled, and known system-class surfaces because hidden Windows shells like Settings hosts or Windows Input Experience can still report `IsWindowVisible=true` and steal crosshair window preselection.
 
 
 ---
