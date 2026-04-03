@@ -15,12 +15,13 @@ This supersedes the retired `docs/development/RELEASE_PROCESS.md`.
 
 ## Version Source Of Truth
 
-1. Treat the root `Directory.Build.props` file as the app version source of truth.
-2. Never set version numbers in individual `.csproj` files.
-3. When bumping version, update every tracked `Directory.Build.props` in the repository so values match.
-4. Derived release metadata files, such as `build/windows/chocolatey/xerahs.nuspec`, must be synchronized from the root version during release automation.
-5. Read current version from the root `Directory.Build.props` first.
-6. Tagged releases also generate and smoke-test the Chocolatey `.nupkg`, so release metadata under `build/windows/chocolatey/` must stay automation-friendly.
+1. Treat the root `Directory.Build.props` file as the working XerahS app version source of truth.
+2. Before any versioned XerahS commit, compare the root version with the highest existing XerahS git tag.
+3. If the root version is not strictly greater than the latest tag, bump the root version first so the branch carries the next unreleased version.
+4. Never set version numbers in individual `.csproj` files.
+5. When bumping version, update every tracked `Directory.Build.props` in the repository that intentionally carries the XerahS app version so values match.
+6. Derived release metadata files, such as `build/windows/chocolatey/xerahs.nuspec`, must be synchronized from the root version during release automation.
+7. Tagged releases also generate and smoke-test the Chocolatey `.nupkg`, so release metadata under `build/windows/chocolatey/` must stay automation-friendly.
 
 ## Version Bump Policy
 
@@ -57,10 +58,11 @@ git push
 
 ## Commit Message Rules
 
-1. Prefix XerahS app commits with the **current** root `Directory.Build.props` `<Version>` as `[vX.Y.Z]` (today `0.20.18`). Do **not** increment the patch in the commit message while `<Version>` is unchanged (no `[v0.20.19]` or higher until `Directory.Build.props` is bumped). Effective from XerahS commit `62ff53d357f6480df26d103361f240ac028a62b5` onward.
-2. Include a type token such as `[Fix]`, `[Feature]`, `[Build]`, `[Docs]`, `[Refactor]`.
-3. Keep the description concise and specific.
-4. Submodule-only commits in shared libraries (e.g. `ShareX.ImageEditor`): omit `[vX.Y.Z]`; use `[Type] description` per `AGENTS.md`.
+1. Prefix XerahS app commits with the root `Directory.Build.props` `<Version>` as `[vX.Y.Z]`, but only after verifying that version is strictly greater than the highest existing XerahS git tag.
+2. Never use a version prefix that is lower than or equal to the latest tag. If the latest tag is already at or above the root version, bump `Directory.Build.props` first and then commit with that bumped version.
+3. Include a type token such as `[Fix]`, `[Feature]`, `[Build]`, `[Docs]`, `[Refactor]`.
+4. Keep the description concise and specific.
+5. Submodule-only commits in shared libraries (e.g. `ShareX.ImageEditor`): omit `[vX.Y.Z]`; use `[Type] description` per `AGENTS.md`.
 
 ## Git Hook Expectations
 
