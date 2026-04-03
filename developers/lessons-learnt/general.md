@@ -254,6 +254,12 @@ This forces the build system to include the correct Windows SDK reference assemb
 
 **Lesson**: Never dispose portal hotkey D-Bus state while debounce or rebind work can still be running. Mark the service as disposed first, cancel the debounce token, and wait for in-flight rebind tasks to drain before releasing the connection, session, or semaphore. Otherwise workflow edits can surface unobserved `ObjectDisposedException` failures against `Tmds.DBus.Connection`.
 
+### Predict Portal Request Paths Before Waiting
+
+**Context**: Some `xdg-desktop-portal` calls can publish their `Request.Response` signal quickly enough that a watcher attached only after the method returns will miss the signal and leave the app waiting forever.
+
+**Lesson**: Never wait on an XDG portal request only after the call returns its request handle; always provide a `handle_token`, derive the expected request object path from the D-Bus unique name, and attach the response watcher first because fast portal responses can beat a post-call subscription.
+
 ### Surface The Last Linux Selector Decision In Diagnostics
 
 **Context**: Static Linux selector diagnostics explain what should be available in the current session, but they do not show which selector actually handled the last capture.

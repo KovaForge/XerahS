@@ -100,7 +100,8 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             {
                 SynchronizationContext.SetSynchronizationContext(null);
                 _connection = new Connection(Address.Session);
-                _connection.ConnectAsync().GetAwaiter().GetResult();
+                var connectionInfo = _connection.ConnectAsync().GetAwaiter().GetResult();
+                global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(_connection, connectionInfo);
                 _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
                 _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
                 _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
@@ -151,9 +152,13 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         try
         {
             var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
-            var requestPath = await _portal.ConfigureShortcutsAsync((ObjectPath)_sessionHandle, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
-            var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-            var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
+            var options = new Dictionary<string, object>();
+            var (response, _) = await _connection!
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => _portal.ConfigureShortcutsAsync((ObjectPath)_sessionHandle, parentWindow, options))
+                .ConfigureAwait(false);
             if (response == 0)
             {
                 await RefreshShortcutsFromPortalAsync().ConfigureAwait(false);
@@ -452,9 +457,12 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             ["session_handle_token"] = $"sharex_hk_{Guid.NewGuid():N}"
         };
 
-        var requestPath = await _portal!.CreateSessionAsync(options).ConfigureAwait(false);
-        var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var (response, results) = await _connection!
+            .SendPortalRequestAsync(
+                PortalBusName,
+                options,
+                () => _portal!.CreateSessionAsync(options))
+            .ConfigureAwait(false);
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: CreateSession response={response} ({DescribePortalResponse(response)})");
 
         if (response != 0)
@@ -487,9 +495,13 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
         var appName = global::Avalonia.Application.Current?.Name ?? "<null>";
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts payload: [{payload}], parentWindow={(string.IsNullOrEmpty(parentWindow) ? "<empty>" : parentWindow)}, app_id={appName}");
-        var requestPath = await _portal!.BindShortcutsAsync(sessionHandle, bindings, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
-        var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var options = new Dictionary<string, object>();
+        var (response, results) = await _connection!
+            .SendPortalRequestAsync(
+                PortalBusName,
+                options,
+                () => _portal!.BindShortcutsAsync(sessionHandle, bindings, parentWindow, options))
+            .ConfigureAwait(false);
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts response={response} ({DescribePortalResponse(response)})");
 
         if (response != 0)
@@ -762,9 +774,13 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
                 return;
             }
 
-            var requestPath = await _portal.ListShortcutsAsync((ObjectPath)_sessionHandle, new Dictionary<string, object>()).ConfigureAwait(false);
-            var request = _connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-            var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+            var options = new Dictionary<string, object>();
+            var (response, results) = await _connection
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => _portal.ListShortcutsAsync((ObjectPath)_sessionHandle, options))
+                .ConfigureAwait(false);
             DebugHelper.WriteLine($"WaylandPortalHotkeyService: ListShortcuts response={response} ({DescribePortalResponse(response)})");
 
             if (response != 0)

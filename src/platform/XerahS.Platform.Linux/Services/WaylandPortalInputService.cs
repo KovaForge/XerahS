@@ -69,7 +69,8 @@ public sealed class WaylandPortalInputService : IInputService
             {
                 SynchronizationContext.SetSynchronizationContext(null);
                 _connection = new Connection(Address.Session);
-                _connection.ConnectAsync().GetAwaiter().GetResult();
+                var connectionInfo = _connection.ConnectAsync().GetAwaiter().GetResult();
+                global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(_connection, connectionInfo);
                 _portal = _connection.CreateProxy<IInputCapture>(PortalBusName, PortalObjectPath);
                 
                 _ = Task.Run(async () =>
@@ -176,9 +177,12 @@ public sealed class WaylandPortalInputService : IInputService
             ["session_handle_token"] = $"sharex_input_{Guid.NewGuid():N}"
         };
 
-        var requestPath = await _portal.CreateSessionAsync(string.Empty, options).ConfigureAwait(false);
-        var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var (response, results) = await _connection!
+            .SendPortalRequestAsync(
+                PortalBusName,
+                options,
+                () => _portal.CreateSessionAsync(string.Empty, options))
+            .ConfigureAwait(false);
 
         if (response != 0)
         {
@@ -209,9 +213,13 @@ public sealed class WaylandPortalInputService : IInputService
         await _refreshLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            var requestPath = await _portal.GetZonesAsync(sessionHandle, new Dictionary<string, object>()).ConfigureAwait(false);
-            var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-            var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+            var options = new Dictionary<string, object>();
+            var (response, results) = await _connection!
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => _portal.GetZonesAsync(sessionHandle, options))
+                .ConfigureAwait(false);
 
             if (response != 0)
             {
@@ -325,14 +333,17 @@ public sealed class WaylandPortalInputService : IInputService
 
         ObjectPath sessionHandle = (ObjectPath)_sessionHandle!;
         var barriers = BuildBarriers(zones);
-        var requestPath = await _portal.SetPointerBarriersAsync(
-            sessionHandle,
-            new Dictionary<string, object>(),
-            barriers.ToArray(),
-            zoneSet).ConfigureAwait(false);
-
-        var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var options = new Dictionary<string, object>();
+        var (response, results) = await _connection!
+            .SendPortalRequestAsync(
+                PortalBusName,
+                options,
+                () => _portal.SetPointerBarriersAsync(
+                    sessionHandle,
+                    options,
+                    barriers.ToArray(),
+                    zoneSet))
+            .ConfigureAwait(false);
 
         if (response != 0)
         {
