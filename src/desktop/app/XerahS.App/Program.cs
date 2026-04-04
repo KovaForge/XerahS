@@ -26,6 +26,7 @@
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.Core.SendTo;
@@ -39,18 +40,12 @@ namespace XerahS.App
         private static XerahS.Common.SingleInstanceManager? _singleInstanceManager;
         private static string[] _startupArguments = Array.Empty<string>();
 
-        private const string MutexName = "XerahS-82E6AC09-0FFC-4992-B793-3F79E1F71E70";
-        private const string PipeName = "XerahS-Pipe-1F42DA49-7B2A-4E6F-8A3C-D56F09E0C481";
-        private const string SendToFlag = "--send-to";
-        private const string LegacyInstallPluginFlag = "-InstallPlugin";
-
         private sealed class IncomingPathSet
         {
             public List<string> Files { get; } = [];
 
             public List<string> Folders { get; } = [];
         }
-
         [STAThread]
         public static void Main(string[] args)
         {
@@ -59,7 +54,7 @@ namespace XerahS.App
                 _startupArguments = args ?? Array.Empty<string>();
 
                 // Single instance enforcement
-                _singleInstanceManager = new XerahS.Common.SingleInstanceManager(MutexName, PipeName, _startupArguments);
+                _singleInstanceManager = new XerahS.Common.SingleInstanceManager(AppContracts.SingleInstance.MutexName, AppContracts.SingleInstance.PipeName, _startupArguments);
 
                 if (!_singleInstanceManager.IsFirstInstance)
                 {
@@ -794,12 +789,12 @@ namespace XerahS.App
 
                 string arg = rawArg.Trim();
 
-                if (arg.Equals(SendToFlag, StringComparison.OrdinalIgnoreCase))
+                if (arg.Equals(AppContracts.Cli.SendToFlag, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                if (arg.Equals(LegacyInstallPluginFlag, StringComparison.OrdinalIgnoreCase))
+                if (arg.Equals(AppContracts.Cli.LegacyInstallPluginFlag, StringComparison.OrdinalIgnoreCase))
                 {
                     skipNextAsPluginPath = true;
                     continue;
