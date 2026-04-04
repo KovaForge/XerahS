@@ -94,13 +94,28 @@ namespace XerahS.Platform.Windows
                     break;
 
                 case ScrollMethod.ScrollMessage:
-                    for (int i = 0; i < amount; i++)
                     {
-                        NativeMethods.SendMessage(
-                            windowHandle,
-                            (uint)WindowsMessages.WM_VSCROLL,
-                            (IntPtr)ScrollBarCommand.SB_LINEDOWN,
-                            IntPtr.Zero);
+                        // WM_VSCROLL sent to the main window only scrolls the window's own
+                        // non-client scroll bar. To scroll the main content (which lives in a
+                        // child window with WS_VSCROLL), we must send the message to that
+                        // child window directly. Enumerate children and find the first one
+                        // that has a vertical scroll bar.
+                        IntPtr scrollTarget = FindScrollableChildWindow(windowHandle);
+
+                        // Fall back to the main window if no suitable child was found.
+                        if (scrollTarget == IntPtr.Zero)
+                        {
+                            scrollTarget = windowHandle;
+                        }
+
+                        for (int i = 0; i < amount; i++)
+                        {
+                            NativeMethods.SendMessage(
+                                scrollTarget,
+                                (uint)WindowsMessages.WM_VSCROLL,
+                                (IntPtr)ScrollBarCommand.SB_LINEDOWN,
+                                IntPtr.Zero);
+                        }
                     }
                     break;
             }
@@ -114,9 +129,17 @@ namespace XerahS.Platform.Windows
             InputHelpers.SendKeyPress(VirtualKeyCode.HOME);
             await Task.Delay(100);
 
-            // Also send WM_VSCROLL SB_TOP as fallback
+            // Also send WM_VSCROLL SB_TOP as fallback.
+            // Target the scrollable child window (the main content area) rather than
+            // the main window itself, so SB_TOP reaches the right scroll bar.
+            IntPtr scrollTarget = FindScrollableChildWindow(windowHandle);
+            if (scrollTarget == IntPtr.Zero)
+            {
+                scrollTarget = windowHandle;
+            }
+
             NativeMethods.SendMessage(
-                windowHandle,
+                scrollTarget,
                 (uint)WindowsMessages.WM_VSCROLL,
                 (IntPtr)ScrollBarCommand.SB_TOP,
                 IntPtr.Zero);
@@ -138,6 +161,36 @@ namespace XerahS.Platform.Windows
                 MinRange: scrollInfo.nMin,
                 MaxRange: scrollInfo.nMax,
                 PageSize: (int)scrollInfo.nPage);
+        }
+
+        /// <summary>
+        /// Finds the first direct child window that has a vertical scroll bar (WS_VSCROLL).
+        /// This is the main content scrollable area of a window, as opposed to the
+        /// non-client scroll bar attached to the main window itself.
+        /// </summary>
+        private static IntPtr FindScrollableChildWindow(IntPtr parentWindow)
+        {
+            IntPtr found = IntPtr.Zero;
+
+            NativeMethods.EnumChildWindows(parentWindow, (hWnd, _) =>
+            {
+                if (found != IntPtr.Zero)
+                {
+                    return false; // Already found, stop enumerating
+                }
+
+                // Check if this child has the WS_VSCROLL style
+                var style = (WindowStyles)NativeMethods.GetWindowLong(hWnd, NativeConstants.GWL_STYLE);
+                if (style.HasFlag(WindowStyles.WS_VSCROLL))
+                {
+                    found = hWnd;
+                    return false; // Stop enumeration
+                }
+
+                return true; // Continue
+            }, IntPtr.Zero);
+
+            return found;
         }
     }
 }
