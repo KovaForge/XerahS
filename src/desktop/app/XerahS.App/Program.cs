@@ -755,7 +755,7 @@ namespace XerahS.App
                     continue;
                 }
 
-                if (rawArg.Trim().Equals(SendToFlag, StringComparison.OrdinalIgnoreCase))
+                if (rawArg.Trim().Equals(AppContracts.Cli.SendToFlag, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }

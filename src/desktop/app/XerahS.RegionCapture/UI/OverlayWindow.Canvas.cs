@@ -30,6 +30,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using XerahS.RegionCapture.Models;
+using XerahS.RegionCapture.ViewModels;
 
 namespace XerahS.RegionCapture.UI;
 

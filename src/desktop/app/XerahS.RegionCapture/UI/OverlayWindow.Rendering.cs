@@ -33,6 +33,8 @@ using SkiaSharp;
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
+using XerahS.Common;
+using XerahS.RegionCapture.Services;
 using PixelRect = XerahS.RegionCapture.Models.PixelRect;
 
 namespace XerahS.RegionCapture.UI;
