@@ -108,6 +108,11 @@ namespace XerahS.Platform.Windows
                             scrollTarget = windowHandle;
                         }
 
+                        // Preserve foreground window to prevent scroll messages sent to a
+                        // child window (e.g., a tab page) from triggering focus changes that
+                        // cause the parent tab control to switch active tabs.
+                        IntPtr savedForeground = NativeMethods.GetForegroundWindow();
+
                         for (int i = 0; i < amount; i++)
                         {
                             NativeMethods.SendMessage(
@@ -115,6 +120,12 @@ namespace XerahS.Platform.Windows
                                 (uint)WindowsMessages.WM_VSCROLL,
                                 (IntPtr)ScrollBarCommand.SB_LINEDOWN,
                                 IntPtr.Zero);
+                        }
+
+                        // Restore foreground window after scrolling to prevent tab switches.
+                        if (savedForeground != IntPtr.Zero)
+                        {
+                            NativeMethods.SetForegroundWindow(savedForeground);
                         }
                     }
                     break;
@@ -138,11 +149,22 @@ namespace XerahS.Platform.Windows
                 scrollTarget = windowHandle;
             }
 
+            // Preserve foreground window to prevent scroll messages sent to a
+            // child window (e.g., a tab page) from triggering focus changes that
+            // cause the parent tab control to switch active tabs.
+            IntPtr savedForeground = NativeMethods.GetForegroundWindow();
+
             NativeMethods.SendMessage(
                 scrollTarget,
                 (uint)WindowsMessages.WM_VSCROLL,
                 (IntPtr)ScrollBarCommand.SB_TOP,
                 IntPtr.Zero);
+
+            // Restore foreground window after scrolling to prevent tab switches.
+            if (savedForeground != IntPtr.Zero)
+            {
+                NativeMethods.SetForegroundWindow(savedForeground);
+            }
         }
 
         public ScrollBarInfo? GetScrollBarInfo(IntPtr windowHandle)
