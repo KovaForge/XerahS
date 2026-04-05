@@ -352,6 +352,17 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
+            // If File category failed and the file is text-based, try Text-category uploaders
+            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsTextFile(info.FileName))
+            {
+                DebugHelper.WriteLine("File is text-based; trying Text category uploaders as fallback...");
+                var textFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Text, info, excludeInstanceId, attemptedInstanceIds);
+                if (textFallbackResult != null && !textFallbackResult.IsError && !string.IsNullOrEmpty(textFallbackResult.URL))
+                {
+                    return textFallbackResult;
+                }
+            }
+
             return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
         }
 
