@@ -123,6 +123,19 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool IndexerIgnoreEmptyFolders
+        {
+            get => _settings.ToolsSettings.IndexerSettings.IgnoreEmptyFolders;
+            set
+            {
+                if (_settings.ToolsSettings.IndexerSettings.IgnoreEmptyFolders != value)
+                {
+                    _settings.ToolsSettings.IndexerSettings.IgnoreEmptyFolders = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public int IndexerMaxDepthLevel
         {
             get => _settings.ToolsSettings.IndexerSettings.MaxDepthLevel;
