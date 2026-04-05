@@ -100,13 +100,7 @@ namespace XerahS.Platform.Windows
                         // child window with WS_VSCROLL), we must send the message to that
                         // child window directly. Enumerate children and find the first one
                         // that has a vertical scroll bar.
-                        IntPtr scrollTarget = FindScrollableChildWindow(windowHandle);
-
-                        // Fall back to the main window if no suitable child was found.
-                        if (scrollTarget == IntPtr.Zero)
-                        {
-                            scrollTarget = windowHandle;
-                        }
+                        IntPtr scrollTarget = ResolveScrollTarget(windowHandle);
 
                         // Preserve foreground window to prevent scroll messages sent to a
                         // child window (e.g., a tab page) from triggering focus changes that
@@ -143,11 +137,7 @@ namespace XerahS.Platform.Windows
             // Also send WM_VSCROLL SB_TOP as fallback.
             // Target the scrollable child window (the main content area) rather than
             // the main window itself, so SB_TOP reaches the right scroll bar.
-            IntPtr scrollTarget = FindScrollableChildWindow(windowHandle);
-            if (scrollTarget == IntPtr.Zero)
-            {
-                scrollTarget = windowHandle;
-            }
+            IntPtr scrollTarget = ResolveScrollTarget(windowHandle);
 
             // Preserve foreground window to prevent scroll messages sent to a
             // child window (e.g., a tab page) from triggering focus changes that
@@ -169,11 +159,14 @@ namespace XerahS.Platform.Windows
 
         public ScrollBarInfo? GetScrollBarInfo(IntPtr windowHandle)
         {
+            // Read the same scroll bar that ScrollMessage targets, otherwise bottom
+            // detection can stop early after the child-window targeting fixes.
+            IntPtr scrollTarget = ResolveScrollTarget(windowHandle);
             SCROLLINFO scrollInfo = new SCROLLINFO();
             scrollInfo.cbSize = (uint)Marshal.SizeOf<SCROLLINFO>();
             scrollInfo.fMask = ScrollInfoMask.SIF_ALL;
 
-            if (!NativeMethods.GetScrollInfo(windowHandle, (int)ScrollBarOrientation.SB_VERT, ref scrollInfo))
+            if (!NativeMethods.GetScrollInfo(scrollTarget, (int)ScrollBarOrientation.SB_VERT, ref scrollInfo))
             {
                 return null;
             }
@@ -183,6 +176,19 @@ namespace XerahS.Platform.Windows
                 MinRange: scrollInfo.nMin,
                 MaxRange: scrollInfo.nMax,
                 PageSize: (int)scrollInfo.nPage);
+        }
+
+        internal static IntPtr ResolveScrollTarget(IntPtr windowHandle, Func<IntPtr, IntPtr> findScrollableChildWindow)
+        {
+            ArgumentNullException.ThrowIfNull(findScrollableChildWindow);
+
+            IntPtr scrollTarget = findScrollableChildWindow(windowHandle);
+            return scrollTarget == IntPtr.Zero ? windowHandle : scrollTarget;
+        }
+
+        internal static IntPtr ResolveScrollTarget(IntPtr windowHandle)
+        {
+            return ResolveScrollTarget(windowHandle, FindScrollableChildWindow);
         }
 
         /// <summary>

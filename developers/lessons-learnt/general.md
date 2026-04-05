@@ -269,3 +269,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 
 - Never build Linux hover-snap window lists from raw X11 root children when KDE/GNOME parity matters; always prefer EWMH managed-window metadata such as `_NET_CLIENT_LIST_STACKING`, `_NET_WM_NAME`, and `_NET_FRAME_EXTENTS` because KWin and Mutter can expose undecorated client windows there while frame/root-child heuristics silently drop titles or return the wrong bounds.
 - Never let a Linux XerahS overlay follow-up capture reopen the XDG portal after the user already drew a region on GNOME Wayland; always stamp that post-selection capture with an explicit no-portal-reentry guard and route it through GNOME D-Bus area/full-screen fallbacks because a second portal dialog breaks the crosshair-overlay contract and regresses region capture UX.
+
+### Keep Scrolling Capture Target Selection Consistent
+
+**Context**: Windows scrolling capture now routes `WM_VSCROLL` commands to the actual child window that owns the content scrollbar instead of blindly sending messages to the top-level window.
+
+**Lesson**: Once scrolling capture resolves a child scroll target, every related scrollbar query must use that same resolved handle as well. If scrolling commands hit the child window but `GetScrollInfo` still reads the parent handle, bottom detection can trip early and truncate the stitched capture before the real scroller reaches the end of the page.
