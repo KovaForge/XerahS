@@ -32,14 +32,21 @@ namespace XerahS.Tests.Platform.Windows;
 public class WindowsScrollingCaptureServiceTests
 {
     [Test]
-    public void ResolveScrollTarget_UsesScrollableChildWhenPresent()
+    public void ResolveScrollTarget_PrefersLargestVisibleScrollablePaneOverScrollbarControl()
     {
         IntPtr parentWindow = new(123);
-        IntPtr childWindow = new(456);
+        IntPtr scrollbarHandle = new(456);
+        IntPtr contentHandle = new(789);
 
-        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, _ => childWindow);
+        WindowsScrollingCaptureService.ScrollTargetCandidate[] candidates =
+        [
+            new(scrollbarHandle, HasVerticalScrollStyle: true, IsVisible: true, ClientWidth: 17, ClientHeight: 600, ClassName: "ScrollBar"),
+            new(contentHandle, HasVerticalScrollStyle: true, IsVisible: true, ClientWidth: 900, ClientHeight: 700, ClassName: "Internet Explorer_Server")
+        ];
 
-        Assert.That(result, Is.EqualTo(childWindow));
+        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, candidates);
+
+        Assert.That(result, Is.EqualTo(contentHandle));
     }
 
     [Test]
@@ -47,8 +54,24 @@ public class WindowsScrollingCaptureServiceTests
     {
         IntPtr parentWindow = new(123);
 
-        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, _ => IntPtr.Zero);
+        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, []);
 
         Assert.That(result, Is.EqualTo(parentWindow));
+    }
+
+    [Test]
+    public void ResolveScrollTarget_FallsBackToScrollbarControlWhenItIsOnlyScrollableCandidate()
+    {
+        IntPtr parentWindow = new(123);
+        IntPtr scrollbarHandle = new(456);
+
+        WindowsScrollingCaptureService.ScrollTargetCandidate[] candidates =
+        [
+            new(scrollbarHandle, HasVerticalScrollStyle: true, IsVisible: true, ClientWidth: 17, ClientHeight: 600, ClassName: "ScrollBar")
+        ];
+
+        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, candidates);
+
+        Assert.That(result, Is.EqualTo(scrollbarHandle));
     }
 }

@@ -178,47 +178,97 @@ namespace XerahS.Platform.Windows
                 PageSize: (int)scrollInfo.nPage);
         }
 
-        internal static IntPtr ResolveScrollTarget(IntPtr windowHandle, Func<IntPtr, IntPtr> findScrollableChildWindow)
+        internal static IntPtr ResolveScrollTarget(IntPtr windowHandle, IEnumerable<ScrollTargetCandidate> candidates)
         {
-            ArgumentNullException.ThrowIfNull(findScrollableChildWindow);
+            ArgumentNullException.ThrowIfNull(candidates);
 
-            IntPtr scrollTarget = findScrollableChildWindow(windowHandle);
-            return scrollTarget == IntPtr.Zero ? windowHandle : scrollTarget;
+            ScrollTargetCandidate? bestNonScrollbar = null;
+            ScrollTargetCandidate? bestFallback = null;
+
+            foreach (ScrollTargetCandidate candidate in candidates)
+            {
+                if (candidate.Handle == IntPtr.Zero ||
+                    !candidate.HasVerticalScrollStyle ||
+                    !candidate.IsVisible ||
+                    candidate.ClientWidth <= 0 ||
+                    candidate.ClientHeight <= 0)
+                {
+                    continue;
+                }
+
+                if (bestFallback is null || candidate.ClientArea > bestFallback.Value.ClientArea)
+                {
+                    bestFallback = candidate;
+                }
+
+                if (candidate.IsScrollBarControl)
+                {
+                    continue;
+                }
+
+                if (bestNonScrollbar is null || candidate.ClientArea > bestNonScrollbar.Value.ClientArea)
+                {
+                    bestNonScrollbar = candidate;
+                }
+            }
+
+            if (bestNonScrollbar is { } nonScrollbar)
+            {
+                return nonScrollbar.Handle;
+            }
+
+            if (bestFallback is { } fallback)
+            {
+                return fallback.Handle;
+            }
+
+            return windowHandle;
         }
 
         internal static IntPtr ResolveScrollTarget(IntPtr windowHandle)
         {
-            return ResolveScrollTarget(windowHandle, FindScrollableChildWindow);
+            return ResolveScrollTarget(windowHandle, EnumerateScrollTargetCandidates(windowHandle));
         }
 
         /// <summary>
-        /// Finds the first direct child window that has a vertical scroll bar (WS_VSCROLL).
-        /// This is the main content scrollable area of a window, as opposed to the
-        /// non-client scroll bar attached to the main window itself.
+        /// Enumerates visible descendant windows that could own the content scrollbar.
         /// </summary>
-        private static IntPtr FindScrollableChildWindow(IntPtr parentWindow)
+        private static IReadOnlyList<ScrollTargetCandidate> EnumerateScrollTargetCandidates(IntPtr parentWindow)
         {
-            IntPtr found = IntPtr.Zero;
+            List<ScrollTargetCandidate> candidates = [];
 
             NativeMethods.EnumChildWindows(parentWindow, (hWnd, _) =>
             {
-                if (found != IntPtr.Zero)
-                {
-                    return false; // Already found, stop enumerating
-                }
-
-                // Check if this child has the WS_VSCROLL style
                 var style = (WindowStyles)NativeMethods.GetWindowLong(hWnd, NativeConstants.GWL_STYLE);
-                if (style.HasFlag(WindowStyles.WS_VSCROLL))
-                {
-                    found = hWnd;
-                    return false; // Stop enumeration
-                }
+                System.Drawing.Rectangle clientRect = NativeMethods.GetClientRect(hWnd);
+                string className = NativeMethods.GetClassNameString(hWnd);
+
+                candidates.Add(new ScrollTargetCandidate(
+                    Handle: hWnd,
+                    HasVerticalScrollStyle: style.HasFlag(WindowStyles.WS_VSCROLL),
+                    IsVisible: NativeMethods.IsWindowVisible(hWnd),
+                    ClientWidth: clientRect.Width,
+                    ClientHeight: clientRect.Height,
+                    ClassName: className));
 
                 return true; // Continue
             }, IntPtr.Zero);
 
-            return found;
+            return candidates;
+        }
+
+        internal readonly record struct ScrollTargetCandidate(
+            IntPtr Handle,
+            bool HasVerticalScrollStyle,
+            bool IsVisible,
+            int ClientWidth,
+            int ClientHeight,
+            string ClassName)
+        {
+            public int ClientArea => ClientWidth * ClientHeight;
+
+            public bool IsScrollBarControl =>
+                string.Equals(ClassName, "ScrollBar", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

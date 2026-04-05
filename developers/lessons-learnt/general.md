@@ -275,3 +275,5 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: Windows scrolling capture now routes `WM_VSCROLL` commands to the actual child window that owns the content scrollbar instead of blindly sending messages to the top-level window.
 
 **Lesson**: Once scrolling capture resolves a child scroll target, every related scrollbar query must use that same resolved handle as well. If scrolling commands hit the child window but `GetScrollInfo` still reads the parent handle, bottom detection can trip early and truncate the stitched capture before the real scroller reaches the end of the page.
+
+- Never pick the first descendant with `WS_VSCROLL` as the scrolling-capture target on Windows; some apps expose standalone `ScrollBar` controls before the real content pane, so target resolution must prefer the largest visible non-`ScrollBar` scroller and only fall back to a scrollbar control when no better candidate exists.
