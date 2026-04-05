@@ -140,6 +140,9 @@ namespace XerahS.Platform.Windows
         public static extern IntPtr GetParent(IntPtr hWnd);
 
         [DllImport("user32.dll")]
+        public static extern IntPtr WindowFromPoint(POINT Point);
+
+        [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsIconic(IntPtr hWnd);
 

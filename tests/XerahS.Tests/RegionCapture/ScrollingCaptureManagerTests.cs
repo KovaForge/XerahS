@@ -160,6 +160,29 @@ public class ScrollingCaptureManagerTests
         }
     }
 
+    [Test]
+    public async Task CaptureAsync_UsesLeftBiasedScrollAnchorForWheelScrolling()
+    {
+        using var firstFrame = CreateFrame(contentStartIndex: 0);
+        using var secondFrame = CreateFrame(contentStartIndex: ScrollStep);
+        var scrollingCaptureService = new TrackingScrollingCaptureService();
+
+        ScrollingCaptureResult result = await RunCaptureAsync(
+            [firstFrame, secondFrame],
+            autoIgnoreBottomEdge: false,
+            scrollingCaptureService: scrollingCaptureService);
+
+        try
+        {
+            Assert.That(result.Status, Is.EqualTo(ScrollingCaptureStatus.Successful));
+            Assert.That(scrollingCaptureService.LastScrollTargetPoint, Is.EqualTo(new Point(18, 50)));
+        }
+        finally
+        {
+            result.Image?.Dispose();
+        }
+    }
+
     private static async Task<ScrollingCaptureResult> RunCaptureAsync(
         IReadOnlyList<SKBitmap> frames,
         bool autoIgnoreBottomEdge,
@@ -226,12 +249,12 @@ public class ScrollingCaptureManagerTests
             return new ScrollBarInfo(91, 0, 100, 10);
         }
 
-        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount)
+        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, Point? targetPoint = null)
         {
             return Task.CompletedTask;
         }
 
-        public Task ScrollToTopAsync(IntPtr windowHandle)
+        public Task ScrollToTopAsync(IntPtr windowHandle, Point? targetPoint = null)
         {
             return Task.CompletedTask;
         }
@@ -254,12 +277,35 @@ public class ScrollingCaptureManagerTests
             return _lastScrollInfo;
         }
 
-        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount)
+        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, Point? targetPoint = null)
         {
             return Task.CompletedTask;
         }
 
-        public Task ScrollToTopAsync(IntPtr windowHandle)
+        public Task ScrollToTopAsync(IntPtr windowHandle, Point? targetPoint = null)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TrackingScrollingCaptureService : IScrollingCaptureService
+    {
+        public bool IsSupported => true;
+
+        public Point? LastScrollTargetPoint { get; private set; }
+
+        public ScrollBarInfo? GetScrollBarInfo(IntPtr windowHandle)
+        {
+            return new ScrollBarInfo(91, 0, 100, 10);
+        }
+
+        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, Point? targetPoint = null)
+        {
+            LastScrollTargetPoint = targetPoint;
+            return Task.CompletedTask;
+        }
+
+        public Task ScrollToTopAsync(IntPtr windowHandle, Point? targetPoint = null)
         {
             return Task.CompletedTask;
         }

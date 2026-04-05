@@ -34,7 +34,7 @@ namespace XerahS.Platform.Windows
     {
         public bool IsSupported => true;
 
-        public async Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount)
+        public async Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, System.Drawing.Point? targetPoint = null)
         {
             switch (method)
             {
@@ -42,19 +42,13 @@ namespace XerahS.Platform.Windows
                     // Save cursor position so the user's cursor isn't permanently hijacked
                     NativeMethods.GetCursorPos(out POINT savedCursor);
 
-                    // Move mouse to center of target window's client area for reliable wheel delivery
-                    var clientRect = NativeMethods.GetClientRect(windowHandle);
-                    if (clientRect.Width > 0 && clientRect.Height > 0)
+                    POINT? wheelPoint = GetWheelPoint(windowHandle, targetPoint);
+                    if (wheelPoint.HasValue)
                     {
-                        POINT centerPoint = new POINT
-                        {
-                            X = clientRect.Left + clientRect.Width / 2,
-                            Y = clientRect.Top + clientRect.Height / 2
-                        };
-                        NativeMethods.ClientToScreen(windowHandle, ref centerPoint);
-                        InputHelpers.SendMouseMove(centerPoint.X, centerPoint.Y);
+                        InputHelpers.SendMouseMove(wheelPoint.Value.X, wheelPoint.Value.Y);
                         await Task.Delay(50);
                     }
+
                     // WHEEL_DELTA = 120; negative = scroll down
                     InputHelpers.SendMouseWheel(-120 * amount);
 
@@ -77,20 +71,21 @@ namespace XerahS.Platform.Windows
                     // Post WM_MOUSEWHEEL directly to the window without moving the physical cursor.
                     // Works for standard Win32/WPF/WinForms controls. Falls back to MouseWheel
                     // for apps that require real input (e.g. raw-input games).
-                    var msgClientRect = NativeMethods.GetClientRect(windowHandle);
-                    POINT msgCenter = new POINT
+                    POINT? msgPoint = GetWheelPoint(windowHandle, targetPoint);
+                    if (!msgPoint.HasValue)
                     {
-                        X = msgClientRect.Left + msgClientRect.Width / 2,
-                        Y = msgClientRect.Top + msgClientRect.Height / 2
-                    };
-                    NativeMethods.ClientToScreen(windowHandle, ref msgCenter);
+                        break;
+                    }
+
+                    POINT messagePoint = msgPoint.Value;
+                    IntPtr messageTarget = ResolveWheelMessageTarget(windowHandle, messagePoint);
 
                     // wParam: HIWORD = wheel delta, LOWORD = key state (0)
                     // lParam: HIWORD = Y screen coord, LOWORD = X screen coord
                     int msgWheelDelta = -120 * amount;
                     IntPtr msgWParam = (IntPtr)unchecked((int)((uint)(msgWheelDelta << 16)));
-                    IntPtr msgLParam = (IntPtr)unchecked((int)((uint)((msgCenter.Y << 16) | (msgCenter.X & 0xFFFF))));
-                    NativeMethods.PostMessage(windowHandle, (uint)WindowsMessages.WM_MOUSEWHEEL, msgWParam, msgLParam);
+                    IntPtr msgLParam = (IntPtr)unchecked((int)((uint)((messagePoint.Y << 16) | (messagePoint.X & 0xFFFF))));
+                    NativeMethods.PostMessage(messageTarget, (uint)WindowsMessages.WM_MOUSEWHEEL, msgWParam, msgLParam);
                     break;
 
                 case ScrollMethod.ScrollMessage:
@@ -128,7 +123,7 @@ namespace XerahS.Platform.Windows
             await Task.CompletedTask;
         }
 
-        public async Task ScrollToTopAsync(IntPtr windowHandle)
+        public async Task ScrollToTopAsync(IntPtr windowHandle, System.Drawing.Point? targetPoint = null)
         {
             // Send HOME key to scroll to top
             InputHelpers.SendKeyPress(VirtualKeyCode.HOME);
@@ -176,6 +171,48 @@ namespace XerahS.Platform.Windows
                 MinRange: scrollInfo.nMin,
                 MaxRange: scrollInfo.nMax,
                 PageSize: (int)scrollInfo.nPage);
+        }
+
+        private static POINT? GetWheelPoint(IntPtr windowHandle, System.Drawing.Point? targetPoint)
+        {
+            if (targetPoint.HasValue)
+            {
+                return new POINT { X = targetPoint.Value.X, Y = targetPoint.Value.Y };
+            }
+
+            var clientRect = NativeMethods.GetClientRect(windowHandle);
+            if (clientRect.Width <= 0 || clientRect.Height <= 0)
+            {
+                return null;
+            }
+
+            POINT centerPoint = new POINT
+            {
+                X = clientRect.Left + clientRect.Width / 2,
+                Y = clientRect.Top + clientRect.Height / 2
+            };
+
+            NativeMethods.ClientToScreen(windowHandle, ref centerPoint);
+            return centerPoint;
+        }
+
+        private static IntPtr ResolveWheelMessageTarget(IntPtr windowHandle, POINT point)
+        {
+            IntPtr pointWindow = NativeMethods.WindowFromPoint(point);
+            return IsDescendantOrSelf(pointWindow, windowHandle) ? pointWindow : windowHandle;
+        }
+
+        private static bool IsDescendantOrSelf(IntPtr handle, IntPtr ancestor)
+        {
+            for (IntPtr current = handle; current != IntPtr.Zero; current = NativeMethods.GetParent(current))
+            {
+                if (current == ancestor)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal static IntPtr ResolveScrollTarget(IntPtr windowHandle, IEnumerable<ScrollTargetCandidate> candidates)
