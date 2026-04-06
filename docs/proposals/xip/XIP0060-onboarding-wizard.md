@@ -643,3 +643,317 @@ Source: [Yoink Mac App Store](https://apps.apple.com/us/app/yoink/id457622435) �
 3. **Test before finish**: Every configuration should be testable before completing the wizard
 4. **Respect privacy**: Upload configuration defaults to local-only; cloud upload requires explicit opt-in
 5. **Work offline**: Wizard must function without internet connection (OCR languages download later)
+
+---
+
+## Design Specification (Sofia Novak)
+
+### 1. Visual Direction
+
+**Aesthetic tone**: "Precision Tool" — the visual language of a crafted instrument. Think a high-end camera body or a mechanical keyboard: purposeful, confident, quietly premium. Not playful, not corporate. The wizard should feel like opening a beautifully machined device for the first time.
+
+**Color palette** (CSS variables):
+
+| Token | Light | Dark | Usage |
+|---|---|---|---|
+| `--wiz-bg` | `#F4F5F7` | `#0F1117` | Page / backdrop |
+| `--wiz-surface` | `#FFFFFF` | `#1A1D27` | Card / content area |
+| `--wiz-border` | `#E2E5EA` | `#2A2D3A` | Dividers, input borders |
+| `--wiz-text-primary` | `#0D0F14` | `#EEF0F5` | Headings, labels |
+| `--wiz-text-secondary` | `#5C6170` | `#8B90A0` | Subtext, hints |
+| `--wiz-accent` | `#00B4A6` | `#00D4C8` | CTA buttons, active steps, focus rings |
+| `--wiz-accent-hover` | `#009E91` | `#00BFB5` | Hover state for accent |
+| `--wiz-danger` | `#E5484D` | `#FF6B70` | Conflicts, errors |
+| `--wiz-warning` | `#F5A623` | `#FFBE3D` | Warnings, conflict notices |
+| `--wiz-success` | `#12A594` | `#2DD4BF` | Completion, downloaded |
+
+**Typography**:
+- **Headings / step titles**: `"Sora"` (Google Fonts) — geometric, confident, distinctive. Weights 600-700. Falls back to `"DM Sans", system-ui`.
+- **Body / labels**: `"DM Sans"` — clean and readable without being generic. Weight 400-500. Falls back to `system-ui`.
+- **Monospace accents** (paths, hotkeys, file sizes): `"JetBrains Mono"` — signals "this is a technical tool" without being intimidating. Weight 400.
+
+**Spatial system**:
+- Base unit: `8px`
+- Card padding: `40px 48px` on desktop, `24px 20px` on compact
+- Element gap: `16px` standard, `24px` between sections
+- Border radius: `12px` for card, `8px` for inputs/buttons, `6px` for chips
+
+**Motion philosophy**: Fast and purposeful. 200-280ms transitions. Nothing bouncy or playful — this isn't a consumer app. Easing: `cubic-bezier(0.25, 0.46, 0.45, 0.94)` (ease-out-quad) for entrances; `cubic-bezier(0.55, 0, 1, 0.45)` for exits.
+
+---
+
+### 2. Step Wireframes
+
+**Shell layout** (applies to all steps):
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [✕]                                           40px 48px card
+│                                                         │
+│  ●───●───○───○───○───○     Step indicator (top center)  │
+│  1   2   3   4   5   6                                   │
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │                                                  │  │
+│  │  [Step icon]  Step Title                         │  │
+│  │  Step subtitle / description                     │  │
+│  │                                                  │  │
+│  │  ── Content area (scrollable) ─────────────────│  │
+│  │                                                  │  │
+│  │                                                  │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                         │
+│  [← Back]     [Skip all]           [Next →]  or  [Done] │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Progress indicator details**:
+- Horizontal row of circles connected by lines: `●──●──○──○──○──○`
+- Completed steps: filled `--wiz-accent`, checkmark icon inside
+- Current step: `--wiz-accent` ring with white fill, subtle pulse animation (scale 1→1.05→1, 2s loop)
+- Future steps: `--wiz-border` filled, `--wiz-text-secondary` number
+- Step label below each dot (e.g., "Language", "Save", "Hotkey") — shown at ≥800px wide, hidden below
+- Connecting lines animate from `--wiz-border` to `--wiz-accent` as steps complete (width transition, 300ms)
+
+**CTA button placement**:
+- Always right-aligned in the footer: `[Back] [Skip] ............. [Next →]`
+- "Done" replaces "Next" on the final step
+- Primary CTA uses `--wiz-accent` background, white text, `8px` radius
+- "Back" and "Skip" are ghost buttons (border only, no fill) — `--wiz-text-secondary`
+- Buttons are `48px` tall, minimum `120px` wide
+- "Skip all" is smaller text link, not a button: `12px`, `--wiz-text-secondary`
+
+**Skip link**: Small `Skip this step →` text link above the primary CTA, aligned left, `--wiz-text-secondary`. Disappears on final step.
+
+**Window dimensions**:
+- Recommended: `640px × 520px`, resizable up to `800px × 640px`
+- Minimum: `480px × 440px`
+- Centered on screen, OS-native window frame (not custom title bar)
+
+---
+
+### 3. Component Inventory
+
+#### Step Indicator
+
+| State | Appearance |
+|---|---|
+| Completed | `--wiz-accent` fill, white checkmark icon, connecting line filled |
+| Current | White fill, `--wiz-accent` ring (2px), subtle scale pulse |
+| Future | `--wiz-border` fill, `--wiz-text-secondary` number |
+
+#### Primary CTA Button (`<button.wiz-btn-primary>`)
+
+| State | Appearance |
+|---|---|
+| Default | `--wiz-accent` bg, white text, `8px` radius, subtle shadow |
+| Hover | `--wiz-accent-hover` bg, translateY(-1px), shadow grows |
+| Active/Press | `--wiz-accent` bg, translateY(0), shadow shrinks — 80ms |
+| Disabled | `40%` opacity, `cursor: not-allowed`, no shadow |
+| Focus | `--wiz-accent` `0 0 0 3px` focus ring (outside border-radius) |
+
+#### Ghost / Back Button (`<button.wiz-btn-ghost>`)
+
+| State | Appearance |
+|---|---|
+| Default | Transparent bg, `--wiz-text-secondary` text, `--wiz-border` border |
+| Hover | `--wiz-surface` bg (slight tint), `--wiz-text-primary` text |
+| Active | `--wiz-border` bg |
+| Disabled | `30%` opacity |
+
+#### Radio Cards (`<label.wiz-radio-card>`)
+
+Used for: upload destination selection (Step 4), quick-select save locations (Step 2).
+
+```
+┌─────────────────────────────────────────┐
+│ [○]  Icon                    Title      │
+│      Description text                    │
+│                           [chip: active]│
+└─────────────────────────────────────────┘
+```
+
+| State | Appearance |
+|---|---|
+| Default | `--wiz-surface` bg, `--wiz-border` border, `8px` radius |
+| Hover | `--wiz-border` transitions to `--wiz-text-secondary`, `2px` border |
+| Selected | `--wiz-accent` border (`2px`), `--wiz-accent` `0 0 0 1px` inner ring, light accent tint bg |
+| Focus-within | `--wiz-accent` `0 0 0 3px` focus ring |
+
+#### Text Input (`<input.wiz-input>`)
+
+| State | Appearance |
+|---|---|
+| Default | `--wiz-surface` bg, `--wiz-border` border, `8px` radius, `48px` height |
+| Hover | `--wiz-border` → `--wiz-text-secondary` |
+| Focus | `--wiz-accent` border, `--wiz-accent` `0 0 0 3px` focus ring |
+| Error | `--wiz-danger` border, `--wiz-danger` `0 0 0 3px` focus ring, error message below |
+| Disabled | `--wiz-bg` bg, `50%` opacity |
+
+#### Toggle Switch (`<input.wiz-toggle[type=checkbox]>`)
+
+| State | Appearance |
+|---|---|
+| Off | `--wiz-border` track (40×24px, pill), white thumb |
+| On | `--wiz-accent` track, white thumb |
+| Hover | Track lightens slightly |
+| Focus | `--wiz-accent` `0 0 0 3px` focus ring |
+| Disabled | `40%` opacity |
+
+#### Hotkey Recorder (`<div.wiz-hotkey-recorder>`)
+
+```
+┌──────────────────────────────────┐
+│  Press a key combination...  ⌨  │
+└──────────────────────────────────┘
+```
+
+| State | Appearance |
+|---|---|
+| Idle | Dashed `--wiz-border` border, placeholder text `--wiz-text-secondary` |
+| Recording | Solid `--wiz-accent` border, pulsing cursor, "Press keys..." text |
+| Recorded | Solid `--wiz-accent` border, shows key combo in `JetBrains Mono`, "✕" clear button |
+| Conflict | `--wiz-danger` border, warning icon + conflict message below |
+
+#### Progress Bar (OCR downloads, Step 5)
+
+| State | Appearance |
+|---|---|
+| Idle | `--wiz-border` track, `4px` height, `12px` radius |
+| Downloading | `--wiz-accent` fill with animated shimmer (gradient slide, 1.5s loop) |
+| Done | `--wiz-success` fill, checkmark icon replaces bar |
+
+#### Directory Picker (Step 2)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  /home/user/Pictures/Screenshots           [Browse] [✕]  │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Text input (read-only, displays path) + "Browse" button + "Clear" button
+- Browse opens OS native folder picker dialog
+
+#### Conflict Warning Card (Step 3)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ ⚠  Conflict Detected                                    │
+│ "Print Screen" is bound to Windows Snipping Tool        │
+│                                                          │
+│ [ ] Disable Windows Snipping Tool shortcut              │
+│ [ ] Choose a different hotkey                           │
+└──────────────────────────────────────────────────────────┘
+```
+
+- `--wiz-warning` left border (3px), warning icon, light warning-tint bg
+- Checkboxes for resolution options
+
+---
+
+### 4. Animation / Transition Spec
+
+**Step transitions**: Horizontal slide. Entering step slides in from the right (or left when going Back); exiting step slides out to the left (or right when going Back). Duration: `240ms`, easing: `ease-out-quad` enter, `ease-in-quad` exit.
+
+```
+direction = forward ? "left-exit / right-enter"
+               : "right-exit / left-enter"
+```
+
+**Progress indicator transitions**: Connecting line fills with `--wiz-accent` as each step completes, `300ms ease-out-quad`.
+
+**Button micro-interactions**:
+- Hover: `translateY(-1px)`, shadow grows, `120ms ease-out`
+- Active: `translateY(0)`, shadow shrinks, `80ms ease-in`
+- Press feedback on radio cards: `scale(0.98)` on `mousedown`, `scale(1)` on `mouseup`, `100ms`
+
+**Focus transitions**: Focus rings appear with `0ms` delay (snappy, not animated — focus should be instant).
+
+**Success animation (completion step)**:
+- Checkmark SVG draws itself: `stroke-dashoffset` from `100` to `0`, `600ms ease-out`, then circle fills `--wiz-accent` at `400ms ease-out` with `200ms` delay
+- Confetti-like particle burst (6-8 small squares, random trajectories, `800ms`, CSS keyframes)
+- Card slightly lifts: `translateY(-4px)`, `300ms ease-out`
+
+**Hotkey recorder pulse** (recording state): Border color transitions to `--wiz-accent` and a subtle `box-shadow` pulse (0→4px→0 spread, `1s` loop, infinite).
+
+**Loading states** (e.g., testing upload connection): Spinner replaces button text, button disabled, `opacity: 0.7`. Spinner is a simple CSS rotating ring in `--wiz-accent`.
+
+**No entrance animations on individual form elements** — they should appear instantly. The step transition itself provides the motion; nested element animations add latency without value.
+
+---
+
+### 5. Dark / Light Theme
+
+Both themes are full CSS variable sets. The application handles theme switching by toggling a `data-theme="dark"` attribute on the root element.
+
+**Light theme** (`data-theme="light"`, default):
+- `--wiz-bg`: `#F4F5F7` — warm gray page
+- `--wiz-surface`: `#FFFFFF` — clean card
+- All tokens per the palette table above
+
+**Dark theme** (`data-theme="dark"`):
+- `--wiz-bg`: `#0F1117` — near-black, slight blue cast
+- `--wiz-surface`: `#1A1D27` — elevated card
+- Borders remain subtle (`#2A2D3A`) so they read as structure, not noise
+- Accent shifts from `#00B4A6` → `#00D4C8` (slightly brighter against dark bg for equal perceived brightness)
+- Shadows in dark mode use `rgba(0, 0, 0, 0.4)` rather than light-mode shadow values
+
+**Theme implementation**:
+```css
+.wizard-card {
+  background: var(--wiz-surface);
+  border: 1px solid var(--wiz-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);  /* light */
+  /* dark: box-shadow: 0 4px 24px rgba(0, 0, 0, 0.40); */
+}
+```
+
+All components listed in Section 3 have tokens that cover both themes.
+
+---
+
+### 6. Accessibility
+
+**Keyboard navigation**:
+- Tab order: Skip link → Back button → Next/Done button (forward); reverse on Shift+Tab
+- Within content area: follows natural DOM order (logical, not visual)
+- `Enter` or `Space` activates focused button or radio card
+- `Escape` closes the wizard (same as ✕ button — no unsaved changes are persisted unless explicitly saved)
+
+**Step navigation via keyboard**:
+- `Ctrl+Shift+Right Arrow` / `Ctrl+Shift+Left Arrow`: Jump to next/previous step without validation (skip)
+- Arrow keys cycle through radio card options within a step
+
+**Focus management**:
+- On step change: focus moves to the step title (`<h2>`) so screen readers announce the new step immediately
+- Focus is NOT moved to the Next button automatically — user should control focus flow
+- `aria-live="polite"` region on the step indicator container announces "Step 3 of 6: Hotkey Configuration" on each step change
+- Focus trap: Tab cycles within the wizard dialog; ✕ button is the last tabbable element before cycling back to first
+
+**Screen reader flow**:
+1. Dialog opens → `role="dialog"`, `aria-labelledby` pointing to step title, `aria-modal="true"`
+2. Step indicator reads: "Onboarding wizard. Step 1 of 6, Welcome and Language"
+3. Step content is a single `<main>` region within the dialog
+4. Radio card groups use `role="radiogroup"` with `aria-checked`
+5. Hotkey recorder announces state: "Capture hotkey. Press keys to record. [state]" / "Hotkey set to Ctrl+Shift+Print Screen"
+6. Completion step: announces "Setup complete. 5 settings configured."
+7. Error messages: `role="alert"` so they interrupt and announce immediately
+
+**Color and contrast**:
+- All text/background combinations meet WCAG AA (4.5:1 for normal text, 3:1 for large text)
+- Color is never the only indicator of state — radio cards use a combination of border color, fill, and an explicit checkmark icon
+- Focus indicators use a high-contrast ring (`--wiz-accent 0 0 0 3px`) visible in both themes
+
+**Motion**:
+- Respects `prefers-reduced-motion`: all slide transitions collapse to instant, pulse animations stop, shimmer animations stop
+- `prefers-reduced-motion` media query applied globally in the wizard's stylesheet
+
+**Touch / pointer**:
+- Minimum touch target: `44×44px` (WCAG 2.5.5) for all interactive elements
+- Radio cards and buttons have a `cursor: pointer`
+- Skip link text is `16px` (not smaller) for readability on all devices
+
+---
+
+*Implementation note for Viktor / Mikhail: All colors should be defined as CSS custom properties on `.wizard-root`. Theme switching is a single attribute toggle on that root element. The step transition engine should support both forward/backward directions and respect `prefers-reduced-motion`. See `src/desktop/XerahS.Desktop/Views/Onboarding/OnboardingWizard.axaml` for the shell, `Controls/` for individual component templates.*
