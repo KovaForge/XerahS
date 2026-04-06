@@ -551,7 +551,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
     private void OnActivated((ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options) data)
     {
-        if (_sessionHandle == null || !_sessionHandle.Equals(data.sessionHandle) || IsSuspended)
+        if (_disposed || _sessionHandle == null || !_sessionHandle.Equals(data.sessionHandle) || IsSuspended)
         {
             return;
         }
@@ -577,8 +577,16 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
         }
 
-        var args = new HotkeyTriggeredEventArgs(info);
-        Dispatcher.UIThread.Post(() => HotkeyTriggered?.Invoke(this, args));
+        try
+        {
+            var args = new HotkeyTriggeredEventArgs(info);
+            Dispatcher.UIThread.Post(() => HotkeyTriggered?.Invoke(this, args));
+        }
+        catch (ObjectDisposedException)
+        {
+            // Service was disposed while the portal callback was in flight. Silently skip.
+            DebugHelper.WriteLine("WaylandPortalHotkeyService: OnActivated — dispatcher disposed, skipping hotkey event.");
+        }
     }
 
     private void OnDeactivated((ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options) data)
