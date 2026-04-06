@@ -136,7 +136,8 @@ public class LinuxRegionSelectorResolver
     {
         // Mirror the same detection logic used elsewhere: Wayland session + KDE/Plasma desktop + screenshot portal.
         bool isWayland = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")
-            ?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
+            ?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
         if (!isWayland)
         {
             return false;
@@ -155,9 +156,7 @@ public class LinuxRegionSelectorResolver
 
         // Check for screenshot portal availability (the portal is what enables XerahSOverlay on Wayland).
         bool hasPortal = Environment.GetEnvironmentVariable("XDG_PORTAL_BACKEND")
-            ?.Contains("KDE", StringComparison.OrdinalIgnoreCase) == true ||
-            // Heuristic: if KDE_SESSION_VERSION is set and we're on Wayland, assume portal is present.
-            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("KDE_SESSION_VERSION"));
+            ?.Contains("KDE", StringComparison.OrdinalIgnoreCase) == true;
         return hasPortal;
     }
 
