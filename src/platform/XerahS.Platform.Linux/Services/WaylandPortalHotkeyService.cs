@@ -166,6 +166,11 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
             return response == 0; // Success
         }
+        catch (Exception ex) when (ex is DBusException dbusEx && dbusEx.ErrorName == "org.freedesktop.DBus.Error.UnknownMethod")
+        {
+            DebugHelper.WriteLine("WaylandPortalHotkeyService: ConfigureShortcuts not available on KDE Plasma — use XerahS workflow editor to set hotkeys");
+            return false;
+        }
         catch (Exception ex)
         {
             DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: ConfigureShortcuts failed, fallback to native app UI.");
