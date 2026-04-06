@@ -1,0 +1,175 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:XerahS.UI.Onboarding.Steps"
+             xmlns:vm="using:XerahS.UI.Onboarding.ViewModels.Steps"
+             xmlns:controls="using:XerahS.UI.Onboarding.Controls"
+             xmlns:abh="using:XerahS.Platform.Abstractions"
+             mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
+             x:Class="XerahS.UI.Onboarding.Steps.HotkeyStepView"
+             x:DataType="vm:HotkeyStepViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="/Onboarding/Styles/OnboardingStyles.axaml" />
+  </UserControl.Styles>
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+               VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="20" Margin="8,0">
+
+      <!-- Icon and Title -->
+      <StackPanel Spacing="16">
+        <Border Width="56" Height="56"
+                Background="{DynamicResource WizAccentSubtle}"
+                CornerRadius="28"
+                HorizontalAlignment="Left">
+          <TextBlock Text="⌨"
+                     FontSize="24"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+        </Border>
+
+        <StackPanel Spacing="4">
+          <TextBlock Classes="WizardStepTitle"
+                     Text="{Binding StepTitle}"
+                     FontSize="20" />
+          <TextBlock Classes="WizardStepSubtitle"
+                     Text="{Binding StepDescription}" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Hotkey Recorder -->
+      <StackPanel Spacing="8">
+        <TextBlock Text="Capture hotkey:"
+                   FontSize="13"
+                   FontWeight="Medium"
+                   Foreground="{DynamicResource WizTextSecondary}" />
+
+        <!-- Use Value (string) binding - conversion handled in code-behind -->
+        <controls:HotkeyRecorder x:Name="PrimaryHotkeyRecorder" />
+
+        <TextBlock Text="Click the recorder and press your desired key combination. Press Escape to cancel."
+                   FontSize="12"
+                   Foreground="{DynamicResource WizTextSecondary}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+
+      <!-- Test Button -->
+      <Button Classes="WizardGhostButton"
+              Content="Test your hotkey"
+              Command="{Binding TestHotkeyCommand}"
+              Height="40"
+              HorizontalAlignment="Left"
+              Padding="20,0" />
+
+      <!-- Conflict Warning Card -->
+      <Border Classes="WizardConflictCard"
+              IsVisible="{Binding HasConflict}">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="⚠️"
+                     FontSize="16"
+                     VerticalAlignment="Center" />
+          <StackPanel Spacing="4">
+            <TextBlock Text="Hotkey Conflict"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource WizDanger}" />
+            <TextBlock Text="{Binding ConflictMessage}"
+                       Classes="WizardStepSubtitle"
+                       TextWrapping="Wrap"
+                       MaxWidth="360" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Secondary Hotkeys (Expander) -->
+      <Expander Classes="WizardExpander"
+                Header="Secondary hotkeys (optional)"
+                IsExpanded="False"
+                MinHeight="48">
+
+        <StackPanel Spacing="12" Margin="0,12,0,0">
+
+          <!-- Region Capture -->
+          <Border Classes="WizardRadioCard"
+                  BorderBrush="{DynamicResource WizBorder}"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="12">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Region Capture"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource WizTextPrimary}" />
+                <TextBlock Text="Capture a selected region of the screen"
+                           FontSize="12"
+                           Foreground="{DynamicResource WizTextSecondary}" />
+              </StackPanel>
+              <Border Grid.Column="1"
+                      Background="{DynamicResource WizAccentSubtle}"
+                      CornerRadius="6"
+                      Padding="12,6">
+                <TextBlock Classes="WizardHotkeyDisplay"
+                           FontSize="14"
+                           Text="Ctrl + PrintScreen" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <!-- Window Capture -->
+          <Border Classes="WizardRadioCard"
+                  BorderBrush="{DynamicResource WizBorder}"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="12">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Window Capture"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource WizTextPrimary}" />
+                <TextBlock Text="Capture the active window"
+                           FontSize="12"
+                           Foreground="{DynamicResource WizTextSecondary}" />
+              </StackPanel>
+              <Border Grid.Column="1"
+                      Background="{DynamicResource WizAccentSubtle}"
+                      CornerRadius="6"
+                      Padding="12,6">
+                <TextBlock Classes="WizardHotkeyDisplay"
+                           FontSize="14"
+                           Text="Alt + PrintScreen" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <!-- Full Screen -->
+          <Border Classes="WizardRadioCard"
+                  BorderBrush="{DynamicResource WizBorder}"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="12">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Full Screen"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource WizTextPrimary}" />
+                <TextBlock Text="Capture the entire screen"
+                           FontSize="12"
+                           Foreground="{DynamicResource WizTextSecondary}" />
+              </StackPanel>
+              <Border Grid.Column="1"
+                      Background="{DynamicResource WizAccentSubtle}"
+                      CornerRadius="6"
+                      Padding="12,6">
+                <TextBlock Classes="WizardHotkeyDisplay"
+                           FontSize="14"
+                           Text="Shift + PrintScreen" />
+              </Border>
+            </Grid>
+          </Border>
+
+        </StackPanel>
+      </Expander>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

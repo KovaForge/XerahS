@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:XerahS.UI.Onboarding.ViewModels.Steps"
+             mc:Ignorable="d"
+             x:Class="XerahS.UI.Onboarding.Steps.WelcomeStepView"
+             d:DesignWidth="560"
+             d:DesignHeight="320"
+             x:DataType="vm:WelcomeStepViewModel">
+
+  <StackPanel Spacing="0">
+    <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,0,0,32">
+      <Border Width="48" Height="48"
+              Background="{DynamicResource XerahS.Onboarding.Brush.Accent.Subtle}"
+              CornerRadius="24"
+              HorizontalAlignment="Left">
+        <TextBlock Text="🌍" FontSize="22"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock Text="Language &amp; Region" Classes="wiz-step-title" />
+        <TextBlock Text="Set your preferred language" Classes="wiz-step-subtitle" />
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel Spacing="6">
+      <TextBlock Text="Display Language"
+                 FontFamily="DM Sans, system-ui" FontSize="13" FontWeight="Medium"
+                 Foreground="{DynamicResource XerahS.Onboarding.Brush.Text.Primary}" />
+      <ComboBox x:Name="LanguageCombo"
+                Classes="wiz-combo"
+                ItemsSource="{Binding AvailableLanguages}"
+                HorizontalAlignment="Stretch" Height="48"
+                SelectionChanged="OnLanguageComboSelectionChanged">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:LanguageOption">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="{Binding DisplayName}" FontSize="15" />
+              <TextBlock Text="{Binding NativeName}" FontSize="12"
+                         Foreground="{DynamicResource XerahS.Onboarding.Brush.Text.Secondary}" />
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </StackPanel>
+
+    <TextBlock Text="Showing all available languages"
+               Classes="wiz-hint" Margin="0,6,0,0" />
+  </StackPanel>
+
+</UserControl>
