@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -49,6 +50,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private readonly ManualResetEventSlim _rebindIdle = new(initialState: true);
     private readonly Func<Task>? _testRebindAction;
     private readonly object _hotkeyLock = new();
+    private readonly ConcurrentDictionary<string, long> _hotkeyDebounceTimes = new();
     private readonly Dictionary<ushort, HotkeyInfo> _registered = new();
     private Dictionary<string, HotkeyInfo> _shortcutMap = new();
     private ushort _nextId = 1;
@@ -553,6 +555,16 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         {
             return;
         }
+
+        const long debounceWindowTicks = 1500 * 10_000; // 1500ms in 100ns ticks
+        var nowTicks = DateTime.UtcNow.Ticks;
+        if (_hotkeyDebounceTimes.TryGetValue(data.shortcutId, out var lastTicks) &&
+            nowTicks - lastTicks < debounceWindowTicks)
+        {
+            // Debounce: same hotkey fired again within cooldown window — skip.
+            return;
+        }
+        _hotkeyDebounceTimes[data.shortcutId] = nowTicks;
 
         HotkeyInfo? info;
         lock (_hotkeyLock)
