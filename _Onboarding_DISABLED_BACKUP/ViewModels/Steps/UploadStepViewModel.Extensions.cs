@@ -23,35 +23,21 @@
 
 #endregion License Information (GPL v3)
 
-using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
 /// <summary>
-/// Partial class additions for CompleteStepViewModel to support UI bindings.
+/// Partial class additions for UploadStepViewModel to support UI bindings.
 /// </summary>
-public partial class CompleteStepViewModel
+public partial class UploadStepViewModel
 {
-    /// <summary>
-    /// Summary text split into lines for ItemsControl binding.
-    /// </summary>
-    public ObservableCollection<string> SummaryLines { get; } = new();
-
-    partial void OnSummaryTextChanged(string value)
+    [RelayCommand]
+    private void SelectUploader(string? uploaderId)
     {
-        SummaryLines.Clear();
-        if (!string.IsNullOrEmpty(value))
+        if (!string.IsNullOrEmpty(uploaderId))
         {
-            var lines = value.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                SummaryLines.Add(line);
-            }
+            SelectedUploaderId = uploaderId;
         }
     }
-
-    /// <summary>
-    /// Number of steps that were configured (non-zero summary lines).
-    /// </summary>
-    public int ConfiguredStepCount => SummaryLines.Count;
 }

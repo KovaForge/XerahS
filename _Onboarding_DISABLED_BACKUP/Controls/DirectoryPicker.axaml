@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="XerahS.UI.Onboarding.Controls.DirectoryPicker"
+             d:DesignWidth="500"
+             d:DesignHeight="56">
+
+  <StackPanel Spacing="8">
+    <Border Classes="wiz-directory-picker"
+            Background="{DynamicResource XerahS.Onboarding.Brush.Surface}">
+
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBox x:Name="PathTextBox"
+                 Grid.Column="0"
+                 Classes="wiz-input"
+                 IsReadOnly="True"
+                 Watermark="Select a folder..."
+                 Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                 BorderThickness="0"
+                 Background="Transparent"
+                 Padding="14,0"
+                 VerticalContentAlignment="Center"
+                 ToolTip.Tip="{Binding Text, Element=PathTextBox}" />
+
+        <Button Grid.Column="1"
+                x:Name="BrowseButton"
+                Content="Browse..."
+                Classes="wiz-btn-sm"
+                Margin="0,0,4,0"
+                Click="BrowseButton_Click" />
+
+        <Button Grid.Column="2"
+                x:Name="ClearButton"
+                Content="✕"
+                Background="Transparent"
+                BorderThickness="0"
+                Foreground="{DynamicResource XerahS.Onboarding.Brush.Text.Secondary}"
+                FontSize="14"
+                Padding="8,4"
+                Margin="0,0,4,0"
+                Click="ClearButton_Click"
+                ToolTip.Tip="Clear" />
+      </Grid>
+    </Border>
+
+    <TextBlock x:Name="ErrorTextBlock"
+               Text="This path is not writable"
+               FontFamily="DM Sans, system-ui"
+               FontSize="12"
+               Foreground="{DynamicResource XerahS.Onboarding.Brush.Danger}"
+               IsVisible="False"
+               Margin="4,0,0,0" />
+  </StackPanel>
+
+</UserControl>

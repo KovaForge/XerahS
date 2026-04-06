@@ -28,6 +28,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using XerahS.Platform.Abstractions;
 using XerahS.UI.Onboarding.Controls;
 using XerahS.UI.Onboarding.ViewModels.Steps;
 using Key = Avalonia.Input.Key;

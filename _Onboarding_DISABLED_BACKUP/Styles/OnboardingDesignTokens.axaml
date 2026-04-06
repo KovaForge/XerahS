@@ -1,0 +1,62 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+
+        <!-- Light Theme (default) -->
+        <ResourceDictionary x:Key="Light">
+          <!-- Background colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Background">#F4F5F7</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Surface">#FFFFFF</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Border">#E2E5EA</Color>
+
+          <!-- Text colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Text.Primary">#0D0F14</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Text.Secondary">#5C6170</Color>
+
+          <!-- Accent colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Accent">#00B4A6</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Accent.Hover">#009E91</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Accent.Subtle">#F0F9F8</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Accent.SubtleHover">#E6F5F3</Color>
+
+          <!-- Semantic colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Danger">#E5484D</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Danger.Subtle">#FDEAEB</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Warning">#F5A623</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Warning.Subtle">#FEF4E3</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Success">#12A594</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Success.Subtle">#E8F7F5</Color>
+        </ResourceDictionary>
+
+        <!-- Dark Theme -->
+        <ResourceDictionary x:Key="Dark">
+          <!-- Background colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Background">#0F1117</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Surface">#1A1D27</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Border">#2A2D3A</Color>
+
+          <!-- Text colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Text.Primary">#EEF0F5</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Text.Secondary">#8B90A0</Color>
+
+          <!-- Accent colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Accent">#00D4C8</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Accent.Hover">#00BFB5</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Accent.Subtle">#0D2927</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Accent.SubtleHover">#143332</Color>
+
+          <!-- Semantic colors -->
+          <Color x:Key="XerahS.Onboarding.Brush.Danger">#FF6B70</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Danger.Subtle">#2A1416</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Warning">#FFBE3D</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Warning.Subtle">#2A2010</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Success">#2DD4BF</Color>
+          <Color x:Key="XerahS.Onboarding.Brush.Success.Subtle">#0D2622</Color>
+        </ResourceDictionary>
+
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+</Styles>
