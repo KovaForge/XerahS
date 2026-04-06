@@ -24,7 +24,6 @@
 #endregion License Information (GPL v3)
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -50,7 +49,6 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private readonly ManualResetEventSlim _rebindIdle = new(initialState: true);
     private readonly Func<Task>? _testRebindAction;
     private readonly object _hotkeyLock = new();
-    private readonly ConcurrentDictionary<string, long> _hotkeyDebounceTimes = new();
     private readonly Dictionary<ushort, HotkeyInfo> _registered = new();
     private Dictionary<string, HotkeyInfo> _shortcutMap = new();
     private ushort _nextId = 1;
@@ -69,7 +67,11 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private int _activeRebindOperations;
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
-    public event EventHandler? HotkeysChanged;
+    public event EventHandler? HotkeysChanged
+    {
+        add { }
+        remove { }
+    }
     public bool IsSuspended
     {
         get => _isSuspended;
@@ -102,8 +104,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             {
                 SynchronizationContext.SetSynchronizationContext(null);
                 _connection = new Connection(Address.Session);
-                var connectionInfo = _connection.ConnectAsync().GetAwaiter().GetResult();
-                global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(_connection, connectionInfo);
+                _connection.ConnectAsync().GetAwaiter().GetResult();
                 _portal = _connection.CreateProxy<IGlobalShortcuts>(PortalBusName, PortalObjectPath);
                 _activatedSubscription = _portal.WatchActivatedAsync(OnActivated, OnPortalWatchError).GetAwaiter().GetResult();
                 _deactivatedSubscription = _portal.WatchDeactivatedAsync(OnDeactivated, OnPortalWatchError).GetAwaiter().GetResult();
@@ -154,24 +155,10 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         try
         {
             var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
-            var options = new Dictionary<string, object>();
-            var (response, _) = await _connection!
-                .SendPortalRequestAsync(
-                    PortalBusName,
-                    options,
-                    () => _portal.ConfigureShortcutsAsync((ObjectPath)_sessionHandle, parentWindow, options))
-                .ConfigureAwait(false);
-            if (response == 0)
-            {
-                await RefreshShortcutsFromPortalAsync().ConfigureAwait(false);
-            }
-
+            var requestPath = await _portal.ConfigureShortcutsAsync((ObjectPath)_sessionHandle, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
+            var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
+            var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
             return response == 0; // Success
-        }
-        catch (Exception ex) when (ex is DBusException dbusEx && dbusEx.ErrorName == "org.freedesktop.DBus.Error.UnknownMethod")
-        {
-            DebugHelper.WriteLine("WaylandPortalHotkeyService: ConfigureShortcuts not available on KDE Plasma — use XerahS workflow editor to set hotkeys");
-            return false;
         }
         catch (Exception ex)
         {
@@ -464,12 +451,9 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             ["session_handle_token"] = $"sharex_hk_{Guid.NewGuid():N}"
         };
 
-        var (response, results) = await _connection!
-            .SendPortalRequestAsync(
-                PortalBusName,
-                options,
-                () => _portal!.CreateSessionAsync(options))
-            .ConfigureAwait(false);
+        var requestPath = await _portal!.CreateSessionAsync(options).ConfigureAwait(false);
+        var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
+        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: CreateSession response={response} ({DescribePortalResponse(response)})");
 
         if (response != 0)
@@ -502,23 +486,14 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
         var appName = global::Avalonia.Application.Current?.Name ?? "<null>";
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts payload: [{payload}], parentWindow={(string.IsNullOrEmpty(parentWindow) ? "<empty>" : parentWindow)}, app_id={appName}");
-        var options = new Dictionary<string, object>();
-        var (response, results) = await _connection!
-            .SendPortalRequestAsync(
-                PortalBusName,
-                options,
-                () => _portal!.BindShortcutsAsync(sessionHandle, bindings, parentWindow, options))
-            .ConfigureAwait(false);
+        var requestPath = await _portal!.BindShortcutsAsync(sessionHandle, bindings, parentWindow, new Dictionary<string, object>()).ConfigureAwait(false);
+        var request = _connection!.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
+        var (response, _) = await request.WaitForResponseAsync().ConfigureAwait(false);
         DebugHelper.WriteLine($"WaylandPortalHotkeyService: BindShortcuts response={response} ({DescribePortalResponse(response)})");
 
         if (response != 0)
         {
             throw new PortalBindFailedException(response, $"WaylandPortalHotkeyService: BindShortcuts failed ({response}, {DescribePortalResponse(response)})");
-        }
-
-        if (TryGetShortcutResults(results, out var shortcuts))
-        {
-            ApplyPortalShortcutSnapshot(shortcuts);
         }
     }
 
@@ -551,24 +526,10 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
     private void OnActivated((ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options) data)
     {
-        if (_disposed || _sessionHandle == null || !_sessionHandle.Equals(data.sessionHandle) || IsSuspended)
+        if (_sessionHandle == null || !_sessionHandle.Equals(data.sessionHandle) || IsSuspended)
         {
             return;
         }
-
-        const long debounceWindowTicks = 1500 * 10_000; // 1500ms in 100ns ticks
-        var nowTicks = DateTime.UtcNow.Ticks;
-        var shouldProceed = _hotkeyDebounceTimes.AddOrUpdate(
-            data.shortcutId,
-            nowTicks, // Key didn't exist — add and proceed
-            (key, lastTicks) =>
-            {
-                if (nowTicks - lastTicks < debounceWindowTicks)
-                    return lastTicks; // Still in window — keep old value, caller skips
-                return nowTicks; // Expired — update and proceed
-            });
-        if (shouldProceed != nowTicks)
-            return; // Debounce active, skip
 
         HotkeyInfo? info;
         lock (_hotkeyLock)
@@ -581,26 +542,8 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
         }
 
-        try
-        {
-            var args = new HotkeyTriggeredEventArgs(info);
-            Dispatcher.UIThread.Post(() =>
-            {
-                try
-                {
-                    HotkeyTriggered?.Invoke(this, args);
-                }
-                catch (ObjectDisposedException)
-                {
-                    DebugHelper.WriteLine("WaylandPortalHotkeyService: handler disposed during invoke, skipping.");
-                }
-            });
-        }
-        catch (ObjectDisposedException)
-        {
-            // Service was disposed while the portal callback was in flight. Silently skip.
-            DebugHelper.WriteLine("WaylandPortalHotkeyService: OnActivated — dispatcher disposed, skipping hotkey event.");
-        }
+        var args = new HotkeyTriggeredEventArgs(info);
+        Dispatcher.UIThread.Post(() => HotkeyTriggered?.Invoke(this, args));
     }
 
     private void OnDeactivated((ObjectPath sessionHandle, string shortcutId, ulong timestamp, IDictionary<string, object> options) data)
@@ -614,17 +557,8 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
             return;
 
         DebugHelper.WriteLine("WaylandPortalHotkeyService: ShortcutsChanged signal received. DE updated bindings.");
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await RefreshShortcutsFromPortalAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "WaylandPortalHotkeyService: Failed to refresh shortcuts after ShortcutsChanged");
-            }
-        });
+        // Synchronizing back to Avalonia Key representations is complex. We rely on the DE for now, 
+        // but UI could be notified here to refresh via ListShortcuts if needed.
     }
 
     private static void OnPortalWatchError(Exception ex)
@@ -796,124 +730,6 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     internal void ScheduleRebindForTesting()
     {
         ScheduleRebind();
-    }
-
-    private async Task RefreshShortcutsFromPortalAsync()
-    {
-        if (_disposed || _portal == null || _connection == null || _sessionHandle == null)
-        {
-            return;
-        }
-
-        await _bindSemaphore.WaitAsync().ConfigureAwait(false);
-        try
-        {
-            if (_disposed || _portal == null || _connection == null || _sessionHandle == null)
-            {
-                return;
-            }
-
-            var options = new Dictionary<string, object>();
-            var (response, results) = await _connection
-                .SendPortalRequestAsync(
-                    PortalBusName,
-                    options,
-                    () => _portal.ListShortcutsAsync((ObjectPath)_sessionHandle, options))
-                .ConfigureAwait(false);
-            DebugHelper.WriteLine($"WaylandPortalHotkeyService: ListShortcuts response={response} ({DescribePortalResponse(response)})");
-
-            if (response != 0)
-            {
-                return;
-            }
-
-            if (TryGetShortcutResults(results, out var shortcuts))
-            {
-                ApplyPortalShortcutSnapshot(shortcuts);
-            }
-        }
-        finally
-        {
-            _bindSemaphore.Release();
-        }
-    }
-
-    private bool ApplyPortalShortcutSnapshot(ValueTuple<string, IDictionary<string, object>>[] shortcuts)
-    {
-        bool changed = false;
-        var shortcutsById = shortcuts.ToDictionary(shortcut => shortcut.Item1, shortcut => shortcut.Item2);
-
-        lock (_hotkeyLock)
-        {
-            foreach (var entry in _registered)
-            {
-                string shortcutId = entry.Key.ToString();
-                var hotkeyInfo = entry.Value;
-
-                if (shortcutsById.TryGetValue(shortcutId, out var metadata))
-                {
-                    string? triggerDescription = GetTriggerDescription(metadata);
-                    if (!string.Equals(hotkeyInfo.NativeTriggerDescription, triggerDescription, StringComparison.Ordinal))
-                    {
-                        hotkeyInfo.NativeTriggerDescription = triggerDescription;
-                        changed = true;
-                    }
-
-                    if (hotkeyInfo.Status != PlatformHotkeyStatus.Registered)
-                    {
-                        hotkeyInfo.Status = PlatformHotkeyStatus.Registered;
-                        changed = true;
-                    }
-                }
-                else
-                {
-                    if (!string.IsNullOrEmpty(hotkeyInfo.NativeTriggerDescription))
-                    {
-                        hotkeyInfo.NativeTriggerDescription = null;
-                        changed = true;
-                    }
-
-                    if (hotkeyInfo.Status != PlatformHotkeyStatus.Failed)
-                    {
-                        hotkeyInfo.Status = PlatformHotkeyStatus.Failed;
-                        changed = true;
-                    }
-                }
-            }
-        }
-
-        if (changed)
-        {
-            HotkeysChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        return changed;
-    }
-
-    private static bool TryGetShortcutResults(
-        IDictionary<string, object> results,
-        out ValueTuple<string, IDictionary<string, object>>[] shortcuts)
-    {
-        if (results.TryGetResult("shortcuts", out ValueTuple<string, IDictionary<string, object>>[]? value) &&
-            value != null)
-        {
-            shortcuts = value;
-            return true;
-        }
-
-        shortcuts = Array.Empty<ValueTuple<string, IDictionary<string, object>>>();
-        return false;
-    }
-
-    private static string? GetTriggerDescription(IDictionary<string, object> metadata)
-    {
-        if (!metadata.TryGetValue("trigger_description", out var raw) || raw == null)
-        {
-            return null;
-        }
-
-        var value = raw.ToString();
-        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private static string MapKeyName(Key key)
