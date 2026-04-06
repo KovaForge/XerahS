@@ -558,13 +558,17 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
         const long debounceWindowTicks = 1500 * 10_000; // 1500ms in 100ns ticks
         var nowTicks = DateTime.UtcNow.Ticks;
-        if (_hotkeyDebounceTimes.TryGetValue(data.shortcutId, out var lastTicks) &&
-            nowTicks - lastTicks < debounceWindowTicks)
-        {
-            // Debounce: same hotkey fired again within cooldown window — skip.
-            return;
-        }
-        _hotkeyDebounceTimes[data.shortcutId] = nowTicks;
+        var shouldProceed = _hotkeyDebounceTimes.AddOrUpdate(
+            data.shortcutId,
+            nowTicks, // Key didn't exist — add and proceed
+            (key, lastTicks) =>
+            {
+                if (nowTicks - lastTicks < debounceWindowTicks)
+                    return lastTicks; // Still in window — keep old value, caller skips
+                return nowTicks; // Expired — update and proceed
+            });
+        if (shouldProceed != nowTicks)
+            return; // Debounce active, skip
 
         HotkeyInfo? info;
         lock (_hotkeyLock)
@@ -580,7 +584,17 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         try
         {
             var args = new HotkeyTriggeredEventArgs(info);
-            Dispatcher.UIThread.Post(() => HotkeyTriggered?.Invoke(this, args));
+            Dispatcher.UIThread.Post(() =>
+            {
+                try
+                {
+                    HotkeyTriggered?.Invoke(this, args);
+                }
+                catch (ObjectDisposedException)
+                {
+                    DebugHelper.WriteLine("WaylandPortalHotkeyService: handler disposed during invoke, skipping.");
+                }
+            });
         }
         catch (ObjectDisposedException)
         {
