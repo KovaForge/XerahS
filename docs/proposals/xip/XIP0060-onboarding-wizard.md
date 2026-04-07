@@ -1,6 +1,6 @@
 # XIP0060 First-Run Onboarding Wizard
 
-**Status**: Proposed  
+**Status**: Complete  
 **Created**: 2026-04-06  
 **Updated**: 2026-04-06  
 **Area**: Desktop | UX | Core  
