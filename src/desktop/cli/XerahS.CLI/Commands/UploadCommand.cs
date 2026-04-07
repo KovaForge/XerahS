@@ -25,6 +25,7 @@
 
 using System.CommandLine;
 using System.Text.Json;
+using Newtonsoft.Json;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
@@ -121,7 +122,10 @@ public static class UploadCommand
             if (!_quiet) Console.WriteLine($"Uploading: {filePath}");
 
             // Configure task settings for file upload
-            var taskSettings = new TaskSettings();
+            // Use the first FileUpload workflow's settings so user-configured options
+            // like FileUploadUseNamePattern are respected. Fall back to default.
+            var workflow = SettingsManager.GetFirstWorkflowOrDefault(WorkflowType.FileUpload);
+            var taskSettings = CloneTaskSettings(workflow.TaskSettings);
             taskSettings.Job = WorkflowType.FileUpload;
             taskSettings.AfterCaptureJob = AfterCaptureTasks.UploadImageToHost;
             taskSettings.AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
@@ -143,7 +147,7 @@ public static class UploadCommand
                     if (_jsonOutput)
                     {
                         var result = new UploadResult(url, Path.GetFileName(filePath), new FileInfo(filePath).Length, GetContentType(filePath));
-                        Console.WriteLine(JsonSerializer.Serialize(result));
+                        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
                     }
                     else
                     {
@@ -193,7 +197,7 @@ public static class UploadCommand
     {
         if (_jsonOutput)
         {
-            Console.WriteLine(JsonSerializer.Serialize(new { error = message }));
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { error = message }));
         }
         Console.Error.WriteLine(message);
     }
@@ -238,5 +242,17 @@ public static class UploadCommand
             this.size = size;
             this.type = type;
         }
+    }
+
+    private static TaskSettings CloneTaskSettings(TaskSettings source)
+    {
+        var jsonSettings = new Newtonsoft.Json.JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ObjectCreationHandling = ObjectCreationHandling.Replace
+        };
+
+        string json = JsonConvert.SerializeObject(source, jsonSettings);
+        return JsonConvert.DeserializeObject<TaskSettings>(json, jsonSettings) ?? new TaskSettings();
     }
 }
