@@ -297,7 +297,34 @@ namespace XerahS.Core.Tasks.Processors
 
             if (allInstances.Count == 0)
             {
-                DebugHelper.WriteLine($"No available uploaders for category {category} (excluding already attempted).");
+                // Ensure we have an auto destination for File category
+                var targetInstance = category == UploaderCategory.File ? EnsureAutoFileDestinationInstance(instanceManager) : null;
+
+                // Prevent infinite recursion: if the auto instance was already attempted, don't try again
+                if (targetInstance != null && attemptedInstanceIds.Contains(targetInstance.InstanceId))
+                {
+                    DebugHelper.WriteLine($"Auto instance {targetInstance.InstanceId} already attempted; skipping to avoid recursion.");
+                    return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
+                }
+
+                if (targetInstance == null)
+                {
+                    DebugHelper.WriteLine($"No available uploaders for category {category} (excluding already attempted).");
+                }
+                else
+                {
+                    // Try the auto instance as a last resort
+                    DebugHelper.WriteLine($"Trying auto destination: {targetInstance.InstanceId}");
+                    attemptedInstanceIds.Add(targetInstance.InstanceId);
+                    var primaryResult = TryUploadWithInstance(targetInstance, info);
+                    if (IsSuccessfulUploadResult(primaryResult))
+                    {
+                        return primaryResult;
+                    }
+
+                    var errorMsg = primaryResult?.Errors?.ToString() ?? primaryResult?.Response ?? "Unknown error";
+                    DebugHelper.WriteLine($"Auto uploader failed ({errorMsg}), no more fallbacks available.");
+                }
             }
             else
             {
