@@ -1,6 +1,7 @@
 # XIP0064 XerahS MCP Server — Model Context Protocol Integration
 
-**Status**: PROPOSED
+**Status**: Phased Implementation
+**Active Phases**: 1 (Local Stdio), 2 (Remote HTTP+SSE)
 **Priority**: High
 **Area**: AI Integration | Extensibility | Interoperability
 **Related**: XIP0063 (XerahS CLI OpenClaw compatibility)
@@ -56,35 +57,21 @@ An MCP server fixes this by making XerahS a first-class citizen in any MCP-compa
 
 ---
 
-## Proposed Design
+## Phases Overview
 
-### Phase 1 — Core MCP Server (this XIP)
-
-#### Transport Layer
-
-Use **stdio transport** (local, zero-config). XerahS spawns as a child process; the AI host communicates via JSON-RPC messages on stdin/stdout. This is the standard MCP local transport and requires no network configuration.
-
-```
-AI Host (OpenClaw / Claude Desktop / etc.)
-    └── stdio spawn → XerahS.McpServer
-                          └── JSON-RPC 2.0
-```
-
-#### Server Identity
-
-```json
-{
-  "name": "xerahs",
-  "version": "0.22.0",
-  "capabilities": {
-    "tools": { "listChanged": true },
-    "resources": { "subscribe": true, "listChanged": true },
-    "prompts": { "listChanged": true }
-  }
-}
-```
+| Phase | Transport | Target | Status |
+|---|---|---|---|
+| **Phase 1** | Stdio (local) | Local AI hosts (Claude Desktop, Cursor, OpenClaw on same machine) | Active |
+| **Phase 2** | HTTP + SSE (remote) | Remote AI hosts, mobile, CI/CD; auto-discovery via manifest | Active |
+| **Phase 3** | — | Streaming frame updates for `capture_scrolling` | Future |
+| **Phase 4** | — | MCP client (XerahS as MCP *host*, calls other servers) | Future |
+| **Phase 5** | — | Audio/video capture tools | Future |
 
 ---
+
+## Proposed Design — Shared Tool & Resource Model
+
+All tools and resources defined below apply to **both Phase 1 and Phase 2** unless noted. Phase-specific transport details are in each phase's Implementation section.
 
 ### Tools (Model-Controlled)
 
@@ -512,48 +499,31 @@ Destination: {destination_id or 'default'}
 
 ---
 
-## Implementation
+## Phase 1 — Local MCP Server (Stdio Transport)
 
-### Project Structure
+**Goal**: Zero-config local AI host integration. AI host spawns XerahS as a child process on the same machine.
+
+### Transport
+
+Stdio — XerahS reads JSON-RPC from `stdin`, writes responses to `stdout`. No network, no configuration.
 
 ```
-src/
-  tools/
-    XerahS.McpServer/
-      XerahS.McpServer.csproj     — self-contained dotnet tool / executable
-      Program.cs                   — entry point, JSON-RPC over stdio loop
-      Server/
-        XerahSMcpServer.cs         — main server class, implements JsonRpcHandler
-        Capabilities.cs             — capability declarations
-      Tools/
-        CaptureTools.cs             — capture_region, capture_window, capture_full_screen, capture_scrolling
-        AnnotationTools.cs          — annotate_image
-        UploadTools.cs              — upload_file, upload_clipboard
-        HistoryTools.cs             — query_history, get_history_item
-        SettingsTools.cs            — list_workflows, get_settings
-      Resources/
-        HistoryResourceProvider.cs
-        SettingsResourceProvider.cs
-        WorkflowResourceProvider.cs
-      Transport/
-        StdioServer.cs             — stdio JSON-RPC transport
-      JsonRpc/
-        JsonRpcRequest.cs
-        JsonRpcResponse.cs
-        JsonRpcError.cs
+AI Host (OpenClaw / Claude Desktop / Cursor on same machine)
+    └── stdio spawn → xerahs --mcp
+                          └── JSON-RPC 2.0 over stdin/stdout
 ```
 
-### Transport: JSON-RPC over Stdio
+### Server Identity
 
-MCP uses stdio as the primary local transport. The server reads JSON-RPC requests from `Console.In` and writes responses to `Console.Out`. This is identical to how LSP (Language Server Protocol) works.
-
-```csharp
-// Pseudocode — stdio message loop
-while ((var line = Console.ReadLine()) != null)
+```json
 {
-    var request = JsonSerializer.Deserialize<JsonRpcRequest>(line);
-    var response = await HandleRequestAsync(request);
-    Console.WriteLine(JsonSerializer.Serialize(response));
+  "name": "xerahs",
+  "version": "0.22.0",
+  "capabilities": {
+    "tools": { "listChanged": true },
+    "resources": { "subscribe": true, "listChanged": true },
+    "prompts": { "listChanged": true }
+  }
 }
 ```
 
@@ -598,6 +568,164 @@ Add to `~/.config/claude/claude_desktop_config.json`:
 }
 ```
 
+---
+
+## Phase 2 — Remote MCP Server (HTTP + SSE Transport)
+
+**Goal**: Network-accessible MCP for remote AI hosts, mobile devices, CI/CD pipelines, and multi-machine setups. AI hosts auto-discover the endpoint via JSON manifest.
+
+**Hosting**: `xerahs.github.io` (GitHub Pages, `xerahs.github.io` repo). Served over HTTPS.
+
+### Transport
+
+HTTP + Server-Sent Events (SSE). MCP over HTTP uses:
+- `POST /mcp/` — for JSON-RPC requests from client to server
+- `GET /mcp/events/` — SSE stream for server-to-client notifications and streaming responses
+
+```
+AI Host (anywhere on the internet)
+    └── HTTPS POST /mcp/  →  JSON-RPC request
+    └── HTTPS GET /mcp/events/  ←  SSE stream (notifications, results)
+```
+
+### JSON-RPC over HTTPS
+
+All JSON-RPC messages use HTTPS POST. The `Authorization` header carries authentication:
+```
+Authorization: Bearer <api_key>
+```
+
+### Server-Sent Events Stream
+
+The SSE endpoint (`GET /mcp/events/`) delivers:
+- JSON-RPC responses (sent as SSE `data:` lines)
+- MCP protocol notifications (`notifications/*`)
+- Progress updates for long-running operations (e.g., scrolling capture frame count)
+
+### MCP Manifest (Auto-Discovery)
+
+AI hosts discover the remote MCP endpoint via a JSON manifest at a well-known location. This follows the MCP discovery spec:
+
+**`/.well-known/mcp/manifest.json`** (hosted at `https://xerahs.github.io/.well-known/mcp/manifest.json`):
+```json
+{
+  "name": "xerahs",
+  "version": "0.22.0",
+  "description": "Screen capture, annotation, upload, and history for XerahS",
+  "endpoint": "https://xerahs.github.io/mcp/",
+  "endpoint_events": "https://xerahs.github.io/mcp/events/",
+  "authentication": {
+    "type": "bearer",
+    "description": "API key from XerahS settings (Settings → Integration → MCP API Key)"
+  },
+  "capabilities": {
+    "tools": { "listChanged": true },
+    "resources": { "subscribe": true, "listChanged": true },
+    "prompts": { "listChanged": true }
+  }
+}
+```
+
+### Authentication
+
+Phase 2 authentication uses a user-generated API key:
+
+1. User obtains their MCP API key from XerahS: **Settings → Integration → MCP API Key**
+2. Key is a 32-character random token stored in `ApplicationConfig.json`
+3. AI host includes it as `Authorization: Bearer <key>` on all requests
+4. Server validates key against the user's config before processing any request
+
+**Security**: The API key grants access only to the same user's configured destinations, workflows, and history. Keys can be rotated from settings. No admin or cross-user access.
+
+### CORS
+
+The SSE endpoint requires appropriate CORS headers for browser-based AI hosts:
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: Authorization, Content-Type
+```
+
+### Startup Modes
+
+```bash
+# Local Phase 1 (stdio)
+xerahs --mcp
+
+# Remote Phase 2 (HTTP server)
+xerahs --mcp-server --transport http --port 7890
+```
+
+The `--transport http` flag starts the built-in Kestrel HTTP server instead of stdio mode.
+
+### Hosting on GitHub Pages
+
+GitHub Pages does not support long-lived SSE connections or dynamic POST endpoints — it only serves static files. Therefore, Phase 2 requires a separate hosting approach:
+
+**Option A — Cloudflare Worker (recommended):**
+- Worker script proxies to a small backend (e.g., a serverless function)
+- Manifest at `https://xerahs.github.io/.well-known/mcp/manifest.json` (static, GitHub Pages)
+- MCP endpoint at `https://mcp.xerahs.com/` (Cloudflare Worker, pointed at the XerahS MCP backend)
+
+**Option B — Self-hosted backend:**
+- User runs `xerahs --mcp-server --transport http --port 7890` on a always-on machine (NAS, VPS, home server)
+- Manifest points to the user's self-hosted endpoint
+- Requires the user to expose the port (dynamic DNS, reverse proxy with HTTPS)
+
+**Decision needed**: Confirm hosting strategy before Phase 2 implementation begins.
+
+### Protocol Compatibility
+
+Phase 2 implements the same tool set, resource URIs, prompts, and capability negotiation as Phase 1. The only difference is transport. A client implementation should work against both transports interchangeably.
+
+---
+
+## Phase 1 — Implementation
+
+### Project Structure
+
+```
+src/
+  tools/
+    XerahS.McpServer/
+      XerahS.McpServer.csproj     — self-contained dotnet tool / executable
+      Program.cs                   — entry point, JSON-RPC over stdio loop
+      Server/
+        XerahSMcpServer.cs         — main server class
+        Capabilities.cs            — capability declarations
+      Tools/
+        CaptureTools.cs            — capture_region, capture_window, capture_full_screen, capture_scrolling
+        AnnotationTools.cs         — annotate_image
+        UploadTools.cs             — upload_file, upload_clipboard
+        HistoryTools.cs            — query_history, get_history_item
+        SettingsTools.cs           — list_workflows, get_settings
+      Resources/
+        HistoryResourceProvider.cs
+        SettingsResourceProvider.cs
+        WorkflowResourceProvider.cs
+      Transport/
+        StdioServer.cs            — stdio JSON-RPC transport
+        HttpServer.cs             — HTTP + SSE transport (Phase 2)
+        SseStream.cs              — SSE event formatting
+      JsonRpc/
+        JsonRpcRequest.cs
+        JsonRpcResponse.cs
+        JsonRpcError.cs
+```
+
+### Transport: JSON-RPC over Stdio
+
+MCP uses stdio as the primary local transport. The server reads JSON-RPC requests from `Console.In` and writes responses to `Console.Out`. This is identical to how LSP (Language Server Protocol) works.
+
+```csharp
+// Pseudocode — stdio message loop
+while ((var line = Console.ReadLine()) != null)
+{
+    var request = JsonSerializer.Deserialize<JsonRpcRequest>(line);
+    var response = await HandleRequestAsync(request);
+    Console.WriteLine(JsonSerializer.Serialize(response));
+}
+```
+
 ### Security Considerations
 
 1. **No auto-execute for destructive tools** — annotation tools that overwrite files should require user confirmation on first use
@@ -633,45 +761,65 @@ Error codes:
 ## Non-Goals
 
 - Replacing the XerahS CLI (XIP0063) — the MCP server is complementary, not a replacement
-- Remote MCP (HTTP + SSE) — stdio-only for v1 (local AI hosts)
 - Full annotation pipeline exposure — initial version exposes `annotate_image`; fine-grained annotation editing via the editor is out of scope
 - Changing XerahS's own UI behavior — MCP is purely additive, no existing features are modified
+- Browser-based AI hosts (Phase 2 CORS is permissive but the primary target is server-side AI hosts)
 
 ---
 
-## Deliverables (Phase 1)
+## Deliverables
+
+### Phase 1 — Local MCP Server (Stdio)
 
 | # | Deliverable | Description |
 |---|---|---|
 | 1 | `XerahS.McpServer` project | Self-contained dotnet tool project |
 | 2 | Stdio JSON-RPC transport | MCP-compliant transport layer |
-| 3 | `capture_*` tools | 4 capture tools |
-| 4 | `annotate_image` tool | Annotation with auto-save |
-| 5 | `upload_file` + `upload_clipboard` tools | Upload pipeline |
-| 6 | `query_history` + `get_history_item` tools | History access |
+| 3 | All capture tools | `capture_region`, `capture_window`, `capture_full_screen`, `capture_scrolling` |
+| 4 | `annotate_image` tool | Annotation with `auto_save` for headless workflows |
+| 5 | Upload tools | `upload_file`, `upload_clipboard` |
+| 6 | History tools | `query_history`, `get_history_item` |
 | 7 | Settings + workflow resources | URI-addressable config |
-| 8 | Prompt templates | `capture_and_annotate`, `upload_workflow` |
+| 8 | Prompt templates | `capture_and_annotate`, `upload_workflow`, `batch_capture_report` |
 | 9 | MCP integration test | Spawn server, call tools, verify responses |
 | 10 | Documentation | `docs/mcp/` — usage guide + tool reference |
+
+### Phase 2 — Remote MCP Server (HTTP + SSE)
+
+| # | Deliverable | Description |
+|---|---|---|
+| 1 | HTTP + SSE transport | Kestrel-based HTTP server (`HttpServer.cs`, `SseStream.cs`) |
+| 2 | API key authentication | Bearer token auth, key generation and validation |
+| 3 | MCP manifest | `/.well-known/mcp/manifest.json` at `xerahs.github.io` |
+| 4 | CORS configuration | SSE endpoint CORS headers for cross-origin AI hosts |
+| 5 | Streaming progress | SSE notifications for long-running operations (e.g. frame count during scrolling capture) |
+| 6 | Hosting integration | Manifest deployment to `xerahs.github.io` |
+| 7 | Phase 2 integration test | Remote HTTP calls, auth validation, SSE streaming |
+| 8 | Documentation | Phase 2 usage guide, manifest reference, auth setup |
 
 ---
 
 ## Open Questions
 
+### Phase 1
 1. **Headless annotation**: `annotate_image` with `auto_save=true` needs to run the annotation pipeline without a display. Is SkiaSharp Avalonia annotation pipeline headless-capable, or does it require a window context?
 2. **Capture in progress**: Should `capture_*` tools block (synchronous) or return immediately with a job ID (async)? MCP supports both patterns. Synchronous is simpler but will block the AI host's event loop.
 3. **Multi-monitor UI**: `capture_region` needs to show the overlay on the correct monitor. How does the AI host communicate which monitor to target?
-4. **Authorization**: Should each MCP connection require explicit user approval the first time a tool is used, or is the AI host trusted to authorize on behalf of the user?
+
+### Phase 2
+4. **Hosting strategy**: GitHub Pages is static-only. Options are (A) Cloudflare Worker + backend, (B) self-hosted `xerahs --mcp-server` on a VPS/NAS. Which does the project prefer?
+5. **API key storage**: Should the API key be stored in `ApplicationConfig.json` (encrypted at rest?) or in a separate `McpKeys.json`? Key rotation and revocation UX?
+6. **Rate limiting**: Should Phase 2 enforce per-key rate limits to prevent abuse, especially if the endpoint is public?
+7. **Streaming scope**: What operations should emit SSE progress events? (scrolling capture frame count confirmed; others TBD)
 
 ---
 
-## Future Phases (Out of Scope for This XIP)
+## Future Phases
 
-- **Phase 2**: Remote MCP over HTTP + SSE for network-accessible AI hosts. Hosted at `https://xerahs.github.io/` (GitHub Pages, `xerahs.github.io` repo).
 - **Phase 3**: Streaming frame updates for `capture_scrolling` (SSE notifications as each frame is captured)
 - **Phase 4**: MCP client (XerahS as an MCP *host*) — allows XerahS to use other MCP servers (e.g. ask an AI to analyze a screenshot without leaving XerahS)
 - **Phase 5**: Audio/video capture tools
 
 ---
 
-*Author: Vladislava Kova (KovaForge COO) | Research: Milena Petrova (KovaForge Researcher)*
+*Authors: Vladislava Kova (KovaForge COO) + Milena Petrova (KovaForge Researcher)*
