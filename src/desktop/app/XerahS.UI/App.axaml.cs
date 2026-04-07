@@ -265,6 +265,30 @@ public partial class App : Application
             // This prevents blocking the main window from showing quickly
             PostUIInitializationCallback?.Invoke();
 
+            // Show onboarding wizard if first run
+            if (SettingsManager.Settings.IsFirstTimeRun)
+            {
+                var mainWindow = desktop.MainWindow;
+                if (mainWindow != null)
+                {
+                    try
+                    {
+                        var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
+                        var result = await wizard.ShowDialogAsync(mainWindow);
+
+                        if (result.Completed || result.Skipped)
+                        {
+                            DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                            SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
+                    }
+                }
+            }
+
             // Initialize auto-update service if enabled
             if (SettingsManager.Settings.AutoCheckUpdate)
             {
