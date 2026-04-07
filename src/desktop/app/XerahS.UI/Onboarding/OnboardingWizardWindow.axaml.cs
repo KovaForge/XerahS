@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -83,10 +84,10 @@ public partial class OnboardingWizardWindow : Window
                 try
                 {
                     // Trigger a test region capture via the workflow orchestrator
-                    if (Avalonia.Application.Current is App app && app.WorkflowManager != null)
+                    if (Application.Current is App app && app.WorkflowManager != null)
                     {
                         var workflows = app.WorkflowManager.Workflows;
-                        var regionWorkflow = workflows.FirstOrDefault(w => w.Job == Core.Hotkeys.WorkflowType.RectangleRegion);
+                        var regionWorkflow = workflows.FirstOrDefault(w => w.Job == WorkflowType.RectangleRegion);
 
                         if (regionWorkflow != null)
                         {
@@ -147,7 +148,7 @@ public partial class OnboardingWizardWindow : Window
                     Close();
 
                     // Trigger region capture via the main window
-                    if (Avalonia.Application.Current is App app)
+                    if (Application.Current is App app)
                     {
                         // The actual triggering would be done via the workflow orchestrator
                         // For now, the workflow is set up and will respond to hotkey
@@ -165,8 +166,8 @@ public partial class OnboardingWizardWindow : Window
                 {
                     DebugHelper.WriteLine("[Onboarding] Open settings requested");
                     // Navigate to settings in the main window
-                    if (Avalonia.Application.Current is App app &&
-                        Avalonia.Controls.Application.Current.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                    if (Application.Current is App app &&
+                        Application.Current.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
                     {
                         if (desktop.MainWindow is MainWindow mainWindow)
                         {

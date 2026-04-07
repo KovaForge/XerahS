@@ -274,7 +274,7 @@ public partial class App : Application
                     try
                     {
                         var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
-                        var result = await wizard.ShowDialogAsync(mainWindow);
+                        var result = wizard.ShowDialogAsync(mainWindow).Result;
 
                         if (result.Completed || result.Skipped)
                         {

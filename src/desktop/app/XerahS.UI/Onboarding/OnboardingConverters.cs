@@ -24,6 +24,8 @@
 #endregion License Information (GPL v3)
 
 using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Data;
 using Avalonia.Media;
@@ -60,7 +62,7 @@ public class StepIndexToBrushConverter : IMultiValueConverter
         else if (stepIndex == currentIndex)
         {
             // Current step - ring style
-            return currentBrush as IBrush ?? new SolidColorBrush(Color.Parse("#0078D4")) with { Opacity = 0.3 };
+            return currentBrush as IBrush ?? new SolidColorBrush(Color.Parse("#0078D4")) { Opacity = 0.3 };
         }
         else
         {
