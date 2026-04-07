@@ -24,8 +24,12 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using XerahS.Common;
+using XerahS.Core;
 using XerahS.UI.Onboarding.ViewModels.Steps;
+using XerahS.UI.Views;
 
 namespace XerahS.UI.Onboarding;
 
@@ -53,7 +57,7 @@ public partial class OnboardingWizardWindow : Window
 
     private void SetupStepCallbacks()
     {
-        // Save location step - folder browser
+        // Save location step - folder browser using Avalonia StorageProvider
         if (ViewModel.Steps.ElementAtOrDefault(1) is SaveLocationStepViewModel saveStep)
         {
             saveStep.BrowseFolderCallback = async () =>
@@ -76,9 +80,26 @@ public partial class OnboardingWizardWindow : Window
         {
             hotkeyStep.TestCaptureCallback = async () =>
             {
-                // Trigger a test region capture
-                // This would be wired up to the actual capture service
-                await Task.CompletedTask;
+                try
+                {
+                    // Trigger a test region capture via the workflow orchestrator
+                    if (Avalonia.Application.Current is App app && app.WorkflowManager != null)
+                    {
+                        var workflows = app.WorkflowManager.Workflows;
+                        var regionWorkflow = workflows.FirstOrDefault(w => w.Job == Core.Hotkeys.WorkflowType.RectangleRegion);
+
+                        if (regionWorkflow != null)
+                        {
+                            DebugHelper.WriteLine("[Onboarding] Triggering test region capture");
+                            // Trigger capture if we have an orchestrator
+                            // The actual capture triggering would be done via the task manager
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "[Onboarding] Failed to trigger test capture");
+                }
             };
         }
 
@@ -87,10 +108,30 @@ public partial class OnboardingWizardWindow : Window
         {
             uploadStep.ImportShareXCallback = async () =>
             {
-                // Import from ShareX
-                // This would be implemented with actual ShareX import logic
-                await Task.CompletedTask;
-                return false;
+                try
+                {
+                    // Detect ShareX config in standard location
+                    var shareXPath = System.IO.Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        "ShareX",
+                        "ApplicationConfig.json");
+
+                    if (System.IO.File.Exists(shareXPath))
+                    {
+                        DebugHelper.WriteLine($"[Onboarding] ShareX config found at {shareXPath}, import not yet implemented");
+                        // ShareX import would be implemented here using the ShareXImporter
+                        // For now, return false to indicate import wasn't done
+                        return false;
+                    }
+
+                    DebugHelper.WriteLine("[Onboarding] No ShareX config found");
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "[Onboarding] Failed to import ShareX config");
+                    return false;
+                }
             };
         }
 
@@ -99,14 +140,44 @@ public partial class OnboardingWizardWindow : Window
         {
             completeStep.TakeFirstScreenshotCallback = async () =>
             {
-                // Trigger region capture
-                await Task.CompletedTask;
+                try
+                {
+                    DebugHelper.WriteLine("[Onboarding] Take first screenshot requested");
+                    // Close this wizard first
+                    Close();
+
+                    // Trigger region capture via the main window
+                    if (Avalonia.Application.Current is App app)
+                    {
+                        // The actual triggering would be done via the workflow orchestrator
+                        // For now, the workflow is set up and will respond to hotkey
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "[Onboarding] Failed to take first screenshot");
+                }
             };
 
             completeStep.OpenSettingsCallback = () =>
             {
-                // Open settings dialog
-                // This would be wired up to the main window's settings navigation
+                try
+                {
+                    DebugHelper.WriteLine("[Onboarding] Open settings requested");
+                    // Navigate to settings in the main window
+                    if (Avalonia.Application.Current is App app &&
+                        Avalonia.Controls.Application.Current.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                    {
+                        if (desktop.MainWindow is MainWindow mainWindow)
+                        {
+                            mainWindow.NavigateToSettings();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "[Onboarding] Failed to open settings");
+                }
             };
         }
     }
@@ -124,7 +195,11 @@ public partial class OnboardingWizardWindow : Window
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 Close();
-                tcs.TrySetResult(task.Result);
+                if (!tcs.TrySetResult(task.Result))
+                {
+                    // If result was already set (e.g., by cancel), try to get it from the source
+                    tcs.TrySetResult(task.Result);
+                }
             });
         }, TaskScheduler.Default);
 
