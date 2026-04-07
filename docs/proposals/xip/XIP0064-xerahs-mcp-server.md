@@ -667,7 +667,7 @@ Error codes:
 
 ## Future Phases (Out of Scope for This XIP)
 
-- **Phase 2**: Remote MCP over HTTP + SSE for network-accessible AI hosts
+- **Phase 2**: Remote MCP over HTTP + SSE for network-accessible AI hosts. Hosted at `https://xerahs.github.io/` (GitHub Pages, `xerahs.github.io` repo).
 - **Phase 3**: Streaming frame updates for `capture_scrolling` (SSE notifications as each frame is captured)
 - **Phase 4**: MCP client (XerahS as an MCP *host*) — allows XerahS to use other MCP servers (e.g. ask an AI to analyze a screenshot without leaving XerahS)
 - **Phase 5**: Audio/video capture tools
