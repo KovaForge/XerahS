@@ -84,6 +84,7 @@ namespace XerahS.CLI
                 rootCommand.Add(VerifyVideoEditorCommand.Create());
                 rootCommand.Add(OpenVideoEditorCommand.Create());
                 rootCommand.Add(WatchFolderDaemonCommand.Create());
+                rootCommand.Add(UploadCommand.Create(taskManager));
 
                 // Execute
                 return await rootCommand.Parse(args).InvokeAsync();
