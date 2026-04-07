@@ -1,71 +1,51 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Onboarding Design Tokens
+    These delegate to existing XerahS theme resources for consistency.
+    The wizard uses the same visual language as the rest of the application.
+  -->
   <Styles.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
 
-        <!-- Light Theme (default) -->
+        <!-- Light Theme (default) - delegates to XerahS theme -->
         <ResourceDictionary x:Key="Light">
-          <!-- Surface colors -->
-          <Color x:Key="WizBgColor">#F4F5F7</Color>
-          <Color x:Key="WizSurfaceColor">#FFFFFF</Color>
-          <Color x:Key="WizBorderColor">#E2E5EA</Color>
-
-          <!-- Text colors -->
-          <Color x:Key="WizTextPrimaryColor">#0D0F14</Color>
-          <Color x:Key="WizTextSecondaryColor">#5C6170</Color>
-
-          <!-- Accent colors -->
-          <Color x:Key="WizAccentColor">#00B4A6</Color>
-          <Color x:Key="WizAccentHoverColor">#009E91</Color>
-
-          <!-- Semantic colors -->
-          <Color x:Key="WizDangerColor">#E5484D</Color>
-          <Color x:Key="WizWarningColor">#F5A623</Color>
-          <Color x:Key="WizSuccessColor">#12A594</Color>
+          <!-- All Wiz* brushes delegate to existing XerahS brushes -->
+          <SolidColorBrush x:Key="WizBg" Color="{DynamicResource XerahS.Color.Surface.Window}" />
+          <SolidColorBrush x:Key="WizSurface" Color="{DynamicResource XerahS.Color.Surface.Card}" />
+          <SolidColorBrush x:Key="WizBorder" Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
+          <SolidColorBrush x:Key="WizTextPrimary" Color="{DynamicResource XerahS.Color.Text.Primary}" />
+          <SolidColorBrush x:Key="WizTextSecondary" Color="{DynamicResource XerahS.Color.Text.Secondary}" />
+          <SolidColorBrush x:Key="WizAccent" Color="{DynamicResource SystemAccentColor}" />
+          <SolidColorBrush x:Key="WizAccentHover" Color="{DynamicResource SystemAccentColor}" Opacity="0.85" />
+          <SolidColorBrush x:Key="WizDanger" Color="{DynamicResource XerahS.Color.Status.Error.Border}" />
+          <SolidColorBrush x:Key="WizWarning" Color="{DynamicResource XerahS.Color.Status.Warning.Border}" />
+          <SolidColorBrush x:Key="WizSuccess" Color="{DynamicResource XerahS.Color.Status.Success.Border}" />
         </ResourceDictionary>
 
-        <!-- Dark Theme -->
+        <!-- Dark Theme - delegates to XerahS dark theme -->
         <ResourceDictionary x:Key="Dark">
-          <!-- Surface colors -->
-          <Color x:Key="WizBgColor">#0F1117</Color>
-          <Color x:Key="WizSurfaceColor">#1A1D27</Color>
-          <Color x:Key="WizBorderColor">#2A2D3A</Color>
-
-          <!-- Text colors -->
-          <Color x:Key="WizTextPrimaryColor">#EEF0F5</Color>
-          <Color x:Key="WizTextSecondaryColor">#8B90A0</Color>
-
-          <!-- Accent colors -->
-          <Color x:Key="WizAccentColor">#00D4C8</Color>
-          <Color x:Key="WizAccentHoverColor">#00BFB5</Color>
-
-          <!-- Semantic colors -->
-          <Color x:Key="WizDangerColor">#FF6B70</Color>
-          <Color x:Key="WizWarningColor">#FFBE3D</Color>
-          <Color x:Key="WizSuccessColor">#2DD4BF</Color>
+          <SolidColorBrush x:Key="WizBg" Color="{DynamicResource XerahS.Color.Surface.Window}" />
+          <SolidColorBrush x:Key="WizSurface" Color="{DynamicResource XerahS.Color.Surface.Card}" />
+          <SolidColorBrush x:Key="WizBorder" Color="{DynamicResource XerahS.Color.Stroke.Subtle}" />
+          <SolidColorBrush x:Key="WizTextPrimary" Color="{DynamicResource XerahS.Color.Text.Primary}" />
+          <SolidColorBrush x:Key="WizTextSecondary" Color="{DynamicResource XerahS.Color.Text.Secondary}" />
+          <SolidColorBrush x:Key="WizAccent" Color="{DynamicResource SystemAccentColor}" />
+          <SolidColorBrush x:Key="WizAccentHover" Color="{DynamicResource SystemAccentColor}" Opacity="0.85" />
+          <SolidColorBrush x:Key="WizDanger" Color="{DynamicResource XerahS.Color.Status.Error.Border}" />
+          <SolidColorBrush x:Key="WizWarning" Color="{DynamicResource XerahS.Color.Status.Warning.Border}" />
+          <SolidColorBrush x:Key="WizSuccess" Color="{DynamicResource XerahS.Color.Status.Success.Border}" />
         </ResourceDictionary>
 
       </ResourceDictionary.ThemeDictionaries>
 
-      <!-- Solid color brushes (using DynamicResource for theme support) -->
-      <SolidColorBrush x:Key="WizBg" Color="{DynamicResource WizBgColor}" />
-      <SolidColorBrush x:Key="WizSurface" Color="{DynamicResource WizSurfaceColor}" />
-      <SolidColorBrush x:Key="WizBorder" Color="{DynamicResource WizBorderColor}" />
-      <SolidColorBrush x:Key="WizTextPrimary" Color="{DynamicResource WizTextPrimaryColor}" />
-      <SolidColorBrush x:Key="WizTextSecondary" Color="{DynamicResource WizTextSecondaryColor}" />
-      <SolidColorBrush x:Key="WizAccent" Color="{DynamicResource WizAccentColor}" />
-      <SolidColorBrush x:Key="WizAccentHover" Color="{DynamicResource WizAccentHoverColor}" />
-      <SolidColorBrush x:Key="WizDanger" Color="{DynamicResource WizDangerColor}" />
-      <SolidColorBrush x:Key="WizWarning" Color="{DynamicResource WizWarningColor}" />
-      <SolidColorBrush x:Key="WizSuccess" Color="{DynamicResource WizSuccessColor}" />
-
-      <!-- Derived brushes -->
-      <SolidColorBrush x:Key="WizAccentSubtle" Color="{DynamicResource WizAccentColor}" Opacity="0.14" />
-      <SolidColorBrush x:Key="WizAccentSubtleHover" Color="{DynamicResource WizAccentColor}" Opacity="0.20" />
-      <SolidColorBrush x:Key="WizDangerSubtle" Color="{DynamicResource WizDangerColor}" Opacity="0.12" />
-      <SolidColorBrush x:Key="WizWarningSubtle" Color="{DynamicResource WizWarningColor}" Opacity="0.12" />
-      <SolidColorBrush x:Key="WizSuccessSubtle" Color="{DynamicResource WizSuccessColor}" Opacity="0.12" />
+      <!-- Derived brushes (subtle fills) -->
+      <SolidColorBrush x:Key="WizAccentSubtle" Color="{DynamicResource SystemAccentColor}" Opacity="0.14" />
+      <SolidColorBrush x:Key="WizAccentSubtleHover" Color="{DynamicResource SystemAccentColor}" Opacity="0.20" />
+      <SolidColorBrush x:Key="WizDangerSubtle" Color="{DynamicResource XerahS.Color.Status.Error.Fill}" />
+      <SolidColorBrush x:Key="WizWarningSubtle" Color="{DynamicResource XerahS.Color.Status.Warning.Fill}" />
+      <SolidColorBrush x:Key="WizSuccessSubtle" Color="{DynamicResource XerahS.Color.Status.Success.Fill}" />
 
     </ResourceDictionary>
   </Styles.Resources>

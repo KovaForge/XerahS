@@ -1,21 +1,10 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Styles.Resources>
-
-    <!-- Fonts -->
-    <FontFamily x:Key="WizFontFamily">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
-    <FontFamily x:Key="WizMonoFontFamily">avares://Avalonia.Fonts.JetBrainsMono/Assets#JetBrains Mono</FontFamily>
-
-    <!-- Reduced motion check: animations collapse to instant when prefers-reduced-motion is set -->
-    <x:Boolean x:Key="WizReduceMotion">false</x:Boolean>
-
-  </Styles.Resources>
+        xmlns:x="http://schemas.microsoft.com/wavafx/2006">
 
   <!-- ========== WINDOW STYLE ========== -->
 
   <Style Selector="Window#OnboardingWizardWindow">
-    <Setter Property="Background" Value="{DynamicResource WizBg}" />
-    <Setter Property="FontFamily" Value="{DynamicResource WizFontFamily}" />
+    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
     <Setter Property="Width" Value="640" />
     <Setter Property="Height" Value="520" />
     <Setter Property="MinWidth" Value="480" />
@@ -32,23 +21,22 @@
   <!-- ========== WIZARD CARD ========== -->
 
   <Style Selector="Border.WizardCard">
-    <Setter Property="Background" Value="{DynamicResource WizSurface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="12" />
     <Setter Property="Padding" Value="24" />
-    <Setter Property="BoxShadow" Value="0 4 24 -8 #1A000000" />
   </Style>
 
   <!-- ========== BUTTON STYLES ========== -->
 
-  <!-- Primary button -->
+  <!-- Primary button - uses accent solid -->
   <Style Selector="Button.WizardPrimaryButton">
-    <Setter Property="Background" Value="{DynamicResource WizAccent}" />
-    <Setter Property="Foreground" Value="#FFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Solid}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="Height" Value="48" />
+    <Setter Property="Height" Value="40" />
     <Setter Property="Padding" Value="24,0" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="14" />
@@ -58,11 +46,11 @@
   </Style>
 
   <Style Selector="Button.WizardPrimaryButton:pointerover">
-    <Setter Property="Background" Value="{DynamicResource WizAccentHover}" />
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidHover}" />
   </Style>
 
   <Style Selector="Button.WizardPrimaryButton:pressed">
-    <Setter Property="Opacity" Value="0.88" />
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SolidPressed}" />
   </Style>
 
   <Style Selector="Button.WizardPrimaryButton:disabled">
@@ -72,11 +60,11 @@
   <!-- Ghost/outline button -->
   <Style Selector="Button.WizardGhostButton">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextSecondary}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="Height" Value="48" />
+    <Setter Property="Height" Value="40" />
     <Setter Property="Padding" Value="20,0" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="FontSize" Value="14" />
@@ -86,18 +74,18 @@
   </Style>
 
   <Style Selector="Button.WizardGhostButton:pointerover">
-    <Setter Property="Background" Value="{DynamicResource WizBorder}" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.Subtle}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="Button.WizardGhostButton:pressed">
-    <Setter Property="Opacity" Value="0.8" />
+    <Setter Property="Background" Value="{DynamicResource XerahS.Brush.Accent.SubtlePressed}" />
   </Style>
 
   <!-- Skip link text button -->
   <Style Selector="Button.WizardSkipLink">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextSecondary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="FontSize" Value="12" />
@@ -106,7 +94,7 @@
   </Style>
 
   <Style Selector="Button.WizardSkipLink:pointerover">
-    <Setter Property="Foreground" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <!-- ========== PROGRESS DOTS ========== -->
@@ -116,27 +104,27 @@
     <Setter Property="Width" Value="24" />
     <Setter Property="Height" Value="24" />
     <Setter Property="StrokeThickness" Value="2" />
-    <Setter Property="Stroke" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Stroke" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="Fill" Value="Transparent" />
   </Style>
 
   <!-- Current step dot (ring + pulse) -->
   <Style Selector="Ellipse.WizardProgressDotCurrent">
-    <Setter Property="Stroke" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Stroke" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="StrokeThickness" Value="2.5" />
     <Setter Property="Fill" Value="Transparent" />
   </Style>
 
   <!-- Completed step dot (filled + checkmark) -->
   <Style Selector="Ellipse.WizardProgressDotCompleted">
-    <Setter Property="Stroke" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Stroke" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="StrokeThickness" Value="0" />
-    <Setter Property="Fill" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <!-- Future step dot -->
   <Style Selector="Ellipse.WizardProgressDotFuture">
-    <Setter Property="Stroke" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Stroke" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="StrokeThickness" Value="2" />
     <Setter Property="Fill" Value="Transparent" />
   </Style>
@@ -144,20 +132,20 @@
   <!-- Connecting line between dots -->
   <Style Selector="Rectangle.WizardProgressLine">
     <Setter Property="Height" Value="2" />
-    <Setter Property="Fill" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Fill" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="Rectangle.WizardProgressLineCompleted">
-    <Setter Property="Fill" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <!-- ========== RADIO CARDS ========== -->
 
   <!-- Radio card base -->
   <Style Selector="Border.WizardRadioCard">
-    <Setter Property="Background" Value="{DynamicResource WizSurface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="12" />
@@ -165,13 +153,13 @@
   </Style>
 
   <Style Selector="Border.WizardRadioCard:pointerover">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <!-- Selected radio card -->
   <Style Selector="Border.WizardRadioCardSelected">
-    <Setter Property="Background" Value="{DynamicResource WizAccentSubtle}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
@@ -186,43 +174,43 @@
 
   <!-- Base input style -->
   <Style Selector="TextBox.WizardInput">
-    <Setter Property="Background" Value="{DynamicResource WizSurface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="Height" Value="48" />
+    <Setter Property="Height" Value="40" />
     <Setter Property="Padding" Value="12,0" />
     <Setter Property="FontSize" Value="14" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="TextBox.WizardInput:pointerover">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <Style Selector="TextBox.WizardInput:focus">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <!-- ComboBox style -->
   <Style Selector="ComboBox.WizardComboBox">
-    <Setter Property="Background" Value="{DynamicResource WizSurface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="Height" Value="48" />
+    <Setter Property="Height" Value="40" />
     <Setter Property="FontSize" Value="14" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="ComboBox.WizardComboBox:pointerover">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
   </Style>
 
   <!-- CheckBox style -->
   <Style Selector="CheckBox.WizardCheckBox">
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     <Setter Property="FontSize" Value="14" />
     <Setter Property="Padding" Value="8,0" />
   </Style>
@@ -236,10 +224,10 @@
 
   <!-- ========== HOTKEY RECORDER ========== -->
 
-  <!-- Hotkey Recorder (uses code-behind class names) -->
+  <!-- Hotkey Recorder -->
   <Style Selector="Border.WizardHotkeyRecorder">
-    <Setter Property="Background" Value="{DynamicResource WizSurface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Height" Value="56" />
@@ -247,41 +235,41 @@
   </Style>
 
   <Style Selector="Border.wiz-hotkey-recorder-recording">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <Style Selector="Border.wiz-hotkey-recorder-conflict">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizDanger}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusErrorBorderBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <Style Selector="Border.wiz-hotkey-recorder-recorded">
-    <Setter Property="BorderBrush" Value="{DynamicResource WizAccent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
 
-  <!-- ========== CONFLICT / WARNING CARDS ========== -->
+  <!-- ========== CONFLICT / WARNING / SUCCESS CARDS ========== -->
 
   <Style Selector="Border.WizardConflictCard">
-    <Setter Property="Background" Value="{DynamicResource WizDangerSubtle}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizDanger}" />
+    <Setter Property="Background" Value="{DynamicResource StatusErrorFillBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusErrorBorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,3" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="16" />
   </Style>
 
   <Style Selector="Border.WizardWarningCard">
-    <Setter Property="Background" Value="{DynamicResource WizWarningSubtle}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizWarning}" />
+    <Setter Property="Background" Value="{DynamicResource StatusWarningFillBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusWarningBorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,3" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="16" />
   </Style>
 
   <Style Selector="Border.WizardSuccessCard">
-    <Setter Property="Background" Value="{DynamicResource WizSuccessSubtle}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizSuccess}" />
+    <Setter Property="Background" Value="{DynamicResource StatusSuccessFillBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusSuccessBorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,3" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="16" />
@@ -294,46 +282,46 @@
     <Setter Property="Minimum" Value="0" />
     <Setter Property="Maximum" Value="100" />
     <Setter Property="CornerRadius" Value="2" />
-    <Setter Property="Background" Value="{DynamicResource WizBorder}" />
-    <Setter Property="Foreground" Value="{DynamicResource WizAccent}" />
+    <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     <Setter Property="IsIndeterminate" Value="false" />
   </Style>
 
   <!-- ========== TYPOGRAPHY ========== -->
 
   <Style Selector="TextBlock.WizardStepTitle">
-    <Setter Property="FontFamily" Value="{DynamicResource WizFontFamily}" />
+    <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
     <Setter Property="FontSize" Value="18" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
   </Style>
 
   <Style Selector="TextBlock.WizardStepSubtitle">
-    <Setter Property="FontFamily" Value="{DynamicResource WizFontFamily}" />
+    <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
     <Setter Property="FontSize" Value="14" />
     <Setter Property="FontWeight" Value="Normal" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextSecondary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
   <Style Selector="TextBlock.WizardPathPreview">
-    <Setter Property="FontFamily" Value="{DynamicResource WizMonoFontFamily}" />
+    <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, monospace" />
     <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextSecondary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
   <Style Selector="TextBlock.WizardError">
     <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="{DynamicResource WizDanger}" />
+    <Setter Property="Foreground" Value="{DynamicResource StatusErrorForegroundBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
   <Style Selector="TextBlock.WizardHotkeyDisplay">
-    <Setter Property="FontFamily" Value="{DynamicResource WizMonoFontFamily}" />
+    <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, monospace" />
     <Setter Property="FontSize" Value="18" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     <Setter Property="HorizontalAlignment" Value="Left" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -341,32 +329,71 @@
   <!-- ========== EXPANDER (Secondary hotkeys, etc.) ========== -->
 
   <Style Selector="Expander.WizardExpander">
-    <Setter Property="Foreground" Value="{DynamicResource WizTextSecondary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
 
   <!-- ========== DIRECTORY PICKER ========== -->
 
   <Style Selector="Border.WizardDirectoryPicker">
-    <Setter Property="Background" Value="{DynamicResource WizSurface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="Height" Value="48" />
+    <Setter Property="Height" Value="40" />
   </Style>
 
   <!-- ========== LANGUAGE ROW (OCR) ========== -->
 
   <Style Selector="Border.WizardLanguageRow">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{DynamicResource WizBorder}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
     <Setter Property="Padding" Value="12,8" />
   </Style>
 
   <Style Selector="CheckBox.WizardLanguageCheckBox">
-    <Setter Property="Foreground" Value="{DynamicResource WizTextPrimary}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     <Setter Property="FontSize" Value="14" />
+  </Style>
+
+  <!-- ========== TOGGLE BUTTON (OCR language chips) ========== -->
+
+  <Style Selector="ToggleButton.WizardLanguageChip">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="ToggleButton.WizardLanguageChip:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <Style Selector="ToggleButton.WizardLanguageChip:checked">
+    <Setter Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+  </Style>
+
+  <!-- ========== SECTION HEADERS ========== -->
+
+  <Style Selector="TextBlock.WizardSectionHeader">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+
+  <Style Selector="TextBlock.WizardSectionHint">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
   </Style>
 
 </Styles>
