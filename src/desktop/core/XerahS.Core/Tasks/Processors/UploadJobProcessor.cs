@@ -472,7 +472,7 @@ namespace XerahS.Core.Tasks.Processors
                     return uploader switch
                     {
                         FileUploader fileUploader => fileUploader.UploadFile(info.FilePath),
-                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info.FilePath),
+                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
                         _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
                     };
                 }
@@ -531,6 +531,13 @@ namespace XerahS.Core.Tasks.Processors
         {
             using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return uploader.Upload(stream, Path.GetFileName(filePath));
+        }
+
+        private static UploadResult UploadWithGenericUploader(GenericUploader uploader, TaskInfo info)
+        {
+            using FileStream stream = new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            string fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
+            return uploader.Upload(stream, fileName);
         }
 
         private static bool IsSuccessfulUploadResult(UploadResult? result)
