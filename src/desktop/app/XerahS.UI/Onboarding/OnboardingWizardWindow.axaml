@@ -378,7 +378,7 @@
                                         Margin="4">
                             <ToggleButton.IsChecked>
                               <MultiBinding Converter="{StaticResource ListContainsConverter}">
-                                <Binding Path="($parent[ItemsControl].((steps:OcrStepViewModel)DataContext).SelectedLanguages)"/>
+                                <Binding Path="$parent[ItemsControl].DataContext.(steps:OcrStepViewModel).SelectedLanguages"/>
                                 <Binding Path="LanguageTag"/>
                               </MultiBinding>
                             </ToggleButton.IsChecked>
