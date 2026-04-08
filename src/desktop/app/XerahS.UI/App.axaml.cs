@@ -41,6 +41,7 @@ using XerahS.Platform.Abstractions;
 #if WINDOWS
 using XerahS.Platform.Windows;
 #endif
+using SkiaSharp;
 using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
@@ -137,6 +138,22 @@ public partial class App : Application
             var mainViewModel = new MainViewModel(Services.ThemeService.CreateImageEditorOptions());
             mainViewModel.ApplicationName = AppResources.AppName;
             mainViewModel.ShowTaskModeButtons = false;
+
+            // Pre-load default image so annotation toolbar is usable before first capture
+            try
+            {
+                var sampleUri = new Uri("avares://ShareX.ImageEditor/Assets/Sample.png");
+                var sampleStream = Avalonia.Platform.AssetLoader.Open(sampleUri);
+                using var sampleBitmap = SKBitmap.Decode(sampleStream);
+                if (sampleBitmap != null)
+                {
+                    mainViewModel.UpdatePreview(sampleBitmap, clearAnnotations: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Failed to pre-load default editor image (Sample.png): {ex.Message}");
+            }
 
             // Wire up UploadRequested for embedded editor in MainWindow
             Services.MainViewModelHelper.WireUploadRequested(mainViewModel, taskManager);
