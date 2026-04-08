@@ -228,3 +228,91 @@ Use protobuf or MessagePack instead of JSON.
 ---
 
 *Authors: Milena Petrova (KovaForge Researcher) + Vladislava Kova (KovaForge COO)*
+
+---
+
+## Critique
+
+### Strengths
+
+- **Format decision is correct.** `.xera` sidecar is the right call — crash-safe, image-format-agnostic, human-readable, and easy to migrate later.
+- **Serialization path is mostly there.** `[JsonDerivedType]` discriminators on `Annotation` cover all 16 subtypes. `EditorCore.Annotations` exposes a clean `IReadOnlyList<Annotation>` for serialization.
+- **Hash validation is smart.** Checking `imageHash` on load to detect post-save image edits is a genuine safeguard most competitors skip.
+- **Graceful degradation is the right default.** No sidecar → blank canvas, no crash. The risk of data loss is low.
+- **Motivation is grounded in real user pain.** The Snagit comparison is accurate and gives the feature a clear bar.
+
+### Weaknesses & Risks
+
+#### 1. `HistoryItem` uses Newtonsoft.Json, not `System.Text.Json`
+
+The `Annotation` class and all subtypes serialize via `[JsonDerivedType]` on `System.Text.Json`. But `HistoryItem` uses **Newtonsoft.Json** (`[JsonProperty]` attributes). This creates a mixed serialization environment. If `AnnotationSidecarPath` is added to `HistoryItem`, it will be serialized with Newtonsoft — fine for a string path. But any shared model that needs to serialize in both contexts (e.g., if `Annotation` is ever part of the history DB schema directly) will need careful handling. This is not a blocker but a **known maintenance complexity**.
+
+#### 2. `ImageAnnotation` — pasted images do not survive the composite step
+When the editor composites annotations onto the bitmap at save time, any `ImageAnnotation` (pasted image/sticker) is rasterized into the output. The pasted bitmap data is not stored in the image file — it's burned into the pixels. Loading a `.xera` for an image that had pasted content will restore the annotation object with its `ImageId` reference, but the actual bitmap data for that pasted image will be gone from the `.xera`. The `.xera` schema does not include an `embeddedImages` array. **This is a data loss risk for the most common multi-edit workflow after text annotations.**
+
+
+**Mitigation required:** Either (a) add an `embeddedImages` section to the `.xera` schema storing base64 pasted bitmaps, or (b) document this as a known limitation and require that pasted images be re-imported on re-edit.
+
+#### 3. Image moved/renamed after save — sidecar becomes orphaned
+The degraded mode dialog says "Load image without annotations, or reload the matching image file?" But if the image has been moved, there is no "matching image file" — the old path is dead. The dialog assumes the image still exists at some discoverable location. **Orphaned sidecar files accumulate silently.**
+
+**Mitigation required:** When loading an orphaned `.xera`, prompt the user to locate the original image file manually, then update `imagePath` in the sidecar.
+
+#### 4. Re-save update cycle is undefined
+What happens when a user re-edits an annotated screenshot and saves again? Does the existing `.xera` get overwritten? Does a new one get created? Is the `imageHash` updated? There is no version field in the schema and no explicit save-cycle protocol. **After N re-edits, the user ends up with N+1 `.xera` files or undefined behavior.**
+
+**Mitigation required:** Define the update cycle: overwrite the `.xera` on every save-with-annotations. Add a `version` field for future migration.
+
+#### 5. TextAnnotation content encoding
+TextAnnotation stores text content — verify that the font, size, and rich text formatting (if any) are fully serialized by the `[JsonDerivedType]` path. FreehandAnnotation stores stroke point data — verify it doesn't exceed practical file sizes for long strokes.
+
+#### 6. Phase 3 scope is unachievable in v1
+Template systems, batch re-annotation, and Snagit import are all substantial features. Including them in the same document as the core MVP gives the wrong impression about effort. **Phase 3 should be a separate XIP.**
+
+### Edge Cases Not Addressed
+
+| Edge Case | Risk | Recommendation |
+|---|---|---|
+| Image deleted, `.xera` orphaned | Silent annotation loss | Detect orphaned sidecars via hash scan on startup; surface a notification |
+| Image moved to new folder | Sidecar uses relative `imagePath` — may still resolve | If hash-match fails, prompt for new location |
+| Same image saved multiple times | Multiple `.xera` files accumulate | One `.xera` per save, overwrite existing |
+| User edits image externally (Photoshop, etc.) | Hash mismatch on re-edit | Degraded mode dialog is correct; clarify wording |
+| Pinned/favorite captures | User expects annotations preserved forever | Ensure `AnnotationSidecarPath` survives history DB migration |
+| Network/shared drives | `.xera` file may be inaccessible | Handle `IOException` gracefully; disable re-edit button if sidecar is unreachable |
+| Large annotated captures | SHA-256 + GZip on every save adds latency | Profile on 4K captures with 50+ annotations; async the hash computation |
+
+### Revised Implementation Plan
+
+**Phase 1 is under-scoped.** The following deliverables are missing:
+
+| # | Missing Deliverable | Why It Matters |
+|---|---|---|
+| 8 | `ImageAnnotation` embedded bitmap handling | Data loss risk — pasted images vanish on composite |
+| 9 | Orphaned `.xera` detection + user prompt | Orphaned sidecars accumulate without recovery UX |
+| 10 | Re-save overwrite protocol | Undefined update cycle produces unreliable sidecar state |
+| 11 | `.xera` migration path for schema `version` field | v1 writes `version: 1` with no migration story for v2 |
+
+**Phase 2 item 3 (skip empty `.xera`) should be in Phase 1**, not Phase 2 — writing empty sidecar files for every non-annotated save is a wasteful footgun.
+
+### Decision Required
+
+Before any code is written, the CEO must decide:
+
+**1. Pasted image handling — which approach?**
+- **Option A**: Add `embeddedImages` array to `.xera` schema (base64). Enables full re-editability for `ImageAnnotation`. Increases `.xera` file size.
+- **Option B**: Document as known limitation. Users re-import pasted images on re-edit. Simpler to ship.
+- **Option C**: Always composite pasted images to pixels, never store in `.xera`. Users who paste external photos as annotations must re-paste on re-edit.
+
+**2. Sidecar storage — same directory or configured root?**
+- **Option A**: Always alongside the image (`same-stem.xera` in same folder). Simplest. Breaks down when users move images to organized subfolders.
+- **Option B**: Central `.xera` root in settings. Clean directories. But sidecar no longer shares the image's directory context, making orphaned-sidecar detection harder.
+- **Option C**: Both — configurable root that defaults to same directory.
+
+**3. Re-edit badge — visual indicator on history items with preserved annotations?**
+- **Option A**: Yes, add badge in Phase 1. Worth the UI work to make the feature discoverable.
+- **Option B**: No, defer to Phase 2. Ship core serialization first.
+- **Decision affects**: Phase 1 deliverable 6 vs Phase 2 deliverable 5.
+
+---
+
+*Critique: Nadia Valeva (KovaForge Analyst)*
