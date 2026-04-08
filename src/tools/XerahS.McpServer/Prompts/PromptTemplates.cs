@@ -1,64 +1,25 @@
 namespace XerahS.McpServer.Prompts;
 
+public record PromptTemplate(string Name, string Description, Argument[] Arguments);
+public record Argument(string Name, string Description, bool Required);
+
 /// <summary>
 /// MCP prompt templates for common XerahS workflows
 /// </summary>
 public static class PromptTemplates
 {
-    public static IEnumerable<object> GetPrompts()
-    {
-        return new[]
-        {
-            new
-            {
-                name = "capture_and_annotate",
-                description = "Two-step capture then annotate workflow",
-                arguments = new[]
-                {
-                    new
-                    {
-                        name = "user_description_of_what_to_capture_and_annotate",
-                        description = "Description of what to capture and how to annotate it",
-                        required = true
-                    }
-                }
-            },
-            new
-            {
-                name = "batch_capture_report",
-                description = "Capture multiple regions and compile a report",
-                arguments = new[]
-                {
-                    new
-                    {
-                        name = "region_list",
-                        description = "List of regions to capture (descriptions or coordinates)",
-                        required = true
-                    }
-                }
-            },
-            new
-            {
-                name = "upload_workflow",
-                description = "Standard screenshot-to-URL workflow",
-                arguments = new[]
-                {
-                    new
-                    {
-                        name = "user_request_describing_what_to_capture_and_annotate",
-                        description = "User's request describing what to capture and annotate",
-                        required = true
-                    },
-                    new
-                    {
-                        name = "destination_id_or_default",
-                        description = "Destination ID for upload, or 'default' to use configured default",
-                        required = false
-                    }
-                }
-            }
-        };
-    }
+    public static PromptTemplate[] GetPrompts() => [
+        new PromptTemplate("capture_and_annotate", "Two-step capture then annotate workflow", [
+            new Argument("user_description_of_what_to_capture_and_annotate", "Description of what to capture and how to annotate it", true)
+        ]),
+        new PromptTemplate("batch_capture_report", "Capture multiple regions and compile a report", [
+            new Argument("region_list", "List of regions to capture (descriptions or coordinates)", true)
+        ]),
+        new PromptTemplate("upload_workflow", "Standard screenshot-to-URL workflow", [
+            new Argument("user_request_describing_what_to_capture_and_annotate", "User's request describing what to capture and annotate", true),
+            new Argument("destination_id_or_default", "Destination ID for upload, or 'default' to use configured default", false)
+        ])
+    ];
 
     public static string GetPromptTemplate(string name)
     {
