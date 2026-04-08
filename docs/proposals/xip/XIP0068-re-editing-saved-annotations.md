@@ -316,3 +316,174 @@ Before any code is written, the CEO must decide:
 ---
 
 *Critique: Nadia Valeva (KovaForge Analyst)*
+
+---
+
+## Design Review
+
+*Review by Sofia Novak, KovaForge Designer — 2026-04-09*
+
+---
+
+### 1. Settings Placement
+
+**Recommendation: Two-tier — global toggle in Image settings, sidecar root in Application settings.**
+
+The XIP proposes a single "Toggle annotation sidecar storage on/off" in Phase 2. This undersells the feature and buries it too deep.
+
+**Global toggle** (`Save annotations for re-editing`) belongs in **Settings → Image**, next to existing image-quality and format controls. This is where users configure how captures are saved — it's the right mental model context. Default: **On**.
+
+**Sidecar root** (`Store .xera files in:`) is an Application-level path setting, not per-workflow. Per-workflow placement creates confusing behavior when the same image is captured via different workflows — the sidecar path should be deterministic, not workflow-dependent.
+
+**Per-capture override** (in the After-Capture window, when `AnnotateMedia` fires): optionally show a checkbox "Save annotations" checked by default, matching the global preference. This gives power users control without burying it in a settings pane they visit once.
+
+**Avoid**: placing the toggle inside the annotation editor itself. The editor is where users go to *make* annotations, not to configure *persistence*. Context-switching to settings mid-editing breaks flow.
+
+---
+
+### 2. Trigger UX
+
+**Recommendation: Double-click is correct primary trigger; add a discoverable "Re-edit" entry in the toolbar above the history grid.**
+
+Double-click on a history item is the right primary trigger — it matches every file browser and image viewer convention. `Ctrl+Shift+E` as a hotkey is fine for power users.
+
+**Problem with current XIP**: Right-click → "Edit Annotations" is discoverable only if users already know the feature exists. A first-time user right-clicking a screenshot will scan the menu for "Edit" or "Annotate" and won't find either. The context menu is an *additional* entry point, not the primary discovery path.
+
+**What the XIP is missing**: A toolbar-level "Re-edit" button (or icon) above the history grid, visible without any interaction. This is the discoverable entry point that makes the feature visible at first glance. It should:
+- Show as enabled (with a badge) on items that have `.xera` sidecars
+- Show as disabled with a tooltip ("No annotations saved for this capture") on items without
+- Be a icon button with a tooltip label, not a text button that clutters the toolbar
+
+**Right-click context menu** should list:
+- `Open in Editor` (existing — flat render)
+- `Edit Annotations` (new — restores annotations, shown only when sidecar exists)
+- `Open File` / `Open Folder` / `Upload` (existing)
+
+
+Hiding "Edit Annotations" behind a menu that only appears when the sidecar exists is a natural progressive disclosure pattern — users won't see it until it's relevant.
+
+---
+
+### 3. Visual Language
+
+#### `.xera` File Icon
+
+**Recommendation: Dedicated icon — a PNG file silhouette with a layered annotation mark overlay.**
+
+Think of a document-stack icon where the top page has annotation marks (arrows, text lines) visible. This clearly separates `.xera` from plain PNG/JPG in file browsers without requiring users to understand the extension first.
+
+Color: use the app's accent color (typically blue) for the overlay to match how XerahS brand elements appear elsewhere.
+
+
+#### History View — Editable vs Flat
+
+**Recommendation: Badge overlay on the thumbnail corner + subtle border treatment.**
+
+Items with preserved annotations should show a small badge (layered-papers icon, or a small ribbon) on the top-right corner of their thumbnail in the history grid. This badge is:
+- Visible at a glance in grid view
+- Self-explanatory: "this capture has editability preserved"
+- Not obtrusive — doesn't change the thumbnail image itself
+
+Additionally, consider a left-border accent (1–2px) in the app's accent color on list-view rows that have editable annotations. Provides the same signal without a dedicated icon.
+
+
+**What NOT to do**: Don't change the thumbnail itself to show annotation marks overlaid — thumbnails are small and already visually dense. The badge is cleaner.
+
+
+#### Annotation Editor — First-Run on Re-Open
+
+**Recommendation: Pre-loaded annotation layer with a dismissible "Restored from saved annotations" info banner.**
+
+When re-opening a `.xera`-backed capture, the editor should:
+1. Load the base image as the canvas background (unchanged)
+2. Immediately restore all annotation objects from `.xera` into the live annotation layer
+3. Show a small dismissible banner above the canvas: `"Annotations restored — you're editing the saved version"` with an info icon
+
+This banner serves two purposes:
+- **Orientation**: confirms to the user that they're in re-edit mode and not starting from scratch
+- **Informs the mental model**: users know they're editing a saved project, not a flat image — their changes will overwrite the previous `.xera`
+
+The banner auto-dismisses after 3 seconds or on first annotation interaction. Users who frequently re-edit will learn to ignore it; users who forgot this was a re-edit will be immediately oriented.
+
+**Contrast with "blank slate"**: Opening a saved annotated image as a blank canvas with just the image as background is disorienting — users may not realize annotations were saved and present, and make changes that overwrite them without understanding the data model. The banner + pre-loaded layer is worth the small UI complexity.
+
+---
+
+### 4. Settings Scope
+
+**Recommendation: Global toggle + sidecar root path + format preference.**
+
+
+Three settings are warranted:
+
+| Setting | Location | Default | Notes |
+|---|---|---|---|
+| `Save annotations for re-editing` | Settings → Image | On | Master toggle. Off = behavior is identical to today (flat saves only) |
+| `.xera storage location` | Settings → Application | Same folder as image | Option: ` Alongside image` / `Custom folder` |
+| `Default save format for annotated captures` | Settings → Image | PNG + `.xera` | Option: `PNG + .xera` / `JPEG + .xera` / `WebP + .xera`. PNG is always recommended since JPEG recompression degrades annotation sharpness |
+
+The format preference setting is low priority for Phase 1 but should be in the spec so it's not forgotten. JPEG users should understand that re-compression artifacts accumulate on every save-round-trip — the XIP's hash-validation approach will surface this as a degradation warning, but a format-setting explanation tooltip can preempt confusion.
+
+**Skip**: per-workflow `.xera` toggle. Workflows are for capture/upload routing, not persistence configuration. Same image via two workflows should produce identical sidecar behavior.
+
+---
+
+### 5. Edge Case UI
+
+#### No `.xera` Sidecar Found
+
+**Current XIP**: "Annotations Not Available" — this is functional but cold.
+
+
+**Refined UX**:
+- If the history item has `AnnotationSidecarPath` set but the file doesn't exist: show a dialog "Annotations were saved for this capture, but the annotation file is missing. The image will open without annotations." with options: `[Open Without Annotations]` `[Cancel]`
+- If the history item has no `AnnotationSidecarPath`: do nothing special — open in editor silently without annotations, consistent with current behavior. Don't show any dialog; this is the "old captures" graceful degradation path and users shouldn't be prompted for every pre-feature capture they open
+
+#### Image Modified After Save (Hash Mismatch)
+
+**Current XIP degraded mode dialog**: "Annotation data found but image has changed. Load image without annotations, or reload the matching image file?"
+
+**Problem**: "reload the matching image file" implies the image still exists somewhere. If the image was deleted, this is confusing.
+
+**Refined UX**:
+- **Image moved/renamed**: `[Locate Image File]` button → opens file picker → user selects the new location → hash is re-validated → if match, annotations restore; if no match, show "Selected image doesn't match saved annotations. Open without annotations?"
+- **Image edited externally**: `[Open Without Annotations]` primary, `[Cancel]` secondary. No "reload matching image" — edited images are fundamentally different and the workflow intent ("I want to tweak my annotation") no longer applies to an edited version
+
+#### Orphaned Sidecar Detection
+
+**Recommendation**: On application startup, scan for `.xera` files that reference images no longer present at the stored `imagePath`. Surface a one-time notification: `"N saved annotation(s) found without matching images. Open Settings → History to review."` This prevents silent annotation accumulation and gives users a recovery path before they notice the feature isn't working for a specific capture.
+
+
+---
+
+### 6. Design Decisions Affecting Implementation Spec
+
+| Decision | Implementation Impact |
+|---|---|
+| Global toggle in Image settings (not per-workflow) | `AnnotationSidecarPath` is written on every save where the toggle is on, regardless of workflow. No conditional logic by workflow. |
+| `Same folder` default for sidecar root | Sidecar path = `{imageDirectory}/{imageStem}.xera`. Computing this is trivial at save time. Custom root requires `AnnotationSidecarPath` to store an absolute path (not relative) or the orphaned-sidecar scanner needs a lookup table. |
+| Pre-loaded annotation layer on re-open | The `ShowEditorAsync` call in `HistoryViewModel.EditImage` must deserialize `.xera` and pass the annotation list to the editor session, not just the `SKBitmap`. The editor session must accept a pre-populated annotation layer on open. |
+| Badge on history items with sidecar | The history view needs to check for `.xera` existence at render time (or cache the check). Doing this synchronously on every bind is expensive — consider an async badge loader or a pre-computed `HasEditableAnnotations` property on `HistoryItem` refreshed on history load. |
+| Info banner on re-edit | The editor session needs a flag/parameter indicating "this is a re-edit of a saved project" vs "new capture" vs "open from file drop". The banner shows only in re-edit mode. |
+| Format preference setting | The `SaveWithAnnotations` flow needs to consult the user's preferred annotated save format. Currently the XIP implies PNG-only (from the "rendered image unchanged" framing). This setting extends that to JPEG/WebP, which requires the same compositing pipeline but outputs to a different encoder. |
+
+---
+
+### 7. Summary of Design Decisions
+
+
+| # | Decision | Rationale |
+|---|---|---|
+| D1 | Global toggle in Image settings | Where users configure save behavior; consistent mental model |
+| D2 | Sidecar root as app-level path setting, defaulting to image folder | Simple default; custom root is an advanced option, not the common case |
+| D3 | Per-capture override in After-Capture window | Power-user escape hatch without complicating settings hierarchy |
+| D4 | "Re-edit" toolbar button above history grid as primary discoverable entry point | Makes the feature visible without requiring right-click exploration |
+| D5 | Context menu "Edit Annotations" shown only when sidecar exists | Natural progressive disclosure; no empty-state clutter |
+| D6 | Badge overlay on thumbnails for editable items | Immediate visual differentiation in grid view |
+| D7 | Pre-loaded annotation layer + dismissible info banner on re-open | Orients users to the re-edit mental model; prevents accidental overwrites |
+| D8 | Orphaned sidecar notification on startup | Prevents silent accumulation of broken annotation state |
+| D9 | Three settings (toggle, root, format) | Enough depth for power users; not so many that casual users are overwhelmed |
+
+---
+
+*Design Review: Sofia Novak (KovaForge Designer)*
