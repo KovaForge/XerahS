@@ -318,7 +318,7 @@ namespace XerahS.UI.Views
 
                 // Ownership of bitmap is transferred to ViewModel.
                 vm.UpdatePreview(bitmap, clearAnnotations: true);
-                vm.LastSavedPath = path;
+                vm.ImageFilePath = path;
                 bitmap = null;
             }
             catch (Exception ex)

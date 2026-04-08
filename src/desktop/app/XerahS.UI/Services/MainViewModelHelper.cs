@@ -101,9 +101,9 @@ public static class MainViewModelHelper
         DebugHelper.WriteLine("MainViewModelHelper: SaveRequested received");
         try
         {
-            if (!string.IsNullOrEmpty(viewModel.LastSavedPath))
+            if (!string.IsNullOrEmpty(viewModel.ImageFilePath))
             {
-                SaveToPath(viewModel, getEditedSnapshot, viewModel.LastSavedPath);
+                SaveToPath(viewModel, getEditedSnapshot, viewModel.ImageFilePath);
             }
             else
             {
@@ -130,9 +130,9 @@ public static class MainViewModelHelper
                 return;
             }
 
-            string suggestedName = string.IsNullOrEmpty(viewModel.LastSavedPath)
+            string suggestedName = string.IsNullOrEmpty(viewModel.ImageFilePath)
                 ? "image.png"
-                : Path.GetFileName(viewModel.LastSavedPath);
+                : Path.GetFileName(viewModel.ImageFilePath);
 
             var options = new FilePickerSaveOptions
             {
@@ -185,7 +185,7 @@ public static class MainViewModelHelper
             data.SaveTo(stream);
         }
 
-        viewModel.LastSavedPath = path;
+        viewModel.ImageFilePath = path;
         viewModel.IsDirty = false;
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
     }

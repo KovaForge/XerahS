@@ -155,7 +155,6 @@ namespace XerahS.UI.Services
                 editorViewModel.UpdatePreview(image);
                 if (!string.IsNullOrWhiteSpace(sourceFilePath))
                 {
-                    editorViewModel.LastSavedPath = sourceFilePath;
                     editorViewModel.ImageFilePath = sourceFilePath;
                     editorViewModel.IsDirty = false;
                 }

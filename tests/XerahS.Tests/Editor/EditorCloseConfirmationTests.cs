@@ -210,7 +210,6 @@ public class EditorCloseConfirmationTests
         try
         {
             viewModel.UpdatePreview(bitmap.Copy());
-            viewModel.LastSavedPath = "C:\\temp\\history-image.png";
             viewModel.ImageFilePath = "C:\\temp\\history-image.png";
             viewModel.IsDirty = false;
 
