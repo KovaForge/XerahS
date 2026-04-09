@@ -29,16 +29,40 @@ namespace XerahS.UI.ViewModels;
 
 public sealed class AboutViewModel : ViewModelBase
 {
-    public IReadOnlyList<LoadedAssemblyInfoViewModel> LoadedAssemblies { get; }
+    public IReadOnlyList<LoadedAssemblyInfoViewModel> XerahSAssemblies { get; }
 
-    public int LoadedAssemblyCount => LoadedAssemblies.Count;
+    public IReadOnlyList<LoadedAssemblyInfoViewModel> SystemAssemblies { get; }
+
+    public IReadOnlyList<LoadedAssemblyInfoViewModel> ThirdPartyAssemblies { get; }
+
+    public int LoadedAssemblyCount => XerahSAssemblyCount + SystemAssemblyCount + ThirdPartyAssemblyCount;
+
+    public int XerahSAssemblyCount => XerahSAssemblies.Count;
+
+    public int SystemAssemblyCount => SystemAssemblies.Count;
+
+    public int ThirdPartyAssemblyCount => ThirdPartyAssemblies.Count;
 
     public AboutViewModel()
     {
-        LoadedAssemblies = AppDomain.CurrentDomain
+        var groupedAssemblies = AppDomain.CurrentDomain
             .GetAssemblies()
             .Where(assembly => !assembly.IsDynamic)
             .Select(CreateAssemblyInfo)
+            .ToArray();
+
+        XerahSAssemblies = groupedAssemblies
+            .Where(info => info.Group == LoadedAssemblyGroup.XerahS)
+            .OrderBy(info => info.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        SystemAssemblies = groupedAssemblies
+            .Where(info => info.Group == LoadedAssemblyGroup.System)
+            .OrderBy(info => info.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        ThirdPartyAssemblies = groupedAssemblies
+            .Where(info => info.Group == LoadedAssemblyGroup.ThirdParty)
             .OrderBy(info => info.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
@@ -46,10 +70,32 @@ public sealed class AboutViewModel : ViewModelBase
     private static LoadedAssemblyInfoViewModel CreateAssemblyInfo(Assembly assembly)
     {
         var assemblyName = assembly.GetName();
+        var name = assemblyName.Name ?? "(Unknown)";
 
         return new LoadedAssemblyInfoViewModel(
-            assemblyName.Name ?? "(Unknown)",
+            name,
+            ClassifyAssembly(name),
             FormatVersion(assemblyName.Version));
+    }
+
+    private static LoadedAssemblyGroup ClassifyAssembly(string assemblyName)
+    {
+        if (assemblyName.StartsWith("XerahS", StringComparison.OrdinalIgnoreCase) ||
+            assemblyName.StartsWith("ShareX.", StringComparison.OrdinalIgnoreCase))
+        {
+            return LoadedAssemblyGroup.XerahS;
+        }
+
+        if (assemblyName.StartsWith("System", StringComparison.OrdinalIgnoreCase) ||
+            assemblyName.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) ||
+            assemblyName.StartsWith("netstandard", StringComparison.OrdinalIgnoreCase) ||
+            assemblyName.StartsWith("Windows", StringComparison.OrdinalIgnoreCase) ||
+            assemblyName.StartsWith("mscorlib", StringComparison.OrdinalIgnoreCase))
+        {
+            return LoadedAssemblyGroup.System;
+        }
+
+        return LoadedAssemblyGroup.ThirdParty;
     }
 
     private static string FormatVersion(Version? version)
@@ -65,15 +111,25 @@ public sealed class AboutViewModel : ViewModelBase
     }
 }
 
+public enum LoadedAssemblyGroup
+{
+    ThirdParty,
+    XerahS,
+    System
+}
+
 public sealed class LoadedAssemblyInfoViewModel
 {
     public string Name { get; }
 
+    public LoadedAssemblyGroup Group { get; }
+
     public string Version { get; }
 
-    public LoadedAssemblyInfoViewModel(string name, string version)
+    public LoadedAssemblyInfoViewModel(string name, LoadedAssemblyGroup group, string version)
     {
         Name = name;
+        Group = group;
         Version = version;
     }
 }

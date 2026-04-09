@@ -230,26 +230,82 @@
                                    Opacity="0.75"
                                    TextWrapping="Wrap" />
 
-                        <ListBox ItemsSource="{Binding LoadedAssemblies}"
-                                 HorizontalAlignment="Stretch"
-                                 MaxHeight="360">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:LoadedAssemblyInfoViewModel">
-                                    <Border Padding="12,10">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                            <TextBlock Text="{Binding Name}"
-                                                       VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding Version}"
-                                                       VerticalAlignment="Center"
-                                                       FontWeight="SemiBold"
-                                                       Opacity="0.8" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                        <StackPanel Spacing="16">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{Binding XerahSAssemblyCount, StringFormat='XerahS ({0})'}"
+                                           FontWeight="SemiBold" />
+                                <ListBox ItemsSource="{Binding XerahSAssemblies}"
+                                         HorizontalAlignment="Stretch"
+                                         MaxHeight="220">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LoadedAssemblyInfoViewModel">
+                                            <Border Padding="12,10">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Version}"
+                                                               VerticalAlignment="Center"
+                                                               FontWeight="SemiBold"
+                                                               Opacity="0.8" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{Binding ThirdPartyAssemblyCount, StringFormat='Third Party ({0})'}"
+                                           FontWeight="SemiBold" />
+                                <ListBox ItemsSource="{Binding ThirdPartyAssemblies}"
+                                         HorizontalAlignment="Stretch"
+                                         MaxHeight="220">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LoadedAssemblyInfoViewModel">
+                                            <Border Padding="12,10">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Version}"
+                                                               VerticalAlignment="Center"
+                                                               FontWeight="SemiBold"
+                                                               Opacity="0.8" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{Binding SystemAssemblyCount, StringFormat='System ({0})'}"
+                                           FontWeight="SemiBold" />
+                                <ListBox ItemsSource="{Binding SystemAssemblies}"
+                                         HorizontalAlignment="Stretch"
+                                         MaxHeight="220">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LoadedAssemblyInfoViewModel">
+                                            <Border Padding="12,10">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Version}"
+                                                               VerticalAlignment="Center"
+                                                               FontWeight="SemiBold"
+                                                               Opacity="0.8" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Expander>
             </Border>
