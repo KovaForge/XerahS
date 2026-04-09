@@ -1,4 +1,4 @@
-# XIP0067 Avalonia 12 — Material.Avalonia Compatibility Update
+# XIP0067 Avalonia 12 - Material.Avalonia Compatibility Update
 
 **Status**: Draft
 **Priority**: High
@@ -9,102 +9,146 @@
 
 ## Summary
 
-Material.Avalonia 3.7.4 (currently used by XerahS) predates Avalonia 12 and must be updated to a compatible version to avoid runtime style breaks. The latest Material.Avalonia is 3.15.0. This XIP covers the upgrade path, breaking changes in Material.Avalonia's API, and necessary style adjustments in XerahS's `.axaml` theme files.
+Material.Avalonia compatibility for Avalonia 12 should be treated as more than a package-version requirement. The framework release changed the baseline expectations for validation, focus management, accessibility, client-side decorations, and binding performance. This XIP updates XerahS's Material layer so it behaves like an Avalonia 12 application rather than an Avalonia 11 theme stack carried forward.
 
-**Note on icons**: XerahS does not use `Material.Icons.Avalonia`. The desktop app uses a bundled Lucide font via `FontFamily="avares://ShareX.ImageEditor/Assets#lucide"` (see `ShareX.ImageEditor/Assets/LUCIDE.ttf` or similar). Icon glyph rendering goes through `TextBlock` with this font family, not `material:Icon` controls. The `Material.Icons.Avalonia 2.1.10` reference in `Directory.Packages.props` is only consumed by the mobile-experimental project (`XerahS.Mobile.Ava`), not the main desktop UI.
+The immediate package alignment is already straightforward:
+
+```text
+Directory.Packages.props
+  Material.Avalonia        -> 3.15.0
+  Material.Icons.Avalonia  -> 3.0.1
+```
+
+But the real goal is to ensure that Material-themed surfaces in XerahS:
+
+- respect Avalonia 12 validation behavior
+- cooperate with Avalonia 12 focus handling
+- expose accessibility metadata cleanly
+- integrate with themeable client-side decorations
+- keep benefiting from compiled bindings in touched views
 
 ---
 
 ## Current State
 
-```
-Directory.Packages.props
-  Material.Avalonia        → 3.7.4   (desktop main UI)
-  Material.Icons.Avalonia  → 2.1.10  (mobile-experimental only)
+XerahS uses Material.Avalonia for desktop theming, while desktop icon rendering continues to rely primarily on the bundled Lucide font. `Material.Icons.Avalonia` is not the main desktop icon path and should not drive desktop theming decisions.
 
-ShareX.ImageEditor/Assets/
-  LUCIDE.ttf (or similar)  ← bundled Lucide font
-```
+That means this XIP is mainly about:
 
-Active icon usages in desktop UI (`OnboardingWizardWindow.axaml`, `ThemeResources.axaml`):
-```xml
-FontFamily="avares://ShareX.ImageEditor/Assets#lucide"
-```
-Icons are rendered as `TextBlock` with Lucide glyph code points — no `Material.Icons.Avalonia` involvement.
+- Material styles and control behavior
+- Material-themed dialogs and windows
+- validation, focus, accessibility, and shell integration under Avalonia 12
+
+not about replacing Lucide usage with Material icons.
 
 ---
 
-## Breaking Changes in Material.Avalonia 3.15.0
+## Avalonia 12 Behaviors the Material Layer Must Adopt
 
-### 1. Control API Changes
+### 1. Validation is now broader and more important
 
-Material.Avalonia 3.x made several breaking changes to custom controls:
+The Avalonia 12 release notes call out validation behavior moving to the base `Control` class and specifically mention automation support for validation errors.
 
-| Old API | New API | Notes |
+For Material-themed XerahS surfaces, that means:
+
+- validation visuals must still render correctly after the upgrade
+- validation states must remain readable in both light and dark themes
+- dialogs and forms should not style validation only on a narrow subset of input controls
+- accessibility metadata for validation must not be lost under custom Material styling
+
+### 2. Focus handling is strong enough to rely on
+
+Avalonia 12 overhauled focus management. Material dialogs, flyouts, menus, and form surfaces should align with that instead of preserving delayed-focus or click-first workarounds.
+
+Focus-sensitive Material scenarios in XerahS include:
+
+- settings dialogs
+- onboarding flows
+- confirmation dialogs
+- any Material-styled forms with validation and primary/secondary actions
+
+### 3. Client decorations should be part of the theme story
+
+Avalonia 12 introduces themeable client-side window decorations. Material-themed windows and dialogs should inherit and complement that system instead of fighting it with legacy title-bar assumptions.
+
+This matters most for:
+
+- custom dialogs
+- shell windows with branded chrome
+- any future window-level Material polish work
+
+### 4. Accessibility is now a cross-platform bar, not optional polish
+
+Avalonia 12 adds native Linux accessibility and automation landmarks. Material-styled XerahS surfaces should include usable automation names, landmarks, and validation-error exposure so the theme layer does not become the point where accessibility regresses.
+
+### 5. Compiled bindings should remain intact in Material views
+
+Avalonia 12 enables compiled bindings by default. If a Material-themed view or template is touched during compatibility work, the change should preserve or improve binding clarity with explicit `x:DataType` where practical rather than backsliding into loose reflection bindings.
+
+---
+
+## Compatibility and Audit Areas
+
+| Area | What To Check | Why It Matters |
 |---|---|---|
-| `Material-icon` attached property (pre-3.0) | `Icon` property on `MaterialIcon` | Namespace change — desktop UI does not use this |
-| Custom `ColorLoader` singleton | `IMaterialThemePalette` DI-injected | Requires DI registration change — audit if DI-scoped |
-| `RippleEffect` behavior on `Button` | Replaced by built-in `PressableControl` ripple | May need `.axaml` style update in overrides |
-| `Card` control `Outlined` property | `Card` always outlined; `FilledCard` for filled variant | Check all `Card` usages in theme |
-
-### 2. Theme Resource Dictionary Reorganization
-
-Material.Avalonia 3.x reorganized its internal resource dictionaries. Imports that directly reference internal paths (e.g., `avares://Material.Avalonia/Themes/Internal/SomeInternal.xaml`) may break. Audit XerahS's theme include chain.
-
-### 3. Mobile-experimental Icon Change (Non-Desktop)
-
-`Material.Icons.Avalonia 2.1.10 → 3.0.1` (for `XerahS.Mobile.Ava`) may rename glyph identifiers. Since the desktop UI uses Lucide and not Material icons, this only affects the mobile-experimental project.
+| Material-themed dialogs | Focus landing, keyboard traversal, validation visuals, automation names | Avalonia 12 focus and validation behavior changed |
+| Window chrome | Material styles do not clash with Avalonia 12 client decorations | Avoid title-bar regressions and mismatched chrome |
+| Theme resources and overrides | Custom overrides still bind correctly and load cleanly | Prevent XAML load or styling regressions |
+| Validation styling | Error states are visible, accessible, and consistent | Align with new `Control`-level validation behavior |
+| Material-heavy views | Explicit compiled bindings on touched hot paths | Preserve Avalonia 12 binding-performance benefits |
+| Mobile-experimental Material icons | Build and glyph rendering only where the package is actually used | Keep scope honest; desktop Lucide usage remains separate |
 
 ---
 
-## Upgrade Steps
+## Implementation Steps
 
 | # | Step | Notes |
 |---|---|---|
-| 1 | Update `Material.Avalonia` to `3.15.0` in `Directory.Packages.props` | Desktop main UI only; `Material.Icons.Avalonia` stays unless mobile needs it |
-| 2 | Run `dotnet restore` and check for dependency conflicts | Material.Avalonia 3.15.0 requires Avalonia 12; confirms compatibility |
-| 3 | Build and check for XAML warnings | Missing style resources will surface as build warnings |
-| 4 | Audit `Themes/MaterialOverrides.axaml` for DI registration changes | `ColorLoader` → `IMaterialThemePalette` may need service registration |
-| 5 | Audit all `Card` usages | Replace with `FilledCard` where filled variant is needed |
-| 6 | Audit `Themes/` directory for hardcoded Material.Avalonia internal paths | Likely not present but verify |
-| 7 | Verify all styled controls render correctly (buttons, cards, dialogs) | Focus on Material Design specific controls |
-| 8 | Mobile-experimental only: update `Material.Icons.Avalonia` to `3.0.1` if needed | Only for `XerahS.Mobile.Ava`; desktop Lucide icons unaffected |
-
----
-
-## Risk Assessment
-
-| Risk | Severity | Likelihood | Mitigation |
-|---|---|---|---|
-| `Card` style change causes layout shift | Medium | Low | Check all `Card` usages; use `FilledCard` where needed |
-| `ColorLoader` → `IMaterialThemePalette` DI break | Medium | Medium | Audit DI registration in theme/bootstrap code |
-| `RippleEffect` behavior change on buttons | Low | Low | Review `Button` styles in `Themes/MaterialOverrides.axaml` |
-| Internal resource path break | Low | Low | Audit `avares://Material.Avalonia/Themes/Internal/` references |
-| Lucide icon rendering affected | None | None | Desktop icons use Lucide font, not Material.Icons.Avalonia |
+| 1 | Keep `Material.Avalonia` aligned with Avalonia 12-compatible versions | Package-level prerequisite |
+| 2 | Audit custom Material theme overrides and includes | Catch style-load regressions early |
+| 3 | Re-check validation visuals on Material-themed forms and dialogs | Must reflect Avalonia 12 validation behavior |
+| 4 | Re-check keyboard focus and default-action behavior on Material dialogs | Must align with Avalonia 12 focus handling |
+| 5 | Review Material-themed windows against Avalonia 12 client decorations | Avoid custom chrome conflicts |
+| 6 | Ensure automation names, landmarks, and validation-error exposure survive custom styling | Linux accessibility is now a first-class requirement |
+| 7 | Preserve compiled-binding posture in any touched Material views | Avoid performance regressions from sloppy bindings |
+| 8 | Verify mobile-experimental `Material.Icons.Avalonia` usage only if that project is in scope | Keep desktop and mobile concerns separate |
 
 ---
 
 ## Verification Checklist
 
-After updating Material.Avalonia:
-
 - [ ] `dotnet build` succeeds with no errors
 - [ ] Application starts without XAML load exceptions
-- [ ] All `Card` controls display correctly (outlined variant)
-- [ ] Button ripple effects work on mouse press
-- [ ] Theme colors (primary, secondary, surface) match existing palette
-- [ ] Dark/Light theme toggle works correctly
-- [ ] Lucide icons in onboarding wizard and main UI render correctly (no tofu)
-- [ ] Mobile-experimental (`XerahS.Mobile.Ava`) builds and renders icons correctly
+- [ ] Material-themed dialogs render correctly
+- [ ] Validation states remain visible and accessible
+- [ ] Keyboard focus is predictable through Material dialogs and forms
+- [ ] Window chrome and title-bar behavior remain correct under Avalonia 12 decorations
+- [ ] Theme colors remain consistent in both light and dark modes
+- [ ] Desktop Lucide icon rendering remains unaffected
+- [ ] Mobile-experimental Material icons only gate this XIP if that project is part of the validation run
+
+---
+
+## Non-Goals
+
+- Replacing Lucide-based desktop icons with Material icons
+- Turning this XIP into a full navigation rewrite just because Avalonia 12 added page controls
+- Re-styling the entire application when the actual need is compatibility plus Avalonia 12 alignment
 
 ---
 
 ## Open Questions
 
-1. **Style overrides**: Does XerahS have custom style overrides for Material.Avalonia controls in `Themes/MaterialOverrides.axaml`? These would be the first to break on upgrade.
-2. **DI registration**: Is `ColorLoader` singleton used anywhere in the DI container? If so, switching to `IMaterialThemePalette` requires a service registration change.
-3. **Mobile icons**: Should `Material.Icons.Avalonia` also be updated to `3.0.1` for the mobile-experimental project, or is that out of scope for this XIP?
+1. Which Material-themed dialogs in XerahS still rely on older focus workarounds?
+2. Which custom theme overrides are the highest risk for Avalonia 12 validation or decoration regressions?
+3. Is any Material icon verification beyond the mobile-experimental project actually needed for desktop acceptance?
 
 ---
 
-*Author: Claude (compatibility upgrade draft)*
+## Reference
+
+- Avalonia UI Blog, "Avalonia 12 - Ready for What's Next," April 7, 2026: <https://avaloniaui.net/blog/avalonia-12/>
+
+---
+
+*Author: Claude draft, revised for Avalonia 12 adoption rather than version-only compatibility*

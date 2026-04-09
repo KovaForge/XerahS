@@ -76,7 +76,7 @@ public partial class OverlayWindow
             TextWrapping = TextWrapping.Wrap,
             Padding = new Thickness(4),
             Text = existingText,
-            Watermark = "Type text here..."
+            PlaceholderText = "Type text here..."
         };
 
         if (annotation.ShadowEnabled)

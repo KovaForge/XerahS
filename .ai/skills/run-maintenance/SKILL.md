@@ -260,9 +260,9 @@ git -C ../ShareX push origin develop
 
 ## ⚠️ Important Notes
 
-1. **SkiaSharp Version Lock**:
-   - NEVER bump SkiaSharp beyond 2.88.9
-   - Update CHANGELOG.md to reflect this constraint if dependencies change
+1. **SkiaSharp Version Alignment**:
+   - Keep SkiaSharp aligned with the root `Directory.Packages.props` version
+   - Do not reintroduce the legacy `2.88.9` pin when updating dependencies
 
 2. **Semantic Versioning**:
    - Follow semver strictly (major.minor.patch)

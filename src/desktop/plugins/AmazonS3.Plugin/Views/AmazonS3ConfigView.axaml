@@ -31,7 +31,7 @@
                       IsChecked="{Binding UseCustomCNAME}"
                       IsEnabled="{Binding IsAccessKeysMode}"/>
             <TextBox Text="{Binding CustomDomain, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="https://cdn.example.com"
+                     PlaceholderText="https://cdn.example.com"
                      Width="400"
                      HorizontalAlignment="Left"
                      IsEnabled="{Binding UseCustomCNAME}"/>
@@ -50,7 +50,7 @@
         <StackPanel Spacing="5" IsVisible="{Binding IsAccessKeysMode}">
             <TextBlock Text="Access Key ID *" FontWeight="Medium"/>
             <TextBox Text="{Binding AccessKeyId, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="Enter AWS Access Key ID"
+                     PlaceholderText="Enter AWS Access Key ID"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -59,7 +59,7 @@
         <StackPanel Spacing="5" IsVisible="{Binding IsAccessKeysMode}">
             <TextBlock Text="Secret Access Key *" FontWeight="Medium"/>
             <TextBox Text="{Binding SecretAccessKey, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="Enter AWS Secret Access Key"
+                     PlaceholderText="Enter AWS Secret Access Key"
                      PasswordChar="●"
                      Width="400"
                      HorizontalAlignment="Left"/>
@@ -72,7 +72,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="Start URL *" FontWeight="Medium"/>
                 <TextBox Text="{Binding SsoStartUrl, UpdateSourceTrigger=PropertyChanged}" 
-                         Watermark="https://d-xxxxxxxxxx.awsapps.com/start"
+                         PlaceholderText="https://d-xxxxxxxxxx.awsapps.com/start"
                          Width="400"
                          HorizontalAlignment="Left"/>
                 <Button Content="Find Start URL" Command="{Binding OpenSsoStartUrlHelpCommand}" HorizontalAlignment="Left"/>
@@ -181,7 +181,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Bucket Name *" FontWeight="Medium"/>
             <TextBox Text="{Binding BucketName, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="my-bucket-name"
+                     PlaceholderText="my-bucket-name"
                      IsReadOnly="{Binding IsSsoMode}"
                      Width="300"
                      HorizontalAlignment="Left"/>
@@ -213,7 +213,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Object Prefix (Optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding ObjectPrefix, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="uploads/"
+                     PlaceholderText="uploads/"
                      Width="300"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Example: 'uploads/%y/%mo/' will save files as uploads/2026/01/filename.png" 

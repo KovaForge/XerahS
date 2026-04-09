@@ -247,7 +247,7 @@ Timestamps should match the current build session.
 | `Error: No plugins were published` | Check `src/desktop/plugins/` structure and `plugin.json` presence in each plugin directory |
 | ARM64 cross-compile fails | Ensure `linux-arm64` .NET SDK cross-compile support is installed; Fedora needs `dotnet-sdk-10.0` |
 | `rpmbuild: command not found` | RPM skipped (not fatal); install with `sudo dnf install rpm-build` if needed |
-| Build succeeds but app segfaults | SkiaSharp native library issue; **never bump SkiaSharp beyond 2.88.9** |
+| Build succeeds but app segfaults | SkiaSharp native library issue; verify the current centrally managed SkiaSharp/native-assets set and published runtimes before changing versions |
 
 ---
 

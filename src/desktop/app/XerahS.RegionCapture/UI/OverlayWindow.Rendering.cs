@@ -289,7 +289,9 @@ public partial class OverlayWindow
             return monitorBitmap;
         }
 
-        var logicalBitmap = monitorBitmap.Resize(new SKImageInfo(logicalWidth, logicalHeight), SKFilterQuality.High);
+        var logicalBitmap = monitorBitmap.Resize(
+            new SKImageInfo(logicalWidth, logicalHeight),
+            new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None));
         if (logicalBitmap != null)
         {
             DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: resized {monitorBitmap.Width}x{monitorBitmap.Height} → {logicalBitmap.Width}x{logicalBitmap.Height}");

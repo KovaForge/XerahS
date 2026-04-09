@@ -281,6 +281,7 @@ namespace XerahS.Core.Tasks.Processors
                 if (targetInstance == null)
                 {
                     DebugHelper.WriteLine($"Configured image uploader instance not found: {configuredInstanceId}");
+                    return TryUploadWithFallback(instanceManager, UploaderCategory.Image, info.FilePath, configuredInstanceId);
                 }
             }
 
@@ -300,11 +301,21 @@ namespace XerahS.Core.Tasks.Processors
 
             if (targetInstance == null)
             {
-                DebugHelper.WriteLine("No image uploader instance configured.");
-                return null;
+                DebugHelper.WriteLine("No default image uploader instance configured; trying available uploaders.");
+                return TryUploadWithFallback(instanceManager, UploaderCategory.Image, info.FilePath, configuredInstanceId);
             }
 
-            return TryUploadWithInstance(targetInstance, info.FilePath);
+            var primaryResult = TryUploadWithInstance(targetInstance, info.FilePath);
+            if (primaryResult != null && !primaryResult.IsError && !string.IsNullOrEmpty(primaryResult.URL))
+            {
+                return primaryResult;
+            }
+
+            var primaryError = primaryResult?.Errors?.ToString() ?? primaryResult?.Response ?? "Unknown error";
+            DebugHelper.WriteLine(
+                $"Primary capture uploader '{targetInstance.DisplayName}' failed ({primaryError}). Trying fallback uploaders.");
+
+            return TryUploadWithFallback(instanceManager, UploaderCategory.Image, info.FilePath, targetInstance.InstanceId);
         }
 
         /// <summary>
@@ -316,7 +327,7 @@ namespace XerahS.Core.Tasks.Processors
         {
             attemptedInstanceIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
-            DebugHelper.WriteLine($"Auto destination selected; trying uploaders with fallback for category {category}.");
+            DebugHelper.WriteLine($"Trying uploaders with fallback for category {category}.");
 
             // Get all available instances for this category that haven't been attempted yet
             var allInstances = GetPrioritizedInstances(instanceManager, category, excludeInstanceId)

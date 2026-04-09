@@ -154,7 +154,7 @@
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding UseCustomScreenshotsPath}" Content="Use custom screenshots path" AutomationProperties.Name="Use Custom Screenshots Path"/>
                                     <Grid ColumnDefinitions="*, 16, Auto" IsEnabled="{Binding UseCustomScreenshotsPath}">
-                                        <TextBox Grid.Column="0" Text="{Binding ScreenshotsFolder}" Watermark="Path to screenshots folder" AutomationProperties.Name="Screenshots Folder Path"/>
+                                        <TextBox Grid.Column="0" Text="{Binding ScreenshotsFolder}" PlaceholderText="Path to screenshots folder" AutomationProperties.Name="Screenshots Folder Path"/>
                                         <Button Grid.Column="2"
                                                 Width="36"
                                                 MinWidth="36"
@@ -178,7 +178,7 @@
                                 <StackPanel Spacing="16">
                                     <Grid ColumnDefinitions="Auto, 16, *">
                                         <TextBlock Grid.Column="0" Text="Pattern:" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="2" Text="{Binding SaveImageSubFolderPattern}" Watermark="%y-%mo" AutomationProperties.Name="Subfolder Pattern"/>
+                                        <TextBox Grid.Column="2" Text="{Binding SaveImageSubFolderPattern}" PlaceholderText="%y-%mo" AutomationProperties.Name="Subfolder Pattern"/>
                                     </Grid>
                                     <TextBlock Text="Example: 2025-01" FontSize="12" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                                 </StackPanel>
@@ -467,7 +467,7 @@
                                     <Grid ColumnDefinitions="100, 16, *">
                                         <TextBlock Grid.Column="0" Text="Host:" VerticalAlignment="Center"/>
                                         <TextBox Grid.Column="2" Text="{Binding ProxyHost}"
-                                                 Watermark="proxy.example.com"
+                                                 PlaceholderText="proxy.example.com"
                                                  AutomationProperties.Name="Proxy Host"/>
                                     </Grid>
                                     <Grid ColumnDefinitions="100, 16, *">
@@ -493,13 +493,13 @@
                                     <Grid ColumnDefinitions="100, 16, *">
                                         <TextBlock Grid.Column="0" Text="Username:" VerticalAlignment="Center"/>
                                         <TextBox Grid.Column="2" Text="{Binding ProxyUsername}"
-                                                 Watermark="username"
+                                                 PlaceholderText="username"
                                                  AutomationProperties.Name="Proxy Username"/>
                                     </Grid>
                                     <Grid ColumnDefinitions="100, 16, *">
                                         <TextBlock Grid.Column="0" Text="Password:" VerticalAlignment="Center"/>
                                         <TextBox Grid.Column="2" Text="{Binding ProxyPassword}"
-                                                 Watermark="password"
+                                                 PlaceholderText="password"
                                                  PasswordChar="•"
                                                  AutomationProperties.Name="Proxy Password"/>
                                     </Grid>

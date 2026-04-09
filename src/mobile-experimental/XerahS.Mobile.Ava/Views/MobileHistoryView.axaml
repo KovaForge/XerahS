@@ -39,7 +39,7 @@
         </Grid>
 
         <StackPanel Grid.Row="1" Margin="16,12,16,8" Spacing="8">
-            <TextBox Watermark="Search by file name, host or URL..."
+            <TextBox PlaceholderText="Search by file name, host or URL..."
                      Classes="adaptive-input"
                      Text="{Binding SearchText, Mode=TwoWay}" />
             <TextBlock Text="{Binding StatusText}"

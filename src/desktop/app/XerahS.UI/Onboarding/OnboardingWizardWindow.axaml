@@ -17,7 +17,7 @@
         MaxHeight="640"
         WindowStartupLocation="CenterScreen"
         SizeToContent="Manual"
-        SystemDecorations="Full"
+        WindowDecorations="Full"
         CanResize="True"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
 
@@ -211,7 +211,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                       <TextBox Grid.Column="0"
                                Text="{Binding SelectedPath}"
-                               Watermark="Select a folder..."
+                               PlaceholderText="Select a folder..."
                                Classes="WizardInput"/>
                       <Button Grid.Column="1"
                               Content="Browse..."

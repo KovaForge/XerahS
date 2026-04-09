@@ -63,7 +63,7 @@ This document adapts a cross-agent workflow to the XerahS repository. It is writ
   - Stop any single build that exceeds 5 minutes
   - Do not disable warnings-as-errors
   - Keep the Windows TFM explicit: `net10.0-windows10.0.26100.0`
-  - Keep SkiaSharp on `2.88.9`
+  - Keep SkiaSharp aligned with root central package management (currently `3.119.3-preview.1.1`)
 - Report concrete results, not generic claims.
 - If automation is not possible, document the manual reasoning or repro steps used instead.
 

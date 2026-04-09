@@ -22,7 +22,7 @@
                  Grid.Column="0"
                  Classes="WizardInput"
                  IsReadOnly="True"
-                 Watermark="Select a folder..."
+                 PlaceholderText="Select a folder..."
                  Text="{Binding Value, Mode=TwoWay}"
                  BorderThickness="0"
                  Background="Transparent"

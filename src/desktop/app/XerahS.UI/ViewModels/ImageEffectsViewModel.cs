@@ -255,11 +255,10 @@ namespace XerahS.UI.ViewModels
                 using var textPaint = new SKPaint
                 {
                     Color = SKColors.Black,
-                    TextSize = 20,
-                    IsAntialias = true,
-                    TextAlign = SKTextAlign.Left
+                    IsAntialias = true
                 };
-                canvas.DrawText("Preview", padding, PreviewSize - padding / 2, textPaint);
+                using var textFont = new SKFont(SKTypeface.Default, 20);
+                canvas.DrawText("Preview", padding, PreviewSize - padding / 2, SKTextAlign.Left, textFont, textPaint);
             }
             catch
             {

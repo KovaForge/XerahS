@@ -12,7 +12,7 @@
     <Setter Property="MaxWidth" Value="800" />
     <Setter Property="MaxHeight" Value="640" />
     <Setter Property="WindowStartupLocation" Value="CenterScreen" />
-    <Setter Property="SystemDecorations" Value="Full" />
+    <Setter Property="WindowDecorations" Value="Full" />
     <Setter Property="CanResize" Value="True" />
     <Setter Property="ShowInTaskbar" Value="True" />
     <Setter Property="Title" Value="Welcome to XerahS" />

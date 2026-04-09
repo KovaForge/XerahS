@@ -336,7 +336,7 @@ XerahS is a cross-platform screen capture and upload application built on Avalon
 - `Platform/` - Platform-specific capture backends
 - `Animations/` - Fade/zoom effects
 
-**Dependencies**: Avalonia, SkiaSharp 2.88.9, XerahS.Media (FFmpeg)
+**Dependencies**: Avalonia, SkiaSharp 3, XerahS.Media (FFmpeg)
 
 ### XerahS.History
 **Purpose**: Task history persistence
@@ -541,8 +541,8 @@ Located in [XerahS.UI/Services](../../src/desktop/app/XerahS.UI/Services/)
 - **Cross-platform**: `net10.0`
 
 ### 10.2 Key NuGet Dependencies
-- **Avalonia**: 11.3.10 (UI framework)
-- **SkiaSharp**: 2.88.9 (locked to 2.x - Avalonia 11 compatibility)
+- **Avalonia**: 12.0.0 (UI framework)
+- **SkiaSharp**: 3.119.3-preview.1.1 (aligned with the current Avalonia 12 package line)
 - **Newtonsoft.Json**: 13.0.4 (configuration serialization)
 - **FluentAvaloniaUI**: 2.4.1 (theming)
 - **ReactiveUI**: 22.3.1 (MVVM framework)

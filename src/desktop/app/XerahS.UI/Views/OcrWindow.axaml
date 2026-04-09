@@ -52,7 +52,7 @@
                TextWrapping="Wrap"
                IsReadOnly="False"
                VerticalContentAlignment="Top"
-               Watermark="OCR result will appear here..."
+               PlaceholderText="OCR result will appear here..."
                AutomationProperties.Name="OCR recognized text" />
 
       <!-- Processing overlay -->

@@ -101,7 +101,7 @@ does not have a 16 KB page size.
 
 **Impact**: These are forward-looking warnings for Android 16. The current builds work correctly on Android devices up to API level 35.
 
-**Resolution**: This will be resolved when SkiaSharp 3.x is adopted (currently blocked by version constraints).
+**Resolution**: The repo now uses the SkiaSharp 3 line. Re-check this warning against the currently published Android native assets when refreshing the mobile toolchain docs.
 
 ## Build Results
 
