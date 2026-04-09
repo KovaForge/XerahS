@@ -12,7 +12,7 @@
       <TextBlock Text="Body text uses TextColor and base typography." Theme="{StaticResource BodyTextBlockStyle}" />
 
       <TextBox Width="240" 
-               Watermark="Sample input" 
+               PlaceholderText="Sample input" 
                AutomationProperties.Name="Showcase Input"/>
 
       <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"

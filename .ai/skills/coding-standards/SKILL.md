@@ -1,6 +1,6 @@
 ---
 name: ShareX Core Standards
-description: License headers, build configuration rules, SkiaSharp version constraints, and general coding standards for XerahS
+description: License headers, build configuration rules, dependency version guidance, and general coding standards for XerahS
 ---
 
 ## License Header Requirement
@@ -39,19 +39,19 @@ When creating or editing C# files (`.cs`) in this repository, include the follow
 ### Windows Target Framework Moniker (TFM)
 
 **CRITICAL**: When configuring projects to target Windows, use the **explicit TFM** format that includes the platform version:
-`net10.0-windows10.0.19041.0`
+`net10.0-windows10.0.26100.0`
 
 **Do NOT use**:
 `<TargetFramework>net10.0-windows</TargetFramework>` with a separate `<TargetPlatformVersion>...` property.
 This is required to avoid "Windows Metadata not provided" errors during full solution builds with CsWinRT.
 
-### SkiaSharp Version Constraint
+### SkiaSharp Version Guidance
 
-**IMPORTANT (Until Avalonia 12 is released):** All `.csproj` files in this repository MUST use **SkiaSharp version 2.88.9**. Do NOT upgrade to SkiaSharp 3.x as it is incompatible with Avalonia 11.x.
+**IMPORTANT:** SkiaSharp is centrally managed in the root `Directory.Packages.props` and is currently on **3.119.3-preview.1.1** for the Avalonia 12 upgrade line.
 
-- When adding SkiaSharp to a new project: `<PackageReference Include="SkiaSharp" Version="2.88.9" />`
-- If you encounter version conflicts, always downgrade to 2.88.9.
-- This constraint applies to all projects including `XerahS.*` and `ShareX.Editor`.
+- When adding SkiaSharp to a new project, prefer the shared central package version instead of introducing an inline project-local version.
+- If you encounter version conflicts, align with the root central package management entry rather than reintroducing the legacy `2.88.9` pin.
+- This guidance applies to all projects including `XerahS.*` and `ShareX.ImageEditor`.
 
 ## General Coding Rules
 

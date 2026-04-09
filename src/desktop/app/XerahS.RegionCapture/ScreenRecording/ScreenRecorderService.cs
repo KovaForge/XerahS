@@ -81,6 +81,12 @@ public class ScreenRecorderService : IRecordingService
     /// </summary>
     public static Func<IRecordingService>? NativeRecordingServiceFactory { get; set; }
 
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return RecordingRuntimeCapabilities.SegmentedRestart;
+    }
+
     /// <summary>
     /// Debug: dump the first captured frame to disk for orientation analysis.
     /// </summary>

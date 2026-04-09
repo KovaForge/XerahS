@@ -55,7 +55,8 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         try
         {
             _connection = new Connection(Address.Session);
-            _connection.ConnectAsync().GetAwaiter().GetResult();
+            var connectionInfo = _connection.ConnectAsync().GetAwaiter().GetResult();
+            global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(_connection, connectionInfo);
             _portal = _connection.CreateProxy<IOpenUriPortal>(PortalBusName, PortalObjectPath);
         }
         catch (Exception ex)
@@ -77,7 +78,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         if (_portal != null)
         {
             using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            if (TryPortalRequest(() => _portal.OpenDirectoryAsync(string.Empty, stream.SafeFileHandle, new Dictionary<string, object>())))
+            if (TryPortalRequest(options => _portal.OpenDirectoryAsync(string.Empty, stream.SafeFileHandle, options)))
             {
                 return true;
             }
@@ -95,7 +96,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
 
         if (_portal != null)
         {
-            if (TryPortalRequest(() => _portal.OpenURIAsync(string.Empty, url, new Dictionary<string, object>())))
+            if (TryPortalRequest(options => _portal.OpenURIAsync(string.Empty, url, options)))
             {
                 return true;
             }
@@ -116,7 +117,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
             if (_portal != null)
             {
                 var folderUri = new Uri(filePath, UriKind.Absolute).AbsoluteUri;
-                if (TryPortalRequest(() => _portal.OpenURIAsync(string.Empty, folderUri, new Dictionary<string, object>())))
+                if (TryPortalRequest(options => _portal.OpenURIAsync(string.Empty, folderUri, options)))
                 {
                     return true;
                 }
@@ -128,7 +129,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         if (_portal != null)
         {
             using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            if (TryPortalRequest(() => _portal.OpenFileAsync(string.Empty, stream.SafeFileHandle, new Dictionary<string, object>())))
+            if (TryPortalRequest(options => _portal.OpenFileAsync(string.Empty, stream.SafeFileHandle, options)))
             {
                 return true;
             }
@@ -147,7 +148,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         return _fallback.TryGetDesktopWallpaper(out wallpaper);
     }
 
-    private bool TryPortalRequest(Func<Task<ObjectPath>> requestFactory)
+    private bool TryPortalRequest(Func<IDictionary<string, object>, Task<ObjectPath>> requestFactory)
     {
         if (_connection == null)
         {
@@ -156,9 +157,14 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
 
         try
         {
-            var requestPath = requestFactory().GetAwaiter().GetResult();
-            var request = _connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-            var (response, _) = request.WaitForResponseAsync().GetAwaiter().GetResult();
+            var options = new Dictionary<string, object>();
+            var (response, _) = _connection
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => requestFactory(options))
+                .GetAwaiter()
+                .GetResult();
             return response == 0;
         }
         catch (Exception ex)

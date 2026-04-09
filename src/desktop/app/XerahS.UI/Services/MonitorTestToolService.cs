@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using XerahS.Core;
 using XerahS.Services.Abstractions;

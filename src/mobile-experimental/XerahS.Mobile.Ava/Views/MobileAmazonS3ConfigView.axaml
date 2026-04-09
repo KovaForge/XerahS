@@ -34,7 +34,7 @@
                         <TextBlock Text="Access Key ID" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <TextBox Text="{Binding AccessKeyId, Mode=TwoWay}"
-                                     Watermark="AKIA..."
+                                     PlaceholderText="AKIA..."
                                      Classes="adaptive-input"
                                      FontSize="13"
                                      input:TextInputOptions.AutoCapitalization="False"/>
@@ -50,7 +50,7 @@
                         <TextBlock Text="Secret Access Key" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <TextBox Text="{Binding SecretAccessKey, Mode=TwoWay}"
-                                     Watermark="Enter your secret key"
+                                     PlaceholderText="Enter your secret key"
                                      PasswordChar="*"
                                      Classes="adaptive-input"
                                      FontSize="13"/>
@@ -77,7 +77,7 @@
                         <TextBlock Text="Bucket Name" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <TextBox Text="{Binding BucketName, Mode=TwoWay}"
-                                     Watermark="my-bucket-name"
+                                     PlaceholderText="my-bucket-name"
                                      Classes="adaptive-input"
                                      FontSize="13"
                                      input:TextInputOptions.AutoCapitalization="False"/>
@@ -123,7 +123,7 @@
                     <StackPanel Spacing="4">
                         <TextBlock Text="Object Prefix" FontSize="13" FontWeight="SemiBold"/>
                         <TextBox Text="{Binding ObjectPrefix, Mode=TwoWay}"
-                                 Watermark="ShareX/%y/%mo"
+                                 PlaceholderText="ShareX/%y/%mo"
                                  Classes="adaptive-input"
                                  FontSize="13"
                                  input:TextInputOptions.AutoCapitalization="False"/>
@@ -137,7 +137,7 @@
                         <CheckBox Content="Use Custom Domain (CDN)"
                                   IsChecked="{Binding UseCustomDomain}"/>
                         <TextBox Text="{Binding CustomDomain, Mode=TwoWay}"
-                                 Watermark="https://cdn.example.com"
+                                 PlaceholderText="https://cdn.example.com"
                                  IsEnabled="{Binding UseCustomDomain}"
                                  Classes="adaptive-input"
                                  FontSize="13"

@@ -88,6 +88,8 @@ namespace XerahS.RegionCapture
 
             try
             {
+                System.Drawing.Point preferredScrollPoint = GetPreferredScrollPoint(captureRegion);
+
                 // Focus target window
                 _windowService.ActivateWindow(windowHandle);
                 await Task.Delay(200, cancellationToken);
@@ -95,7 +97,7 @@ namespace XerahS.RegionCapture
                 // Optionally scroll to top
                 if (autoScrollTop)
                 {
-                    await _scrollService.ScrollToTopAsync(windowHandle);
+                    await _scrollService.ScrollToTopAsync(windowHandle, preferredScrollPoint);
                     await Task.Delay(startDelayMs, cancellationToken);
                 }
 
@@ -211,7 +213,7 @@ namespace XerahS.RegionCapture
                     }
 
                     // Scroll
-                    await _scrollService.ScrollWindowAsync(windowHandle, scrollMethod, scrollAmount);
+                    await _scrollService.ScrollWindowAsync(windowHandle, scrollMethod, scrollAmount, preferredScrollPoint);
 
                     // Wait scroll delay, compensating for processing time
                     stopwatch.Stop();
@@ -239,6 +241,13 @@ namespace XerahS.RegionCapture
             }
 
             return result;
+        }
+
+        private static System.Drawing.Point GetPreferredScrollPoint(SKRect captureRegion)
+        {
+            int x = (int)MathF.Round(captureRegion.Left + (captureRegion.Width * 0.3f));
+            int y = (int)MathF.Round(captureRegion.Top + (captureRegion.Height * 0.5f));
+            return new System.Drawing.Point(x, y);
         }
 
         /// <summary>

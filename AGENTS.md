@@ -1,4 +1,4 @@
-﻿# XerahS Agent Instructions
+# XerahS Agent Instructions
 
 **XerahS** - The Avalonia UI implementation of ShareX.  
 **Copyright (c) 2007-2026 ShareX Team.**
@@ -8,9 +8,10 @@
 ## Critical Instructions
 1. **Build Integrity**
    - `dotnet build` must pass with **0 errors** before any push.
+   - Exception: if the only tracked change is a version-only bump in the root `Directory.Build.props`, a fresh `dotnet build` is not required before push. In that case, verify the diff is limited to the intended version change and keep the commit prefix aligned with the new version.
    - **Never** disable `<TreatWarningsAsErrors>`. Fix the warnings.
    - **Target Framework**: `net10.0-windows10.0.26100.0` (do not use `net10.0-windows` alone).
-   - **SkiaSharp**: stay on **2.88.9** (do not upgrade to 3.x).
+   - **SkiaSharp**: keep it aligned with the centrally managed version in root `Directory.Packages.props` (currently **3.119.3-preview.1.1**). Do not reintroduce the legacy `2.88.9` pin.
 
 2. **Build Timeouts**
    - Never wait more than **5 minutes** for a single build.
@@ -25,6 +26,7 @@
 4. **Git Workflow**
    - Sequence: stage (`git add .`) -> commit -> push.
    - Commit format: `[vX.Y.Z] [Type] Use concise description`.
+   - **Version prefix must use the next unreleased XerahS app version.** Read root `Directory.Build.props` `<Version>` and compare it with the highest existing XerahS tag (for example `git tag --sort=-v:refname | Select-Object -First 1`). Never use a version prefix that is lower than or equal to the latest tag. If the root version is not ahead of the latest tag, bump `Directory.Build.props` first, then use that bumped version in commit prefixes.
    - Exception: when committing inside shared library repos/submodules such as `ShareX.ImageEditor` (and other libraries shared with ShareX), omit the version prefix and use `[Type] Use concise description` because those commits must not carry the XerahS app version.
    - If verification passes and the user did not ask to pause, execute the workflow without waiting for extra permission.
 

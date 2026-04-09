@@ -35,7 +35,7 @@ internal sealed class HeadlessUIService : IUIService
 
     public Task RestoreMainWindowAsync() => Task.CompletedTask;
 
-    public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false) => Task.FromResult<SKBitmap?>(image);
+    public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false) => Task.FromResult<SKBitmap?>(image);
 
     public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
 
@@ -48,4 +48,16 @@ internal sealed class HeadlessUIService : IUIService
     }
 
     public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info) => Task.CompletedTask;
+
+    public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+    {
+        return Task.FromResult(new SendToPromptResult
+        {
+            Action = SendToAction.UploadNow,
+            IsFallback = true,
+            Reason = "Headless UI service cannot display the Send-to prompt."
+        });
+    }
+
+    public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
 }

@@ -74,6 +74,20 @@ jobs:
             throw "Inno Setup Compiler (ISCC.exe) was not found after installation."
           }
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          $toolList = dotnet tool list --global 2>&1
+          if ($toolList | Select-String 'wix') {
+            dotnet tool update --global wix
+          } else {
+            dotnet tool install --global wix
+          }
+          # Ensure dotnet tools directory is on PATH for subsequent steps.
+          $dotnetTools = Join-Path $env:USERPROFILE ".dotnet\tools"
+          "$dotnetTools" | Out-File -Append -FilePath $env:GITHUB_PATH
+          $env:PATH = "$dotnetTools;$env:PATH"
+
       - name: Build Windows packages
         shell: pwsh
         run: |
@@ -95,6 +109,8 @@ jobs:
           path: |
             dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
             dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.msi
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.msi
 
       - name: Upload Windows build log
         if: always()
@@ -258,7 +274,9 @@ jobs:
           name: ${{ needs.validate-version.outputs.release_title }}
           files: |
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
+            release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.msi
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
+            release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.msi
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-mac-arm64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-mac-x64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.tar.gz

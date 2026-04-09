@@ -52,7 +52,7 @@
 
         <!-- Action Buttons -->
         <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
-            <Grid Margin="24,16" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+            <Grid Margin="24,16" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
                 <Button Grid.Column="0" Content="Import..."
                         Command="{Binding ImportCommand}"
                         AutomationProperties.Name="Import Custom Uploader"/>
@@ -60,16 +60,21 @@
                         Command="{Binding ExportCommand}"
                         Margin="8,0,0,0"
                         AutomationProperties.Name="Export Custom Uploader"/>
+                <Button Grid.Column="2" Content="Test"
+                        Command="{Binding TestUploaderCommand}"
+                        Margin="8,0,0,0"
+                        IsEnabled="{Binding CanSave}"
+                        AutomationProperties.Name="Test Custom Uploader"/>
 
-                <Button Grid.Column="3" Content="Cancel"
+                <Button Grid.Column="4" Content="Cancel"
                         Command="{Binding CancelCommand}"
                         AutomationProperties.Name="Cancel"/>
-                <Button Grid.Column="4" Content="Save"
+                <Button Grid.Column="5" Content="Save to Plugins"
                         Command="{Binding SaveCommand}"
                         IsEnabled="{Binding CanSave}"
                         Classes="accent"
                         Margin="12,0,0,0"
-                        AutomationProperties.Name="Save Custom Uploader"/>
+                        AutomationProperties.Name="Save Custom Uploader to Plugins"/>
             </Grid>
         </Border>
     </Grid>

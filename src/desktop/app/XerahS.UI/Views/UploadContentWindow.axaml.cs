@@ -149,7 +149,7 @@ public partial class UploadContentWindow : SurfaceWindow
         {
             AcceptsReturn = true,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Watermark = "Enter text to upload..."
+            PlaceholderText = "Enter text to upload..."
         };
 
         var okButton = new Button { Content = "OK", MinWidth = 80, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
@@ -198,7 +198,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
         var textBox = new TextBox
         {
-            Watermark = "https://..."
+            PlaceholderText = "https://..."
         };
 
         var okButton = new Button { Content = "OK", MinWidth = 80 };

@@ -56,6 +56,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     private bool _disposed;
     private bool _stopRequested;
     private Timer? _durationTimer;
+    private string? _gstreamerOutputPath;
 
     private Connection? _connection;
     private IScreenCastPortal? _portal;
@@ -67,6 +68,20 @@ public sealed class WaylandPortalRecordingService : IRecordingService
 
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
+
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        // wf-recorder can be safely restarted without re-opening the portal session flow.
+        // Portal-backed GStreamer/FFmpeg recording requires a fresh portal session and should
+        // not be exposed through the shared segmented pause path.
+        return CanUseWfRecorder(options)
+            ? RecordingRuntimeCapabilities.SegmentedRestart
+            : new RecordingRuntimeCapabilities(
+                RecordingPauseBehavior.Unsupported,
+                RequiresPersistentSession: true);
+    }
 
     public Task StartRecordingAsync(RecordingOptions options)
     {
@@ -238,6 +253,10 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             // early check and this point.
             if (_stopRequested) { stderrOutput = string.Empty; return false; }
 
+            // Extract the output file path from the GStreamer args so we can check for
+            // partial recordings on failure. The path follows filesink location="..."
+            _gstreamerOutputPath = ExtractGStreamerOutputPath(args);
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = executable,
@@ -264,6 +283,32 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             if (process.ExitCode != 0)
             {
                 DebugHelper.WriteLine($"[WaylandPortalRecording] GStreamer stderr:\n{stderrOutput}");
+
+                // If the user did not request the stop through XerahS, the portal session
+                // may have been terminated externally (e.g. GNOME's screencast indicator).
+                // When that happens GStreamer receives a broken PipeWire stream and exits
+                // with a not-negotiated error, but it may have already flushed valid data
+                // to the segment file. Treat this as a successful (partial) recording
+                // rather than a fatal crash so the user gets their video.
+                if (!_stopRequested && !string.IsNullOrEmpty(_gstreamerOutputPath))
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(_gstreamerOutputPath);
+                        if (fileInfo.Exists && fileInfo.Length > 0)
+                        {
+                            DebugHelper.WriteLine(
+                                $"[WaylandPortalRecording] GStreamer exited with error but segment file exists " +
+                                $"({fileInfo.Length} bytes). Treating as external stop (partial recording recovered).");
+                            return false; // treat as success — don't retry, don't error
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteLine($"[WaylandPortalRecording] Error checking segment file: {ex.Message}");
+                    }
+                }
+
                 return !_stopRequested; // failed → caller should retry (unless user stopped)
             }
 
@@ -275,6 +320,36 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             stderrOutput = ex.Message;
             return false; // unexpected exception: don't retry
         }
+    }
+
+    /// <summary>
+    /// Extracts the output file path from a GStreamer pipeline argument string.
+    /// Looks for the filesink location="..." pattern.
+    /// </summary>
+    internal static string? ExtractGStreamerOutputPath(string args)
+    {
+        // Pattern: filesink location="/path/to/file.webm"
+        const string marker = "filesink location=";
+        int idx = args.IndexOf(marker, StringComparison.Ordinal);
+        if (idx < 0) return null;
+
+        int pathStart = idx + marker.Length;
+        if (pathStart >= args.Length) return null;
+
+        // Handle quoted path
+        if (args[pathStart] == '"')
+        {
+            int closeQuote = args.IndexOf('"', pathStart + 1);
+            return closeQuote > pathStart
+                ? args.Substring(pathStart + 1, closeQuote - pathStart - 1)
+                : null;
+        }
+
+        // Unquoted: take until next space
+        int spaceIdx = args.IndexOf(' ', pathStart);
+        return spaceIdx > pathStart
+            ? args.Substring(pathStart, spaceIdx - pathStart)
+            : args.Substring(pathStart);
     }
 
     /// <summary>
@@ -508,7 +583,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     private async Task InitializePortalSession(RecordingOptions options)
     {
         _connection = new Connection(Address.Session);
-        await _connection.ConnectAsync().ConfigureAwait(false);
+        var connectionInfo = await _connection.ConnectAsync().ConfigureAwait(false);
+        global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(_connection, connectionInfo);
         _portal = _connection.CreateProxy<IScreenCastPortal>(PortalBusName, PortalObjectPath);
 
         var createOptions = new Dictionary<string, object>
@@ -516,9 +592,12 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             ["session_handle_token"] = $"xerahs_sc_{Guid.NewGuid():N}"
         };
 
-        var createPath = await _portal.CreateSessionAsync(createOptions).ConfigureAwait(false);
-        var createRequest = _connection.CreateProxy<IPortalRequest>(PortalBusName, createPath);
-        var (createResponse, createResults) = await createRequest.WaitForResponseAsync().ConfigureAwait(false);
+        var (createResponse, createResults) = await _connection
+            .SendPortalRequestAsync(
+                PortalBusName,
+                createOptions,
+                () => _portal.CreateSessionAsync(createOptions))
+            .ConfigureAwait(false);
         if (createResponse != 0 ||
             !createResults.TryGetResult("session_handle", out string? sessionHandlePath) ||
             string.IsNullOrWhiteSpace(sessionHandlePath))
@@ -539,17 +618,24 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             ["persist_mode"] = (uint)2
         };
 
-        var selectPath = await _portal.SelectSourcesAsync(_sessionHandle.Value, selectOptions).ConfigureAwait(false);
-        var selectRequest = _connection.CreateProxy<IPortalRequest>(PortalBusName, selectPath);
-        var (selectResponse, _) = await selectRequest.WaitForResponseAsync().ConfigureAwait(false);
+        var (selectResponse, _) = await _connection
+            .SendPortalRequestAsync(
+                PortalBusName,
+                selectOptions,
+                () => _portal.SelectSourcesAsync(_sessionHandle.Value, selectOptions))
+            .ConfigureAwait(false);
         if (selectResponse != 0)
         {
             throw new PlatformNotSupportedException($"ScreenCast SelectSources failed ({selectResponse}).");
         }
 
-        var startPath = await _portal.StartAsync(_sessionHandle.Value, string.Empty, new Dictionary<string, object>()).ConfigureAwait(false);
-        var startRequest = _connection.CreateProxy<IPortalRequest>(PortalBusName, startPath);
-        var (startResponse, startResults) = await startRequest.WaitForResponseAsync().ConfigureAwait(false);
+        var startOptions = new Dictionary<string, object>();
+        var (startResponse, startResults) = await _connection
+            .SendPortalRequestAsync(
+                PortalBusName,
+                startOptions,
+                () => _portal.StartAsync(_sessionHandle.Value, string.Empty, startOptions))
+            .ConfigureAwait(false);
         if (startResponse != 0)
         {
             throw new PlatformNotSupportedException($"ScreenCast Start failed ({startResponse}).");

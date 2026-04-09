@@ -51,6 +51,35 @@
     </Content>
   </ItemGroup>
 
+  <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/ -->
+  <PropertyGroup>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(BuildingSolutionFile)' == 'true'">false</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">true</EnableAppDrivenPluginBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <_DiscoveredPluginProjects Include="$(RepoRoot)src\desktop\plugins\*\*.csproj" />
+  </ItemGroup>
+
+  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
+    <Message Text="[CLI Plugins] Auto-building discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
+  </Target>
+
+  <PropertyGroup>
+    <_PluginSourceDir>$(RepoRoot)src\desktop\plugins\AmazonS3.Plugin\bin\$(Configuration)\$(TargetFramework)</_PluginSourceDir>
+    <_PluginSourceDir Condition="'$(RuntimeIdentifier)' != ''">$(_PluginSourceDir)\$(RuntimeIdentifier)</_PluginSourceDir>
+    <_PluginSourceDir>$(_PluginSourceDir)\</_PluginSourceDir>
+  </PropertyGroup>
+
+  <Target Name="CopyPluginsToOutput" AfterTargets="BuildPlugins" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
+    <Message Text="[CLI Plugins] Copying built plugins to CLI output from $(_PluginSourceDir)..." Importance="High" />
+    <ItemGroup>
+      <_PluginFilesToCopy Include="$(_PluginSourceDir)*.dll" />
+      <_PluginFilesToCopy Include="$(_PluginSourceDir)plugin.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_PluginFilesToCopy)" DestinationFolder="$(OutDir)Plugins\amazons3" Condition="'@(_PluginFilesToCopy)' != ''" />
+  </Target>
+
   <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build">
     <Message Text="Copying watch folder daemon artifacts to CLI output..." Importance="High" />
 

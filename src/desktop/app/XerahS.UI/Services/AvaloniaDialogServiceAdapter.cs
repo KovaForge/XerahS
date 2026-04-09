@@ -64,7 +64,7 @@ public sealed class AvaloniaDialogServiceAdapter : IDialogService
         string? result = null;
 
         var dialog = CreateDialog(title, 420, 200);
-        var textBox = new TextBox { Text = defaultValue ?? "", Watermark = label };
+        var textBox = new TextBox { Text = defaultValue ?? "", PlaceholderText = label };
 
         var panel = new StackPanel { Margin = new Thickness(20), Spacing = 14 };
         panel.Children.Add(new TextBlock { Text = label, FontSize = 14 });

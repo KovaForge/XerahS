@@ -59,10 +59,6 @@ namespace XerahS.UI.ViewModels
             ".tiff"
         };
 
-        // Converter for view toggle button text
-        public static IValueConverter ViewToggleConverter { get; } = new FuncValueConverter<bool, string>(
-            isGrid => isGrid ? "📋 List View" : "🔲 Grid View");
-
         // Converter to load thumbnail from file path (resource-efficient)
         public static IValueConverter ThumbnailConverter { get; } = new FuncValueConverter<string?, Bitmap?>(
             filePath =>
@@ -359,7 +355,7 @@ namespace XerahS.UI.ViewModels
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
-                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap);
+                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
             }
             catch (Exception ex)
             {

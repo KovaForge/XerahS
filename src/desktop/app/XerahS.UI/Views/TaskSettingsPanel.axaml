@@ -64,7 +64,7 @@
                                         <!-- Window Title -->
                                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Window title:" VerticalAlignment="Center" Margin="0,16,0,0"/>
                                         <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding CaptureCustomWindow, UpdateSourceTrigger=PropertyChanged}" 
-                                                 Watermark="Window title to capture (CustomWindow job)" Margin="0,16,0,0" AutomationProperties.Name="Window Title"/>
+                                                 PlaceholderText="Window title to capture (CustomWindow job)" Margin="0,16,0,0" AutomationProperties.Name="Window Title"/>
                                     </Grid>
 
                                     <StackPanel Spacing="10">
@@ -109,7 +109,7 @@
                             <StackPanel Spacing="16">
                                 <Grid ColumnDefinitions="Auto, 16, *, Auto">
                                     <TextBlock Grid.Column="0" Text="Folder:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="2" Text="{Binding IndexerFolderPath}" Watermark="Folder to index" AutomationProperties.Name="Indexer Folder"/>
+                                    <TextBox Grid.Column="2" Text="{Binding IndexerFolderPath}" PlaceholderText="Folder to index" AutomationProperties.Name="Indexer Folder"/>
                                     <Button Grid.Column="3" Content="Browse..." Command="{Binding BrowseIndexerFolderCommand}" Margin="16,0,0,0"/>
                                 </Grid>
 
@@ -217,7 +217,8 @@
                                     <ComboBox ItemsSource="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).AvailableDestinations}"
                                               SelectedItem="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).SelectedDestination}"
                                               HorizontalAlignment="Stretch"
-                                              AutomationProperties.Name="Select Destination">
+                                              AutomationProperties.Name="Select Destination"
+                                              ToolTip.Tip="Auto tries your configured uploaders in order until one succeeds. Any other destination uploads only to that uploader (configure it under Destination Settings). See documentation for details on image uploads and fallback behavior.">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                                  <StackPanel Orientation="Horizontal" Spacing="8">

@@ -131,6 +131,9 @@ namespace XerahS.Core.Managers
             task.Info.DataType = EDataType.File;
             task.Info.Job = TaskJob.FileUpload;
 
+            string extension = Path.GetExtension(filePath);
+            task.Info.SetFileName(TaskHelpers.GetFileName(safeTaskSettings, extension, task.Info.Metadata));
+
             // Add task and cleanup old tasks to prevent unbounded growth
             lock (_tasksLock)
             {

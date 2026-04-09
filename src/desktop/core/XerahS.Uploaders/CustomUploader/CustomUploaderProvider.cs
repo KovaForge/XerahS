@@ -38,13 +38,14 @@ public class CustomUploaderProvider : IUploaderProvider
     private readonly CustomUploaderItem _item;
     private readonly string _filePath;
     private readonly string _providerId;
+    private readonly CustomUploaderXerahSMetadata? _metadata;
 
     /// <summary>
     /// Creates a new CustomUploaderProvider from a loaded custom uploader.
     /// </summary>
     /// <param name="loadedUploader">The loaded custom uploader from repository.</param>
     public CustomUploaderProvider(LoadedCustomUploader loadedUploader)
-        : this(loadedUploader.Item, loadedUploader.FilePath)
+        : this(loadedUploader.Item, loadedUploader.FilePath, loadedUploader.Metadata)
     {
     }
 
@@ -53,10 +54,12 @@ public class CustomUploaderProvider : IUploaderProvider
     /// </summary>
     /// <param name="item">The custom uploader configuration.</param>
     /// <param name="filePath">Source file path (used for ID generation).</param>
-    public CustomUploaderProvider(CustomUploaderItem item, string filePath)
+    /// <param name="metadata">Optional XerahS-specific metadata loaded from the source file.</param>
+    public CustomUploaderProvider(CustomUploaderItem item, string filePath, CustomUploaderXerahSMetadata? metadata = null)
     {
         _item = item ?? throw new ArgumentNullException(nameof(item));
         _filePath = filePath;
+        _metadata = metadata?.Normalize();
 
         // Generate a stable provider ID based on name and file
         _providerId = GenerateProviderId(item, filePath);
@@ -155,6 +158,11 @@ public class CustomUploaderProvider : IUploaderProvider
     /// The underlying CustomUploaderItem configuration.
     /// </summary>
     public CustomUploaderItem Item => _item;
+
+    /// <summary>
+    /// Optional XerahS-specific metadata loaded from the source file.
+    /// </summary>
+    public CustomUploaderXerahSMetadata? Metadata => _metadata;
 
     /// <inheritdoc/>
     public object? CreateConfigView()

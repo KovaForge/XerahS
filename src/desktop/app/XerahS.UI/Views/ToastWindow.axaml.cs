@@ -44,6 +44,7 @@ public partial class ToastWindow : OverlayWindow
     private ToastConfig? _config;
     private bool _isDragging;
     private Avalonia.Point _dragStart;
+    private PointerPressedEventArgs? _dragStartEventArgs;
     private Border? _urlOverlay;
     private Border? _flyoutHost;
 
@@ -162,6 +163,7 @@ public partial class ToastWindow : OverlayWindow
         {
             _dragStart = point.Position;
             _isDragging = true;
+            _dragStartEventArgs = e;
         }
     }
 
@@ -190,6 +192,7 @@ public partial class ToastWindow : OverlayWindow
         }
 
         _isDragging = false;
+        _dragStartEventArgs = null;
     }
 
     private async void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -223,7 +226,10 @@ public partial class ToastWindow : OverlayWindow
             dataTransfer.Add(DataTransferItem.CreateFile(storageFile));
 
             // Start drag operation
-            await DragDrop.DoDragDropAsync(e, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            if (_dragStartEventArgs != null)
+            {
+                await DragDrop.DoDragDropAsync(_dragStartEventArgs, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            }
         }
     }
 

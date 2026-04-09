@@ -37,6 +37,17 @@ internal static class GnomeDbusScreenCapture
     private const string GnomeShellScreenshotBusName = "org.gnome.Shell.Screenshot";
     private static readonly ObjectPath GnomeShellScreenshotObjectPath = new("/org/gnome/Shell/Screenshot");
 
+    public static Task<SKBitmap?> CaptureAreaAsync(SKRectI rect)
+    {
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            DebugHelper.WriteLine("LinuxScreenCaptureService: GNOME Shell area capture skipped because the requested rectangle is empty.");
+            return Task.FromResult<SKBitmap?>(null);
+        }
+
+        return CaptureAreaAsync(rect.Left, rect.Top, rect.Width, rect.Height, "area");
+    }
+
     public static async Task<SKBitmap?> CaptureFullScreenAsync()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_gnome_{Guid.NewGuid():N}.png");
@@ -100,9 +111,6 @@ internal static class GnomeDbusScreenCapture
 
     public static async Task<SKBitmap?> CaptureRegionAsync()
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_gnome_region_{Guid.NewGuid():N}.png");
-        var cleanupPaths = new HashSet<string>(StringComparer.Ordinal) { tempFile };
-
         try
         {
             using var connection = new Connection(Address.Session);
@@ -126,9 +134,7 @@ internal static class GnomeDbusScreenCapture
                 return null;
             }
 
-            var (success, filenameUsed) = await proxy.ScreenshotAreaAsync(x, y, width, height, flash: false, filename: tempFile).ConfigureAwait(false);
-            if (!success) return null;
-            return await TryLoadBitmapFromPathAsync(tempFile, filenameUsed, cleanupPaths).ConfigureAwait(false);
+            return await CaptureAreaAsync(x, y, width, height, "region").ConfigureAwait(false);
         }
         catch (DBusException ex)
         {
@@ -138,6 +144,36 @@ internal static class GnomeDbusScreenCapture
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"LinuxScreenCaptureService: GNOME Shell region D-Bus capture failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static async Task<SKBitmap?> CaptureAreaAsync(int x, int y, int width, int height, string operation)
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_gnome_{operation}_{Guid.NewGuid():N}.png");
+        var cleanupPaths = new HashSet<string>(StringComparer.Ordinal) { tempFile };
+
+        try
+        {
+            using var connection = new Connection(Address.Session);
+            await connection.ConnectAsync().ConfigureAwait(false);
+            var proxy = connection.CreateProxy<IGnomeShellScreenshot>(GnomeShellScreenshotBusName, GnomeShellScreenshotObjectPath);
+            var (success, filenameUsed) = await proxy.ScreenshotAreaAsync(x, y, width, height, flash: false, filename: tempFile).ConfigureAwait(false);
+            if (!success)
+            {
+                return null;
+            }
+
+            return await TryLoadBitmapFromPathAsync(tempFile, filenameUsed, cleanupPaths).ConfigureAwait(false);
+        }
+        catch (DBusException ex)
+        {
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: GNOME Shell {operation} D-Bus capture failed: {ex.ErrorName} ({ex.ErrorMessage})");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: GNOME Shell {operation} D-Bus capture failed: {ex.Message}");
             return null;
         }
         finally

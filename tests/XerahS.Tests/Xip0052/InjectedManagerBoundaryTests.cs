@@ -48,6 +48,24 @@ public class InjectedManagerBoundaryTests
     }
 
     [Test]
+    public async Task RecordingViewModel_PauseResumeCommand_DoesNotToggleWhenCoordinatorDisablesPause()
+    {
+        var coordinator = new FakeScreenRecordingCoordinator
+        {
+            CurrentCapabilities = RecordingRuntimeCapabilities.None
+        };
+
+        using var viewModel = new RecordingViewModel(coordinator)
+        {
+            CanPauseResume = true
+        };
+
+        await viewModel.PauseResumeCommand.ExecuteAsync(null);
+
+        Assert.That(coordinator.TogglePauseResumeCalls, Is.EqualTo(0));
+    }
+
+    [Test]
     public async Task RecordingViewModel_AbortCommand_UsesInjectedCoordinator()
     {
         var coordinator = new FakeScreenRecordingCoordinator();

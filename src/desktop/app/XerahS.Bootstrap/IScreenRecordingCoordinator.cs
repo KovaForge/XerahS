@@ -40,6 +40,7 @@ namespace XerahS.Bootstrap
         bool IsRecording { get; }
         bool IsPaused { get; }
         bool IsUsingFallback { get; }
+        RecordingRuntimeCapabilities CurrentCapabilities { get; }
         Task? PlatformInitializationTask { get; set; }
 
         Task StartRecordingAsync(RecordingOptions options);

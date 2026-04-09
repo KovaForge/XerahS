@@ -63,6 +63,15 @@ build_log.txt
 /build/publish-temp-win-arm64
 /build/publish-temp-win-x64
 
+# AUR build artifacts (makepkg outputs)
+/build/linux/aur/xerahs-git/src/
+/build/linux/aur/xerahs-git/pkg/
+/build/linux/aur/xerahs-git/XerahS/
+/build/linux/aur/xerahs-git/*.pkg.tar.zst
+/build/linux/aur/xerahs-git/.PKGINFO
+/build/linux/aur/xerahs-git/.BUILDINFO
+/build/linux/aur/xerahs-git/.MTREE
+
 # Local iOS bundle id override files
 src/XerahS.Mobile.iOS/Main.BundleId.plist
 src/XerahS.Mobile.iOS.ShareExtension/ShareExtension.BundleId.plist

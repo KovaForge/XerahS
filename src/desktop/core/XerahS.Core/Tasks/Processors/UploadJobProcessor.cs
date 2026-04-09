@@ -36,16 +36,16 @@ namespace XerahS.Core.Tasks.Processors
 {
     public class UploadJobProcessor : IJobProcessor
     {
-        public async Task ProcessAsync(TaskInfo info, CancellationToken token)
+        public async Task<bool> ProcessAsync(TaskInfo info, CancellationToken token)
         {
-            if (!info.IsUploadJob) return;
-            if (token.IsCancellationRequested) return;
+            if (!info.IsUploadJob) return true;
+            if (token.IsCancellationRequested) return true;
 
             if (info.Result != null && !info.Result.IsError && !string.IsNullOrEmpty(info.Result.URL))
             {
                 DebugHelper.WriteLine("Upload already completed during capture; running after-upload tasks.");
                 await HandleAfterUploadTasksAsync(info, info.Result, token);
-                return;
+                return true;
             }
 
             // TODO: Handle URL Shortening, URL Sharing logic separate? Or combined?
@@ -107,6 +107,8 @@ namespace XerahS.Core.Tasks.Processors
                     Response = "Upload failed: uploader returned no result."
                 };
             }
+
+            return true;
         }
 
         private UploadResult? Upload(TaskInfo info)
@@ -295,7 +297,34 @@ namespace XerahS.Core.Tasks.Processors
 
             if (allInstances.Count == 0)
             {
-                DebugHelper.WriteLine($"No available uploaders for category {category} (excluding already attempted).");
+                // Ensure we have an auto destination for File category
+                var targetInstance = category == UploaderCategory.File ? EnsureAutoFileDestinationInstance(instanceManager) : null;
+
+                // Prevent infinite recursion: if the auto instance was already attempted, don't try again
+                if (targetInstance != null && attemptedInstanceIds.Contains(targetInstance.InstanceId))
+                {
+                    DebugHelper.WriteLine($"Auto instance {targetInstance.InstanceId} already attempted; skipping to avoid recursion.");
+                    return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
+                }
+
+                if (targetInstance == null)
+                {
+                    DebugHelper.WriteLine($"No available uploaders for category {category} (excluding already attempted).");
+                }
+                else
+                {
+                    // Try the auto instance as a last resort
+                    DebugHelper.WriteLine($"Trying auto destination: {targetInstance.InstanceId}");
+                    attemptedInstanceIds.Add(targetInstance.InstanceId);
+                    var primaryResult = TryUploadWithInstance(targetInstance, info);
+                    if (IsSuccessfulUploadResult(primaryResult))
+                    {
+                        return primaryResult;
+                    }
+
+                    var errorMsg = primaryResult?.Errors?.ToString() ?? primaryResult?.Response ?? "Unknown error";
+                    DebugHelper.WriteLine($"Auto uploader failed ({errorMsg}), no more fallbacks available.");
+                }
             }
             else
             {
@@ -328,7 +357,7 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine($"All uploaders in category {category} failed: {allErrors}");
             }
 
-            // If primary category failed (or had no uploaders), try File category as fallback
+            // If primary category failed (or had no uploaders), try cross-category fallback
             if (category != UploaderCategory.File)
             {
                 DebugHelper.WriteLine($"Trying File category uploaders as fallback...");
@@ -339,7 +368,29 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
-            return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and File fallback." };
+            // If File category failed and the file is an image, try Image-category uploaders
+            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsImageFile(info.FileName))
+            {
+                DebugHelper.WriteLine("File is an image; trying Image category uploaders as fallback...");
+                var imageFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Image, info, excludeInstanceId, attemptedInstanceIds);
+                if (imageFallbackResult != null && !imageFallbackResult.IsError && !string.IsNullOrEmpty(imageFallbackResult.URL))
+                {
+                    return imageFallbackResult;
+                }
+            }
+
+            // If File category failed and the file is text-based, try Text-category uploaders
+            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsTextFile(info.FileName))
+            {
+                DebugHelper.WriteLine("File is text-based; trying Text category uploaders as fallback...");
+                var textFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Text, info, excludeInstanceId, attemptedInstanceIds);
+                if (textFallbackResult != null && !textFallbackResult.IsError && !string.IsNullOrEmpty(textFallbackResult.URL))
+                {
+                    return textFallbackResult;
+                }
+            }
+
+            return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
         }
 
         /// <summary>
@@ -421,7 +472,7 @@ namespace XerahS.Core.Tasks.Processors
                     return uploader switch
                     {
                         FileUploader fileUploader => fileUploader.UploadFile(info.FilePath),
-                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info.FilePath),
+                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
                         _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
                     };
                 }
@@ -480,6 +531,13 @@ namespace XerahS.Core.Tasks.Processors
         {
             using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return uploader.Upload(stream, Path.GetFileName(filePath));
+        }
+
+        private static UploadResult UploadWithGenericUploader(GenericUploader uploader, TaskInfo info)
+        {
+            using FileStream stream = new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            string fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
+            return uploader.Upload(stream, fileName);
         }
 
         private static bool IsSuccessfulUploadResult(UploadResult? result)

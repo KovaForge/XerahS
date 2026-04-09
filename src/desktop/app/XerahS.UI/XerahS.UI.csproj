@@ -42,6 +42,10 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Remove="_Onboarding_DISABLED_\**" />
+    <Compile Remove="_Onboarding_DISABLED_\**" />
+    <EmbeddedResource Remove="_Onboarding_DISABLED_\**" />
+    <None Remove="_Onboarding_DISABLED_\**" />
   </ItemGroup>
 </Project>
 

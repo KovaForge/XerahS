@@ -5,7 +5,7 @@ Total items: `8`
 ## Build & Dependency Gates (`3`)
 - [ ] NF-BUILD-CLEAN net10.0-windows10.0.26100.0 builds with 0 errors
 - [ ] NF-WARN-NO-NEW-WARNINGS no new warnings introduced (TreatWarningsAsErrors respected)
-- [ ] NF-SKIA-2.88.9 SkiaSharp version remains `2.88.9`
+- [ ] NF-SKIA-VERSION SkiaSharp version remains aligned with root `Directory.Packages.props`
 
 ## Runtime / Smoke Gates (`5`)
 - [ ] NF-RUNTIME-SMOKE App starts; no immediate exceptions; core UI usable

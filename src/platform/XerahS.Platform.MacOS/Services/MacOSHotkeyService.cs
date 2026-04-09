@@ -48,6 +48,11 @@ namespace XerahS.Platform.MacOS.Services
         private bool _hookRunning;
 
         public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
+        public event EventHandler? HotkeysChanged
+        {
+            add { }
+            remove { }
+        }
 
         public MacOSHotkeyService()
         {

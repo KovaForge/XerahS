@@ -24,10 +24,12 @@
 #endregion License Information (GPL v3)
 
 using System.Collections.Generic;
+using System.Drawing;
 using System.Threading;
 using NUnit.Framework;
 using SkiaSharp;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Linux;
 using XerahS.Platform.Linux.Capture.Contracts;
 using XerahS.Platform.Linux.Capture.Detection;
 using XerahS.Platform.Linux.Capture.Orchestration;
@@ -241,6 +243,27 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void PortalProvider_GnomeWaylandOverlayFollowUp_SkipsPortalReentry()
+    {
+        var runtime = new NoOpRuntime();
+        var portalProvider = new PortalCaptureProvider(runtime);
+        var request = new LinuxCaptureRequest(
+            LinuxCaptureKind.FullScreen,
+            new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true });
+
+        var gnomeContext = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+        var kdeContext = new LinuxCaptureContext(isWayland: true, desktop: "KDE", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(portalProvider.CanHandle(request, gnomeContext), Is.False,
+                "Portal must not reopen after an overlay selection on GNOME Wayland.");
+            Assert.That(portalProvider.CanHandle(request, kdeContext), Is.True,
+                "The guard is specific to GNOME overlay follow-up capture.");
+        });
+    }
+
+    [Test]
     public async Task Coordinator_CancelledProvider_StopsFurtherFallback()
     {
         int portalCalls = 0;
@@ -310,6 +333,130 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void LinuxScreenCaptureService_GnomeWaylandTransparentOverlay_UsesDirectAreaCapture()
+    {
+        var context = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions { UseTransparentOverlay = true };
+
+        Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(options, context), Is.True);
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_GnomeWaylandOverlayFollowUp_UsesDirectAreaCaptureAndSkipsPortal()
+    {
+        var context = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(options, context), Is.True);
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(options, context), Is.True);
+        });
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_GnomeWaylandOverlayFollowUp_DirectAreaFailure_RestoresLegacyFullscreenFallback()
+    {
+        var context = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions
+        {
+            LinuxDisallowPortalAfterOverlaySelection = true,
+            UseTransparentOverlay = true,
+            WorkflowId = "rectangle-transparent",
+            WorkflowCategory = "ScreenCapture",
+            VirtualScreenBoundsForCrop = new Rectangle(10, 20, 300, 200),
+            PhysicalVirtualScreenBoundsForCrop = new Rectangle(0, 0, 600, 400),
+            PhysicalRectForCrop = new Rectangle(100, 120, 200, 140)
+        };
+
+        var fallbackOptions = LinuxScreenCaptureService.CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, context);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fallbackOptions, Is.Not.Null);
+            Assert.That(fallbackOptions, Is.Not.SameAs(options));
+            Assert.That(fallbackOptions!.LinuxDisallowPortalAfterOverlaySelection, Is.False);
+            Assert.That(fallbackOptions.UseTransparentOverlay, Is.False);
+            Assert.That(fallbackOptions.WorkflowId, Is.EqualTo("rectangle-transparent"));
+            Assert.That(fallbackOptions.WorkflowCategory, Is.EqualTo("ScreenCapture"));
+            Assert.That(fallbackOptions.VirtualScreenBoundsForCrop, Is.EqualTo(new Rectangle(10, 20, 300, 200)));
+            Assert.That(fallbackOptions.PhysicalVirtualScreenBoundsForCrop, Is.EqualTo(new Rectangle(0, 0, 600, 400)));
+            Assert.That(fallbackOptions.PhysicalRectForCrop, Is.EqualTo(new Rectangle(100, 120, 200, 140)));
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(fallbackOptions, context), Is.False);
+        });
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_DirectAreaFailureFallback_NonGuardedContexts_ReturnOriginalOptions()
+    {
+        var kdeContext = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "KDE",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var options = new CaptureOptions
+        {
+            LinuxDisallowPortalAfterOverlaySelection = true,
+            UseTransparentOverlay = true
+        };
+
+        var fallbackOptions = LinuxScreenCaptureService.CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, kdeContext);
+
+        Assert.That(fallbackOptions, Is.SameAs(options));
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_DirectAreaCapture_IsNotUsedForKdeOrNonTransparentCapture()
+    {
+        var gnomeContext = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "GNOME",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+        var kdeContext = new LinuxCaptureContext(
+            isWayland: true,
+            desktop: "KDE",
+            compositor: "WAYLAND",
+            isSandboxed: false,
+            hasScreenshotPortal: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = false }, gnomeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = true }, kdeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { UseTransparentOverlay = true }, new LinuxCaptureContext(false, "GNOME", "X11", false, true)), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldUseDirectGnomeAreaCapture(new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true }, kdeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true }, kdeContext), Is.False);
+            Assert.That(LinuxScreenCaptureService.ShouldSkipPortalAfterOverlaySelection(new CaptureOptions { LinuxDisallowPortalAfterOverlaySelection = true }, new LinuxCaptureContext(false, "GNOME", "X11", false, true)), Is.False);
+        });
+    }
+
+    [Test]
+    public void LinuxScreenCaptureService_CreateDirectAreaCaptureRect_RoundsOutward()
+    {
+        var rect = LinuxScreenCaptureService.CreateDirectAreaCaptureRect(new SKRect(10.2f, 20.4f, 110.6f, 220.1f));
+
+        Assert.That(rect, Is.EqualTo(new SKRectI(10, 20, 111, 221)));
+    }
+
+    [Test]
     public void LinuxRegionCaptureCapabilityDetector_X11WithoutNativeSelector_UsesOverlayFallback()
     {
         var context = new LinuxCaptureContext(isWayland: false, desktop: "XFCE", compositor: "X11", isSandboxed: false, hasScreenshotPortal: true);
@@ -371,7 +518,7 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
-    public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_RequiresNativePathOnly()
+    public void LinuxRegionCaptureCapabilityDetector_WaylandWithPortal_SupportsNativeAndOverlay()
     {
         var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
         var capability = LinuxRegionCaptureCapabilityDetector.Detect(
@@ -384,7 +531,7 @@ public class LinuxCaptureOrchestrationTests
         Assert.Multiple(() =>
         {
             Assert.That(capability.SupportsNativeRegionCapture, Is.True);
-            Assert.That(capability.SupportsLegacyOverlayCapture, Is.False);
+            Assert.That(capability.SupportsLegacyOverlayCapture, Is.True);
             Assert.That(capability.Reason, Does.Contain("XDG Screenshot portal"));
         });
     }

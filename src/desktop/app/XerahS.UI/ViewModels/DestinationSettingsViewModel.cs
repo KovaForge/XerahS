@@ -47,6 +47,9 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     [ObservableProperty]
     private CategoryViewModel? _selectedCategory;
 
+    [ObservableProperty]
+    private bool _showImportShareXConfig;
+
     private readonly IViewDialogService _dialogService;
     private readonly IDialogService _coreDialogService;
     private readonly IUiViewModelFactory _uiViewModelFactory;
@@ -103,6 +106,10 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         Common.DebugHelper.WriteLine("[DestinationSettings] ========================================");
 
         LoadCategories();
+
+        // Show the one-time legacy import button only on the first app run.
+        ShowImportShareXConfig = SettingsManager.Settings.IsFirstTimeRun;
+
         _isInitialized = true;
     }
 
@@ -138,6 +145,11 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     {
         var categoryVm = Categories.FirstOrDefault(c => c.Category == category);
         categoryVm?.LoadInstances();
+    }
+
+    partial void OnSelectedCategoryChanged(CategoryViewModel? value)
+    {
+        value?.LoadInstances();
     }
 
     [RelayCommand]
@@ -179,18 +191,14 @@ public partial class DestinationSettingsViewModel : ViewModelBase
 
             if (customUploaderExport.ExportedCount > 0 || customUploaderExport.SkippedCount > 0)
             {
-                ProviderCatalog.LoadCustomUploaders(customUploaderExport.PluginsPath);
-
-                // Auto-create instances for newly exported custom uploaders
                 foreach (var filePath in customUploaderExport.ExportedFilePaths)
                 {
-                    AutoCreateCustomUploaderInstances(filePath, customUploaderExport);
+                    var instanceResult = EnsureCustomUploaderInstances(filePath);
+                    customUploaderExport.InstancesCreated += instanceResult.CreatedInstances.Count;
+                    customUploaderExport.InstancesSkipped += instanceResult.SkippedCategories.Count;
                 }
 
-                foreach (var category in Categories)
-                {
-                    category.LoadInstances();
-                }
+                RefreshCategories(Categories.Select(category => category.Category));
             }
 
             // Migrate built-in provider settings (S3, FTP, Pastebin, Imgur)
@@ -274,17 +282,11 @@ public partial class DestinationSettingsViewModel : ViewModelBase
 
                 if (CustomUploaderRepository.SaveToFile(item, filePath))
                 {
-                    // Reload custom uploaders to include the new one
-                    ProviderCatalog.LoadCustomUploaders(pluginsPath);
-
-                    // Refresh all categories to show the new uploader
-                    foreach (var category in Categories)
-                    {
-                        category.LoadInstances();
-                    }
+                    var instanceResult = EnsureCustomUploaderInstances(filePath);
+                    RefreshCategories(instanceResult.AffectedCategories);
 
                     await ShowMessageDialogAsync("Custom Uploader Created",
-                        $"Custom uploader '{item.Name}' has been saved and is now available in the catalog.");
+                        BuildCustomUploaderCreatedMessage(item.Name, instanceResult));
                 }
                 else
                 {
@@ -300,46 +302,103 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         }
     }
 
-    private static void AutoCreateCustomUploaderInstances(string filePath, CustomUploaderExportResult exportResult)
+    private CustomUploaderInstanceCreationResult EnsureCustomUploaderInstances(string filePath)
     {
-        string baseName = Path.GetFileNameWithoutExtension(filePath);
-        string slug = System.Text.RegularExpressions.Regex.Replace(
-            baseName.ToLowerInvariant(), @"[^a-z0-9]+", "_").Trim('_');
-        if (string.IsNullOrEmpty(slug)) slug = "unknown";
-        string providerId = $"custom_{slug}";
-
-        var provider = ProviderCatalog.GetProvider(providerId);
-        if (provider == null) return;
-
-        foreach (var category in provider.SupportedCategories)
+        if (!ProviderCatalog.ReloadCustomUploader(filePath))
         {
-            bool alreadyExists = InstanceManager.Instance
-                .GetInstancesByCategory(category)
-                .Any(i => string.Equals(i.ProviderId, providerId, StringComparison.OrdinalIgnoreCase));
-
-            if (alreadyExists)
-            {
-                exportResult.InstancesSkipped++;
-                continue;
-            }
-
-            try
-            {
-                InstanceManager.Instance.AddInstance(new UploaderInstance
-                {
-                    ProviderId = providerId,
-                    Category = category,
-                    DisplayName = provider.Name,
-                    SettingsJson = provider.GetDefaultSettings(category),
-                    FileTypeRouting = new FileTypeScope { AllFileTypes = true }
-                });
-                exportResult.InstancesCreated++;
-            }
-            catch (Exception ex)
-            {
-                Common.DebugHelper.WriteException(ex, $"[DestinationSettings] Failed to auto-create instance for {providerId}/{category}");
-            }
+            ProviderCatalog.LoadCustomUploaders(Path.GetDirectoryName(filePath) ?? PathsManager.PluginsFolder);
         }
+
+        var provider = CustomUploaderDefinitionBindingService.GetProviderByFilePath(filePath);
+        if (provider == null)
+        {
+            Common.DebugHelper.WriteLine($"[DestinationSettings] Failed to resolve custom uploader provider for: {filePath}");
+            return new CustomUploaderInstanceCreationResult();
+        }
+
+        var result = CustomUploaderDefinitionBindingService.CreateMissingInstances(provider);
+
+        try
+        {
+            var boundInstanceIds = CustomUploaderDefinitionBindingService.GetBoundInstanceIds(provider.ProviderId);
+            CustomUploaderDefinitionBindingService.SaveDefinition(provider.Item, provider.FilePath, boundInstanceIds);
+            ProviderCatalog.ReloadCustomUploader(provider.FilePath);
+        }
+        catch (Exception ex)
+        {
+            Common.DebugHelper.WriteException(ex, $"[DestinationSettings] Failed to update custom uploader metadata for {provider.ProviderId}");
+        }
+
+        return result;
+    }
+
+    private void RefreshCategories(IEnumerable<UploaderCategory> categories)
+    {
+        var categorySet = categories.Distinct().ToHashSet();
+
+        if (categorySet.Count == 0)
+        {
+            foreach (var category in Categories)
+            {
+                category.LoadInstances();
+            }
+
+            return;
+        }
+
+        foreach (var category in Categories.Where(category => categorySet.Contains(category.Category)))
+        {
+            category.LoadInstances();
+        }
+    }
+
+    private static string BuildCustomUploaderCreatedMessage(string uploaderName, CustomUploaderInstanceCreationResult instanceResult)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine($"Custom uploader '{uploaderName}' has been saved to Plugins.");
+
+        if (instanceResult.CreatedInstances.Count > 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine($"Created {instanceResult.CreatedInstances.Count} destination instance(s): {FormatCategoryList(instanceResult.CreatedInstances.Select(instance => instance.Category))}.");
+        }
+
+        if (instanceResult.SkippedCategories.Count > 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine($"Existing instance bindings were reused for: {FormatCategoryList(instanceResult.SkippedCategories)}.");
+        }
+
+        if (instanceResult.CreatedInstances.Count == 0 && instanceResult.SkippedCategories.Count == 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine("No destination categories were updated.");
+        }
+        else
+        {
+            builder.AppendLine();
+            builder.Append("The uploader is ready to use without Add from Catalog.");
+        }
+
+        return builder.ToString();
+    }
+
+    private static string FormatCategoryList(IEnumerable<UploaderCategory> categories)
+    {
+        var labels = categories
+            .Distinct()
+            .Select(category => category switch
+            {
+                UploaderCategory.Image => "Image Uploaders",
+                UploaderCategory.Text => "Text Uploaders",
+                UploaderCategory.File => "File Uploaders",
+                UploaderCategory.UrlShortener => "URL Shorteners",
+                UploaderCategory.UrlSharing => "URL Sharing",
+                _ => category.ToString()
+            })
+            .ToList();
+
+        return labels.Count > 0 ? string.Join(", ", labels) : "None";
     }
 
     private static string MakeSafeFileName(string name)
@@ -494,12 +553,13 @@ public partial class DestinationSettingsViewModel : ViewModelBase
             if (customUploaderExport.InstancesCreated > 0)
             {
                 builder.AppendLine();
-                builder.Append($"Auto-created {customUploaderExport.InstancesCreated} destination instance(s) — ready to use.");
+                builder.Append($"Auto-created {customUploaderExport.InstancesCreated} destination instance(s) - ready to use.");
             }
-            else if (customUploaderExport.ExportedCount > 0)
+
+            if (customUploaderExport.InstancesSkipped > 0)
             {
                 builder.AppendLine();
-                builder.Append("Next step: use \"Add from Catalog\" to create destination instances from imported custom uploaders.");
+                builder.Append($"Reused {customUploaderExport.InstancesSkipped} existing destination binding(s) without creating duplicates.");
             }
         }
 

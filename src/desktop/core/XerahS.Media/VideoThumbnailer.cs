@@ -208,14 +208,15 @@ namespace XerahS.Media
                 string infoString = "";
                 int infoStringHeight = 0;
 
-                using (SKPaint fontPaint = new SKPaint { TextSize = 12, Typeface = SKTypeface.FromFamilyName("Arial"), Color = SKColors.Black, IsAntialias = true })
+                using (SKPaint fontPaint = new SKPaint { Color = SKColors.Black, IsAntialias = true })
+                using (SKFont infoFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 12))
                 {
+                    SKFontMetrics infoMetrics = infoFont.Metrics;
+
                     if (Options.AddVideoInfo)
                     {
                         infoString = VideoInfo?.ToString() ?? string.Empty;
-                        SKRect textBounds = new SKRect();
-                        fontPaint.MeasureText(infoString, ref textBounds);
-                        infoStringHeight = (int)textBounds.Height + 5; // Add some padding
+                        infoStringHeight = (int)Math.Ceiling(infoMetrics.Descent - infoMetrics.Ascent) + 5;
                     }
 
                     foreach (VideoThumbnailInfo thumbnail in thumbnails)
@@ -263,7 +264,8 @@ namespace XerahS.Media
 
                         if (!string.IsNullOrEmpty(infoString))
                         {
-                            g.DrawText(infoString, Options.Padding, Options.Padding + infoStringHeight - 5, fontPaint);
+                            float infoBaseline = Options.Padding - infoMetrics.Ascent;
+                            g.DrawText(infoString, Options.Padding, infoBaseline, SKTextAlign.Left, infoFont, fontPaint);
                         }
 
                         int i = 0;
@@ -271,8 +273,10 @@ namespace XerahS.Media
 
                         using (SKPaint shadowPaint = new SKPaint { Color = new SKColor(0, 0, 0, 75) })
                         using (SKPaint borderPaint = new SKPaint { Color = SKColors.Black, IsStroke = true, StrokeWidth = 1 })
-                        using (SKPaint timestampPaint = new SKPaint { TextSize = 10, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), Color = SKColors.White, IsAntialias = true })
+                        using (SKPaint timestampPaint = new SKPaint { Color = SKColors.White, IsAntialias = true })
+                        using (SKFont timestampFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 10))
                         {
+                            SKFontMetrics timestampMetrics = timestampFont.Metrics;
 
                             for (int y = 0; y < rowCount; y++)
                             {
@@ -297,9 +301,8 @@ namespace XerahS.Media
                                     {
                                         int timestampOffset = 10;
                                         string timestampText = thumbnails[i].Timestamp.ToString();
-                                        // Simple text shadow/outline for readability? Original didn't have it explicit but usually good.
-                                        // Original used Brushes.White.
-                                        g.DrawText(timestampText, offsetX + timestampOffset, offsetY + timestampOffset + 10, timestampPaint); // +10 for approximate baseline
+                                        float timestampBaseline = offsetY + timestampOffset - timestampMetrics.Ascent;
+                                        g.DrawText(timestampText, offsetX + timestampOffset, timestampBaseline, SKTextAlign.Left, timestampFont, timestampPaint);
                                     }
 
                                     i++;

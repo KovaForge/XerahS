@@ -84,6 +84,9 @@ namespace XerahS.Indexer
         [Category("Indexer / Filters"), DefaultValue(null), Description("List of file extensions to exclude (e.g., '.pdb', '.obj'). Applied after include filter.")]
         public List<string>? ExcludedFileExtensions { get; set; }
 
+        [Category("Indexer / Filters"), DefaultValue(false), Description("Skip folders that contain no files or subfolders.")]
+        public bool IgnoreEmptyFolders { get; set; }
+
         public IndexerSettings()
         {
             Output = IndexerOutput.Html;
@@ -102,6 +105,7 @@ namespace XerahS.Indexer
             UseAttribute = true;
             CreateParseableJson = true;
             BinaryUnits = true;
+            IgnoreEmptyFolders = false;
         }
     }
 }

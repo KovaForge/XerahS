@@ -1,10 +1,11 @@
 # IEIP0002: Replace Active Tool Indicator with Tool Info Panel
 
 ## Status
-- Status: Drafted on March 21, 2026.
+- Status: **Implemented** on March 21, 2026.
 - Type: UX enhancement for `ShareX.ImageEditor`.
 - Scope: `ShareX.ImageEditor` toolbar presentation and adapter surface only.
 - Related issue: `ShareX/ShareX.ImageEditor#7`
+- Branch: `feature/ieip0002-tool-info-panel` (submodule and parent)
 
 ## Summary
 Replace the current icon-only active tool indicator in `AnnotationToolbar` with a distinct Tool Info panel that is visually separated from the primary tool/action buttons and shows the current tool or selected annotation type together with relevant properties such as color, thickness, font, effect strength, and dimensions.
@@ -95,26 +96,49 @@ Replace the current icon-only active tool indicator in `AnnotationToolbar` with 
 ## Implementation Plan
 
 ### Phase 1: Terminology and presentation split
-- Rename the UI concept from Active Tool to Tool Info or Current Tool.
-- Replace the current icon-only block with a non-clickable info panel container.
-- Keep the existing pickers and option buttons functional and unchanged.
+- [x] Rename the UI concept from Active Tool to Tool Info or Current Tool.
+- [x] Replace the current icon-only block with a non-clickable info panel container.
+- [x] Keep the existing pickers and option buttons functional and unchanged.
 
 ### Phase 2: Structured info surface
-- Add a tool-info model to `IAnnotationToolbarAdapter` and `EditorToolbarAdapter`.
-- Populate title/icon and property summary fields from `MainViewModel.ToolOptions.cs`.
-- Bind the new panel to structured values instead of relying on tooltip-only context.
+- [x] Add a tool-info model to `IAnnotationToolbarAdapter` and `EditorToolbarAdapter`.
+- [x] Populate title/icon and property summary fields from `MainViewModel.ToolOptions.cs`.
+- [x] Bind the new panel to structured values instead of relying on tooltip-only context.
 
 ### Phase 3: Live dimensions
-- Feed drawing/selection bounds into the adapter.
-- Show width and height readouts for active drawing operations and selected annotations.
+- [x] Feed drawing/selection bounds into the adapter.
+- [x] Show width and height readouts for active drawing operations and selected annotations.
 
 ### Phase 4: Layout refinement
-- Evaluate the preferred detached vertical rail layout.
-- Keep a responsive fallback to a horizontal layout if canvas width is constrained.
+- [x] First implementation uses a compact horizontal info panel at the start of the options row (responsive fallback path).
+- [ ] Evaluate the preferred detached vertical rail layout (deferred to a follow-up).
+
+## Implementation Notes
+
+### Files added
+- `Presentation/ViewModels/ToolInfoModel.cs` — Observable model (`ObservableObject`) with fields: `Title`, `Icon`, `ShowPrimaryColor`/`PrimaryColor`, `ShowSecondaryColor`/`SecondaryColor`, `ShowTextColor`/`TextColor`, `ShowThickness`/`Thickness`, `ShowFontSize`/`FontSize`, `ShowStrength`/`Strength`, `ShowDimensions`/`InfoWidth`/`InfoHeight`, `ShowTextStyle`/`IsBold`/`IsItalic`/`IsUnderline`, `ShowShadow`/`ShadowEnabled`.
+- `Presentation/Controls/ToolInfoPanel.axaml` + `.axaml.cs` — Compact horizontal UserControl showing icon badge, title, color chips, thickness/font-size/strength labels, text-style indicators (B/I/U), and live dimensions (`W x H`).
+
+### Files modified
+- `Core/Abstractions/IAnnotationToolbarAdapter.cs` — Added `ToolInfoModel ToolInfo { get; }` to the interface.
+- `Presentation/ViewModels/MainViewModel.ToolOptions.cs` — Added `_toolInfo` field, `RefreshToolInfo()` (called from `UpdateToolOptionsVisibility()`), `UpdateDrawingDimensions(double, double)`, and `ClearDrawingDimensions()`.
+- `Presentation/ViewModels/EditorToolbarAdapter.cs` — Pass-through `ToolInfo` property.
+- `Presentation/Controllers/EditorInputController.cs` — Calls `UpdateDrawingDimensions()` at the end of `OnCanvasPointerMoved` and `ClearDrawingDimensions()` at the end of `OnCanvasPointerReleased`.
+- `Presentation/Controls/AnnotationToolbar.axaml` — Replaced the `40x40` icon-only `Border` with `<controls:ToolInfoPanel DataContext="{Binding ToolInfo}"/>`, added a separator between the panel and picker controls, and made the second row always visible.
+
+### Host-side change
+- `XerahS.RegionCapture/ViewModels/RegionCaptureAnnotationViewModel.cs` — Implemented `ToolInfo` property and `RefreshToolInfo()` to satisfy the updated interface.
+
+### Decisions on open questions
+- Panel title uses the tool/annotation display name directly (e.g. "Rectangle", "Select") rather than a fixed "Tool Info" or "Current Tool" label.
+- Dimensions are shown for selected annotations and during active drawing; hidden otherwise.
+- First implementation is horizontal (lower risk); vertical rail deferred.
 
 ## Verification
 - Build:
-  - `ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj` — **0 errors, 0 warnings**
+  - `XerahS.UI.csproj` (full host build) — **0 errors, 0 warnings**
+  - `XerahS.Tests.csproj` — **0 errors, 0 warnings**
 - Manual smoke scenarios:
   - switch between all annotation tools and confirm the Tool Info title/icon stays correct
   - Select mode with no selection shows compact select state
@@ -130,7 +154,7 @@ Replace the current icon-only active tool indicator in `AnnotationToolbar` with 
 - A detached vertical rail could consume valuable canvas space on smaller widths if responsive fallback behavior is not designed early.
 - Mixing informative values and editable controls in one panel could make the surface noisy; the first implementation should prioritize readable summaries over adding new editing affordances.
 
-## Open Questions
-- Should the panel title be `Tool Info` or `Current Tool`?
-- Should dimensions be shown for all tools with geometry, or only for selection and active drawing?
-- Should the first implementation remain horizontal for lower risk, then move to a vertical rail once the information model is proven?
+## Open Questions (Resolved)
+- **Panel title**: Uses the tool/annotation display name directly rather than a fixed heading.
+- **Dimensions scope**: Shown for selected annotations and during active drawing only.
+- **Layout**: First implementation is horizontal; vertical rail deferred to a future iteration.

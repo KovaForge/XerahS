@@ -17,7 +17,8 @@ Sequence options:
   --assume-changelog-done     Skip interactive confirmation for step 2
   --monitor                   Monitor tag release workflow after step 3
   --monitor-interval <sec>    Poll interval in seconds (default: 120)
-  --set-prerelease            Mark successful tag release as pre-release
+  --set-prerelease            Explicitly mark successful tag release as pre-release (default behavior)
+  --no-prerelease             Keep successful tag release as stable (opt out)
   -h, --help                  Show this help
 
 All other options are passed through to:
@@ -234,7 +235,7 @@ SKIP_MAINTENANCE=0
 ASSUME_CHANGELOG_DONE=0
 MONITOR=0
 MONITOR_INTERVAL=120
-SET_PRERELEASE=0
+SET_PRERELEASE=1
 WORKFLOW_NAME="Release Build (All Platforms)"
 
 PASSTHROUGH_ARGS=()
@@ -267,6 +268,10 @@ while [[ $# -gt 0 ]]; do
     --set-prerelease)
       SET_PRERELEASE=1
       MONITOR=1
+      shift
+      ;;
+    --no-prerelease)
+      SET_PRERELEASE=0
       shift
       ;;
     -h|--help)

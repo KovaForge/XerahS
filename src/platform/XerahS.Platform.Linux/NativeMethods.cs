@@ -46,7 +46,25 @@ namespace XerahS.Platform.Linux
         internal static extern int XFetchName(IntPtr display, IntPtr w, out IntPtr window_name_return);
 
         [DllImport(libX11)]
+        internal static extern IntPtr XInternAtom(IntPtr display, string atom_name, bool only_if_exists);
+
+        [DllImport(libX11)]
         internal static extern int XFree(IntPtr data);
+
+        [DllImport(libX11)]
+        internal static extern int XGetWindowProperty(
+            IntPtr display,
+            IntPtr w,
+            IntPtr property,
+            long long_offset,
+            long long_length,
+            bool delete,
+            IntPtr req_type,
+            out IntPtr actual_type_return,
+            out int actual_format_return,
+            out IntPtr nitems_return,
+            out IntPtr bytes_after_return,
+            out IntPtr prop_return);
 
         [DllImport(libX11)]
         internal static extern int XGetWindowAttributes(IntPtr display, IntPtr w, ref XWindowAttributes window_attributes_return);

@@ -22,12 +22,14 @@
 */
 
 #endregion License Information (GPL v3)
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -39,6 +41,7 @@ using SkiaSharp;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using XerahS.Common;
+using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture.Services;
 using XerahS.RegionCapture.ViewModels;
@@ -56,6 +59,9 @@ namespace XerahS.RegionCapture.UI;
 /// </summary>
 public partial class OverlayWindow : Window
 {
+    private static readonly Uri OverlayWindowUri = new("avares://XerahS.RegionCapture/UI/OverlayWindow.axaml");
+    private static readonly Uri ImageEditorStylesUri = new("avares://ShareX.ImageEditor/Presentation/Theming/ImageEditorStyles.axaml");
+    private static readonly Uri ImageEditorThemeUri = new("avares://ShareX.ImageEditor/Presentation/Theming/ImageEditorTheme.axaml");
     private static readonly long SelectionDragRebuildIntervalTicks = Math.Max(1, Stopwatch.Frequency / 60);
 
     private readonly Models.MonitorInfo _monitor;
@@ -83,6 +89,8 @@ public partial class OverlayWindow : Window
     private static readonly int[] FocusRetryDelayMs = [50, 200, 500];
     private bool _windowClosed;
 
+    #region Constructors
+
     public OverlayWindow()
     {
         // Design-time constructor
@@ -92,6 +100,7 @@ public partial class OverlayWindow : Window
         _captureControl = new RegionCaptureControl(_monitor);
         _viewModel = new RegionCaptureAnnotationViewModel();
         InitializeComponent();
+        Title = PlatformWindowTitles.RegionCaptureOverlay;
         InitializeThemeScope();
         DataContext = _viewModel;
     }
@@ -133,6 +142,7 @@ public partial class OverlayWindow : Window
         _viewModel.EditorCore.EditAnnotationRequested += OnEditAnnotationRequested;
 
         InitializeComponent();
+        Title = PlatformWindowTitles.RegionCaptureOverlay;
         InitializeThemeScope();
         DataContext = _viewModel;
 
@@ -176,6 +186,10 @@ public partial class OverlayWindow : Window
 
         WireUpToolbarEvents();
     }
+
+    #endregion
+
+    #region Window Lifecycle
 
     protected override void OnClosed(EventArgs e)
     {
@@ -240,53 +254,33 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(RegionCaptureAnnotationViewModel.ActiveTool))
-        {
-            if (UpdateAnnotationCanvasHitTesting())
-            {
-                _captureControl.InvalidateVisual();
-            }
-        }
-    }
+    #endregion
 
-    /// <summary>
-    /// Updates the AnnotationCanvas hit testing based on active tool and CTRL modifier.
-    /// Select tool: hit testing OFF (allow RegionCaptureControl to handle mouse)
-    /// Drawing tools + CTRL: hit testing OFF (CTRL allows region selection)
-    /// Drawing tools (no CTRL): hit testing ON (canvas handles drawing)
-    /// </summary>
-    private bool UpdateAnnotationCanvasHitTesting()
-    {
-        if (_annotationCanvas == null) return false;
-
-        // Annotation mode is active when:
-        // 1. CTRL is NOT pressed (CTRL always allows region selection)
-        // 2. Either a drawing tool is active, or Select is active with existing annotations
-        //    so users can select/move/resize previously drawn annotations.
-        bool hasAnnotations = _viewModel.EditorCore.Annotations.Count > 0;
-        bool isAnnotationMode = !_ctrlPressed &&
-                                (_viewModel.ActiveTool != EditorTool.Select || hasAnnotations);
-
-        if (_annotationCanvas.IsHitTestVisible != isAnnotationMode)
-        {
-            _annotationCanvas.IsHitTestVisible = isAnnotationMode;
-        }
-
-        // Update the capture control's mode indicator
-        if (_captureControl.IsAnnotationMode != isAnnotationMode)
-        {
-            _captureControl.IsAnnotationMode = isAnnotationMode;
-            return true;
-        }
-
-        return false;
-    }
+    #region Initialization
 
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+        EnsureImageEditorResources();
+    }
+
+    private void EnsureImageEditorResources()
+    {
+        if (!Styles.OfType<StyleInclude>().Any(style => style.Source == ImageEditorStylesUri))
+        {
+            Styles.Add(new StyleInclude(OverlayWindowUri)
+            {
+                Source = ImageEditorStylesUri
+            });
+        }
+
+        if (!Resources.MergedDictionaries.OfType<ResourceInclude>().Any(resource => resource.Source == ImageEditorThemeUri))
+        {
+            Resources.MergedDictionaries.Add(new ResourceInclude(OverlayWindowUri)
+            {
+                Source = ImageEditorThemeUri
+            });
+        }
     }
 
     private void InitializeThemeScope()
@@ -300,6 +294,10 @@ public partial class OverlayWindow : Window
     {
         Dispatcher.UIThread.Post(() => RequestedThemeVariant = theme);
     }
+
+    #endregion
+
+    #region Keyboard Input
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -392,841 +390,6 @@ public partial class OverlayWindow : Window
                 _captureControl.InvalidateVisual();
             }
         }
-    }
-
-    #region Annotation Canvas Events
-
-    private void OnAnnotationCanvasPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (_annotationCanvas == null) return;
-
-        // Commit any pending inline text edit. The click that commits text should not also
-        // start a new annotation.
-        if (_inlineTextBox != null)
-        {
-            CommitInlineText();
-            e.Handled = true;
-            return;
-        }
-
-        var point = e.GetPosition(_annotationCanvas);
-        var props = e.GetCurrentPoint(_annotationCanvas).Properties;
-        var skPoint = new SKPoint((float)point.X, (float)point.Y);
-
-        // Right-click: delete annotation under cursor
-        if (props.IsRightButtonPressed)
-        {
-            int annotationCountBeforeDelete = _viewModel.EditorCore.Annotations.Count;
-            _viewModel.EditorCore.OnPointerPressed(skPoint, isRightButton: true);
-            _selectionInteractionActive = false;
-            SyncAnnotationState();
-            if (_viewModel.EditorCore.Annotations.Count != annotationCountBeforeDelete)
-            {
-                RebuildAnnotationCanvas();
-            }
-            return;
-        }
-
-        if (!props.IsLeftButtonPressed) return;
-
-        // Select tool still routes to EditorCore so existing annotations can be selected/moved/resized.
-        if (_viewModel.ActiveTool == EditorTool.Select)
-        {
-            var selectedBefore = _viewModel.EditorCore.SelectedAnnotation;
-            _viewModel.EditorCore.OnPointerPressed(skPoint);
-            _selectionInteractionActive = true;
-            SyncAnnotationState();
-            if (!ReferenceEquals(selectedBefore, _viewModel.EditorCore.SelectedAnnotation))
-            {
-                RebuildAnnotationCanvas();
-            }
-            e.Pointer.Capture(_annotationCanvas);
-            return;
-        }
-
-        if (_viewModel.ActiveTool == EditorTool.Spotlight &&
-            TryBeginSpotlightSelectionInteraction(skPoint))
-        {
-            e.Pointer.Capture(_annotationCanvas);
-            return;
-        }
-
-        // Clear any previous preview state before forwarding the new press to EditorCore.
-        if (_currentShape != null)
-        {
-            _annotationCanvas.Children.Remove(_currentShape);
-            _currentShape = null;
-        }
-        _currentAnnotation = null;
-        _isDrawing = false;
-        _selectionInteractionActive = false;
-
-        // Delegate to EditorCore for annotation creation and initialization.
-        int countBefore = _viewModel.EditorCore.Annotations.Count;
-        _suppressInvalidateRequested = true;
-        try
-        {
-            _viewModel.EditorCore.OnPointerPressed(skPoint);
-        }
-        finally
-        {
-            _suppressInvalidateRequested = false;
-        }
-
-        // Check if EditorCore created a new annotation
-        if (_viewModel.EditorCore.Annotations.Count > countBefore)
-        {
-            // Discard any stale pending rebuild that could render a degenerate start-point artifact.
-            _rebuildPending = false;
-
-            _currentAnnotation = _viewModel.EditorCore.Annotations[_viewModel.EditorCore.Annotations.Count - 1];
-            _isDrawing = true;
-
-            ApplyToolbarDefaultsToAnnotation(_currentAnnotation);
-
-            // Reuse the shared editor sampling path first, then fall back to monitor-specific sources.
-            if (_currentAnnotation is SmartEraserAnnotation smartEraserAnn)
-            {
-                var sampledColor = ResolveSmartEraserColor(skPoint);
-                if (!string.IsNullOrWhiteSpace(sampledColor))
-                {
-                    smartEraserAnn.StrokeColor = sampledColor;
-                    smartEraserAnn.FillColor = sampledColor;
-                }
-            }
-
-            // Create Avalonia preview shape for visual feedback during drawing
-            _currentShape = CreatePreviewForAnnotation(_currentAnnotation);
-            if (_currentShape != null)
-            {
-                _annotationCanvas.Children.Add(_currentShape);
-            }
-        }
-
-        e.Pointer.Capture(_annotationCanvas);
-    }
-
-    private void OnAnnotationCanvasPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_annotationCanvas == null) return;
-
-        // Match EditorCanvas behavior: forward move events while a button is pressed or while captured.
-        var props = e.GetCurrentPoint(_annotationCanvas).Properties;
-        if (e.Pointer.Captured != _annotationCanvas &&
-            !props.IsLeftButtonPressed &&
-            !props.IsRightButtonPressed)
-        {
-            return;
-        }
-
-        var point = e.GetPosition(_annotationCanvas);
-        var skPoint = new SKPoint((float)point.X, (float)point.Y);
-
-        if (_isDrawing && _currentAnnotation != null)
-        {
-            // Keep draw-path updates lightweight and local to the active annotation preview.
-            // This avoids expensive full-core invalidation work on every pointer move.
-            UpdateCurrentDrawingAnnotation(skPoint);
-
-            if (_currentShape != null)
-            {
-                UpdatePreviewFromAnnotation(_currentShape, _currentAnnotation);
-            }
-            return;
-        }
-
-        // Delegate to EditorCore for selection drag/resize interactions.
-        _viewModel.EditorCore.OnPointerMoved(skPoint);
-    }
-
-    private void OnAnnotationCanvasPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (_annotationCanvas == null) return;
-
-        var endPoint = e.GetPosition(_annotationCanvas);
-        var skPoint = new SKPoint((float)endPoint.X, (float)endPoint.Y);
-        _selectionInteractionActive = false;
-
-        if (e.Pointer.Captured == _annotationCanvas)
-        {
-            e.Pointer.Capture(null);
-        }
-
-        // Always forward release, even when not drawing, so EditorCore can end drag/resize state.
-        _viewModel.EditorCore.OnPointerReleased(skPoint);
-
-        // Remove preview shape if one was created for this draw operation.
-        if (_isDrawing && _currentShape != null)
-        {
-            _annotationCanvas.Children.Remove(_currentShape);
-            _currentShape = null;
-        }
-        _isDrawing = false;
-        _currentAnnotation = null;
-
-        // Rebuild canvas with finalized annotations (effects rendered, etc.)
-        // Skip rebuild if inline text editing is about to start (EditAnnotationRequested handler will rebuild)
-        if (_editingAnnotation == null)
-        {
-            RebuildAnnotationCanvas();
-        }
-
-        SyncAnnotationState();
-    }
-
-    private void UpdateCurrentDrawingAnnotation(SKPoint point)
-    {
-        if (_currentAnnotation == null)
-        {
-            return;
-        }
-
-        if (_currentAnnotation is FreehandAnnotation freehand)
-        {
-            freehand.Points.Add(point);
-        }
-        else if (_currentAnnotation is CutOutAnnotation cutOut)
-        {
-            float deltaX = Math.Abs(point.X - _currentAnnotation.StartPoint.X);
-            float deltaY = Math.Abs(point.Y - _currentAnnotation.StartPoint.Y);
-            cutOut.IsVertical = deltaX > deltaY;
-            _currentAnnotation.EndPoint = point;
-        }
-        else
-        {
-            _currentAnnotation.EndPoint = point;
-        }
-
-        if (_currentAnnotation is SpotlightAnnotation spotlight)
-        {
-            spotlight.CanvasSize = new SKSize((float)Math.Max(1, Width), (float)Math.Max(1, Height));
-        }
-    }
-
-    private bool TryBeginSpotlightSelectionInteraction(SKPoint point)
-    {
-        var editorCore = _viewModel.EditorCore;
-        var selectedBefore = editorCore.SelectedAnnotation;
-        SpotlightAnnotation? hitSpotlight = HitTestTopMostSpotlight(point);
-        if (hitSpotlight == null)
-        {
-            if (selectedBefore is not null and not SpotlightAnnotation)
-            {
-                _suppressInvalidateRequested = true;
-                try
-                {
-                    editorCore.Deselect();
-                }
-                finally
-                {
-                    _suppressInvalidateRequested = false;
-                }
-
-                SyncAnnotationState();
-                RebuildAnnotationCanvas();
-            }
-
-            return false;
-        }
-
-        _selectionInteractionActive = true;
-        _suppressInvalidateRequested = true;
-        try
-        {
-            editorCore.Select(hitSpotlight);
-            editorCore.OnPointerPressed(point);
-        }
-        finally
-        {
-            _suppressInvalidateRequested = false;
-        }
-
-        SyncAnnotationState();
-        if (!ReferenceEquals(selectedBefore, editorCore.SelectedAnnotation))
-        {
-            RebuildAnnotationCanvas();
-        }
-
-        return true;
-    }
-
-    private SpotlightAnnotation? HitTestTopMostSpotlight(SKPoint point)
-    {
-        var annotations = _viewModel.EditorCore.Annotations;
-        for (int i = annotations.Count - 1; i >= 0; i--)
-        {
-            if (annotations[i] is SpotlightAnnotation spotlight &&
-                spotlight.HitTest(point))
-            {
-                return spotlight;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-     /// Attempts to resolve SmartEraser color using a robust fallback chain:
-    /// 1) Shared EditorCore snapshot sampling,
-    /// 2) Full virtual-screen background bitmap with monitor mapping,
-    /// 3) Editor source image,
-    /// 4) Windows live-screen sampling (last resort).
-    /// </summary>
-    private string? ResolveSmartEraserColor(SKPoint logicalPoint)
-    {
-        string? sharedSample = _viewModel.EditorCore.SampleCanvasColor(logicalPoint);
-        if (!string.IsNullOrWhiteSpace(sharedSample))
-        {
-            return sharedSample;
-        }
-
-        if (TrySampleVirtualBackgroundColor(logicalPoint, out string? virtualColor))
-        {
-            return virtualColor;
-        }
-
-        if (TrySampleBitmapColor(_viewModel.EditorCore.SourceImage, logicalPoint, out string? sourceColor))
-        {
-            return sourceColor;
-        }
-
-#if WINDOWS
-        if (TrySampleLiveScreenColor(logicalPoint, out string? liveScreenColor))
-        {
-            return liveScreenColor;
-        }
-#endif
-
-        return null;
-    }
-
-    private bool TrySampleVirtualBackgroundColor(SKPoint logicalPoint, out string? color)
-    {
-        color = null;
-        if (_backgroundBitmap == null || _backgroundBitmap.Width <= 0 || _backgroundBitmap.Height <= 0)
-        {
-            return false;
-        }
-
-        int physX = (int)Math.Round(logicalPoint.X * _monitor.ScaleFactor);
-        int physY = (int)Math.Round(logicalPoint.Y * _monitor.ScaleFactor);
-
-        var coordService = new Services.CoordinateTranslationService();
-        var virtualBounds = coordService.GetVirtualScreenBounds();
-        int bmpX = (int)Math.Round(_monitor.PhysicalBounds.X - virtualBounds.X) + physX;
-        int bmpY = (int)Math.Round(_monitor.PhysicalBounds.Y - virtualBounds.Y) + physY;
-        bmpX = Math.Clamp(bmpX, 0, _backgroundBitmap.Width - 1);
-        bmpY = Math.Clamp(bmpY, 0, _backgroundBitmap.Height - 1);
-
-        var pixel = _backgroundBitmap.GetPixel(bmpX, bmpY);
-        color = ToRgbHex(pixel);
-        return true;
-    }
-
-#if WINDOWS
-    private bool TrySampleLiveScreenColor(SKPoint logicalPoint, out string? color)
-    {
-        color = null;
-
-        int physicalScreenX = (int)Math.Round(_monitor.PhysicalBounds.X + logicalPoint.X * _monitor.ScaleFactor);
-        int physicalScreenY = (int)Math.Round(_monitor.PhysicalBounds.Y + logicalPoint.Y * _monitor.ScaleFactor);
-
-        IntPtr hdc = GetDC(IntPtr.Zero);
-        if (hdc == IntPtr.Zero)
-        {
-            return false;
-        }
-
-        try
-        {
-            uint pixel = GetPixel(hdc, physicalScreenX, physicalScreenY);
-            if (pixel == 0xFFFFFFFF)
-            {
-                return false;
-            }
-
-            byte r = (byte)(pixel & 0x000000FF);
-            byte g = (byte)((pixel & 0x0000FF00) >> 8);
-            byte b = (byte)((pixel & 0x00FF0000) >> 16);
-            color = $"#{r:X2}{g:X2}{b:X2}";
-            return true;
-        }
-        finally
-        {
-            _ = ReleaseDC(IntPtr.Zero, hdc);
-        }
-    }
-#endif
-
-    private static bool TrySampleBitmapColor(SKBitmap? bitmap, SKPoint logicalPoint, out string? color)
-    {
-        color = null;
-
-        if (bitmap == null || bitmap.Width <= 0 || bitmap.Height <= 0)
-        {
-            return false;
-        }
-
-        int x = Math.Clamp((int)Math.Round(logicalPoint.X), 0, bitmap.Width - 1);
-        int y = Math.Clamp((int)Math.Round(logicalPoint.Y), 0, bitmap.Height - 1);
-        var pixel = bitmap.GetPixel(x, y);
-        color = ToRgbHex(pixel);
-        return true;
-    }
-
-    private static string ToRgbHex(SKColor color)
-    {
-        return $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
-    }
-
-    private void ApplyToolbarDefaultsToAnnotation(Annotation annotation)
-    {
-        annotation.FillColor = _viewModel.FillColor;
-        annotation.ShadowEnabled = _viewModel.ShadowEnabled;
-
-        switch (annotation)
-        {
-            case TextAnnotation textAnnotation:
-                textAnnotation.FontSize = _viewModel.FontSize;
-                textAnnotation.TextColor = _viewModel.GetResolvedTextColor();
-                textAnnotation.IsBold = _viewModel.TextBold;
-                textAnnotation.IsItalic = _viewModel.TextItalic;
-                textAnnotation.IsUnderline = _viewModel.TextUnderline;
-                break;
-            case NumberAnnotation numberAnnotation:
-                numberAnnotation.FontSize = _viewModel.FontSize;
-                numberAnnotation.FillColor = _viewModel.FillColor;
-                numberAnnotation.TextColor = _viewModel.TextColor;
-                break;
-            case SpeechBalloonAnnotation speechBalloonAnnotation:
-                speechBalloonAnnotation.FontSize = _viewModel.FontSize;
-                speechBalloonAnnotation.FillColor = _viewModel.FillColor;
-                speechBalloonAnnotation.TextColor = _viewModel.TextColor;
-                speechBalloonAnnotation.CornerRadius = _viewModel.CornerRadius;
-                break;
-            case SmartEraserAnnotation smartEraserAnnotation:
-                smartEraserAnnotation.StrokeWidth = 0;
-                smartEraserAnnotation.ShadowEnabled = false;
-                if (!string.IsNullOrWhiteSpace(smartEraserAnnotation.StrokeColor))
-                {
-                    smartEraserAnnotation.FillColor = smartEraserAnnotation.StrokeColor;
-                }
-                break;
-            case RectangleAnnotation rectangleAnnotation when rectangleAnnotation is not SmartEraserAnnotation:
-                rectangleAnnotation.CornerRadius = _viewModel.CornerRadius;
-                break;
-            case HighlightAnnotation highlightAnnotation:
-                highlightAnnotation.FillColor = _viewModel.FillColor;
-                break;
-            case SpotlightAnnotation spotlightAnnotation:
-                spotlightAnnotation.CanvasSize = new SKSize((float)Math.Max(1, Width), (float)Math.Max(1, Height));
-                spotlightAnnotation.DarkenOpacity = _viewModel.GetSpotlightDarkenOpacity();
-                break;
-            case BaseEffectAnnotation effectAnnotation:
-                effectAnnotation.Amount = _viewModel.EffectStrength;
-                break;
-        }
-    }
-
-#if WINDOWS
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetDC(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
-    private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-
-    [DllImport("gdi32.dll")]
-    private static extern uint GetPixel(IntPtr hdc, int nXPos, int nYPos);
-#endif
-
-    /// <summary>
-    /// Creates a lightweight Avalonia preview shape for visual feedback while drawing.
-    /// </summary>
-    private Control? CreatePreviewForAnnotation(Annotation annotation)
-    {
-        var shape = AnnotationVisualFactory.CreateVisualControl(annotation, AnnotationVisualMode.Preview);
-        if (shape != null)
-        {
-            AnnotationVisualFactory.UpdateVisualControl(
-                shape,
-                annotation,
-                AnnotationVisualMode.Preview,
-                Width,
-                Height);
-
-            if (annotation is BaseEffectAnnotation)
-            {
-                AnnotationEffectVisualUpdater.UpdateEffectVisual(shape, _viewModel.EditorCore.SourceImage);
-            }
-        }
-        return shape;
-    }
-
-    /// <summary>
-    /// Updates the preview shape's position and geometry from the annotation's current state.
-    /// </summary>
-    private void UpdatePreviewFromAnnotation(Control shape, Annotation annotation)
-    {
-        AnnotationVisualFactory.UpdateVisualControl(
-            shape,
-            annotation,
-            AnnotationVisualMode.Preview,
-            Width,
-            Height);
-
-        if (annotation is BaseEffectAnnotation)
-        {
-            AnnotationEffectVisualUpdater.UpdateEffectVisual(shape, _viewModel.EditorCore.SourceImage);
-        }
-    }
-
-    #endregion
-
-    #region Event Handlers
-
-    private void OnInvalidateRequested()
-    {
-        if (_suppressInvalidateRequested)
-        {
-            return;
-        }
-
-        // During active drawing we already update a lightweight preview shape in pointer handlers.
-        // Rebuilding every annotation control on each move causes visible lag.
-        if (_isDrawing && _currentShape != null)
-        {
-            return;
-        }
-
-        if (_selectionInteractionActive && ShouldThrottleSelectionRebuild())
-        {
-            return;
-        }
-
-        _rebuildPending = true;
-        if (_rebuildScheduled)
-        {
-            return;
-        }
-
-        _rebuildScheduled = true;
-        Dispatcher.UIThread.Post(ProcessPendingRebuild, DispatcherPriority.Render);
-    }
-
-    private void OnAnnotationsRestored()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            RebuildAnnotationCanvas();
-            SyncAnnotationState();
-        });
-    }
-
-    private void ProcessPendingRebuild()
-    {
-        if (_rebuildPending)
-        {
-            _rebuildPending = false;
-            RebuildAnnotationCanvas();
-            SyncAnnotationState();
-        }
-
-        _rebuildScheduled = false;
-        if (_rebuildPending)
-        {
-            _rebuildScheduled = true;
-            Dispatcher.UIThread.Post(ProcessPendingRebuild, DispatcherPriority.Render);
-        }
-    }
-
-    private void RebuildAnnotationCanvas()
-    {
-        if (_annotationCanvas == null) return;
-
-        // Remove previous persisted visuals
-        foreach (var visual in _persistedAnnotationVisuals)
-        {
-            _annotationCanvas.Children.Remove(visual);
-        }
-        _persistedAnnotationVisuals.Clear();
-
-        var annotations = _viewModel.EditorCore.Annotations;
-        if (annotations.Count > 0)
-        {
-            double canvasWidth = Width;
-            double canvasHeight = Height;
-            if (canvasWidth <= 0 || canvasHeight <= 0) return;
-
-            foreach (var annotation in annotations)
-            {
-                var visual = AnnotationVisualFactory.CreateVisualControl(
-                    annotation, AnnotationVisualMode.Persisted);
-
-                if (visual != null)
-                {
-                    visual.IsHitTestVisible = false;
-                    AnnotationVisualFactory.UpdateVisualControl(
-                        visual, annotation, AnnotationVisualMode.Persisted,
-                        canvasWidth, canvasHeight);
-
-                    if (annotation is BaseEffectAnnotation)
-                    {
-                        AnnotationEffectVisualUpdater.UpdateEffectVisual(visual, _viewModel.EditorCore.SourceImage);
-                    }
-
-                    _annotationCanvas.Children.Insert(0, visual);
-                    _persistedAnnotationVisuals.Add(visual);
-                }
-            }
-        }
-
-        if (_inlineTextBox != null)
-        {
-            if (_annotationCanvas.Children.Contains(_inlineTextBox))
-            {
-                _annotationCanvas.Children.Remove(_inlineTextBox);
-            }
-
-            _annotationCanvas.Children.Add(_inlineTextBox);
-        }
-
-        _lastRebuildTicks = Stopwatch.GetTimestamp();
-    }
-
-    private bool ShouldThrottleSelectionRebuild()
-    {
-        if (_lastRebuildTicks == 0)
-        {
-            return false;
-        }
-
-        long elapsedTicks = Stopwatch.GetTimestamp() - _lastRebuildTicks;
-        return elapsedTicks < SelectionDragRebuildIntervalTicks;
-    }
-
-    private void SyncAnnotationState()
-    {
-        bool hasAnnotations = _viewModel.EditorCore.Annotations.Count > 0;
-        bool hasSelectedAnnotation = _viewModel.EditorCore.SelectedAnnotation != null;
-
-        _viewModel.HasAnnotations = hasAnnotations;
-        _viewModel.HasSelectedAnnotation = hasSelectedAnnotation;
-        _viewModel.SelectedAnnotation = _viewModel.EditorCore.SelectedAnnotation;
-
-        bool shouldInvalidateCapture = false;
-        if (_captureControl.HasAnnotations != hasAnnotations)
-        {
-            _captureControl.HasAnnotations = hasAnnotations;
-            shouldInvalidateCapture = true;
-        }
-
-        if (UpdateAnnotationCanvasHitTesting())
-        {
-            shouldInvalidateCapture = true;
-        }
-
-        if (shouldInvalidateCapture)
-        {
-            _captureControl.InvalidateVisual();
-        }
-    }
-
-    /// <summary>
-    /// Crops the full virtual-screen capture to this monitor and scales it to the monitor's logical size.
-    /// This keeps effect tool sampling aligned with pointer coordinates on per-monitor overlays.
-    /// </summary>
-    private static SKBitmap? CreateMonitorLogicalBackgroundBitmap(SKBitmap fullBackground, Models.MonitorInfo monitor)
-    {
-        if (fullBackground.Width <= 0 || fullBackground.Height <= 0)
-        {
-            return null;
-        }
-
-        var coordinateService = new CoordinateTranslationService();
-        var virtualBounds = coordinateService.GetVirtualScreenBounds();
-
-        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: fullBitmap={fullBackground.Width}x{fullBackground.Height} virtualBounds=({virtualBounds.X:F0},{virtualBounds.Y:F0},{virtualBounds.Width:F0},{virtualBounds.Height:F0}) PhysicalBounds=({monitor.PhysicalBounds.X:F0},{monitor.PhysicalBounds.Y:F0},{monitor.PhysicalBounds.Width:F0},{monitor.PhysicalBounds.Height:F0}) Scale={monitor.ScaleFactor:F4}");
-
-        int sourceX = (int)Math.Round(monitor.PhysicalBounds.X - virtualBounds.X);
-        int sourceY = (int)Math.Round(monitor.PhysicalBounds.Y - virtualBounds.Y);
-        int sourceWidth = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Width));
-        int sourceHeight = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Height));
-
-        var sourceRect = new SKRectI(sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight);
-        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: physicalSourceRect=({sourceRect.Left},{sourceRect.Top},{sourceRect.Width}x{sourceRect.Height}) before clamp");
-        sourceRect.Intersect(new SKRectI(0, 0, fullBackground.Width, fullBackground.Height));
-        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: clampedSourceRect=({sourceRect.Left},{sourceRect.Top},{sourceRect.Width}x{sourceRect.Height}) valid={sourceRect.Width > 0 && sourceRect.Height > 0}");
-        if (sourceRect.Width <= 0 || sourceRect.Height <= 0)
-        {
-            DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: sourceRect empty after clamp — returning null");
-            return null;
-        }
-
-        var monitorBitmap = new SKBitmap(sourceRect.Width, sourceRect.Height, fullBackground.ColorType, fullBackground.AlphaType);
-        if (!fullBackground.ExtractSubset(monitorBitmap, sourceRect))
-        {
-            using var subsetCanvas = new SKCanvas(monitorBitmap);
-            subsetCanvas.DrawBitmap(
-                fullBackground,
-                sourceRect,
-                new SKRect(0, 0, monitorBitmap.Width, monitorBitmap.Height));
-        }
-
-        int logicalWidth = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Width / monitor.ScaleFactor));
-        int logicalHeight = Math.Max(1, (int)Math.Round(monitor.PhysicalBounds.Height / monitor.ScaleFactor));
-        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: extracted={monitorBitmap.Width}x{monitorBitmap.Height} targetLogical={logicalWidth}x{logicalHeight}");
-        if (monitorBitmap.Width == logicalWidth && monitorBitmap.Height == logicalHeight)
-        {
-            DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: no resize needed → {monitorBitmap.Width}x{monitorBitmap.Height}");
-            return monitorBitmap;
-        }
-
-        var logicalBitmap = monitorBitmap.Resize(new SKImageInfo(logicalWidth, logicalHeight), SKFilterQuality.High);
-        if (logicalBitmap != null)
-        {
-            DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: resized {monitorBitmap.Width}x{monitorBitmap.Height} → {logicalBitmap.Width}x{logicalBitmap.Height}");
-            monitorBitmap.Dispose();
-            return logicalBitmap;
-        }
-
-        DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: resize failed, returning extracted {monitorBitmap.Width}x{monitorBitmap.Height}");
-        return monitorBitmap;
-    }
-
-    #endregion
-
-    #region Capture Completion
-
-    /// <summary>
-    /// XIP-0023: Confirms capture with annotations using ENTER key.
-    /// Uses the pending selection result if available, otherwise captures full monitor.
-    /// </summary>
-    private void ConfirmCaptureWithAnnotations()
-    {
-        // Save annotation options before completing
-        _viewModel.SaveOptions();
-
-        // Use the pending selection if user has made a region selection
-        if (_pendingSelectionResult.HasValue)
-        {
-            var result = CreateResultWithAnnotations(_pendingSelectionResult.Value);
-            _completionSource.TrySetResult(result);
-            return;
-        }
-
-        // Fallback: Get the full monitor bounds if no selection was made
-        var bounds = new PixelRect(0, 0, (int)_monitor.PhysicalBounds.Width, (int)_monitor.PhysicalBounds.Height);
-        var cursorPos = new PixelPoint(bounds.Width / 2, bounds.Height / 2);
-        var result2 = CreateResultWithAnnotations(new RegionSelectionResult(bounds, cursorPos));
-        _completionSource.TrySetResult(result2);
-    }
-
-    private void OnRegionSelected(RegionSelectionResult result)
-    {
-        // If annotations have been drawn, don't auto-complete on region selection
-        // User must press ENTER to confirm capture with annotations
-        if (_viewModel.HasAnnotations || (_annotationCanvas?.Children.Count ?? 0) > 0)
-        {
-            // Store the selection result for later use when ENTER is pressed
-            _pendingSelectionResult = result;
-
-            // Update capture control to show the reminder
-            _captureControl.HasPendingSelection = true;
-            _captureControl.HasAnnotations = true;
-            _captureControl.InvalidateVisual();
-            return;
-        }
-
-        // Save annotation options before completing
-        _viewModel.SaveOptions();
-
-        _completionSource.TrySetResult(result);
-    }
-
-    /// <summary>
-    /// Creates a RegionSelectionResult with the annotation layer rendered.
-    /// </summary>
-    private RegionSelectionResult CreateResultWithAnnotations(RegionSelectionResult baseResult)
-    {
-        // If no annotations, return the base result
-        if (!_viewModel.HasAnnotations && (_annotationCanvas?.Children.Count ?? 0) == 0)
-        {
-            return baseResult;
-        }
-
-        // Render annotations to a transparent bitmap
-        var annotationLayer = RenderAnnotationLayer();
-
-        // Pass the monitor origin so the compositing code can adjust coordinates
-        // (selection is in absolute screen coords, but annotation layer is monitor-relative)
-        var monitorOrigin = new PixelPoint(
-            (int)_monitor.PhysicalBounds.X,
-            (int)_monitor.PhysicalBounds.Y);
-
-        return new RegionSelectionResult(baseResult.Region, baseResult.CursorPosition, annotationLayer, monitorOrigin);
-    }
-
-    /// <summary>
-    /// Renders all annotations to a transparent SKBitmap sized to the full monitor.
-    /// The annotation layer can then be composited onto the captured image.
-    /// </summary>
-    private SKBitmap? RenderAnnotationLayer()
-    {
-        if (_annotationCanvas == null || _annotationCanvas.Children.Count == 0)
-        {
-            return null;
-        }
-
-        // Hide inline TextBox during capture so it doesn't render as a raw control
-        bool textBoxWasVisible = _inlineTextBox?.IsVisible ?? false;
-        if (_inlineTextBox != null) _inlineTextBox.IsVisible = false;
-
-        try
-        {
-            // Physical pixel dimensions of the full monitor
-            int width = (int)_monitor.PhysicalBounds.Width;
-            int height = (int)_monitor.PhysicalBounds.Height;
-
-            // Logical dimensions for layout (annotations are in logical coordinates)
-            double logicalWidth = _monitor.PhysicalBounds.Width / _monitor.ScaleFactor;
-            double logicalHeight = _monitor.PhysicalBounds.Height / _monitor.ScaleFactor;
-
-            // Only force layout if the canvas isn't already at the expected size
-            if (Math.Abs(_annotationCanvas.Bounds.Width - logicalWidth) > 1 ||
-                Math.Abs(_annotationCanvas.Bounds.Height - logicalHeight) > 1)
-            {
-                _annotationCanvas.Measure(new Size(logicalWidth, logicalHeight));
-                _annotationCanvas.Arrange(new Rect(0, 0, logicalWidth, logicalHeight));
-            }
-
-            // Render the Avalonia visual tree to a bitmap at physical resolution
-            var dpi = 96.0 * _monitor.ScaleFactor;
-            using var rtb = new RenderTargetBitmap(new PixelSize(width, height), new Vector(dpi, dpi));
-            rtb.Render(_annotationCanvas);
-
-            // Direct pixel copy from Avalonia RenderTargetBitmap to SKBitmap (avoids PNG encode/decode)
-            var skBitmap = new SKBitmap(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-            using var pixmap = skBitmap.PeekPixels();
-            int rowBytes = skBitmap.Info.RowBytes;
-            rtb.CopyPixels(new AvPixelRect(0, 0, width, height), pixmap.GetPixels(), rowBytes * height, rowBytes);
-
-            return skBitmap;
-        }
-        finally
-        {
-            if (_inlineTextBox != null) _inlineTextBox.IsVisible = textBoxWasVisible;
-        }
-    }
-
-    // Stores the selection result when annotations exist, for use with ENTER key
-    private RegionSelectionResult? _pendingSelectionResult;
-
-    private void OnCancelled()
-    {
-        // Save annotation options even when cancelled (user may have changed settings)
-        _viewModel.SaveOptions();
-
-        _completionSource.TrySetResult(null);
     }
 
     #endregion

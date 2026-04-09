@@ -52,20 +52,6 @@ public partial class ImageEffectsBrowserDialog : SurfaceWindow
         }
 
         browser.EffectDialogRequested += OnEffectDialogRequested;
-        browser.Rotate90CWRequested += (_, _) => TryAddAndClose(vm => vm.TryAddRotate90ClockwiseEffect());
-        browser.Rotate90CCWRequested += (_, _) => TryAddAndClose(vm => vm.TryAddRotate90CounterClockwiseEffect());
-        browser.Rotate180Requested += (_, _) => TryAddAndClose(vm => vm.TryAddRotate180Effect());
-        browser.RotateCustomAngleRequested += (_, _) => TryAddAndClose(vm => vm.TryAddRotateCustomEffect());
-        browser.FlipHorizontalRequested += (_, _) => TryAddAndClose(vm => vm.TryAddFlipHorizontalEffect());
-        browser.FlipVerticalRequested += (_, _) => TryAddAndClose(vm => vm.TryAddFlipVerticalEffect());
-        browser.InvertRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("invert"));
-        browser.BlackAndWhiteRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("black_white"));
-        browser.PolaroidRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("polaroid"));
-        browser.EdgeDetectRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("edge_detect"));
-        browser.EmbossRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("emboss"));
-        browser.MeanRemovalRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("mean_removal"));
-        browser.SmoothRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("smooth"));
-        browser.AutoCropImageRequested += (_, _) => TryAddAndClose(vm => vm.TryAddEffectByBrowserId("auto_crop_image"));
     }
 
     private void OnEffectDialogRequested(object? sender, EffectDialogRequestedEventArgs e)
@@ -76,19 +62,6 @@ public partial class ImageEffectsBrowserDialog : SurfaceWindow
         }
 
         if (vm.TryAddEffectByBrowserId(e.EffectId))
-        {
-            Close();
-        }
-    }
-
-    private void TryAddAndClose(Func<ImageEffectsViewModel, bool> addAction)
-    {
-        if (DataContext is not ImageEffectsViewModel vm)
-        {
-            return;
-        }
-
-        if (addAction(vm))
         {
             Close();
         }

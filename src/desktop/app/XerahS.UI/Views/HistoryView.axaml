@@ -25,10 +25,30 @@
                     <Button Content="Refresh" Command="{Binding RefreshHistoryCommand}" 
                             IsEnabled="{Binding !IsLoading}"
                             AutomationProperties.Name="Refresh History"/>
-                    <Button Content="{Binding IsGridView, Converter={x:Static vm:HistoryViewModel.ViewToggleConverter}}" 
-                            Command="{Binding ToggleViewCommand}"
+                    <!-- List View button: shown when grid view is active -->
+                    <Button Command="{Binding ToggleViewCommand}"
                             IsEnabled="{Binding !IsLoading}"
-                            AutomationProperties.Name="Toggle View Mode"/>
+                            IsVisible="{Binding IsGridView}"
+                            AutomationProperties.Name="Switch to List View">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="&#xE1D1;"
+                                       FontFamily="avares://ShareX.ImageEditor/Assets#lucide"
+                                       FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="List View" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <!-- Grid View button: shown when list view is active -->
+                    <Button Command="{Binding ToggleViewCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            IsVisible="{Binding !IsGridView}"
+                            AutomationProperties.Name="Switch to Grid View">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="&#xE4FF;"
+                                       FontFamily="avares://ShareX.ImageEditor/Assets#lucide"
+                                       FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="Grid View" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     
                     <Separator Classes="vertical" Height="20"/>
 

@@ -269,7 +269,7 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
                     IsPaused = false;
                     CanStart = false;
                     CanStop = true;
-                    CanPauseResume = true;
+                    CanPauseResume = _screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume;
                     CanAbort = true;
                     _durationTimer.Start();
                     break;
@@ -280,7 +280,7 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
                     IsPaused = true;
                     CanStart = false;
                     CanStop = true;
-                    CanPauseResume = true;
+                    CanPauseResume = _screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume;
                     CanAbort = true;
                     _durationTimer.Stop();
                     break;
@@ -400,6 +400,12 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanPauseResume))]
     private async Task PauseResumeAsync()
     {
+        if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+        {
+            DebugHelper.WriteLine("RecordingViewModel: Pause/resume is unavailable for the active recording backend.");
+            return;
+        }
+
         try
         {
             await _screenRecordingCoordinator.TogglePauseResumeAsync();

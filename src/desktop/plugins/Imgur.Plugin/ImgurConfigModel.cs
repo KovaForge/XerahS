@@ -50,5 +50,5 @@ public class ImgurConfigModel
     /// <summary>
     /// Imgur Client ID for API access
     /// </summary>
-    public string ClientId { get; set; } = "30d41ft9z9r8jtt"; // Default ShareX client ID
+    public string ClientId { get; set; } = string.Empty;
 }

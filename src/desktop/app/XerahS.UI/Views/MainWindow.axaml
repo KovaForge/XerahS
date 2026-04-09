@@ -17,6 +17,14 @@
         WindowStartupLocation="CenterScreen"
         Opened="OnWindowOpened">
 
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ShareX.ImageEditor/Presentation/Theming/ImageEditorTheme.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
     <Window.DataTemplates>
         <DataTemplate DataType="{x:Type vm:ProviderCatalogViewModel}" x:DataType="vm:ProviderCatalogViewModel">
             <views:ProviderCatalogDialog/>
@@ -147,7 +155,7 @@
                                 <Grid ColumnDefinitions="Auto,*"
                                       ColumnSpacing="12">
                                     <TextBlock Text="{Binding Glyph}"
-                                               FontFamily="avares://ShareX.ImageEditor/Assets#lucide"
+                                               FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
                                                FontSize="18"
                                                FontWeight="Normal"
                                                VerticalAlignment="Center"
@@ -184,14 +192,15 @@
               IsVisible="{Binding IsModalOpen}"
               ZIndex="1000">
             <!-- Backdrop -->
-            <Border Background="{DynamicResource XerahS.Brush.Overlay.Modal}"
+            <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" 
+                    Opacity="0.8"
                     PointerPressed="OnBackdropPointerPressed"/>
             
             <!-- Modal Content Wrapper (Scrollable if needed) -->
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <Grid>
                     <!-- Modal Dialog -->
-                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="8"

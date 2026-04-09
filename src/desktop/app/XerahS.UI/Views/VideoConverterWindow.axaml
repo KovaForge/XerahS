@@ -24,7 +24,7 @@
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
       <TextBox Grid.Column="0"
                Text="{Binding InputFilePath}"
-               Watermark="Select a video file..."
+               PlaceholderText="Select a video file..."
                IsReadOnly="True"
                AutomationProperties.Name="Input file path" />
       <Button Grid.Column="1"
@@ -94,7 +94,7 @@
                 IsChecked="{Binding UseCustomArguments}"
                 AutomationProperties.Name="Use custom arguments" />
       <TextBox Text="{Binding CustomArguments}"
-               Watermark="Custom FFmpeg arguments..."
+               PlaceholderText="Custom FFmpeg arguments..."
                IsVisible="{Binding UseCustomArguments}"
                Margin="0,6,0,0"
                AutomationProperties.Name="Custom arguments" />
@@ -104,7 +104,7 @@
     <TextBox Grid.Row="4"
              Text="{Binding PreviewArgs}"
              IsReadOnly="True"
-             Watermark="FFmpeg arguments preview"
+             PlaceholderText="FFmpeg arguments preview"
              Margin="0,0,0,12"
              FontSize="11"
              AutomationProperties.Name="Arguments preview" />

@@ -25,6 +25,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using XerahS.Common.Utilities;
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Text;
@@ -319,6 +320,22 @@ namespace XerahS.Common
             }
 
             return setting!;
+        }
+
+        /// <summary>
+        /// Marks first-run state as completed by stamping <see cref="ApplicationVersion"/>
+        /// and flipping <see cref="IsFirstTimeRun"/> to false.
+        /// </summary>
+        public void MarkFirstTimeRunCompleted(bool persist = true)
+        {
+            if (!IsFirstTimeRun)
+                return;
+
+            ApplicationVersion = SystemInfo.GetApplicationVersion();
+            IsFirstTimeRun = false;
+
+            if (persist)
+                _ = Save();
         }
 
         private static T LoadInternal(string filePath, List<string>? fallbackFilePaths = null)

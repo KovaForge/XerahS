@@ -358,6 +358,12 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         if (settings.Job == Core.WorkflowType.PauseScreenRecording &&
             (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
+            if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+            {
+                DebugHelper.WriteLine("Pause/Resume hotkey ignored because the active recording backend does not support pause/resume safely.");
+                return;
+            }
+
             DebugHelper.WriteLine("Pause/Resume hotkey triggered - toggling recording pause state...");
             await _screenRecordingCoordinator.TogglePauseResumeAsync();
             return;

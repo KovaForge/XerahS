@@ -128,10 +128,68 @@ public class ScrollingCaptureManagerTests
         }
     }
 
-    private static async Task<ScrollingCaptureResult> RunCaptureAsync(IReadOnlyList<SKBitmap> frames, bool autoIgnoreBottomEdge)
+    [Test]
+    public async Task CaptureAsync_ContinuesUntilScrollInfoReportsBottom()
+    {
+        using var firstFrame = CreateFrame(contentStartIndex: 0);
+        using var secondFrame = CreateFrame(contentStartIndex: ScrollStep);
+        using var thirdFrame = CreateFrame(contentStartIndex: ScrollStep * 2);
+
+        ScrollingCaptureResult result = await RunCaptureAsync(
+            [firstFrame, secondFrame, thirdFrame],
+            autoIgnoreBottomEdge: false,
+            scrollingCaptureService: new SequenceScrollingCaptureService(
+                new ScrollBarInfo(30, 0, 100, 10),
+                new ScrollBarInfo(91, 0, 100, 10)));
+
+        try
+        {
+            Assert.That(result.Status, Is.EqualTo(ScrollingCaptureStatus.Successful));
+            Assert.That(result.FramesCaptured, Is.EqualTo(3));
+            Assert.That(result.Image, Is.Not.Null);
+            Assert.That(result.Image!.Height, Is.EqualTo(FrameHeight + (ScrollStep * 2)));
+
+            for (int row = 0; row < FrameHeight + (ScrollStep * 2); row++)
+            {
+                AssertRowColor(result.Image, row, ContentColor(row));
+            }
+        }
+        finally
+        {
+            result.Image?.Dispose();
+        }
+    }
+
+    [Test]
+    public async Task CaptureAsync_UsesLeftBiasedScrollAnchorForWheelScrolling()
+    {
+        using var firstFrame = CreateFrame(contentStartIndex: 0);
+        using var secondFrame = CreateFrame(contentStartIndex: ScrollStep);
+        var scrollingCaptureService = new TrackingScrollingCaptureService();
+
+        ScrollingCaptureResult result = await RunCaptureAsync(
+            [firstFrame, secondFrame],
+            autoIgnoreBottomEdge: false,
+            scrollingCaptureService: scrollingCaptureService);
+
+        try
+        {
+            Assert.That(result.Status, Is.EqualTo(ScrollingCaptureStatus.Successful));
+            Assert.That(scrollingCaptureService.LastScrollTargetPoint, Is.EqualTo(new Point(18, 50)));
+        }
+        finally
+        {
+            result.Image?.Dispose();
+        }
+    }
+
+    private static async Task<ScrollingCaptureResult> RunCaptureAsync(
+        IReadOnlyList<SKBitmap> frames,
+        bool autoIgnoreBottomEdge,
+        IScrollingCaptureService? scrollingCaptureService = null)
     {
         var manager = new ScrollingCaptureManager(
-            new StubScrollingCaptureService(),
+            scrollingCaptureService ?? new StubScrollingCaptureService(),
             new StubScreenCaptureService(frames),
             new StubWindowService());
 
@@ -191,12 +249,63 @@ public class ScrollingCaptureManagerTests
             return new ScrollBarInfo(91, 0, 100, 10);
         }
 
-        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount)
+        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, Point? targetPoint = null)
         {
             return Task.CompletedTask;
         }
 
-        public Task ScrollToTopAsync(IntPtr windowHandle)
+        public Task ScrollToTopAsync(IntPtr windowHandle, Point? targetPoint = null)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class SequenceScrollingCaptureService(params ScrollBarInfo[] scrollInfos) : IScrollingCaptureService
+    {
+        private readonly Queue<ScrollBarInfo> _scrollInfos = new(scrollInfos);
+        private ScrollBarInfo? _lastScrollInfo;
+
+        public bool IsSupported => true;
+
+        public ScrollBarInfo? GetScrollBarInfo(IntPtr windowHandle)
+        {
+            if (_scrollInfos.Count > 0)
+            {
+                _lastScrollInfo = _scrollInfos.Dequeue();
+            }
+
+            return _lastScrollInfo;
+        }
+
+        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, Point? targetPoint = null)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ScrollToTopAsync(IntPtr windowHandle, Point? targetPoint = null)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TrackingScrollingCaptureService : IScrollingCaptureService
+    {
+        public bool IsSupported => true;
+
+        public Point? LastScrollTargetPoint { get; private set; }
+
+        public ScrollBarInfo? GetScrollBarInfo(IntPtr windowHandle)
+        {
+            return new ScrollBarInfo(91, 0, 100, 10);
+        }
+
+        public Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, Point? targetPoint = null)
+        {
+            LastScrollTargetPoint = targetPoint;
+            return Task.CompletedTask;
+        }
+
+        public Task ScrollToTopAsync(IntPtr windowHandle, Point? targetPoint = null)
         {
             return Task.CompletedTask;
         }

@@ -35,6 +35,12 @@ public class MobileHotkeyService : IHotkeyService
         remove { }
     }
 
+    public event EventHandler? HotkeysChanged
+    {
+        add { }
+        remove { }
+    }
+
     public bool IsSuspended { get; set; }
     public Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
 

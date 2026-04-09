@@ -111,7 +111,8 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
         try
         {
             using var connection = new Connection(Address.Session);
-            await connection.ConnectAsync();
+            var connectionInfo = await connection.ConnectAsync();
+            PortalRequestExtensions.CacheLocalConnectionName(connection, connectionInfo);
 
             var portal = connection.CreateProxy<IScreenshotPortal>(PortalBusName, PortalObjectPath);
 
@@ -167,9 +168,12 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
     {
         var requestStartUtc = DateTime.UtcNow;
         using var monitor = PortalBusMonitor.TryStart("WaylandPortalStrategy");
-        var requestPath = await portal.ScreenshotAsync(string.Empty, options).ConfigureAwait(false);
-        var request = connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var (response, results) = await connection
+            .SendPortalRequestAsync(
+                PortalBusName,
+                options,
+                () => portal.ScreenshotAsync(string.Empty, options))
+            .ConfigureAwait(false);
 
         if (response != 0)
         {

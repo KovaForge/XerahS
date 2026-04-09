@@ -50,6 +50,11 @@ public sealed class LinuxHotkeyService : IHotkeyService
     private static readonly NativeMethods.XErrorHandler _errorHandler = HandleXError;
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
+    public event EventHandler? HotkeysChanged
+    {
+        add { }
+        remove { }
+    }
     public bool IsSuspended { get; set; }
     public Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
 

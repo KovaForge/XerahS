@@ -49,6 +49,12 @@ public class MacOSNativeRecordingService : IRecordingService
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
 
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return RecordingRuntimeCapabilities.SegmentedRestart;
+    }
+
     /// <summary>
     /// Check if native ScreenCaptureKit recording is available.
     /// </summary>

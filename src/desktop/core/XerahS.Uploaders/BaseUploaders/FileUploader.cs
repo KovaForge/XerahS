@@ -27,7 +27,7 @@ namespace XerahS.Uploaders
 {
     public abstract class FileUploader : GenericUploader
     {
-        public UploadResult? UploadFile(string filePath)
+        public virtual UploadResult? UploadFile(string filePath)
         {
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
             {

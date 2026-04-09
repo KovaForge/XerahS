@@ -40,7 +40,7 @@ namespace XerahS.CLI.Commands;
 /// </summary>
 public static class VerifyRecordingCommand
 {
-    private const string DefaultWorkflowId = "67f116dc";
+
     private const int DefaultDuration = 10;
     private const int DefaultIterations = 1;
     private const int DefaultRegionSize = 500;
@@ -104,7 +104,7 @@ public static class VerifyRecordingCommand
             var regionSize = parseResult.GetValue(regionSizeOption);
 
             // Apply defaults
-            if (string.IsNullOrEmpty(workflowId)) workflowId = DefaultWorkflowId;
+            if (string.IsNullOrEmpty(workflowId)) workflowId = AppContracts.Cli.DefaultRecordingWorkflowId;
             if (duration == 0) duration = DefaultDuration;
             if (iterations == 0) iterations = DefaultIterations;
             if (regionSize == 0) regionSize = DefaultRegionSize;
@@ -180,7 +180,7 @@ public static class VerifyRecordingCommand
 internal class RecordingVerifier
 {
     public required IScreenRecordingCoordinator RecordingCoordinator { get; init; }
-    public string WorkflowId { get; set; } = "67f116dc";
+    public string WorkflowId { get; set; } = AppContracts.Cli.DefaultRecordingWorkflowId;
     public bool RandomRegion { get; set; }
     public int Duration { get; set; } = 10;
     public int Iterations { get; set; } = 1;

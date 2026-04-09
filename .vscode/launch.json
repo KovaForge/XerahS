@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "C#: XerahS Debug",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/src/desktop/app/XerahS.App/XerahS.App.csproj"
+        }
+    ]
+}

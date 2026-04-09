@@ -128,6 +128,7 @@ internal sealed class FakeScreenRecordingCoordinator : IScreenRecordingCoordinat
     public bool IsRecording { get; set; }
     public bool IsPaused { get; set; }
     public bool IsUsingFallback { get; set; }
+    public RecordingRuntimeCapabilities CurrentCapabilities { get; set; } = RecordingRuntimeCapabilities.SegmentedRestart;
     public Task? PlatformInitializationTask { get; set; }
 
     public int AbortCalls { get; private set; }
