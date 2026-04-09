@@ -3,10 +3,16 @@
                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                 xmlns:views="using:XerahS.UI.Views"
+                xmlns:vm="using:XerahS.UI.ViewModels"
                 xmlns:common="using:XerahS.Common"
                 xmlns:theming="clr-namespace:XerahS.UI.Theming"
                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-                x:Class="XerahS.UI.Views.AboutView">
+                x:Class="XerahS.UI.Views.AboutView"
+                x:DataType="vm:AboutViewModel">
+
+    <Design.DataContext>
+        <vm:AboutViewModel />
+    </Design.DataContext>
 
     <ScrollViewer>
         <StackPanel Spacing="24" Margin="24" MaxWidth="800" HorizontalAlignment="Center">
@@ -201,6 +207,49 @@
                                            Text="{x:Static theming:HostIcons.ActionOpenLink}" />
                             </Grid>
                         </Button>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="16" HorizontalAlignment="Stretch">
+                <Expander IsExpanded="True" HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <TextBlock Classes="IconGlyph"
+                                       FontSize="16"
+                                       Text="{x:Static theming:HostIcons.NavigationDebug}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding LoadedAssemblyCount, StringFormat='Loaded Libraries ({0})'}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Margin="0,16,0,0" Spacing="12">
+                        <TextBlock Text="Loaded assemblies are captured from the current runtime so users can confirm the exact versions in memory, including core dependencies such as Avalonia."
+                                   Theme="{StaticResource BodyTextBlockStyle}"
+                                   Opacity="0.75"
+                                   TextWrapping="Wrap" />
+
+                        <ListBox ItemsSource="{Binding LoadedAssemblies}"
+                                 HorizontalAlignment="Stretch"
+                                 MaxHeight="360">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:LoadedAssemblyInfoViewModel">
+                                    <Border Padding="12,10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                            <TextBlock Text="{Binding Name}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Version}"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="SemiBold"
+                                                       Opacity="0.8" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </StackPanel>
                 </Expander>
             </Border>

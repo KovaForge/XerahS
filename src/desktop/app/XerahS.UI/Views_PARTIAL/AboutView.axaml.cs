@@ -23,6 +23,7 @@ using Avalonia.Interactivity;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using XerahS.Common;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
 {
@@ -31,6 +32,7 @@ namespace XerahS.UI.Views
         public AboutView()
         {
             InitializeComponent();
+            DataContext ??= new AboutViewModel();
         }
 
         private void OnLinkClick(object sender, RoutedEventArgs e)
