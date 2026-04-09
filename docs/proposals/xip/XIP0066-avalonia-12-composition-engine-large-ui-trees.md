@@ -1,4 +1,4 @@
-# XIP0066 Avalonia 12 Composition Engine — Large UI Tree Performance
+# XIP0066 Avalonia 12 Composition Engine - Large UI Tree Performance
 
 **Status**: Draft
 **Priority**: Medium
@@ -9,82 +9,116 @@
 
 ## Summary
 
-Avalonia 12 ships a revamped composition engine that significantly improves rendering performance for large UI trees on all desktop platforms (Windows, macOS, Linux). XerahS has several screens with complex UI trees — the settings page, history view, and the image editor toolbar — that are candidates for measurable latency improvements from this change. This XIP proposes measuring baseline performance before/after the Avalonia 12 upgrade and targeting specific UI trees for optimization.
+Avalonia 12 is explicitly positioned as a performance release. The official release notes claim major compositor work, lower idle CPU, compiled bindings by default, and up to 1,867% FPS improvement in extremely heavy visual scenes. XerahS should use this XIP to turn those framework gains into measurable wins on the screens that matter most: history, settings grids, region capture, and editor surfaces.
+
+This XIP is not just "benchmark before and after." It is also about aligning XerahS UI architecture with the things Avalonia 12 is now good at:
+
+- large visual trees
+- hidden visuals that should stop doing work
+- binding-heavy screens that benefit from compiled bindings
+- async UI flows that should move expensive work off the hot path
 
 ---
 
-## Background: Avalonia 12 Composition Engine
+## Avalonia 12 Performance Themes That Matter Here
 
-Avalonia 12's composition engine rewrite focuses on:
+The Avalonia 12 release notes describe the following changes as relevant to real applications:
 
-1. **Reduced draw call overhead** — batching improvements mean fewer round-trips to the GPU for complex visual trees
-2. **Improved `IVisual`-tree traversal** — less time spent walking the visual tree during render passes
-3. **Better dirty-rect tracking** — only invalid regions are redrawn rather than full control invalidation
-4. **Thread-local composition** — composition work is better distributed across cores on multi-monitor/high-DPI setups
+1. The compositor was fundamentally reworked.
+2. Render scaling lookups are cached in `PresentationSource`.
+3. Animation processing is disabled when a visual is not visible.
+4. Default window icon loading is deferred until the window is shown.
+5. Compiled bindings are enabled by default.
+6. Idle CPU usage is materially lower.
 
-These changes are most impactful for:
-- Controls with many children (e.g., DataGrid with hundreds of rows)
-- Complex visual layers (overlays, toolbars, annotation layers)
-- High-frequency update scenarios (live preview, scrolling, drag operations)
+XerahS should evaluate performance through that lens. The question is not only "is Avalonia 12 faster?" The question is "are our UI trees structured so Avalonia 12 can actually help us?"
 
 ---
 
 ## Relevant XerahS UI Trees
 
-### High-priority targets (complex, frequently updated)
+### High-priority targets
 
-| UI Area | Control | Tree Complexity | Update Frequency | Expected Gain |
-|---|---|---|---|---|
-| **Image Editor toolbar** | Tool buttons + panels | Medium | High (tool switch) | Medium |
-| **Settings page** | DataGrid (uploaders list) | High | Low | Medium |
-| **History view** | DataGrid (capture history) | High | Medium | High |
-| **Region capture overlay** | Canvas + annotation layer | Medium | High (mouse move) | High |
-| **Annotation effects panel** | Effect sliders + previews | Medium | High (slider drag) | Medium |
+| UI Area | Control Shape | Why It Matters | Expected Avalonia 12 Benefit |
+|---|---|---|---|
+| History view | Large item/grid surface | Heavy scrolling and frequent updates | Better compositor throughput, lower binding overhead |
+| Region capture overlay | Frequently redrawn overlay | Mouse-move and drag sensitivity | Lower frame cost during drag and resize |
+| Image editor toolbar and inspector panels | Dense control tree | Tool changes and panel updates | Better layout/render responsiveness |
+| Settings surfaces with grids and lists | Binding-heavy forms and tables | Large forms, validation, list virtualization | Compiled-binding and compositor gains |
+| Effect and preview panels | Slider-driven updates | High-frequency parameter changes | Lower redraw cost and less idle waste |
 
 ### Lower-priority targets
 
-| UI Area | Control | Reason |
-|---|---|---|
-| Main window navigation | TabControl | Static, infrequent updates |
-| About page | Simple layout | Not performance-sensitive |
+| UI Area | Reason |
+|---|---|
+| About and static informational pages | Not performance-sensitive |
+| One-off dialogs with small visual trees | Useful to verify, but not primary bottlenecks |
 
 ---
 
-## Proposed Investigation
+## Measurement Strategy
 
-### Phase 1: Baseline Measurement (before Avalonia 12 upgrade)
+### Phase 1: Post-upgrade baseline
 
-Establish baseline metrics for the high-priority targets using Avalonia's built-in diagnostics:
+Because Avalonia 12 is already the target runtime, the first useful baseline is the current 12.0 behavior on representative scenarios:
 
-1. **`CompositingOverflow` diagnostic** — enable via `DebugAttachOptions` to detect composition overflow events (render calls that exceed the frame budget)
-2. **Frame time profiling** — use `Avalonia.Diagnostics.OverlayDiagnostics` (DevTools) to observe frame times during:
-   - Rapid tool switching in the image editor
-   - Scrolling through history DataGrid
-   - Dragging the region selector overlay
-3. **Metrics to record**:
-   - P95 frame time (ms) per scenario
-   - Dropped frames (frames > 16.67ms on 60Hz)
-   - Composition overflow count per minute
+1. Scroll a large history dataset.
+2. Drag and resize the region-capture overlay continuously.
+3. Switch tools and open panels in the image editor.
+4. Drag effect sliders while preview is visible.
 
-### Phase 2: Post-Upgrade Validation (after Avalonia 12)
+For each scenario, record:
 
-After applying the Avalonia 12 upgrade (XIP0065), re-run the same scenarios and compare:
+- P95 frame time
+- dropped-frame rate at the target refresh rate
+- CPU usage while actively interacting
+- idle CPU once the surface is visible but not moving
 
-1. Frame time reduction (%) per scenario
-2. Whether any previously-observed overflow events are eliminated
-3. Whether any new rendering artifacts appear
+### Phase 2: Confirm the framework is being used well
 
-### Phase 3: Optimization (if needed)
+Inspect whether the slow surfaces are fighting Avalonia 12:
 
-If Avalonia 12's composition engine alone does not fully address observed slowdowns:
+- views without explicit `x:DataType`
+- hidden panels that continue animating or updating
+- unnecessarily deep nested layouts
+- full-surface invalidation where targeted invalidation would do
+- avoidable UI-thread work during pointer-heavy or scroll-heavy interaction
 
-| Optimization | Description |
-|---|---|
-| **Virtualization** | Ensure `DataGrid` in history/settings uses `VirtualizationMode.Simple` or `Physical` for large datasets |
-| **Panel simplification** | Replace nested `StackPanel`/`Border` chains in toolbars with flatter `Grid`-based layouts |
-| **Cached rendering** | Apply `RenderOptions.BitmapCacheMode="Qualified"` on stable but complex visuals (annotation canvas background) |
-| **Deferred updates** | Batch slider/param updates in the annotation panel using a `50ms` throttle via `Dispatcher.UIThread.Post(..., DispatcherPriority.Render)` |
-| **Custom compositing** | Override `CreateEffect()` on SkiaSharp-rendered controls to use hardware-accelerated layers |
+### Phase 3: Apply focused fixes only where needed
+
+If a surface remains slow after the framework upgrade, prefer changes that align with Avalonia 12 instead of piling on ad hoc rendering workarounds.
+
+---
+
+## Optimization Priorities
+
+| Priority | Optimization | Why It Fits Avalonia 12 |
+|---|---|---|
+| High | Convert touched hot-path views to explicit compiled bindings with `x:DataType` | Avalonia 12 already defaults toward compiled bindings; XerahS should not leave hot paths on ambiguous reflection bindings |
+| High | Stop updating hidden panels and previews | Avalonia 12 now avoids processing animations for non-visible visuals; app logic should not reintroduce background churn |
+| High | Keep expensive parsing, hashing, and preview prep off the interaction path | Matches Avalonia 12's stronger dispatcher/background-processing model |
+| Medium | Flatten deeply nested layout trees in history/editor panels | Lets compositor and layout improvements pay off more directly |
+| Medium | Re-check virtualization and item-template cost on large grids/lists | Important for history and settings tables |
+| Medium | Reduce full-canvas invalidation during region capture | Keeps pointer-heavy rendering aligned with compositor improvements |
+| Low | Cache only genuinely stable complex visuals | Useful only after measurement; avoid speculative caching everywhere |
+
+---
+
+## Success Criteria
+
+- No new rendering artifacts after the Avalonia 12 upgrade
+- At least one high-priority surface shows a clear frame-time improvement over the pre-upgrade behavior already observed by users
+- Region-capture drag feels smooth under sustained pointer movement
+- History scrolling remains responsive at large item counts
+- Hidden panels and inactive surfaces do not burn CPU unnecessarily
+
+---
+
+## Non-Goals
+
+- Rewriting every XAML surface just because Avalonia 12 is faster
+- Adding speculative cache flags or custom rendering layers without measurement
+- Treating a framework speedup as a replacement for bad view structure or over-eager UI updates
 
 ---
 
@@ -92,29 +126,27 @@ If Avalonia 12's composition engine alone does not fully address observed slowdo
 
 | Phase | Step | Deliverable |
 |---|---|---|
-| 1a | Enable `DebugAttachOptions.CompositingOverflow` in DevTools on a DEBUG build | Observable overflow count |
-| 1b | Record baseline frame times for 3 key scenarios (tool switch, history scroll, region overlay drag) | Baseline metrics JSON |
-| 2 | Upgrade to Avalonia 12 (XIP0065), re-run same scenarios | Post-upgrade metrics JSON |
-| 2 | Diff baseline vs. post-upgrade metrics | Summary: % improvement per scenario |
-| 3 | If improvements < 20% on any high-priority target, apply optimization techniques above | Optimized controls + re-measured metrics |
-
----
-
-## Success Criteria
-
-- No new rendering artifacts after Avalonia 12 upgrade
-- ≥ 15% reduction in P95 frame time on at least one high-priority UI tree
-- Compositing overflow count reduced to zero for region capture overlay during mouse drag
-- History DataGrid scrolling remains smooth (≥ 30 FPS) with 10,000+ items
+| 1 | Capture current Avalonia 12 performance on history, region capture, editor, and effect-preview scenarios | Baseline notes and metrics |
+| 2 | Audit those surfaces for compiled bindings, hidden-work churn, deep layout nesting, and invalidation patterns | Hot-path issue list |
+| 3 | Apply the smallest structural fixes needed on the worst surfaces | Targeted UI changes |
+| 4 | Re-measure the same scenarios | Before/after comparison |
+| 5 | Record any remaining bottlenecks as follow-up work rather than bloating this XIP | Focused follow-up backlog |
 
 ---
 
 ## Open Questions
 
-1. **Baseline tooling**: Is `DebugAttachOptions` sufficient for frame time measurement, or should we add `System.Diagnostics.Stopwatch`-based instrumentation at key rendering hooks?
-2. **History DataGrid size**: What is the expected maximum history items in production? (Affects whether virtualization is necessary or if a simpler fix suffices)
-3. **Overlay dirty-rect**: Does the region capture overlay currently invalidate the entire canvas on mouse move, or does it use targeted invalidation?
+1. Which screen currently has the highest frame-time variance: history, region capture, or editor interaction?
+2. Which views still rely on implicit or reflection-style bindings in hot paths?
+3. Does the region capture overlay still invalidate more surface area than necessary during drag operations?
+4. Are there hidden panels or previews in the editor that continue to update while off-screen or collapsed?
 
 ---
 
-*Author: Claude (performance investigation draft)*
+## Reference
+
+- Avalonia UI Blog, "Avalonia 12 - Ready for What's Next," April 7, 2026: <https://avaloniaui.net/blog/avalonia-12/>
+
+---
+
+*Author: Claude draft, revised to reflect the Avalonia 12 performance model*

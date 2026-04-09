@@ -1,4 +1,4 @@
-# XIP0065 Avalonia 12 Upgrade — Core Migration and Breaking Changes
+# XIP0065 Avalonia 12 Upgrade - Core Migration and Breaking Changes
 
 **Status**: Draft
 **Priority**: High
@@ -9,101 +9,147 @@
 
 ## Summary
 
-Upgrade XerahS and ShareX.ImageEditor from Avalonia 11.3.13 to Avalonia 12.0.0. This is a foundation-paving upgrade that unlocks the Android high-refresh-rate dispatcher, iOS scene delegate, and composition engine improvements in subsequent XIPs. The primary migration work is verifying the XAML binding class hierarchy changes and confirming `AttachDeveloperTools()` is wired correctly (it already is in XerahS — no code change needed).
+Upgrade XerahS and ShareX.ImageEditor from Avalonia 11.3.x to Avalonia 12 and treat the move as a foundation release, not just a package bump. The official Avalonia 12 announcement frames the release around performance, stability, platform maturity, compiled bindings by default, dispatcher and focus-management improvements, Linux accessibility, and themeable client-side decorations. This XIP adopts that same posture for XerahS.
+
+The migration goal is twofold:
+
+1. Keep the upgrade low-risk by addressing the small set of breaking changes that are visible in real app code.
+2. Update XerahS conventions so new work is written in the Avalonia 12 style instead of carrying forward Avalonia 11-era patterns.
 
 ---
 
 ## Current State
 
-```
+```text
 Directory.Packages.props (main repo)
-  Avalonia                        → 11.3.13
-  Avalonia.Android                → 11.3.9
-  Avalonia.Controls.ColorPicker  → 11.3.13
-  Avalonia.Controls.DataGrid     → 11.3.9
-  Avalonia.Desktop                → 11.3.13
-  Avalonia.Fonts.Inter            → 11.3.13
-  Avalonia.Headless.NUnit         → 11.3.13
-  Avalonia.iOS                    → 11.3.9
-  Avalonia.Skia                   → 11.3.13
-  Avalonia.Themes.Fluent          → 11.3.13
-  AvaloniaUI.DiagnosticsSupport  → 2.1.1
+  Avalonia                       -> 12.0.0
+  Avalonia.Android               -> 12.0.0
+  Avalonia.Controls.ColorPicker -> 12.0.0
+  Avalonia.Controls.DataGrid    -> 12.0.0
+  Avalonia.Desktop               -> 12.0.0
+  Avalonia.Fonts.Inter           -> 12.0.0
+  Avalonia.Headless.NUnit        -> 12.0.0
+  Avalonia.iOS                   -> 12.0.0
+  Avalonia.Skia                  -> 12.0.0
+  Avalonia.Themes.Fluent         -> 12.0.0
+  AvaloniaUI.DiagnosticsSupport -> 2.2.0
+  SkiaSharp                      -> 3.119.3-preview.1.1
 
 ShareX.ImageEditor/Directory.Packages.props (submodule)
-  Avalonia                        → 11.3.13
-  Avalonia.Controls.ColorPicker  → 11.3.13
-  Avalonia.Desktop                → 11.3.13
-  Avalonia.Fonts.Inter            → 11.3.13
-  Avalonia.Themes.Fluent          → 11.3.13
-  AvaloniaUI.DiagnosticsSupport  → 2.1.1
+  Avalonia                       -> 12.0.0
+  Avalonia.Controls.ColorPicker -> 12.0.0
+  Avalonia.Desktop               -> 12.0.0
+  Avalonia.Fonts.Inter           -> 12.0.0
+  Avalonia.Themes.Fluent         -> 12.0.0
+  AvaloniaUI.DiagnosticsSupport -> 2.2.0
+  SkiaSharp                      -> 3.119.3-preview.1.1
 ```
+
+The package upgrade is already aligned with Avalonia 12's broader platform direction: .NET 10, SkiaSharp 3, and central package management.
 
 ---
 
-## Target State
+## Why Avalonia 12 Matters Here
 
-```
-  Avalonia                        → 12.0.0  (all packages)
-  AvaloniaUI.DiagnosticsSupport  → 2.2.0
-```
+The Avalonia 12 release notes describe 12.0 as a foundational release focused on:
+
+- much faster rendering, with especially large gains on heavy visual scenes
+- lower idle CPU usage and less unnecessary work when visuals are not visible
+- compiled bindings enabled by default
+- a stronger dispatcher model with `Dispatcher.CurrentDispatcher`, `Dispatcher.FromThread`, `AvaloniaObject.Dispatcher`, `Dispatcher.Yield`, and background-processing support
+- a major focus-management overhaul
+- native Linux accessibility via AT-SPI2, plus automation support for validation errors and landmarks
+- themeable client-side window decorations
+
+For XerahS, that means the upgrade should change both runtime behavior and coding standards for future UI work.
 
 ---
 
-## Breaking Changes in Avalonia 12
+## Migration-Sensitive Changes
 
-### 1. `.NET Standard / .NET Framework support dropped`
+### 1. Diagnostics package and attachment model
 
-XerahS targets .NET 10 — no action needed.
+Avalonia 12 fully retires the legacy `Avalonia.Diagnostics` package path. XerahS must use `AvaloniaUI.DiagnosticsSupport` and `AttachDeveloperTools()`.
 
-### 2. `Avalonia.Diagnostics` package fully retired
+Avalonia 12 also does not allow multiple developer-tools attachments. The app must have exactly one dev-tools registration path in DEBUG builds.
 
-The legacy `Avalonia.Diagnostics` package (which provided `AttachDevTools()`) is removed. The codebase must use `AvaloniaUI.DiagnosticsSupport` + `AttachDeveloperTools()`.
+**Repository expectation**
 
-**Status in XerahS: Already compliant.** `App.axaml.cs:77` calls `this.AttachDeveloperTools()` inside `#if DEBUG`. No code changes required.
+- keep `AttachDeveloperTools()` in the application layer
+- do not also call `.WithDeveloperTools()` during app-builder startup
+- treat duplicate registration as a startup regression
 
-### 3. XAML binding class hierarchy changes
+### 2. Data validation now sits on `Control`
 
-Avalonia 12 changed the internal class hierarchy for XAML bindings. This can cause:
-- `Binding` expressions that cast to internal types to break
-- Custom `IMarkupExtension` implementations that rely on internal Avalonia types
-- `.axaml` files that use `Style.x:Name` binding syntax dependent on the old hierarchy
+The Avalonia 12 release notes call out a visible migration change: data validation handling moved to the base `Control` class. This is a net improvement, but XerahS must re-check any custom validation styling, especially where validation visuals were previously assumed only on specific input controls.
 
-**Required action**: Full build + runtime pass after updating packages. Watch for:
-- `System.InvalidCastException` in any `.axaml` binding
-- Missing or incorrect property values in styled controls
-- Any `Avalonia.Markup.Xaml.XamlLoadException` at startup
+**Required audit**
 
-### 4. `Avalonia.Headless.NUnit` updated to 12.0.0
+- form fields in settings and workflow editors
+- dialog validation states
+- any custom styles targeting validation pseudo-classes or error templates
 
-Six headless NUnit test files confirmed in the repo:
+### 3. Renames and removed obsolete APIs
 
-| File | Using |
-|---|---|
-| `tests/XerahS.Tests/RegionCapture/RegionCaptureUiSmokeTests.cs` | `Avalonia.Headless.NUnit` |
-| `tests/XerahS.Tests/Hotkeys/WorkflowEditorViewModelTests.cs` | `Avalonia.Headless.NUnit` |
-| `tests/XerahS.Tests/Editor/EditorContextMenuSmokeTests.cs` | `Avalonia.Headless.NUnit` |
-| `tests/XerahS.Tests/Editor/EditorCloseConfirmationTests.cs` | `Avalonia.Headless.NUnit` |
-| `tests/XerahS.Tests/Editor/CreativeFilterDialogWiringTests.cs` | `Avalonia.Headless.NUnit` |
-| `tests/XerahS.Tests/Avalonia/ViewLocatorTests.cs` | `Avalonia.Headless.NUnit` |
-| `tests/XerahS.Tests/Avalonia/AvaloniaTestAppBuilder.cs` | `Avalonia.Headless` + `Avalonia.Headless.NUnit` |
+Avalonia 12 includes a small but real set of consistency renames and removed obsolete APIs. The release notes explicitly call out `SystemDecorations` becoming `WindowDecorations`.
 
-`Avalonia.Headless.NUnit` in `Directory.Packages.props` is already set to `12.0.0`. Tests must be re-run after the upgrade to verify compatibility.
+**Required audit**
 
-### 5. Binding audit findings
+- window chrome configuration
+- custom dialogs
+- code and XAML still using removed or renamed Avalonia 11 members
 
-**Fragile patterns confirmed in active code:**
+### 4. Binding posture changed
 
-`OnboardingWizardWindow.axaml:79,85,90,97` — cast inside a binding path:
-```xml
-ConverterParameter={Binding $parent[ItemsControl].((vm:OnboardingWizardViewModel)DataContext).CurrentStepIndex}
-```
-This pattern casts `DataContext` to `vm:OnboardingWizardViewModel` inside a `$parent` lookup path. If Avalonia 12's binding class hierarchy affects how `$parent` lookups or path-based casts resolve, these bindings could throw `InvalidCastException` at runtime.
+Compiled bindings are enabled by default in Avalonia 12. That improves performance, but it also raises the bar for sloppy or ambiguous binding patterns.
 
-**All other `x:DataType` usages** in ShareX.ImageEditor are explicit and type-safe (compiled bindings via `x:DataType` on `DataTemplate`, no internal Avalonia type casts). These are low-risk.
+The active migration concern in XerahS is not "compiled bindings are risky"; it is that old reflection-style or cast-heavy bindings should now be treated as technical debt. The known fragile path remains the onboarding wizard's parent lookup and cast sequence.
 
-**`RelativeSource Ancestor` patterns** exist only in stale `Views_TEMP2`/`Views_PARTIAL` directories — no action needed for active code.
+**Required action**
 
-**Action required:** Re-test the Onboarding wizard flow after Avalonia 12 upgrade (`Settings → first-run wizard`).
+- keep `x:DataType` explicit on new views and templates
+- prefer compiled bindings over reflection bindings in newly touched XAML
+- re-test any binding paths that cast through `$parent` or rely on inferred types
+
+### 5. Dispatcher model is better and should be used directly
+
+Avalonia 12 adds dispatcher APIs that are closer to WPF expectations while staying cross-platform. XerahS should use those APIs for new UI-thread handoff work instead of continuing to centralize everything around older static helper patterns.
+
+**Adoption rule**
+
+- for control-owned work, prefer the control or window dispatcher when available
+- use dispatcher yield/background scheduling for UI flows that parse, hash, load, or restore state
+- stop treating every async UI continuation as an unconditional `Dispatcher.UIThread.Post(...)`
+
+### 6. Focus management is now good enough to rely on
+
+Avalonia 12 opens up `FocusManager`, adds cancellable focus transitions, and improves keyboard traversal behavior. XerahS should use that model intentionally for dialogs, onboarding, history interactions, and editor restore flows rather than relying on fragile delayed-focus workarounds.
+
+### 7. Linux accessibility is now a first-class requirement
+
+Avalonia 12 is the first .NET UI framework to ship a native Linux accessibility backend. It also adds automation support for validation errors and landmarks.
+
+For XerahS, this changes the quality bar:
+
+- validation errors should be surfaced in automation metadata
+- navigation-heavy surfaces should expose meaningful landmarks
+- new cross-platform UI work should not be reviewed from a Windows-only visual perspective
+
+### 8. Themeable client decorations should replace title-bar workarounds
+
+Avalonia 12 introduces themeable client-side decorations with forced client-side decoration support. XerahS should use the standard Avalonia 12 decoration model for custom windows and dialogs instead of preserving older custom chrome assumptions.
+
+---
+
+## XerahS Adoption Requirements
+
+This XIP is complete only when the repository is not merely "building on 12.0" but following these Avalonia 12-specific rules:
+
+1. New XAML uses explicit `x:DataType` where practical.
+2. New UI restore flows use Avalonia 12 dispatcher APIs for background work and UI-thread handoff.
+3. Keyboard and dialog flows use real focus-management APIs instead of delayed hacks.
+4. Validation and landmark metadata are treated as part of UI completion, not as optional polish.
+5. Window and dialog chrome aligns with Avalonia 12 decorations rather than carrying old custom behavior forward.
 
 ---
 
@@ -111,37 +157,45 @@ This pattern casts `DataContext` to `vm:OnboardingWizardViewModel` inside a `$pa
 
 | # | Step | Status |
 |---|---|---|
-| 1 | Update `Directory.Packages.props` Avalonia packages to `12.0.0` | ✅ Done |
-| 2 | Update `ShareX.ImageEditor/Directory.Packages.props` Avalonia packages to `12.0.0` | ✅ Done |
-| 3 | Update `AvaloniaUI.DiagnosticsSupport` to `2.2.0` in both `Directory.Packages.props` files | ✅ Done |
-| 4 | Run `dotnet restore && dotnet build` — verify no build errors | Pending |
-| 5 | Run headless NUnit tests — verify all 6 test files still pass | Pending |
-| 6 | Run application — verify startup, theme, dev tools, image editor, region capture, settings | Pending |
-| 7 | Trigger first-run onboarding wizard — verify `$parent[ItemsControl]` cast bindings work | Pending |
-| 8 | Update ShareX.ImageEditor submodule reference commit in XerahS | Pending |
+| 1 | Update main-repo Avalonia packages to 12.0.0 | Done |
+| 2 | Update ShareX.ImageEditor Avalonia packages to 12.0.0 | Done |
+| 3 | Update `AvaloniaUI.DiagnosticsSupport` in both package files | Done |
+| 4 | Ensure there is only one DEBUG developer-tools attachment path | Done |
+| 5 | Run full solution build after package update | Done |
+| 6 | Re-run headless Avalonia test coverage | Pending |
+| 7 | Re-test onboarding wizard bindings and startup XAML load paths | Pending |
+| 8 | Audit validation visuals against `Control`-level validation behavior | Pending |
+| 9 | Audit renamed or removed APIs, especially window-decoration usage | Pending |
+| 10 | Establish Avalonia 12 coding conventions for compiled bindings, dispatchers, focus, and accessibility | Pending |
 
 ---
 
 ## Verification Checklist
 
-After updating packages, verify:
-
-- [ ] `dotnet restore` completes with no version conflicts
-- [ ] `dotnet build` completes with no errors (warnings are expected during migration)
-- [ ] Application starts and shows the main window
-- [ ] Dev tools attach correctly in DEBUG builds (`AttachDeveloperTools()`)
-- [ ] Theme (Fluent) renders correctly
-- [ ] Image editor loads and is interactive
-- [ ] Region capture overlay is functional
-- [ ] Settings page loads and saves correctly
+- [ ] `dotnet build` succeeds with no errors in the main repo
+- [ ] `dotnet build` succeeds with no errors in ShareX.ImageEditor
+- [ ] Application starts without XAML load exceptions
+- [ ] Developer tools attach once in DEBUG builds and never twice
+- [ ] Onboarding wizard bindings resolve correctly at runtime
+- [ ] Theme rendering remains correct after the upgrade
+- [ ] Validation visuals still appear correctly on settings and editor dialogs
+- [ ] Keyboard focus is predictable across dialogs, onboarding, and restore flows
+- [ ] Linux accessibility and automation metadata are included in follow-up UI work
 
 ---
 
 ## Open Questions
 
-1. **Binding audit scope**: Proactive audit — confirmed yes. Key patterns to audit: `Binding` expressions with internal Avalonia type casts, `x:DataType` inference chains, and `Style` resource lookups that assume the old class hierarchy.
-2. **Headless tests**: Confirmed yes. `Avalonia.Headless.NUnit` package version must be updated to `12.0.0`. Any existing headless UI tests in the repo must be verified to still pass after the package upgrade.
+1. Which active views still rely on reflection-style bindings or cast-heavy parent lookup paths?
+2. Which custom dialogs should explicitly adopt Avalonia 12 client decorations instead of preserving legacy chrome assumptions?
+3. Which XerahS surfaces most need landmarks and validation automation metadata in the first post-upgrade pass?
 
 ---
 
-*Author: Claude (automated upgrade draft)*
+## Reference
+
+- Avalonia UI Blog, "Avalonia 12 - Ready for What's Next," April 7, 2026: <https://avaloniaui.net/blog/avalonia-12/>
+
+---
+
+*Author: Claude draft, revised for the Avalonia 12 release posture*
