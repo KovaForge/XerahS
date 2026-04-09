@@ -141,12 +141,12 @@ public partial class App : Application
 
             // Pre-load default image so annotation toolbar is usable before first capture
             // Load asynchronously to avoid blocking the UI thread during startup
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 try
                 {
                     var sampleUri = new Uri("avares://ShareX.ImageEditor/Assets/Sample.png");
-                    var sampleStream = Avalonia.Platform.AssetLoader.Open(sampleUri);
+                    using var sampleStream = Avalonia.Platform.AssetLoader.Open(sampleUri);
                     if (sampleStream == null)
                     {
                         DebugHelper.WriteLine($"Sample.png stream is null - asset not found at {sampleUri}");
@@ -155,16 +155,20 @@ public partial class App : Application
                     using var ms = new MemoryStream();
                     sampleStream.CopyTo(ms);
                     ms.Position = 0;
-                    using var sampleBitmap = SKBitmap.Decode(ms);
+                    SKBitmap? sampleBitmap = SKBitmap.Decode(ms);
                     if (sampleBitmap == null)
                     {
                         DebugHelper.WriteLine($"SKBitmap.Decode returned null for Sample.png");
                         return;
                     }
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         mainViewModel.UpdatePreview(sampleBitmap, clearAnnotations: true);
+                        sampleBitmap = null;
                     });
+
+                    sampleBitmap?.Dispose();
                 }
                 catch (Exception ex)
                 {
