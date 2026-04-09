@@ -113,13 +113,28 @@ public static class UploadCommand
                 return 1;
             }
 
-            if (!File.Exists(filePath))
+            if (!string.IsNullOrEmpty(filePath))
             {
-                PrintError($"File not found: {filePath}");
-                return 1;
-            }
+                string? namedFilePath = null;
+                if (!string.IsNullOrEmpty(name) && File.Exists(filePath))
+                {
+                    // Copy to temp file with the requested name so uploaders see the right filename
+                    namedFilePath = Path.Combine(Path.GetTempPath(), name);
+                    File.Copy(filePath, namedFilePath, overwrite: true);
+                    filePath = namedFilePath;
+                }
 
-            if (!_quiet) Console.WriteLine($"Uploading: {filePath}");
+                if (!File.Exists(filePath))
+                {
+                    PrintError($"File not found: {filePath}");
+                    return 1;
+                }
+
+                if (!_quiet) Console.WriteLine($"Uploading: {filePath}");
+
+                // Use namedFilePath for display if set, otherwise use filePath
+                string displayFilePath = !string.IsNullOrEmpty(namedFilePath) ? filePath : filePath;
+            }
 
             // Configure task settings for file upload
             // Use the first FileUpload workflow's settings so user-configured options
@@ -129,6 +144,8 @@ public static class UploadCommand
             taskSettings.Job = WorkflowType.FileUpload;
             taskSettings.AfterCaptureJob = AfterCaptureTasks.UploadImageToHost;
             taskSettings.AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
+
+            string displayName = !string.IsNullOrEmpty(name) ? name : Path.GetFileName(filePath ?? throw new InvalidOperationException());
 
             var tcs = new TaskCompletionSource<bool>();
             bool handlerFired = false;
@@ -144,9 +161,10 @@ public static class UploadCommand
                 if (success)
                 {
                     var url = task.Info.Metadata?.UploadURL ?? string.Empty;
+                    string displayName = !string.IsNullOrEmpty(name) ? name : Path.GetFileName(filePath);
                     if (_jsonOutput)
                     {
-                        var result = new UploadResult(url, Path.GetFileName(filePath), new FileInfo(filePath).Length, GetContentType(filePath));
+                        var result = new UploadResult(url, displayName, new FileInfo(filePath).Length, GetContentType(filePath));
                         Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
                     }
                     else
