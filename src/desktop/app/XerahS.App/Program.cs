@@ -652,6 +652,7 @@ namespace XerahS.App
             => AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
                 .WithInterFont()
+                .WithDeveloperTools()
                 .LogToTrace();
 
         /// <summary>
