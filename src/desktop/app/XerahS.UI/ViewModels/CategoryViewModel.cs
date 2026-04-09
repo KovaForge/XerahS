@@ -29,6 +29,7 @@ using XerahS.UI.Services;
 using XerahS.Uploaders.PluginSystem;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace XerahS.UI.ViewModels;
 
@@ -167,7 +168,9 @@ public partial class CategoryViewModel : ViewModelBase
         var instances = InstanceManager.Instance.GetInstancesByCategory(Category);
         var defaultInstance = InstanceManager.Instance.GetDefaultInstance(Category);
 
-        foreach (var instance in instances)
+        foreach (var instance in instances
+            .OrderByDescending(instance => defaultInstance != null && instance.InstanceId == defaultInstance.InstanceId)
+            .ThenByDescending(instance => instance.CreatedAt))
         {
             var vm = new UploaderInstanceViewModel(instance);
 

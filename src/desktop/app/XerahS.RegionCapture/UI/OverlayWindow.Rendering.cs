@@ -291,7 +291,7 @@ public partial class OverlayWindow
 
         var logicalBitmap = monitorBitmap.Resize(
             new SKImageInfo(logicalWidth, logicalHeight),
-            new SKSamplingOptions(SKCubicResampler.Mitchell));
+            new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None));
         if (logicalBitmap != null)
         {
             DebugHelper.WriteLine($"[BackgroundBitmap] {monitor.DeviceName}: resized {monitorBitmap.Width}x{monitorBitmap.Height} → {logicalBitmap.Width}x{logicalBitmap.Height}");
