@@ -32,6 +32,7 @@ using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
+using XerahS.RegionCapture;
 
 namespace XerahS.RegionCapture.ViewModels;
 
