@@ -36,11 +36,15 @@ Hardcoded local paths are intentional here. They make this workflow faster and m
 
 1. The newest relevant upstream commit must be resolved from the local ShareX repo's git history, not guessed.
 2. Diff against the mapped XerahS code root. The upstream source lives at `ShareX\ShareX.ImageEditor\...`; the target code lives at `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\...`.
-3. Preserve XerahS-only repository-level differences such as the submodule's `src/` layout, multi-targeting, and any confirmed host integration changes.
-4. Do not overwrite XerahS-specific fixes blindly. If a target file already diverged for Avalonia or host integration, port the upstream intent instead of doing a raw replace.
-5. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
-6. Build before claiming completion.
-7. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
+3. Scan every relevant upstream commit from the previous sync point through the newest relevant commit, not just the tip commit.
+4. Build a holistic understanding of the bugs fixed and features added across that whole commit window before changing XerahS.
+5. Read the affected upstream and XerahS files to clarify intent, control flow, rendering behavior, and wiring before re-implementing anything ambiguous.
+6. Preserve XerahS-only repository-level differences such as the submodule's `src/` layout, multi-targeting, and any confirmed host integration changes.
+7. Do not overwrite XerahS-specific fixes blindly. If a target file already diverged for Avalonia or host integration, port the upstream intent instead of doing a raw replace.
+8. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
+9. Re-implement the upstream behavior in the XerahS ImageEditor submodule after understanding it, instead of mechanically transplanting diffs.
+10. Build before claiming completion.
+11. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
 
 ## Step 0 - Resolve the upstream commit range
 
@@ -86,6 +90,7 @@ Use this list to decide whether the catch-up is:
 - High risk: adds files, changes tooling or rendering, or updates editor interaction behavior
 
 Do not treat this commit list as a queue for blind cherry-picks. Use it as a review list for semantic porting.
+Read the whole queue from oldest to newest so you understand how fixes and features build on each other.
 
 ## Step 1 - Map source paths to target paths
 
@@ -125,7 +130,26 @@ git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" `
   show <sharex_commit> -- ShareX.ImageEditor
 ```
 
-### 2c - Compare mapped files, not raw repo roots
+For a real catch-up, do this for every commit in the pending range from the last synced hash to the newest relevant hash.
+Summarize for yourself:
+- which user-visible features were added
+- which bugs were fixed
+- which commits depend on earlier commits in the range
+- which files are the authoritative implementation points
+
+### 2c - Read code to remove ambiguity
+
+If the commit message or patch alone is not enough, read the upstream implementation files and the current XerahS counterparts before editing.
+
+Typical files to inspect:
+- controllers
+- view models
+- rendering and visual factory code
+- annotation model classes
+- views and control markup
+- the target `.csproj` for new files or assets
+
+### 2d - Compare mapped files, not raw repo roots
 
 For each changed upstream file `ShareX.ImageEditor\<relative_path>` compare it to:
 `C:\Users\liveu\source\repos\ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\<relative_path>`.
@@ -152,6 +176,7 @@ Port the intent instead of copying the whole file when any of these are true:
 Manual porting usually means:
 - keep the XerahS file as the base
 - apply the upstream behavior in small, reviewable hunks
+- re-implement the bug fix or feature after understanding the whole upstream flow
 - rebuild after behavior-critical controller, view model, rendering, or view changes
 - only replace the whole file when the diff is layout-only and no XerahS adaptation would be lost
 
@@ -246,6 +271,8 @@ For the common "catch up XerahS to the latest local ShareX state" task:
 3. Run `git -C <sharex_repo> diff --name-only <last_sync>..HEAD -- ShareX.ImageEditor`.
 4. Map each changed upstream file into `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor`.
 5. Add missing files first.
-6. Port or replace changed files as appropriate, but do not blind cherry-pick or raw-copy diverged Avalonia files.
-7. Build the ImageEditor project, then the XerahS solution.
-8. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
+6. Review every upstream commit in the range so you understand the complete feature and bug-fix set.
+7. Read upstream and XerahS code where needed to confirm how the behavior works.
+8. Port or re-implement changed files as appropriate, but do not blind cherry-pick or raw-copy diverged Avalonia files.
+9. Build the ImageEditor project, then the XerahS solution.
+10. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
