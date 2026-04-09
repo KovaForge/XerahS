@@ -8,7 +8,7 @@
         Title="Recording Border"
         Width="800"
         Height="600"
-        SystemDecorations="None"
+        WindowDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         Topmost="True"

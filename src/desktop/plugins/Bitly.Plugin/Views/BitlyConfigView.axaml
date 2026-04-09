@@ -13,7 +13,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Client ID" FontWeight="Medium"/>
             <TextBox Text="{Binding ClientId, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="Bitly OAuth2 client ID"
+                     PlaceholderText="Bitly OAuth2 client ID"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -22,7 +22,7 @@
             <TextBlock Text="Client Secret" FontWeight="Medium"/>
             <TextBox Text="{Binding ClientSecret, UpdateSourceTrigger=PropertyChanged}"
                      PasswordChar="*"
-                     Watermark="Bitly OAuth2 client secret"
+                     PlaceholderText="Bitly OAuth2 client secret"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -30,7 +30,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Domain (optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="e.g. bit.ly or your custom domain"
+                     PlaceholderText="e.g. bit.ly or your custom domain"
                      Width="300"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -39,7 +39,7 @@
             <TextBlock Text="Access Token *" FontWeight="Medium"/>
             <TextBox Text="{Binding AccessToken, UpdateSourceTrigger=PropertyChanged}"
                      PasswordChar="*"
-                     Watermark="OAuth2 access token from Bitly"
+                     PlaceholderText="OAuth2 access token from Bitly"
                      Width="400"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Get a token at https://bitly.com/a/oauth_apps (create an app, then authorize and paste token here)"

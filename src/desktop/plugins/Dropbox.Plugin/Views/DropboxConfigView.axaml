@@ -41,7 +41,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="Client ID (App Key) *" FontWeight="Medium"/>
                     <TextBox Text="{Binding ClientId, UpdateSourceTrigger=PropertyChanged}"
-                             Watermark="Enter Dropbox app key"
+                             PlaceholderText="Enter Dropbox app key"
                              Width="420"
                              HorizontalAlignment="Left"/>
                 </StackPanel>
@@ -49,7 +49,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="OAuth Redirect URI *" FontWeight="Medium"/>
                     <TextBox Text="{Binding RedirectUri, UpdateSourceTrigger=PropertyChanged}"
-                             Watermark="http://127.0.0.1:52475/oauth2/callback"
+                             PlaceholderText="http://127.0.0.1:52475/oauth2/callback"
                              Width="420"
                              HorizontalAlignment="Left"/>
                     <TextBlock Text="This value must exactly match one Redirect URI in your Dropbox app settings."
@@ -65,7 +65,7 @@
                                    TextWrapping="Wrap"
                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                         <TextBox Text="{Binding ClientSecret, UpdateSourceTrigger=PropertyChanged}"
-                                 Watermark="Enter Dropbox app secret"
+                                 PlaceholderText="Enter Dropbox app secret"
                                  PasswordChar="*"
                                  Width="420"
                                  HorizontalAlignment="Left"/>
@@ -131,7 +131,7 @@
                                 HorizontalAlignment="Left"/>
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBox Text="{Binding AuthorizationCode}"
-                                     Watermark="Paste code from callback URL"
+                                     PlaceholderText="Paste code from callback URL"
                                      Width="280"/>
                             <Button Content="Exchange Code"
                                     Command="{Binding CompleteLoginCommand}"
@@ -162,7 +162,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="Upload Path" FontWeight="Medium"/>
                     <TextBox Text="{Binding UploadPath, UpdateSourceTrigger=PropertyChanged}"
-                             Watermark="ShareX/%y/%mo"
+                             PlaceholderText="ShareX/%y/%mo"
                              Width="420"
                              HorizontalAlignment="Left"/>
                     <TextBlock Text="Supports ShareX pattern variables such as %y and %mo."

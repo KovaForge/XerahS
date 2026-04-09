@@ -189,9 +189,9 @@ public class WindowDetectionServiceTests
             compositor,
             _ => helperAvailable);
 
-        Assert.That(capability.Level, Is.EqualTo((WindowPreselectionSupportLevel)expectedLevel));
+        Assert.That((int)capability.Level, Is.EqualTo(expectedLevel));
         Assert.That(capability.UserMessage, Is.EqualTo(expectedMessage));
-        Assert.That(capability.IsEnabled, Is.EqualTo((WindowPreselectionSupportLevel)expectedLevel != WindowPreselectionSupportLevel.Unsupported));
+        Assert.That(capability.IsEnabled, Is.EqualTo(expectedLevel != (int)WindowPreselectionSupportLevel.Unsupported));
     }
 
     [Test]

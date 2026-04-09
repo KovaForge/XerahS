@@ -111,7 +111,7 @@
                         <StackPanel Spacing="6">
                             <TextBlock Classes="fieldLabel" Text="Server URL *"/>
                             <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
-                                     Watermark="https://cloud.example.com"/>
+                                     PlaceholderText="https://cloud.example.com"/>
                             <TextBlock Classes="helper"
                                        Text="Use your full Nextcloud base URL. If you omit a scheme, the plugin assumes https."/>
                         </StackPanel>
@@ -145,14 +145,14 @@
                                 <StackPanel Spacing="6">
                                     <TextBlock Classes="fieldLabel" Text="Login Name *"/>
                                     <TextBox Text="{Binding LoginName, UpdateSourceTrigger=PropertyChanged}"
-                                             Watermark="username or email used to sign in"/>
+                                             PlaceholderText="username or email used to sign in"/>
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
                                     <TextBlock Classes="fieldLabel" Text="App Password *"/>
                                     <TextBox Text="{Binding AppPassword, UpdateSourceTrigger=PropertyChanged}"
                                              PasswordChar="*"
-                                             Watermark="Paste a Nextcloud app password"/>
+                                             PlaceholderText="Paste a Nextcloud app password"/>
                                 </StackPanel>
 
                                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
@@ -241,7 +241,7 @@
                         <StackPanel Spacing="6">
                             <TextBlock Classes="fieldLabel" Text="Remote Path"/>
                             <TextBox Text="{Binding RemotePath, UpdateSourceTrigger=PropertyChanged}"
-                                     Watermark="ShareX/%y/%mo"/>
+                                     PlaceholderText="ShareX/%y/%mo"/>
                             <TextBlock Classes="helper"
                                        Text="Supports ShareX pattern variables so uploads can land in dated folders without manual path edits."/>
                         </StackPanel>
@@ -287,7 +287,7 @@
                             <TextBlock Classes="fieldLabel" Text="Share Password (Optional)"/>
                             <TextBox Text="{Binding SharePassword, UpdateSourceTrigger=PropertyChanged}"
                                      PasswordChar="*"
-                                     Watermark="Stored securely if provided"/>
+                                     PlaceholderText="Stored securely if provided"/>
                             <TextBlock Classes="helper"
                                        Text="Use only if your Nextcloud policy or workflow needs password-protected public links."/>
                         </StackPanel>

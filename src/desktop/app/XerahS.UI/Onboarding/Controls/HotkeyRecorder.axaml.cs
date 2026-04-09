@@ -82,7 +82,7 @@ public partial class HotkeyRecorder : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
-    private void OnGotFocus(object? sender, GotFocusEventArgs e)
+    private void OnGotFocus(object? sender, FocusChangedEventArgs e)
     {
         if (!_isRecording)
         {
@@ -90,7 +90,7 @@ public partial class HotkeyRecorder : UserControl
         }
     }
 
-    private void OnLostFocus(object? sender, RoutedEventArgs e)
+    private void OnLostFocus(object? sender, FocusChangedEventArgs e)
     {
         if (_isRecording)
         {

@@ -86,7 +86,7 @@
               <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Extra args:"/>
               <TextBox Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="5"
                        Text="{Binding UserArgs}"
-                       Watermark="Additional ffmpeg arguments"
+                       PlaceholderText="Additional ffmpeg arguments"
                        AutomationProperties.Name="Extra Arguments"/>
             </Grid>
 
@@ -96,7 +96,7 @@
               <TextBox Text="{Binding CustomCommands}"
                        AcceptsReturn="True"
                        Height="80"
-                       Watermark="Full ffmpeg command when overriding"
+                       PlaceholderText="Full ffmpeg command when overriding"
                        TextWrapping="Wrap"
                        AutomationProperties.Name="Custom Full Command"/>
             </StackPanel>

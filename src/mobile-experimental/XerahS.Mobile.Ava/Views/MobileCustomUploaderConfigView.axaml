@@ -182,7 +182,7 @@
                             <TextBlock Text="Name" FontSize="13" FontWeight="SemiBold"/>
                             <Grid>
                                 <TextBox Text="{Binding EditorName, Mode=TwoWay}"
-                                         Watermark="My Custom Uploader"
+                                         PlaceholderText="My Custom Uploader"
                                          Classes="adaptive-input"/>
                                 <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                         BorderThickness="2"
@@ -230,7 +230,7 @@
                                 <TextBlock Text="Request URL" FontSize="13" FontWeight="SemiBold"/>
                                 <Grid>
                                     <TextBox Text="{Binding RequestUrl, Mode=TwoWay}"
-                                             Watermark="https://example.com/api/upload"
+                                             PlaceholderText="https://example.com/api/upload"
                                              Classes="adaptive-input"/>
                                     <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                             BorderThickness="2"
@@ -265,12 +265,12 @@
                                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
                                                 <TextBox Grid.Column="0"
                                                          Text="{Binding Key, Mode=TwoWay}"
-                                                         Watermark="Key"
+                                                         PlaceholderText="Key"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <TextBox Grid.Column="1"
                                                          Text="{Binding Value, Mode=TwoWay}"
-                                                         Watermark="Value"
+                                                         PlaceholderText="Value"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <Button Grid.Column="2"
@@ -314,12 +314,12 @@
                                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
                                                 <TextBox Grid.Column="0"
                                                          Text="{Binding Key, Mode=TwoWay}"
-                                                         Watermark="Key"
+                                                         PlaceholderText="Key"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <TextBox Grid.Column="1"
                                                          Text="{Binding Value, Mode=TwoWay}"
-                                                         Watermark="Value"
+                                                         PlaceholderText="Value"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <Button Grid.Column="2"
@@ -360,7 +360,7 @@
                             <StackPanel Grid.Column="1" Spacing="4">
                                 <TextBlock Text="File Form Name" FontSize="13" FontWeight="SemiBold"/>
                                 <TextBox Text="{Binding FileFormName, Mode=TwoWay}"
-                                         Watermark="file"
+                                         PlaceholderText="file"
                                          Classes="adaptive-input"/>
                             </StackPanel>
                         </Grid>
@@ -389,12 +389,12 @@
                                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
                                                 <TextBox Grid.Column="0"
                                                          Text="{Binding Key, Mode=TwoWay}"
-                                                         Watermark="Key"
+                                                         PlaceholderText="Key"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <TextBox Grid.Column="1"
                                                          Text="{Binding Value, Mode=TwoWay}"
-                                                         Watermark="Value"
+                                                         PlaceholderText="Value"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <Button Grid.Column="2"
@@ -422,7 +422,7 @@
                                      TextWrapping="Wrap"
                                      MinHeight="80"
                                      MaxHeight="150"
-                                     Watermark="JSON or XML body content"
+                                     PlaceholderText="JSON or XML body content"
                                      Classes="adaptive-input"
                                      FontFamily="Consolas, Monospace"
                                      FontSize="12"/>
@@ -451,28 +451,28 @@
                         <StackPanel Spacing="4">
                             <TextBlock Text="URL" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding UrlPattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:url or response"
+                                     PlaceholderText="e.g. json:url or response"
                                      Classes="adaptive-input"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock Text="Thumbnail URL" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding ThumbnailUrlPattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:thumbnail"
+                                     PlaceholderText="e.g. json:thumbnail"
                                      Classes="adaptive-input"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock Text="Deletion URL" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding DeletionUrlPattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:delete_url"
+                                     PlaceholderText="e.g. json:delete_url"
                                      Classes="adaptive-input"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock Text="Error Message" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding ErrorMessagePattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:error"
+                                     PlaceholderText="e.g. json:error"
                                      Classes="adaptive-input"/>
                         </StackPanel>
                     </StackPanel>
@@ -495,7 +495,7 @@
                                  TextWrapping="Wrap"
                                  MinHeight="80"
                                  MaxHeight="150"
-                                 Watermark="Paste .sxcu JSON content here..."
+                                 PlaceholderText="Paste .sxcu JSON content here..."
                                  FontFamily="Consolas, Monospace"
                                  FontSize="12"
                                  Classes="adaptive-input"/>

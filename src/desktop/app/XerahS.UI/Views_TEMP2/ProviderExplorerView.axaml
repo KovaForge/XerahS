@@ -127,7 +127,7 @@
                 <!-- Search box -->
                 <TextBox Grid.Column="0"
                          Text="{Binding SearchText}"
-                         Watermark="Search files..."
+                         PlaceholderText="Search files..."
                          AutomationProperties.Name="Search Files">
                     <TextBox.KeyBindings>
                         <KeyBinding Gesture="Return" Command="{Binding SearchCommand}"/>

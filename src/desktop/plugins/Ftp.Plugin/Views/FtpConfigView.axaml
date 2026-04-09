@@ -19,7 +19,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="Account name" FontWeight="Medium"/>
                 <TextBox Text="{Binding AccountName, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="FTP Account"
+                         PlaceholderText="FTP Account"
                          Width="300"
                          HorizontalAlignment="Left"/>
             </StackPanel>
@@ -35,7 +35,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="Host *" FontWeight="Medium"/>
                 <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="example.com or 192.168.1.1"
+                         PlaceholderText="example.com or 192.168.1.1"
                          Width="350"
                          HorizontalAlignment="Left"/>
             </StackPanel>
@@ -53,7 +53,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="Username" FontWeight="Medium"/>
                 <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="FTP / SFTP username"
+                         PlaceholderText="FTP / SFTP username"
                          Width="300"
                          HorizontalAlignment="Left"/>
             </StackPanel>
@@ -62,7 +62,7 @@
                 <TextBlock Text="Password" FontWeight="Medium"/>
                 <TextBox Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
                          PasswordChar="*"
-                         Watermark="Leave empty for anonymous (FTP) or use key (SFTP)"
+                         PlaceholderText="Leave empty for anonymous (FTP) or use key (SFTP)"
                          Width="300"
                          HorizontalAlignment="Left"/>
             </StackPanel>
@@ -74,7 +74,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="Subfolder path" FontWeight="Medium"/>
                 <TextBox Text="{Binding SubFolderPath, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="e.g. uploads or %y/%mo (name parser)"
+                         PlaceholderText="e.g. uploads or %y/%mo (name parser)"
                          Width="350"
                          HorizontalAlignment="Left"/>
             </StackPanel>
@@ -90,7 +90,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="HTTP home path (optional)" FontWeight="Medium"/>
                 <TextBox Text="{Binding HttpHomePath, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="e.g. https://files.example.com or http://%host"
+                         PlaceholderText="e.g. https://files.example.com or http://%host"
                          Width="400"
                          HorizontalAlignment="Left"/>
                 <TextBlock Text="If empty, URL is built from host + subfolder + filename. Use %host for host."
@@ -118,7 +118,7 @@
             <StackPanel Spacing="5" IsVisible="{Binding ShowSftpKeyOptions}">
                 <TextBlock Text="SFTP key path (optional)" FontWeight="Medium"/>
                 <TextBox Text="{Binding Keypath, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="Path to OpenSSH private key file"
+                         PlaceholderText="Path to OpenSSH private key file"
                          Width="400"
                          HorizontalAlignment="Left"/>
             </StackPanel>
@@ -127,7 +127,7 @@
                 <TextBlock Text="SFTP key passphrase (optional)" FontWeight="Medium"/>
                 <TextBox Text="{Binding Passphrase, UpdateSourceTrigger=PropertyChanged}"
                          PasswordChar="*"
-                         Watermark="Passphrase for private key"
+                         PlaceholderText="Passphrase for private key"
                          Width="300"
                          HorizontalAlignment="Left"/>
             </StackPanel>

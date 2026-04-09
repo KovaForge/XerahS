@@ -33,7 +33,7 @@
                         <StackPanel Spacing="8">
                             <TextBlock Text="Description" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
                             <TextBox Text="{Binding Description}" 
-                                     Watermark="Optional description"
+                                     PlaceholderText="Optional description"
                                      AutomationProperties.Name="Workflow Description"/>
                         </StackPanel>
 

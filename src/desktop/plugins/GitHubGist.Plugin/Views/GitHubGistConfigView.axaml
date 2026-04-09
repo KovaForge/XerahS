@@ -14,7 +14,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Client ID *" FontWeight="Medium"/>
             <TextBox Text="{Binding ClientId, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="Enter GitHub OAuth Client ID"
+                     PlaceholderText="Enter GitHub OAuth Client ID"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -23,7 +23,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Client Secret *" FontWeight="Medium"/>
             <TextBox Text="{Binding ClientSecret, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="Enter GitHub OAuth Client Secret"
+                     PlaceholderText="Enter GitHub OAuth Client Secret"
                      PasswordChar="*"
                      Width="400"
                      HorizontalAlignment="Left"/>
@@ -45,7 +45,7 @@
                     <TextBlock Text="Step 2: Enter code from the callback URL" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <TextBox Text="{Binding Code}"
-                                 Watermark="Enter code"
+                                 PlaceholderText="Enter code"
                                  Width="200"/>
                         <Button Content="Complete Login"
                                 Command="{Binding CompleteLoginCommand}"
@@ -73,7 +73,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Custom API URL (Optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding CustomApiUrl, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="https://api.github.com"
+                     PlaceholderText="https://api.github.com"
                      Width="400"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Leave empty to use the public GitHub API"

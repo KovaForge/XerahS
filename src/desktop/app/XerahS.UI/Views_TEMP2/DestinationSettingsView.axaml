@@ -172,7 +172,7 @@
                                 <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, 16, Auto, 16, Auto">
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.DisplayName}" 
-                                             Watermark="Display Name" AutomationProperties.Name="Display Name"/>
+                                             PlaceholderText="Display Name" AutomationProperties.Name="Display Name"/>
                                     
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Provider:" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.ProviderId}" 
@@ -196,7 +196,7 @@
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Definition file:" VerticalAlignment="Top"/>
                                     <TextBox Grid.Row="0" Grid.Column="2"
                                              Text="{Binding SelectedCategory.SelectedInstance.DefinitionFilePath}"
-                                             Watermark="This instance cannot be mapped back to a .sxcu source file."
+                                             PlaceholderText="This instance cannot be mapped back to a .sxcu source file."
                                              IsReadOnly="True"
                                              Background="{DynamicResource ControlAltFillColorDefaultBrush}"
                                              TextWrapping="Wrap"
