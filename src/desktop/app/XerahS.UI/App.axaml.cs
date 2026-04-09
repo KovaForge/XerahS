@@ -140,20 +140,37 @@ public partial class App : Application
             mainViewModel.ShowTaskModeButtons = false;
 
             // Pre-load default image so annotation toolbar is usable before first capture
-            try
+            // Load asynchronously to avoid blocking the UI thread during startup
+            Task.Run(() =>
             {
-                var sampleUri = new Uri("avares://ShareX.ImageEditor/Assets/Sample.png");
-                var sampleStream = Avalonia.Platform.AssetLoader.Open(sampleUri);
-                using var sampleBitmap = SKBitmap.Decode(sampleStream);
-                if (sampleBitmap != null)
+                try
                 {
-                    mainViewModel.UpdatePreview(sampleBitmap, clearAnnotations: true);
+                    var sampleUri = new Uri("avares://ShareX.ImageEditor/Assets/Sample.png");
+                    var sampleStream = Avalonia.Platform.AssetLoader.Open(sampleUri);
+                    if (sampleStream == null)
+                    {
+                        DebugHelper.WriteLine($"Sample.png stream is null - asset not found at {sampleUri}");
+                        return;
+                    }
+                    using var ms = new MemoryStream();
+                    sampleStream.CopyTo(ms);
+                    ms.Position = 0;
+                    using var sampleBitmap = SKBitmap.Decode(ms);
+                    if (sampleBitmap == null)
+                    {
+                        DebugHelper.WriteLine($"SKBitmap.Decode returned null for Sample.png");
+                        return;
+                    }
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        mainViewModel.UpdatePreview(sampleBitmap, clearAnnotations: true);
+                    });
                 }
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteLine($"Failed to pre-load default editor image (Sample.png): {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"Failed to pre-load default editor image (Sample.png): {ex}");
+                }
+            });
 
             // Wire up UploadRequested for embedded editor in MainWindow
             Services.MainViewModelHelper.WireUploadRequested(mainViewModel, taskManager);
