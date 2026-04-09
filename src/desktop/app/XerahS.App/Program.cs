@@ -649,11 +649,20 @@ namespace XerahS.App
         }
 
         public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<XerahS.UI.App>()
+        {
+            var builder = AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
-                .WithInterFont()
-                .WithDeveloperTools()
-                .LogToTrace();
+                .WithInterFont();
+
+#if DEBUG
+            // DevTools must be attached from a single startup path.
+            // App.Initialize still runs in DEBUG for style/audit setup, so duplicating
+            // attachment there causes Avalonia to throw during Setup().
+            builder = builder.WithDeveloperTools();
+#endif
+
+            return builder.LogToTrace();
+        }
 
         /// <summary>
         /// Runs once after the Avalonia UI completes initialization.

@@ -74,7 +74,9 @@ public partial class App : Application
         Services.ThemeService.Initialize();
 
 #if DEBUG
-        this.AttachDeveloperTools();
+        // DevTools are configured once in Program.BuildAvaloniaApp().
+        // Attaching again here causes Avalonia to throw because multiple
+        // DeveloperTools attachments are not supported.
 
         // Load Audit Styles (Debug Only)
         Styles.Add(new Avalonia.Markup.Xaml.Styling.StyleInclude(new Uri("avares://XerahS.UI/Themes/AuditStyles.axaml"))
