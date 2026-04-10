@@ -268,19 +268,25 @@ namespace XerahS.Core.Tasks.Processors
             try
             {
                 DebugHelper.WriteLine("Starting OCR on captured image...");
-                string? result = await ocrService.RecognizeAsync(info.Metadata.Image);
-
-                if (!string.IsNullOrEmpty(result))
+                var options = new OcrOptions
                 {
-                    info.Metadata.OcrText = result;
-                    DebugHelper.WriteLine($"OCR completed successfully. Text length: {result.Length} characters.");
+                    Language = "en",
+                    ScaleFactor = 2f,
+                    SingleLine = false
+                };
+                var result = await ocrService.RecognizeAsync(info.Metadata.Image, options);
+
+                if (result.Success && !string.IsNullOrEmpty(result.Text))
+                {
+                    info.Metadata.OcrText = result.Text;
+                    DebugHelper.WriteLine($"OCR completed. Text length: {result.Text.Length} chars.");
                 }
                 else
                 {
-                    DebugHelper.WriteLine("OCR completed but no text was recognized.");
+                    DebugHelper.WriteLine($"OCR completed but no text recognized: {result.ErrorMessage}");
                 }
 
-                // Show the OCR window so the user can review/copy the result
+                // Show OCR window so user can review/adjust the result
                 if (PlatformServices.IsInitialized)
                 {
                     await PlatformServices.UI.ShowOcrWindowAsync(info.Metadata.Image);
