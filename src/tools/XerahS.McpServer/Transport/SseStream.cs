@@ -41,12 +41,11 @@ public class SseStream : IAsyncDisposable, IDisposable
     /// </summary>
     public async Task SendNotificationAsync(string method, object? result = null)
     {
-        // MCP notifications are JSON-RPC requests with no id
         var notification = new
         {
             jsonrpc = "2.0",
             method,
-            @result = result
+            @params = result
         };
         var json = JsonSerializer.Serialize(notification, _jsonOptions);
         await SendEventAsync("notification", json);
@@ -98,10 +97,14 @@ public class SseStream : IAsyncDisposable, IDisposable
         if (_isDisposed)
             return;
 
-        var sseData = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
         var sb = new StringBuilder();
         sb.Append($"event: {eventType}\n");
-        sb.Append($"data: {sseData}\n");
+        foreach (var line in data.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            sb.Append("data: ");
+            sb.Append(line);
+            sb.Append('\n');
+        }
         sb.Append('\n');
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());

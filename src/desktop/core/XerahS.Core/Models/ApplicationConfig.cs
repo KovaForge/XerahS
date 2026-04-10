@@ -81,6 +81,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool AutoCheckUpdate = true;
     public UpdateChannel UpdateChannel = UpdateChannel.Release;
     public bool CheckPreReleaseUpdates = false;
+    public string McpApiKey { get; set; } = string.Empty;
 
     // OS Integration (platform-agnostic naming)
     public bool RunAtStartup = false;

@@ -1,12 +1,11 @@
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using XerahS.Core;
 using XerahS.McpServer.JsonRpc;
+using XerahS.McpServer.Runtime;
 using XerahS.McpServer.Server;
 
 namespace XerahS.McpServer.Transport;
@@ -19,9 +18,9 @@ namespace XerahS.McpServer.Transport;
 public class HttpServer : IDisposable
 {
     private readonly XerahSMcpServer _mcpServer;
+    private readonly IXerahSMcpRuntime _runtime;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly int _port;
-    private readonly string? _apiKey;
     private WebApplication? _app;
     private CancellationTokenSource? _cts;
     private bool _isDisposed;
@@ -29,20 +28,16 @@ public class HttpServer : IDisposable
     private const string McpPath = "/mcp/";
     private const string EventsPath = "/mcp/events/";
 
-    public HttpServer(XerahSMcpServer mcpServer, int port = 7890)
+    public HttpServer(XerahSMcpServer mcpServer, IXerahSMcpRuntime runtime, int port = 7890)
     {
         _mcpServer = mcpServer ?? throw new ArgumentNullException(nameof(mcpServer));
+        _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         _port = port;
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false
         };
-
-        // STUB: Load API key from ApplicationConfig
-        // In production integration, this would read from SettingsManager.Settings.McpApiKey
-        // For now, generate a placeholder that signals config is needed
-        _apiKey = LoadApiKeyFromConfig();
     }
 
     /// <summary>
@@ -113,7 +108,7 @@ public class HttpServer : IDisposable
     private async Task HandleJsonRpcAsync(HttpContext context)
     {
         // Validate Authorization header
-        if (!ValidateAuthorization(context))
+        if (!await ValidateAuthorizationAsync(context))
         {
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
@@ -144,7 +139,7 @@ public class HttpServer : IDisposable
                 return;
             }
 
-            var response = await _mcpServer.HandleRequestAsync(request);
+            var response = await _mcpServer.HandleRequestAsync(request, context.RequestAborted);
 
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(response, _jsonOptions));
@@ -171,7 +166,7 @@ public class HttpServer : IDisposable
     private async Task HandleSseAsync(HttpContext context)
     {
         // Validate Authorization header
-        if (!ValidateAuthorization(context))
+        if (!await ValidateAuthorizationAsync(context))
         {
             context.Response.StatusCode = 401;
             return;
@@ -209,7 +204,7 @@ public class HttpServer : IDisposable
     /// <summary>
     /// Validate the Authorization Bearer token
     /// </summary>
-    private bool ValidateAuthorization(HttpContext context)
+    private async Task<bool> ValidateAuthorizationAsync(HttpContext context)
     {
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
 
@@ -224,34 +219,9 @@ public class HttpServer : IDisposable
         }
 
         var token = authHeader["Bearer ".Length..].Trim();
-
-        // STUB: In production, validate against SettingsManager.Settings.McpApiKey
-        // For now, accept any non-empty token matching the configured key
-        // Note field signals this is stubbed
-        if (_apiKey == null || _apiKey == "STUB_MCP_API_KEY_CONFIG_NEEDED")
-        {
-            // STUB: Allow all requests until API key config is integrated
-            // This allows testing without full XerahS integration
-            return true;
-        }
-
-        return string.Equals(token, _apiKey, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Load API key from ApplicationConfig
-    /// STUB: Returns placeholder until XerahS integration is complete
-    /// </summary>
-    private string? LoadApiKeyFromConfig()
-    {
-        // STUB: When XerahS SettingsManager is integrated:
-        // return SettingsManager.Settings.McpApiKey;
-        //
-        // The ApplicationConfig should have:
-        // public string? McpApiKey { get; set; }
-        //
-        // Until then, return null to signal config is needed
-        return "STUB_MCP_API_KEY_CONFIG_NEEDED";
+        var configuredApiKey = await _runtime.GetApiKeyAsync(context.RequestAborted);
+        return !string.IsNullOrWhiteSpace(configuredApiKey) &&
+               string.Equals(token, configuredApiKey, StringComparison.Ordinal);
     }
 
     /// <summary>
