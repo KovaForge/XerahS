@@ -138,6 +138,11 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine("UploadImageToHost flag not set; skipping upload.");
             }
 
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
+            {
+                await PerformOCRAsync(info);
+            }
+
             // TODO: Add other tasks
 
             // TODO: Add other tasks
@@ -240,6 +245,50 @@ namespace XerahS.Core.Tasks.Processors
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "Upload error");
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async Task PerformOCRAsync(TaskInfo info)
+        {
+            if (info.Metadata?.Image == null)
+            {
+                DebugHelper.WriteLine("OCR skipped: no image in metadata.");
+                return;
+            }
+
+            var ocrService = PlatformServices.Ocr;
+            if (ocrService == null || !ocrService.IsSupported)
+            {
+                DebugHelper.WriteLine("OCR skipped: OCR is not supported on this platform.");
+                return;
+            }
+
+            try
+            {
+                DebugHelper.WriteLine("Starting OCR on captured image...");
+                string? result = await ocrService.RecognizeAsync(info.Metadata.Image);
+
+                if (!string.IsNullOrEmpty(result))
+                {
+                    info.Metadata.OcrText = result;
+                    DebugHelper.WriteLine($"OCR completed successfully. Text length: {result.Length} characters.");
+                }
+                else
+                {
+                    DebugHelper.WriteLine("OCR completed but no text was recognized.");
+                }
+
+                // Show the OCR window so the user can review/copy the result
+                if (PlatformServices.IsInitialized)
+                {
+                    await PlatformServices.UI.ShowOcrWindowAsync(info.Metadata.Image);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "OCR error");
             }
 
             await Task.CompletedTask;

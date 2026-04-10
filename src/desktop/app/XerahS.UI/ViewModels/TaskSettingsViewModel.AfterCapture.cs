@@ -108,6 +108,110 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool DoOCR
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR);
+            set
+            {
+                if (DoOCR != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.DoOCR, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool BeautifyImage
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.BeautifyImage);
+            set
+            {
+                if (BeautifyImage != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.BeautifyImage, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool ScanQRCode
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ScanQRCode);
+            set
+            {
+                if (ScanQRCode != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.ScanQRCode, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool PinToScreen
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.PinToScreen);
+            set
+            {
+                if (PinToScreen != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.PinToScreen, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool CopyFileToClipboard
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFileToClipboard);
+            set
+            {
+                if (CopyFileToClipboard != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.CopyFileToClipboard, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool CopyFilePathToClipboard
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard);
+            set
+            {
+                if (CopyFilePathToClipboard != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.CopyFilePathToClipboard, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool ShowInExplorer
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ShowInExplorer);
+            set
+            {
+                if (ShowInExplorer != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.ShowInExplorer, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool AnalyzeImage
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnalyzeImage);
+            set
+            {
+                if (AnalyzeImage != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.AnalyzeImage, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private void UpdateAfterCaptureTask(AfterCaptureTasks task, bool enabled)
         {
             if (enabled)

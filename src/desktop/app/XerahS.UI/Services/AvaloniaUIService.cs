@@ -617,5 +617,63 @@ namespace XerahS.UI.Services
                 });
             }
         }
+
+        public async Task ShowOcrWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new OcrViewModel(image);
+
+                // Wire the SelectRegion callback so users can re-capture inside the OCR window
+                viewModel.SelectRegionRequested = async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(300); // Allow window to minimize
+                        var captureSettings = SettingsManager.DefaultTaskSettings?.CaptureSettings
+                            ?? new TaskSettingsCapture();
+                        var captureOptions = new CaptureOptions
+                        {
+                            UseModernCapture = captureSettings.UseModernCapture,
+                            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+                            ShowCursor = captureSettings.ShowCursor,
+                            CaptureTransparent = captureSettings.CaptureTransparent,
+                            CaptureShadow = captureSettings.CaptureShadow,
+                            CaptureClientArea = captureSettings.CaptureClientArea
+                        };
+                        return await PlatformServices.ScreenCapture.CaptureRegionAsync(captureOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "OCR region capture");
+                        return null;
+                    }
+                };
+
+                var window = new Views.OcrWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
     }
 }
