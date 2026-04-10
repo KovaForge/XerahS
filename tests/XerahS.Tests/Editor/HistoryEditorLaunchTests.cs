@@ -24,6 +24,9 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Core.Persistence;
+using ShareX.ImageEditor.Hosting;
 using SkiaSharp;
 using XerahS.Core;
 using XerahS.History;
@@ -76,9 +79,61 @@ public class HistoryEditorLaunchTests
         }
     }
 
+    [Test]
+    public async Task EditImage_UsesAnnotationSidecar_WhenAvailable()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "annotated.png");
+
+        using var bitmap = new SKBitmap(8, 8);
+        bitmap.Erase(SKColors.Red);
+        SaveBitmap(imagePath, bitmap);
+
+        string? sidecarPath = await XeraProjectFileService.SaveAsync(
+            imagePath,
+            bitmap,
+            new Annotation[]
+            {
+                new RectangleAnnotation
+                {
+                    StartPoint = new SKPoint(1, 1),
+                    EndPoint = new SKPoint(6, 6)
+                }
+            });
+
+        var uiService = new TrackingUiService();
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var item = new HistoryItem
+            {
+                FilePath = imagePath,
+                AnnotationSidecarPath = sidecarPath
+            };
+
+            await viewModel.EditImageCommand.ExecuteAsync(item);
+
+            Assert.That(uiService.SessionLaunchCount, Is.EqualTo(1));
+            Assert.That(uiService.LastSourceFilePath, Is.EqualTo(imagePath));
+            Assert.That(uiService.LastAnnotationCount, Is.EqualTo(1));
+            Assert.That(uiService.LastRestoredAnnotations, Is.True);
+        }
+        finally
+        {
+            PlatformServices.Reset();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private sealed class TrackingUiService : IUIService
     {
         public string? LastSourceFilePath { get; private set; }
+        public int LastAnnotationCount { get; private set; }
+        public bool LastRestoredAnnotations { get; private set; }
+        public int SessionLaunchCount { get; private set; }
 
         public Task HideMainWindowAsync() => Task.CompletedTask;
 
@@ -88,6 +143,23 @@ public class HistoryEditorLaunchTests
         {
             LastSourceFilePath = sourceFilePath;
             return Task.FromResult<SKBitmap?>(image);
+        }
+
+        public Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
+            SKBitmap image,
+            string? sourceFilePath = null,
+            bool taskMode = false,
+            IReadOnlyList<Annotation>? annotations = null,
+            bool restoredAnnotations = false)
+        {
+            SessionLaunchCount++;
+            LastSourceFilePath = sourceFilePath;
+            LastAnnotationCount = annotations?.Count ?? 0;
+            LastRestoredAnnotations = restoredAnnotations;
+            return Task.FromResult<ImageEditorSessionResult?>(new ImageEditorSessionResult(
+                image.Copy()!,
+                image.Copy(),
+                annotations?.Select(annotation => annotation.Clone()).ToList() ?? new List<Annotation>()));
         }
 
         public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
@@ -102,5 +174,13 @@ public class HistoryEditorLaunchTests
         public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection) => Task.FromResult(new SendToPromptResult());
 
         public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
+    }
+
+    private static void SaveBitmap(string path, SKBitmap bitmap)
+    {
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = File.OpenWrite(path);
+        data.SaveTo(stream);
     }
 }
