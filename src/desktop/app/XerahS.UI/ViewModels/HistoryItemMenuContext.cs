@@ -36,6 +36,7 @@ namespace XerahS.UI.ViewModels;
 public interface IHistoryItemMenuContext
 {
     ICommand EditImageCommand { get; }
+    ICommand EditAnnotationsCommand { get; }
     ICommand OpenFileCommand { get; }
     ICommand UploadItemCommand { get; }
     ICommand OpenFolderCommand { get; }
@@ -61,6 +62,7 @@ public interface IHistoryItemMenuTarget
 {
     string? URL { get; }
     bool HasErrors { get; }
+    bool HasEditableAnnotations { get; }
 }
 
 /// <summary>
@@ -77,6 +79,7 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
 
     public string? URL => _item.URL;
     public bool HasErrors => _item.HasErrors;
+    public bool HasEditableAnnotations => _item.HasEditableAnnotations;
 }
 
 /// <summary>
@@ -98,6 +101,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
     public object? DisplayItem => _item;
 
     public ICommand EditImageCommand => new RelayCommand(() => _vm.EditImageCommand.Execute(_item));
+    public ICommand EditAnnotationsCommand => new RelayCommand(() => _vm.EditAnnotationsCommand.Execute(_item));
     public ICommand OpenFileCommand => new RelayCommand(() => _vm.OpenFileCommand.Execute(_item));
     public ICommand UploadItemCommand => new RelayCommand(() => _vm.UploadItemCommand.Execute(_item));
     public ICommand OpenFolderCommand => new RelayCommand(() => _vm.OpenFolderCommand.Execute(_item));
@@ -124,6 +128,7 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
 
     public string? URL => _vm.Url;
     public bool HasErrors => _vm.HasErrors;
+    public bool HasEditableAnnotations => false;
 }
 
 
@@ -145,6 +150,7 @@ public sealed class ToastMenuContext : IHistoryItemMenuContext
     public object? DisplayItem => null;
 
     public ICommand EditImageCommand => ViewModel.EditImageCommand;
+    public ICommand EditAnnotationsCommand => ViewModel.EditImageCommand;
     public ICommand OpenFileCommand => ViewModel.OpenFileCommand;
     public ICommand UploadItemCommand => ViewModel.UploadItemCommand;
     public ICommand OpenFolderCommand => ViewModel.OpenFolderCommand;

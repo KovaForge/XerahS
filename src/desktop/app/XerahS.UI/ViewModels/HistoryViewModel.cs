@@ -38,6 +38,7 @@ using XerahS.Media;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 using XerahS.UI.Services;
+using ShareX.ImageEditor.Core.Persistence;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -344,23 +345,76 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task EditImage(HistoryItem? item)
         {
+            await OpenImageInEditorAsync(item, preferAnnotations: true);
+        }
+
+        [RelayCommand]
+        private async Task EditAnnotations(HistoryItem? item)
+        {
+            await OpenImageInEditorAsync(item, preferAnnotations: true);
+        }
+
+        private static async Task OpenImageInEditorAsync(HistoryItem? item, bool preferAnnotations)
+        {
             if (item == null || string.IsNullOrEmpty(item.FilePath)) return;
             if (!File.Exists(item.FilePath)) return;
 
             try
             {
+                if (preferAnnotations)
+                {
+                    string? sidecarPath = ResolveAnnotationSidecarPath(item);
+                    if (!string.IsNullOrWhiteSpace(sidecarPath))
+                    {
+                        try
+                        {
+                            var project = await XeraProjectFileService.LoadAsync(sidecarPath, item.FilePath);
+                            if (!project.ImageHashMatches)
+                            {
+                                DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Using embedded source image.");
+                            }
+
+                            var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
+                                project.SourceImage,
+                                item.FilePath,
+                                annotations: project.Project.Annotations,
+                                restoredAnnotations: true);
+                            sessionResult?.RenderedImage.Dispose();
+                            sessionResult?.SourceImage?.Dispose();
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.WriteLine($"Failed to load annotation sidecar '{sidecarPath}': {ex.Message}");
+                            DebugHelper.WriteException(ex);
+                        }
+                    }
+                }
+
                 // Load the image from file directly as SKBitmap
                 using var fs = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read);
                 var skBitmap = SKBitmap.Decode(fs);
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
-                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
+                var rendered = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
+                rendered?.Dispose();
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to open image in editor: {ex.Message}");
             }
+        }
+
+        private static string? ResolveAnnotationSidecarPath(HistoryItem item)
+        {
+            if (!string.IsNullOrWhiteSpace(item.AnnotationSidecarPath) && File.Exists(item.AnnotationSidecarPath))
+            {
+                return item.AnnotationSidecarPath;
+            }
+
+            string defaultSidecarPath = XeraProjectFileService.GetDefaultSidecarPath(item.FilePath);
+            return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
         }
 
         [RelayCommand]
