@@ -39,6 +39,8 @@ namespace XerahS.UI.Onboarding;
 /// </summary>
 public partial class OnboardingWizardWindow : Window
 {
+    private bool _openSettingsAfterClose;
+
     public OnboardingWizardViewModel ViewModel { get; }
 
     public OnboardingWizardWindow()
@@ -144,11 +146,10 @@ public partial class OnboardingWizardWindow : Window
                 try
                 {
                     DebugHelper.WriteLine("[Onboarding] Take first screenshot requested");
-                    // Close this wizard first
-                    Close();
+                    await ViewModel.CompleteAsync();
 
                     // Trigger region capture via the main window
-                    if (Application.Current is App app)
+                    if (Application.Current is App)
                     {
                         // The actual triggering would be done via the workflow orchestrator
                         // For now, the workflow is set up and will respond to hotkey
@@ -160,20 +161,13 @@ public partial class OnboardingWizardWindow : Window
                 }
             };
 
-            completeStep.OpenSettingsCallback = () =>
+            completeStep.OpenSettingsCallback = async () =>
             {
                 try
                 {
                     DebugHelper.WriteLine("[Onboarding] Open settings requested");
-                    // Navigate to settings in the main window
-                    if (Application.Current is App app &&
-                        Application.Current.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-                    {
-                        if (desktop.MainWindow is MainWindow mainWindow)
-                        {
-                            mainWindow.NavigateToSettings();
-                        }
-                    }
+                    _openSettingsAfterClose = true;
+                    await ViewModel.CompleteAsync();
                 }
                 catch (Exception ex)
                 {
@@ -188,23 +182,15 @@ public partial class OnboardingWizardWindow : Window
     /// </summary>
     public async Task<OnboardingResult> ShowDialogAsync(Window owner)
     {
-        var tcs = new TaskCompletionSource<OnboardingResult>();
-
-        // Subscribe to completion
-        _ = ViewModel.CompletionTask.ContinueWith(task =>
+        Task<OnboardingResult> completionTask = ViewModel.CompletionTask;
+        _ = completionTask.ContinueWith(task =>
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 Close();
-                if (!tcs.TrySetResult(task.Result))
-                {
-                    // If result was already set (e.g., by cancel), try to get it from the source
-                    tcs.TrySetResult(task.Result);
-                }
             });
         }, TaskScheduler.Default);
 
-        // Handle window closing (cancel)
         Closing += (sender, e) =>
         {
             if (!ViewModel.CompletionTask.IsCompleted)
@@ -214,6 +200,14 @@ public partial class OnboardingWizardWindow : Window
         };
 
         await ShowDialog(owner);
-        return await tcs.Task;
+
+        if (_openSettingsAfterClose &&
+            Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow is MainWindow mainWindow)
+        {
+            mainWindow.NavigateToSettings();
+        }
+
+        return await completionTask;
     }
 }

@@ -41,8 +41,13 @@ public record SecondaryHotkeyConfig(string Name, string Description, HotkeyInfo 
 /// </summary>
 public partial class HotkeyStepViewModel : StepViewModelBase
 {
+    private bool _syncingHotkeyText;
+
     [ObservableProperty]
     private HotkeyInfo? _primaryHotkey;
+
+    [ObservableProperty]
+    private string _primaryHotkeyText = string.Empty;
 
     [ObservableProperty]
     private string? _conflictMessage;
@@ -67,14 +72,13 @@ public partial class HotkeyStepViewModel : StepViewModelBase
         CanSkip = true;
 
         InitializeDefaults();
+        SetValidationState(true);
     }
 
     private void InitializeDefaults()
     {
-        // Default primary hotkey: PrintScreen
         PrimaryHotkey = new HotkeyInfo(Key.PrintScreen, KeyModifiers.None);
 
-        // Default secondary hotkeys
         SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
             "Region Capture",
             "Capture a selected region of the screen",
@@ -102,7 +106,6 @@ public partial class HotkeyStepViewModel : StepViewModelBase
 
     public void DetectConflict()
     {
-        // Check for conflicts with system hotkeys
         ConflictMessage = null;
 
         if (PrimaryHotkey == null)
@@ -111,24 +114,20 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             return;
         }
 
-        // Check if this is a common system hotkey
         if (IsSystemHotkey(PrimaryHotkey))
         {
-            ConflictMessage = "This hotkey may conflict with system shortcuts. Consider using a modifier key (Ctrl, Alt, Shift).";
+            ConflictMessage = "This hotkey may conflict with system shortcuts. Consider using a modifier key.";
             return;
         }
 
-        // Check for duplicates within secondary hotkeys
-        var allHotkeys = new List<HotkeyInfo> { PrimaryHotkey };
-        allHotkeys.AddRange(SecondaryHotkeys.Select(s => s.Hotkey));
+        List<HotkeyInfo> allHotkeys = [PrimaryHotkey];
+        allHotkeys.AddRange(SecondaryHotkeys.Select(config => config.Hotkey));
 
-        var duplicates = allHotkeys
-            .GroupBy(h => new { h.Key, h.Modifiers })
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
+        bool hasDuplicate = allHotkeys
+            .GroupBy(hotkey => new { hotkey.Key, hotkey.Modifiers })
+            .Any(group => group.Count() > 1);
 
-        if (duplicates.Any())
+        if (hasDuplicate)
         {
             ConflictMessage = "Duplicate hotkeys detected. Each action should have a unique shortcut.";
         }
@@ -136,7 +135,6 @@ public partial class HotkeyStepViewModel : StepViewModelBase
 
     private static bool IsSystemHotkey(HotkeyInfo hotkey)
     {
-        // Common system hotkeys to warn about
         var systemHotkeys = new[]
         {
             new { Key = Key.PrintScreen, Modifiers = KeyModifiers.None },
@@ -146,8 +144,8 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             new { Key = Key.Escape, Modifiers = KeyModifiers.None },
         };
 
-        return systemHotkeys.Any(sh =>
-            hotkey.Key == sh.Key && hotkey.Modifiers == sh.Modifiers);
+        return systemHotkeys.Any(systemHotkey =>
+            hotkey.Key == systemHotkey.Key && hotkey.Modifiers == systemHotkey.Modifiers);
     }
 
     public override void LoadFromState(OnboardingState state)
@@ -159,33 +157,138 @@ public partial class HotkeyStepViewModel : StepViewModelBase
 
         if (state.AdditionalHotkeys.Count > 0)
         {
-            // Map saved hotkeys to secondary hotkeys
             for (int i = 0; i < Math.Min(state.AdditionalHotkeys.Count, SecondaryHotkeys.Count); i++)
             {
-                var saved = state.AdditionalHotkeys[i];
-                var existing = SecondaryHotkeys[i];
+                HotkeyInfo saved = state.AdditionalHotkeys[i];
+                SecondaryHotkeyConfig existing = SecondaryHotkeys[i];
                 SecondaryHotkeys[i] = existing with { Hotkey = saved };
             }
         }
 
         DetectConflict();
+        SetValidationState(PrimaryHotkey?.IsValid == true, PrimaryHotkey?.IsValid == true ? null : "Choose a valid hotkey.");
     }
 
     public override void SaveToState(OnboardingState state)
     {
         state.PrimaryCaptureHotkey = PrimaryHotkey;
-        state.AdditionalHotkeys = SecondaryHotkeys.Select(s => s.Hotkey).ToList();
+        state.AdditionalHotkeys = SecondaryHotkeys.Select(config => config.Hotkey).ToList();
     }
 
     public override bool Validate()
     {
         DetectConflict();
-        // Allow proceeding even with conflicts, just warn
-        return PrimaryHotkey != null && PrimaryHotkey.IsValid;
+        bool isValid = PrimaryHotkey?.IsValid == true;
+        SetValidationState(isValid, isValid ? null : "Choose a valid hotkey.");
+        return isValid;
     }
 
     partial void OnPrimaryHotkeyChanged(HotkeyInfo? value)
     {
+        string displayValue = value?.ToString() ?? string.Empty;
+        if (!string.Equals(PrimaryHotkeyText, displayValue, StringComparison.Ordinal))
+        {
+            _syncingHotkeyText = true;
+            PrimaryHotkeyText = displayValue;
+            _syncingHotkeyText = false;
+        }
+
         DetectConflict();
+        SetValidationState(value?.IsValid == true, value?.IsValid == true ? null : "Choose a valid hotkey.");
+    }
+
+    partial void OnPrimaryHotkeyTextChanged(string value)
+    {
+        if (_syncingHotkeyText)
+        {
+            return;
+        }
+
+        HotkeyInfo? parsedHotkey = ParseHotkey(value);
+        if (!Equals(PrimaryHotkey, parsedHotkey))
+        {
+            PrimaryHotkey = parsedHotkey;
+        }
+    }
+
+    partial void OnConflictMessageChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasConflict));
+    }
+
+    private static HotkeyInfo? ParseHotkey(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        string[] parts = value.Split(" + ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        KeyModifiers modifiers = KeyModifiers.None;
+        Key key = Key.None;
+
+        foreach (string part in parts)
+        {
+            switch (part.ToLowerInvariant())
+            {
+                case "ctrl":
+                case "control":
+                    modifiers |= KeyModifiers.Control;
+                    break;
+                case "alt":
+                    modifiers |= KeyModifiers.Alt;
+                    break;
+                case "shift":
+                    modifiers |= KeyModifiers.Shift;
+                    break;
+                case "win":
+                case "windows":
+                    modifiers |= KeyModifiers.Meta;
+                    break;
+                default:
+                    if (string.Equals(part, "Print Screen", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Key.PrintScreen;
+                        break;
+                    }
+
+                    if (string.Equals(part, "Page Up", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Key.PageUp;
+                        break;
+                    }
+
+                    if (string.Equals(part, "Page Down", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Key.PageDown;
+                        break;
+                    }
+
+                    if (string.Equals(part, "Num Lock", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Key.NumLock;
+                        break;
+                    }
+
+                    if (string.Equals(part, "Scroll Lock", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Key.Scroll;
+                        break;
+                    }
+
+                    if (Enum.TryParse(part, true, out Key parsedKey))
+                    {
+                        key = parsedKey;
+                    }
+                    break;
+            }
+        }
+
+        if (key == Key.None)
+        {
+            return null;
+        }
+
+        return new HotkeyInfo(key, modifiers);
     }
 }
