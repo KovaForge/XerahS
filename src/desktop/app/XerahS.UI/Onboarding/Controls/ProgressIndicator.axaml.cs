@@ -201,9 +201,11 @@ public partial class ProgressIndicator : UserControl
     public ProgressIndicator()
     {
         InitializeComponent();
+        DataContext = this;
         BuildStepItems();
 
         CurrentStepIndexProperty.Changed.AddClassHandler<ProgressIndicator>((_, _) => UpdateStepStates());
+        TotalStepsProperty.Changed.AddClassHandler<ProgressIndicator>((indicator, _) => indicator.BuildStepItems());
     }
 
     private void InitializeComponent()
