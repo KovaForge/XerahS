@@ -234,3 +234,127 @@ This is solid research that confirms what the roadmap already targets. The risk 
 - [GitHub — Flameshot Issue #4623](https://github.com/flameshot-org/flameshot/issues/4623)
 - [GitHub — OBS Studio PipeWire Issue #11673](https://github.com/obsproject/obs-studio/issues/11673)
 - [KDE Bugzilla — Screen Recording on NVIDIA Wayland](https://bugs.kde.org/show_bug.cgi?id=477130)
+
+---
+
+<!--
+================================================================================
+DESIGN / UI / UX COMMENT
+Added by: Sofia Novak, Designer, KovaForge
+Date: 2026-04-10
+================================================================================
+
+**Verdict: Solid research. Here's what it means for the UI.**
+
+--------------------------------------------------------------------------------
+1. ANNOTATION TOOLS — TOOLBAR VS. PANEL DECISION
+--------------------------------------------------------------------------------
+Need #1 says users want "capture, annotate, and refine in a single fluid
+workflow." That's a UI layout problem before it's a feature list.
+
+Recommendation:
+- Floating inline toolbar (Windows 11 Snipping Tool model) for live on-screen
+  markup during/right-after capture. Reduces context-switching.
+- Persistent annotation panel (Photoshop-style) for multi-step tutorial
+  creation where you need step numbers, layers, reordering.
+- These are two different modes, not one toolbar doing double duty badly.
+
+Anti-recommendation:
+- Don't cram every tool into one toolbar that stays open. It covers the
+  screenshot. ShareX does this and it's a goddamn crime against usability.
+
+--------------------------------------------------------------------------------
+2. WAYLAND PERMISSION UX — THE INTERRUPTION PROBLEM
+--------------------------------------------------------------------------------
+~60% of Linux users report issues. The XIP correctly flags "permission dialogs
+that break workflows." But "clear permission flows" is too vague.
+
+Specific UX requirements:
+- Permission requests must be ONE-TIME, not per-session. Persisted correctly
+  via xdg-desktop-portal — not the broken GNOME fallback that resets.
+- While permissions are unresolved, show an in-app status indicator (NOT a
+  blocking modal). Let users keep working with what DOES work.
+- Never show a blank/black preview as the error state. Show a placeholder
+  with a clear message and a "Fix Permissions" button that deep-links to
+  system settings.
+
+--------------------------------------------------------------------------------
+3. CROSS-PLATFORM UI — WHERE TO BE CONSISTENT VS. WHERE TO ADAPT
+--------------------------------------------------------------------------------
+The XIP says "feature parity across Windows, macOS, and Linux." Correct — but
+feature parity ≠ visual parity.
+
+Consistent (mandatory):
+- Keyboard shortcut schema (global hotkeys, in-app shortcuts)
+- Annotation tool behavior and iconography
+- Post-capture workflow builder UX
+- Settings/Preferences structure
+
+Platform-adapted (expected):
+- Window chrome and title bars — use native frame on each OS
+- File dialogs — native on each OS
+- Notification system — ANotificationCenter on macOS, native Win10+ toasts,
+  libnotify on Linux. Don't roll your own notification center.
+
+Reasoning: Mac users will distrust an app that doesn't respect macOS conventions
+even if every feature is there. Linux users will tolerate more custom UI but
+will riot if you break their DE's notification integration.
+
+--------------------------------------------------------------------------------
+4. WORKFLOW AUTOMATION UI — THE COMPLEXITY PROBLEM
+--------------------------------------------------------------------------------
+ShareX workflows are powerful and completely undiscoverable. "80+ destinations"
+is a configuration nightmare if presented as a list.
+
+Design requirements:
+- Visual workflow builder (node-based or block-based) — NOT a settings panel
+  with 40 dropdowns. Think Zapier-lite.
+- Pre-built workflow templates for the 5 most common flows:
+  1. Capture → Annotate → Save
+  2. Capture → Annotate → Copy to clipboard
+  3. Capture → Auto-upload → Copy link
+  4. Capture → OCR → Insert text
+  5. Capture → Region → Upload → Notify
+- Template customization should be 2-clicks-deep maximum for basic changes.
+- Show the active workflow state in the capture overlay — users need to know
+  what will happen BEFORE they capture, not after.
+
+--------------------------------------------------------------------------------
+5. PRIVACY UI — SHOW, DON'T HIDE
+--------------------------------------------------------------------------------
+"Local processing by default" is a promise. If it looks the same as cloud
+processing, users won't believe it.
+
+Visual requirements:
+- Always-visible processing indicator: a subtle icon/label showing where
+  data is going (hard-drive icon = local, cloud icon = remote). Not buried
+  in settings.
+- When cloud upload is enabled but not active: muted indicator.
+  When actively uploading: clear, unmissable progress indicator.
+- Upload destination selector should show a SECURITY BADGE or local icon for
+  self-hosted destinations vs. third-party cloud. Trust signal.
+
+--------------------------------------------------------------------------------
+6. CAPTURE OVERLAY — INFORMATION DENSITY
+--------------------------------------------------------------------------------
+Capture overlays must balance:
+- Showing active workflow context (what will happen with this capture)
+- Showing current DPI/monitor info (critical for Linux multi-DPI setups)
+- Not overwhelming the user with a status bar from hell
+
+Recommended:
+- Minimal chrome during active selection. Show monitor name + DPI only.
+- Workflow context visible as a small pill/badge near the capture button.
+- On Linux Wayland: briefly show the compositor name on first launch. Helps
+  with bug reports and user self-diagnosis.
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+The research correctly identifies WHAT users want. The next step (separate
+design spec) needs to answer HOW it looks, WHEN each mode appears, and HOW
+workflow state is communicated at every step. A user who knows what will
+happen before they hit capture is a user who trusts the tool.
+
+================================================================================
+-->
