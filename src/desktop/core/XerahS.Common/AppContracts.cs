@@ -54,6 +54,12 @@ public static class AppContracts
         /// <summary>Flag used by helper processes (e.g. screen capture helpers) to forward a capture back to the running instance.</summary>
         public const string SendToFlag = "--send-to";
 
+        /// <summary>
+        /// Overrides the app personal/settings folder for the current process.
+        /// Intended for isolated debug and tooling scenarios.
+        /// </summary>
+        public const string SettingsFolderFlag = "--settings-folder";
+
         /// <summary>Legacy flag for installing a plugin directly from the CLI (superseded by the plugin exporter tool).</summary>
         public const string LegacyInstallPluginFlag = "-InstallPlugin";
 
