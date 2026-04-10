@@ -161,6 +161,69 @@ Based on this research, Xerahs should prioritize:
 
 ---
 
+## Review
+
+**Reviewer:** Nadia Valeva (Analyst, KovaForge)  
+**Date:** 2026-04-10  
+**Status:** ✅ Validated — Research aligns with active development priorities
+
+### Feasibility Assessment
+
+| Need | Feasibility | Complexity | Current State |
+|------|-------------|------------|---------------|
+| 1. Instant Annotation | **High** | Medium | Core infrastructure exists (`ShareX.ImageEditor` integrated). XIP-0068 (re-editing) is in draft — this closes the gap. |
+| 2. Linux/Wayland | **Medium** | High | Active work in XIP-0029, XIP-0046, XIP-0047, XIP-0058, XIP-0061. Portal stability is the hard problem; no magic bullet here. |
+| 3. Cross-Platform | **High** | Medium | Avalonia baseline already committed. Risk is feature parity drift — needs automated testing, not just "works on my machine." |
+| 4. Workflow Automation | **High** | Low-Medium | XIP-0005 (UI) and XIP-0007 (backend) are complete. Upload pipeline exists. OCR and conditional workflows are the remaining gaps. |
+| 5. Privacy-First | **High** | Low | Architectural decision, not a feature. Already aligned — local processing is default, cloud is opt-in. |
+
+### Critical Observations
+
+**1. The Linux Problem is Undersold**
+
+The research cites "~60% of Linux users report Wayland issues" but doesn't quantify the *impact* on XerahS adoption. If we're positioning Linux as a first-class platform (we are), the portal work isn't a nice-to-have — it's a retention risk. The XIPs addressing this are scattered; consider consolidating into a single Linux Hardening epic.
+
+**2. "Intelligent Capture" Needs Definition**
+
+"Workflow automation" spans everything from "copy to clipboard" to "conditional uploads based on window title." The research conflates these. XIP-0005/0007 cover basic after-capture jobs. OCR, conditional logic, and 80+ upload destinations are *not* implemented. Don't let stakeholders assume "ShareX parity" is done.
+
+**3. Non-Destructive Editing: Two Different Problems**
+
+The research bundles "inline annotation during capture" with "re-edit saved annotations." These have different technical profiles:
+- Inline: Solved (region capture overlay works today)
+- Re-edit: Requires XIP-0068 sidecar implementation — still draft, not scheduled
+
+Clarify this distinction in prioritization discussions.
+
+**4. Missing: Performance Baselines**
+
+Users don't mention capture latency, memory usage, or cold-start time — but these are competitive differentiators. ShareX is fast. If we're slower, the feature checklist doesn't matter. Recommend adding perf benchmarks to the roadmap.
+
+### Alignment with Roadmap
+
+| XIP-0069 Need | Roadmap Item | Status |
+|---------------|--------------|--------|
+| Annotation | Phase 7: E2E verification matrix for annotation tools | In Progress |
+| Linux/Wayland | XIP-0029, XIP-0046-0061 | Active |
+| Cross-platform | Phase 7: macOS on-device validation | Blocked (stubs remain) |
+| Workflow | XIP-0005, XIP-0007 | ✅ Complete |
+| Privacy | Architectural default | ✅ Aligned |
+
+**Verdict:** The research validates the current roadmap. No course correction needed. However, the gap between "core workflow complete" (Phase 7 status) and "ShareX parity" (user expectation) is larger than this XIP implies. Manage expectations accordingly.
+
+### Recommendations
+
+1. **Scope XIP-0068 for next cycle** — Non-destructive editing is the biggest unmet need with clear user demand.
+2. **Consolidate Linux portal XIPs** — Five separate XIPs for Linux stability is fragmentation. Bundle and prioritize.
+3. **Define "automation" tiers** — Distinguish between shipped (upload), planned (OCR), and future (conditional workflows) to avoid scope creep.
+4. **Add competitive benchmarking** — Measure cold-start, capture-to-clipboard latency against ShareX and Flameshot.
+
+### Bottom Line
+
+This is solid research that confirms what the roadmap already targets. The risk isn't misalignment — it's *timing*. Users want Linux stability and re-editable annotations *now*. The roadmap has them *eventually*. Close that gap or someone else will.
+
+---
+
 ## References
 
 - [OpenAlternative — ShareX Alternatives](https://openalternative.co/alternatives/sharex)
