@@ -24,7 +24,10 @@
 #endregion License Information (GPL v3)
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System.Security.Cryptography;
 using XerahS.Common;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels
@@ -44,6 +47,29 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private bool _supportsSendToIntegration;
 
+        public bool HasMcpApiKey => !string.IsNullOrWhiteSpace(SettingsManager.Settings.McpApiKey);
+
+        public string McpApiKeyDisplay
+        {
+            get
+            {
+                var apiKey = SettingsManager.Settings.McpApiKey;
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    return "Not generated yet";
+                }
+
+                var suffixLength = Math.Min(4, apiKey.Length);
+                return $"{new string('*', Math.Max(apiKey.Length - suffixLength, 0))}{apiKey[^suffixLength..]}";
+            }
+        }
+
+        public string McpApiKeyStatusText => HasMcpApiKey
+            ? "API key is configured. Use Copy to place the full token on the clipboard."
+            : "API key has not been generated yet.";
+
+        public string McpManifestUrl => "https://xerahs.com/.well-known/mcp/manifest.json";
+
         partial void OnIsPluginExtensionRegisteredChanged(bool value)
         {
             if (_isLoading) return; // Don't trigger during initial load
@@ -56,6 +82,46 @@ namespace XerahS.UI.ViewModels
             {
                 // Shell integration not available on this platform
             }
+        }
+
+        [RelayCommand]
+        private async Task CopyMcpApiKeyAsync()
+        {
+            var apiKey = SettingsManager.Settings.McpApiKey;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                GenerateMcpApiKey();
+                apiKey = SettingsManager.Settings.McpApiKey;
+            }
+
+            await PlatformServices.Clipboard.SetTextAsync(apiKey);
+        }
+
+        [RelayCommand]
+        private async Task CopyMcpManifestUrlAsync()
+        {
+            await PlatformServices.Clipboard.SetTextAsync(McpManifestUrl);
+        }
+
+        [RelayCommand]
+        private void GenerateMcpApiKey()
+        {
+            SettingsManager.Settings.McpApiKey = CreateMcpApiKey();
+            SettingsManager.SaveApplicationConfig();
+            NotifyMcpApiKeyChanged();
+        }
+
+        private void NotifyMcpApiKeyChanged()
+        {
+            OnPropertyChanged(nameof(HasMcpApiKey));
+            OnPropertyChanged(nameof(McpApiKeyDisplay));
+            OnPropertyChanged(nameof(McpApiKeyStatusText));
+        }
+
+        private static string CreateMcpApiKey()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(24);
+            return Convert.ToBase64String(bytes)[..32];
         }
 
         private static bool ApplyContextMenuPreference(bool enable)
