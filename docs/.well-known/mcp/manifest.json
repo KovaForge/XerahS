@@ -1,13 +1,14 @@
 {
   "name": "xerahs",
   "version": "0.22.0",
-  "description": "Screen capture, annotation, upload, and history for XerahS",
+  "description": "XerahS MCP server for capture, annotation, upload, history, workflows, and safe settings access.",
   "endpoint": "https://mcp.xerahs.com/mcp/",
   "endpoint_events": "https://mcp.xerahs.com/mcp/events/",
   "authentication": {
     "type": "bearer",
     "description": "API key from XerahS settings (Settings -> Integration -> MCP API Key)"
   },
+  "documentation_url": "https://xerahs.com/features/mcp-server.html",
   "capabilities": {
     "tools": {
       "listChanged": true

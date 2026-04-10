@@ -279,7 +279,10 @@ public sealed class XerahSMcpServer
             {
                 foreach (var pair in arguments)
                 {
-                    text = text.Replace($"{{{{{pair.Key}}}}}", pair.Value?.GetValue<string>() ?? string.Empty, StringComparison.Ordinal);
+                    var replacement = pair.Value is JsonValue value && value.TryGetValue<string>(out var stringValue)
+                        ? stringValue
+                        : pair.Value?.ToJsonString() ?? string.Empty;
+                    text = text.Replace($"{{{{{pair.Key}}}}}", replacement, StringComparison.Ordinal);
                 }
             }
 
