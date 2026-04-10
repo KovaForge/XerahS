@@ -51,5 +51,5 @@ if ($launchOnboarding) {
     $forwardedArgs.Add($onboardingProfile)
 }
 
-& $dotnet run --project $project -c Debug @forwardedArgs
+& $dotnet run --project $project -c Debug -- @forwardedArgs
 exit $LASTEXITCODE
