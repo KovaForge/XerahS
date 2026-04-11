@@ -305,23 +305,6 @@ public partial class App : Application
             // This prevents blocking the main window from showing quickly
             PostUIInitializationCallback?.Invoke();
 
-            // Show onboarding wizard if first run
-            if (SettingsManager.Settings.IsFirstTimeRun)
-            {
-                var mainWindow = desktop.MainWindow;
-                if (mainWindow != null)
-                {
-                    EventHandler? showOnboarding = null;
-                    showOnboarding = async (_, _) =>
-                    {
-                        mainWindow.Opened -= showOnboarding;
-                        await ShowOnboardingWizardAsync(mainWindow);
-                    };
-
-                    mainWindow.Opened += showOnboarding;
-                }
-            }
-
             // Initialize auto-update service if enabled
             if (SettingsManager.Settings.AutoCheckUpdate)
             {
