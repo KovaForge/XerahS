@@ -1,6 +1,6 @@
 ﻿---
 name: publish-release
-description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
+description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional only if docs/CHANGELOG.md is intentionally absent), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -9,7 +9,7 @@ description: "Orchestrate XerahS release flow in strict order: run maintenance p
 
 Use this skill to run release steps in strict order:
 - Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`)
-- Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional if no `CHANGELOG.md` exists)
+- Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional only if `docs/CHANGELOG.md` is intentionally absent)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
 - Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
@@ -107,7 +107,7 @@ On environments where `bash` is not in PATH, execute the sequence manually:
 
 2. Step 2 - Changelog
    - Run `.ai/skills/update-changelog/SKILL.md`.
-   - Skip if no `CHANGELOG.md` or user confirms skip.
+   - Skip only if `docs/CHANGELOG.md` is intentionally absent or the user confirms skip.
 
 3. Step 3 - Bump, commit, push, tag
    - Run `dotnet build src/desktop/XerahS.sln`; abort if it fails.
@@ -158,7 +158,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 
 1. Require completion of `run-maintenance` first.
    - Script behavior: executes maintenance commands automatically unless explicitly bypassed with `--skip-maintenance` (or legacy alias `--assume-maintenance-done`).
-2. Require completion of `update-changelog` second (skip if no `CHANGELOG.md` or user confirms).
+2. Require completion of `update-changelog` second (skip only if `docs/CHANGELOG.md` is intentionally absent or user confirms).
 3. Before bump, run `dotnet build src/desktop/XerahS.sln`; abort on failure.
 4. Run `scripts/bump-version-commit-tag.sh` (or PowerShell/manual equivalent when bash unavailable).
 5. After tag push, monitor the release workflow every 120 seconds until complete.
@@ -202,7 +202,7 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Windows/PowerShell: bash may be unavailable; manual fallback must be first-class.
 - Windows/PowerShell: avoid `if (git rev-parse <tag>)` for local tag existence checks; use `git show-ref --verify --quiet refs/tags/<tag>` and inspect `$LASTEXITCODE`.
 - Build before bump: avoid tagging broken trees.
-- Changelog optional: do not block if `CHANGELOG.md` does not exist unless user requires it.
+- Changelog optional: do not block if `docs/CHANGELOG.md` is intentionally absent unless user requires it.
 - Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
 - **Windows packaging produces 4 assets per release**: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`. The EXE is built by Inno Setup; the MSI is built by WiX Toolset v4 (`build/windows/XerahS-setup.wxs`). Both are produced by `build/windows/package-windows.ps1` in the same loop iteration.
 - **WiX prerequisite (CI & local)**: `dotnet tool install --global wix` + `wix extension add --global WixToolset.UI.wixext`. The `release-build-all-platforms.yml` workflow installs WiX automatically in the `build-windows` job. For local MSI builds: install WiX first; if not present the script emits a warning and skips MSI.
