@@ -43,6 +43,14 @@ internal static class OnboardingFileUploaderHelper
 
     public static UploaderInstance EnsureFileUploaderInstance(string providerId)
     {
+        return EnsureFileUploaderInstances(providerId)[UploaderCategory.File];
+    }
+
+    public static IReadOnlyDictionary<UploaderCategory, UploaderInstance> EnsureFileUploaderInstances(
+        string providerId,
+        string? sharedSettingsJson = null,
+        bool updateExistingSupportedCategories = false)
+    {
         if (string.IsNullOrWhiteSpace(providerId))
         {
             throw new ArgumentException("Provider ID is required.", nameof(providerId));
@@ -58,30 +66,58 @@ internal static class OnboardingFileUploaderHelper
             throw new InvalidOperationException($"Provider '{providerId}' is not a file uploader.");
         }
 
-        List<UploaderInstance> fileUploaderInstances = InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.File);
-        UploaderInstance? instance = fileUploaderInstances.FirstOrDefault(existingInstance =>
-            string.Equals(existingInstance.ProviderId, provider.ProviderId, StringComparison.OrdinalIgnoreCase));
+        var result = new Dictionary<UploaderCategory, UploaderInstance>();
+        string settingsJson = sharedSettingsJson ?? GetSharedSettingsJson(provider);
 
-        if (instance == null)
+        foreach (UploaderCategory category in provider.SupportedCategories.Distinct())
         {
-            instance = new UploaderInstance
+            if (category == UploaderCategory.UrlShortener)
             {
-                ProviderId = provider.ProviderId,
-                Category = UploaderCategory.File,
-                DisplayName = provider.Name,
-                SettingsJson = provider.GetDefaultSettings(UploaderCategory.File),
-                FileTypeRouting = new FileTypeScope
-                {
-                    AllFileTypes = fileUploaderInstances.Count == 0
-                },
-                IsAvailable = true
-            };
+                continue;
+            }
 
-            InstanceManager.Instance.AddInstance(instance);
+            List<UploaderInstance> categoryInstances = InstanceManager.Instance.GetInstancesByCategory(category);
+            UploaderInstance? instance = categoryInstances.FirstOrDefault(existingInstance =>
+                string.Equals(existingInstance.ProviderId, provider.ProviderId, StringComparison.OrdinalIgnoreCase));
+
+            if (instance == null)
+            {
+                instance = new UploaderInstance
+                {
+                    ProviderId = provider.ProviderId,
+                    Category = category,
+                    DisplayName = provider.Name,
+                    SettingsJson = settingsJson,
+                    FileTypeRouting = new FileTypeScope
+                    {
+                        AllFileTypes = categoryInstances.Count == 0
+                    },
+                    IsAvailable = true
+                };
+
+                InstanceManager.Instance.AddInstance(instance);
+            }
+            else if (updateExistingSupportedCategories && category != UploaderCategory.File)
+            {
+                instance.SettingsJson = settingsJson;
+                InstanceManager.Instance.UpdateInstance(instance);
+            }
+
+            InstanceManager.Instance.SetDefaultInstance(category, instance.InstanceId);
+            result[category] = instance;
         }
 
-        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, instance.InstanceId);
-        return instance;
+        return result;
+    }
+
+    private static string GetSharedSettingsJson(IUploaderProvider provider)
+    {
+        UploaderInstance? fileInstance = InstanceManager.Instance
+            .GetInstancesByCategory(UploaderCategory.File)
+            .FirstOrDefault(existingInstance =>
+                string.Equals(existingInstance.ProviderId, provider.ProviderId, StringComparison.OrdinalIgnoreCase));
+
+        return fileInstance?.SettingsJson ?? provider.GetDefaultSettings(UploaderCategory.File);
     }
 
     private static void InitializeProviders()

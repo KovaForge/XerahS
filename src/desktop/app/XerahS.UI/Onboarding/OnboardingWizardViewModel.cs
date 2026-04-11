@@ -32,6 +32,7 @@ using XerahS.Core.Hotkeys;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Onboarding.ViewModels.Steps;
 using XerahS.UI.ViewModels;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.UI.Onboarding;
 
@@ -239,6 +240,15 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     {
         try
         {
+            IReadOnlyDictionary<UploaderCategory, UploaderInstance>? selectedUploaderInstances = null;
+
+            if (!string.IsNullOrEmpty(state.SelectedUploaderId) &&
+                !state.SkippedSteps.Contains(2) &&
+                !string.Equals(state.SelectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
+            {
+                selectedUploaderInstances = OnboardingFileUploaderHelper.EnsureFileUploaderInstances(state.SelectedUploaderId);
+            }
+
             if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(0))
             {
                 SettingsManager.Settings.CustomScreenshotsPath = state.ScreenshotsFolder;
@@ -258,6 +268,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
                     primaryWorkflow.HotkeyInfo = state.PrimaryCaptureHotkey;
                     primaryWorkflow.EnsureId();
+                    ApplyOnboardingDestination(primaryWorkflow, selectedUploaderInstances);
 
                     if (!workflowManager.Workflows.Contains(primaryWorkflow))
                     {
@@ -282,6 +293,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
                         workflow.HotkeyInfo = hotkey;
                         workflow.EnsureId();
+                        ApplyOnboardingDestination(workflow, selectedUploaderInstances);
 
                         if (!workflowManager.Workflows.Contains(workflow))
                         {
@@ -295,11 +307,6 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
             if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(2))
             {
-                if (!string.Equals(state.SelectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
-                {
-                    OnboardingFileUploaderHelper.EnsureFileUploaderInstance(state.SelectedUploaderId);
-                }
-
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
             }
 
@@ -315,6 +322,32 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         }
 
         await Task.CompletedTask;
+    }
+
+    private static void ApplyOnboardingDestination(
+        WorkflowSettings workflow,
+        IReadOnlyDictionary<UploaderCategory, UploaderInstance>? selectedUploaderInstances)
+    {
+        if (selectedUploaderInstances == null)
+        {
+            return;
+        }
+
+        string category = workflow.Job.GetHotkeyCategory();
+        UploaderCategory? destinationCategory = category switch
+        {
+            EnumExtensions.WorkflowType_Category_ScreenCapture => UploaderCategory.Image,
+            EnumExtensions.WorkflowType_Category_ScreenRecord => UploaderCategory.File,
+            EnumExtensions.WorkflowType_Category_Upload => UploaderCategory.File,
+            EnumExtensions.WorkflowType_Category_Tools => UploaderCategory.Image,
+            _ => null
+        };
+
+        if (destinationCategory.HasValue &&
+            selectedUploaderInstances.TryGetValue(destinationCategory.Value, out UploaderInstance? instance))
+        {
+            workflow.TaskSettings.SetDestinationInstanceId(workflow.Job, instance.InstanceId);
+        }
     }
 
     private WorkflowManager? GetWorkflowManager()
