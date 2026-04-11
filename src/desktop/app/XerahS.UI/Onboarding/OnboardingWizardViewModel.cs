@@ -336,10 +336,10 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         string category = workflow.Job.GetHotkeyCategory();
         UploaderCategory? destinationCategory = category switch
         {
-            EnumExtensions.WorkflowType_Category_ScreenCapture => UploaderCategory.Image,
+            EnumExtensions.WorkflowType_Category_ScreenCapture => UploaderCategory.File,
             EnumExtensions.WorkflowType_Category_ScreenRecord => UploaderCategory.File,
             EnumExtensions.WorkflowType_Category_Upload => UploaderCategory.File,
-            EnumExtensions.WorkflowType_Category_Tools => UploaderCategory.Image,
+            EnumExtensions.WorkflowType_Category_Tools => workflow.Job == WorkflowType.OCR ? UploaderCategory.Text : UploaderCategory.File,
             _ => null
         };
 
