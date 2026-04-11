@@ -1,6 +1,6 @@
 ---
-name: Changelog Management
-description: Rules and workflows for updating CHANGELOG.md, including version grouping, consolidation, and commit handling.
+name: update-changelog
+description: Rules and workflows for updating docs/CHANGELOG.md, including version grouping, consolidation, and commit-entry attribution.
 ---
 
 ## Automation Script (Recommended)
@@ -41,29 +41,28 @@ Notes:
 - `-Version` defaults to root `Directory.Build.props`.
 - `-FromTag` defaults to `git describe --tags --abbrev=0`.
 - The script upserts `## vX.Y.Z` (replaces existing section for that version or inserts after `## Unreleased`).
-- **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same *similarity bucket* (for example: **ShareX.ImageEditor** in the subject, **2026-… blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
+- **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same similarity bucket (for example: **ShareX.ImageEditor** in the subject, **2026-... blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
 - Always **manually review** for wording, missed merges, and contributor attribution (`#PR`, `@user`) before publishing.
 
 ## Version Grouping Strategy
 
-### Git Tag-Based Consolidation
-- **CRITICAL**: Check `git tag -l` to identify the last released version tag.
-- **All commits after the last git tag** must be consolidated into a single heading for the next minor version.
-    - **Example**: If the last tag is `v0.15.5`, then ALL commits after that tag (including any changelog sections like v0.15.6, v0.15.7, v0.16.0, v0.16.1) must be **merged into v0.16.0**.
-- **Never create multiple version headings** between git tags. Only one version heading should exist between any two tags.
+### Current Unreleased Work
+- Use the latest released tag as the default lower bound.
+- Consolidate all commits after that tag into one heading for the target version, normally the root `Directory.Build.props` version.
+- Do not create multiple patch or prerelease headings for the same unreleased range unless the user explicitly requests a historical reconstruction.
 
-### Minor Version Breakdowns
-- **Always** break changes down into minor versions (e.g., `v0.8.0`, `v0.9.0`, `v0.10.0`) even if `Directory.Build.props` or git tags do not explicitly show them.
-- Analyze `git log` and `Directory.Build.props` history to identify implicit boundaries where version bumps occurred or were implied.
+### Historical Stable Release Reconstruction
+- When rebuilding old changelog history across multiple stable releases, group entries by stable minor release boundaries.
+- Use git tags and `Directory.Build.props` history to identify those boundaries.
+- Fold patch and prerelease entries into the next stable minor heading unless a patch release was intentionally standalone.
+- Retain original context if useful, for example: `Feature: ... (originally v0.8.1)`.
 
 ### Consolidation Rules
-- **Patch Versions**: Consolidate patch versions (e.g., `v0.8.x`) into the next significant minor version (e.g., `v0.9.0`) unless the patch version was a major standalone release.
-    - **Example**: Items from `v0.8.1`, `v0.8.2`, `v0.8.3` should be merged and listed under **v0.9.0**.
-    - Retain original context if needed (e.g., "Feature: ... `(v0.8.1)`").
-- **Pre-Release Fixes**: Move post-release fixes from previous versions into the next minor version.
-    - **Example**: Fixes made *after* the `v0.7.7` tag but historically listed under the `v0.7.7` header should be moved to **v0.8.0**.
+- Combine related commits that affect the same component and purpose.
+- Keep different components separate unless they are part of one coherent user-facing change.
+- Keep commits with external contributor attribution separate when merging would obscure credit.
 
-## Commit Handling
+## Commit Entry Handling
 
 ### Specific Commit Assignment
 - Respect specific user requests to assign certain commits to specific versions.
@@ -78,12 +77,16 @@ Notes:
 
 ### Categorization
 Group changes within each version using standard categories:
-- **Feature**: New functionality.
-- **Fix**: Bug fixes.
+- **Features**: New functionality.
+- **Fixes**: Bug fixes.
 - **Refactor**: Code improvements without external behavior change.
 - **Build**: Build system, dependencies, and packaging.
-- **Core**: Core foundation changes.
-- **Infrastructure**: Repo, git, or workflow changes.
+- **Documentation**: User, developer, proposal, and release documentation.
+- **Testing**: Test coverage and test infrastructure.
+- **Performance**: Performance improvements.
+- **Changed**: Fallback for changes that do not map cleanly to the categories above.
+
+The helper script maps infrastructure and chore-style commit types into **Build** unless the commit subject carries a clearer component/category signal.
 
 ### Entry Consolidation to Reduce Line Count
 **CRITICAL**: Consolidate related commits into single entries to keep the changelog concise and readable.
@@ -162,35 +165,29 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 
 ### Step-by-Step Process
 
-1. **Identify Latest and Previous Stable Tags via GitHub MCP (preferred)**
+1. **Choose the Changelog Mode**
+   - Current unreleased work: use the latest released tag as the lower bound and the root `Directory.Build.props` version as the target heading.
+   - Historical stable release reconstruction: use two stable release tags as the range and group output under the newer stable release heading.
 
-   Use `mcp_io_github_git_list_releases` with `owner=ShareX`, `repo=XerahS` (set `perPage=10`).
-   - **Latest stable tag** = first result where `prerelease: false` and `draft: false`.
-   - **Previous stable tag** = second result where `prerelease: false` and `draft: false`.
-   - All intermediate pre-releases (e.g. v0.20.2, v0.20.3, v0.20.4) are collapsed into the single latest stable tag heading.
+2. **Identify the Range**
+   - Default helper-script behavior: omit `-FromTag` to use `git describe --tags --abbrev=0`.
+   - Explicit current-range example: `-FromTag v0.21.2 -Version 0.22.0`.
+   - Historical stable reconstruction example: compare `v0.PREV_STABLE..v0.LATEST_STABLE`.
 
-   Fallback if GitHub MCP unavailable:
-   ```bash
-   git tag -l --sort=-version:refname | Select-Object -First 5
+   Fallback tag listing:
+   ```powershell
+   git tag -l --sort=-version:refname | Select-Object -First 10
    ```
-   Then manually identify the two most recent non-prerelease tags by checking the CI release workflow (pre-releases have `prerelease: true` in their GitHub release).
 
-2. **Get Commits Between the Two Stable Tags**
-   ```bash
-   git log v0.PREV..v0.LATEST --oneline --no-decorate
-   ```
-   This gives the exact set of commits to document under the latest stable tag heading.
-
-3. **Check Current Version in Directory.Build.props**
-   Read the `<Version>` property to determine the target version number.
+3. **Check Target Version**
+   Read the root `Directory.Build.props` `<Version>` property unless the user explicitly provided a historical target version.
 
 4. **Consolidate Version Headings**
-   - Remove ALL version headings between the last git tag and current HEAD
-   - Create a SINGLE heading for the next minor version (from Directory.Build.props)
-   - Move all commits into this single version heading
+   - Current unreleased work: create or update one `## vX.Y.Z` heading for the target version.
+   - Historical reconstruction: preserve stable release boundaries, but fold patch/prerelease fragments into the stable heading unless a patch release was intentionally standalone.
 
 5. **Categorize Commits**
-   - Group commits into: Features, Fixes, Refactor, Build, Documentation
+   - Group commits into: Features, Fixes, Refactor, Build, Documentation, Testing, Performance, Changed
    - Within each category, group by component (e.g., Mobile, Linux Capture, Editor)
 
 6. **Consolidate Related Entries**
@@ -207,27 +204,22 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 
 ### Example Command Sequence
 ```powershell
-# Get last two stable tags via GitHub MCP (preferred)
-# mcp_io_github_git_list_releases owner=ShareX repo=XerahS perPage=20
-# Filter for prerelease:false, draft:false → first = latest stable, second = previous stable
+# Check latest tags with version-aware sorting.
+$tags = git tag -l --sort=-version:refname | Select-Object -First 10
 
-# Fallback: version-aware git sort (NOT plain Sort-Object -Descending — that is lexicographic)
-$stableTags = git tag -l --sort=-version:refname | Where-Object { $_ -notmatch 'alpha|beta|rc' }
-$latestTag  = $stableTags | Select-Object -First 1
-$prevTag    = $stableTags | Select-Object -Skip 1 -First 1
-
-# Get commits between the two stable tags
-git log "$prevTag..$latestTag" --oneline --no-decorate
-
-# Check current version
+# Check current version.
 $version = Select-String -Path "Directory.Build.props" -Pattern '<Version>(.*)</Version>' | ForEach-Object { $_.Matches.Groups[1].Value }
 
-# Update CHANGELOG.md with consolidated entries (see encoding-safe method below)
+# Preview default current-unreleased changelog section.
+powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1
+
+# Apply an explicit current-unreleased range.
+powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.21.2 -Version $version -Apply
 ```
 
 ### Encoding-Safe Multi-Line Block Replacement
 
-**Why**: `replace_string_in_file` requires an exact literal match. CHANGELOG.md can contain multi-byte UTF-8 sequences (e.g. `§` in section references like `§7a`) that tools or round-trips can silently corrupt into mojibake (`Ã‚Â§`). Exact-match tools will fail on these blocks. Use PowerShell `[System.IO.File]` + `Regex` instead — it reads raw bytes and is immune to mojibake mismatches.
+**Why**: exact-match replacement tools can fail when CHANGELOG.md contains multi-byte UTF-8 sequences that were double-encoded during a tool round trip. Use PowerShell `[System.IO.File]` plus `Regex` instead; it reads raw bytes and avoids exact-literal matching against corrupted text.
 
 **Pattern** (replace all prerelease sections between two stable headings with new consolidated content):
 
@@ -253,7 +245,7 @@ $c = [System.Text.RegularExpressions.Regex]::Replace(
     $newSection
 )
 
-# Normalize stray mojibake: Â§ → §  (UTF-8 double-encoding artifact)
+# Normalize the common double-encoded section-sign artifact.
 $c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)
 
 # Collapse 3+ consecutive blank lines down to 2
@@ -266,6 +258,6 @@ $c = $c -replace "`n", "`r`n"   # restore CRLF if the repo uses it
 
 **Key points**:
 - `(?s)` makes `.` match newlines so the pattern spans the whole block.
-- The lookahead `(?=## v0\.PREV_STABLE)` stops the match at the previous stable heading — it is **not** consumed.
-- The mojibake normalization pass (`[char]0x00C2 + [char]0x00A7 → [char]0x00A7`) should always run after a regex write to guard against double-encoding.
-- Blank-line normalization (`\n{3,}` → `\n\n`) prevents the file from accumulating excess whitespace after sections are removed.
+- The lookahead `(?=## v0\.PREV_STABLE)` stops the match at the previous stable heading; it is **not** consumed.
+- The mojibake normalization pass (`[char]0x00C2 + [char]0x00A7` to `[char]0x00A7`) should always run after a regex write to guard against double-encoding.
+- Blank-line normalization (`\n{3,}` to `\n\n`) prevents the file from accumulating excess whitespace after sections are removed.

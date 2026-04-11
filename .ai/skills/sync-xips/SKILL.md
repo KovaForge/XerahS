@@ -10,6 +10,8 @@ description: Create and maintain XerahS Improvement Proposals (XIPs) with GitHub
 
 Create and edit XIPs in GitHub; keep a local backup in `docs/proposals/xip/` by running sync. Do not treat the local folder as the primary place to write XIPs.
 
+For XIP structure, templates, and writing patterns, use [XIP writing reference](../write-xip/SKILL.md). This skill is the operational workflow for issue creation, issue editing, sync, and recovery.
+
 ---
 
 ## Principles
@@ -44,7 +46,7 @@ Create and edit XIPs in GitHub; keep a local backup in `docs/proposals/xip/` by 
 
 4. **Sync to docs/proposals/xip**  
    - Run: `./.ai/skills/sync-xips/scripts/sync-from-github.ps1`  
-   - The new XIP appears as `docs/proposals/xip/XIP####-Title-Slug.md`.
+   - The new XIP appears as `docs/proposals/xip/XIP####-title-slug.md`.
 
 ### Edit an existing XIP
 
@@ -65,7 +67,7 @@ Run from repo root:
 
 - Reads all issues with label `xip`.
 - Writes/overwrites one `.md` file per XIP under **`docs/proposals/xip/`** (single folder). Status is not synced to paths; it stays in GitHub (issue state and labels).
-- Filename: `XIP####-Title-Slug.md` (number from title, rest from slug of title).
+- Filename: `XIP####-title-slug.md` (number from title, rest from lower-case slug of title).
 - File content: issue body only (no extra “issue” wrapper). If the body contains a “XIP Document” block from an old migration, the script strips it and uses the actual XIP content.
 
 ### Recovery: docs/proposals/xip → GitHub
@@ -82,7 +84,7 @@ If the only good copy of a XIP is in the local folder:
 
 ## Backup layout
 
-- All XIP backup files live in **`docs/proposals/xip/`** as `XIP####-Title-Slug.md`. Status (open/closed/parked) is **not** reflected in folder structure; it lives only in GitHub issues (state and labels). This avoids moving files and breaking links when status changes.
+- All XIP backup files live in **`docs/proposals/xip/`** as `XIP####-title-slug.md`. Status (open/closed/parked) is **not** reflected in folder structure; it lives only in GitHub issues (state and labels). This avoids moving files and breaking links when status changes.
 
 ---
 
@@ -90,7 +92,7 @@ If the only good copy of a XIP is in the local folder:
 
 - **Issue title and first heading**: `XIP0044 Short Descriptive Title`  
   - 4-digit zero-padded number, single space, no `[ ]`, no `:`, no `-` between number and title.
-- **File name**: `XIP0044-Short-Descriptive-Title.md` (number + slug with hyphens).
+- **File name**: `XIP0044-short-descriptive-title.md` (number + lower-case slug with hyphens).
 
 Full structure, templates, and patterns: [XIP writing reference](../write-xip/SKILL.md).
 
@@ -110,4 +112,4 @@ Run from repo root; requires `gh` CLI and PowerShell.
 1. **GitHub first** – Create and edit XIPs as issues (label `xip`); issue body = full XIP.
 2. **docs/proposals/xip = backup** – One folder (`docs/proposals/xip/`); status only in GitHub. Run `sync-from-github.ps1` after changes.
 3. **Don't edit XIP content locally** – Edit the issue, then sync.
-4. **Naming** – `XIP0044 Title` (no brackets/colon/dash); file `XIP0044-Title-Slug.md`.
+4. **Naming** – `XIP0044 Title` (no brackets/colon/dash); file `XIP0044-title-slug.md`.

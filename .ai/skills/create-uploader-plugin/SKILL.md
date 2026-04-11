@@ -28,9 +28,9 @@ For a concrete native-API example, see [docs/proposals/xip/XIP0048-nextcloud-nat
 6. Keep secrets in `ISecretStore`, not in settings JSON.
 7. Add explorer support only if the destination can browse/list remote files with stable semantics.
 8. Add or refine the Avalonia config UI when the property-grid experience would be weak.
-   - For custom UI direction, also read:
-     - [../frontend-design/SKILL.md](../frontend-design/SKILL.md)
-     - [../design-ui-window/SKILL.md](../design-ui-window/SKILL.md)
+   - For Avalonia control, binding, and styling rules, read [../avalonia-guidelines/SKILL.md](../avalonia-guidelines/SKILL.md).
+   - For visual redesign of a plugin config view, read [../design-ui-window/SKILL.md](../design-ui-window/SKILL.md) and set its `target_view_path` to `src\desktop\plugins\<Name>.Plugin\Views\ConfigView.axaml`.
+   - Treat uploader config UI as Avalonia AXAML work, not a web frontend workflow.
 9. Build the new plugin project, then build `src/desktop/XerahS.sln`.
 
 ## Scaffold Command

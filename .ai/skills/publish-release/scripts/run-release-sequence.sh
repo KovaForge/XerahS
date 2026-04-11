@@ -34,7 +34,21 @@ require_cmd() {
 }
 
 run_maintenance_chores() {
-  echo "Step 1: running maintenance chores..."
+  echo "Step 1: running maintenance prep..."
+  echo "  - git status --short"
+  if [[ -n "$(git status --short)" ]]; then
+    echo "Error: working tree has local changes. Commit, stash, or clean them before maintenance pull." >&2
+    git status --short >&2
+    exit 1
+  fi
+  echo "  - git submodule foreach --recursive status guard"
+  git submodule foreach --recursive '
+    if test -n "$(git status --short)"; then
+      echo "Error: submodule has local changes: $displaypath" >&2
+      git status --short >&2
+      exit 1
+    fi
+  '
   echo "  - git pull --recurse-submodules"
   git pull --recurse-submodules
   echo "  - git submodule update --init --recursive"
