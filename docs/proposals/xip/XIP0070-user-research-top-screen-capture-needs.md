@@ -149,11 +149,11 @@ Sources analyzed:
 
 Based on this research, Xerahs should prioritize:
 
-1. **Annotation System:** Complete the annotation editor with non-destructive layer support (re-editing saved annotations — XIP-0068 already addresses this)
+1. **Annotation System:** Complete the annotation editor with non-destructive layer support (re-editing saved annotations — XIP0068 already addresses this)
 
-2. **Linux Hardening:** Continue Wayland portal stability work (XIP-0029, XIP-0046, XIP-0047, XIP-0058, XIP-0061) — this is a competitive differentiator
+2. **Linux Hardening:** Continue Wayland portal stability work (XIP0029, XIP0046, XIP0047, XIP0058, XIP0061) — this is a competitive differentiator
 
-3. **Workflow Engine:** Implement post-capture job chains that match ShareX's automation capabilities (XIP-0005, XIP-0007 touch on this)
+3. **Workflow Engine:** Implement post-capture job chains that match ShareX's automation capabilities (XIP0005, XIP0007 touch on this)
 
 4. **Privacy Defaults:** Ensure all processing is local-by-default; cloud uploads require explicit user configuration
 
@@ -171,10 +171,10 @@ Based on this research, Xerahs should prioritize:
 
 | Need | Feasibility | Complexity | Current State |
 |------|-------------|------------|---------------|
-| 1. Instant Annotation | **High** | Medium | Core infrastructure exists (`ShareX.ImageEditor` integrated). XIP-0068 (re-editing) is in draft — this closes the gap. |
-| 2. Linux/Wayland | **Medium** | High | Active work in XIP-0029, XIP-0046, XIP-0047, XIP-0058, XIP-0061. Portal stability is the hard problem; no magic bullet here. |
+| 1. Instant Annotation | **High** | Medium | Core infrastructure exists (`ShareX.ImageEditor` integrated). XIP0068 (re-editing) is in draft — this closes the gap. |
+| 2. Linux/Wayland | **Medium** | High | Active work in XIP0029, XIP0046, XIP0047, XIP0058, XIP0061. Portal stability is the hard problem; no magic bullet here. |
 | 3. Cross-Platform | **High** | Medium | Avalonia baseline already committed. Risk is feature parity drift — needs automated testing, not just "works on my machine." |
-| 4. Workflow Automation | **High** | Low-Medium | XIP-0005 (UI) and XIP-0007 (backend) are complete. Upload pipeline exists. OCR and conditional workflows are the remaining gaps. |
+| 4. Workflow Automation | **High** | Low-Medium | XIP0005 (UI) and XIP0007 (backend) are complete. Upload pipeline exists. OCR and conditional workflows are the remaining gaps. |
 | 5. Privacy-First | **High** | Low | Architectural decision, not a feature. Already aligned — local processing is default, cloud is opt-in. |
 
 ### Critical Observations
@@ -185,13 +185,13 @@ The research cites "~60% of Linux users report Wayland issues" but doesn't quant
 
 **2. "Intelligent Capture" Needs Definition**
 
-"Workflow automation" spans everything from "copy to clipboard" to "conditional uploads based on window title." The research conflates these. XIP-0005/0007 cover basic after-capture jobs. OCR, conditional logic, and 80+ upload destinations are *not* implemented. Don't let stakeholders assume "ShareX parity" is done.
+"Workflow automation" spans everything from "copy to clipboard" to "conditional uploads based on window title." The research conflates these. XIP0005/0007 cover basic after-capture jobs. OCR, conditional logic, and 80+ upload destinations are *not* implemented. Don't let stakeholders assume "ShareX parity" is done.
 
 **3. Non-Destructive Editing: Two Different Problems**
 
 The research bundles "inline annotation during capture" with "re-edit saved annotations." These have different technical profiles:
 - Inline: Solved (region capture overlay works today)
-- Re-edit: Requires XIP-0068 sidecar implementation — still draft, not scheduled
+- Re-edit: Requires XIP0068 sidecar implementation — still draft, not scheduled
 
 Clarify this distinction in prioritization discussions.
 
@@ -204,16 +204,16 @@ Users don't mention capture latency, memory usage, or cold-start time — but th
 | XIP0069 Need | Roadmap Item | Status |
 |---------------|--------------|--------|
 | Annotation | Phase 7: E2E verification matrix for annotation tools | In Progress |
-| Linux/Wayland | XIP-0029, XIP-0046-0061 | Active |
+| Linux/Wayland | XIP0029, XIP0046-0061 | Active |
 | Cross-platform | Phase 7: macOS on-device validation | Blocked (stubs remain) |
-| Workflow | XIP-0005, XIP-0007 | ✅ Complete |
+| Workflow | XIP0005, XIP0007 | ✅ Complete |
 | Privacy | Architectural default | ✅ Aligned |
 
 **Verdict:** The research validates the current roadmap. No course correction needed. However, the gap between "core workflow complete" (Phase 7 status) and "ShareX parity" (user expectation) is larger than this XIP implies. Manage expectations accordingly.
 
 ### Recommendations
 
-1. **Scope XIP-0068 for next cycle** — Non-destructive editing is the biggest unmet need with clear user demand.
+1. **Scope XIP0068 for next cycle** — Non-destructive editing is the biggest unmet need with clear user demand.
 2. **Consolidate Linux portal XIPs** — Five separate XIPs for Linux stability is fragmentation. Bundle and prioritize.
 3. **Define "automation" tiers** — Distinguish between shipped (upload), planned (OCR), and future (conditional workflows) to avoid scope creep.
 4. **Add competitive benchmarking** — Measure cold-start, capture-to-clipboard latency against ShareX and Flameshot.

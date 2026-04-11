@@ -11,7 +11,7 @@ XIP0017: Screen Recording Modernization (Consolidated)
 
 ## Overview
 
-XIP-0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
+XIP0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
 
 ---
 
@@ -189,7 +189,7 @@ XIP0017: Screen Recording Modernization (Consolidated)
 
 ## Overview
 
-XIP-0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
+XIP0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
 
 ---
 
