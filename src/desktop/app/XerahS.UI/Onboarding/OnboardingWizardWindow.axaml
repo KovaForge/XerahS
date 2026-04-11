@@ -2,7 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:XerahS.UI.Onboarding"
         xmlns:steps="using:XerahS.UI.Onboarding.ViewModels.Steps"
-        xmlns:controls="using:XerahS.UI.Onboarding.Controls"
+        xmlns:hotkeyControls="using:XerahS.UI.Views.Controls"
+        xmlns:uiVm="using:XerahS.UI.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="520"
@@ -104,8 +105,19 @@
                     <TextBlock Text="Primary Capture Hotkey"
                                Classes="WizardSectionHeader"
                                Margin="0" />
-                    <controls:HotkeyRecorder Value="{Binding PrimaryHotkeyText, Mode=TwoWay}" />
-                    <TextBlock Text="Click the recorder and press your preferred hotkey."
+                    <ListBox ItemsSource="{Binding PrimaryHotkeys}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="uiVm:HotkeyItemViewModel">
+                          <hotkeyControls:HotkeySelectionControl Margin="0,0,0,8"
+                                                                 RegisterOnCommit="False"
+                                                                 HotkeyChanged="OnOnboardingHotkeyChanged" />
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Text="Click the hotkey button and press your preferred shortcut. Press Escape to cancel."
                                FontSize="12"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                TextWrapping="Wrap" />
@@ -122,27 +134,18 @@
                   <Expander Header="Additional Hotkeys"
                             Classes="WizardExpander">
                     <StackPanel Spacing="8" Margin="0,12,0,0">
-                      <ItemsControl ItemsSource="{Binding SecondaryHotkeys}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="steps:SecondaryHotkeyConfig">
-                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                              <StackPanel Grid.Column="0">
-                                <TextBlock Text="{Binding Name}" FontWeight="Medium" />
-                                <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.7" />
-                              </StackPanel>
-                              <Border Grid.Column="1"
-                                      Background="{DynamicResource ControlFillColorDefaultBrush}"
-                                      BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                                      BorderThickness="1"
-                                      CornerRadius="4"
-                                      Padding="8,4">
-                                <TextBlock Text="{Binding Hotkey}"
-                                           FontFamily="JetBrains Mono, Consolas, monospace" />
-                              </Border>
-                            </Grid>
+                      <ListBox ItemsSource="{Binding SecondaryHotkeyItems}"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Padding="0">
+                        <ListBox.ItemTemplate>
+                          <DataTemplate x:DataType="uiVm:HotkeyItemViewModel">
+                            <hotkeyControls:HotkeySelectionControl Margin="0,0,0,8"
+                                                                   RegisterOnCommit="False"
+                                                                   HotkeyChanged="OnOnboardingHotkeyChanged" />
                           </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
                     </StackPanel>
                   </Expander>
 

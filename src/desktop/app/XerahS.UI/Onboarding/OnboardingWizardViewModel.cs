@@ -289,7 +289,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                         }
                     }
 
-                    workflowManager.NotifyWorkflowsChanged();
+                    workflowManager.UpdateHotkeys(workflowManager.Workflows);
                 }
             }
 

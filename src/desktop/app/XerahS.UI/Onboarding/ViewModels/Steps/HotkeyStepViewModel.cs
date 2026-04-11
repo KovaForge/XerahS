@@ -27,7 +27,10 @@ using System.Collections.ObjectModel;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Core;
+using XerahS.Core.Hotkeys;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
@@ -42,6 +45,7 @@ public record SecondaryHotkeyConfig(string Name, string Description, HotkeyInfo 
 public partial class HotkeyStepViewModel : StepViewModelBase
 {
     private bool _syncingHotkeyText;
+    private bool _syncingHotkeyItems;
 
     [ObservableProperty]
     private HotkeyInfo? _primaryHotkey;
@@ -54,6 +58,10 @@ public partial class HotkeyStepViewModel : StepViewModelBase
 
     [ObservableProperty]
     private bool _isRecordingHotkey;
+
+    public ObservableCollection<HotkeyItemViewModel> PrimaryHotkeys { get; } = new();
+
+    public ObservableCollection<HotkeyItemViewModel> SecondaryHotkeyItems { get; } = new();
 
     public ObservableCollection<SecondaryHotkeyConfig> SecondaryHotkeys { get; } = new();
 
@@ -79,6 +87,11 @@ public partial class HotkeyStepViewModel : StepViewModelBase
     {
         PrimaryHotkey = new HotkeyInfo(Key.PrintScreen, KeyModifiers.None);
 
+        PrimaryHotkeys.Add(CreateHotkeyItem(
+            WorkflowType.RectangleRegion,
+            "Primary Capture",
+            PrimaryHotkey));
+
         SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
             "Region Capture",
             "Capture a selected region of the screen",
@@ -93,6 +106,32 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             "Full Screen",
             "Capture the entire screen",
             new HotkeyInfo(Key.PrintScreen, KeyModifiers.Shift)));
+
+        SecondaryHotkeyItems.Add(CreateHotkeyItem(
+            WorkflowType.RectangleRegion,
+            "Region Capture",
+            SecondaryHotkeys[0].Hotkey));
+
+        SecondaryHotkeyItems.Add(CreateHotkeyItem(
+            WorkflowType.ActiveWindow,
+            "Window Capture",
+            SecondaryHotkeys[1].Hotkey));
+
+        SecondaryHotkeyItems.Add(CreateHotkeyItem(
+            WorkflowType.PrintScreen,
+            "Full Screen",
+            SecondaryHotkeys[2].Hotkey));
+    }
+
+    private static HotkeyItemViewModel CreateHotkeyItem(WorkflowType workflowType, string description, HotkeyInfo hotkey)
+    {
+        WorkflowSettings workflowSettings = new(workflowType, hotkey)
+        {
+            Name = description
+        };
+        workflowSettings.TaskSettings.Description = description;
+
+        return new HotkeyItemViewModel(workflowSettings);
     }
 
     [RelayCommand]
@@ -106,6 +145,11 @@ public partial class HotkeyStepViewModel : StepViewModelBase
 
     public void DetectConflict()
     {
+        if (!_syncingHotkeyItems)
+        {
+            SyncFromHotkeyItems();
+        }
+
         ConflictMessage = null;
 
         if (PrimaryHotkey == null)
@@ -153,6 +197,7 @@ public partial class HotkeyStepViewModel : StepViewModelBase
         if (state.PrimaryCaptureHotkey != null)
         {
             PrimaryHotkey = state.PrimaryCaptureHotkey;
+            SetHotkeyItem(PrimaryHotkeys.FirstOrDefault(), state.PrimaryCaptureHotkey);
         }
 
         if (state.AdditionalHotkeys.Count > 0)
@@ -162,6 +207,7 @@ public partial class HotkeyStepViewModel : StepViewModelBase
                 HotkeyInfo saved = state.AdditionalHotkeys[i];
                 SecondaryHotkeyConfig existing = SecondaryHotkeys[i];
                 SecondaryHotkeys[i] = existing with { Hotkey = saved };
+                SetHotkeyItem(SecondaryHotkeyItems.ElementAtOrDefault(i), saved);
             }
         }
 
@@ -171,8 +217,9 @@ public partial class HotkeyStepViewModel : StepViewModelBase
 
     public override void SaveToState(OnboardingState state)
     {
+        SyncFromHotkeyItems();
         state.PrimaryCaptureHotkey = PrimaryHotkey;
-        state.AdditionalHotkeys = SecondaryHotkeys.Select(config => config.Hotkey).ToList();
+        state.AdditionalHotkeys = SecondaryHotkeyItems.Select(item => CloneHotkey(item.Model.HotkeyInfo)).ToList();
     }
 
     public override bool Validate()
@@ -183,8 +230,66 @@ public partial class HotkeyStepViewModel : StepViewModelBase
         return isValid;
     }
 
+    public void RefreshFromHotkeyItems()
+    {
+        SyncFromHotkeyItems();
+        DetectConflict();
+        SetValidationState(PrimaryHotkey?.IsValid == true, PrimaryHotkey?.IsValid == true ? null : "Choose a valid hotkey.");
+    }
+
+    private void SyncFromHotkeyItems()
+    {
+        if (_syncingHotkeyItems)
+        {
+            return;
+        }
+
+        _syncingHotkeyItems = true;
+
+        try
+        {
+            HotkeyItemViewModel? primaryItem = PrimaryHotkeys.FirstOrDefault();
+            if (primaryItem != null)
+            {
+                PrimaryHotkey = CloneHotkey(primaryItem.Model.HotkeyInfo);
+                primaryItem.Refresh();
+            }
+
+            for (int i = 0; i < SecondaryHotkeyItems.Count && i < SecondaryHotkeys.Count; i++)
+            {
+                SecondaryHotkeyItems[i].Refresh();
+                SecondaryHotkeys[i] = SecondaryHotkeys[i] with { Hotkey = CloneHotkey(SecondaryHotkeyItems[i].Model.HotkeyInfo) };
+            }
+        }
+        finally
+        {
+            _syncingHotkeyItems = false;
+        }
+    }
+
+    private static void SetHotkeyItem(HotkeyItemViewModel? item, HotkeyInfo hotkey)
+    {
+        if (item == null)
+        {
+            return;
+        }
+
+        item.Model.HotkeyInfo = CloneHotkey(hotkey);
+        item.Refresh();
+    }
+
+    private static HotkeyInfo CloneHotkey(HotkeyInfo hotkey)
+    {
+        return new HotkeyInfo(hotkey.Key, hotkey.Modifiers);
+    }
+
     partial void OnPrimaryHotkeyChanged(HotkeyInfo? value)
     {
+        if (!_syncingHotkeyItems && value != null)
+        {
+            SetHotkeyItem(PrimaryHotkeys.FirstOrDefault(), value);
+        }
+
         string displayValue = value?.ToString() ?? string.Empty;
         if (!string.Equals(PrimaryHotkeyText, displayValue, StringComparison.Ordinal))
         {
@@ -193,8 +298,11 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             _syncingHotkeyText = false;
         }
 
-        DetectConflict();
-        SetValidationState(value?.IsValid == true, value?.IsValid == true ? null : "Choose a valid hotkey.");
+        if (!_syncingHotkeyItems)
+        {
+            DetectConflict();
+            SetValidationState(value?.IsValid == true, value?.IsValid == true ? null : "Choose a valid hotkey.");
+        }
     }
 
     partial void OnPrimaryHotkeyTextChanged(string value)

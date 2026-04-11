@@ -4,8 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="using:XerahS.UI.Onboarding.Steps"
              xmlns:vm="using:XerahS.UI.Onboarding.ViewModels.Steps"
-             xmlns:controls="using:XerahS.UI.Onboarding.Controls"
-             xmlns:abh="using:XerahS.Platform.Abstractions"
+             xmlns:hotkeyControls="using:XerahS.UI.Views.Controls"
+             xmlns:uiVm="using:XerahS.UI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
              x:Class="XerahS.UI.Onboarding.Steps.HotkeyStepView"
              x:DataType="vm:HotkeyStepViewModel">
@@ -38,17 +38,27 @@
         </StackPanel>
       </StackPanel>
 
-      <!-- Hotkey Recorder -->
+      <!-- Hotkey Selection -->
       <StackPanel Spacing="8">
         <TextBlock Text="Capture hotkey:"
                    FontSize="13"
                    FontWeight="Medium"
                    Foreground="{DynamicResource WizTextSecondary}" />
 
-        <!-- Use Value (string) binding - conversion handled in code-behind -->
-        <controls:HotkeyRecorder x:Name="PrimaryHotkeyRecorder" />
+        <ListBox ItemsSource="{Binding PrimaryHotkeys}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Padding="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="uiVm:HotkeyItemViewModel">
+              <hotkeyControls:HotkeySelectionControl Margin="0,0,0,8"
+                                                     RegisterOnCommit="False"
+                                                     HotkeyChanged="OnOnboardingHotkeyChanged" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
 
-        <TextBlock Text="Click the recorder and press your desired key combination. Press Escape to cancel."
+        <TextBlock Text="Click the hotkey button and press your preferred shortcut. Press Escape to cancel."
                    FontSize="12"
                    Foreground="{DynamicResource WizTextSecondary}"
                    TextWrapping="Wrap" />
@@ -89,83 +99,18 @@
 
         <StackPanel Spacing="12" Margin="0,12,0,0">
 
-          <!-- Region Capture -->
-          <Border Classes="WizardRadioCard"
-                  BorderBrush="{DynamicResource WizBorder}"
-                  BorderThickness="1"
-                  CornerRadius="8"
-                  Padding="12">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Region Capture"
-                           FontWeight="Medium"
-                           Foreground="{DynamicResource WizTextPrimary}" />
-                <TextBlock Text="Capture a selected region of the screen"
-                           FontSize="12"
-                           Foreground="{DynamicResource WizTextSecondary}" />
-              </StackPanel>
-              <Border Grid.Column="1"
-                      Background="{DynamicResource WizAccentSubtle}"
-                      CornerRadius="6"
-                      Padding="12,6">
-                <TextBlock Classes="WizardHotkeyDisplay"
-                           FontSize="14"
-                           Text="Ctrl + PrintScreen" />
-              </Border>
-            </Grid>
-          </Border>
-
-          <!-- Window Capture -->
-          <Border Classes="WizardRadioCard"
-                  BorderBrush="{DynamicResource WizBorder}"
-                  BorderThickness="1"
-                  CornerRadius="8"
-                  Padding="12">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Window Capture"
-                           FontWeight="Medium"
-                           Foreground="{DynamicResource WizTextPrimary}" />
-                <TextBlock Text="Capture the active window"
-                           FontSize="12"
-                           Foreground="{DynamicResource WizTextSecondary}" />
-              </StackPanel>
-              <Border Grid.Column="1"
-                      Background="{DynamicResource WizAccentSubtle}"
-                      CornerRadius="6"
-                      Padding="12,6">
-                <TextBlock Classes="WizardHotkeyDisplay"
-                           FontSize="14"
-                           Text="Alt + PrintScreen" />
-              </Border>
-            </Grid>
-          </Border>
-
-          <!-- Full Screen -->
-          <Border Classes="WizardRadioCard"
-                  BorderBrush="{DynamicResource WizBorder}"
-                  BorderThickness="1"
-                  CornerRadius="8"
-                  Padding="12">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Grid.Column="0" Spacing="2">
-                <TextBlock Text="Full Screen"
-                           FontWeight="Medium"
-                           Foreground="{DynamicResource WizTextPrimary}" />
-                <TextBlock Text="Capture the entire screen"
-                           FontSize="12"
-                           Foreground="{DynamicResource WizTextSecondary}" />
-              </StackPanel>
-              <Border Grid.Column="1"
-                      Background="{DynamicResource WizAccentSubtle}"
-                      CornerRadius="6"
-                      Padding="12,6">
-                <TextBlock Classes="WizardHotkeyDisplay"
-                           FontSize="14"
-                           Text="Shift + PrintScreen" />
-              </Border>
-            </Grid>
-          </Border>
+          <ListBox ItemsSource="{Binding SecondaryHotkeyItems}"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   Padding="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="uiVm:HotkeyItemViewModel">
+                <hotkeyControls:HotkeySelectionControl Margin="0,0,0,8"
+                                                       RegisterOnCommit="False"
+                                                       HotkeyChanged="OnOnboardingHotkeyChanged" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
 
         </StackPanel>
       </Expander>

@@ -203,6 +203,19 @@ public partial class OnboardingWizardWindow : Window
         await dialog.ShowDialog(this);
     }
 
+    private void OnOnboardingHotkeyChanged(object? sender, EventArgs e)
+    {
+        if (sender is Control { DataContext: HotkeyItemViewModel hotkeyItem })
+        {
+            hotkeyItem.Refresh();
+        }
+
+        if (ViewModel.CurrentStep is HotkeyStepViewModel hotkeyStep)
+        {
+            hotkeyStep.RefreshFromHotkeyItems();
+        }
+    }
+
     /// <summary>
     /// Shows the wizard as a modal dialog and returns the result.
     /// </summary>
