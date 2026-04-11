@@ -74,9 +74,24 @@ namespace XerahS.History
         }
 
         [JsonIgnore]
-        public bool HasEditableAnnotations =>
-            !string.IsNullOrWhiteSpace(AnnotationSidecarPath) &&
-            System.IO.File.Exists(AnnotationSidecarPath);
+        public bool HasEditableAnnotations
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(AnnotationSidecarPath) && System.IO.File.Exists(AnnotationSidecarPath))
+                    return true;
+
+                if (!string.IsNullOrWhiteSpace(FilePath))
+                {
+                    string defaultSidecar = System.IO.Path.Combine(
+                        System.IO.Path.GetDirectoryName(FilePath) ?? string.Empty,
+                        System.IO.Path.GetFileNameWithoutExtension(FilePath) + ".xera");
+                    return System.IO.File.Exists(defaultSidecar);
+                }
+
+                return false;
+            }
+        }
 
         [JsonIgnore]
         public string? TagsWindowTitle
