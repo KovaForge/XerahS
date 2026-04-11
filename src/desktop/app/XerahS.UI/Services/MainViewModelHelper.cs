@@ -193,12 +193,12 @@ public static class MainViewModelHelper
         using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
         if (annotations.Count > 0 && sourceImage != null)
         {
-            string? sidecarPath = await XeraProjectFileService.SaveAsync(path, sourceImage, annotations);
+            string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
             DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
         }
         else
         {
-            bool deleted = XeraProjectFileService.TryDeleteSidecar(path);
+            bool deleted = XannProjectFileService.TryDeleteSidecar(path);
             if (deleted)
             {
                 DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");

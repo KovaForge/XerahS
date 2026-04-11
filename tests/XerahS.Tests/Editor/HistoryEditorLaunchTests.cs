@@ -90,7 +90,7 @@ public class HistoryEditorLaunchTests
         bitmap.Erase(SKColors.Red);
         SaveBitmap(imagePath, bitmap);
 
-        string? sidecarPath = await XeraProjectFileService.SaveAsync(
+        string? sidecarPath = await XannProjectFileService.SaveAsync(
             imagePath,
             bitmap,
             new Annotation[]

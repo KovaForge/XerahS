@@ -85,7 +85,7 @@ namespace XerahS.History
                 {
                     string defaultSidecar = System.IO.Path.Combine(
                         System.IO.Path.GetDirectoryName(FilePath) ?? string.Empty,
-                        System.IO.Path.GetFileNameWithoutExtension(FilePath) + ".xera");
+                        System.IO.Path.GetFileNameWithoutExtension(FilePath) + ".xann");
                     return System.IO.File.Exists(defaultSidecar);
                 }
 

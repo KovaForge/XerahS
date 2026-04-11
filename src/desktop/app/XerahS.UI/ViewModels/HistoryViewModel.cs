@@ -368,7 +368,7 @@ namespace XerahS.UI.ViewModels
                     {
                         try
                         {
-                            var project = await XeraProjectFileService.LoadAsync(sidecarPath, item.FilePath);
+                            var project = await XannProjectFileService.LoadAsync(sidecarPath, item.FilePath);
                             if (!project.ImageHashMatches)
                             {
                                 DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Using embedded source image.");
@@ -413,7 +413,7 @@ namespace XerahS.UI.ViewModels
                 return item.AnnotationSidecarPath;
             }
 
-            string defaultSidecarPath = XeraProjectFileService.GetDefaultSidecarPath(item.FilePath);
+            string defaultSidecarPath = XannProjectFileService.GetDefaultSidecarPath(item.FilePath);
             return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
         }
 

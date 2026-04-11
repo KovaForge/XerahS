@@ -11,7 +11,7 @@
 
 ## Summary
 
-Introduce annotation preservation for saved screenshots so that annotated images can be fully re-edited later, matching Snagit's project-file workflow. When XerahS saves a capture with annotations, it will write a companion `.xera` sidecar file alongside the flat image. The sidecar must preserve both the clean editor source image and the vector annotation layer, because reopening a flattened PNG/JPEG and overlaying saved annotations would double-render every mark. Double-clicking the image in history or invoking "Edit annotations" will restore the full annotation layer instead of a blank canvas.
+Introduce annotation preservation for saved screenshots so that annotated images can be fully re-edited later, matching Snagit's project-file workflow. When XerahS saves a capture with annotations, it will write a companion `.xann` sidecar file alongside the flat image. The sidecar must preserve both the clean editor source image and the vector annotation layer, because reopening a flattened PNG/JPEG and overlaying saved annotations would double-render every mark. Double-clicking the image in history or invoking "Edit annotations" will restore the full annotation layer instead of a blank canvas.
 
 This proposal should explicitly use Avalonia 12 well instead of merely running on it. The re-edit workflow should take advantage of Avalonia 12's compiled-bindings-by-default posture, stronger dispatcher and focus APIs, Linux accessibility backend, and themeable client decorations so that the sidecar recovery flow is performant, accessible, and visually integrated with the rest of the upgraded app.
 
@@ -55,9 +55,9 @@ The hard work is mostly done, but the save/load pipeline must add a persistence 
 
 ### Annotation Storage Format
 
-**Option chosen: `.xera` sidecar file (JSON)**
+**Option chosen: `.xann` sidecar file (JSON)**
 
-| | `.xera` Sidecar | Embedded PNG tEXt | `.snagx` Container |
+| | `.xann` Sidecar | Embedded PNG tEXt | `.snagx` Container |
 |---|---|---|---|
 | Backwards compatible | Yes - no new format required | Yes - no new format required | No - new extension |
 | Standard tooling | Yes - plain JSON | No - requires PNG library | No - requires zip + custom spec |
@@ -67,14 +67,14 @@ The hard work is mostly done, but the save/load pipeline must add a persistence 
 | Easy extract/reuse | Yes - sidecar is standalone | No - requires stripping metadata | No - requires unzip |
 | **Decision** | **Yes - adopted** | Rejected | Rejected |
 
-The `.xera` file is a gzipped JSON document alongside the image:
+The `.xann` file is a gzipped JSON document alongside the image:
 
 ```
 screenshot_2026-04-09_001.png     <- rendered image (unchanged)
-screenshot_2026-04-09_001.xera    <- annotation project file (new)
+screenshot_2026-04-09_001.xann    <- annotation project file (new)
 ```
 
-**`.xera` schema (v1):**
+**`.xann` schema (v1):**
 
 ```json
 {
@@ -107,9 +107,9 @@ screenshot_2026-04-09_001.xera    <- annotation project file (new)
 }
 ```
 
-The `sourceImagePngBase64` field is the non-destructive source canvas. It is not the flattened saved PNG/JPEG; it is the editor background before annotations are composited. The `imageHash` field allows validation that the `.xera` still corresponds to the current rendered image file, but hash mismatch must degrade gracefully instead of blocking re-edit outright. `embeddedImages` stores PNG-encoded pasted/sticker images keyed by `ImageAnnotation.Id`, because those bitmaps are otherwise only present in memory or burned into the flat render.
+The `sourceImagePngBase64` field is the non-destructive source canvas. It is not the flattened saved PNG/JPEG; it is the editor background before annotations are composited. The `imageHash` field allows validation that the `.xann` still corresponds to the current rendered image file, but hash mismatch must degrade gracefully instead of blocking re-edit outright. `embeddedImages` stores PNG-encoded pasted/sticker images keyed by `ImageAnnotation.Id`, because those bitmaps are otherwise only present in memory or burned into the flat render.
 
-### Storing `.xera` Path in History
+### Storing `.xann` Path in History
 
 The existing `HistoryItem` model should expose a convenience property backed by `Tags`, not a new database column:
 
@@ -122,9 +122,9 @@ public string? AnnotationSidecarPath
 }
 ```
 
-The current SQLite history schema already persists `Tags`, so this avoids a migration for v1. When a capture is saved with annotations, `AnnotationSidecarPath` is set to the `.xera` path. When the history item is loaded and the user requests re-editing, XerahS:
+The current SQLite history schema already persists `Tags`, so this avoids a migration for v1. When a capture is saved with annotations, `AnnotationSidecarPath` is set to the `.xann` path. When the history item is loaded and the user requests re-editing, XerahS:
 1. Loads the base image
-2. If `AnnotationSidecarPath` exists and the `.xera` file is valid -> restores annotations
+2. If `AnnotationSidecarPath` exists and the `.xann` file is valid -> restores annotations
 3. If not -> opens with no annotations (degrades gracefully)
 
 ### UX - Triggering Re-Edit
@@ -136,15 +136,15 @@ Three entry points:
 | **Double-click / Enter** on history item | Opens editor with annotations restored (if sidecar exists) |
 | **Right-click -> "Edit Annotations"** context menu | Same as above |
 | **Hotkey** `Ctrl+Shift+E` on selected history item | Same as above |
-| **Drag-and-drop** `.xera` file onto editor | Opens editor with annotations restored |
+| **Drag-and-drop** `.xann` file onto editor | Opens editor with annotations restored |
 
-**Degraded mode**: If the `.xera` exists but references an image that has been moved or modified, show a dialog:
+**Degraded mode**: If the `.xann` exists but references an image that has been moved or modified, show a dialog:
 - "Annotation data found but image has changed. Load image without annotations, or reload the matching image file?"
 
 ### Backwards Compatibility
 
-- **Old captures**: No `.xera` file -> editor opens with empty annotation layer (no crash, no data loss)
-- **Non-annotated saves**: No `.xera` file is written. If a previously annotated capture is re-saved with all annotations removed, the existing sidecar is deleted and the history tag is cleared.
+- **Old captures**: No `.xann` file -> editor opens with empty annotation layer (no crash, no data loss)
+- **Non-annotated saves**: No `.xann` file is written. If a previously annotated capture is re-saved with all annotations removed, the existing sidecar is deleted and the history tag is cleared.
 - **Image-only workflows**: Users who never use the editor are unaffected
 
 ### Avalonia 12 Enablement
@@ -155,7 +155,7 @@ This feature has a direct fit with Avalonia 12's April 7, 2026 release themes an
 
 Avalonia 12 enables compiled bindings by default. All new XAML introduced by this XIP should preserve that benefit with explicit `x:DataType` usage:
 
-- history badge / indicator that a `.xera` sidecar exists
+- history badge / indicator that a `.xann` sidecar exists
 - toolbar-level `Re-edit` action
 - restored-annotations info banner
 - degraded-mode recovery dialogs
@@ -201,25 +201,25 @@ Avalonia 12 also introduces page-based navigation controls. Those are valuable f
 
 Sidecar files share the stem of the image:
 ```
-{same-stem}.xera
+{same-stem}.xann
 ```
 
-Sidecars live in the same folder as the image by default. Users may configure an alternate annotation storage root in settings (e.g., a dedicated `.xera` folder for cleaner directories).
+Sidecars live in the same folder as the image by default. Users may configure an alternate annotation storage root in settings (e.g., a dedicated `.xann` folder for cleaner directories).
 ---
 
 ## Implementation Plan
 
 ### Phase 1 - Core Serialization (MVP)
 
-**Goal**: Serialize annotations to `.xera` on save, deserialize on load.
+**Goal**: Serialize annotations to `.xann` on save, deserialize on load.
 
 | # | Deliverable | Description |
 |---|---|---|
-| 1 | `XeraProjectFile` model | Root object for gzipped `.xera` JSON, including source image PNG, flat image hash, dimensions, annotations, and embedded pasted images |
-| 2 | `XeraProjectFileService` | `SaveAsync(...)` writes atomically; `LoadAsync(...)` validates and rehydrates annotation payloads |
+| 1 | `XannProjectFile` model | Root object for gzipped `.xann` JSON, including source image PNG, flat image hash, dimensions, annotations, and embedded pasted images |
+| 2 | `XannProjectFileService` | `SaveAsync(...)` writes atomically; `LoadAsync(...)` validates and rehydrates annotation payloads |
 | 3 | Editor session result | UI service returns the flattened image, clean source image, annotation snapshot, and editor task result |
-| 4 | Save-with-annotations flow | After compositing, write/update `.xera` alongside image; skip/delete sidecar when annotation list is empty |
-| 5 | Load-with-annotations flow | Check for `.xera`, deserialize if present, restore source image and annotations to `EditorCore` |
+| 4 | Save-with-annotations flow | After compositing, write/update `.xann` alongside image; skip/delete sidecar when annotation list is empty |
+| 5 | Load-with-annotations flow | Check for `.xann`, deserialize if present, restore source image and annotations to `EditorCore` |
 | 6 | HistoryItem extension | Add `AnnotationSidecarPath` and `HasEditableAnnotations` convenience properties backed by `Tags` |
 | 7 | History re-edit command | `EditImage` in `HistoryViewModel` checks sidecar and restores annotations before opening the editor |
 | 8 | Graceful degradation | Missing/corrupt sidecar -> opens image only, with non-fatal logging or a concise dialog when history claimed annotations existed |
@@ -228,7 +228,7 @@ Sidecars live in the same folder as the image by default. Users may configure an
 
 **Implementation notes**:
 - Use `System.Text.Json` with the existing `[JsonDerivedType]` attributes on `Annotation`; annotate transient bitmap cache properties with `[JsonIgnore]`
-- Use `System.IO.Compression.GZipStream` to keep `.xera` files small
+- Use `System.IO.Compression.GZipStream` to keep `.xann` files small
 - The `imageHash` field uses SHA-256 of the image file contents at save time
 - Validate hash on load; warn or log if image was modified post-save, but still allow the embedded clean source image to restore annotations
 - v1 scope covers the ImageEditor after-capture and standalone editor save flows. Region-capture overlay annotations are a separate vector-capture problem and should not be implied until that path returns annotation objects instead of only a composited layer.
@@ -241,10 +241,10 @@ Sidecars live in the same folder as the image by default. Users may configure an
 |---|---|---|
 | 1 | Context menu entry | "Edit Annotations" on history item right-click |
 | 2 | Hotkey `Ctrl+Shift+E` | Re-edit selected history item |
-| 3 | Drag `.xera` onto editor | Accept file drop, restore annotation layer |
+| 3 | Drag `.xann` onto editor | Accept file drop, restore annotation layer |
 | 4 | "Re-edit" badge in history | Visual indicator on items with preserved annotations |
 | 5 | Settings option | Toggle annotation sidecar storage on/off |
-| 6 | Configurable sidecar root | Setting to store `.xera` files in a dedicated folder |
+| 6 | Configurable sidecar root | Setting to store `.xann` files in a dedicated folder |
 | 7 | Accessibility metadata | Automation names/landmarks for badges, banner, and recovery dialogs |
 | 8 | Focus restoration | Predictable keyboard focus for open/cancel/complete re-edit flows |
 
@@ -252,10 +252,10 @@ Sidecars live in the same folder as the image by default. Users may configure an
 
 | # | Deliverable | Description |
 |---|---|---|
-| 1 | Annotation templates | Save annotation sets as reusable `.xera` templates |
+| 1 | Annotation templates | Save annotation sets as reusable `.xann` templates |
 | 2 | Batch re-annotation | Apply same annotations to multiple images |
-| 3 | Export annotation layer | Export `.xera` without image (for overlay workflows) |
-| 4 | Import Snagit `.snag`/`.snagx` | Convert Snagit project files to `.xera` (stretch goal) |
+| 3 | Export annotation layer | Export `.xann` without image (for overlay workflows) |
+| 4 | Import Snagit `.snag`/`.snagx` | Convert Snagit project files to `.xann` (stretch goal) |
 ---
 
 ## Alternatives Considered
@@ -267,10 +267,10 @@ Store annotation JSON inside the image file's metadata chunks.
 
 ### `.snagx`-style Zip Container
 
-Bundle `image.png` + `annotations.json` inside a zip as `.xera`.  
+Bundle `image.png` + `annotations.json` inside a zip as `.xann`.
 **Rejected because**: A zip with two entries is essentially the same as sidecar files, but if the image is modified even slightly, the whole archive is suspect. Sidecar files degrade more gracefully - the image is always valid standalone.
 
-### Native `.xera` Binary Format
+### Native `.xann` Binary Format
 
 Use protobuf or MessagePack instead of JSON.  
 **Rejected because**: JSON is human-debuggable, standard tooling works, and annotation files are small enough that performance is not a concern. `System.Text.Json` is already in the codebase.
@@ -295,7 +295,7 @@ Use protobuf or MessagePack instead of JSON.
 
 ### Strengths
 
-- **Format decision is correct.** `.xera` sidecar is the right call - crash-safe, image-format-agnostic, human-readable, and easy to migrate later.
+- **Format decision is correct.** `.xann` sidecar is the right call - crash-safe, image-format-agnostic, human-readable, and easy to migrate later.
 - **Serialization path is mostly there.** `[JsonDerivedType]` discriminators on `Annotation` cover all 16 subtypes. `EditorCore.Annotations` exposes a clean `IReadOnlyList<Annotation>` for serialization.
 - **Hash validation is smart.** Checking `imageHash` on load to detect post-save image edits is a genuine safeguard most competitors skip.
 - **Graceful degradation is the right default.** No sidecar -> blank canvas, no crash. The risk of data loss is low.
@@ -308,20 +308,20 @@ Use protobuf or MessagePack instead of JSON.
 The `Annotation` class and all subtypes serialize via `[JsonDerivedType]` on `System.Text.Json`. But `HistoryItem` uses **Newtonsoft.Json** (`[JsonProperty]` attributes). This creates a mixed serialization environment. If `AnnotationSidecarPath` is added to `HistoryItem`, it will be serialized with Newtonsoft - fine for a string path. But any shared model that needs to serialize in both contexts (e.g., if `Annotation` is ever part of the history DB schema directly) will need careful handling. This is not a blocker but a **known maintenance complexity**.
 
 #### 2. `ImageAnnotation` - pasted images do not survive the composite step
-When the editor composites annotations onto the bitmap at save time, any `ImageAnnotation` (pasted image/sticker) is rasterized into the output. The pasted bitmap data is not stored in the image file - it's burned into the pixels. Loading a `.xera` for an image that had pasted content will restore the annotation object with its `ImageId` reference, but the actual bitmap data for that pasted image will be gone from the `.xera`. The `.xera` schema does not include an `embeddedImages` array. **This is a data loss risk for the most common multi-edit workflow after text annotations.**
+When the editor composites annotations onto the bitmap at save time, any `ImageAnnotation` (pasted image/sticker) is rasterized into the output. The pasted bitmap data is not stored in the image file - it's burned into the pixels. Loading a `.xann` for an image that had pasted content will restore the annotation object with its `ImageId` reference, but the actual bitmap data for that pasted image will be gone from the `.xann`. The `.xann` schema does not include an `embeddedImages` array. **This is a data loss risk for the most common multi-edit workflow after text annotations.**
 
 
-**Mitigation required:** Either (a) add an `embeddedImages` section to the `.xera` schema storing base64 pasted bitmaps, or (b) document this as a known limitation and require that pasted images be re-imported on re-edit.
+**Mitigation required:** Either (a) add an `embeddedImages` section to the `.xann` schema storing base64 pasted bitmaps, or (b) document this as a known limitation and require that pasted images be re-imported on re-edit.
 
 #### 3. Image moved/renamed after save - sidecar becomes orphaned
 The degraded mode dialog says "Load image without annotations, or reload the matching image file?" But if the image has been moved, there is no "matching image file" - the old path is dead. The dialog assumes the image still exists at some discoverable location. **Orphaned sidecar files accumulate silently.**
 
-**Mitigation required:** When loading an orphaned `.xera`, prompt the user to locate the original image file manually, then update `imagePath` in the sidecar.
+**Mitigation required:** When loading an orphaned `.xann`, prompt the user to locate the original image file manually, then update `imagePath` in the sidecar.
 
 #### 4. Re-save update cycle is undefined
-What happens when a user re-edits an annotated screenshot and saves again? Does the existing `.xera` get overwritten? Does a new one get created? Is the `imageHash` updated? There is no version field in the schema and no explicit save-cycle protocol. **After N re-edits, the user ends up with N+1 `.xera` files or undefined behavior.**
+What happens when a user re-edits an annotated screenshot and saves again? Does the existing `.xann` get overwritten? Does a new one get created? Is the `imageHash` updated? There is no version field in the schema and no explicit save-cycle protocol. **After N re-edits, the user ends up with N+1 `.xann` files or undefined behavior.**
 
-**Mitigation required:** Define the update cycle: overwrite the `.xera` on every save-with-annotations. Add a `version` field for future migration.
+**Mitigation required:** Define the update cycle: overwrite the `.xann` on every save-with-annotations. Add a `version` field for future migration.
 
 #### 5. TextAnnotation content encoding
 TextAnnotation stores text content - verify that the font, size, and rich text formatting (if any) are fully serialized by the `[JsonDerivedType]` path. FreehandAnnotation stores stroke point data - verify it doesn't exceed practical file sizes for long strokes.
@@ -333,12 +333,12 @@ Template systems, batch re-annotation, and Snagit import are all substantial fea
 
 | Edge Case | Risk | Recommendation |
 |---|---|---|
-| Image deleted, `.xera` orphaned | Silent annotation loss | Detect orphaned sidecars via hash scan on startup; surface a notification |
+| Image deleted, `.xann` orphaned | Silent annotation loss | Detect orphaned sidecars via hash scan on startup; surface a notification |
 | Image moved to new folder | Sidecar uses relative `imagePath` - may still resolve | If hash-match fails, prompt for new location |
-| Same image saved multiple times | Multiple `.xera` files accumulate | One `.xera` per save, overwrite existing |
+| Same image saved multiple times | Multiple `.xann` files accumulate | One `.xann` per save, overwrite existing |
 | User edits image externally (Photoshop, etc.) | Hash mismatch on re-edit | Degraded mode dialog is correct; clarify wording |
 | Pinned/favorite captures | User expects annotations preserved forever | Ensure `AnnotationSidecarPath` survives history DB migration |
-| Network/shared drives | `.xera` file may be inaccessible | Handle `IOException` gracefully; disable re-edit button if sidecar is unreachable |
+| Network/shared drives | `.xann` file may be inaccessible | Handle `IOException` gracefully; disable re-edit button if sidecar is unreachable |
 | Large annotated captures | SHA-256 + GZip on every save adds latency | Profile on 4K captures with 50+ annotations; async the hash computation |
 
 ### Revised Implementation Plan
@@ -348,19 +348,19 @@ Template systems, batch re-annotation, and Snagit import are all substantial fea
 | # | Missing Deliverable | Why It Matters |
 |---|---|---|
 | 8 | `ImageAnnotation` embedded bitmap handling | Data loss risk - pasted images vanish on composite |
-| 9 | Orphaned `.xera` detection + user prompt | Orphaned sidecars accumulate without recovery UX |
+| 9 | Orphaned `.xann` detection + user prompt | Orphaned sidecars accumulate without recovery UX |
 | 10 | Re-save overwrite protocol | Undefined update cycle produces unreliable sidecar state |
-| 11 | `.xera` migration path for schema `version` field | v1 writes `version: 1` with no migration story for v2 |
+| 11 | `.xann` migration path for schema `version` field | v1 writes `version: 1` with no migration story for v2 |
 
-**Phase 2 item 3 (skip empty `.xera`) should be in Phase 1**, not Phase 2 - writing empty sidecar files for every non-annotated save is a wasteful footgun.
+**Phase 2 item 3 (skip empty `.xann`) should be in Phase 1**, not Phase 2 - writing empty sidecar files for every non-annotated save is a wasteful footgun.
 
 ### Decisions for v1
 
 The critique choices are resolved for this implementation:
 
-**1. Pasted image handling**: Add `embeddedImages` to `.xera` schema. This keeps `ImageAnnotation` fully re-editable and avoids a silent data-loss class.
+**1. Pasted image handling**: Add `embeddedImages` to `.xann` schema. This keeps `ImageAnnotation` fully re-editable and avoids a silent data-loss class.
 
-**2. Sidecar storage**: Write sidecars alongside the image by default using `{same-stem}.xera`. A configurable root can be added later, but v1 should keep lookup deterministic and debuggable.
+**2. Sidecar storage**: Write sidecars alongside the image by default using `{same-stem}.xann`. A configurable root can be added later, but v1 should keep lookup deterministic and debuggable.
 
 **3. Re-edit badge**: Add a history badge/context entry in v1 because the feature is invisible without a discoverability signal. A toolbar-level re-edit action can follow after the core path is validated.
 ---
@@ -381,7 +381,7 @@ The XIP proposes a single "Toggle annotation sidecar storage on/off" in Phase 2.
 
 **Global toggle** (`Save annotations for re-editing`) belongs in **Settings -> Image**, next to existing image-quality and format controls. This is where users configure how captures are saved - it's the right mental model context. Default: **On**.
 
-**Sidecar root** (`Store .xera files in:`) is an Application-level path setting, not per-workflow. Per-workflow placement creates confusing behavior when the same image is captured via different workflows - the sidecar path should be deterministic, not workflow-dependent.
+**Sidecar root** (`Store .xann files in:`) is an Application-level path setting, not per-workflow. Per-workflow placement creates confusing behavior when the same image is captured via different workflows - the sidecar path should be deterministic, not workflow-dependent.
 
 **Per-capture override** (in the After-Capture window, when `AnnotateMedia` fires): optionally show a checkbox "Save annotations" checked by default, matching the global preference. This gives power users control without burying it in a settings pane they visit once.
 
@@ -397,7 +397,7 @@ Double-click on a history item is the right primary trigger - it matches every f
 **Problem with current XIP**: Right-click -> "Edit Annotations" is discoverable only if users already know the feature exists. A first-time user right-clicking a screenshot will scan the menu for "Edit" or "Annotate" and won't find either. The context menu is an *additional* entry point, not the primary discovery path.
 
 **What the XIP is missing**: A toolbar-level "Re-edit" button (or icon) above the history grid, visible without any interaction. This is the discoverable entry point that makes the feature visible at first glance. It should:
-- Show as enabled (with a badge) on items that have `.xera` sidecars
+- Show as enabled (with a badge) on items that have `.xann` sidecars
 - Show as disabled with a tooltip ("No annotations saved for this capture") on items without
 - Be a icon button with a tooltip label, not a text button that clutters the toolbar
 
@@ -412,11 +412,11 @@ Hiding "Edit Annotations" behind a menu that only appears when the sidecar exist
 
 ### 3. Visual Language
 
-#### `.xera` File Icon
+#### `.xann` File Icon
 
 **Recommendation: Dedicated icon - a PNG file silhouette with a layered annotation mark overlay.**
 
-Think of a document-stack icon where the top page has annotation marks (arrows, text lines) visible. This clearly separates `.xera` from plain PNG/JPG in file browsers without requiring users to understand the extension first.
+Think of a document-stack icon where the top page has annotation marks (arrows, text lines) visible. This clearly separates `.xann` from plain PNG/JPG in file browsers without requiring users to understand the extension first.
 
 Color: use the app's accent color (typically blue) for the overlay to match how XerahS brand elements appear elsewhere.
 
@@ -440,14 +440,14 @@ Additionally, consider a left-border accent (1-2px) in the app's accent color on
 
 **Recommendation: Pre-loaded annotation layer with a dismissible "Restored from saved annotations" info banner.**
 
-When re-opening a `.xera`-backed capture, the editor should:
+When re-opening a `.xann`-backed capture, the editor should:
 1. Load the base image as the canvas background (unchanged)
-2. Immediately restore all annotation objects from `.xera` into the live annotation layer
+2. Immediately restore all annotation objects from `.xann` into the live annotation layer
 3. Show a small dismissible banner above the canvas: `"Annotations restored - you're editing the saved version"` with an info icon
 
 This banner serves two purposes:
 - **Orientation**: confirms to the user that they're in re-edit mode and not starting from scratch
-- **Informs the mental model**: users know they're editing a saved project, not a flat image - their changes will overwrite the previous `.xera`
+- **Informs the mental model**: users know they're editing a saved project, not a flat image - their changes will overwrite the previous `.xann`
 
 The banner auto-dismisses after 3 seconds or on first annotation interaction. Users who frequently re-edit will learn to ignore it; users who forgot this was a re-edit will be immediately oriented.
 
@@ -464,17 +464,17 @@ Three settings are warranted:
 | Setting | Location | Default | Notes |
 |---|---|---|---|
 | `Save annotations for re-editing` | Settings -> Image | On | Master toggle. Off = behavior is identical to today (flat saves only) |
-| `.xera storage location` | Settings -> Application | Same folder as image | Option: ` Alongside image` / `Custom folder` |
-| `Default save format for annotated captures` | Settings -> Image | PNG + `.xera` | Option: `PNG + .xera` / `JPEG + .xera` / `WebP + .xera`. PNG is always recommended since JPEG recompression degrades annotation sharpness |
+| `.xann storage location` | Settings -> Application | Same folder as image | Option: ` Alongside image` / `Custom folder` |
+| `Default save format for annotated captures` | Settings -> Image | PNG + `.xann` | Option: `PNG + .xann` / `JPEG + .xann` / `WebP + .xann`. PNG is always recommended since JPEG recompression degrades annotation sharpness |
 
 The format preference setting is low priority for Phase 1 but should be in the spec so it's not forgotten. JPEG users should understand that re-compression artifacts accumulate on every save-round-trip - the XIP's hash-validation approach will surface this as a degradation warning, but a format-setting explanation tooltip can preempt confusion.
 
-**Skip**: per-workflow `.xera` toggle. Workflows are for capture/upload routing, not persistence configuration. Same image via two workflows should produce identical sidecar behavior.
+**Skip**: per-workflow `.xann` toggle. Workflows are for capture/upload routing, not persistence configuration. Same image via two workflows should produce identical sidecar behavior.
 ---
 
 ### 5. Edge Case UI
 
-#### No `.xera` Sidecar Found
+#### No `.xann` Sidecar Found
 
 **Current XIP**: "Annotations Not Available" - this is functional but cold.
 
@@ -495,7 +495,7 @@ The format preference setting is low priority for Phase 1 but should be in the s
 
 #### Orphaned Sidecar Detection
 
-**Recommendation**: On application startup, scan for `.xera` files that reference images no longer present at the stored `imagePath`. Surface a one-time notification: `"N saved annotation(s) found without matching images. Open Settings -> History to review."` This prevents silent annotation accumulation and gives users a recovery path before they notice the feature isn't working for a specific capture.
+**Recommendation**: On application startup, scan for `.xann` files that reference images no longer present at the stored `imagePath`. Surface a one-time notification: `"N saved annotation(s) found without matching images. Open Settings -> History to review."` This prevents silent annotation accumulation and gives users a recovery path before they notice the feature isn't working for a specific capture.
 
 ---
 
@@ -504,9 +504,9 @@ The format preference setting is low priority for Phase 1 but should be in the s
 | Decision | Implementation Impact |
 |---|---|
 | Global toggle in Image settings (not per-workflow) | `AnnotationSidecarPath` is written on every save where the toggle is on, regardless of workflow. No conditional logic by workflow. |
-| `Same folder` default for sidecar root | Sidecar path = `{imageDirectory}/{imageStem}.xera`. Computing this is trivial at save time. Custom root requires `AnnotationSidecarPath` to store an absolute path (not relative) or the orphaned-sidecar scanner needs a lookup table. |
-| Pre-loaded annotation layer on re-open | The `ShowEditorAsync` call in `HistoryViewModel.EditImage` must deserialize `.xera` and pass the annotation list to the editor session, not just the `SKBitmap`. The editor session must accept a pre-populated annotation layer on open. |
-| Badge on history items with sidecar | The history view needs to check for `.xera` existence at render time (or cache the check). Doing this synchronously on every bind is expensive - consider an async badge loader or a pre-computed `HasEditableAnnotations` property on `HistoryItem` refreshed on history load. |
+| `Same folder` default for sidecar root | Sidecar path = `{imageDirectory}/{imageStem}.xann`. Computing this is trivial at save time. Custom root requires `AnnotationSidecarPath` to store an absolute path (not relative) or the orphaned-sidecar scanner needs a lookup table. |
+| Pre-loaded annotation layer on re-open | The `ShowEditorAsync` call in `HistoryViewModel.EditImage` must deserialize `.xann` and pass the annotation list to the editor session, not just the `SKBitmap`. The editor session must accept a pre-populated annotation layer on open. |
+| Badge on history items with sidecar | The history view needs to check for `.xann` existence at render time (or cache the check). Doing this synchronously on every bind is expensive - consider an async badge loader or a pre-computed `HasEditableAnnotations` property on `HistoryItem` refreshed on history load. |
 | Info banner on re-edit | The editor session needs a flag/parameter indicating "this is a re-edit of a saved project" vs "new capture" vs "open from file drop". The banner shows only in re-edit mode. |
 | Format preference setting | The `SaveWithAnnotations` flow needs to consult the user's preferred annotated save format. Currently the XIP implies PNG-only (from the "rendered image unchanged" framing). This setting extends that to JPEG/WebP, which requires the same compositing pipeline but outputs to a different encoder. |
 ---

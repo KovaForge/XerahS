@@ -32,7 +32,7 @@ using XerahS.History;
 namespace XerahS.Tests.Editor;
 
 [TestFixture]
-public class XeraProjectFileServiceTests
+public class XannProjectFileServiceTests
 {
     [Test]
     public async Task SaveLoad_RoundTripsPolymorphicAnnotationsAndEmbeddedImages()
@@ -78,12 +78,12 @@ public class XeraProjectFileServiceTests
 
         try
         {
-            string? sidecarPath = await XeraProjectFileService.SaveAsync(imagePath, source, annotations);
+            string? sidecarPath = await XannProjectFileService.SaveAsync(imagePath, source, annotations);
 
             Assert.That(sidecarPath, Is.Not.Null);
             Assert.That(File.Exists(sidecarPath!), Is.True);
 
-            var loaded = await XeraProjectFileService.LoadAsync(sidecarPath!, imagePath);
+            var loaded = await XannProjectFileService.LoadAsync(sidecarPath!, imagePath);
 
             Assert.That(loaded.ImageHashMatches, Is.True);
             Assert.That(loaded.SourceImage.Width, Is.EqualTo(source.Width));
@@ -118,14 +118,14 @@ public class XeraProjectFileServiceTests
 
         try
         {
-            string? sidecarPath = await XeraProjectFileService.SaveAsync(
+            string? sidecarPath = await XannProjectFileService.SaveAsync(
                 imagePath,
                 source,
                 new Annotation[] { new RectangleAnnotation { EndPoint = new SKPoint(1, 1) } });
 
             Assert.That(File.Exists(sidecarPath!), Is.True);
 
-            string? emptySavePath = await XeraProjectFileService.SaveAsync(imagePath, source, Array.Empty<Annotation>());
+            string? emptySavePath = await XannProjectFileService.SaveAsync(imagePath, source, Array.Empty<Annotation>());
 
             Assert.That(emptySavePath, Is.Null);
             Assert.That(File.Exists(sidecarPath!), Is.False);
@@ -139,7 +139,7 @@ public class XeraProjectFileServiceTests
     [Test]
     public void HistoryItem_StoresAnnotationSidecarPath_InTags()
     {
-        string sidecarPath = Path.Combine(Path.GetTempPath(), $"xerahs-{Guid.NewGuid():N}.xera");
+        string sidecarPath = Path.Combine(Path.GetTempPath(), $"xerahs-{Guid.NewGuid():N}.xann");
         var item = new HistoryItem
         {
             AnnotationSidecarPath = sidecarPath
@@ -154,7 +154,7 @@ public class XeraProjectFileServiceTests
 
     private static string CreateTempDirectory()
     {
-        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-xera-{Guid.NewGuid():N}");
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-xann-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
         return directory;
     }

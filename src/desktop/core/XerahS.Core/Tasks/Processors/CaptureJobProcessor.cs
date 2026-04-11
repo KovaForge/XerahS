@@ -212,7 +212,7 @@ namespace XerahS.Core.Tasks.Processors
                     return null;
                 }
 
-                string? sidecarPath = await XeraProjectFileService.SaveAsync(
+                string? sidecarPath = await XannProjectFileService.SaveAsync(
                     info.FilePath,
                     editorResult.SourceImage,
                     editorResult.Annotations);
