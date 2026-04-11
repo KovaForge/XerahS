@@ -26,27 +26,9 @@ Do not use this skill to invent commit message formats, submodule version prefix
 
 ## Workflow
 
-### 1. Sync Repository State
+### 1. Inspect Status Before Sync
 
-Run from the XerahS repository root:
-
-```powershell
-git pull --recurse-submodules
-git submodule update --init --recursive
-```
-
-If the task also touches optional sibling repositories, sync only those repositories:
-
-```powershell
-git -C ../xerahs.github.io pull origin main
-git -C ../ShareX pull origin develop
-```
-
-Do not pull optional sibling repositories just because they exist.
-
-### 2. Inspect Status
-
-Check the main repo and all initialized submodules before editing or committing:
+Run from the XerahS repository root before any pull or submodule update:
 
 ```powershell
 git status --short
@@ -59,6 +41,26 @@ For optional sibling repositories involved in the task:
 git -C ../xerahs.github.io status --short
 git -C ../ShareX status --short
 ```
+
+If the main repo, submodules, or in-scope sibling repositories have local changes, do not pull over them. Commit, stash, or explicitly pause for the owner to decide. Submodule changes belong to that submodule repository.
+
+### 2. Sync Clean Repository State
+
+Run from the XerahS repository root only after the relevant repositories are clean:
+
+```powershell
+git pull --recurse-submodules
+git submodule update --init --recursive
+```
+
+If the task also touches optional sibling repositories, sync only those clean repositories:
+
+```powershell
+git -C ../xerahs.github.io pull origin main
+git -C ../ShareX pull origin develop
+```
+
+Do not pull optional sibling repositories just because they exist.
 
 If a submodule has its own changes, treat it as a separate repository. Shared-library submodule commits, such as `ShareX.ImageEditor`, must follow `git-workflow` and omit the XerahS app version prefix.
 
@@ -109,10 +111,11 @@ Summary:
 
 ## Checklist
 
+- [ ] Main repo and relevant submodule/sibling statuses inspected.
+- [ ] Local changes handled before pulling or updating submodules.
 - [ ] Main repository synced with `git pull --recurse-submodules`.
 - [ ] Submodules initialized and updated.
 - [ ] Relevant sibling repositories synced only if they are in scope.
-- [ ] Main repo and relevant submodule/sibling statuses inspected.
 - [ ] Version bump need evaluated against `Directory.Build.props` and latest tag.
 - [ ] Changelog update delegated to `update-changelog` when needed.
 - [ ] Required build run for code/config changes.
