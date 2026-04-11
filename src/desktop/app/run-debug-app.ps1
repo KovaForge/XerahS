@@ -9,7 +9,7 @@ $forwardedArgs = [System.Collections.Generic.List[string]]::new()
 $launchOnboarding = $false
 
 foreach ($arg in $RemainingArgs) {
-    if ($arg -eq "--onboarding") {
+    if ($arg -eq "--sandbox") {
         $launchOnboarding = $true
         continue
     }
