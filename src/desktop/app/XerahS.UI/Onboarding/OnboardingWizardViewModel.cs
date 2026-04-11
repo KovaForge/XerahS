@@ -79,11 +79,9 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
     private void InitializeSteps()
     {
-        Steps.Add(new WelcomeStepViewModel());
         Steps.Add(new SaveLocationStepViewModel());
         Steps.Add(new HotkeyStepViewModel());
         Steps.Add(new UploadStepViewModel());
-        Steps.Add(new OcrStepViewModel());
         Steps.Add(new CompleteStepViewModel());
 
         for (int i = 0; i < Steps.Count; i++)
@@ -241,44 +239,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     {
         try
         {
-            if (!string.IsNullOrEmpty(state.SelectedLanguage) && !state.SkippedSteps.Contains(0))
-            {
-                Dictionary<string, SupportedLanguage> languageMap = new(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "en", SupportedLanguage.English },
-                    { "es", SupportedLanguage.Spanish },
-                    { "es-mx", SupportedLanguage.MexicanSpanish },
-                    { "fr", SupportedLanguage.French },
-                    { "de", SupportedLanguage.German },
-                    { "it", SupportedLanguage.Italian },
-                    { "pt", SupportedLanguage.Portuguese },
-                    { "pt-br", SupportedLanguage.PortugueseBrazil },
-                    { "ru", SupportedLanguage.Russian },
-                    { "ja", SupportedLanguage.Japanese },
-                    { "ko", SupportedLanguage.Korean },
-                    { "zh", SupportedLanguage.SimplifiedChinese },
-                    { "zh-hans", SupportedLanguage.SimplifiedChinese },
-                    { "zh-hant", SupportedLanguage.TraditionalChinese },
-                    { "ar", SupportedLanguage.Arabic },
-                    { "nl", SupportedLanguage.Dutch },
-                    { "pl", SupportedLanguage.Polish },
-                    { "tr", SupportedLanguage.Turkish },
-                    { "he", SupportedLanguage.Hebrew },
-                    { "hu", SupportedLanguage.Hungarian },
-                    { "id", SupportedLanguage.Indonesian },
-                    { "fa", SupportedLanguage.Persian },
-                    { "ro", SupportedLanguage.Romanian },
-                    { "uk", SupportedLanguage.Ukrainian },
-                    { "vi", SupportedLanguage.Vietnamese }
-                };
-
-                if (languageMap.TryGetValue(state.SelectedLanguage, out SupportedLanguage supportedLanguage))
-                {
-                    SettingsManager.Settings.Language = supportedLanguage;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(1))
+            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(0))
             {
                 SettingsManager.Settings.CustomScreenshotsPath = state.ScreenshotsFolder;
                 SettingsManager.Settings.UseCustomScreenshotsPath = true;
@@ -286,7 +247,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting screenshots folder: {state.ScreenshotsFolder}");
             }
 
-            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(2))
+            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(1))
             {
                 WorkflowManager? workflowManager = GetWorkflowManager();
                 if (workflowManager != null)
@@ -328,18 +289,18 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                         }
                     }
 
-                    workflowManager.NotifyWorkflowsChanged();
+                    workflowManager.UpdateHotkeys(workflowManager.Workflows);
                 }
             }
 
-            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(3))
+            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(2))
             {
-                DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
-            }
+                if (!string.Equals(state.SelectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
+                {
+                    OnboardingFileUploaderHelper.EnsureFileUploaderInstance(state.SelectedUploaderId);
+                }
 
-            if (state.SelectedOcrLanguages.Count > 0 && !state.SkippedSteps.Contains(4))
-            {
-                DebugHelper.WriteLine($"[OnboardingWizard] Setting OCR languages: {string.Join(", ", state.SelectedOcrLanguages)}");
+                DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
             }
 
             SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);

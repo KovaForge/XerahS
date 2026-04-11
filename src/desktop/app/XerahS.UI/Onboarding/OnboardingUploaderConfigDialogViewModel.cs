@@ -21,39 +21,34 @@
     Optionally you can also view the license at <http://www.gnu.org/licenses/>.
 */
 
-#endregion
+#endregion License Information (GPL v3)
 
-using Avalonia.Controls;
-using XerahS.UI.Onboarding.ViewModels.Steps;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using XerahS.UI.ViewModels;
 
-namespace XerahS.UI.Onboarding.Steps;
+namespace XerahS.UI.Onboarding;
 
-/// <summary>
-/// Step 3: Hotkey Configuration view.
-/// </summary>
-public partial class HotkeyStepView : UserControl
+public partial class OnboardingUploaderConfigDialogViewModel : ViewModelBase
 {
-    public HotkeyStepView()
+    public string Title { get; }
+
+    public string Description { get; }
+
+    public object? ConfigView { get; }
+
+    public Action? CloseRequested { get; set; }
+
+    public OnboardingUploaderConfigDialogViewModel(string uploaderName, object? configView)
     {
-        InitializeComponent();
+        Title = $"Configure {uploaderName}";
+        Description = "Update the destination settings for this file uploader.";
+        ConfigView = configView;
     }
 
-    private void InitializeComponent()
+    [RelayCommand]
+    private void Close()
     {
-        Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
-    }
-
-    private void OnOnboardingHotkeyChanged(object? sender, EventArgs e)
-    {
-        if (sender is Control { DataContext: HotkeyItemViewModel hotkeyItem })
-        {
-            hotkeyItem.Refresh();
-        }
-
-        if (DataContext is HotkeyStepViewModel vm)
-        {
-            vm.RefreshFromHotkeyItems();
-        }
+        CloseRequested?.Invoke();
     }
 }

@@ -37,33 +37,6 @@
       <controls:DirectoryPicker Value="{Binding SelectedPath, Mode=TwoWay}" />
     </StackPanel>
 
-    <!-- Quick Select -->
-    <StackPanel Spacing="8" Margin="0,16,0,0">
-      <TextBlock Text="Quick select:"
-                 FontSize="12"
-                 Foreground="{DynamicResource WizTextSecondary}" />
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Classes="WizardGhostButton" Tag="Pictures" Click="OnQuickSelectClicked">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="📷" FontSize="14" VerticalAlignment="Center" />
-            <TextBlock Text="Pictures" FontSize="13" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-        <Button Classes="WizardGhostButton" Tag="Desktop" Click="OnQuickSelectClicked">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="🖥️" FontSize="14" VerticalAlignment="Center" />
-            <TextBlock Text="Desktop" FontSize="13" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-        <Button Classes="WizardGhostButton" Tag="Documents" Click="OnQuickSelectClicked">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="📄" FontSize="14" VerticalAlignment="Center" />
-            <TextBlock Text="Documents" FontSize="13" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-      </StackPanel>
-    </StackPanel>
-
     <!-- Date Subfolder -->
     <CheckBox Classes="WizardCheckBox" Content="Create subfolder with today's date"
               IsChecked="{Binding CreateDateSubfolders, Mode=TwoWay}" Margin="0,16,0,0" />
