@@ -26,10 +26,11 @@
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:UploaderOption">
           <Border Classes="WizardRadioCard" PointerPressed="OnCardPointerPressed"
+                 Tag="{Binding}"
                  Margin="0,0,0,8" Padding="16">
             <Grid ColumnDefinitions="Auto,*,Auto">
               <RadioButton Grid.Column="0" GroupName="UploadDest"
-                           IsChecked="{Binding IsSelected}"
+                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
                            VerticalAlignment="Center" Margin="0,0,12,0"
                            Tag="{Binding}" />
               <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
@@ -42,6 +43,14 @@
                            Foreground="{DynamicResource WizTextSecondary}"
                            Margin="26,0,0,0" />
               </StackPanel>
+              <Button Grid.Column="2"
+                      Content="Config..."
+                      Command="{Binding $parent[ItemsControl].DataContext.ConfigureUploaderCommand}"
+                      CommandParameter="{Binding}"
+                      Classes="WizardGhostButton"
+                      IsEnabled="{Binding IsSelected}"
+                      IsVisible="{Binding CanConfigure}"
+                      VerticalAlignment="Center" />
             </Grid>
           </Border>
         </DataTemplate>

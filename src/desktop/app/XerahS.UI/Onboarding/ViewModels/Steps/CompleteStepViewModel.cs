@@ -25,11 +25,12 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.UI.Onboarding;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
 /// <summary>
-/// Step 6: Completion and Summary
+/// Completion and Summary
 /// </summary>
 public partial class CompleteStepViewModel : StepViewModelBase
 {
@@ -67,12 +68,6 @@ public partial class CompleteStepViewModel : StepViewModelBase
 
         if (!state.SkippedSteps.Contains(0))
         {
-            parts.Add($"- Language: {state.SelectedLanguage}");
-            configuredCount++;
-        }
-
-        if (!state.SkippedSteps.Contains(1))
-        {
             parts.Add($"- Screenshots saved to: {state.ScreenshotsFolder}");
             if (state.CreateDateSubfolders)
             {
@@ -82,7 +77,7 @@ public partial class CompleteStepViewModel : StepViewModelBase
             configuredCount++;
         }
 
-        if (!state.SkippedSteps.Contains(2) && state.PrimaryCaptureHotkey != null)
+        if (!state.SkippedSteps.Contains(1) && state.PrimaryCaptureHotkey != null)
         {
             parts.Add($"- Primary hotkey: {state.PrimaryCaptureHotkey}");
             if (state.AdditionalHotkeys.Count > 0)
@@ -93,34 +88,39 @@ public partial class CompleteStepViewModel : StepViewModelBase
             configuredCount++;
         }
 
-        if (!state.SkippedSteps.Contains(3))
+        if (!state.SkippedSteps.Contains(2))
         {
-            string uploadText = state.SelectedUploaderId switch
-            {
-                "local" => "Local storage only",
-                "imgur_anon" => "Imgur (anonymous)",
-                "imgur_auth" => "Imgur (authenticated)",
-                "custom" => "Custom uploader",
-                _ => "Not configured"
-            };
+            string uploadText = GetUploadDestinationDisplayName(state.SelectedUploaderId);
             parts.Add($"- Upload destination: {uploadText}");
-            configuredCount++;
-        }
-
-        if (!state.SkippedSteps.Contains(4) && state.SelectedOcrLanguages.Count > 0)
-        {
-            string languageList = string.Join(", ", state.SelectedOcrLanguages.Take(3));
-            if (state.SelectedOcrLanguages.Count > 3)
-            {
-                languageList += $" (+{state.SelectedOcrLanguages.Count - 3} more)";
-            }
-
-            parts.Add($"- OCR languages: {languageList}");
             configuredCount++;
         }
 
         ConfiguredStepCount = configuredCount;
         SummaryText = string.Join(Environment.NewLine, parts);
+    }
+
+    private static string GetUploadDestinationDisplayName(string? selectedUploaderId)
+    {
+        if (string.IsNullOrWhiteSpace(selectedUploaderId))
+        {
+            return "Not configured";
+        }
+
+        if (string.Equals(selectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Local storage only";
+        }
+
+        try
+        {
+            return OnboardingFileUploaderHelper.GetFileUploaderProviders()
+                .FirstOrDefault(provider => string.Equals(provider.ProviderId, selectedUploaderId, StringComparison.OrdinalIgnoreCase))
+                ?.Name ?? selectedUploaderId;
+        }
+        catch
+        {
+            return selectedUploaderId;
+        }
     }
 
     [RelayCommand]

@@ -27,10 +27,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.Onboarding.ViewModels.Steps;
+using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.UI.Onboarding;
 
@@ -61,7 +64,7 @@ public partial class OnboardingWizardWindow : Window
     private void SetupStepCallbacks()
     {
         // Save location step - folder browser using Avalonia StorageProvider
-        if (ViewModel.Steps.ElementAtOrDefault(1) is SaveLocationStepViewModel saveStep)
+        if (ViewModel.Steps.ElementAtOrDefault(0) is SaveLocationStepViewModel saveStep)
         {
             saveStep.BrowseFolderCallback = async () =>
             {
@@ -79,7 +82,7 @@ public partial class OnboardingWizardWindow : Window
         }
 
         // Hotkey step - test capture
-        if (ViewModel.Steps.ElementAtOrDefault(2) is HotkeyStepViewModel hotkeyStep)
+        if (ViewModel.Steps.ElementAtOrDefault(1) is HotkeyStepViewModel hotkeyStep)
         {
             hotkeyStep.TestCaptureCallback = async () =>
             {
@@ -107,8 +110,10 @@ public partial class OnboardingWizardWindow : Window
         }
 
         // Upload step - ShareX import
-        if (ViewModel.Steps.ElementAtOrDefault(3) is UploadStepViewModel uploadStep)
+        if (ViewModel.Steps.ElementAtOrDefault(2) is UploadStepViewModel uploadStep)
         {
+            uploadStep.ConfigureUploaderCallback = ConfigureUploaderAsync;
+
             uploadStep.ImportShareXCallback = async () =>
             {
                 try
@@ -139,7 +144,7 @@ public partial class OnboardingWizardWindow : Window
         }
 
         // Complete step - take first screenshot and open settings
-        if (ViewModel.Steps.ElementAtOrDefault(5) is CompleteStepViewModel completeStep)
+        if (ViewModel.Steps.ElementAtOrDefault(3) is CompleteStepViewModel completeStep)
         {
             completeStep.TakeFirstScreenshotCallback = async () =>
             {
@@ -175,6 +180,27 @@ public partial class OnboardingWizardWindow : Window
                 }
             };
         }
+    }
+
+    private async Task ConfigureUploaderAsync(UploaderOption option)
+    {
+        UploaderInstance instance = OnboardingFileUploaderHelper.EnsureFileUploaderInstance(option.Id);
+        UploaderInstanceViewModel instanceViewModel = new(instance);
+
+        object configView = instanceViewModel.ConfigView ?? new TextBlock
+        {
+            Text = "This file uploader does not expose a configuration view.",
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        OnboardingUploaderConfigDialogViewModel dialogViewModel = new(instanceViewModel.DisplayName, configView);
+        OnboardingUploaderConfigDialog dialog = new()
+        {
+            DataContext = dialogViewModel
+        };
+
+        dialogViewModel.CloseRequested = dialog.Close;
+        await dialog.ShowDialog(this);
     }
 
     /// <summary>

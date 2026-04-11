@@ -29,45 +29,15 @@
     <vm:OnboardingWizardViewModel />
   </Design.DataContext>
 
-  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="24">
-    <Button Grid.Row="0"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            Command="{Binding SkipAllCommand}"
-            Classes="WizardGhostButton"
-            ToolTip.Tip="Skip wizard"
-            Padding="8,4"
-            Width="36"
-            Height="36">
-      <TextBlock Text="X" FontWeight="Bold" FontSize="14" />
-    </Button>
-
-    <controls:ProgressIndicator Grid.Row="1"
-                                CurrentStepIndex="{Binding CurrentStepIndex}"
-                                TotalSteps="{Binding Steps.Count}"
-                                Margin="0,0,0,16" />
-
-    <Border Grid.Row="2"
+  <Grid RowDefinitions="*,Auto,Auto" Margin="24">
+    <Border Grid.Row="0"
             Classes="section-card"
             Padding="24"
             Margin="0,0,0,16">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="16">
+          <StackPanel Spacing="16">
           <StackPanel Spacing="8">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-              <Border Width="40"
-                      Height="40"
-                      Background="{DynamicResource AccentFillColorSecondaryBrush}"
-                      CornerRadius="20"
-                      HorizontalAlignment="Left">
-                <TextBlock Text="{Binding CurrentStepDisplayIndex}"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
-              </Border>
-
               <StackPanel Spacing="2" VerticalAlignment="Center">
                 <TextBlock Text="{Binding CurrentStep.StepTitle}"
                            Classes="section-header" />
@@ -93,62 +63,8 @@
 
           <ContentControl Content="{Binding CurrentStep}">
             <ContentControl.DataTemplates>
-              <DataTemplate DataType="steps:WelcomeStepViewModel">
-                <StackPanel Spacing="16">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="Display Language"
-                               Classes="WizardSectionHeader"
-                               Margin="0" />
-                    <ComboBox ItemsSource="{Binding AvailableLanguages}"
-                              SelectedItem="{Binding SelectedLanguageOption, Mode=TwoWay}"
-                              Width="320"
-                              HorizontalAlignment="Left"
-                              Classes="WizardComboBox">
-                      <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="steps:LanguageOption">
-                          <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{Binding DisplayName}" />
-                            <TextBlock Text="-" Opacity="0.5" />
-                            <TextBlock Text="{Binding NativeName}" Opacity="0.7" />
-                          </StackPanel>
-                        </DataTemplate>
-                      </ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-
-                  <TextBlock Text="{Binding FallbackHint}"
-                             IsVisible="{Binding HasFallbackHint}"
-                             Foreground="{DynamicResource StatusWarningForegroundBrush}"
-                             FontSize="12"
-                             TextWrapping="Wrap" />
-                </StackPanel>
-              </DataTemplate>
-
               <DataTemplate DataType="steps:SaveLocationStepViewModel">
                 <StackPanel Spacing="16">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="Quick Select"
-                               Classes="WizardSectionHeader"
-                               Margin="0" />
-                    <WrapPanel>
-                      <Button Content="Pictures / Screenshots"
-                              Command="{Binding SelectPresetCommand}"
-                              CommandParameter="{Binding PicturesPreset}"
-                              Classes="WizardGhostButton"
-                              Margin="0,0,8,8" />
-                      <Button Content="Desktop"
-                              Command="{Binding SelectPresetCommand}"
-                              CommandParameter="{Binding DesktopPreset}"
-                              Classes="WizardGhostButton"
-                              Margin="0,0,8,8" />
-                      <Button Content="Documents"
-                              Command="{Binding SelectPresetCommand}"
-                              CommandParameter="{Binding DocumentsPreset}"
-                              Classes="WizardGhostButton"
-                              Margin="0,0,8,8" />
-                    </WrapPanel>
-                  </StackPanel>
-
                   <StackPanel Spacing="6">
                     <TextBlock Text="Folder Path"
                                Classes="WizardSectionHeader"
@@ -249,14 +165,25 @@
                           <Border Classes="WizardRadioCard"
                                   Margin="0,4"
                                   Padding="12">
-                            <RadioButton GroupName="UploaderSelection"
-                                         IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                         HorizontalAlignment="Stretch">
-                              <StackPanel Spacing="4">
-                                <TextBlock Text="{Binding Name}" FontWeight="Medium" />
-                                <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.7" />
-                              </StackPanel>
-                            </RadioButton>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                              <RadioButton Grid.Column="0"
+                                           GroupName="UploaderSelection"
+                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                           HorizontalAlignment="Stretch">
+                                <StackPanel Spacing="4">
+                                  <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                                  <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+                                </StackPanel>
+                              </RadioButton>
+                              <Button Grid.Column="1"
+                                      Content="Config..."
+                                      Command="{Binding $parent[ItemsControl].DataContext.ConfigureUploaderCommand}"
+                                      CommandParameter="{Binding}"
+                                      Classes="WizardGhostButton"
+                                      IsEnabled="{Binding IsSelected}"
+                                      IsVisible="{Binding CanConfigure}"
+                                      VerticalAlignment="Center" />
+                            </Grid>
                           </Border>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
@@ -289,51 +216,6 @@
                                  Height="8"
                                  VerticalAlignment="Center" />
                   </StackPanel>
-                </StackPanel>
-              </DataTemplate>
-
-              <DataTemplate DataType="steps:OcrStepViewModel">
-                <StackPanel Spacing="16">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="Select Languages for OCR"
-                               Classes="WizardSectionHeader"
-                               Margin="0" />
-                    <ItemsControl ItemsSource="{Binding AvailableLanguages}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <WrapPanel />
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="steps:OcrLanguageOption">
-                          <ToggleButton IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                        Classes="WizardLanguageChip"
-                                        Margin="4">
-                            <StackPanel Spacing="2">
-                              <TextBlock Text="{Binding DisplayName}"
-                                         HorizontalAlignment="Center" />
-                              <TextBlock Text="{Binding DownloadSizeMb, StringFormat={}{0} MB}"
-                                         FontSize="11"
-                                         Opacity="0.7"
-                                         HorizontalAlignment="Center" />
-                            </StackPanel>
-                          </ToggleButton>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-
-                  <Border Classes="status-warning"
-                          Padding="12"
-                          IsVisible="{Binding ExceedsRecommendedSize}">
-                    <TextBlock Text="{Binding TotalDownloadSizeMb, StringFormat='Selected languages will require approximately {0} MB of downloads.'}"
-                               Foreground="{DynamicResource StatusWarningForegroundBrush}"
-                               TextWrapping="Wrap" />
-                  </Border>
-
-                  <CheckBox Content="Download language data in the background"
-                            IsChecked="{Binding DownloadInBackground, Mode=TwoWay}"
-                            Classes="WizardCheckBox" />
                 </StackPanel>
               </DataTemplate>
 
@@ -384,7 +266,7 @@
       </ScrollViewer>
     </Border>
 
-    <Button Grid.Row="3"
+    <Button Grid.Row="1"
             Content="Skip this step"
             Command="{Binding SkipCommand}"
             IsVisible="{Binding CurrentStep.CanSkip}"
@@ -392,7 +274,7 @@
             HorizontalAlignment="Left"
             Margin="0,0,0,8" />
 
-    <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto,Auto">
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto">
       <Button Grid.Column="0"
               Content="Back"
               Command="{Binding BackCommand}"

@@ -26,6 +26,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Common;
+using XerahS.UI.Onboarding;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
@@ -39,17 +41,19 @@ public partial class UploaderOption : ObservableObject
     public string Description { get; }
     public string Icon { get; }
     public bool RequiresAuth { get; }
+    public bool CanConfigure { get; }
 
     [ObservableProperty]
     private bool _isSelected;
 
-    public UploaderOption(string id, string name, string description, string icon, bool requiresAuth)
+    public UploaderOption(string id, string name, string description, string icon, bool requiresAuth, bool canConfigure)
     {
         Id = id;
         Name = name;
         Description = description;
         Icon = icon;
         RequiresAuth = requiresAuth;
+        CanConfigure = canConfigure;
     }
 }
 
@@ -86,6 +90,8 @@ public partial class UploadStepViewModel : StepViewModelBase
     /// </summary>
     public Func<Task<bool>>? ImportShareXCallback { get; set; }
 
+    public Func<UploaderOption, Task>? ConfigureUploaderCallback { get; set; }
+
     public UploadStepViewModel()
     {
         StepTitle = "Upload Settings";
@@ -105,35 +111,26 @@ public partial class UploadStepViewModel : StepViewModelBase
             "Local only",
             "Screenshots are saved to your computer only.",
             "LOCAL",
+            false,
             false));
 
-        RegisterOption(new UploaderOption(
-            "imgur_anon",
-            "Imgur (anonymous)",
-            "Upload to Imgur without authentication.",
-            "IMG",
-            false));
-
-        RegisterOption(new UploaderOption(
-            "imgur_auth",
-            "Imgur (authenticated)",
-            "Upload to your Imgur account.",
-            "AUTH",
-            true));
-
-        RegisterOption(new UploaderOption(
-            "custom",
-            "Custom uploader",
-            "Configure your own upload destination later in Settings.",
-            "CFG",
-            false));
-
-        RegisterOption(new UploaderOption(
-            "more",
-            "More options",
-            "Explore additional upload destinations after setup.",
-            "MORE",
-            false));
+        try
+        {
+            foreach (var provider in OnboardingFileUploaderHelper.GetFileUploaderProviders())
+            {
+                RegisterOption(new UploaderOption(
+                    provider.ProviderId,
+                    provider.Name,
+                    provider.Description,
+                    provider.ProviderId,
+                    true,
+                    true));
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Onboarding] Failed to load file uploader providers");
+        }
 
         SelectedUploaderId = "local";
     }
@@ -170,13 +167,7 @@ public partial class UploadStepViewModel : StepViewModelBase
         {
             await Task.Delay(1000);
 
-            TestResult = SelectedUploaderId switch
-            {
-                "imgur_anon" => "Connection successful. Imgur anonymous upload is ready.",
-                "imgur_auth" => "Authentication will be requested the first time you upload.",
-                "custom" => "Custom uploaders can be configured in Settings after setup.",
-                _ => "Additional uploaders are available in Settings."
-            };
+            TestResult = "Use Config... to update this file uploader's credentials and destination settings.";
             IsTestSuccessful = true;
         }
         catch (Exception ex)
@@ -207,6 +198,29 @@ public partial class UploadStepViewModel : StepViewModelBase
         else
         {
             TestResult = "Failed to import ShareX configuration.";
+            IsTestSuccessful = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ConfigureUploaderAsync(UploaderOption? option)
+    {
+        if (option == null || !option.CanConfigure || ConfigureUploaderCallback == null)
+        {
+            return;
+        }
+
+        SelectedUploaderId = option.Id;
+
+        try
+        {
+            await ConfigureUploaderCallback(option);
+            TestResult = $"{option.Name} configuration updated.";
+            IsTestSuccessful = true;
+        }
+        catch (Exception ex)
+        {
+            TestResult = $"Failed to configure {option.Name}: {ex.Message}";
             IsTestSuccessful = false;
         }
     }
