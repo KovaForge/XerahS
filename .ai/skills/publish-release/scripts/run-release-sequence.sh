@@ -34,7 +34,7 @@ require_cmd() {
 }
 
 run_maintenance_chores() {
-  echo "Step 1: running maintenance chores..."
+  echo "Step 1: running maintenance prep..."
   echo "  - git pull --recurse-submodules"
   git pull --recurse-submodules
   echo "  - git submodule update --init --recursive"

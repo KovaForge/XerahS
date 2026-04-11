@@ -1,6 +1,6 @@
 ﻿---
 name: publish-release
-description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
+description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -8,7 +8,7 @@ description: "Orchestrate XerahS release flow in strict order: run-maintenance f
 ## Overview
 
 Use this skill to run release steps in strict order:
-- Step 1: Execute maintenance chores first (`git pull --recurse-submodules` and `git submodule update --init --recursive`)
+- Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`)
 - Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional if no `CHANGELOG.md` exists)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
