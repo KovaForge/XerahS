@@ -1,6 +1,6 @@
 ---
-name: Changelog Management
-description: Rules and workflows for updating CHANGELOG.md, including version grouping, consolidation, and commit handling.
+name: update-changelog
+description: Rules and workflows for updating docs/CHANGELOG.md, including version grouping, consolidation, and commit-entry attribution.
 ---
 
 ## Automation Script (Recommended)
@@ -62,7 +62,7 @@ Notes:
 - Keep different components separate unless they are part of one coherent user-facing change.
 - Keep commits with external contributor attribution separate when merging would obscure credit.
 
-## Commit Handling
+## Commit Entry Handling
 
 ### Specific Commit Assignment
 - Respect specific user requests to assign certain commits to specific versions.
@@ -77,12 +77,16 @@ Notes:
 
 ### Categorization
 Group changes within each version using standard categories:
-- **Feature**: New functionality.
-- **Fix**: Bug fixes.
+- **Features**: New functionality.
+- **Fixes**: Bug fixes.
 - **Refactor**: Code improvements without external behavior change.
 - **Build**: Build system, dependencies, and packaging.
-- **Core**: Core foundation changes.
-- **Infrastructure**: Repo, git, or workflow changes.
+- **Documentation**: User, developer, proposal, and release documentation.
+- **Testing**: Test coverage and test infrastructure.
+- **Performance**: Performance improvements.
+- **Changed**: Fallback for changes that do not map cleanly to the categories above.
+
+The helper script maps infrastructure and chore-style commit types into **Build** unless the commit subject carries a clearer component/category signal.
 
 ### Entry Consolidation to Reduce Line Count
 **CRITICAL**: Consolidate related commits into single entries to keep the changelog concise and readable.
@@ -183,7 +187,7 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    - Historical reconstruction: preserve stable release boundaries, but fold patch/prerelease fragments into the stable heading unless a patch release was intentionally standalone.
 
 5. **Categorize Commits**
-   - Group commits into: Features, Fixes, Refactor, Build, Documentation
+   - Group commits into: Features, Fixes, Refactor, Build, Documentation, Testing, Performance, Changed
    - Within each category, group by component (e.g., Mobile, Linux Capture, Editor)
 
 6. **Consolidate Related Entries**
