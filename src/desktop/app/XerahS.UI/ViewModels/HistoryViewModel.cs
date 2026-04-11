@@ -38,6 +38,7 @@ using XerahS.Media;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 using XerahS.UI.Services;
+using ShareX.ImageEditor.Core.Persistence;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -344,23 +345,165 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task EditImage(HistoryItem? item)
         {
+            await OpenImageInEditorAsync(item, preferAnnotations: true);
+        }
+
+        [RelayCommand]
+        private async Task EditAnnotations(HistoryItem? item)
+        {
+            await OpenImageInEditorAsync(item, preferAnnotations: true);
+        }
+
+        private async Task OpenImageInEditorAsync(HistoryItem? item, bool preferAnnotations)
+        {
             if (item == null || string.IsNullOrEmpty(item.FilePath)) return;
             if (!File.Exists(item.FilePath)) return;
 
             try
             {
+                DateTime originalLastWriteTimeUtc = File.GetLastWriteTimeUtc(item.FilePath);
+
+                if (preferAnnotations)
+                {
+                    string? sidecarPath = ResolveAnnotationSidecarPath(item);
+                    if (!string.IsNullOrWhiteSpace(sidecarPath))
+                    {
+                        try
+                        {
+                            var project = await XannProjectFileService.LoadAsync(sidecarPath, item.FilePath);
+                            if (!project.ImageHashMatches)
+                            {
+                                DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Using embedded source image.");
+                            }
+
+                            var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
+                                project.SourceImage,
+                                item.FilePath,
+                                annotations: project.Project.Annotations,
+                                restoredAnnotations: true);
+                            sessionResult?.RenderedImage.Dispose();
+                            sessionResult?.SourceImage?.Dispose();
+                            await RefreshHistoryItemAfterEditorSessionAsync(item, originalLastWriteTimeUtc);
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.WriteLine($"Failed to load annotation sidecar '{sidecarPath}': {ex.Message}");
+                            DebugHelper.WriteException(ex);
+                        }
+                    }
+                }
+
                 // Load the image from file directly as SKBitmap
                 using var fs = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read);
                 var skBitmap = SKBitmap.Decode(fs);
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
-                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
+                var rendered = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
+                rendered?.Dispose();
+                await RefreshHistoryItemAfterEditorSessionAsync(item, originalLastWriteTimeUtc);
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to open image in editor: {ex.Message}");
             }
+        }
+
+        private static string? ResolveAnnotationSidecarPath(HistoryItem item)
+        {
+            if (!string.IsNullOrWhiteSpace(item.AnnotationSidecarPath) && File.Exists(item.AnnotationSidecarPath))
+            {
+                return item.AnnotationSidecarPath;
+            }
+
+            string defaultSidecarPath = XannProjectFileService.GetDefaultSidecarPath(item.FilePath);
+            return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
+        }
+
+        private async Task RefreshHistoryItemAfterEditorSessionAsync(HistoryItem item, DateTime originalLastWriteTimeUtc)
+        {
+            if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+            {
+                return;
+            }
+
+            bool imageFileChanged = File.GetLastWriteTimeUtc(item.FilePath) > originalLastWriteTimeUtc;
+            bool sidecarPathChanged = SynchronizeAnnotationSidecarPath(item);
+
+            if (!imageFileChanged && !sidecarPathChanged)
+            {
+                return;
+            }
+
+            if (item.Id > 0)
+            {
+                await Task.Run(() => _historyManager.Edit(item));
+            }
+
+            int index = HistoryItems.IndexOf(item);
+            if (index < 0)
+            {
+                return;
+            }
+
+            bool wasSelected = SelectedHistoryItems.Contains(item);
+            var refreshedItem = CloneHistoryItem(item);
+            HistoryItems[index] = refreshedItem;
+
+            if (wasSelected)
+            {
+                SelectedHistoryItems.Remove(item);
+                SelectedHistoryItems.Add(refreshedItem);
+                NotifySelectionStateChanged();
+            }
+        }
+
+        private static bool SynchronizeAnnotationSidecarPath(HistoryItem item)
+        {
+            string? originalSidecarPath = item.AnnotationSidecarPath;
+            string? refreshedSidecarPath = null;
+
+            if (!string.IsNullOrWhiteSpace(originalSidecarPath) && File.Exists(originalSidecarPath))
+            {
+                refreshedSidecarPath = originalSidecarPath;
+            }
+            else if (!string.IsNullOrWhiteSpace(item.FilePath))
+            {
+                string defaultSidecarPath = XannProjectFileService.GetDefaultSidecarPath(item.FilePath);
+                if (File.Exists(defaultSidecarPath))
+                {
+                    refreshedSidecarPath = defaultSidecarPath;
+                }
+            }
+
+            if (string.Equals(originalSidecarPath, refreshedSidecarPath, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            item.AnnotationSidecarPath = refreshedSidecarPath;
+            return true;
+        }
+
+        private static HistoryItem CloneHistoryItem(HistoryItem item)
+        {
+            return new HistoryItem
+            {
+                Id = item.Id,
+                FileName = item.FileName,
+                FilePath = item.FilePath,
+                DateTime = item.DateTime,
+                Type = item.Type,
+                Host = item.Host,
+                URL = item.URL,
+                ThumbnailURL = item.ThumbnailURL,
+                DeletionURL = item.DeletionURL,
+                ShortenedURL = item.ShortenedURL,
+                Tags = item.Tags != null
+                    ? new Dictionary<string, string?>(item.Tags, StringComparer.Ordinal)
+                    : new Dictionary<string, string?>()
+            };
         }
 
         [RelayCommand]

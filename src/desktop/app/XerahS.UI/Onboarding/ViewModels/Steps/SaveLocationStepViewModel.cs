@@ -26,7 +26,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using XerahS.Common;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
@@ -55,10 +54,18 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
     public ObservableCollection<PathPreset> QuickSelectPaths { get; } = new();
 
     public string PathPreview => string.IsNullOrEmpty(SelectedPath)
-        ? ""
-        : System.IO.Path.Combine(SelectedPath, DateTime.Now.ToString("yyyy-MM-dd"));
+        ? string.Empty
+        : CreateDateSubfolders
+            ? Path.Combine(SelectedPath, DateTime.Now.ToString("yyyy-MM-dd"))
+            : SelectedPath;
 
     public bool HasPathPreview => !string.IsNullOrEmpty(PathPreview);
+
+    public PathPreset? PicturesPreset => QuickSelectPaths.ElementAtOrDefault(0);
+
+    public PathPreset? DesktopPreset => QuickSelectPaths.ElementAtOrDefault(1);
+
+    public PathPreset? DocumentsPreset => QuickSelectPaths.ElementAtOrDefault(2);
 
     public SaveLocationStepViewModel()
     {
@@ -73,37 +80,36 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
 
     private void InitializeQuickSelectPaths()
     {
-        var picturesPath = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string picturesPath = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-        QuickSelectPaths.Add(new PathPreset("Pictures / Screenshots", System.IO.Path.Combine(picturesPath, "Screenshots"), "📷"));
-        QuickSelectPaths.Add(new PathPreset("Desktop", desktopPath, "🖥️"));
-        QuickSelectPaths.Add(new PathPreset("Documents", documentsPath, "📄"));
+        QuickSelectPaths.Add(new PathPreset("Pictures / Screenshots", Path.Combine(picturesPath, "Screenshots"), "folder"));
+        QuickSelectPaths.Add(new PathPreset("Desktop", desktopPath, "desktop"));
+        QuickSelectPaths.Add(new PathPreset("Documents", documentsPath, "document"));
     }
 
     private void SetDefaultPath()
     {
-        var defaultPath = System.IO.Path.Combine(
+        SelectedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
             "Screenshots");
-        SelectedPath = defaultPath;
         _ = TestPathAsync();
     }
 
     [RelayCommand]
     private async Task BrowseAsync()
     {
-        // This will be implemented with Avalonia's StorageProvider
-        // For now, we use a callback that the View will set
-        if (BrowseFolderCallback != null)
+        if (BrowseFolderCallback == null)
         {
-            var result = await BrowseFolderCallback();
-            if (!string.IsNullOrEmpty(result))
-            {
-                SelectedPath = result;
-                await TestPathAsync();
-            }
+            return;
+        }
+
+        string? result = await BrowseFolderCallback();
+        if (!string.IsNullOrEmpty(result))
+        {
+            SelectedPath = result;
+            await TestPathAsync();
         }
     }
 
@@ -114,16 +120,16 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
 
     public async Task<bool> TestPathAsync()
     {
-        if (string.IsNullOrEmpty(SelectedPath))
+        if (string.IsNullOrWhiteSpace(SelectedPath))
         {
             IsPathWritable = false;
             PathError = "Please select a folder path.";
+            SetValidationState(false, PathError);
             return false;
         }
 
         try
         {
-            // Check if directory exists or can be created
             if (!Directory.Exists(SelectedPath))
             {
                 try
@@ -134,24 +140,26 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
                 {
                     IsPathWritable = false;
                     PathError = $"Cannot create directory: {ex.Message}";
+                    SetValidationState(false, PathError);
                     return false;
                 }
             }
 
-            // Test write permissions by creating a temporary file
-            var testFile = System.IO.Path.Combine(SelectedPath, $".xerahs_test_{Guid.NewGuid()}.tmp");
+            string testFile = Path.Combine(SelectedPath, $".xerahs_test_{Guid.NewGuid():N}.tmp");
             try
             {
                 await File.WriteAllTextAsync(testFile, "test");
                 File.Delete(testFile);
                 IsPathWritable = true;
                 PathError = null;
+                SetValidationState(true);
                 return true;
             }
             catch (Exception ex)
             {
                 IsPathWritable = false;
                 PathError = $"Directory is not writable: {ex.Message}";
+                SetValidationState(false, PathError);
                 return false;
             }
         }
@@ -159,6 +167,7 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
         {
             IsPathWritable = false;
             PathError = $"Error testing path: {ex.Message}";
+            SetValidationState(false, PathError);
             return false;
         }
     }
@@ -172,7 +181,11 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
 
     public override void LoadFromState(OnboardingState state)
     {
-        SelectedPath = state.ScreenshotsFolder;
+        if (!string.IsNullOrWhiteSpace(state.ScreenshotsFolder))
+        {
+            SelectedPath = state.ScreenshotsFolder;
+        }
+
         CreateDateSubfolders = state.CreateDateSubfolders;
         _ = TestPathAsync();
     }
@@ -185,11 +198,21 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
 
     public override bool Validate()
     {
-        return !string.IsNullOrEmpty(SelectedPath) && IsPathWritable;
+        bool isValid = !string.IsNullOrWhiteSpace(SelectedPath) && IsPathWritable;
+        SetValidationState(isValid, isValid ? null : PathError ?? "Select a writable folder.");
+        return isValid;
     }
 
     partial void OnSelectedPathChanged(string value)
     {
+        OnPropertyChanged(nameof(PathPreview));
+        OnPropertyChanged(nameof(HasPathPreview));
         _ = TestPathAsync();
+    }
+
+    partial void OnCreateDateSubfoldersChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PathPreview));
+        OnPropertyChanged(nameof(HasPathPreview));
     }
 }

@@ -311,21 +311,14 @@ public partial class App : Application
                 var mainWindow = desktop.MainWindow;
                 if (mainWindow != null)
                 {
-                    try
+                    EventHandler? showOnboarding = null;
+                    showOnboarding = async (_, _) =>
                     {
-                        var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
-                        var result = wizard.ShowDialogAsync(mainWindow).Result;
+                        mainWindow.Opened -= showOnboarding;
+                        await ShowOnboardingWizardAsync(mainWindow);
+                    };
 
-                        if (result.Completed || result.Skipped)
-                        {
-                            DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
-                            SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
-                    }
+                    mainWindow.Opened += showOnboarding;
                 }
             }
 
@@ -337,6 +330,25 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task ShowOnboardingWizardAsync(Window owner)
+    {
+        try
+        {
+            var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
+            var result = await wizard.ShowDialogAsync(owner);
+
+            if (result.Completed || result.Skipped)
+            {
+                DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
+        }
     }
 
     /// <summary>

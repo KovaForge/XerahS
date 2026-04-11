@@ -1,6 +1,6 @@
 # XIP0023 Annotation Toolbar Refactor for Overlay Support
 
-XIP0023: XIP-0023: Annotation Toolbar Refactor for Overlay Support
+XIP0023: XIP0023: Annotation Toolbar Refactor for Overlay Support
 
 
 ## Summary
@@ -110,7 +110,7 @@ The `AnnotationToolbar` will be placed in the `OverlayWindow`.
 
 # XIP0023 Annotation Toolbar Refactor for Overlay Support
 
-XIP0023: XIP-0023: Annotation Toolbar Refactor for Overlay Support
+XIP0023: XIP0023: Annotation Toolbar Refactor for Overlay Support
 
 
 ## Summary
@@ -216,7 +216,7 @@ The `AnnotationToolbar` will be placed in the `OverlayWindow`.
 
 ## Legacy content from `XIP0023_Annotation_Toolbar_Refactor.md`
 
-# XIP-0023: Annotation Toolbar Refactor for Overlay Support
+# XIP0023: Annotation Toolbar Refactor for Overlay Support
 
 ## Summary
 Refactor the existing Annotation Toolbar from `EditorView.axaml` into two reusable controls: `AnnotationToolbar` (for standard annotations) and `EditorToolsPanel` (for Editor-specific tools). This separation allows the `AnnotationToolbar` to be used in the Region Capture Overlay, enabling users to annotate the screen directly during capture.

@@ -22,33 +22,25 @@
           Padding="16,0"
           Cursor="Hand">
     <Grid ColumnDefinitions="*,Auto">
-
-      <!-- Content: idle, recording, or recorded state -->
       <StackPanel Grid.Column="0"
                   Orientation="Horizontal"
                   VerticalAlignment="Center"
                   Spacing="8">
-
-        <!-- Idle: placeholder -->
         <TextBlock x:Name="PlaceholderText"
                    Text="Click to record hotkey..."
                    FontSize="14"
-                   Foreground="{DynamicResource WizTextSecondary}"
-                   IsVisible="{Binding !Value, RelativeSource={RelativeSource AncestorType=local:HotkeyRecorder}}" />
+                   Foreground="{DynamicResource WizTextSecondary}" />
 
-        <!-- Recording: pulse indicator (shown via code-behind class toggle) -->
-
-        <!-- Recorded: key combo display -->
         <TextBlock x:Name="RecordedText"
                    Classes="WizardHotkeyDisplay"
                    IsVisible="False" />
       </StackPanel>
 
-      <!-- Clear button (only when recorded) -->
       <Button x:Name="ClearButton"
-              Content="✕"
+              Content="X"
               Classes="WizardGhostButton"
-              Width="32" Height="32"
+              Width="32"
+              Height="32"
               Padding="0"
               VerticalAlignment="Center"
               HorizontalContentAlignment="Center"

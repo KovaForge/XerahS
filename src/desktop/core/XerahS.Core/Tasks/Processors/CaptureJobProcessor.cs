@@ -28,6 +28,8 @@ using XerahS.History;
 using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
+using ShareX.ImageEditor.Hosting;
+using ShareX.ImageEditor.Core.Persistence;
 
 namespace XerahS.Core.Tasks.Processors
 {
@@ -45,6 +47,9 @@ namespace XerahS.Core.Tasks.Processors
             DebugHelper.WriteLine(
                 $"AfterCaptureJob={settings.AfterCaptureJob}, " +
                 $"UploadImageToHost={settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.UploadImageToHost)}");
+            ImageEditorSessionResult? editorResult = null;
+            string? annotationSidecarPath = null;
+            bool annotationSidecarSaveAttempted = false;
 
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow))
             {
@@ -103,14 +108,14 @@ namespace XerahS.Core.Tasks.Processors
             {
                 if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
-                    var editedImage = await PlatformServices.UI.ShowEditorAsync(info.Metadata.Image, taskMode: true);
-                    if (editedImage != null)
+                    editorResult = await PlatformServices.UI.ShowEditorSessionAsync(info.Metadata.Image, taskMode: true);
+                    if (editorResult?.RenderedImage != null)
                     {
-                        if (info.Metadata.Image != editedImage)
+                        if (info.Metadata.Image != editorResult.RenderedImage)
                         {
                             info.Metadata.Image.Dispose();
                         }
-                        info.Metadata.Image = editedImage;
+                        info.Metadata.Image = editorResult.RenderedImage;
                     }
                 }
             }
@@ -118,6 +123,8 @@ namespace XerahS.Core.Tasks.Processors
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SaveImageToFile))
             {
                 await SaveImageToFileAsync(info);
+                annotationSidecarPath = await SaveAnnotationSidecarAsync(info, editorResult);
+                annotationSidecarSaveAttempted = true;
             }
 
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyImageToClipboard))
@@ -132,15 +139,25 @@ namespace XerahS.Core.Tasks.Processors
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.UploadImageToHost))
             {
                 await UploadImageAsync(info);
+                if (!annotationSidecarSaveAttempted)
+                {
+                    annotationSidecarPath = await SaveAnnotationSidecarAsync(info, editorResult);
+                    annotationSidecarSaveAttempted = true;
+                }
             }
             else
             {
                 DebugHelper.WriteLine("UploadImageToHost flag not set; skipping upload.");
             }
 
-            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
+if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
             {
                 await PerformOCRAsync(info);
+            }
+            if (!annotationSidecarSaveAttempted)
+            {
+                editorResult?.SourceImage?.Dispose();
+            }
             }
 
             // TODO: Add other tasks
@@ -168,6 +185,7 @@ namespace XerahS.Core.Tasks.Processors
                         Type = "Image",
                         URL = info.Metadata?.UploadURL ?? string.Empty
                     };
+                    historyItem.AnnotationSidecarPath = annotationSidecarPath;
 
                     historyManager.AppendHistoryItem(historyItem);
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
@@ -181,6 +199,41 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             return true;
+        }
+
+        private static async Task<string?> SaveAnnotationSidecarAsync(TaskInfo info, ImageEditorSessionResult? editorResult)
+        {
+            if (editorResult == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(info.FilePath) ||
+                    editorResult.Annotations.Count == 0 ||
+                    editorResult.SourceImage == null)
+                {
+                    return null;
+                }
+
+                string? sidecarPath = await XannProjectFileService.SaveAsync(
+                    info.FilePath,
+                    editorResult.SourceImage,
+                    editorResult.Annotations);
+                DebugHelper.WriteLine($"Annotation sidecar saved: {sidecarPath}");
+                return sidecarPath;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Failed to save annotation sidecar: {ex.Message}");
+                DebugHelper.WriteException(ex);
+                return null;
+            }
+            finally
+            {
+                editorResult.SourceImage?.Dispose();
+            }
         }
 
         private async Task SaveImageToFileAsync(TaskInfo info)

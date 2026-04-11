@@ -1,4 +1,4 @@
-# XIP-0069 AfterCapture OCR Integration
+# XIP0069 AfterCapture OCR Integration
 
 ## Summary
 

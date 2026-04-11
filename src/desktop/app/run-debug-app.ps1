@@ -9,7 +9,7 @@ $forwardedArgs = [System.Collections.Generic.List[string]]::new()
 $launchOnboarding = $false
 
 foreach ($arg in $RemainingArgs) {
-    if ($arg -eq "--onboarding") {
+    if ($arg -eq "--sandbox") {
         $launchOnboarding = $true
         continue
     }
@@ -51,5 +51,5 @@ if ($launchOnboarding) {
     $forwardedArgs.Add($onboardingProfile)
 }
 
-& $dotnet run --project $project -c Debug @forwardedArgs
+& $dotnet run --project $project -c Debug -- @forwardedArgs
 exit $LASTEXITCODE
