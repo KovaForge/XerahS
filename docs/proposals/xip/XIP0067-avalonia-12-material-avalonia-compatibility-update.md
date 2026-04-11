@@ -29,14 +29,37 @@ But the real goal is to ensure that Material-themed surfaces in XerahS:
 
 ---
 
+## Research Update - 2026-04-12
+
+Online research against the official Avalonia 12 release post and breaking-change guide adds these Material-specific implications:
+
+- validation is now handled at the base `Control` level, and validation automation exposure matters on Linux as well as Windows.
+- `Window.WindowState` is now a direct property, so Material theme dictionaries must not set it through styles.
+- themeable client window decorations replaced older title-bar plumbing; Material windows should not depend on removed `TitleBar`, `CaptionButtons`, `ChromeOverlayLayer`, or `ExtendClientAreaChromeHints` APIs.
+- focus event args and focus traversal APIs changed; Material dialogs and flyouts need runtime keyboard testing, not just XAML load testing.
+- invisible controls no longer tick style-triggered animations by default; custom Material ripple, progress, flyout, and transition behavior should be checked for deliberate hidden-state behavior.
+- the AvaloniaCommunity `Material.Avalonia` GitHub releases page shows v3.14.1 as the latest published GitHub release at the time of research, while NuGet metadata lists `Material.Avalonia` 3.15.0 and 3.15.1. XerahS central package management currently pins 3.15.0. Outstanding action: decide whether to stay on 3.15.0 intentionally or bump to the current stable NuGet 3.15.1 after release-note/feed review.
+
+The repo scan also changes the scope of this XIP. Active references to `Material.Avalonia` and `Material.Icons.Avalonia` are in `src/mobile-experimental/XerahS.Mobile.Ava/XerahS.Mobile.Ava.csproj`; active desktop XAML/theme files do not currently show `Material.Styles` or `MaterialTheme` includes. Desktop continues to use Fluent/Avalonia theming and Lucide icons unless a future change introduces a real desktop Material layer.
+
+---
+
 ## Current State
 
-XerahS uses Material.Avalonia for desktop theming, while desktop icon rendering continues to rely primarily on the bundled Lucide font. `Material.Icons.Avalonia` is not the main desktop icon path and should not drive desktop theming decisions.
+XerahS centrally pins Material packages, but the active Avalonia Material scope found in the repo is the mobile-experimental Avalonia project:
+
+```text
+src/mobile-experimental/XerahS.Mobile.Ava/XerahS.Mobile.Ava.csproj
+  Material.Avalonia
+  Material.Icons.Avalonia
+```
+
+Desktop icon rendering continues to rely primarily on the bundled Lucide font, and active desktop theme files do not currently show `Material.Styles` or `MaterialTheme` includes. `Material.Icons.Avalonia` is not the main desktop icon path and should not drive desktop theming decisions.
 
 That means this XIP is mainly about:
 
-- Material styles and control behavior
-- Material-themed dialogs and windows
+- Material styles and control behavior in the mobile-experimental Avalonia project
+- any future Material-themed dialogs and windows that are intentionally added to desktop
 - validation, focus, accessibility, and shell integration under Avalonia 12
 
 not about replacing Lucide usage with Material icons.
@@ -85,6 +108,14 @@ Avalonia 12 adds native Linux accessibility and automation landmarks. Material-s
 
 Avalonia 12 enables compiled bindings by default. If a Material-themed view or template is touched during compatibility work, the change should preserve or improve binding clarity with explicit `x:DataType` where practical rather than backsliding into loose reflection bindings.
 
+### 6. Material scope must be proven before desktop work starts
+
+The current repo scan does not find an active desktop Material theme layer. Outstanding action: before any desktop compatibility work is claimed under this XIP, identify the actual `Material.Avalonia` theme include or package reference in the desktop app. If none exists, keep this XIP scoped to mobile-experimental package compatibility plus central-package hygiene.
+
+### 7. Material package version provenance must be verified
+
+`Directory.Packages.props` pins `Material.Avalonia` to 3.15.0. NuGet metadata confirms that 3.15.0 exists and also lists 3.15.1, while the public GitHub releases page found during research still lists v3.14.1 as latest. Outstanding action: verify the release notes/source for the 3.15.x line and decide whether XerahS should remain on 3.15.0 or move to 3.15.1.
+
 ---
 
 ## Compatibility and Audit Areas
@@ -97,6 +128,9 @@ Avalonia 12 enables compiled bindings by default. If a Material-themed view or t
 | Validation styling | Error states are visible, accessible, and consistent | Align with new `Control`-level validation behavior |
 | Material-heavy views | Explicit compiled bindings on touched hot paths | Preserve Avalonia 12 binding-performance benefits |
 | Mobile-experimental Material icons | Build and glyph rendering only where the package is actually used | Keep scope honest; desktop Lucide usage remains separate |
+| Mobile-experimental Avalonia app | Package restore, startup, navigation, validation, and icon rendering | This is the currently confirmed Material.Avalonia consumer |
+| Desktop Material scope proof | Confirm whether desktop actually includes Material themes before auditing them | Prevents this XIP from inventing desktop work that does not exist |
+| Version provenance | Confirm why XerahS pins 3.15.0 when NuGet also lists 3.15.1 and GitHub releases lag at v3.14.1 | Avoids anchoring compatibility on an unreviewed package version |
 
 ---
 
@@ -112,6 +146,10 @@ Avalonia 12 enables compiled bindings by default. If a Material-themed view or t
 | 6 | Ensure automation names, landmarks, and validation-error exposure survive custom styling | Linux accessibility is now a first-class requirement |
 | 7 | Preserve compiled-binding posture in any touched Material views | Avoid performance regressions from sloppy bindings |
 | 8 | Verify mobile-experimental `Material.Icons.Avalonia` usage only if that project is in scope | Keep desktop and mobile concerns separate |
+| 9 | Prove whether any active desktop project consumes `Material.Avalonia`; if not, record desktop as out of scope | Prevents false desktop acceptance criteria |
+| 10 | Verify `Material.Avalonia` 3.15.x feed provenance and release notes, then decide whether to stay on 3.15.0 or bump to 3.15.1 | Required before calling package alignment done |
+| 11 | Run the mobile-experimental Avalonia Material startup/theme/icon smoke path if that project is in scope | Confirms the actual Material consumer works |
+| 12 | Check Material styles for hidden animation/ripple behavior after Avalonia 12 invisible-animation changes | Aligns theme behavior with the new compositor model |
 
 ---
 
@@ -126,6 +164,10 @@ Avalonia 12 enables compiled bindings by default. If a Material-themed view or t
 - [ ] Theme colors remain consistent in both light and dark modes
 - [ ] Desktop Lucide icon rendering remains unaffected
 - [ ] Mobile-experimental Material icons only gate this XIP if that project is part of the validation run
+- [ ] Active desktop Material scope is proven, or desktop Material validation is explicitly marked out of scope
+- [ ] `Material.Avalonia` 3.15.x provenance is verified against the configured package feed and release notes
+- [ ] Mobile-experimental Avalonia Material startup/theme/icon smoke test is run when that project is in scope
+- [ ] Material ripple/progress/flyout animations behave intentionally when controls are hidden
 
 ---
 
@@ -142,12 +184,18 @@ Avalonia 12 enables compiled bindings by default. If a Material-themed view or t
 1. Which Material-themed dialogs in XerahS still rely on older focus workarounds?
 2. Which custom theme overrides are the highest risk for Avalonia 12 validation or decoration regressions?
 3. Is any Material icon verification beyond the mobile-experimental project actually needed for desktop acceptance?
+4. Is `Material.Avalonia` still intended for desktop, or is it now only a mobile-experimental dependency?
+5. Should XerahS stay on `Material.Avalonia` 3.15.0, or move to the NuGet-listed 3.15.1 after release-note review?
+6. Should mobile-experimental Avalonia keep using Material themes, or should it move closer to the Fluent desktop baseline after the Avalonia 12 upgrade?
 
 ---
 
 ## Reference
 
 - Avalonia UI Blog, "Avalonia 12 - Ready for What's Next," April 7, 2026: <https://avaloniaui.net/blog/avalonia-12/>
+- Avalonia Docs, "Breaking changes in Avalonia 12": <https://docs.avaloniaui.net/docs/avalonia12-breaking-changes>
+- AvaloniaCommunity Material.Avalonia GitHub releases: <https://github.com/AvaloniaCommunity/Material.Avalonia/releases>
+- NuGet flat-container metadata for Material.Avalonia: <https://api.nuget.org/v3-flatcontainer/material.avalonia/index.json>
 
 ---
 
