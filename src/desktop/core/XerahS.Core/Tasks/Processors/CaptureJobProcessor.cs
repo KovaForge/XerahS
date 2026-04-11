@@ -28,8 +28,8 @@ using XerahS.History;
 using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
-using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Core.Persistence;
+using ShareX.ImageEditor.Hosting;
 
 namespace XerahS.Core.Tasks.Processors
 {
@@ -158,9 +158,6 @@ if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
             {
                 editorResult?.SourceImage?.Dispose();
             }
-            }
-
-            // TODO: Add other tasks
 
             // TODO: Add other tasks
 

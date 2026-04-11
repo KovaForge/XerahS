@@ -209,5 +209,7 @@ public class SendToIntegrationCoordinatorTests
             ExecutedActions.Add(action);
             return Task.CompletedTask;
         }
+
+        public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
     }
 }

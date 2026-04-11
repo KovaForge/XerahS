@@ -45,7 +45,7 @@ public class AfterCaptureTaskFlagsTests
         {
             // 1 << 17 = 131072
             Assert.That((int)AfterCaptureTasks.DoOCR, Is.EqualTo(1 << 17));
-            Assert.That(AfterCaptureTasks.DoOCR, Has.None Of the following.EqualTo(AfterCaptureTasks.DoOCR & (AfterCaptureTasks.DoOCR - 1)));
+            Assert.That((int)(AfterCaptureTasks.DoOCR & (AfterCaptureTasks.DoOCR - 1)), Is.EqualTo(0), "DoOCR must be a single bit");
         });
     }
 
@@ -80,8 +80,7 @@ public class AfterCaptureTaskFlagsTests
         foreach (var value in values)
         {
             int bit = (int)value;
-            Assert.That(bit, Has.None Of the following.EqualTo(bit & (bit - 1)),
-                $"{value} is not a power of 2");
+            Assert.That(bit & (bit - 1), Is.EqualTo(0), $"{value} is not a power of 2");
         }
 
         // Verify no duplicate values
