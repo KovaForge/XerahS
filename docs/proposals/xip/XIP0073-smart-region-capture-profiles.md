@@ -327,3 +327,86 @@ src/desktop/app/XerahS.RegionCapture/
 - **ShareX**: Region capture with last-region memory; no pattern detection
 - **XIP0070**: User research validating need for faster capture workflows
 - **XIP0072**: Underlying capture pipeline fixes enabling this UX improvement
+
+---
+
+## Critical Review
+
+*Review conducted by Nadia Valeva, Analyst — KovaForge*
+
+### Technical Feasibility: Overly Optimistic
+
+The detection strategy looks reasonable on paper but glosses over some hard problems:
+
+**1. DOM-like heuristics without DOM access**
+The proposal mentions "DOM-like heuristics" for tweet detection, but region capture operates at the screen buffer level — there's no DOM. You're doing computer vision on pixels, not parsing markup. The heuristics table conflates what *should* be detectable with what *can* be detected from raw pixels. Detecting a "tweet card" by "avatar column + content column" requires either:
+- Accessibility API integration (slow, permission-heavy, breaks on web apps that don't expose semantic structure)
+- CV-based layout analysis (computationally expensive, fragile across themes/resolutions)
+
+**2. The 200ms detection target is fantasy for Phase 1**
+The acceptance criteria claim "detection completes in <200ms on mid-range hardware." For context: a single screen capture at 1080p is ~8MB of data. Running edge detection, aspect ratio analysis, text density detection, and platform-specific rule matching across that buffer in 200ms — while also querying window manager APIs — is aggressive. The mitigation ("downsampled thumbnails") helps, but downsampling + multiple CV passes + API calls + scoring logic won't hit 200ms consistently without GPU acceleration, which isn't mentioned for Phase 1.
+
+**3. Platform abstraction is hand-waved**
+The "Platform-Specific Detection" section lists three different approaches (Windows UI Automation, macOS Accessibility, Linux xwininfo) with no discussion of how they unify. These APIs have different capabilities, permissions, and failure modes. A Windows app might expose element trees; a macOS app might not; a Linux Wayland session exposes almost nothing. The proposal needs a concrete abstraction layer design, not a bullet list.
+
+### Scope: Phase 1 Is Not One Sprint
+
+The Phase 1 scope includes:
+- Window manager introspection across 3 platforms
+- 5+ visual heuristics (aspect ratio, edge detection, color histogram, text density, platform rules)
+- Pattern matchers for tweets, videos, chat, code, images, modals, docs
+- Confidence scoring system
+- UI overlay with keyboard shortcuts
+- Settings persistence
+
+This is **not one sprint**. It's probably 4-6 sprints for a team of 2-3 engineers, assuming no research spikes. The acceptance criteria for Phase 1 alone (7 bullet points with accuracy thresholds) would take 2+ sprints to validate.
+
+**Recommendation**: Split Phase 1. Sprint 1: Window detection + video player pattern only. Sprint 2+: Add patterns incrementally. Ship value early instead of boiling the ocean.
+
+### Risks: Under-Covered
+
+The risk table identifies the right categories but underestimates severity:
+
+**False positives**: Listed as "High" impact with mitigation "conservative thresholds." The problem isn't threshold tuning — it's that users will see *any* false positive as a bug. If the system suggests a region that captures a UI element the user didn't want, trust erodes fast. The proposal needs a "first impression" strategy: maybe start with opt-in per pattern, or require high confidence (>0.9) for auto-suggest.
+
+**Privacy concerns**: Listed as "High" with mitigation "local-only processing." This misses the real issue: users will ask *why* the app is analyzing their screen. Even local analysis feels invasive. The proposal needs explicit user consent flows and clear UI indicating when detection is active.
+
+**Missing risk: Maintenance burden**
+Platform detection rules for Twitter/X, YouTube, Slack, Discord, VS Code will break. These apps update frequently. The proposal doesn't address who maintains the pattern matchers or how updates are shipped. This is ongoing work, not a one-time implementation.
+
+### Missing Acceptance Criteria
+
+1. **Failure mode behavior**: What happens when detection fails? Does the UI show "no suggestions" or silently fall back to manual mode? The user needs to know the feature is working, not just absent.
+
+2. **Accessibility**: How do screen reader users interact with detected regions? The overlay needs ARIA labels or equivalent.
+
+3. **Multi-monitor**: Detection needs to work across monitors with different DPIs. Not mentioned.
+
+4. **Performance degradation over time**: If the learning system accumulates history, does query performance degrade? Is there a retention policy?
+
+5. **Accuracy measurement methodology**: "80% accuracy" is meaningless without a test dataset. How is accuracy defined? Who validates the ground truth?
+
+### Problem Statement: Evidence Is Anecdotal
+
+The problem statement cites user quotes:
+- "I capture tweets maybe 10 times a day"
+- "Chat windows are always the same size"
+- "I wish it just knew I wanted the video player region"
+
+These are valid pain points, but they're **anecdotes, not data**. The proposal references XIP0070 (user research) but doesn't quantify:
+- What percentage of captures are repetitive?
+- How much time is spent on region selection vs. other workflow steps?
+- Do users actually want automatic detection, or would they prefer better last-region memory?
+
+Without this baseline, there's no way to measure success. The acceptance criteria set accuracy targets (80%, 85%) but don't tie them to user outcomes. A system with 85% accuracy that users don't trust is worse than no system at all.
+
+### Bottom Line
+
+The vision is sound — smart region capture would differentiate XerahS. But the proposal needs to:
+1. **Cut scope for Phase 1** (one pattern, one platform, prove the concept)
+2. **Add concrete performance benchmarks** (measured on target hardware, not theoretical)
+3. **Define the abstraction layer** for cross-platform detection
+4. **Quantify the problem** with data from XIP0070
+5. **Plan for maintenance** (who updates pattern matchers when Twitter changes their layout?)
+
+Don't build a CV pipeline when a simpler heuristic might solve 80% of the problem. Start small, measure, iterate. The current proposal is a 6-month roadmap masquerading as a P1 sprint.
