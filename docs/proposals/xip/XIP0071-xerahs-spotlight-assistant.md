@@ -303,11 +303,11 @@ Initial provider support:
 
 | Provider | Adapter strategy | Key/header expectation | Initial model default |
 |---|---|---|---|
-| OpenAI | Native OpenAI adapter using Responses API for new agentic work; Chat Completions compatibility only if required by SDK/runtime constraints | Bearer API key | `gpt-4o-mini` |
+| OpenAI | Native OpenAI adapter using Responses API for new agentic work; Chat Completions compatibility only if required by SDK/runtime constraints | Bearer API key | `gpt-5.4` |
 | MiniMax | Dedicated MiniMax adapter; prefer the documented compatible API path that best matches tool calling after implementation validation | MiniMax API key | `MiniMax-M2.7` |
 | Kimi | OpenAI-compatible adapter using Moonshot/Kimi base URL and Kimi model IDs | Bearer API key against `https://api.moonshot.ai/v1` | `kimi-k2.5` |
-| Gemini | Dedicated Gemini adapter using `generateContent`, function declarations, and function calling config | `x-goog-api-key` | `gemini-2.5-flash` |
-| Anthropic | Dedicated Anthropic Messages adapter using client-side tools and tool-result loop | `x-api-key` plus `anthropic-version` | `claude-haiku-4-5` |
+| Gemini | Dedicated Gemini adapter using `generateContent`, function declarations, and function calling config | `x-goog-api-key` | `gemini-3.1-flash` |
+| Anthropic | Dedicated Anthropic Messages adapter using client-side tools and tool-result loop | `x-api-key` plus `anthropic-version` | `claude-sonnet-4-6` |
 
 > Model defaults owned by Product Owner (Vladislava Kova). Engineering Lead (Mikhail Orlov) executes updates. Review quarterly or when providers announce deprecations. (Nadia Q4)
 
