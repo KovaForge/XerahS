@@ -383,3 +383,89 @@ Enables "recapture this tweet with different styling" feature.
 - [Screenshot Guru](https://screenshot.guru/) — Chrome extension for tweet capture
 - [X oEmbed Documentation](https://developer.twitter.com/en/docs/twitter-for-websites/oembed-api)
 - [Bluesky AT Protocol](https://atproto.com/) — For future Bluesky support
+
+---
+
+## Critical Review
+
+**Overall**: The XIP addresses a real pain point (tweet/thread capture for social media users), but the implementation plan is under-specified and some claims lack evidence.
+
+### Technical Feasibility
+
+**Concerns:**
+1. **DOM-based element detection is fragile** — Twitter/X frequently updates their DOM structure. The "Compose box" and "Tweet body" class selectors (`public-DraftStyleDefault-block`, `css-1dbjc4n`) will break regularly. The XIP acknowledges this ("X/Twitter may change at any time") but doesn't propose a durable solution — just "update detection rules." This is a maintenance burden that should be explicitly called out as a recurring engineering cost, not a one-time fix.
+2. **oEmbed dependency is a single point of failure** — If Twitter disables or rate-limits oEmbed, the entire style metadata feature breaks. There's no fallback described.
+3. **Headless browser rendering adds significant complexity** — The screenshot pipeline requires launching a headless browser (Playwright or Puppeteer), navigating to the URL, waiting for JavaScript execution, then capturing. This is non-trivial for a v1. The XIP says "Phase 1 can use native screenshot + DOM overlay" but doesn't specify how the DOM overlay approach works technically.
+
+### Scope Assessment
+
+**Phase 1 is NOT achievable in one sprint.** The XIP lists:
+- Browser extension (new project, Chrome Web Store submission)
+- Screenshot service with headless browser
+- DOM → screenshot compositing
+- Styled export pipeline with templates
+
+That's easily 3-4 sprints of work for one developer. A more realistic Phase 1 scopedown would be: CLI-only, single template, URL-based capture (no extension), limited template styles. The current Phase 1 is a full product.
+
+### Missing Acceptance Criteria
+
+- No mention of how to handle **thread depth** — a tweet with 50 replies might be 3000px tall. Does the capture auto-scroll? Is there a depth limit?
+- **Video tweets** — if someone posts an X video, does the capture show the video thumbnail or the video player? No guidance.
+- **Multi-account handling** — if a user is logged into multiple Twitter accounts, which session does the extension use?
+- **Rate limiting** — what happens when X/Twitter rate-limits the oEmbed or page access?
+
+### Evidence Quality
+
+"Social media screenshot is consistently requested in user feedback" — this claim is made but no data is provided. The XIP references XIP0069 ("User research validating social media capture as top need") but doesn't summarize what that research actually found. A critical reader should be able to see the evidence without hunting through another document.
+
+### Risks Not Adequately Covered
+
+1. **Legal/ToS risk** — Twitter's ToS prohibits automated scraping. The XIP mentions "clear ToS guidance" as mitigation but doesn't specify what that guidance is or whether XerahS has been reviewed by legal counsel.
+2. **Browser extension store rejection** — Chrome Web Store has policies against extensions that interact with third-party sites in non-standard ways. Twitter may flag the extension. This risk is dismissed as "low" with no evidence.
+
+---
+
+## Design Feedback
+
+### UX Flow Assessment
+
+**First-time flow (Install → First capture):**
+- The extension install → permission request → "Capture Tweet" button flow is reasonable
+- However, the **styled export options** aren't explained until the user opens the share menu. A first-time user won't know they can customize. Consider a one-time tooltip: "Tap to customize appearance."
+
+**Returning user flow:**
+- URL-based capture is clean — paste URL, get screenshot. No app interaction needed.
+- The clipboard monitoring is a nice touch for power users but risks being annoying if it intercepts URLs that aren't tweet links. Need a clear off-switch or a specific hotkey pattern.
+
+### Suggestion Overlay (for Region Capture Integration)
+
+If this XIP gets combined with XIP0073 (Smart Region Capture Profiles), the suggestion overlay should show tweet/thread capture as an option when on x.com. Design:
+- **Color**: Use X's brand blue (#1DA1F2) as border highlight, not the default red/green
+- **Label**: "Tweet" / "Thread" (short, recognizable)
+- **Position**: Top-right corner of detected region
+- **Animation**: Subtle pulse on first appearance, then static
+
+### Hotkey Strategy
+
+F1-F12 as suggested in XIP0073 is limiting for this use case. Better approach:
+- **Modifier key** approach: Ctrl+Shift+T (Twitter) — intuitive, won't conflict with most apps
+- **Per-account hotkeys**: Ctrl+Shift+1, Ctrl+Shift+2 for multiple accounts
+- Avoid bare function keys — many users have those bound to other tools (Raycast, Alfred, etc.)
+
+### Visual Design of Tweet Captures
+
+The styled export templates need more spec in the XIP:
+
+| Template | Font | Background | Accent |
+|----------|------|------------|--------|
+| Dark Mode | Inter / SF Pro | #15202B | #1DA1F2 |
+| Light Mode | Inter / SF Pro | #FFFFFF | #1DA1F2 |
+| Code Theme | JetBrains Mono | #0D1117 | #58A6FF |
+
+The XIP mentions "platform-native styling" but doesn't define what that means. Native iOS? Android? Each would look different. Need a single reference design.
+
+### Accessibility
+
+- **Keyboard-only users**: The extension should be fully keyboard-accessible (Tab navigation, Enter to capture). No spec provided.
+- **Screen reader**: What does VoiceOver/NVDA announce when the user focuses a tweet capture button? "Capture tweet button" is not helpful — "Capture tweet by @username" is better.
+- **Reduced motion**: If the user has `prefers-reduced-motion`, the capture should not animate.
