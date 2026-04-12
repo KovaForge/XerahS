@@ -30,8 +30,10 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels;
@@ -42,6 +44,7 @@ namespace XerahS.UI.ViewModels;
 public partial class ToastViewModel : ObservableObject, IDisposable
 {
     private readonly ToastConfig _config;
+    private readonly IDesktopTaskManager? _taskManager;
     private readonly DispatcherTimer _durationTimer;
     private readonly DispatcherTimer _fadeTimer;
     private readonly int _fadeInterval = 50;
@@ -92,9 +95,10 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand OpenURLCommand { get; }
     public ICommand DeleteItemCommand { get; }
 
-    public ToastViewModel(ToastConfig config)
+    public ToastViewModel(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
         _config = config;
+        _taskManager = taskManager;
 
         // Try to load image from path
         if (!string.IsNullOrEmpty(config.ImagePath) && File.Exists(config.ImagePath))
@@ -122,7 +126,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         EditImageCommand = new RelayCommand(AnnotateMedia);
         CopyImageToClipboardCommand = new RelayCommand(CopyImageToClipboard);
         OpenFileCommand = new RelayCommand(OpenFile);
-        UploadItemCommand = new RelayCommand(UploadFile);
+        UploadItemCommand = new AsyncRelayCommand(UploadFileAsync);
         OpenFolderCommand = new RelayCommand(OpenFolder);
         CopyFilePathCommand = new RelayCommand(CopyFilePath);
         CopyUrlCommand = new RelayCommand(CopyUrl);
@@ -292,7 +296,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 break;
 
             case ToastClickAction.Upload:
-                UploadFile();
+                _ = UploadFileAsync();
                 break;
 
             case ToastClickAction.PinToScreen:
@@ -487,20 +491,50 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void UploadFile()
+    private async Task UploadFileAsync()
     {
-        if (!string.IsNullOrEmpty(_config.FilePath))
+        if (string.IsNullOrWhiteSpace(_config.FilePath))
         {
-            try
-            {
-                // TODO: Implement upload through TaskManager
-                DebugHelper.WriteLine($"Upload requested for: {_config.FilePath}");
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Failed to upload file from toast");
-            }
+            return;
         }
+
+        if (!File.Exists(_config.FilePath))
+        {
+            DebugHelper.WriteLine($"Toast upload skipped, file not found: {_config.FilePath}");
+            return;
+        }
+
+        var taskManager = _taskManager
+            ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
+        if (taskManager == null)
+        {
+            DebugHelper.WriteLine("Toast upload skipped, desktop task manager is not available.");
+            return;
+        }
+
+        try
+        {
+            var settings = GetUploadTaskSettings();
+            settings.Job = WorkflowType.FileUpload;
+            await taskManager.StartFileTask(settings, _config.FilePath);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to upload file from toast");
+        }
+    }
+
+    private static TaskSettings GetUploadTaskSettings()
+    {
+        var uploadWorkflow = SettingsManager.GetFirstWorkflow(WorkflowType.FileUpload);
+        if (uploadWorkflow?.TaskSettings != null)
+        {
+            var settings = WatchFolderManager.CloneTaskSettings(uploadWorkflow.TaskSettings);
+            settings.WorkflowId = uploadWorkflow.Id;
+            return settings;
+        }
+
+        return WatchFolderManager.CloneTaskSettings(SettingsManager.DefaultTaskSettings ?? new TaskSettings());
     }
 
     private void PinToScreen()

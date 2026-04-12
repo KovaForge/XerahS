@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Threading;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Views;
@@ -68,7 +69,8 @@ public class AvaloniaToastService : IToastService
 
                 // Create and show new toast
                 var toast = new ToastWindow();
-                toast.Initialize(config);
+                var taskManager = PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
+                toast.Initialize(config, taskManager);
                 toast.Closed += OnToastClosed;
 
                 _activeToast = toast;

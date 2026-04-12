@@ -25,10 +25,69 @@ For XIP structure, templates, and writing patterns, use [XIP writing reference](
 
 ## Workflows
 
+### Audit local XIPs against GitHub issues
+
+Use this when the user says the local `docs/proposals/xip/` folder has XIPs that are missing from GitHub.
+
+1. **Compare by canonical ID only**
+   - Extract local IDs from filenames matching `XIP####`.
+   - Fetch **all** GitHub issues, not just issues with the `xip` label, because existing XIP issues can be missing the label.
+   - Extract `XIP####` from issue titles and ignore all other title text differences.
+   - Treat a GitHub issue as present if any title contains the same `XIP####`, even if punctuation, casing, or wording differs.
+
+   ```powershell
+   $repo = "ShareX/XerahS"
+   $xipDir = "docs/proposals/xip"
+   $issues = gh issue list --repo $repo --state all --limit 500 --json number,title,url,state,labels | ConvertFrom-Json
+   $issueIds = New-Object "System.Collections.Generic.HashSet[string]"
+   foreach ($issue in $issues) {
+       foreach ($match in [regex]::Matches($issue.title, "XIP[0-9]{4}")) {
+           [void]$issueIds.Add($match.Value)
+       }
+   }
+   $localIds = Get-ChildItem -LiteralPath $xipDir -Filter "XIP*.md" |
+       ForEach-Object { if ($_.Name -match "^(XIP[0-9]{4})") { $Matches[1] } } |
+       Sort-Object -Unique
+   $missing = $localIds | Where-Object { -not $issueIds.Contains($_) }
+   $missing
+   ```
+
+2. **Repair labels before running label-based sync**
+   - If an issue title contains `XIP####` but does not have the `xip` label, add the label instead of creating a duplicate issue.
+   - This matters because `sync-from-github.ps1` reads only issues with label `xip`.
+
+   ```powershell
+   foreach ($issue in $issues) {
+       if ($issue.title -match "XIP[0-9]{4}") {
+           $labelNames = $issue.labels | ForEach-Object { $_.name }
+           if (-not ($labelNames -contains "xip")) {
+               gh issue edit $issue.number --repo $repo --add-label "xip"
+           }
+       }
+   }
+   ```
+
+3. **Create only true missing issues**
+   - For each local-only `XIP####`, create one issue using the matching local file as the body and label it `xip`.
+   - Build the issue title from the file's first markdown heading when available.
+   - Normalize the title to `XIP#### Short Descriptive Title`: single space after the ID; no brackets, colon, or dash after the ID.
+
+4. **Verify after creation**
+   - Re-fetch all issues and repeat the ID-only comparison.
+   - Confirm local ID count and GitHub issue ID count match.
+   - Confirm every issue whose title contains `XIP####` has the `xip` label.
+   - Check `git status --short`; uploading missing issues should not leave local file changes unless you intentionally ran the sync script.
+
+5. **Be deliberate with local sync**
+   - `sync-from-github.ps1` removes and rewrites `docs/proposals/xip/XIP*.md` from label-matched GitHub issues. It can rename files and rewrite old bodies, causing broad local churn.
+   - Do not run the sync script just to upload missing local XIPs unless the user also wants the backup folder normalized from GitHub.
+   - If you do run it to verify label-based sync, inspect `git status --short` and `git diff --stat -- docs/proposals/xip` afterwards. Keep or discard the generated backup churn deliberately.
+
 ### Create a new XIP
 
 1. **Choose the next XIP number**  
-   - List existing: `gh issue list --label xip --limit 500 --json number,title`  
+   - List existing across all issues when choosing or auditing IDs: `gh issue list --repo ShareX/XerahS --state all --limit 500 --json number,title,labels`
+   - Do not rely only on `--label xip` for ID discovery; it can miss an existing XIP issue whose label was accidentally omitted.
    - Or check highest in `docs/proposals/xip/*.md` (e.g. XIP0044).
 
 2. **Draft the XIP body**  

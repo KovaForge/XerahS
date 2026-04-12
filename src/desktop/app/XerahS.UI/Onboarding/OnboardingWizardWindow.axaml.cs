@@ -30,6 +30,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Hotkeys;
 using XerahS.UI.Onboarding.ViewModels.Steps;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
@@ -43,6 +44,7 @@ namespace XerahS.UI.Onboarding;
 public partial class OnboardingWizardWindow : Window
 {
     private bool _openSettingsAfterClose;
+    private bool _takeFirstScreenshotAfterClose;
 
     public OnboardingWizardViewModel ViewModel { get; }
 
@@ -88,19 +90,8 @@ public partial class OnboardingWizardWindow : Window
             {
                 try
                 {
-                    // Trigger a test region capture via the workflow orchestrator
-                    if (Application.Current is App app && app.WorkflowManager != null)
-                    {
-                        var workflows = app.WorkflowManager.Workflows;
-                        var regionWorkflow = workflows.FirstOrDefault(w => w.Job == WorkflowType.RectangleRegion);
-
-                        if (regionWorkflow != null)
-                        {
-                            DebugHelper.WriteLine("[Onboarding] Triggering test region capture");
-                            // Trigger capture if we have an orchestrator
-                            // The actual capture triggering would be done via the task manager
-                        }
-                    }
+                    DebugHelper.WriteLine("[Onboarding] Triggering test region capture");
+                    await ExecuteRegionCaptureAsync();
                 }
                 catch (Exception ex)
                 {
@@ -151,14 +142,8 @@ public partial class OnboardingWizardWindow : Window
                 try
                 {
                     DebugHelper.WriteLine("[Onboarding] Take first screenshot requested");
+                    _takeFirstScreenshotAfterClose = true;
                     await ViewModel.CompleteAsync();
-
-                    // Trigger region capture via the main window
-                    if (Application.Current is App)
-                    {
-                        // The actual triggering would be done via the workflow orchestrator
-                        // For now, the workflow is set up and will respond to hotkey
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -201,6 +186,55 @@ public partial class OnboardingWizardWindow : Window
 
         dialogViewModel.CloseRequested = dialog.Close;
         await dialog.ShowDialog(this);
+
+        OnboardingFileUploaderHelper.EnsureFileUploaderInstances(
+            option.Id,
+            instance.SettingsJson,
+            updateExistingSupportedCategories: true);
+    }
+
+    private async Task ExecuteRegionCaptureAsync()
+    {
+        WorkflowSettings workflow = GetRegionCaptureWorkflow();
+
+        WindowState previousWindowState = WindowState;
+        bool wasVisible = IsVisible;
+
+        try
+        {
+            if (wasVisible)
+            {
+                WindowState = WindowState.Minimized;
+                await Task.Delay(150);
+            }
+
+            await XerahS.Core.Helpers.TaskHelpers.ExecuteWorkflow(workflow, workflow.Id, hideMainWindow: true);
+        }
+        finally
+        {
+            if (wasVisible)
+            {
+                WindowState = previousWindowState;
+                Activate();
+            }
+        }
+    }
+
+    private static WorkflowSettings GetRegionCaptureWorkflow()
+    {
+        WorkflowSettings? workflow = null;
+
+        if (Application.Current is App app)
+        {
+            workflow = app.WorkflowManager?.Workflows.FirstOrDefault(w => w.Job == WorkflowType.RectangleRegion);
+        }
+
+        workflow ??= SettingsManager.GetFirstWorkflow(WorkflowType.RectangleRegion);
+        workflow ??= new WorkflowSettings(WorkflowType.RectangleRegion, new XerahS.Platform.Abstractions.HotkeyInfo());
+        workflow.TaskSettings.Job = WorkflowType.RectangleRegion;
+        workflow.EnsureId();
+
+        return workflow;
     }
 
     private void OnOnboardingHotkeyChanged(object? sender, EventArgs e)
@@ -239,6 +273,11 @@ public partial class OnboardingWizardWindow : Window
         };
 
         await ShowDialog(owner);
+
+        if (_takeFirstScreenshotAfterClose)
+        {
+            await ExecuteRegionCaptureAsync();
+        }
 
         if (_openSettingsAfterClose &&
             Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
