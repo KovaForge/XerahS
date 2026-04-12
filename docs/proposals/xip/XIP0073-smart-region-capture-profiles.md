@@ -1,19 +1,22 @@
-# XIP0073: Smart Region Capture Profiles — Automatic UI Pattern Detection
+# XIP0073: Smart Region Capture Profiles & Social Media Screenshot Automation
 
 **Status**: Draft
 **Priority**: P1
-**Area**: Region Capture | UX | Machine Learning | Screen Recording
+**Area**: Region Capture | UX | Machine Learning | Screen Recording | Social Media | Automation
 **Created**: 2026-04-12
-**Related**: XIP0072 (Screen Recording Bug Fixes), XIP0070 (User Research - Top Screen Capture Needs)
-**Co-Authors**: Milena (research), TBD (implementation)
+**Related**: XIP0072 (Screen Recording Bug Fixes), XIP0070 (User Research — Top Screen Capture Needs), XIP0071 (XerahS Spotlight Assistant)
+**Co-Authors**: Milena (research), Nadia (analysis), TBD (implementation)
+**Consolidated**: 2026-04-12 — Merged Smart Region Capture Profiles (original XIP0073) with Social Media Screenshot Automation (originally duplicate XIP0073) into single XIP0073
 
 ---
 
 ## Summary
 
-Users spend an inordinate amount of time manually drawing capture regions for repetitive tasks — tweets, media players, chat windows, code snippets, and documentation panels. This XIP proposes **Smart Region Capture Profiles**: an intelligent system that automatically detects and suggests capture regions based on common UI patterns, reducing friction and saving time on every capture.
+Users spend excessive time manually drawing capture regions for repetitive tasks — tweets, media players, chat windows, code snippets, and documentation panels. Meanwhile, content creators, journalists, and social media managers need professional-looking tweet and thread captures that current generic screen capture tools don't provide.
 
-The system combines computer vision heuristics, window manager introspection, and learned user preferences to present one-click capture options for the most common capture targets.
+This XIP proposes **Smart Region Capture Profiles**: an intelligent system that automatically detects and suggests capture regions based on common UI patterns, **unified with first-class social media screenshot capabilities** — enabling tweet-aware capture, thread auto-stitch, and styled export — reducing friction and saving time on every capture.
+
+The system combines computer vision heuristics, window manager introspection, learned user preferences, and platform-specific detection to present one-click capture options for the most common capture targets, including social media content.
 
 ---
 
@@ -32,19 +35,23 @@ For repetitive captures (e.g., documenting a series of tweets, capturing chat me
 - **"Chat windows are always the same size, but I still have to manually select each time"**
 - **"I wish it just knew I wanted the video player region"**
 
-### Current Workarounds and Their Limits
+### Social Media Capture — The Fragmented Workflow Problem
 
-| Workaround | Limitation |
-|------------|------------|
-| Window capture mode | Captures entire window chrome (title bar, borders) — not the content region |
-| Last region memory | Only works for identical positions; breaks on window moves or different monitors |
-| Preset regions | Static; doesn't adapt to window position changes or different content layouts |
-| Manual coordinate entry | Power-user only; defeats the purpose of visual selection |
+Content creators and social media managers currently rely on a fragmented toolchain:
+
+| Pain Point | Current Workaround | Friction |
+|------------|-------------------|----------|
+| Thread capture requires scrolling + stitching | Manual multi-screenshot + image editor | High |
+| Clean tweet styling (no UI chrome) | Web tools or manual editing | Medium |
+| Consistent branding across captures | Manual template application | High |
+| API/automation for bulk capture | Paid third-party services | Cost + Complexity |
+| Capturing deleted/archived tweets | None — content lost | Critical for journalists |
 
 ### Why This Matters Now
 
 - XIP0070 user research identified "faster region selection" as a top-3 requested feature
 - XIP0072 fixed underlying capture pipeline bugs — the foundation is now stable for UX improvements
+- No desktop screen capture tool offers tweet-aware capture with professional styling and thread support
 - Competitors (CleanShot X, Snagit) have basic smart detection; XerahS can differentiate with deeper pattern recognition
 
 ---
@@ -53,7 +60,7 @@ For repetitive captures (e.g., documenting a series of tweets, capturing chat me
 
 ### Core Concept: Detectable UI Patterns
 
-Define a set of **detectable patterns** that represent common capture targets:
+Define a set of **detectable patterns** that represent common capture targets, including social media content:
 
 | Pattern | Description | Detection Method |
 |---------|-------------|------------------|
@@ -69,7 +76,7 @@ Define a set of **detectable patterns** that represent common capture targets:
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Screen Buffer  │────▶│  Pattern Detector│────▶│  Scored Regions │
+│  Screen Buffer  │────▶│  Pattern Detector │────▶│  Scored Regions │
 │   (DXGI/GL)     │     │  (Heuristics+ML) │     │  (Confidence)   │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                                            │
@@ -85,11 +92,15 @@ Define a set of **detectable patterns** that represent common capture targets:
                            └──────────────────┘
 ```
 
-### Phase 1: Heuristic-Based Detection (P1)
+---
 
-**Scope**: Rules-based detection without ML dependencies
+## Implementation Phases
 
-**Implementation**:
+### Phase 1: Heuristic-Based Detection + Tweet/Social Capture MVP
+
+**Scope**: Rules-based detection without ML dependencies; URL-based tweet capture with basic styling
+
+#### Smart Detection (Core)
 
 1. **Window Manager Introspection**
    - Query window bounds and classes (Windows: `EnumWindows`, macOS: `AXUIElement`, Linux: `xwininfo`/`wlroots`)
@@ -108,23 +119,44 @@ Define a set of **detectable patterns** that represent common capture targets:
    - Slack/Discord: Detect message list containers
    - VS Code: Detect editor tabs and terminal panels
 
-**Confidence Scoring**:
-```csharp
-public class DetectedRegion
-{
-    public Rect Bounds { get; set; }
-    public DetectedPattern Pattern { get; set; }
-    public float Confidence { get; set; } // 0.0 - 1.0
-    public string SourceApp { get; set; }
-    public Dictionary<string, float> FeatureScores { get; set; }
-}
-```
+4. **Pattern Matchers**
+   ```csharp
+   public interface IPatternMatcher
+   {
+       DetectedRegion? Match(CaptureFrame frame, Rect? hintRegion);
+       float Confidence { get; }
+   }
 
-### Phase 2: Learned Preferences (P2)
+   public class TweetPatternMatcher : IPatternMatcher { /* ... */ }
+   public class VideoPatternMatcher : IPatternMatcher { /* ... */ }
+   public class ChatPatternMatcher : IPatternMatcher { /* ... */ }
+   public class CodePatternMatcher : IPatternMatcher { /* ... */ }
+   ```
 
-**Scope**: Per-user learning from capture history
+#### Social Capture (MVP)
 
-**Implementation**:
+- [ ] Add `TweetCaptureService` with oEmbed fetching
+- [ ] Implement HTML-to-image rendering (using existing SkiaSharp infrastructure)
+- [ ] Create 3 built-in templates: Minimal, Dark Mode, Documentation
+- [ ] Add "Capture from URL" action to AfterCapture tasks
+- [ ] Spotlight Assistant integration: `capture tweet <url>` command
+- [ ] `TweetCaptureDetector` pattern: detect when user is capturing X/Twitter content and offer smart actions
+
+**Acceptance Criteria (Phase 1)**:
+- Tweet/post cards detected on Twitter/X with >80% accuracy
+- Video players detected on YouTube, Vimeo, Twitch with >85% accuracy
+- Chat messages detected on Slack, Discord with >75% accuracy
+- Code blocks detected in VS Code, browser dev tools with >70% accuracy
+- Detection completes in <200ms on mid-range hardware (downsampled analysis)
+- User can paste X/Twitter URL, get styled screenshot in under 5 seconds
+- Templates apply correctly and are previewable before export
+- Keyboard shortcuts (1-9) select top suggestions
+
+### Phase 2: Learned Preferences + Browser Integration / Social Capture
+
+**Scope**: Per-user learning from capture history; extension-based active browsing capture; styled export
+
+#### Learned Preferences
 
 1. **Capture History Analysis**
    - Store anonymized capture metadata (region bounds, app, time, pattern type)
@@ -141,11 +173,26 @@ public class DetectedRegion
    - No cloud processing or telemetry
    - User can export/delete learned data
 
-### Phase 3: ML-Enhanced Detection (P3)
+#### Browser Integration / Social Capture
 
-**Scope**: On-device neural network for pattern recognition
+- [ ] Develop Chrome/Firefox extension (minimal, open source)
+- [ ] Extension-XerahS IPC via native messaging or localhost
+- [ ] Smart detection: extension signals when tweet is in view
+- [ ] Thread auto-scroll and stitch
+- [ ] Quoted tweet expansion
+- [ ] Tweet styling engine with template-based rendering
 
-**Implementation**:
+**Acceptance Criteria (Phase 2)**:
+- System learns user-adjusted regions within 3 captures
+- Extension adds "Capture with XerahS" button to tweet actions
+- Thread capture produces scrollable long image or paginated PDF
+- Works without URL paste (captures what user is viewing)
+
+### Phase 3: ML-Enhanced Detection + Advanced Styling / Automation
+
+**Scope**: On-device neural network for pattern recognition; custom templates; batch capture; API
+
+#### ML-Enhanced Detection
 
 1. **Model Architecture**
    - Lightweight CNN (MobileNet-style) for edge detection and object segmentation
@@ -160,6 +207,31 @@ public class DetectedRegion
 3. **Deployment**
    - Model updates via app updates (not auto-download for security)
    - Fallback to Phase 1 heuristics if model fails
+
+#### Advanced Styling / Automation
+
+- [ ] Template editor UI (colors, fonts, backgrounds)
+- [ ] Batch capture: paste multiple URLs, get ZIP of styled images
+- [ ] MCP tool: `xerahs.capture_tweet(url, template_id)`
+- [ ] Platform presets: Instagram, LinkedIn, Pinterest dimensions
+- [ ] Auto-watermark with username/date
+
+**Acceptance Criteria (Phase 3)**:
+- On-device model runs inference in <100ms
+- Model size <10MB
+- Detection accuracy improves by >15% over heuristics
+- Graceful fallback to heuristics if model unavailable
+- Users can create and save custom templates
+- Batch capture handles 50+ URLs efficiently
+
+### Phase 4: Platform Expansion (Social Media)
+
+**Scope**: Bluesky, TikTok, YouTube Shorts
+
+- [ ] Abstract `ISocialContentProvider` interface
+- [ ] Bluesky adapter (AT Protocol)
+- [ ] TikTok/YouTube Shorts frame capture
+- [ ] Unified "Social Capture" UI
 
 ---
 
@@ -179,7 +251,47 @@ public class DetectedRegion
    - Drag custom region → fallback to manual mode
    - Press Escape → cancel
 
-### Settings and Customization
+### Scenario 1: Quick Tweet Capture
+
+User browses X/Twitter in Chrome, sees a tweet worth capturing.
+
+**With XIP0073**:
+1. Activate region capture over tweet
+2. XerahS detects X/Twitter domain + tweet structure
+3. Overlay shows "Capture Tweet" smart action
+4. One click: clean, styled tweet image in clipboard
+
+### Scenario 2: Thread Capture
+
+User wants to capture a 15-tweet thread for a blog post.
+
+**With XIP0073**:
+1. User clicks "Capture Thread" from smart actions
+2. XerahS scrolls and stitches automatically
+3. Preview shows full thread as scrollable image
+4. Export options: long PNG, paginated PDF, or individual tweets
+
+### Scenario 3: Styled Export for Branding
+
+Social media manager needs consistent tweet visuals for Instagram.
+
+**With XIP0073**:
+1. Configure "Brand Template" once (colors, fonts, background, watermark)
+2. Capture any tweet → automatic styling applied
+3. Export dimensions optimized for target platform (Instagram square, Stories vertical, etc.)
+
+### Scenario 4: Spotlight Assistant Integration
+
+User wants to capture without touching mouse.
+
+```
+User: "capture tweet https://x.com/user/status/1234567890"
+Assistant: "Capturing... Done. Styled with default template. Copy to clipboard?"
+```
+
+---
+
+## Settings and Customization
 
 ```csharp
 public class SmartCaptureSettings
@@ -238,6 +350,105 @@ src/desktop/app/XerahS.RegionCapture/
 │       ├── SmartRegionOverlay.cs
 │       ├── DetectedRegionHighlight.cs
 │       └── ConfidenceIndicator.cs
+├── SocialCapture/
+│   ├── TweetCaptureService.cs
+│   ├── TweetDetector.cs (TweetCaptureDetector pattern)
+│   ├── ThreadCaptureEngine.cs
+│   ├── TweetTemplate.cs
+│   └── SocialCaptureOverlay.cs
+```
+
+### Social Media Architecture
+
+#### Tweet Detection Engine
+
+Lightweight detection when capture region intersects with known tweet DOM structures:
+
+```csharp
+public interface ITweetDetector
+{
+    bool IsTweetVisible(Rect captureRegion);
+    TweetMetadata? ExtractTweetData(Rect captureRegion);
+}
+
+public record TweetMetadata(
+    string TweetId,
+    string AuthorHandle,
+    string AuthorDisplayName,
+    string Text,
+    DateTime PostedAt,
+    int LikeCount,
+    int RetweetCount,
+    int ReplyCount,
+    IReadOnlyList<string> MediaUrls,
+    string? ParentTweetId
+);
+```
+
+**Detection Methods** (fallback chain):
+1. **Browser Extension Bridge**: Chrome/Firefox extension signals tweet boundaries to XerahS
+2. **Window Title Analysis**: Detect X/Twitter from window title patterns
+3. **OCR Heuristics**: Look for "@username" patterns and engagement metrics in capture region
+4. **Manual Trigger**: User explicitly selects "Tweet Capture Mode"
+
+#### Thread Capture Engine
+
+**Strategy A: Browser Automation** (requires extension)
+- Extension scrolls thread, captures each tweet
+- XerahS receives image set, stitches vertically
+- Handles nested replies, media, quoted tweets
+
+**Strategy B: URL-Based Server-Side** (no extension)
+- User provides tweet URL
+- XerahS fetches tweet data via oEmbed or API
+- Renders clean HTML locally, captures to image
+- No browser extension required
+
+#### Styling Engine
+
+```csharp
+public class TweetTemplate
+{
+    public string Id { get; init; }
+    public string Name { get; init; }
+    public BackgroundStyle Background { get; init; }
+    public TweetChromeStyle Chrome { get; init; }
+    public DimensionPreset OutputSize { get; init; }
+    public WatermarkOptions? Watermark { get; init; }
+}
+
+public record BackgroundStyle(
+    BackgroundType Type,
+    string PrimaryColor,
+    string? SecondaryColor,
+    string? PatternName,
+    float? Padding,
+    float? CornerRadius
+);
+```
+
+**Built-in Templates**:
+
+| Template | Font | Background | Accent |
+|----------|------|------------|--------|
+| Dark Mode | Inter / SF Pro | #15202B | #1DA1F2 |
+| Light Mode | Inter / SF Pro | #FFFFFF | #1DA1F2 |
+| Code Theme | JetBrains Mono | #0D1117 | #58A6FF |
+| Documentation | Inter / SF Pro | #FFFFFF | #1DA1F2 |
+
+#### Export Pipeline
+
+```
+Tweet Capture
+    ├── Raw Capture (from browser or URL render)
+    ├── Styling Engine (apply template)
+    ├── Annotation Layer (optional: arrows, highlights)
+    ├── Export
+    │     ├── To Clipboard (default)
+    │     ├── To File (PNG/JPG/PDF)
+    │     ├── To Upload Destination (Imgur, S3, etc.)
+    │     └── To Editor (for further annotation)
+    └── History Entry (with source URL metadata)
 ```
 
 ### Platform-Specific Detection
@@ -255,7 +466,7 @@ src/desktop/app/XerahS.RegionCapture/
 **Linux**:
 - X11: `xwininfo`, `xprop`, `XGetWindowAttributes`
 - Wayland: `zwlr_foreign_toplevel_manager` + custom protocols
-- Fallback: Pure visual heuristics (no window manager introspection)
+- Fallback: Pure visual heuristics
 
 ### Performance Considerations
 
@@ -266,47 +477,30 @@ src/desktop/app/XerahS.RegionCapture/
 | Battery impact | Pause detection when capture UI not active |
 | False positives | Conservative confidence thresholds; user feedback loop |
 
----
+### Privacy & Ethics (Social Capture)
 
-## Acceptance Criteria
-
-### Phase 1 (Heuristic Detection)
-
-- [ ] Tweet/post cards detected on Twitter/X with >80% accuracy
-- [ ] Video players detected on YouTube, Vimeo, Twitch with >85% accuracy
-- [ ] Chat messages detected on Slack, Discord with >75% accuracy
-- [ ] Code blocks detected in VS Code, browser dev tools with >70% accuracy
-- [ ] Detection completes in <200ms on mid-range hardware
-- [ ] UI overlay renders smoothly at 60fps
-- [ ] User can disable any pattern type individually
-- [ ] Keyboard shortcuts (1-9) select top suggestions
-
-### Phase 2 (Learned Preferences)
-
-- [ ] System learns user-adjusted regions within 3 captures
-- [ ] Recurring capture patterns suggested automatically
-- [ ] Capture history stored locally with export/delete options
-- [ ] No cloud processing or telemetry
-
-### Phase 3 (ML Enhancement)
-
-- [ ] On-device model runs inference in <100ms
-- [ ] Model size <10MB
-- [ ] Detection accuracy improves by >15% over heuristics
-- [ ] Graceful fallback to heuristics if model unavailable
+- Default watermark includes capture timestamp and source URL
+- Documentation template always shows original URL (attribution)
+- No automatic public sharing — user must explicitly upload
+- oEmbed cached aggressively; X API v2 rate limits respected
+- No bulk scraping without user consent
 
 ---
 
 ## Risks
 
 | Risk | Impact | Mitigation |
-|------|--------|------------|
-| False positives frustrate users | High | Conservative thresholds; easy manual override; user feedback |
+|------|--------|-----------|
+| False positives frustrate users | High | Conservative thresholds; easy manual override; user feedback loop |
 | Platform API changes break detection | Medium | Abstract platform layer; graceful degradation |
 | Performance regression on older hardware | Medium | Downsample for analysis; disable on <4GB RAM systems |
 | Privacy concerns about screen analysis | High | Local-only processing; clear privacy policy; no telemetry |
 | ML model bias | Medium | Diverse training data; human review of edge cases |
-| Accessibility: detection fails for atypical UIs | Medium | Always provide manual fallback; high-contrast highlight options |
+| X/Twitter blocks oEmbed or changes DOM | High | Maintain multiple detection strategies; community extension adapts faster than core app |
+| Browser extension rejected from stores | Medium | Provide sideload instructions; enterprise users can self-host |
+| Rendering fidelity complaints | Medium | Start with documentation template (accuracy over beauty); iterate on visual templates |
+| Legal concerns around content capture | High | Clear ToS guidance; watermarking for attribution; no automated bulk collection |
+| DOM-based element detection is fragile | High | Twitter/X frequently updates DOM; maintenance burden explicitly planned as recurring engineering cost |
 
 ---
 
@@ -317,6 +511,7 @@ src/desktop/app/XerahS.RegionCapture/
 3. **Content-Aware Naming**: Suggest filenames based on detected content (tweet author, video title)
 4. **Integration with XIP0072**: Use stride-safe capture for all smart-detected regions
 5. **Plugin API**: Allow third-party pattern matchers
+6. **Accessibility**: Ensure detection works for atypical UIs; always provide manual fallback
 
 ---
 
@@ -325,7 +520,10 @@ src/desktop/app/XerahS.RegionCapture/
 - **CleanShot X**: Basic window detection; no content-aware patterns
 - **Snagit**: "All-in-One" capture with some smart detection; heavy, enterprise-focused
 - **ShareX**: Region capture with last-region memory; no pattern detection
+- **TwitterShots**: API-first tweet screenshot service
+- **PostCapture**: Web-based tweet/thread capture with styling
 - **XIP0070**: User research validating need for faster capture workflows
+- **XIP0071**: Spotlight Assistant provides natural language interface (`capture tweet <url>`)
 - **XIP0072**: Underlying capture pipeline fixes enabling this UX improvement
 
 ---
@@ -336,80 +534,41 @@ src/desktop/app/XerahS.RegionCapture/
 
 ### Technical Feasibility: Overly Optimistic
 
-The detection strategy looks reasonable on paper but glosses over some hard problems:
-
 **1. DOM-like heuristics without DOM access**
-The proposal mentions "DOM-like heuristics" for tweet detection, but region capture operates at the screen buffer level — there's no DOM. You're doing computer vision on pixels, not parsing markup. The heuristics table conflates what *should* be detectable with what *can* be detected from raw pixels. Detecting a "tweet card" by "avatar column + content column" requires either:
-- Accessibility API integration (slow, permission-heavy, breaks on web apps that don't expose semantic structure)
+The proposal mentions "DOM-like heuristics" for tweet detection, but region capture operates at the screen buffer level — there's no DOM. You're doing computer vision on pixels, not parsing markup. Detecting a "tweet card" by "avatar column + content column" requires either:
+- Accessibility API integration (slow, permission-heavy, breaks on web apps)
 - CV-based layout analysis (computationally expensive, fragile across themes/resolutions)
 
-**2. The 200ms detection target is fantasy for Phase 1**
-The acceptance criteria claim "detection completes in <200ms on mid-range hardware." For context: a single screen capture at 1080p is ~8MB of data. Running edge detection, aspect ratio analysis, text density detection, and platform-specific rule matching across that buffer in 200ms — while also querying window manager APIs — is aggressive. The mitigation ("downsampled thumbnails") helps, but downsampling + multiple CV passes + API calls + scoring logic won't hit 200ms consistently without GPU acceleration, which isn't mentioned for Phase 1.
+The maintenance burden of keeping DOM selectors updated must be explicitly planned as recurring engineering cost, not a one-time fix.
 
-**3. Platform abstraction is hand-waved**
-The "Platform-Specific Detection" section lists three different approaches (Windows UI Automation, macOS Accessibility, Linux xwininfo) with no discussion of how they unify. These APIs have different capabilities, permissions, and failure modes. A Windows app might expose element trees; a macOS app might not; a Linux Wayland session exposes almost nothing. The proposal needs a concrete abstraction layer design, not a bullet list.
+**2. The 200ms detection target is aggressive for Phase 1**
+A single screen capture at 1080p is ~8MB of data. Running edge detection, aspect ratio analysis, text density detection, and API calls + scoring logic in 200ms requires GPU acceleration not currently planned for Phase 1. Mitigation via downsampled thumbnails helps but doesn't fully solve it.
+
+**3. Platform abstraction is under-specified**
+Windows UI Automation, macOS Accessibility, and Linux Wayland have fundamentally different capabilities. Abstract platform layer design must be concrete before implementation, not a bullet list.
 
 ### Scope: Phase 1 Is Not One Sprint
 
-The Phase 1 scope includes:
-- Window manager introspection across 3 platforms
-- 5+ visual heuristics (aspect ratio, edge detection, color histogram, text density, platform rules)
-- Pattern matchers for tweets, videos, chat, code, images, modals, docs
-- Confidence scoring system
-- UI overlay with keyboard shortcuts
-- Settings persistence
-
-This is **not one sprint**. It's probably 4-6 sprints for a team of 2-3 engineers, assuming no research spikes. The acceptance criteria for Phase 1 alone (7 bullet points with accuracy thresholds) would take 2+ sprints to validate.
-
-**Recommendation**: Split Phase 1. Sprint 1: Window detection + video player pattern only. Sprint 2+: Add patterns incrementally. Ship value early instead of boiling the ocean.
-
-### Risks: Under-Covered
-
-The risk table identifies the right categories but underestimates severity:
-
-**False positives**: Listed as "High" impact with mitigation "conservative thresholds." The problem isn't threshold tuning — it's that users will see *any* false positive as a bug. If the system suggests a region that captures a UI element the user didn't want, trust erodes fast. The proposal needs a "first impression" strategy: maybe start with opt-in per pattern, or require high confidence (>0.9) for auto-suggest.
-
-**Privacy concerns**: Listed as "High" with mitigation "local-only processing." This misses the real issue: users will ask *why* the app is analyzing their screen. Even local analysis feels invasive. The proposal needs explicit user consent flows and clear UI indicating when detection is active.
-
-**Missing risk: Maintenance burden**
-Platform detection rules for Twitter/X, YouTube, Slack, Discord, VS Code will break. These apps update frequently. The proposal doesn't address who maintains the pattern matchers or how updates are shipped. This is ongoing work, not a one-time implementation.
+The Phase 1 scope includes window manager introspection, 5+ visual heuristics, pattern matchers for tweets/videos/chat/code/images/modals/docs, confidence scoring, UI overlay with keyboard shortcuts, and settings persistence. This is 4-6 sprints for 2-3 engineers. **Recommendation**: Split Phase 1. Sprint 1: Window detection + video player pattern only. Sprint 2+: Add patterns incrementally.
 
 ### Missing Acceptance Criteria
 
-1. **Failure mode behavior**: What happens when detection fails? Does the UI show "no suggestions" or silently fall back to manual mode? The user needs to know the feature is working, not just absent.
+- **Failure mode behavior**: What happens when detection fails? Silent fallback to manual or explicit "no suggestions" state?
+- **Accessibility**: How do screen reader users interact with detected regions?
+- **Multi-monitor**: Detection must work across monitors with different DPIs
+- **Thread depth**: A tweet with 50 replies might be 3000px tall. Is there a capture limit?
+- **Video tweets**: Does capture show video thumbnail or video player?
+- **Rate limiting**: What happens when X/Twitter rate-limits oEmbed?
 
-2. **Accessibility**: How do screen reader users interact with detected regions? The overlay needs ARIA labels or equivalent.
+### Evidence Quality
 
-3. **Multi-monitor**: Detection needs to work across monitors with different DPIs. Not mentioned.
+User quotes in the problem statement are anecdotal. The proposal references XIP0070 (user research) but doesn't quantify what percentage of captures are repetitive or how much time is spent on region selection. Without this baseline, there's no way to measure success.
 
-4. **Performance degradation over time**: If the learning system accumulates history, does query performance degrade? Is there a retention policy?
+### Risks: Under-Covered
 
-5. **Accuracy measurement methodology**: "80% accuracy" is meaningless without a test dataset. How is accuracy defined? Who validates the ground truth?
+**Maintenance burden** (not in original risk table): Platform detection rules for Twitter/X, YouTube, Slack, Discord, VS Code will break with app updates. The proposal doesn't address who maintains pattern matchers or how updates are shipped.
 
-### Problem Statement: Evidence Is Anecdotal
-
-The problem statement cites user quotes:
-- "I capture tweets maybe 10 times a day"
-- "Chat windows are always the same size"
-- "I wish it just knew I wanted the video player region"
-
-These are valid pain points, but they're **anecdotes, not data**. The proposal references XIP0070 (user research) but doesn't quantify:
-- What percentage of captures are repetitive?
-- How much time is spent on region selection vs. other workflow steps?
-- Do users actually want automatic detection, or would they prefer better last-region memory?
-
-Without this baseline, there's no way to measure success. The acceptance criteria set accuracy targets (80%, 85%) but don't tie them to user outcomes. A system with 85% accuracy that users don't trust is worse than no system at all.
-
-### Bottom Line
-
-The vision is sound — smart region capture would differentiate XerahS. But the proposal needs to:
-1. **Cut scope for Phase 1** (one pattern, one platform, prove the concept)
-2. **Add concrete performance benchmarks** (measured on target hardware, not theoretical)
-3. **Define the abstraction layer** for cross-platform detection
-4. **Quantify the problem** with data from XIP0070
-5. **Plan for maintenance** (who updates pattern matchers when Twitter changes their layout?)
-
-Don't build a CV pipeline when a simpler heuristic might solve 80% of the problem. Start small, measure, iterate. The current proposal is a 6-month roadmap masquerading as a P1 sprint.
+**Legal/ToS risk**: Twitter's ToS prohibits automated scraping. Feature documentation must include explicit compliance guidance.
 
 ---
 
@@ -419,97 +578,70 @@ Don't build a CV pipeline when a simpler heuristic might solve 80% of the proble
 
 **First-time flow:**
 - The suggested overlay appearing on region capture activation is good — low friction, no forced commitment
-- "Capture → 'Save as Profile'" is intuitive
 - Problem: the XIP doesn't show how the user discovers existing profiles. Is there a settings page? A history? Users won't know they have saved profiles unless there's a discoverable management UI.
 
 **Returning user flow:**
 - "Top 3 suggested regions" is a good constraint — less choice paralysis
-- Single-click capture is good
-- Missing: what happens if the user wants a slightly different region than what was suggested? Manual override should be obvious and one-action, not buried.
+- Missing: what happens if the user wants a slightly different region than suggested? Manual override should be obvious and one-action.
 
 ### Suggestion Overlay
 
 **Appearance:**
-- Border color: use a neutral but visible color — not red (looks like an error) or green (looks like a success). A blue/cyan (#00D4FF) works well for "suggestion" state.
-- Labels: short, uppercase — "TWEET BOX", "CODE", "CHAT" — so they're readable at small sizes
-- Corner markers: small L-shaped brackets at corners (like crop marks) rather than a full border. Less intrusive.
-- Animation: no animation on suggestion overlay — it should feel stable, not attention-seeking. Only animate on selection (brief flash confirmation).
+- Border color: neutral but visible — blue/cyan (#00D4FF) for "suggestion" state, not red or green
+- Labels: short, uppercase — "TWEET BOX", "CODE", "CHAT" — readable at small sizes
+- Corner markers: small L-shaped brackets (crop marks) rather than full border. Less intrusive.
+- Animation: no animation on suggestion overlay appear/dismiss. Only animate on selection (brief flash confirmation).
+- **Tweet-specific**: When on x.com, use X's brand blue (#1DA1F2) as border highlight
 
 **Positioning:**
-- Show suggested regions with numbered badges (1, 2, 3) — small circles at the top-left of each region
-- On hover over a badge, show the profile name tooltip
-- On click, capture. No confirmation dialog — fast by default.
+- Numbered badges (1, 2, 3) at top-left of each region
+- Hover over badge → profile name tooltip
+- Click → capture. No confirmation dialog.
 
 ### Hotkey Strategy
 
-**F1-F12 is the wrong default.** Most power users have these keys bound to other tools:
-- F1: Raycast/Alfred search
-- F2: often renamed
-- etc.
+**F1-F12 is the wrong default.** Most power users have these bound to other tools (Raycast, Alfred, etc.).
 
 Better approach:
-- `Ctrl+Shift+R` as the default "Region Capture with Profiles" hotkey
+- `Ctrl+Shift+R` as default "Region Capture with Profiles" hotkey
 - `Ctrl+Shift+1-9` for quick capture of specific numbered profiles
+- For social capture: `Ctrl+Shift+T` (Twitter) — intuitive, won't conflict with most apps
 - Avoid bare function keys; require a modifier
 
 ### Profile Naming
 
-"Profile" is abstract. Users think in terms of targets, not abstractions:
-- Instead of: "Profile: Discord Message Pane"
-- Use: "Capture: Discord Chat"
-- Instead of: "Profile: Twitter Tweet Box"
-- Use: "Capture: Tweet"
-
-Label the button/popover with "Capture: [target]" not "Use Profile: [profile]".
+Users think in terms of targets, not abstractions:
+- Instead of: "Profile: Discord Message Pane" → "Capture: Discord Chat"
+- Instead of: "Profile: Twitter Tweet Box" → "Capture: Tweet"
 
 ### Accessibility
 
 **Keyboard users:**
-- Escape key should dismiss the suggestion overlay
-- Arrow keys to navigate between suggestions when overlay is visible
-- Enter to select, Tab to move to manual selection mode
-- All of this is missing from the XIP
+- Escape dismisses suggestion overlay
+- Arrow keys navigate between suggestions
+- Enter selects, Tab moves to manual selection mode
 
 **Screen reader:**
-- Overlay should announce: "3 capture regions detected. Press 1, 2, or 3 to capture, or Tab to select manually."
+- Overlay announces: "3 capture regions detected. Press 1, 2, or 3 to capture, or Tab to select manually."
 - Individual regions: "Region 1: Tweet Box, Ctrl+Shift+1 to capture"
 
 **Reduced motion:**
 - If user has `prefers-reduced-motion: reduce`, no animations on overlay appear/dismiss
 
-### Visual Hierarchy of the Full Capture UI
-
-The suggestion overlay is one piece of a larger UI. Here's how it should fit:
-
-```
-[Region Selection Overlay]
-├── Current crosshair cursor
-├── Selection rectangle (drawn manually)
-├── [Suggestion badges] ← NEW: overlaid on detected regions
-│   └── (1) Tweet Box  (2) Code Block  (3) Media
-└── Bottom bar: [Cancel: Esc] [Capture: Enter] [Profiles: Ctrl+P]
-```
-
-The bottom bar is existing XerahS UI — add "Profiles" as a new item. Don't create a separate overlay; integrate into the existing capture chrome.
-
-### Color Palette for Overlay States
-
-| State | Border | Fill | Badge |
-|-------|--------|------|-------|
-| Suggested (default) | #00D4FF, 2px dashed | none | #00D4FF background, white text |
-| Suggested + hover | #00D4FF, 2px solid | rgba(0,212,255,0.1) | #00D4FF, scale 1.1x |
-| User-selected | #00FF88, 2px solid | rgba(0,255,136,0.15) | #00FF88 |
-| Manual (default) | none | none | none |
-
 ### Profile Manager UI
 
-- Accessible via Ctrl+P during capture or via Settings → Profiles
-- List view with:
-  - Profile name
-  - Target app/icon
-  - Hotkey (if assigned)
-  - "Edit" and "Delete" buttons per row
+Accessible via Ctrl+P during capture or via Settings → Profiles:
+- List view with: profile name, target app/icon, hotkey, Edit/Delete buttons
 - Search bar at top
 - Import/Export at bottom (JSON)
 
-Missing from the XIP — needs to be added to Phase 1 scope.
+---
+
+## References
+
+- [TwitterShots](https://twittershots.com/) — API-first tweet screenshot service
+- [PostCapture](https://postcapture.com/) — Web-based tweet/thread capture with styling
+- [Pikaso](https://pikaso.me/) — Twitter bot + extension for styled screenshots
+- [Screenshot Guru](https://screenshot.guru/) — Chrome extension for tweet capture
+- [X oEmbed Documentation](https://developer.twitter.com/en/docs/twitter-for-websites/oembed-api)
+- [Bluesky AT Protocol](https://atproto.com/) — For future Bluesky support
