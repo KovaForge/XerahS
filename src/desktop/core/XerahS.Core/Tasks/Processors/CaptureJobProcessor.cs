@@ -150,10 +150,11 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine("UploadImageToHost flag not set; skipping upload.");
             }
 
-if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
             {
                 await PerformOCRAsync(info);
             }
+
             if (!annotationSidecarSaveAttempted)
             {
                 editorResult?.SourceImage?.Dispose();

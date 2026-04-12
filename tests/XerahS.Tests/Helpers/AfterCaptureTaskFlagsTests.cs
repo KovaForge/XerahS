@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using System.Reflection;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 
@@ -70,8 +71,11 @@ public class AfterCaptureTaskFlagsTests
     [Test]
     public void AllAfterCaptureTaskFlags_AreDistinctPowersOfTwo()
     {
-        var values = Enum.GetValues<AfterCaptureTasks>()
-            .Where(v => v != AfterCaptureTasks.None)
+        var values = typeof(AfterCaptureTasks)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.Name != nameof(AfterCaptureTasks.None))
+            .Where(field => field.GetCustomAttribute<ObsoleteAttribute>() == null)
+            .Select(field => (AfterCaptureTasks)field.GetValue(null)!)
             .ToList();
 
         var bits = values.Select(v => (int)v).ToList();
