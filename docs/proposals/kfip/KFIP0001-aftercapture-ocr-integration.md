@@ -17,8 +17,8 @@ Implemented the `DoOCR` AfterCapture task flag defined in `TaskEnums.cs` (bit 17
    - Implemented `ShowOcrWindowAsync` — creates an `OcrViewModel` with the captured image, wires `SelectRegionRequested` callback (same delay/capture logic as `OcrToolService`), then shows `OcrWindow`
 
 3. **`src/desktop/app/XerahS.UI/ViewModels/TaskSettingsViewModel.AfterCapture.cs`**
-   - Added `DoOCR`, `BeautifyImage`, `ScanQRCode`, `PinToScreen`, `CopyFilePathToClipboard`, `ShowInExplorer`, `AnalyzeImage` properties
-   - Each property reads/writes the corresponding `AfterCaptureTasks` flag via `HasFlag` / `UpdateAfterCaptureTask`
+   - Added `DoOCR` property
+   - The property reads/writes the corresponding `AfterCaptureTasks` flag via `HasFlag` / `UpdateAfterCaptureTask`
 
 4. **`src/desktop/core/XerahS.Core/Tasks/Processors/CaptureJobProcessor.cs`**
    - Added `PerformOCRAsync(TaskInfo info)` method called when `AfterCaptureTasks.DoOCR` flag is set
@@ -27,7 +27,7 @@ Implemented the `DoOCR` AfterCapture task flag defined in `TaskEnums.cs` (bit 17
    - Shows `OcrWindow` via `PlatformServices.UI.ShowOcrWindowAsync(image)` so user can review/adjust/copy
 
 5. **`src/desktop/app/XerahS.UI/Views/TaskSettingsPanel.axaml`**
-   - Added OCR checkbox and other AfterCapture checkboxes to the UI
+   - Added OCR checkbox to the UI
 
 ### Stage 2 [Refactor]
 
@@ -68,4 +68,3 @@ Implemented the `DoOCR` AfterCapture task flag defined in `TaskEnums.cs` (bit 17
 
 - OCR on Linux returns `Success=false` with Tesseract planned message. Windows OCR uses native `Windows.Media.Ocr`. macOS uses `VNRecognizeTextRequest`.
 - `OcrWindow` is reused from the existing `OcrToolService` workflow path
-- `BeautifyImage`, `ScanQRCode`, `PinToScreen`, `CopyFilePathToClipboard`, `ShowInExplorer`, `AnalyzeImage` are wired in UI and ViewModel but not yet implemented in `CaptureJobProcessor`

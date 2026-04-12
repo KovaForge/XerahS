@@ -32,7 +32,7 @@ namespace XerahS.Tests.Helpers;
 
 /// <summary>
 /// Unit tests for AfterCapture task flags defined in TaskEnums.cs.
-/// Verifies that DoOCR, BeautifyImage, ScanQRCode and other AfterCapture tasks
+/// Verifies that DoOCR, ScanQRCode and other AfterCapture tasks
 /// are correctly defined as powers of 2 for flag-based composition.
 /// </summary>
 [TestFixture]
@@ -47,15 +47,6 @@ public class AfterCaptureTaskFlagsTests
             // 1 << 17 = 131072
             Assert.That((int)AfterCaptureTasks.DoOCR, Is.EqualTo(1 << 17));
             Assert.That((int)(AfterCaptureTasks.DoOCR & (AfterCaptureTasks.DoOCR - 1)), Is.EqualTo(0), "DoOCR must be a single bit");
-        });
-    }
-
-    [Test]
-    public void BeautifyImage_IsDefinedAsBitFlag()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That((int)AfterCaptureTasks.BeautifyImage, Is.EqualTo(1 << 2));
         });
     }
 
@@ -96,14 +87,12 @@ public class AfterCaptureTaskFlagsTests
     {
         // Verify flags can be safely combined without collision
         var combined = AfterCaptureTasks.DoOCR
-                             | AfterCaptureTasks.BeautifyImage
                              | AfterCaptureTasks.ScanQRCode
                              | AfterCaptureTasks.ShowAfterCaptureWindow;
 
         Assert.Multiple(() =>
         {
             Assert.That(combined.HasFlag(AfterCaptureTasks.DoOCR), Is.True);
-            Assert.That(combined.HasFlag(AfterCaptureTasks.BeautifyImage), Is.True);
             Assert.That(combined.HasFlag(AfterCaptureTasks.ScanQRCode), Is.True);
             Assert.That(combined.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow), Is.True);
         });
