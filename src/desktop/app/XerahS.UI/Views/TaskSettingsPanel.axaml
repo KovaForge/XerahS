@@ -95,11 +95,6 @@
                                     <CheckBox IsChecked="{Binding ShowAfterCaptureWindow}" Content="Show after capture window"/>
                                     <CheckBox IsChecked="{Binding DoOCR}" Content="OCR text recognition"/>
                                     <CheckBox IsChecked="{Binding BeautifyImage}" Content="Beautify image"/>
-                                    <CheckBox IsChecked="{Binding ScanQRCode}" Content="Scan QR code"/>
-                                    <CheckBox IsChecked="{Binding PinToScreen}" Content="Pin to screen"/>
-                                    <CheckBox IsChecked="{Binding CopyFilePathToClipboard}" Content="Copy file path to clipboard"/>
-                                    <CheckBox IsChecked="{Binding ShowInExplorer}" Content="Show in explorer"/>
-                                    <CheckBox IsChecked="{Binding AnalyzeImage}" Content="Analyze image"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
