@@ -79,7 +79,14 @@ These are XerahS tasks, not open-ended web assistant tasks. A natural-language c
 
 ### Summoning
 
-XerahS should expose a configurable assistant hotkey, with a default candidate of `Ctrl+Shift+Space` on desktop platforms unless it conflicts with an existing XerahS or OS shortcut.
+▲ Nadia clarification resolved: Q33, Q34, Q35, Q36, Q37, Q38, Q39, Q40
+
+XerahS should expose a configurable assistant hotkey:
+- **Windows/Linux**: `Ctrl+Shift+Space`
+- **macOS**: `Cmd+Shift+Space`
+- **Fallback**: Double-tap `Ctrl` (Ctrl, Ctrl within 300ms) when conflicts detected on any platform
+
+Hotkey conflict detection: Attempt to register the default shortcut. If registration fails, try the fallback. If fallback fails, prompt user to configure manually. Show a "Test Shortcut" button in settings. (Nadia Q33, Q34)
 
 When invoked, XerahS opens a lightweight centered overlay:
 
