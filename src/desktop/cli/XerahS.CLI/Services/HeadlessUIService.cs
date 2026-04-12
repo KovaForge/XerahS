@@ -165,6 +165,13 @@ namespace XerahS.CLI.Services
             return Task.CompletedTask;
         }
 
+        public Task ShowOcrWindowAsync(SKBitmap image)
+        {
+            Console.Error.WriteLine("[WARNING] OCR window not available in CLI mode.");
+            Console.Error.WriteLine("Image dimensions: {0}x{1}", image.Width, image.Height);
+            return Task.CompletedTask;
+        }
+
         public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
         {
             Console.WriteLine("[INFO] Send-to prompt not available in CLI mode. Falling back to upload.");
