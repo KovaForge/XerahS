@@ -18,6 +18,20 @@ The assistant should be local-first and privacy-first. It should prefer structur
 
 ---
 
+## Provider Research Update - 2026-04-12
+
+Initial provider research should shape the implementation around provider adapters, not one hard-coded request format:
+
+- OpenAI recommends the Responses API for new agent-like applications, including native multimodal support and tool use. Its function-calling guide also recommends strict schemas and keeping the number of functions small for accuracy. Source: https://platform.openai.com/docs/guides/responses-vs-chat-completions and https://platform.openai.com/docs/guides/function-calling
+- MiniMax documents text generation models that can produce conversation output and tool calls, and supports HTTP, Anthropic SDK compatibility, and OpenAI SDK compatibility. Source: https://platform.minimaxi.com/docs/api-reference/api-overview
+- Kimi documents Kimi K2.5 as OpenAI API-format compatible using `base_url="https://api.moonshot.ai/v1"`, supports multimodal input, and includes an OpenAI-style tool-calling loop. Source: https://platform.kimi.ai/docs/guide/kimi-k2-5-quickstart
+- Gemini uses the Gemini API `generateContent` endpoint and its own function-declaration/tool-config model. Gemini API REST calls use the `x-goog-api-key` header. Source: https://ai.google.dev/gemini-api/docs/function-calling and https://ai.google.dev/gemini-api/docs/api-key
+- Anthropic uses the Messages API with `x-api-key`, `anthropic-version`, and JSON content headers. Claude tool use returns structured client-side tool calls that the application executes and feeds back as tool results. Source: https://docs.anthropic.com/en/api/overview and https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview
+
+Design implication: XerahS should define one internal assistant request/tool model, then adapt it per provider. OpenAI-compatible providers can share adapter code only where their tool-call and multimodal behavior actually matches. Gemini and Anthropic should have dedicated adapters because their request/response envelopes differ.
+
+---
+
 ## Problem Statement
 
 XerahS already has many power-user capabilities: capture, history, annotation, OCR, upload destinations, workflows, and MCP-accessible runtime operations. The problem is discoverability and speed. Users often know the outcome they want, but not the exact menu, hotkey, history filter, workflow, or tool chain needed to reach it.
@@ -41,6 +55,8 @@ These are XerahS tasks, not open-ended web assistant tasks. A natural-language c
 - Treat the assistant as a natural-language command palette for XerahS, not a general chatbot.
 - Route assistant actions through approved XerahS services and tool contracts.
 - Support user-provided AI provider API keys without bundling a mandatory cloud service.
+- Support a unified provider selection flow for OpenAI, MiniMax, Kimi, Gemini, and Anthropic.
+- Let the user select a provider from a dropdown, input an API key, optionally select or override the model ID, validate the key, and set that provider as active.
 - Keep metadata-only requests metadata-only; do not send screenshot pixels or file contents to AI providers unless the user explicitly requests an image/content analysis action.
 - Require confirmation for external sharing, uploads, destructive operations, or any action that sends image/file content to an AI provider.
 - Reuse existing XerahS runtime surfaces where practical, including the XIP0064 MCP/tool contract, without exposing this feature as a new external control channel.
@@ -167,26 +183,102 @@ The tool names above are planning names. Implementation may map them to existing
 
 ### 4. Provider Layer
 
-Add a provider abstraction, for example `IAssistantModelProvider`, with support for:
+Add a provider-neutral abstraction, for example `IAssistantModelProvider`, with support for:
 
 - provider ID
+- display name
+- provider family or protocol
 - model ID
 - text-only tool-calling request
 - optional image/content analysis request
 - token and cost metadata where available
 - cancellation
 
-Initial providers can be staged. The first implementation only needs one provider to validate the architecture, but settings should not bake in a single vendor forever.
+The internal XerahS assistant request should be provider-independent:
 
-Candidate providers:
+```csharp
+public sealed record AssistantModelRequest(
+    string ProviderId,
+    string ModelId,
+    IReadOnlyList<AssistantMessage> Messages,
+    IReadOnlyList<AssistantToolDefinition> Tools,
+    AssistantPrivacyScope PrivacyScope,
+    bool AllowImageContent);
+```
 
-- OpenAI-compatible endpoint
-- OpenRouter
-- Ollama or another local OpenAI-compatible endpoint
+The model provider should return a provider-independent result:
 
-API keys should be stored in the OS credential store where practical. If XerahS must fall back to app config on a platform, the UI should clearly label the storage behavior.
+```csharp
+public sealed record AssistantModelResult(
+    AssistantModelResultKind Kind,
+    string? Text,
+    IReadOnlyList<AssistantToolCall> ToolCalls,
+    AssistantUsage? Usage,
+    string? ProviderRequestId);
+```
 
-### 5. Privacy and Consent Guard
+Provider adapters translate that internal model into each provider's transport and tool format. This avoids leaking provider-specific envelopes into the assistant orchestrator and privacy guard.
+
+Initial provider support:
+
+| Provider | Adapter strategy | Key/header expectation | Initial model default |
+|---|---|---|---|
+| OpenAI | Native OpenAI adapter using Responses API for new agentic work; Chat Completions compatibility only if required by SDK/runtime constraints | Bearer API key | configurable, seeded from current OpenAI model defaults during implementation |
+| MiniMax | Dedicated MiniMax adapter; prefer the documented compatible API path that best matches tool calling after implementation validation | MiniMax API key | provider-recommended current MiniMax text model at implementation time |
+| Kimi | OpenAI-compatible adapter using Moonshot/Kimi base URL and Kimi model IDs | Bearer API key against `https://api.moonshot.ai/v1` | `kimi-k2.5` |
+| Gemini | Dedicated Gemini adapter using `generateContent`, function declarations, and function calling config | `x-goog-api-key` | current Gemini Flash-class model at implementation time |
+| Anthropic | Dedicated Anthropic Messages adapter using client-side tools and tool-result loop | `x-api-key` plus `anthropic-version` | current Claude Sonnet-class model at implementation time |
+
+Model defaults must be checked against provider docs during implementation because model IDs change over time. The settings UI should let users override the model ID instead of requiring a code change for every provider model update.
+
+### 5. Provider Settings UX
+
+Add an Assistant Providers settings section:
+
+- Provider dropdown: OpenAI, MiniMax, Kimi, Gemini, Anthropic.
+- API key input: masked by default, reveal button optional, never logged.
+- Model dropdown or text field: prefilled default, editable for advanced users.
+- Endpoint/base URL field only where needed:
+  - hidden for fixed-provider defaults
+  - shown for Kimi/Moonshot and any OpenAI-compatible override
+  - optional advanced setting for local/proxy endpoints later
+- `Validate key` action that performs a minimal provider-specific test request without sending screenshots, file contents, or history data.
+- `Set active` action that stores the selected provider configuration as the current assistant provider.
+- masked provider status in UI, such as `OpenAI - active - key ending in abcd`.
+- `Remove key` and `Deactivate provider` actions.
+
+Provider configuration should be split between non-secret settings and secret storage:
+
+```csharp
+public sealed record AssistantProviderSettings(
+    string ProviderId,
+    string DisplayName,
+    string ModelId,
+    string? BaseUrl,
+    bool IsActive,
+    bool IsConfigured,
+    DateTimeOffset? LastValidatedAt);
+```
+
+The API key itself should live in OS-backed secret storage where practical. App config should only store the provider ID, model ID, base URL, active state, masked key preview, and validation metadata.
+
+### 6. Provider Capability Matrix
+
+The assistant should not assume every provider can do every task. Add provider capability metadata:
+
+| Capability | OpenAI | MiniMax | Kimi | Gemini | Anthropic |
+|---|---|---|---|---|---|
+| Text intent routing | Yes | Yes | Yes | Yes | Yes |
+| Tool/function calling | Yes | Yes, via compatible APIs | Yes, OpenAI-style | Yes, Gemini function declarations | Yes, Claude tool use |
+| Image input | Yes, model-dependent | Model-dependent | Yes for Kimi K2.5 | Yes, model-dependent | Yes, model-dependent |
+| Streaming | Later | Later | Later | Later | Later |
+| Local deterministic commands without key | Not needed | Not needed | Not needed | Not needed | Not needed |
+
+XerahS should gate UI affordances and privacy prompts based on these capabilities. For example, if the active model is text-only, image-content analysis prompts should fail with a clear message instead of trying to upload pixels.
+
+Initial providers can be staged. The first implementation only needs two providers to validate the architecture, but settings should not bake in a single vendor forever. One of the first two providers should use an OpenAI-compatible envelope and one should use a non-OpenAI envelope.
+
+### 7. Privacy and Consent Guard
 
 Add a central policy layer, for example `IAssistantPrivacyGuard`, to classify requests and enforce consent:
 
@@ -210,13 +302,16 @@ The guard should produce user-facing confirmation text before risky actions. It 
 - Write the initial allowlisted tool contract.
 - Decide default shortcut and conflict behavior.
 - Define consent categories and confirmation copy.
+- Define the provider-neutral request/result contracts.
 - Decide where provider keys are stored on Windows, macOS, and Linux.
+- Define provider capability metadata for OpenAI, MiniMax, Kimi, Gemini, and Anthropic.
 - Add tests for the privacy guard's classification rules.
 
 Exit criteria:
 
 - XerahS has a documented assistant trust boundary.
 - No implementation path requires arbitrary filesystem search or shell execution.
+- Provider support can be added without changing the assistant orchestrator or tool contracts.
 
 ### Phase 1 - Spotlight Shell and Deterministic Commands
 
@@ -240,16 +335,19 @@ Exit criteria:
 
 ### Phase 2 - BYOK Provider Settings and AI Intent Routing
 
-- Add assistant provider settings UI.
+- Add assistant provider settings UI with provider dropdown, API key input, model selection/override, validation, and `Set active`.
+- Add initial provider records for OpenAI, MiniMax, Kimi, Gemini, and Anthropic.
 - Add provider/key validation without exposing full keys in UI or logs.
-- Implement one provider path using strict tool calling.
+- Implement provider adapters behind `IAssistantModelProvider`.
+- Implement OpenAI and at least one non-OpenAI-envelope provider path to prove the abstraction is not secretly OpenAI-only.
 - Add model routing only after deterministic command matching fails or needs disambiguation.
 - Validate all model-requested tool calls against typed schemas and the privacy guard.
 - Add cancellation and timeout handling.
 
 Exit criteria:
 
-- Users can configure an AI provider key.
+- Users can configure an AI provider key from a provider dropdown and set one provider as active.
+- API keys are masked, removable, and never stored in plain assistant transcripts or logs.
 - The assistant can translate flexible natural language into the existing Phase 1 tools.
 - Invalid or unsupported tool requests fail safely with a plain explanation.
 
@@ -300,10 +398,12 @@ Exit criteria:
 - What should the default shortcut be on Windows, macOS, and Linux?
 - Should the overlay be available when XerahS is only running in the tray?
 - Should Phase 1 include a deterministic parser only, or a small built-in command grammar with suggestions?
-- Which provider should ship first for BYOK validation?
+- Which two providers should ship first to validate both OpenAI-compatible and non-OpenAI-compatible adapters?
 - Should prompt history be enabled by default or opt-in?
 - Should local model support be a first-class Phase 2 requirement or a Phase 3/4 addition?
 - How should the assistant display paths on platforms where history items may be remote, deleted, or moved?
+- Should model lists be hard-coded defaults, fetched from provider APIs, or both?
+- Should provider validation use a real minimal model request or only an authenticated model-list/status endpoint when available?
 
 ---
 
@@ -356,6 +456,6 @@ Exit criteria:
 - The feature works without an AI API key for the initial deterministic commands.
 - No arbitrary filesystem scan is performed.
 - No screenshot pixels or file contents are sent to any AI provider for the first shipping slice.
+- The implementation plan includes a provider-neutral API architecture for OpenAI, MiniMax, Kimi, Gemini, and Anthropic.
 - Unit tests cover command routing for the initial deterministic commands.
 - Unit tests cover privacy guard behavior for metadata-only lookup, upload confirmation, and cloud image/content requests.
-
