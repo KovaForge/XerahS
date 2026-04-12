@@ -410,3 +410,106 @@ The vision is sound — smart region capture would differentiate XerahS. But the
 5. **Plan for maintenance** (who updates pattern matchers when Twitter changes their layout?)
 
 Don't build a CV pipeline when a simpler heuristic might solve 80% of the problem. Start small, measure, iterate. The current proposal is a 6-month roadmap masquerading as a P1 sprint.
+
+---
+
+## Design Feedback
+
+### UX Flow Assessment
+
+**First-time flow:**
+- The suggested overlay appearing on region capture activation is good — low friction, no forced commitment
+- "Capture → 'Save as Profile'" is intuitive
+- Problem: the XIP doesn't show how the user discovers existing profiles. Is there a settings page? A history? Users won't know they have saved profiles unless there's a discoverable management UI.
+
+**Returning user flow:**
+- "Top 3 suggested regions" is a good constraint — less choice paralysis
+- Single-click capture is good
+- Missing: what happens if the user wants a slightly different region than what was suggested? Manual override should be obvious and one-action, not buried.
+
+### Suggestion Overlay
+
+**Appearance:**
+- Border color: use a neutral but visible color — not red (looks like an error) or green (looks like a success). A blue/cyan (#00D4FF) works well for "suggestion" state.
+- Labels: short, uppercase — "TWEET BOX", "CODE", "CHAT" — so they're readable at small sizes
+- Corner markers: small L-shaped brackets at corners (like crop marks) rather than a full border. Less intrusive.
+- Animation: no animation on suggestion overlay — it should feel stable, not attention-seeking. Only animate on selection (brief flash confirmation).
+
+**Positioning:**
+- Show suggested regions with numbered badges (1, 2, 3) — small circles at the top-left of each region
+- On hover over a badge, show the profile name tooltip
+- On click, capture. No confirmation dialog — fast by default.
+
+### Hotkey Strategy
+
+**F1-F12 is the wrong default.** Most power users have these keys bound to other tools:
+- F1: Raycast/Alfred search
+- F2: often renamed
+- etc.
+
+Better approach:
+- `Ctrl+Shift+R` as the default "Region Capture with Profiles" hotkey
+- `Ctrl+Shift+1-9` for quick capture of specific numbered profiles
+- Avoid bare function keys; require a modifier
+
+### Profile Naming
+
+"Profile" is abstract. Users think in terms of targets, not abstractions:
+- Instead of: "Profile: Discord Message Pane"
+- Use: "Capture: Discord Chat"
+- Instead of: "Profile: Twitter Tweet Box"
+- Use: "Capture: Tweet"
+
+Label the button/popover with "Capture: [target]" not "Use Profile: [profile]".
+
+### Accessibility
+
+**Keyboard users:**
+- Escape key should dismiss the suggestion overlay
+- Arrow keys to navigate between suggestions when overlay is visible
+- Enter to select, Tab to move to manual selection mode
+- All of this is missing from the XIP
+
+**Screen reader:**
+- Overlay should announce: "3 capture regions detected. Press 1, 2, or 3 to capture, or Tab to select manually."
+- Individual regions: "Region 1: Tweet Box, Ctrl+Shift+1 to capture"
+
+**Reduced motion:**
+- If user has `prefers-reduced-motion: reduce`, no animations on overlay appear/dismiss
+
+### Visual Hierarchy of the Full Capture UI
+
+The suggestion overlay is one piece of a larger UI. Here's how it should fit:
+
+```
+[Region Selection Overlay]
+├── Current crosshair cursor
+├── Selection rectangle (drawn manually)
+├── [Suggestion badges] ← NEW: overlaid on detected regions
+│   └── (1) Tweet Box  (2) Code Block  (3) Media
+└── Bottom bar: [Cancel: Esc] [Capture: Enter] [Profiles: Ctrl+P]
+```
+
+The bottom bar is existing XerahS UI — add "Profiles" as a new item. Don't create a separate overlay; integrate into the existing capture chrome.
+
+### Color Palette for Overlay States
+
+| State | Border | Fill | Badge |
+|-------|--------|------|-------|
+| Suggested (default) | #00D4FF, 2px dashed | none | #00D4FF background, white text |
+| Suggested + hover | #00D4FF, 2px solid | rgba(0,212,255,0.1) | #00D4FF, scale 1.1x |
+| User-selected | #00FF88, 2px solid | rgba(0,255,136,0.15) | #00FF88 |
+| Manual (default) | none | none | none |
+
+### Profile Manager UI
+
+- Accessible via Ctrl+P during capture or via Settings → Profiles
+- List view with:
+  - Profile name
+  - Target app/icon
+  - Hotkey (if assigned)
+  - "Edit" and "Delete" buttons per row
+- Search bar at top
+- Import/Export at bottom (JSON)
+
+Missing from the XIP — needs to be added to Phase 1 scope.
