@@ -233,7 +233,16 @@ Model defaults must be checked against provider docs during implementation becau
 
 ### 5. Provider Settings UX
 
-Add an Assistant Providers settings section:
+Add an Assistant Providers settings section to the global application settings UI.
+
+Placement:
+
+- The settings belong in `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`.
+- The first planned location is the existing `Integration` tab, near the current MCP Server section, because these settings configure app-wide AI provider integration rather than a capture workflow, uploader destination, or per-task behavior.
+- The bindings should live on the existing `SettingsViewModel` surface, with supporting models/services added as needed for provider selection, key validation, and active-provider state.
+- The settings should not be placed in task settings, after-capture settings, workflow settings, or the assistant overlay itself. The overlay can link to these settings when no active provider is configured.
+
+Controls:
 
 - Provider dropdown: OpenAI, MiniMax, Kimi, Gemini, Anthropic.
 - API key input: masked by default, reveal button optional, never logged.
@@ -336,6 +345,7 @@ Exit criteria:
 ### Phase 2 - BYOK Provider Settings and AI Intent Routing
 
 - Add assistant provider settings UI with provider dropdown, API key input, model selection/override, validation, and `Set active`.
+- Implement the global settings UI in `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`, with bindings on `SettingsViewModel`.
 - Add initial provider records for OpenAI, MiniMax, Kimi, Gemini, and Anthropic.
 - Add provider/key validation without exposing full keys in UI or logs.
 - Implement provider adapters behind `IAssistantModelProvider`.
