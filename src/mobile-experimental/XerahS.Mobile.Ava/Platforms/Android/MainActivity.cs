@@ -29,7 +29,6 @@ using Android.Content.PM;
 using Android.Content.Res;
 using Android.OS;
 using Android.Views;
-using Avalonia;
 using Avalonia.Android;
 using Avalonia.Controls.ApplicationLifetimes;
 using ShareX.AmazonS3.Plugin;
@@ -61,7 +60,7 @@ namespace Ava.Platforms.Android;
     new[] { Intent.ActionSend },
     Categories = new[] { Intent.CategoryDefault },
     DataMimeType = "text/*")]
-public class MainActivity : AvaloniaMainActivity<MobileApp>
+public class MainActivity : AvaloniaMainActivity
 {
     /// <summary>Current activity instance for use by MobileToastService (Android Toast must run with a context).</summary>
     public static Activity? CurrentActivity { get; private set; }
@@ -69,20 +68,13 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
     private static readonly global::Android.Graphics.Color LightSystemBarColor = global::Android.Graphics.Color.ParseColor("#FFF5F5F5");
     private static readonly global::Android.Graphics.Color DarkSystemBarColor = global::Android.Graphics.Color.ParseColor("#FF121212");
 
-    protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
+    protected override void OnCreate(Bundle? savedInstanceState)
     {
         MobilePlatform.Initialize(PlatformType.Android);
         PlatformServices.Clipboard = new AndroidClipboardService(this);
         PathsManager.PersonalFolder = FilesDir!.AbsolutePath;
         MobileApp.RegisterBundledProvider(new AmazonS3Provider());
 
-        return builder
-            .UseAndroid()
-            .LogToTrace();
-    }
-
-    protected override void OnCreate(Bundle? savedInstanceState)
-    {
         // When activity is re-created (e.g. Share intent), detach the navigation root from the
         // previous activity's visual tree so Avalonia can attach it to this activity's host.
         if (Avalonia.Application.Current is MobileApp mobileApp)
@@ -94,7 +86,6 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
         CurrentActivity = this;
         ApplyNativeSystemBars();
         HandleShareIntent(Intent);
-        StartHeartbeat();
     }
 
     protected override void OnDestroy()
@@ -108,16 +99,6 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
         base.OnNewIntent(intent);
         if (intent != null)
             HandleShareIntent(intent);
-    }
-
-    private void StartHeartbeat()
-    {
-        var timer = new Avalonia.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(1)
-        };
-        timer.Tick += (s, e) => global::Android.Util.Log.Debug("XerahS", $"[Heartbeat] UI Thread is alive at {DateTime.Now:HH:mm:ss}");
-        timer.Start();
     }
 
     public override void OnConfigurationChanged(Configuration newConfig)
