@@ -121,18 +121,6 @@ namespace XerahS.UI.ViewModels
             }
         }
 
-        public bool BeautifyImage
-        {
-            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.BeautifyImage);
-            set
-            {
-                if (BeautifyImage != value)
-                {
-                    UpdateAfterCaptureTask(AfterCaptureTasks.BeautifyImage, value);
-                    OnPropertyChanged();
-                }
-            }
-        }
 
         private void UpdateAfterCaptureTask(AfterCaptureTasks task, bool enabled)
         {

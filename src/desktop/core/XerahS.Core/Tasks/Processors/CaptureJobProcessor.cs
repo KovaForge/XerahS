@@ -42,12 +42,12 @@ namespace XerahS.Core.Tasks.Processors
         /// Callback to pin an image to the desktop. Set by the UI layer to dispatch to PinToScreenManager.
         /// Takes bitmap, location (object for cross-layer safety), and options.
         /// </summary>
-        internal static Func<SKBitmap, object?, PinToScreenOptions, Task>? PinToScreenCallback { get; set; }
+        public static Func<SKBitmap, object?, PinToScreenOptions, Task>? PinToScreenCallback { get; set; }
 
         /// <summary>
         /// Callback to show the analyzer window. Set by the UI layer to dispatch to AvaloniaUIService.
         /// </summary>
-        internal static Func<SKBitmap, Task>? ShowAnalyzerCallback { get; set; }
+        public static Func<SKBitmap, Task>? ShowAnalyzerCallback { get; set; }
 
         /// <summary>
         /// Executes after-capture tasks for the current job.
@@ -164,7 +164,7 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine("UploadImageToHost flag not set; skipping upload.");
             }
 
-if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
             {
                 await PerformOCRAsync(info);
             }
@@ -290,6 +290,7 @@ if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
                     }
                 }
             }
+
 
             // AnalyzeImage
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnalyzeImage))

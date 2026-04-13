@@ -211,5 +211,7 @@ public class SendToIntegrationCoordinatorTests
         }
 
         public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+        public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
     }
 }

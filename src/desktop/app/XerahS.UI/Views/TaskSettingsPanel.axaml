@@ -94,7 +94,6 @@
                                     <CheckBox IsChecked="{Binding AnnotateMedia}" Content="Annotate media"/>
                                     <CheckBox IsChecked="{Binding ShowAfterCaptureWindow}" Content="Show after capture window"/>
                                     <CheckBox IsChecked="{Binding DoOCR}" Content="OCR text recognition"/>
-                                    <CheckBox IsChecked="{Binding BeautifyImage}" Content="Beautify image"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
