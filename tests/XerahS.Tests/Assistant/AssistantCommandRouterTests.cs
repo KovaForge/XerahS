@@ -53,6 +53,36 @@ public sealed class AssistantCommandRouterTests
     }
 
     [Test]
+    public void LastFiveScreenshots_LocalFilepathSingleWord_ParsesHistoryLookup()
+    {
+        var intent = _router.Parse("give me the last 5 screenshots local filepath separated by ;");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.LatestScreenshotPaths));
+        Assert.That(intent.Limit, Is.EqualTo(5));
+        Assert.That(intent.Separator, Is.EqualTo(";"));
+    }
+
+    [Test]
+    public void LastFiveScreenshots_SemicolonsWordSeparator_IsNormalized()
+    {
+        var intent = _router.Parse("last 5 screenshot paths separated by semicolons.");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.LatestScreenshotPaths));
+        Assert.That(intent.Limit, Is.EqualTo(5));
+        Assert.That(intent.Separator, Is.EqualTo(";"));
+    }
+
+    [Test]
+    public void LastFiveScreenshots_ArticleBeforeSemicolon_IsNormalized()
+    {
+        var intent = _router.Parse("last 5 screenshot paths separated by a semicolon.");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.LatestScreenshotPaths));
+        Assert.That(intent.Limit, Is.EqualTo(5));
+        Assert.That(intent.Separator, Is.EqualTo(";"));
+    }
+
+    [Test]
     public void LastScreenshotLimit_IsClampedToTen()
     {
         var intent = _router.Parse("give me local file path of last 25 screenshots");

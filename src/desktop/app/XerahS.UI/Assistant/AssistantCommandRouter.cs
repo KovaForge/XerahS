@@ -52,15 +52,15 @@ public sealed class AssistantCommandRouter
     public const int MaxLatestScreenshotLimit = 10;
 
     private static readonly Regex LastScreenshotPathsRegex = new(
-        @"\b(?:give\s+me\s+)?(?:the\s+)?(?:local\s+)?(?:file\s+)?paths?\s+(?:of\s+)?(?:my\s+)?(?:last|latest)\s+(?<limit>\d{1,2})\s+screenshot(?:s)?\b|\b(?:last|latest)\s+(?<limit2>\d{1,2})\s+screenshot(?:s)?\s+(?:(?:local\s+)?file\s+path(?:s)?|paths?)\b",
+        @"\b(?:give\s+me\s+)?(?:the\s+)?(?:local\s+)?(?:(?:file\s+)?paths?|filepath(?:s)?)\s+(?:of\s+)?(?:my\s+)?(?:last|latest)\s+(?<limit>\d{1,2})\s+screenshot(?:s)?\b|\b(?:last|latest)\s+(?<limit2>\d{1,2})\s+screenshot(?:s)?\s+(?:(?:local\s+)?(?:file\s+path(?:s)?|filepath(?:s)?)|paths?)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LatestScreenshotPathRegex = new(
-        @"\b(?:latest|last|most\s+recent)\s+screenshot\b.*\b(?:path|file\s+path)\b|\b(?:path|file\s+path)\b.*\b(?:latest|last|most\s+recent)\s+screenshot\b",
+        @"\b(?:latest|last|most\s+recent)\s+screenshot\b.*\b(?:path|filepath|file\s+path)\b|\b(?:path|filepath|file\s+path)\b.*\b(?:latest|last|most\s+recent)\s+screenshot\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex CopyLatestScreenshotPathRegex = new(
-        @"\bcopy\b.*(?:\b(?:latest|last|most\s+recent)\s+screenshot\b.*\b(?:path|file\s+path)\b|\b(?:path|file\s+path)\b.*\b(?:latest|last|most\s+recent)\s+screenshot\b)",
+        @"\bcopy\b.*(?:\b(?:latest|last|most\s+recent)\s+screenshot\b.*\b(?:path|filepath|file\s+path)\b|\b(?:path|filepath|file\s+path)\b.*\b(?:latest|last|most\s+recent)\s+screenshot\b)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex OpenLatestScreenshotRegex = new(
@@ -173,7 +173,7 @@ public sealed class AssistantCommandRouter
 
         var match = Regex.Match(
             prompt,
-            @"\b(?:separated|joined)\s+by\s+(?<separator>""[^""]*""|'[^']*'|[^\s,]+)",
+            @"\b(?:separated|joined)\s+by\s+(?:(?:a|an)\s+)?(?<separator>""[^""]*""|'[^']*'|[^\s,]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         if (match.Success)
@@ -200,17 +200,31 @@ public sealed class AssistantCommandRouter
         return null;
     }
 
-    private static string NormalizeSeparator(string value) => value.ToLowerInvariant() switch
+    private static string NormalizeSeparator(string value)
     {
-        "semicolon" => ";",
-        "comma" => ",",
-        "pipe" => "|",
-        "tab" => "\t",
-        "newline" => Environment.NewLine,
-        "linebreak" => Environment.NewLine,
-        "line-break" => Environment.NewLine,
-        _ => value
-    };
+        string trimmed = value.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return trimmed;
+        }
+
+        string normalizedKeyword = trimmed
+            .TrimEnd('.', '!', '?', ',', ':')
+            .ToLowerInvariant();
+
+        return normalizedKeyword switch
+        {
+            "semicolon" or "semicolons" => ";",
+            "comma" or "commas" => ",",
+            "pipe" or "pipes" => "|",
+            "tab" or "tabs" => "\t",
+            "newline" or "newlines" => Environment.NewLine,
+            "new line" or "new lines" => Environment.NewLine,
+            "linebreak" or "linebreaks" => Environment.NewLine,
+            "line-break" or "line-breaks" => Environment.NewLine,
+            _ => trimmed
+        };
+    }
 
     public static IReadOnlyList<string> GetSuggestions() =>
     [
