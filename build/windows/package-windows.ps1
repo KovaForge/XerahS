@@ -1,6 +1,58 @@
 $ErrorActionPreference = "Stop"
 
 # This script builds Windows installers and requires Windows plus Inno Setup.
+# It also builds MSI packages using WiX Toolset v4 when `wix` is available in PATH.
+# Install WiX: dotnet tool install --global wix ; wix extension add --global WixToolset.UI.wixext
+
+# ---------------------------------------------------------------------------
+# Helper: generate a WiX v4 ComponentGroup fragment for all files under a
+# directory.  Sub-directory hierarchy is encoded via Component/@Subdirectory.
+# Files whose root folder appears in ExcludeTopDirs are skipped.
+# ---------------------------------------------------------------------------
+function New-WixComponentGroupFragment {
+    param (
+        [string]   $SourceDir,
+        [string]   $ComponentGroupId,
+        [string]   $DirectoryId,
+        [string[]] $ExcludeTopDirs = @()
+    )
+
+    $SourceDir = $SourceDir.TrimEnd('\', '/')
+
+    $allFiles  = Get-ChildItem -Path $SourceDir -File -Recurse -ErrorAction SilentlyContinue
+    $lines     = [System.Collections.Generic.List[string]]::new()
+    $idx       = 0
+
+    foreach ($file in $allFiles) {
+        $relativePath = $file.FullName.Substring($SourceDir.Length + 1)
+        $topDir       = ($relativePath -split '\\')[0]
+        if ($ExcludeTopDirs -contains $topDir) { continue }
+
+        $subDir      = [System.IO.Path]::GetDirectoryName($relativePath)
+        $subdirAttr  = if ($subDir) { " Subdirectory=`"$subDir`"" } else { "" }
+        $compId      = "${ComponentGroupId}_$idx"
+        $idx++
+
+        $lines.Add("      <Component Id=`"$compId`"$subdirAttr>")
+        $lines.Add("        <File Source=`"$($file.FullName)`" />")
+        $lines.Add("      </Component>")
+    }
+
+    $header = @(
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">'
+        '  <Fragment>'
+        "    <ComponentGroup Id=`"$ComponentGroupId`" Directory=`"$DirectoryId`">"
+    )
+    $footer = @(
+        '    </ComponentGroup>'
+        '  </Fragment>'
+        '</Wix>'
+    )
+
+    return ($header + $lines + $footer) -join "`n"
+}
+
 if ($env:OS -ne "Windows_NT") {
     $platform = if ($IsCoreClr) { [System.Environment]::OSVersion.Platform } else { "Unknown" }
     Write-Error "package-windows.ps1 requires Windows (Inno Setup). Current OS: $platform. Run this script on Windows."
@@ -21,6 +73,19 @@ $isccPath = Join-Path (Join-Path $programFilesX86 "Inno Setup 6") "ISCC.exe"
 if (!(Test-Path $isccPath)) {
     Write-Error "Inno Setup Compiler (ISCC.exe) not found at: $isccPath"
 }
+
+# WiX Toolset v4 — optional; MSI build is skipped with a warning if not found.
+# WiX Toolset v4 - optional; MSI build is skipped with a warning if not found.
+$wixCmd  = Get-Command wix -ErrorAction SilentlyContinue
+$skipMsi = $null -eq $wixCmd
+if ($skipMsi) {
+    Write-Warning "WiX CLI (wix.exe) not found in PATH - MSI packages will not be built."
+    Write-Warning "Install: dotnet tool install --global wix"
+    Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext"
+} else {
+    Write-Host "WiX CLI: $($wixCmd.Source)"
+}
+$wixScript = Join-Path (Join-Path (Join-Path $root "build") "windows") "XerahS-setup.wxs"
 
 $version = ""
 # Try to detect version from Directory.Build.props
@@ -187,6 +252,70 @@ foreach ($arch in $archs) {
          } else {
             throw "Failed to locate generated installer $setupExe"
          }
+    }
+
+    # 3. Build MSI with WiX Toolset v4 (parallel to the EXE installer)
+    if (!$skipMsi) {
+        Write-Host "`n-------------------------------------------"
+        Write-Host "Building MSI for $arch with WiX..."
+        Write-Host "-------------------------------------------"
+
+        $wixTempDir = Join-Path $root "build\wix-temp-$arch"
+        if (!(Test-Path $wixTempDir)) { New-Item -ItemType Directory -Force -Path $wixTempDir | Out-Null }
+
+        try {
+            # Generate AppFiles fragment: all files in publish output except the Plugins sub-directory.
+            $harvestApp = Join-Path $wixTempDir "AppFiles.wxs"
+            $appFragment = New-WixComponentGroupFragment `
+                -SourceDir $publishOutput `
+                -ComponentGroupId "AppFiles" `
+                -DirectoryId "INSTALLFOLDER" `
+                -ExcludeTopDirs @("Plugins")
+            Set-Content -Path $harvestApp -Value $appFragment -Encoding UTF8
+
+            # Generate PluginFiles fragment, or an empty one when no plugins exist.
+            $harvestPlugins = Join-Path $wixTempDir "PluginFiles.wxs"
+            $pluginsSourceDir = Join-Path $publishOutput "Plugins"
+            if (Test-Path $pluginsSourceDir) {
+                $pluginsFragment = New-WixComponentGroupFragment `
+                    -SourceDir $pluginsSourceDir `
+                    -ComponentGroupId "PluginFiles" `
+                    -DirectoryId "PluginsFolder"
+                Set-Content -Path $harvestPlugins -Value $pluginsFragment -Encoding UTF8
+            } else {
+                $emptyPlugins = '<?xml version="1.0" encoding="utf-8"?>' + "`n" +
+                    '<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">' + "`n" +
+                    '  <Fragment>' + "`n" +
+                    '    <ComponentGroup Id="PluginFiles" />' + "`n" +
+                    '  </Fragment>' + "`n" +
+                    '</Wix>'
+                Set-Content -Path $harvestPlugins -Value $emptyPlugins -Encoding UTF8
+            }
+
+            # Map PowerShell RID to WiX architecture name.
+            $wixArch     = if ($arch -eq "win-x64") { "x64" } else { "arm64" }
+            $msiBaseName = "XerahS-$version-$arch"
+            $msiOutput   = Join-Path $outputDir "$msiBaseName.msi"
+
+            Write-Host "Running: wix build ... -arch $wixArch -o $msiOutput"
+            wix build $wixScript $harvestApp $harvestPlugins `
+                -d "Version=$version" `
+                -arch $wixArch `
+                -o $msiOutput
+
+            if ($LASTEXITCODE -ne 0) {
+                throw "WiX build failed for $arch with exit code $LASTEXITCODE"
+            }
+
+            if (Test-Path $msiOutput) {
+                Write-Host "Success: Generated $msiBaseName.msi in dist."
+            } else {
+                throw "WiX build succeeded but output MSI not found: $msiOutput"
+            }
+        } finally {
+            # Clean up temporary WiX fragment files regardless of success/failure.
+            Remove-Item -Recurse -Force $wixTempDir -ErrorAction SilentlyContinue
+        }
     }
 
     # Cleanup temp publish folder

@@ -1,5 +1,4 @@
 # XIP0050 Remove FluentAvaloniaUI via Official Avalonia Replacements
-
 XIP0050: Remove FluentAvaloniaUI via Official Avalonia Replacements
 
 ## Summary

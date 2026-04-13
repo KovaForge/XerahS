@@ -1,7 +1,7 @@
 [submodule "ShareX.ImageEditor"]
 	path = ShareX.ImageEditor
 	url = https://github.com/ShareX/ShareX.ImageEditor.git
-	branch = develop
+	branch = refactor/IEIP0004-unified-imageeffect-schema
 	update = rebase
 [submodule "ShareX.VideoEditor"]
 	path = ShareX.VideoEditor

@@ -36,16 +36,16 @@ namespace XerahS.Core.Tasks.Processors
 {
     public class UploadJobProcessor : IJobProcessor
     {
-        public async Task ProcessAsync(TaskInfo info, CancellationToken token)
+        public async Task<bool> ProcessAsync(TaskInfo info, CancellationToken token)
         {
-            if (!info.IsUploadJob) return;
-            if (token.IsCancellationRequested) return;
+            if (!info.IsUploadJob) return true;
+            if (token.IsCancellationRequested) return true;
 
             if (info.Result != null && !info.Result.IsError && !string.IsNullOrEmpty(info.Result.URL))
             {
                 DebugHelper.WriteLine("Upload already completed during capture; running after-upload tasks.");
                 await HandleAfterUploadTasksAsync(info, info.Result, token);
-                return;
+                return true;
             }
 
             // TODO: Handle URL Shortening, URL Sharing logic separate? Or combined?
@@ -107,6 +107,8 @@ namespace XerahS.Core.Tasks.Processors
                     Response = "Upload failed: uploader returned no result."
                 };
             }
+
+            return true;
         }
 
         private UploadResult? Upload(TaskInfo info)
@@ -328,7 +330,7 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine($"All uploaders in category {category} failed: {allErrors}");
             }
 
-            // If primary category failed (or had no uploaders), try File category as fallback
+            // If primary category failed (or had no uploaders), try cross-category fallback
             if (category != UploaderCategory.File)
             {
                 DebugHelper.WriteLine($"Trying File category uploaders as fallback...");
@@ -339,7 +341,18 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
-            return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and File fallback." };
+            // If File category failed and the file is an image, try Image-category uploaders
+            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsImageFile(info.FileName))
+            {
+                DebugHelper.WriteLine("File is an image; trying Image category uploaders as fallback...");
+                var imageFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Image, info, excludeInstanceId, attemptedInstanceIds);
+                if (imageFallbackResult != null && !imageFallbackResult.IsError && !string.IsNullOrEmpty(imageFallbackResult.URL))
+                {
+                    return imageFallbackResult;
+                }
+            }
+
+            return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
         }
 
         /// <summary>

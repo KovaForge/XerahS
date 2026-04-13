@@ -23,6 +23,10 @@ build/
 â”œâ”€â”€ linux/                             # Linux build scripts
 â”‚   â”œâ”€â”€ package-linux.ps1             # PowerShell wrapper for Linux build (Windows)
 â”‚   â”œâ”€â”€ package-linux.sh              # Bash script for Linux build (Linux/macOS)
+â”‚   â”œâ”€â”€ package-aur.sh                # Bash script for building a local Arch package
+â”‚   â”œâ”€â”€ aur/                          # Arch packaging metadata
+â”‚   â”‚   â””â”€â”€ xerahs-git/
+â”‚   â”‚       â””â”€â”€ PKGBUILD             # Local PKGBUILD used by package-aur.sh
 â”‚   â””â”€â”€ XerahS.Packaging/             # C# packaging tool
 â”‚       â”œâ”€â”€ Program.cs                # Packaging logic (tar.gz, .deb, .rpm)
 â”‚       â””â”€â”€ XerahS.Packaging.csproj   # Project file
@@ -102,6 +106,8 @@ The `build/windows` directory also contains resources for submitting XerahS to p
 ### Files
 - **`package-linux.ps1`** - PowerShell wrapper (Windows hosts)
 - **`package-linux.sh`** - Bash script (Linux/macOS hosts)
+- **`package-aur.sh`** - Bash script for building a reusable local `xerahs-git` Arch package
+- **`aur/xerahs-git/PKGBUILD`** - PKGBUILD consumed by `makepkg`
 - **`XerahS.Packaging/`** - C# packaging tool
 
 ### How It Works
@@ -156,6 +162,19 @@ The `build/windows` directory also contains resources for submitting XerahS to p
 ### Requirements
 - .NET SDK 10.0+
 - For RPM: `rpmbuild` tool (optional)
+
+### Arch Linux Package Build
+
+For local Arch/EndeavourOS packaging, use:
+
+```bash
+./build/linux/package-aur.sh
+```
+
+This script:
+- builds the Linux release payload through `package-linux.sh`
+- runs `makepkg` with the reusable PKGBUILD at `build/linux/aur/xerahs-git/PKGBUILD`
+- copies the resulting `.pkg.tar.zst` package into `dist/aur/`
 
 ---
 

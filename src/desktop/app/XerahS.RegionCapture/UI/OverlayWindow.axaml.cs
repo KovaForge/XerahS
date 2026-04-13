@@ -28,6 +28,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -56,6 +57,9 @@ namespace XerahS.RegionCapture.UI;
 /// </summary>
 public partial class OverlayWindow : Window
 {
+    private static readonly Uri OverlayWindowUri = new("avares://XerahS.RegionCapture/UI/OverlayWindow.axaml");
+    private static readonly Uri ImageEditorStylesUri = new("avares://ShareX.ImageEditor/Presentation/Theming/ImageEditorStyles.axaml");
+    private static readonly Uri ImageEditorThemeUri = new("avares://ShareX.ImageEditor/Presentation/Theming/ImageEditorTheme.axaml");
     private static readonly long SelectionDragRebuildIntervalTicks = Math.Max(1, Stopwatch.Frequency / 60);
 
     private readonly Models.MonitorInfo _monitor;
@@ -287,6 +291,26 @@ public partial class OverlayWindow : Window
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+        EnsureImageEditorResources();
+    }
+
+    private void EnsureImageEditorResources()
+    {
+        if (!Styles.OfType<StyleInclude>().Any(style => style.Source == ImageEditorStylesUri))
+        {
+            Styles.Add(new StyleInclude(OverlayWindowUri)
+            {
+                Source = ImageEditorStylesUri
+            });
+        }
+
+        if (!Resources.MergedDictionaries.OfType<ResourceInclude>().Any(resource => resource.Source == ImageEditorThemeUri))
+        {
+            Resources.MergedDictionaries.Add(new ResourceInclude(OverlayWindowUri)
+            {
+                Source = ImageEditorThemeUri
+            });
+        }
     }
 
     private void InitializeThemeScope()

@@ -197,7 +197,7 @@ namespace XerahS.Core.Tasks
             }
             finally
             {
-                if (Status != TaskStatus.Failed && Status != TaskStatus.Stopped)
+                if (Status != TaskStatus.Failed && Status != TaskStatus.Stopped && Status != TaskStatus.Canceled)
                 {
                     Status = TaskStatus.Completed;
                 }

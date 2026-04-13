@@ -12,7 +12,9 @@ from pathlib import Path
 
 EXPECTED_ASSETS = [
     ("win", "x64", "exe"),
+    ("win", "x64", "msi"),
     ("win", "arm64", "exe"),
+    ("win", "arm64", "msi"),
     ("mac", "arm64", "tar.gz"),
     ("mac", "x64", "tar.gz"),
     ("linux", "x64", "tar.gz"),

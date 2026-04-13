@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  XerahS MSI installer — WiX Toolset v4
+
+  Application files (AppFiles) and plugin files (PluginFiles) component groups
+  are generated at build time by package-windows.ps1 into temporary fragment
+  .wxs files alongside this file, then all three are passed to `wix build`.
+
+  Install layout (per-user, no UAC elevation required):
+    Binaries  → %LocalAppData%\Programs\XerahS\
+    Plugins   → %USERPROFILE%\Documents\XerahS\Plugins\
+    Shortcuts → %AppData%\Microsoft\Windows\Start Menu\Programs\XerahS\
+
+  Build command (assembled by package-windows.ps1):
+    wix build XerahS-setup.wxs <AppFiles-fragment.wxs> <PluginFiles-fragment.wxs>
+              -ext WixToolset.UI.wixext
+              -d Version=X.Y.Z
+              -arch x64|arm64
+              -o dist\XerahS-X.Y.Z-win-x64.msi
+
+  Silent install:  msiexec /i XerahS-X.Y.Z-win-x64.msi /quiet
+  Silent uninstall: msiexec /x XerahS-X.Y.Z-win-x64.msi /quiet
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <?ifndef Version ?>
+    <?error Version must be passed via -d Version=X.Y.Z ?>
+  <?endif?>
+
+  <Package Name="XerahS"
+           Language="1033"
+           Manufacturer="ShareX Team"
+           Version="$(var.Version)"
+           UpgradeCode="B7E4C3A1-2D5F-4E8B-9C0A-1234567890AB"
+           Scope="perUser">
+
+    <SummaryInformation Description="XerahS Installer" Manufacturer="ShareX Team" />
+
+    <!-- Remove any previous per-user MSI install of XerahS on upgrade -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <!-- Embed all files inside the MSI with high compression -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!--
+      Directory layout.
+      With Scope="perUser", LocalAppDataFolder resolves to %LocalAppData%.
+      ProgramMenuFolder resolves to the per-user Start Menu programs folder.
+      PersonalFolder resolves to the user's My Documents folder.
+    -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="XerahS" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutsMenuFolder" Name="XerahS" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="PersonalFolder">
+      <Directory Id="XerahSDocDir" Name="XerahS">
+        <Directory Id="PluginsFolder" Name="Plugins" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Start Menu shortcut — HKCU key path makes it per-user -->
+    <Component Id="StartMenuShortcutComp"
+               Directory="ShortcutsMenuFolder"
+               Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+      <Shortcut Id="StartMenuShortcut"
+                Name="XerahS"
+                Target="[INSTALLFOLDER]XerahS.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Description="XerahS - Screen capture and file sharing" />
+      <!-- Remove the shortcut folder on uninstall -->
+      <RemoveFolder Id="RemoveShortcutsMenuFolder"
+                    Directory="ShortcutsMenuFolder"
+                    On="uninstall" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\XerahS\MSI"
+                     Name="StartMenuInstalled"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <!--
+      Main feature.
+      AppFiles and PluginFiles are ComponentGroups defined in the generated
+      fragment files produced by package-windows.ps1 at build time.
+    -->
+    <Feature Id="ProductFeature" Title="XerahS" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="PluginFiles" />
+      <ComponentRef Id="StartMenuShortcutComp" />
+    </Feature>
+
+  </Package>
+</Wix>

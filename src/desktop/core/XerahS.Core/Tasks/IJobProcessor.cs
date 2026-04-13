@@ -26,6 +26,7 @@ namespace XerahS.Core.Tasks
 {
     public interface IJobProcessor
     {
-        Task ProcessAsync(TaskInfo info, CancellationToken token);
+        /// <returns><c>true</c> if the pipeline should continue; <c>false</c> if the user cancelled the workflow.</returns>
+        Task<bool> ProcessAsync(TaskInfo info, CancellationToken token);
     }
 }

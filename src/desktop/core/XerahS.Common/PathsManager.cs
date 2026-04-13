@@ -133,8 +133,12 @@ namespace XerahS.Common
             if (!Directory.Exists(BackupFolder))
                 Directory.CreateDirectory(BackupFolder);
             
-            if (!Directory.Exists(PluginsFolder))
-                Directory.CreateDirectory(PluginsFolder);
+            // Always create the user-writable personal plugins folder.
+            // PluginsFolder in Release may resolve to AppContext.BaseDirectory (e.g. /usr/lib/xerahs/)
+            // when the personal folder is empty, which is a system path that users cannot write to.
+            string personalPlugins = Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
+            if (!Directory.Exists(personalPlugins))
+                Directory.CreateDirectory(personalPlugins);
 
             if (!Directory.Exists(ToolsFolder))
                 Directory.CreateDirectory(ToolsFolder);

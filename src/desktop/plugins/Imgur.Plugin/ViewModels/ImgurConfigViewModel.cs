@@ -39,8 +39,10 @@ namespace ShareX.Imgur.Plugin.ViewModels;
 /// </summary>
 public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigViewModel, IProviderContextAware
 {
+    private const string LegacyPlaceholderClientId = "30d41ft9z9r8jtt";
+
     [ObservableProperty]
-    private string _clientId = "30d41ft9z9r8jtt"; // Default ShareX client ID
+    private string _clientId = string.Empty;
 
     [ObservableProperty]
     private int _accountTypeIndex = 0;
@@ -73,7 +75,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     private string? _statusMessage;
 
     [ObservableProperty]
-    private string _pin = string.Empty;
+    private string _authCallbackUrl = string.Empty;
 
     [ObservableProperty]
     private bool _isLoggedIn;
@@ -91,42 +93,46 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     [RelayCommand]
     private void OpenLoginUrl()
     {
-        EnsureUploader();
+        if (string.IsNullOrWhiteSpace(ClientId) || string.Equals(ClientId, LegacyPlaceholderClientId, StringComparison.Ordinal))
+        {
+            StatusMessage = "Enter your own Imgur Client ID from https://api.imgur.com/oauth2/addclient before logging in.";
+            return;
+        }
+
+        EnsureUploader(rebuild: true);
         if (_uploader == null) return;
         string url = _uploader.GetAuthorizationURL();
-        try
+
+        if (TryOpenUrl(url))
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            }
+            StatusMessage = "Opened Imgur login in browser. If no tab appeared, copy and open this URL manually: " + url;
         }
-        catch (Exception ex)
+        else
         {
-            StatusMessage = "Failed to open browser: " + ex.Message;
+            StatusMessage = "Could not open browser automatically. Open this URL manually: " + url;
         }
     }
 
     [RelayCommand]
     private void CompleteLogin()
     {
-        EnsureUploader();
-        if (_uploader == null || string.IsNullOrWhiteSpace(Pin))
+        EnsureUploader(rebuild: true);
+        if (_uploader == null || string.IsNullOrWhiteSpace(AuthCallbackUrl))
         {
-            StatusMessage = "Please enter the PIN from Imgur";
+            StatusMessage = "Please paste the full callback URL from Imgur (including the #access_token fragment).";
             return;
         }
 
-        if (_uploader.GetAccessToken(Pin))
+        if (_uploader.GetAccessToken(AuthCallbackUrl))
         {
             IsLoggedIn = true;
             StatusMessage = "Logged in successfully!";
-            Pin = string.Empty;
+            AuthCallbackUrl = string.Empty;
             PersistToken();
         }
         else
         {
-            StatusMessage = "Login failed. Please check the PIN.";
+            StatusMessage = "Login failed. Verify your Client ID and paste the full callback URL returned by Imgur.";
         }
     }
 
@@ -174,7 +180,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
                 _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
                 _uploader = BuildUploader();
 
-                ClientId = _config.ClientId ?? "30d41ft9z9r8jtt";
+                ClientId = _config.ClientId ?? string.Empty;
                 AccountTypeIndex = (int)_config.AccountType;
                 ThumbnailTypeIndex = (int)_config.ThumbnailType;
                 UseDirectLink = _config.DirectLink;
@@ -261,11 +267,57 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
         return new ImgurUploader(_config, authInfo);
     }
 
-    private void EnsureUploader()
+    private void EnsureUploader(bool rebuild = false)
     {
-        if (_uploader == null)
+        if (rebuild || _uploader == null)
         {
+            _config.ClientId = ClientId;
             _uploader = BuildUploader();
+        }
+    }
+
+    private static bool TryOpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+            return true;
+        }
+        catch
+        {
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    Process.Start(new ProcessStartInfo("cmd", $"/c start {url.Replace("&", "^&")}")
+                    {
+                        CreateNoWindow = true
+                    });
+                    return true;
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", url);
+                    return true;
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    Process.Start("open", url);
+                    return true;
+                }
+            }
+            catch
+            {
+                // Fall through and report failure to caller.
+            }
+
+            return false;
         }
     }
 

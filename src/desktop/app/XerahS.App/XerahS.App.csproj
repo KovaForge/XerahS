@@ -31,7 +31,10 @@
     </Content>
   </ItemGroup>
 
-  <Target Name="BuildNativeMacOS" BeforeTargets="BeforeBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <Target Name="BuildNativeMacOS" BeforeTargets="BeforeBuild"
+          Condition="$([MSBuild]::IsOSPlatform('OSX'))"
+          Inputs="$(RepoRoot)native/macos/screencapturekit_bridge.m;$(RepoRoot)native/macos/screencapturekit_bridge.h"
+          Outputs="$(RepoRoot)native/macos/libscreencapturekit_bridge.dylib">
     <Message Text="Building native macOS library..." Importance="high" />
     <Exec Command="make -C &quot;$(RepoRoot)native/macos&quot;" />
   </Target>

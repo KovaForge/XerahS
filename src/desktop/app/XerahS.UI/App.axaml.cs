@@ -88,6 +88,15 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Suppress benign Avalonia DBus TaskCanceledException crashes on Linux
+        Avalonia.Threading.Dispatcher.UIThread.UnhandledExceptionFilter += (sender, e) =>
+        {
+            if (e.Exception is System.Threading.Tasks.TaskCanceledException)
+            {
+                e.RequestCatch = true;
+            }
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var uiService = new Services.AvaloniaUIService();

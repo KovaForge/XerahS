@@ -1,6 +1,6 @@
 ﻿---
 name: publish-release
-description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then optionally set pre-release. On failures, inspect logs, fix root cause, and retry with the next patch release."
+description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -14,7 +14,7 @@ Use this skill to run release steps in strict order:
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
 - Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
 - Step 6: Ensure standard release notes block is present on the GitHub release
-- Step 7: If requested, set the successful release as pre-release
+- Step 7: Set the successful release as pre-release by default (opt out only when intentionally publishing stable)
 
 Step 3 performs:
 - Pre-check: Run `dotnet build src/desktop/XerahS.sln`; do not proceed if build fails.
@@ -41,6 +41,7 @@ Step 6 performs:
   - `### macOS Troubleshooting ("App is damaged")` section with Gatekeeper `xattr -cr` guidance.
 - After the release is published, the tag workflow also builds, smoke-tests, and attaches `xerahs.X.Y.Z.nupkg` to the GitHub release.
 - `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z` remains the manual recovery path for re-syncing checksums or repacking.
+- Expected Windows release assets per architecture: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`.
 
 ## Primary Command
 
@@ -50,10 +51,16 @@ From repository root:
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh
 ```
 
-Automated monitor + pre-release (recommended):
+Automated monitor + default pre-release (recommended):
 
 ```bash
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
+```
+
+Stable release opt-out example:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --no-prerelease --bump z --yes
 ```
 
 Manual monitor (fallback, PowerShell example):
@@ -125,10 +132,12 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Read current body: `gh release view v<new-version> --json body`
    - Append the standard changelog + macOS troubleshooting block if missing.
    - Write body: `gh release edit v<new-version> --notes-file <file>`
+   - Verify all **8 Windows assets** are attached (`-win-x64.exe`, `-win-x64.msi`, `-win-arm64.exe`, `-win-arm64.msi`) plus macOS and Linux assets.
 
-7. Step 7 - Set pre-release (when requested)
+7. Step 7 - Set pre-release (default behavior)
    - `gh release edit v<new-version> --prerelease`
    - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
+   - Stable opt-out: skip this step only when intentionally publishing stable.
 
 8. Optional post-release Chocolatey maintenance
    - The tag workflow should already have produced and smoke-tested `xerahs.<new-version>.nupkg`.
@@ -149,7 +158,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 6. If failed, inspect logs, fix root cause, and retry with next patch version.
 7. Continue retry loop until release workflow is successful.
 8. Ensure standard release notes content is present on the successful release.
-9. If requested, mark successful release as pre-release.
+9. Mark successful release as pre-release by default; only skip when explicitly publishing stable.
 
 ## Guardrails
 
@@ -178,12 +187,18 @@ When executing this skill:
 7. If requested, set the final successful release to pre-release.
 8. Report final version, commit hash, branch push status, tag push status, run URL, and pre-release status.
 
+Default pre-release policy: unless explicitly instructed otherwise, keep `--set-prerelease` enabled. Use `--no-prerelease` only for intentional stable publishes.
+
 ## Notes (lessons learnt)
 
 - Windows/PowerShell: bash may be unavailable; manual fallback must be first-class.
 - Build before bump: avoid tagging broken trees.
 - Changelog optional: do not block if `CHANGELOG.md` does not exist unless user requires it.
 - Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
+- **Windows packaging produces 4 assets per release**: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`. The EXE is built by Inno Setup; the MSI is built by WiX Toolset v4 (`build/windows/XerahS-setup.wxs`). Both are produced by `build/windows/package-windows.ps1` in the same loop iteration.
+- **WiX prerequisite (CI & local)**: `dotnet tool install --global wix` + `wix extension add --global WixToolset.UI.wixext`. The `release-build-all-platforms.yml` workflow installs WiX automatically in the `build-windows` job. For local MSI builds: install WiX first; if not present the script emits a warning and skips MSI.
+- **MSI install layout**: per-user, no UAC elevation required. Binaries → `%LocalAppData%\Programs\XerahS\`; Plugins → `%USERPROFILE%\Documents\XerahS\Plugins\`; Start Menu shortcut created automatically.
+- **Winget manifest**: both `InstallerType: nullsoft` (EXE) and `InstallerType: wix` (MSI) entries must be included for each architecture when submitting to winget-pkgs. See `build/windows/winget/manifests/0.16.0/ShareX.XerahS.yaml` as the template.
 - Chocolatey asset naming: `build/windows/chocolatey/tools/chocolateyInstall.ps1` resolves `XerahS-<version>-win-x64.exe` or `XerahS-<version>-win-arm64.exe` from `ChocolateyPackageVersion`, so release bumps should not hardcode installer filenames there.
 - Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.
