@@ -125,6 +125,44 @@ public sealed class AssistantServiceTests
         }
     }
 
+    [Test]
+    public async Task ProcessPromptAsync_WithoutProvider_HandlesLastFiveScreenshotsLocalFilePathPrompt()
+    {
+        var clipboard = new FakeClipboardService();
+        PlatformServices.Clipboard = clipboard;
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            new FakeHistoryService(
+            [
+                CreateHistoryItem(@"C:\Shots\1.png", "1.png"),
+                CreateHistoryItem(@"C:\Shots\2.png", "2.png"),
+                CreateHistoryItem(@"C:\Shots\3.png", "3.png"),
+                CreateHistoryItem(@"C:\Shots\4.png", "4.png"),
+                CreateHistoryItem(@"C:\Shots\5.png", "5.png")
+            ]),
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ProcessPromptAsync(
+                "give me last 5 screenshots local file path separated by ;",
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Results));
+            Assert.That(response.Message, Is.EqualTo("Last 5 screenshot paths."));
+            Assert.That(response.Items, Has.Count.EqualTo(5));
+            Assert.That(response.Actions, Has.Count.EqualTo(1));
+            Assert.That(response.Actions[0].Text, Is.EqualTo(@"C:\Shots\1.png;C:\Shots\2.png;C:\Shots\3.png;C:\Shots\4.png;C:\Shots\5.png"));
+            Assert.That(clipboard.Text, Is.Null);
+        }
+        finally
+        {
+            PlatformServices.Reset();
+        }
+    }
+
     private static AssistantHistoryItem CreateHistoryItem(string filePath, string fileName) =>
         new(
             Guid.NewGuid().ToString("N"),

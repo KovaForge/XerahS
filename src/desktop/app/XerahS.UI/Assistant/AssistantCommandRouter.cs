@@ -52,7 +52,7 @@ public sealed class AssistantCommandRouter
     public const int MaxLatestScreenshotLimit = 10;
 
     private static readonly Regex LastScreenshotPathsRegex = new(
-        @"\b(?:give\s+me\s+)?(?:the\s+)?(?:local\s+)?(?:file\s+)?paths?\s+(?:of\s+)?(?:my\s+)?(?:last|latest)\s+(?<limit>\d{1,2})\s+screenshot(?:s)?\b|\b(?:last|latest)\s+(?<limit2>\d{1,2})\s+screenshot(?:s)?\s+(?:paths?|file\s+paths?)\b",
+        @"\b(?:give\s+me\s+)?(?:the\s+)?(?:local\s+)?(?:file\s+)?paths?\s+(?:of\s+)?(?:my\s+)?(?:last|latest)\s+(?<limit>\d{1,2})\s+screenshot(?:s)?\b|\b(?:last|latest)\s+(?<limit2>\d{1,2})\s+screenshot(?:s)?\s+(?:(?:local\s+)?file\s+path(?:s)?|paths?)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LatestScreenshotPathRegex = new(

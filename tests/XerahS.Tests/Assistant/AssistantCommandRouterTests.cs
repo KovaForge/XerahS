@@ -43,6 +43,16 @@ public sealed class AssistantCommandRouterTests
     }
 
     [Test]
+    public void LastFiveScreenshots_LocalFilePathAfterScreenshots_ParsesHistoryLookup()
+    {
+        var intent = _router.Parse("give me last 5 screenshots local file path separated by ;");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.LatestScreenshotPaths));
+        Assert.That(intent.Limit, Is.EqualTo(5));
+        Assert.That(intent.Separator, Is.EqualTo(";"));
+    }
+
+    [Test]
     public void LastScreenshotLimit_IsClampedToTen()
     {
         var intent = _router.Parse("give me local file path of last 25 screenshots");
