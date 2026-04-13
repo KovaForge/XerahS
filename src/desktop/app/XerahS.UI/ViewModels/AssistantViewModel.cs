@@ -26,6 +26,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Common;
 using XerahS.UI.Assistant;
 
 namespace XerahS.UI.ViewModels;
@@ -82,6 +83,7 @@ public partial class AssistantViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanSubmit))]
     private async Task SubmitAsync()
     {
+        DebugHelper.WriteLine($"[AssistantViewModel] SubmitAsync invoked. Prompt='{Prompt}'.");
         CancelRequest();
         _requestCts = new CancellationTokenSource();
         await RunAsync(_assistantService.ProcessPromptAsync(Prompt, _requestCts.Token));
@@ -175,18 +177,23 @@ public partial class AssistantViewModel : ViewModelBase
     {
         IsBusy = true;
         StatusText = "Processing...";
+        DebugHelper.WriteLine("[AssistantViewModel] RunAsync started.");
 
         try
         {
-            ApplyResponse(await task);
+            AssistantResponse response = await task;
+            DebugHelper.WriteLine($"[AssistantViewModel] RunAsync received response kind={response.Kind}, items={response.Items.Count}, actions={response.Actions.Count}, pendingConfirmation={response.PendingConfirmation != null}.");
+            ApplyResponse(response);
         }
         catch (OperationCanceledException)
         {
+            DebugHelper.WriteLine("[AssistantViewModel] RunAsync cancelled.");
             StatusText = "Action cancelled. You can retry if needed.";
         }
         finally
         {
             IsBusy = false;
+            DebugHelper.WriteLine("[AssistantViewModel] RunAsync finished.");
         }
     }
 
@@ -212,6 +219,7 @@ public partial class AssistantViewModel : ViewModelBase
         _pendingAction = response.PendingConfirmation?.Action;
         StatusText = response.Message;
         UpdateResultPreview(response);
+        DebugHelper.WriteLine($"[AssistantViewModel] ApplyResponse set StatusText='{StatusText}', Items={Items.Count}, Actions={Actions.Count}, HasResultPreview={HasResultPreview}, ResultPreviewLength={ResultPreviewText.Length}, HasPendingConfirmation={HasPendingConfirmation}.");
     }
 
     private void UpdateResultPreview(AssistantResponse response)
@@ -230,11 +238,13 @@ public partial class AssistantViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(preview))
         {
+            DebugHelper.WriteLine("[AssistantViewModel] UpdateResultPreview found no preview text.");
             return;
         }
 
         ResultPreviewText = preview;
         HasResultPreview = true;
+        DebugHelper.WriteLine($"[AssistantViewModel] UpdateResultPreview populated preview length={ResultPreviewText.Length}.");
     }
 
     private void CancelRequest()

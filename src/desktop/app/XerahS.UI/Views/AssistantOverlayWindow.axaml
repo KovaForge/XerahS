@@ -94,7 +94,7 @@
             CornerRadius="{StaticResource CardCornerRadius}"
             Padding="{StaticResource OuterPadding}"
             BoxShadow="0 20 48 -24 #66000000">
-        <Grid RowDefinitions="Auto, Auto, *, Auto"
+        <Grid RowDefinitions="Auto, Auto, *"
               RowSpacing="{StaticResource SpaceL}">
             <Grid ColumnDefinitions="*, Auto"
                   ColumnSpacing="{StaticResource SpaceM}">
@@ -127,13 +127,10 @@
                             VerticalAlignment="Top">
                     <Border Classes="section-card"
                             Padding="10,6">
-                        <TextBlock Text="Esc"
+                        <TextBlock Text="Esc to close"
                                    Classes="keyboard-hint"
                                    HorizontalAlignment="Center" />
                     </Border>
-                    <TextBlock Text="Close"
-                               Classes="keyboard-hint"
-                               HorizontalAlignment="Center" />
                 </StackPanel>
             </Grid>
 
@@ -155,7 +152,7 @@
             </Border>
 
             <Grid Grid.Row="2"
-                  RowDefinitions="Auto, Auto, Auto, *, Auto"
+                  RowDefinitions="Auto, Auto, Auto, *, Auto, Auto"
                   RowSpacing="{StaticResource SpaceM}">
                 <Border Classes="section-card"
                         Padding="{StaticResource InnerPadding}">
@@ -283,35 +280,39 @@
                         </Grid>
                     </Grid>
                 </Border>
-            </Grid>
 
-            <Border Grid.Row="3"
-                    Classes="section-card"
-                    Padding="{StaticResource InnerPadding}">
-                <Grid RowDefinitions="Auto, Auto"
-                      RowSpacing="{StaticResource SpaceS}">
+                <Border Grid.Row="5"
+                        Classes="section-card"
+                        Padding="{StaticResource InnerPadding}"
+                        MaxHeight="164">
+                    <Grid RowDefinitions="Auto, *"
+                          RowSpacing="{StaticResource SpaceS}">
                     <TextBlock Text="Suggestions"
                                Classes="section-label" />
-                    <ItemsControl Grid.Row="1"
-                                  ItemsSource="{Binding Suggestions}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
-                                <Button Content="{Binding}"
-                                        Classes="suggestion"
-                                        Margin="0,0,8,8"
-                                        Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.UseSuggestionCommand}"
-                                        CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
-            </Border>
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Suggestions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Button Content="{Binding}"
+                                                Classes="suggestion"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.UseSuggestionCommand}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Border>
 </views:OverlayWindow>

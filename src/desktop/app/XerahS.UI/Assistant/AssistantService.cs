@@ -76,33 +76,41 @@ public sealed class AssistantService : IAssistantService
 
     public async Task<AssistantResponse> ProcessPromptAsync(string prompt, CancellationToken cancellationToken)
     {
+        DebugHelper.WriteLine($"[Assistant] ProcessPromptAsync start. Prompt='{prompt}'.");
+
         if (_memoryStore.TryParseAliasDefinition(prompt, out AssistantAliasDefinition aliasDefinition))
         {
+            DebugHelper.WriteLine($"[Assistant] Saving alias '{aliasDefinition.Alias}'.");
             _memoryStore.SaveAlias(aliasDefinition);
             return AssistantResponse.Info($"Saved assistant alias: {aliasDefinition.Alias}");
         }
 
         if (_memoryStore.TryResolveAlias(prompt, out string aliasCommand))
         {
+            DebugHelper.WriteLine($"[Assistant] Resolved alias prompt to '{aliasCommand}'.");
             prompt = aliasCommand;
         }
 
         AssistantResponse? providerResponse = await TryProcessWithProviderAsync(prompt, cancellationToken);
         if (providerResponse != null)
         {
+            DebugHelper.WriteLine($"[Assistant] Provider path returned kind={providerResponse.Kind}, items={providerResponse.Items.Count}, actions={providerResponse.Actions.Count}, pendingConfirmation={providerResponse.PendingConfirmation != null}.");
             _memoryStore.RecordExecution(new AssistantDeterministicIntent(AssistantDeterministicIntentKind.Unknown, 0, CopyRequested: false), BuildActionSummary(providerResponse));
             return providerResponse;
         }
 
         var intent = _router.Parse(prompt);
+        DebugHelper.WriteLine($"[Assistant] Fallback router parsed kind={intent.Kind}, limit={intent.Limit}, copyRequested={intent.CopyRequested}, separator='{intent.Separator ?? "<null>"}', argument='{intent.Argument ?? "<null>"}'.");
         if (intent.Kind == AssistantDeterministicIntentKind.Unknown)
         {
             AssistantResponse noMatchResponse = AssistantResponse.Info("The assistant could not map that request to a safe local command. Try one of the suggestions.");
+            DebugHelper.WriteLine("[Assistant] Returning no-match response from fallback router.");
             _memoryStore.RecordExecution(intent, BuildActionSummary(noMatchResponse));
             return noMatchResponse;
         }
 
         AssistantResponse response = await ProcessIntentAsync(intent, cancellationToken);
+        DebugHelper.WriteLine($"[Assistant] Fallback path returned kind={response.Kind}, items={response.Items.Count}, actions={response.Actions.Count}, pendingConfirmation={response.PendingConfirmation != null}.");
         _memoryStore.RecordExecution(intent, BuildActionSummary(response));
         return response;
     }
@@ -134,8 +142,11 @@ public sealed class AssistantService : IAssistantService
         AssistantProviderRuntimeSettings? providerSettings = _activeProviderResolver();
         if (providerSettings == null)
         {
+            DebugHelper.WriteLine("[Assistant] No active provider configured. Skipping provider path.");
             return null;
         }
+
+        DebugHelper.WriteLine($"[Assistant] Trying provider path with provider='{providerSettings.Metadata.Id}', model='{providerSettings.ModelId}'.");
 
         AssistantPrivacyDecision decision = _privacyGuard.Evaluate(new AssistantPrivacyCheck(
             AssistantToolNames.HistorySearch,
@@ -145,6 +156,7 @@ public sealed class AssistantService : IAssistantService
 
         if (!decision.Allowed || decision.RequiresConfirmation)
         {
+            DebugHelper.WriteLine($"[Assistant] Provider path blocked by privacy guard. Allowed={decision.Allowed}, RequiresConfirmation={decision.RequiresConfirmation}.");
             return null;
         }
 
@@ -184,6 +196,7 @@ public sealed class AssistantService : IAssistantService
 
         IAssistantModelProvider provider = _providerFactory(providerSettings);
         AssistantModelResult result = await provider.CompleteAsync(request, cancellationToken);
+        DebugHelper.WriteLine($"[Assistant] Provider returned result kind={result.Kind}, hasText={!string.IsNullOrWhiteSpace(result.Text)}, toolCalls={result.ToolCalls.Count}.");
         if (result.Kind == AssistantModelResultKind.Cancelled)
         {
             return AssistantResponse.Error("Provider request cancelled.");
@@ -197,12 +210,14 @@ public sealed class AssistantService : IAssistantService
         AssistantDeterministicIntent? providerIntent = TryParseProviderIntent(result.Text);
         if (providerIntent != null)
         {
+            DebugHelper.WriteLine($"[Assistant] Provider JSON parsed to kind={providerIntent.Kind}, limit={providerIntent.Limit}, copyRequested={providerIntent.CopyRequested}, separator='{providerIntent.Separator ?? "<null>"}', argument='{providerIntent.Argument ?? "<null>"}'.");
             return providerIntent.Kind == AssistantDeterministicIntentKind.Unknown
                 ? null
                 : await ProcessIntentAsync(providerIntent, cancellationToken);
         }
 
         AssistantDeterministicIntent inferredIntent = _router.Parse(result.Text);
+        DebugHelper.WriteLine($"[Assistant] Provider text fallback parsed to kind={inferredIntent.Kind}, limit={inferredIntent.Limit}, copyRequested={inferredIntent.CopyRequested}, separator='{inferredIntent.Separator ?? "<null>"}'.");
         if (inferredIntent.Kind == AssistantDeterministicIntentKind.Unknown)
         {
             return null;
@@ -276,6 +291,7 @@ public sealed class AssistantService : IAssistantService
         CancellationToken cancellationToken)
     {
         var items = await _history.GetLatestScreenshotsAsync(intent.Limit, cancellationToken);
+        DebugHelper.WriteLine($"[Assistant] GetLatestScreenshotPathsAsync fetched {items.Count} item(s) for limit={intent.Limit}.");
         if (items.Count == 0)
         {
             return AssistantResponse.Error("No recent captures found. Try taking a screenshot first.");
@@ -283,9 +299,11 @@ public sealed class AssistantService : IAssistantService
 
         string separator = string.IsNullOrEmpty(intent.Separator) ? Environment.NewLine : intent.Separator;
         string paths = string.Join(separator, items.Select(item => item.FilePath));
+        DebugHelper.WriteLine($"[Assistant] Built paths payload length={paths.Length} using separator='{(separator == Environment.NewLine ? "\\n" : separator)}'.");
         if (intent.CopyRequested)
         {
             await PlatformServices.Clipboard.SetTextAsync(paths);
+            DebugHelper.WriteLine("[Assistant] Copied paths payload to clipboard.");
         }
 
         string message = intent.CopyRequested
