@@ -1,126 +1,107 @@
+using System.Text.Json.Nodes;
+using XerahS.McpServer.Runtime;
+
 namespace XerahS.McpServer.Tools;
 
 /// <summary>
-/// Capture tools for MCP server
+/// Capture tools for MCP server.
 /// </summary>
-public class CaptureTools
+public sealed class CaptureTools(IXerahSMcpRuntime runtime)
 {
+    private readonly IXerahSMcpRuntime _runtime = runtime;
+
     public string[] GetToolDefinitionsJson() => [
-        @"{
-          ""name"": ""capture_region"",
-          ""title"": ""Capture Screen Region"",
-          ""description"": ""Opens the XerahS region selector overlay. User selects an area; returns the saved file path. Blocks until capture completes or is cancelled."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""workflow_id"": {
-                ""type"": ""string"",
-                ""description"": ""Optional workflow UUID to apply after capture (uses default if omitted)""
+        """
+        {
+          "name": "capture_region",
+          "title": "Capture Screen Region",
+          "description": "Opens the XerahS region selector overlay, waits for the user to pick an area, saves the capture, and returns the file path.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "workflow_id": {
+                "type": "string",
+                "description": "Optional workflow ID whose capture settings should be used."
               },
-              ""monitor"": {
-                ""type"": ""integer"",
-                ""description"": ""Monitor index to capture (0 = primary, 1 = secondary). If omitted, all monitors are shown in the selector.""
+              "monitor": {
+                "type": "integer",
+                "description": "Optional monitor index to constrain the selected region to."
               }
             }
           }
-        }",
-        @"{
-          ""name"": ""capture_window"",
-          ""title"": ""Capture Single Window"",
-          ""description"": ""Captures a specific window by title. Opens window picker if title is omitted."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""window_title"": {
-                ""type"": ""string"",
-                ""description"": ""Substring match on window title. If omitted, shows window picker.""
+        }
+        """,
+        """
+        {
+          "name": "capture_window",
+          "title": "Capture Single Window",
+          "description": "Captures the foreground window or the first window whose title contains the provided text.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "window_title": {
+                "type": "string",
+                "description": "Substring match against a window title. If omitted, the foreground window is captured."
               },
-              ""include_decoration"": {
-                ""type"": ""boolean"",
-                ""default"": true,
-                ""description"": ""Include the window title bar and borders.""
+              "include_decoration": {
+                "type": "boolean",
+                "default": true,
+                "description": "When false, captures only the client area."
               }
             }
           }
-        }",
-        @"{
-          ""name"": ""capture_full_screen"",
-          ""title"": ""Capture Full Screen"",
-          ""description"": ""Captures all monitors or a specific monitor."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""monitor"": {
-                ""type"": ""integer"",
-                ""description"": ""Monitor index (0 = primary). If omitted, captures all monitors as a stitched image.""
+        }
+        """,
+        """
+        {
+          "name": "capture_full_screen",
+          "title": "Capture Full Screen",
+          "description": "Captures all monitors as one image, or a single monitor if an index is provided.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "monitor": {
+                "type": "integer",
+                "description": "Optional monitor index to capture."
               }
             }
           }
-        }",
-        @"{
-          ""name"": ""capture_scrolling"",
-          ""title"": ""Scrolling Capture"",
-          ""description"": ""Activates XerahS scrolling capture mode. User selects a region then scrolls manually. Returns the stitched result."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""scroll_direction"": {
-                ""type"": ""string"",
-                ""enum"": [""down"", ""up"", ""left"", ""right""],
-                ""default"": ""down"",
-                ""description"": ""Expected scroll direction""
+        }
+        """,
+        """
+        {
+          "name": "capture_scrolling",
+          "title": "Scrolling Capture",
+          "description": "Runs XerahS scrolling capture against the active window and returns the stitched image result.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "scroll_direction": {
+                "type": "string",
+                "enum": ["down", "up", "left", "right"],
+                "default": "down",
+                "description": "Requested scroll direction metadata for the capture run."
               },
-              ""max_frames"": {
-                ""type"": ""integer"",
-                ""default"": 50,
-                ""description"": ""Maximum frames before auto-stop""
+              "max_frames": {
+                "type": "integer",
+                "default": 50,
+                "description": "Requested frame cap metadata for the capture run."
               }
             }
           }
-        }"
+        }
+        """
     ];
 
-    public Task<string> CaptureRegionAsync(string? workflowId, int? monitor)
-    {
-        // STUB: needs integration with ScreenCaptureService
-        return Task.FromResult(@"{
-          ""file_path"": ""/home/user/Pictures/XerahS/capture_2026-04-08_001.png"",
-          ""url"": null,
-          ""note"": ""STUB: needs integration with ScreenCaptureService""
-        }");
-    }
+    public Task<JsonObject> CaptureRegionAsync(string? workflowId, int? monitor, CancellationToken cancellationToken = default) =>
+        _runtime.CaptureRegionAsync(workflowId, monitor, cancellationToken);
 
-    public Task<string> CaptureWindowAsync(string? windowTitle, bool includeDecoration)
-    {
-        // STUB: needs integration with ScreenCaptureService
-        return Task.FromResult(@"{
-          ""file_path"": ""/home/user/Pictures/XerahS/window_capture_2026-04-08_001.png"",
-          ""url"": null,
-          ""window_title"": ""selected_window"",
-          ""note"": ""STUB: needs integration with ScreenCaptureService""
-        }");
-    }
+    public Task<JsonObject> CaptureWindowAsync(string? windowTitle, bool includeDecoration, CancellationToken cancellationToken = default) =>
+        _runtime.CaptureWindowAsync(windowTitle, includeDecoration, cancellationToken);
 
-    public Task<string> CaptureFullScreenAsync(int? monitor)
-    {
-        // STUB: needs integration with ScreenCaptureService
-        return Task.FromResult(@"{
-          ""file_path"": ""/home/user/Pictures/XerahS/fullscreen_2026-04-08_001.png"",
-          ""url"": null,
-          ""monitor"": null,
-          ""note"": ""STUB: needs integration with ScreenCaptureService""
-        }");
-    }
+    public Task<JsonObject> CaptureFullScreenAsync(int? monitor, CancellationToken cancellationToken = default) =>
+        _runtime.CaptureFullScreenAsync(monitor, cancellationToken);
 
-    public Task<string> CaptureScrollingAsync(string scrollDirection, int maxFrames)
-    {
-        // STUB: needs integration with ScrollingCaptureManager
-        return Task.FromResult(@"{
-          ""file_path"": ""/home/user/Pictures/XerahS/scrolling_2026-04-08_001.png"",
-          ""url"": null,
-          ""frames_captured"": 12,
-          ""scroll_direction"": ""down"",
-          ""note"": ""STUB: needs integration with ScrollingCaptureManager""
-        }");
-    }
+    public Task<JsonObject> CaptureScrollingAsync(string scrollDirection, int maxFrames, CancellationToken cancellationToken = default) =>
+        _runtime.CaptureScrollingAsync(scrollDirection, maxFrames, cancellationToken);
 }

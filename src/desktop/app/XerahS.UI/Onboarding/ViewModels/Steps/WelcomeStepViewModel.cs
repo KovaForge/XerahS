@@ -26,7 +26,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
@@ -40,11 +39,46 @@ public record LanguageOption(string Code, string DisplayName, string NativeName)
 /// </summary>
 public partial class WelcomeStepViewModel : StepViewModelBase
 {
+    private static readonly (string Code, string CultureName)[] SupportedLanguageDefinitions =
+    [
+        ("en", "en"),
+        ("es", "es"),
+        ("es-mx", "es-MX"),
+        ("fr", "fr"),
+        ("de", "de"),
+        ("it", "it"),
+        ("pt", "pt-PT"),
+        ("pt-br", "pt-BR"),
+        ("ru", "ru"),
+        ("ja", "ja"),
+        ("ko", "ko"),
+        ("zh-hans", "zh-CN"),
+        ("zh-hant", "zh-TW"),
+        ("ar", "ar"),
+        ("nl", "nl"),
+        ("pl", "pl"),
+        ("tr", "tr"),
+        ("he", "he"),
+        ("hu", "hu"),
+        ("id", "id"),
+        ("fa", "fa"),
+        ("ro", "ro"),
+        ("uk", "uk"),
+        ("vi", "vi")
+    ];
+
+    private bool _syncingSelection;
+
     [ObservableProperty]
     private string _selectedLanguage = "en";
 
     [ObservableProperty]
     private string _fallbackHint = "";
+
+    [ObservableProperty]
+    private LanguageOption? _selectedLanguageOption;
+
+    public bool HasFallbackHint => !string.IsNullOrWhiteSpace(FallbackHint);
 
     public ObservableCollection<LanguageOption> AvailableLanguages { get; } = new();
 
@@ -56,65 +90,49 @@ public partial class WelcomeStepViewModel : StepViewModelBase
         CanSkip = false;
 
         LoadAvailableLanguages();
+        SetValidationState(true);
     }
 
     private void LoadAvailableLanguages()
     {
-        // Get cultures but filter to avoid overwhelming list
-        // Prioritize common languages and the current UI culture
-        var currentCulture = CultureInfo.CurrentUICulture;
-        var allCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(c => !c.IsNeutralCulture && !string.IsNullOrEmpty(c.Name))
-            .GroupBy(c => c.TwoLetterISOLanguageName)
-            .Select(g => g.First())
-            .OrderBy(c => c.DisplayName)
-            .ToList();
+        CultureInfo currentCulture = CultureInfo.CurrentUICulture;
+        AvailableLanguages.Clear();
+        FallbackHint = string.Empty;
 
-        // Common languages to show at the top
-        var priorityCodes = new[] { "en", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh" };
-        var priorityLanguages = allCultures
-            .Where(c => priorityCodes.Contains(c.TwoLetterISOLanguageName))
-            .OrderBy(c => Array.IndexOf(priorityCodes, c.TwoLetterISOLanguageName))
-            .ToList();
-
-        // Add priority languages first
-        foreach (var culture in priorityLanguages)
+        foreach ((string code, string cultureName) in SupportedLanguageDefinitions)
         {
+            CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
             AvailableLanguages.Add(new LanguageOption(
-                culture.TwoLetterISOLanguageName,
-                culture.DisplayName,
+                code,
+                culture.EnglishName,
                 culture.NativeName));
         }
 
-        // Add separator indicator (represented by empty code)
-        AvailableLanguages.Add(new LanguageOption("", "──────────", ""));
+        string? currentCode = NormalizeSupportedLanguageCode(currentCulture.Name)
+            ?? NormalizeSupportedLanguageCode(currentCulture.TwoLetterISOLanguageName);
 
-        // Add remaining languages
-        foreach (var culture in allCultures.Where(c => !priorityCodes.Contains(c.TwoLetterISOLanguageName)))
+        if (!string.IsNullOrWhiteSpace(currentCode))
         {
-            AvailableLanguages.Add(new LanguageOption(
-                culture.TwoLetterISOLanguageName,
-                culture.DisplayName,
-                culture.NativeName));
-        }
-
-        // Pre-select current UI culture or English as fallback
-        var currentCode = currentCulture.TwoLetterISOLanguageName;
-        var match = AvailableLanguages.FirstOrDefault(l => l.Code == currentCode);
-        if (match != null)
-        {
-            SelectedLanguage = match.Code;
+            SelectedLanguage = currentCode;
         }
         else
         {
             SelectedLanguage = "en";
             FallbackHint = $"Your system language ({currentCulture.DisplayName}) is not available. English has been selected as the default.";
         }
+
+        SyncSelectedLanguageOption();
     }
 
     public override void LoadFromState(OnboardingState state)
     {
-        SelectedLanguage = state.SelectedLanguage;
+        string? normalizedLanguageCode = NormalizeSupportedLanguageCode(state.SelectedLanguage);
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            SelectedLanguage = normalizedLanguageCode;
+        }
+
+        SyncSelectedLanguageOption();
     }
 
     public override void SaveToState(OnboardingState state)
@@ -122,5 +140,91 @@ public partial class WelcomeStepViewModel : StepViewModelBase
         state.SelectedLanguage = SelectedLanguage;
     }
 
-    public override bool Validate() => true; // Language selection is always valid
+    public override bool Validate()
+    {
+        SetValidationState(true);
+        return true;
+    }
+
+    partial void OnSelectedLanguageChanged(string value)
+    {
+        if (_syncingSelection)
+        {
+            return;
+        }
+
+        SyncSelectedLanguageOption();
+        SetValidationState(true);
+    }
+
+    partial void OnSelectedLanguageOptionChanged(LanguageOption? value)
+    {
+        if (value == null || string.Equals(SelectedLanguage, value.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _syncingSelection = true;
+        SelectedLanguage = value.Code;
+        _syncingSelection = false;
+        SetValidationState(true);
+    }
+
+    partial void OnFallbackHintChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasFallbackHint));
+    }
+
+    private void SyncSelectedLanguageOption()
+    {
+        _syncingSelection = true;
+        SelectedLanguageOption = AvailableLanguages.FirstOrDefault(language =>
+            string.Equals(language.Code, SelectedLanguage, StringComparison.OrdinalIgnoreCase))
+            ?? AvailableLanguages.FirstOrDefault(language =>
+            string.Equals(language.Code, "en", StringComparison.OrdinalIgnoreCase));
+        _syncingSelection = false;
+    }
+
+    private static string? NormalizeSupportedLanguageCode(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return null;
+        }
+
+        return code.ToLowerInvariant() switch
+        {
+            "ar" => "ar",
+            "nl" => "nl",
+            "en" => "en",
+            "fr" => "fr",
+            "de" => "de",
+            "he" => "he",
+            "hu" => "hu",
+            "id" => "id",
+            "it" => "it",
+            "ja" => "ja",
+            "ko" => "ko",
+            "es-mx" => "es-mx",
+            "fa" => "fa",
+            "pl" => "pl",
+            "pt" => "pt",
+            "pt-br" => "pt-br",
+            "ro" => "ro",
+            "ru" => "ru",
+            "zh" => "zh-hans",
+            "zh-cn" => "zh-hans",
+            "zh-sg" => "zh-hans",
+            "zh-hans" => "zh-hans",
+            "es" => "es",
+            "zh-tw" => "zh-hant",
+            "zh-hk" => "zh-hant",
+            "zh-mo" => "zh-hant",
+            "zh-hant" => "zh-hant",
+            "tr" => "tr",
+            "uk" => "uk",
+            "vi" => "vi",
+            _ => null
+        };
+    }
 }

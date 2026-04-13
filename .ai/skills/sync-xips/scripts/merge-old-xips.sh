@@ -25,9 +25,9 @@ if [[ ! -d "$repo_root/.git" ]]; then
   exit 1
 fi
 
-tasks_root="$repo_root/tasks"
+backup_root="$repo_root/docs/proposals/xip"
 
-REPO_ROOT="$repo_root" TASKS_ROOT="$tasks_root" SCRIPT_DIR="$script_dir" python3 - <<'PY'
+REPO_ROOT="$repo_root" BACKUP_ROOT="$backup_root" SCRIPT_DIR="$script_dir" python3 - <<'PY'
 import json
 import os
 import re
@@ -36,7 +36,7 @@ import tempfile
 from pathlib import Path
 
 repo_root = Path(os.environ["REPO_ROOT"])
-tasks_root = Path(os.environ["TASKS_ROOT"])
+backup_root = Path(os.environ["BACKUP_ROOT"])
 script_dir = Path(os.environ["SCRIPT_DIR"])
 
 def run(cmd, *, input_text=None):
@@ -56,7 +56,8 @@ def get_title_without_xip_prefix(title: str):
     return re.sub(r"^\[?XIP[\s\-]?\d+\]?\s*", "", title).strip()
 
 def get_slug(title_part: str):
-    s = re.sub(r"[^\w\s\-]", "", title_part)
+    s = re.sub(r"[^\x20-\x7E]", "-", title_part)
+    s = re.sub(r"[^a-zA-Z0-9\s\-]", "", s)
     s = re.sub(r"\s+", "-", s)
     s = re.sub(r"\-+", "-", s)
     s = s.strip("-").lower()
@@ -95,7 +96,7 @@ for issue in issues:
         "canonical": canonical,
     }
 
-all_md = list(tasks_root.rglob("XIP*.md")) if tasks_root.exists() else []
+all_md = list(backup_root.rglob("XIP*.md")) if backup_root.exists() else []
 old_files = []
 for f in all_md:
     base = f.name
@@ -103,7 +104,7 @@ for f in all_md:
     if not xip_num:
         continue
     canonical = by_xip_num.get(xip_num, {}).get("canonical")
-    is_in_root = f.parent == tasks_root
+    is_in_root = f.parent == backup_root
     if canonical and base == canonical and is_in_root:
         continue
     old_files.append({"path": f, "base": base, "xip_num": xip_num})
@@ -173,10 +174,10 @@ for item in old_files:
         print(f"  Deleted: {item['base']}")
 
 for sub in ("active", "complete", "parked"):
-    d = tasks_root / sub
+    d = backup_root / sub
     if d.exists() and not any(d.iterdir()):
         d.rmdir()
-        print(f"  Removed empty folder: tasks/{sub}/")
+        print(f"  Removed empty folder: docs/proposals/xip/{sub}/")
 
-print("Done. Legacy content merged into GitHub; backup synced to tasks/; old files removed.")
+print("Done. Legacy content merged into GitHub; backup synced to docs/proposals/xip/; old files removed.")
 PY

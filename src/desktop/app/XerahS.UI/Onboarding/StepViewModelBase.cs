@@ -57,6 +57,8 @@ public abstract partial class StepViewModelBase : ViewModelBase
     [ObservableProperty]
     private bool _canSkip = true;
 
+    public bool HasValidationError => !string.IsNullOrWhiteSpace(ValidationError);
+
     /// <summary>
     /// Loads state into this step's ViewModel.
     /// </summary>
@@ -81,4 +83,15 @@ public abstract partial class StepViewModelBase : ViewModelBase
     /// Performs any async test/validation for this step.
     /// </summary>
     public virtual Task<bool> TestAsync() => Task.FromResult(true);
+
+    protected void SetValidationState(bool isValid, string? validationError = null)
+    {
+        IsValid = isValid;
+        ValidationError = isValid ? null : validationError;
+    }
+
+    partial void OnValidationErrorChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasValidationError));
+    }
 }

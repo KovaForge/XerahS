@@ -26,6 +26,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Common;
+using XerahS.UI.Onboarding;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
@@ -39,17 +41,19 @@ public partial class UploaderOption : ObservableObject
     public string Description { get; }
     public string Icon { get; }
     public bool RequiresAuth { get; }
+    public bool CanConfigure { get; }
 
     [ObservableProperty]
     private bool _isSelected;
 
-    public UploaderOption(string id, string name, string description, string icon, bool requiresAuth)
+    public UploaderOption(string id, string name, string description, string icon, bool requiresAuth, bool canConfigure)
     {
         Id = id;
         Name = name;
         Description = description;
         Icon = icon;
         RequiresAuth = requiresAuth;
+        CanConfigure = canConfigure;
     }
 }
 
@@ -58,6 +62,8 @@ public partial class UploaderOption : ObservableObject
 /// </summary>
 public partial class UploadStepViewModel : StepViewModelBase
 {
+    private bool _syncingSelection;
+
     [ObservableProperty]
     private string? _selectedUploaderId;
 
@@ -84,6 +90,8 @@ public partial class UploadStepViewModel : StepViewModelBase
     /// </summary>
     public Func<Task<bool>>? ImportShareXCallback { get; set; }
 
+    public Func<UploaderOption, Task>? ConfigureUploaderCallback { get; set; }
+
     public UploadStepViewModel()
     {
         StepTitle = "Upload Settings";
@@ -93,53 +101,49 @@ public partial class UploadStepViewModel : StepViewModelBase
 
         InitializeUploaders();
         CheckForShareXConfig();
+        SetValidationState(true);
     }
 
     private void InitializeUploaders()
     {
-        AvailableUploaders.Add(new UploaderOption(
+        RegisterOption(new UploaderOption(
             "local",
             "Local only",
-            "Screenshots are saved to your computer only",
-            "💻",
-            false) { IsSelected = true });
-
-        AvailableUploaders.Add(new UploaderOption(
-            "imgur_anon",
-            "Imgur (anonymous)",
-            "Upload to Imgur without authentication",
-            "🖼️",
+            "Screenshots are saved to your computer only.",
+            "LOCAL",
+            false,
             false));
 
-        AvailableUploaders.Add(new UploaderOption(
-            "imgur_auth",
-            "Imgur (authenticated)",
-            "Upload to your Imgur account",
-            "🔐",
-            true));
+        try
+        {
+            foreach (var provider in OnboardingFileUploaderHelper.GetFileUploaderProviders())
+            {
+                RegisterOption(new UploaderOption(
+                    provider.ProviderId,
+                    provider.Name,
+                    provider.Description,
+                    provider.ProviderId,
+                    true,
+                    true));
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Onboarding] Failed to load file uploader providers");
+        }
 
-        AvailableUploaders.Add(new UploaderOption(
-            "custom",
-            "Custom uploader",
-            "Configure your own upload destination",
-            "⚙️",
-            false));
-
-        AvailableUploaders.Add(new UploaderOption(
-            "more",
-            "More options...",
-            "Explore additional upload destinations",
-            "➕",
-            false));
-
-        // Default to local only
         SelectedUploaderId = "local";
+    }
+
+    private void RegisterOption(UploaderOption option)
+    {
+        option.PropertyChanged += OnUploaderOptionPropertyChanged;
+        AvailableUploaders.Add(option);
     }
 
     private void CheckForShareXConfig()
     {
-        // Check if ShareX config exists in default location
-        var shareXPath = Path.Combine(
+        string shareXPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "ShareX");
         HasShareXConfig = Directory.Exists(shareXPath) &&
@@ -151,7 +155,7 @@ public partial class UploadStepViewModel : StepViewModelBase
     {
         if (string.IsNullOrEmpty(SelectedUploaderId) || SelectedUploaderId == "local")
         {
-            TestResult = "Local storage doesn't require a connection test.";
+            TestResult = "Local storage does not require a connection test.";
             IsTestSuccessful = true;
             return;
         }
@@ -161,29 +165,10 @@ public partial class UploadStepViewModel : StepViewModelBase
 
         try
         {
-            // Simulate connection test
             await Task.Delay(1000);
 
-            if (SelectedUploaderId == "imgur_anon")
-            {
-                TestResult = "Connection successful! Imgur anonymous upload is ready.";
-                IsTestSuccessful = true;
-            }
-            else if (SelectedUploaderId == "imgur_auth")
-            {
-                TestResult = "Authentication required. You'll be prompted to authorize when you first upload.";
-                IsTestSuccessful = true;
-            }
-            else if (SelectedUploaderId == "custom")
-            {
-                TestResult = "Custom uploaders can be configured in Settings after setup.";
-                IsTestSuccessful = true;
-            }
-            else
-            {
-                TestResult = "Additional uploaders available in Settings.";
-                IsTestSuccessful = true;
-            }
+            TestResult = "Use Config... to update this file uploader's credentials and destination settings.";
+            IsTestSuccessful = true;
         }
         catch (Exception ex)
         {
@@ -199,19 +184,44 @@ public partial class UploadStepViewModel : StepViewModelBase
     [RelayCommand]
     private async Task ImportFromShareXAsync()
     {
-        if (ImportShareXCallback != null)
+        if (ImportShareXCallback == null)
         {
-            var result = await ImportShareXCallback();
-            if (result)
-            {
-                TestResult = "ShareX configuration imported successfully!";
-                IsTestSuccessful = true;
-            }
-            else
-            {
-                TestResult = "Failed to import ShareX configuration.";
-                IsTestSuccessful = false;
-            }
+            return;
+        }
+
+        bool result = await ImportShareXCallback();
+        if (result)
+        {
+            TestResult = "ShareX configuration imported successfully.";
+            IsTestSuccessful = true;
+        }
+        else
+        {
+            TestResult = "Failed to import ShareX configuration.";
+            IsTestSuccessful = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ConfigureUploaderAsync(UploaderOption? option)
+    {
+        if (option == null || !option.CanConfigure || ConfigureUploaderCallback == null)
+        {
+            return;
+        }
+
+        SelectedUploaderId = option.Id;
+
+        try
+        {
+            await ConfigureUploaderCallback(option);
+            TestResult = $"{option.Name} configuration updated.";
+            IsTestSuccessful = true;
+        }
+        catch (Exception ex)
+        {
+            TestResult = $"Failed to configure {option.Name}: {ex.Message}";
+            IsTestSuccessful = false;
         }
     }
 
@@ -227,12 +237,44 @@ public partial class UploadStepViewModel : StepViewModelBase
 
     public override bool Validate()
     {
-        return !string.IsNullOrEmpty(SelectedUploaderId);
+        bool isValid = !string.IsNullOrWhiteSpace(SelectedUploaderId);
+        SetValidationState(isValid, isValid ? null : "Choose an upload destination.");
+        return isValid;
     }
 
     partial void OnSelectedUploaderIdChanged(string? value)
     {
         TestResult = null;
         IsTestSuccessful = false;
+        SyncSelectionToState();
+        SetValidationState(!string.IsNullOrWhiteSpace(value), string.IsNullOrWhiteSpace(value) ? "Choose an upload destination." : null);
+        OnPropertyChanged(nameof(HasSelection));
+    }
+
+    partial void OnTestResultChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasTestResult));
+    }
+
+    private void OnUploaderOptionPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_syncingSelection || e.PropertyName != nameof(UploaderOption.IsSelected) || sender is not UploaderOption option || !option.IsSelected)
+        {
+            return;
+        }
+
+        SelectedUploaderId = option.Id;
+    }
+
+    private void SyncSelectionToState()
+    {
+        _syncingSelection = true;
+
+        foreach (UploaderOption option in AvailableUploaders)
+        {
+            option.IsSelected = string.Equals(option.Id, SelectedUploaderId, StringComparison.Ordinal);
+        }
+
+        _syncingSelection = false;
     }
 }

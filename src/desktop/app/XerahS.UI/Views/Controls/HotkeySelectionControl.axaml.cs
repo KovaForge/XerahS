@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -38,6 +39,9 @@ namespace XerahS.UI.Views.Controls;
 /// </summary>
 public partial class HotkeySelectionControl : UserControl
 {
+    public static readonly StyledProperty<bool> RegisterOnCommitProperty =
+        AvaloniaProperty.Register<HotkeySelectionControl, bool>(nameof(RegisterOnCommit), true);
+
     // Static debug log - writes to Debug output and collects in list
     private static Action<string>? _debugLog;
     private static readonly System.Collections.Generic.List<string> _debugMessages = new();
@@ -80,6 +84,12 @@ public partial class HotkeySelectionControl : UserControl
     // Visual feedback colors
     private static readonly IBrush RecordingBackground = new SolidColorBrush(Color.FromRgb(255, 235, 120));
     private static readonly IBrush RecordingForeground = Brushes.Black;
+
+    public bool RegisterOnCommit
+    {
+        get => GetValue(RegisterOnCommitProperty);
+        set => SetValue(RegisterOnCommitProperty, value);
+    }
 
     public HotkeySelectionControl()
     {
@@ -281,7 +291,7 @@ public partial class HotkeySelectionControl : UserControl
             Log("StopRecording: Global hotkeys re-enabled");
 
             // Re-register the hotkey with new binding
-            if (_viewModel != null)
+            if (_viewModel != null && RegisterOnCommit)
             {
                 var key = _viewModel.Model.HotkeyInfo.Key;
                 var mods = _viewModel.Model.HotkeyInfo.Modifiers;
@@ -290,6 +300,10 @@ public partial class HotkeySelectionControl : UserControl
                 Log($"StopRecording: Details - Key={key}, Modifiers={mods}, Id={id}");
                 var success = app.WorkflowManager.RegisterHotkey(_viewModel.Model);
                 Log($"StopRecording: RegisterHotkey returned: {success}, Status: {_viewModel.Model.HotkeyInfo.Status}");
+            }
+            else if (_viewModel != null)
+            {
+                Log("StopRecording: Hotkey registration deferred by caller.");
             }
             else
             {

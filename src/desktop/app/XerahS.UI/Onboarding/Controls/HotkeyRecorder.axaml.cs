@@ -45,27 +45,18 @@ public partial class HotkeyRecorder : UserControl
     public static readonly RoutedEvent<RoutedEventArgs> HotkeyChangedEvent =
         RoutedEvent.Register<HotkeyRecorder, RoutedEventArgs>(nameof(HotkeyChanged), RoutingStrategies.Bubble);
 
-    /// <summary>
-    /// The recorded hotkey as a formatted string (e.g., "Ctrl+Shift+F1").
-    /// </summary>
     public string? Value
     {
         get => GetValue(ValueProperty);
         set => SetValue(ValueProperty, value);
     }
 
-    /// <summary>
-    /// Whether there is a conflict with this hotkey.
-    /// </summary>
     public bool HasConflict
     {
         get => GetValue(HasConflictProperty);
         set => SetValue(HasConflictProperty, value);
     }
 
-    /// <summary>
-    /// Fires when the hotkey changes.
-    /// </summary>
     public event EventHandler<RoutedEventArgs>? HotkeyChanged;
 
     private bool _isRecording;
@@ -75,6 +66,8 @@ public partial class HotkeyRecorder : UserControl
         InitializeComponent();
         GotFocus += OnGotFocus;
         LostFocus += OnLostFocus;
+        PointerPressed += OnPointerPressed;
+        ValueProperty.Changed.AddClassHandler<HotkeyRecorder>(OnValueChanged);
     }
 
     private void InitializeComponent()
@@ -99,15 +92,22 @@ public partial class HotkeyRecorder : UserControl
         }
     }
 
-    private void OnKeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Focus();
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (!_isRecording)
+        {
             return;
+        }
 
         e.Handled = true;
 
-        var key = e.Key;
-        var modifiers = e.KeyModifiers;
+        Key key = e.Key;
+        KeyModifiers modifiers = e.KeyModifiers;
 
         if (IsModifierKey(key))
         {
@@ -121,7 +121,7 @@ public partial class HotkeyRecorder : UserControl
             return;
         }
 
-        var hotkeyString = BuildHotkeyString(key, modifiers);
+        string hotkeyString = BuildHotkeyString(key, modifiers);
         SetRecordedHotkey(hotkeyString);
     }
 
@@ -133,22 +133,35 @@ public partial class HotkeyRecorder : UserControl
                key == Key.LWin || key == Key.RWin;
     }
 
-    private string BuildHotkeyString(Key key, KeyModifiers modifiers)
+    private static string BuildHotkeyString(Key key, KeyModifiers modifiers)
     {
-        var parts = new System.Collections.Generic.List<string>();
+        List<string> parts = [];
 
         if (modifiers.HasFlag(KeyModifiers.Control))
+        {
             parts.Add("Ctrl");
-        if (modifiers.HasFlag(KeyModifiers.Alt))
-            parts.Add("Alt");
-        if (modifiers.HasFlag(KeyModifiers.Shift))
-            parts.Add("Shift");
-        if (modifiers.HasFlag(KeyModifiers.Meta))
-            parts.Add("Win");
+        }
 
-        var keyName = GetKeyDisplayName(key);
+        if (modifiers.HasFlag(KeyModifiers.Alt))
+        {
+            parts.Add("Alt");
+        }
+
+        if (modifiers.HasFlag(KeyModifiers.Shift))
+        {
+            parts.Add("Shift");
+        }
+
+        if (modifiers.HasFlag(KeyModifiers.Meta))
+        {
+            parts.Add("Win");
+        }
+
+        string keyName = GetKeyDisplayName(key);
         if (!string.IsNullOrEmpty(keyName))
+        {
             parts.Add(keyName);
+        }
 
         return string.Join(" + ", parts);
     }
@@ -164,28 +177,16 @@ public partial class HotkeyRecorder : UserControl
             Key.End => "End",
             Key.PageUp => "Page Up",
             Key.PageDown => "Page Down",
-            Key.Left => "←",
-            Key.Up => "↑",
-            Key.Right => "→",
-            Key.Down => "↓",
+            Key.Left => "Left",
+            Key.Up => "Up",
+            Key.Right => "Right",
+            Key.Down => "Down",
             Key.Delete => "Delete",
             Key.Back => "Backspace",
             Key.Tab => "Tab",
             Key.Return => "Enter",
             Key.Space => "Space",
             Key.Escape => "Escape",
-            Key.F1 => "F1",
-            Key.F2 => "F2",
-            Key.F3 => "F3",
-            Key.F4 => "F4",
-            Key.F5 => "F5",
-            Key.F6 => "F6",
-            Key.F7 => "F7",
-            Key.F8 => "F8",
-            Key.F9 => "F9",
-            Key.F10 => "F10",
-            Key.F11 => "F11",
-            Key.F12 => "F12",
             Key.NumLock => "Num Lock",
             Key.Scroll => "Scroll Lock",
             Key.Sleep => "Sleep",
@@ -207,22 +208,20 @@ public partial class HotkeyRecorder : UserControl
     private void SetRecordedHotkey(string hotkey)
     {
         Value = hotkey;
-
         UpdateVisualState(true, false);
-
         _isRecording = false;
 
-        var args = new RoutedEventArgs(HotkeyChangedEvent);
+        RoutedEventArgs args = new(HotkeyChangedEvent);
         HotkeyChanged?.Invoke(this, args);
         RaiseEvent(args);
     }
 
     private void UpdateVisualState(bool recorded, bool conflict)
     {
-        var border = this.FindControl<Border>("RecorderBorder");
-        var placeholder = this.FindControl<TextBlock>("PlaceholderText");
-        var recordedText = this.FindControl<TextBlock>("RecordedText");
-        var clearBtn = this.FindControl<Button>("ClearButton");
+        Border? border = this.FindControl<Border>("RecorderBorder");
+        TextBlock? placeholder = this.FindControl<TextBlock>("PlaceholderText");
+        TextBlock? recordedText = this.FindControl<TextBlock>("RecordedText");
+        Button? clearButton = this.FindControl<Button>("ClearButton");
 
         if (border != null)
         {
@@ -242,20 +241,17 @@ public partial class HotkeyRecorder : UserControl
             recordedText.IsVisible = recorded;
         }
 
-        if (clearBtn != null)
+        if (clearButton != null)
         {
-            clearBtn.IsVisible = recorded;
+            clearButton.IsVisible = recorded;
         }
     }
 
-    private void OnClearClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void OnClearClick(object? sender, RoutedEventArgs e)
     {
         ClearHotkey();
     }
 
-    /// <summary>
-    /// Clears the recorded hotkey and returns to idle state.
-    /// </summary>
     public void ClearHotkey()
     {
         Value = null;
@@ -264,17 +260,14 @@ public partial class HotkeyRecorder : UserControl
         UpdateVisualState(false, false);
     }
 
-    /// <summary>
-    /// Starts recording a new hotkey.
-    /// </summary>
     public void StartRecording()
     {
         _isRecording = true;
 
-        var border = this.FindControl<Border>("RecorderBorder");
-        var placeholder = this.FindControl<TextBlock>("PlaceholderText");
-        var recordedText = this.FindControl<TextBlock>("RecordedText");
-        var clearBtn = this.FindControl<Button>("ClearButton");
+        Border? border = this.FindControl<Border>("RecorderBorder");
+        TextBlock? placeholder = this.FindControl<TextBlock>("PlaceholderText");
+        TextBlock? recordedText = this.FindControl<TextBlock>("RecordedText");
+        Button? clearButton = this.FindControl<Button>("ClearButton");
 
         if (border != null)
         {
@@ -290,18 +283,30 @@ public partial class HotkeyRecorder : UserControl
         }
 
         if (recordedText != null)
+        {
             recordedText.IsVisible = false;
+        }
 
-        if (clearBtn != null)
-            clearBtn.IsVisible = false;
+        if (clearButton != null)
+        {
+            clearButton.IsVisible = false;
+        }
     }
 
-    /// <summary>
-    /// Sets the conflict state with a message.
-    /// </summary>
     public void SetConflict(string message)
     {
         HasConflict = true;
         UpdateVisualState(false, true);
+    }
+
+    private void OnValueChanged(HotkeyRecorder recorder, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (recorder._isRecording)
+        {
+            return;
+        }
+
+        bool hasValue = !string.IsNullOrWhiteSpace(recorder.Value);
+        recorder.UpdateVisualState(hasValue, recorder.HasConflict);
     }
 }

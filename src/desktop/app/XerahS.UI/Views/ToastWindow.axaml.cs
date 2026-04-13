@@ -29,6 +29,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
@@ -75,7 +76,7 @@ public partial class ToastWindow : OverlayWindow
         }
     }
 
-    public void Initialize(ToastConfig config)
+    public void Initialize(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
         _config = config;
 
@@ -87,7 +88,7 @@ public partial class ToastWindow : OverlayWindow
         PositionWindow(config.Placement, config.Offset, config.Size);
 
         // Create and bind ViewModel
-        _viewModel = new ToastViewModel(config);
+        _viewModel = new ToastViewModel(config, taskManager);
         DataContext = _viewModel;
 
         _viewModel.CloseRequested += OnCloseRequested;

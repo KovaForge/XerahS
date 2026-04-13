@@ -32,6 +32,10 @@
                 <MenuItem Header="Edit..."
                           Command="{Binding EditImageCommand}"
                           InputGesture="Enter"/>
+                <MenuItem Header="Edit Annotations"
+                          Command="{Binding EditAnnotationsCommand}"
+                          IsVisible="{Binding Item.HasEditableAnnotations}"
+                          InputGesture="Ctrl+Shift+E"/>
                 <MenuItem Header="Open File"
                           Command="{Binding OpenFileCommand}"/>
                 <MenuItem Header="Upload"
@@ -106,4 +110,3 @@
         </TrayIcons>
     </TrayIcon.Icons>
 </Application>
-

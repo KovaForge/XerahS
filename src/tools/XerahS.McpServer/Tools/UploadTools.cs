@@ -1,78 +1,58 @@
+using System.Text.Json.Nodes;
+using XerahS.McpServer.Runtime;
+
 namespace XerahS.McpServer.Tools;
 
 /// <summary>
-/// Upload tools for MCP server
+/// Upload tools for MCP server.
 /// </summary>
-public class UploadTools
+public sealed class UploadTools(IXerahSMcpRuntime runtime)
 {
+    private readonly IXerahSMcpRuntime _runtime = runtime;
+
     public string[] GetToolDefinitionsJson() => [
-        @"{
-          ""name"": ""upload_file"",
-          ""title"": ""Upload File"",
-          ""description"": ""Uploads a file to the configured default (or specified) upload destination."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""file_path"": {
-                ""type"": ""string"",
-                ""description"": ""Absolute path to the file to upload"",
-                ""required"": true
+        """
+        {
+          "name": "upload_file",
+          "title": "Upload File",
+          "description": "Uploads a file through XerahS using the default or specified configured destination.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Absolute path to the file to upload."
               },
-              ""destination"": {
-                ""type"": ""string"",
-                ""description"": ""Destination ID (e.g. 'imgur', 'imgur_anon', 'dropbox'). Uses default if omitted.""
+              "destination": {
+                "type": "string",
+                "description": "Optional destination instance ID, provider ID, or display name."
               }
             },
-            ""required"": [""file_path""]
+            "required": ["file_path"]
           }
-        }",
-        @"{
-          ""name"": ""upload_clipboard"",
-          ""title"": ""Upload Clipboard"",
-          ""description"": ""Reads the current clipboard contents (image or text) and uploads to the configured destination."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""destination"": {
-                ""type"": ""string"",
-                ""description"": ""Destination ID. Uses default if omitted.""
+        }
+        """,
+        """
+        {
+          "name": "upload_clipboard",
+          "title": "Upload Clipboard",
+          "description": "Uploads the current clipboard contents if they are image, text, or file data supported by XerahS.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "destination": {
+                "type": "string",
+                "description": "Optional destination instance ID, provider ID, or display name."
               }
             }
           }
-        }"
+        }
+        """
     ];
 
-    public Task<string> UploadFileAsync(string? filePath, string? destination)
-    {
-        if (string.IsNullOrEmpty(filePath))
-        {
-            return Task.FromResult(@"{ ""error"": ""file_path is required"" }");
-        }
+    public Task<JsonObject> UploadFileAsync(string? filePath, string? destination, CancellationToken cancellationToken = default) =>
+        _runtime.UploadFileAsync(filePath, destination, cancellationToken);
 
-        // STUB: needs integration with uploaders
-        var fileName = Path.GetFileName(filePath);
-        long fileSize = 0;
-        try { if (File.Exists(filePath)) fileSize = new FileInfo(filePath).Length; } catch { }
-
-        return Task.FromResult($@"{{
-          ""url"": ""https://example.com/upload/{Guid.NewGuid()}"",
-          ""filename"": ""{fileName}"",
-          ""size_bytes"": {fileSize},
-          ""destination"": ""{destination ?? "default"}"",
-          ""note"": ""STUB: needs integration with uploaders""
-        }}");
-    }
-
-    public Task<string> UploadClipboardAsync(string? destination)
-    {
-        // STUB: needs integration with clipboard and uploaders
-        return Task.FromResult($@"{{
-          ""url"": ""https://example.com/upload/{Guid.NewGuid()}"",
-          ""filename"": ""clipboard_upload.png"",
-          ""size_bytes"": 10240,
-          ""content_type"": ""image/png"",
-          ""destination"": ""{destination ?? "default"}"",
-          ""note"": ""STUB: needs integration with clipboard and uploaders""
-        }}");
-    }
+    public Task<JsonObject> UploadClipboardAsync(string? destination, CancellationToken cancellationToken = default) =>
+        _runtime.UploadClipboardAsync(destination, cancellationToken);
 }

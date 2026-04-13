@@ -32,6 +32,7 @@ using XerahS.Core.Hotkeys;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Onboarding.ViewModels.Steps;
 using XerahS.UI.ViewModels;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.UI.Onboarding;
 
@@ -50,7 +51,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     private StepViewModelBase? _currentStep;
 
     [ObservableProperty]
-    private int _currentStepIndex;
+    private int _currentStepIndex = -1;
 
     [ObservableProperty]
     private bool _canGoBack;
@@ -59,9 +60,13 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     private bool _isLastStep;
 
     [ObservableProperty]
-    private string _nextButtonText = "Next →";
+    private string _nextButtonText = "Next";
 
     public bool CanSkipAll => true;
+
+    public bool HasCurrentStep => CurrentStep != null;
+
+    public int CurrentStepDisplayIndex => CurrentStepIndex >= 0 ? CurrentStepIndex + 1 : 0;
 
     public OnboardingState State { get; } = new();
 
@@ -71,19 +76,15 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     {
         InitializeSteps();
         CurrentStepIndex = 0;
-        UpdateNavigationState();
     }
 
     private void InitializeSteps()
     {
-        Steps.Add(new WelcomeStepViewModel());
         Steps.Add(new SaveLocationStepViewModel());
         Steps.Add(new HotkeyStepViewModel());
         Steps.Add(new UploadStepViewModel());
-        Steps.Add(new OcrStepViewModel());
         Steps.Add(new CompleteStepViewModel());
 
-        // Set step indices
         for (int i = 0; i < Steps.Count; i++)
         {
             Steps[i].StepIndex = i;
@@ -92,17 +93,15 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
     partial void OnCurrentStepIndexChanged(int value)
     {
-        if (value >= 0 && value < Steps.Count)
-        {
-            CurrentStep = Steps[value];
-            CurrentStep.LoadFromState(State);
-        }
-
+        CurrentStep = value >= 0 && value < Steps.Count ? Steps[value] : null;
+        OnPropertyChanged(nameof(CurrentStepDisplayIndex));
         UpdateNavigationState();
     }
 
     partial void OnCurrentStepChanged(StepViewModelBase? value)
     {
+        OnPropertyChanged(nameof(HasCurrentStep));
+
         if (value != null)
         {
             value.LoadFromState(State);
@@ -112,22 +111,23 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     private void UpdateNavigationState()
     {
         CanGoBack = CurrentStepIndex > 0;
-        IsLastStep = CurrentStepIndex == Steps.Count - 1;
-        NextButtonText = IsLastStep ? "Done" : "Next →";
+        IsLastStep = Steps.Count > 0 && CurrentStepIndex == Steps.Count - 1;
+        NextButtonText = IsLastStep ? "Done" : "Next";
     }
 
     [RelayCommand]
     private void Next()
     {
-        if (CurrentStep == null) return;
+        if (CurrentStep == null)
+        {
+            return;
+        }
 
-        // Validate current step
         if (!CurrentStep.Validate())
         {
             return;
         }
 
-        // Save current step state
         SaveCurrentStepToState();
 
         if (IsLastStep)
@@ -143,17 +143,22 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     [RelayCommand]
     private void Back()
     {
-        if (CurrentStepIndex > 0)
+        if (CurrentStepIndex <= 0)
         {
-            SaveCurrentStepToState();
-            CurrentStepIndex--;
+            return;
         }
+
+        SaveCurrentStepToState();
+        CurrentStepIndex--;
     }
 
     [RelayCommand]
     private void Skip()
     {
-        if (CurrentStep == null || !CurrentStep.CanSkip) return;
+        if (CurrentStep == null || !CurrentStep.CanSkip)
+        {
+            return;
+        }
 
         CurrentStep.MarkSkipped();
         State.SkippedSteps.Add(CurrentStepIndex);
@@ -172,7 +177,6 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     [RelayCommand]
     private void SkipAll()
     {
-        // Mark all remaining steps as skipped
         for (int i = CurrentStepIndex; i < Steps.Count; i++)
         {
             State.SkippedSteps.Add(i);
@@ -202,14 +206,24 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         CurrentStep?.LoadFromState(State);
     }
 
+    public Task CompleteAsync()
+    {
+        return CompleteWizardAsync();
+    }
+
     private async Task CompleteWizardAsync()
     {
+        if (_completionSource.Task.IsCompleted)
+        {
+            return;
+        }
+
         SaveCurrentStepToState();
         State.LastCompletedStepIndex = CurrentStepIndex;
 
         await CommitSettingsAsync(State);
 
-        var result = new OnboardingResult
+        OnboardingResult result = new()
         {
             Completed = true,
             Skipped = State.SkippedSteps.Count == Steps.Count,
@@ -226,90 +240,60 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     {
         try
         {
-            // 1. Language - map string code to SupportedLanguage enum
-            if (!string.IsNullOrEmpty(state.SelectedLanguage))
-            {
-                var langMap = new Dictionary<string, SupportedLanguage>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "en", SupportedLanguage.English },
-                    { "es", SupportedLanguage.Spanish },
-                    { "fr", SupportedLanguage.French },
-                    { "de", SupportedLanguage.German },
-                    { "it", SupportedLanguage.Italian },
-                    { "pt", SupportedLanguage.Portuguese },
-                    { "ru", SupportedLanguage.Russian },
-                    { "ja", SupportedLanguage.Japanese },
-                    { "ko", SupportedLanguage.Korean },
-                    { "zh", SupportedLanguage.SimplifiedChinese },
-                    { "ar", SupportedLanguage.Arabic },
-                    { "nl", SupportedLanguage.Dutch },
-                    { "pl", SupportedLanguage.Polish },
-                    { "tr", SupportedLanguage.Turkish },
-                    { "he", SupportedLanguage.Hebrew },
-                    { "hu", SupportedLanguage.Hungarian },
-                    { "id", SupportedLanguage.Indonesian },
-                    { "fa", SupportedLanguage.Persian },
-                    { "ro", SupportedLanguage.Romanian },
-                    { "uk", SupportedLanguage.Ukrainian },
-                    { "vi", SupportedLanguage.Vietnamese }
-                };
+            IReadOnlyDictionary<UploaderCategory, UploaderInstance>? selectedUploaderInstances = null;
 
-                if (langMap.TryGetValue(state.SelectedLanguage, out var supportedLang))
-                {
-                    SettingsManager.Settings.Language = supportedLang;
-                }
+            if (!string.IsNullOrEmpty(state.SelectedUploaderId) &&
+                !state.SkippedSteps.Contains(2) &&
+                !string.Equals(state.SelectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
+            {
+                selectedUploaderInstances = OnboardingFileUploaderHelper.EnsureFileUploaderInstances(state.SelectedUploaderId);
             }
 
-            // 2. Save path + subfolder flag
-            // Note: PathsManager.ScreenshotsFolder is read-only, so we store the path in settings
-            if (!string.IsNullOrEmpty(state.ScreenshotsFolder))
+            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(0))
             {
-                // Store the screenshots folder in settings
-                // The actual path handling would be done by the capture service
+                SettingsManager.Settings.CustomScreenshotsPath = state.ScreenshotsFolder;
+                SettingsManager.Settings.UseCustomScreenshotsPath = true;
+                SettingsManager.Settings.SaveImageSubFolderPattern = state.CreateDateSubfolders ? "%y-%mo-%d" : string.Empty;
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting screenshots folder: {state.ScreenshotsFolder}");
             }
 
-            // Store the date subfolder preference (if the setting exists)
-            // This might need to be added to ApplicationConfig
-
-            // 3. Hotkeys - register via WorkflowManager
-            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(2))
+            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(1))
             {
-                var workflowManager = GetWorkflowManager();
+                WorkflowManager? workflowManager = GetWorkflowManager();
                 if (workflowManager != null)
                 {
-                    // Create or update primary capture workflow
-                    var primaryWorkflow = workflowManager.Workflows
-                        .FirstOrDefault(w => w.Job == WorkflowType.RectangleRegion)
+                    WorkflowSettings primaryWorkflow = workflowManager.Workflows
+                        .FirstOrDefault(workflow => workflow.Job == WorkflowType.RectangleRegion)
                         ?? new WorkflowSettings(WorkflowType.RectangleRegion, state.PrimaryCaptureHotkey);
 
                     primaryWorkflow.HotkeyInfo = state.PrimaryCaptureHotkey;
                     primaryWorkflow.EnsureId();
+                    ApplyOnboardingDestination(primaryWorkflow, selectedUploaderInstances);
 
                     if (!workflowManager.Workflows.Contains(primaryWorkflow))
                     {
                         workflowManager.Workflows.Add(primaryWorkflow);
                     }
 
-                    // Register additional hotkeys
-                    var secondaryJobs = new[]
-                    {
+                    WorkflowType[] secondaryJobs =
+                    [
                         WorkflowType.RectangleRegion,
                         WorkflowType.ActiveWindow,
                         WorkflowType.PrintScreen
-                    };
+                    ];
 
                     for (int i = 0; i < Math.Min(state.AdditionalHotkeys.Count, secondaryJobs.Length); i++)
                     {
-                        var hotkey = state.AdditionalHotkeys[i];
-                        var job = secondaryJobs[i];
+                        HotkeyInfo hotkey = state.AdditionalHotkeys[i];
+                        WorkflowType job = secondaryJobs[i];
 
-                        var workflow = workflowManager.Workflows
-                            .FirstOrDefault(w => w.Job == job && w != primaryWorkflow)
+                        WorkflowSettings workflow = workflowManager.Workflows
+                            .FirstOrDefault(existingWorkflow => existingWorkflow.Job == job && existingWorkflow != primaryWorkflow)
                             ?? new WorkflowSettings(job, hotkey);
 
                         workflow.HotkeyInfo = hotkey;
                         workflow.EnsureId();
+                        ApplyOnboardingDestination(workflow, selectedUploaderInstances);
 
                         if (!workflowManager.Workflows.Contains(workflow))
                         {
@@ -317,38 +301,16 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                         }
                     }
 
-                    workflowManager.NotifyWorkflowsChanged();
+                    workflowManager.UpdateHotkeys(workflowManager.Workflows);
                 }
             }
 
-            // 4. Upload destination
-            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(3))
+            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(2))
             {
-                // Map the selected uploader to configuration
-                // The actual destination configuration would depend on the uploader infrastructure
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
-
-                // If Imgur is selected, configure it
-                if (state.SelectedUploaderId.StartsWith("imgur"))
-                {
-                    // This would require configuring the Imgur uploader instance
-                    // For now, we log the selection
-                }
             }
 
-            // 5. OCR languages - schedule download via OCR engine
-            if (state.SelectedOcrLanguages.Count > 0 && !state.SkippedSteps.Contains(4))
-            {
-                // Store OCR language preference
-                // The actual download would happen when OCR is first used
-                // if the platform requires it
-                DebugHelper.WriteLine($"[OnboardingWizard] Setting OCR languages: {string.Join(", ", state.SelectedOcrLanguages)}");
-            }
-
-            // Mark first-time run as completed
             SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
-
-            // Save all settings
             SettingsManager.SaveAllSettings();
 
             DebugHelper.WriteLine("[OnboardingWizard] Settings committed successfully.");
@@ -362,12 +324,39 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         await Task.CompletedTask;
     }
 
+    private static void ApplyOnboardingDestination(
+        WorkflowSettings workflow,
+        IReadOnlyDictionary<UploaderCategory, UploaderInstance>? selectedUploaderInstances)
+    {
+        if (selectedUploaderInstances == null)
+        {
+            return;
+        }
+
+        string category = workflow.Job.GetHotkeyCategory();
+        UploaderCategory? destinationCategory = category switch
+        {
+            EnumExtensions.WorkflowType_Category_ScreenCapture => UploaderCategory.File,
+            EnumExtensions.WorkflowType_Category_ScreenRecord => UploaderCategory.File,
+            EnumExtensions.WorkflowType_Category_Upload => UploaderCategory.File,
+            EnumExtensions.WorkflowType_Category_Tools => workflow.Job == WorkflowType.OCR ? UploaderCategory.Text : UploaderCategory.File,
+            _ => null
+        };
+
+        if (destinationCategory.HasValue &&
+            selectedUploaderInstances.TryGetValue(destinationCategory.Value, out UploaderInstance? instance))
+        {
+            workflow.TaskSettings.SetDestinationInstanceId(workflow.Job, instance.InstanceId);
+        }
+    }
+
     private WorkflowManager? GetWorkflowManager()
     {
         if (global::Avalonia.Application.Current is App app)
         {
             return app.WorkflowManager;
         }
+
         return null;
     }
 
@@ -376,7 +365,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
     /// </summary>
     public void Cancel()
     {
-        var result = new OnboardingResult
+        OnboardingResult result = new()
         {
             Completed = false,
             Skipped = false,

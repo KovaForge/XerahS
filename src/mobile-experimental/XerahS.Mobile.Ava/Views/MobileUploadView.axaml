@@ -34,7 +34,10 @@
         </Grid>
 
         <!-- Main Content -->
-        <ScrollViewer Grid.Row="1" Classes="adaptive-scroll">
+        <ScrollViewer Grid.Row="1"
+                      Classes="adaptive-scroll"
+                      AutomationProperties.LandmarkType="Main"
+                      AutomationProperties.AccessibilityView="Control">
             <StackPanel Margin="20" Spacing="16">
 
                 <!-- Subtitle -->
@@ -48,7 +51,8 @@
                 <TextBlock Text="{Binding StatusText}"
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap"
-                           TextAlignment="Center" />
+                           TextAlignment="Center"
+                           AutomationProperties.LiveSetting="Polite" />
 
                 <Button Content="Choose Photo or File"
                         Click="OnChooseFilesClick"

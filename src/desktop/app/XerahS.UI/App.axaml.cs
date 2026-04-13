@@ -303,30 +303,6 @@ public partial class App : Application
             // This prevents blocking the main window from showing quickly
             PostUIInitializationCallback?.Invoke();
 
-            // Show onboarding wizard if first run
-            if (SettingsManager.Settings.IsFirstTimeRun)
-            {
-                var mainWindow = desktop.MainWindow;
-                if (mainWindow != null)
-                {
-                    try
-                    {
-                        var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
-                        var result = wizard.ShowDialogAsync(mainWindow).Result;
-
-                        if (result.Completed || result.Skipped)
-                        {
-                            DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
-                            SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
-                    }
-                }
-            }
-
             // Initialize auto-update service if enabled
             if (SettingsManager.Settings.AutoCheckUpdate)
             {
@@ -335,6 +311,25 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task ShowOnboardingWizardAsync(Window owner)
+    {
+        try
+        {
+            var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
+            var result = await wizard.ShowDialogAsync(owner);
+
+            if (result.Completed || result.Skipped)
+            {
+                DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
+        }
     }
 
     /// <summary>

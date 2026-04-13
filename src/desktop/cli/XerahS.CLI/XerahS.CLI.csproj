@@ -29,6 +29,7 @@
                       Condition="!($(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == ''))"
                       GlobalPropertiesToRemove="OS"
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
+    <ProjectReference Include="..\..\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"
@@ -140,4 +141,3 @@
     </ItemGroup>
   </Target>
 </Project>
-

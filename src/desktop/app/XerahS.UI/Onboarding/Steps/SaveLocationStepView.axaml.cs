@@ -24,7 +24,6 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using XerahS.UI.Onboarding.ViewModels.Steps;
@@ -71,22 +70,4 @@ public partial class SaveLocationStepView : UserControl
         }
     }
 
-    private void OnQuickSelectClicked(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button) return;
-        if (button.Tag is not string location) return;
-        if (DataContext is not SaveLocationStepViewModel vm) return;
-
-        string path = location switch
-        {
-            "Pictures" => System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                "Screenshots"),
-            "Desktop" => Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-            "Documents" => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            _ => string.Empty
-        };
-
-        vm.SelectedPath = path;
-    }
 }

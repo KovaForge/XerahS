@@ -93,6 +93,7 @@
                                     <CheckBox IsChecked="{Binding ApplyImageEffects}" Content="Apply image effects"/>
                                     <CheckBox IsChecked="{Binding AnnotateMedia}" Content="Annotate media"/>
                                     <CheckBox IsChecked="{Binding ShowAfterCaptureWindow}" Content="Show after capture window"/>
+                                    <CheckBox IsChecked="{Binding DoOCR}" Content="OCR text recognition"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

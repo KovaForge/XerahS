@@ -27,10 +27,14 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Hotkeys;
 using XerahS.UI.Onboarding.ViewModels.Steps;
+using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.UI.Onboarding;
 
@@ -39,6 +43,9 @@ namespace XerahS.UI.Onboarding;
 /// </summary>
 public partial class OnboardingWizardWindow : Window
 {
+    private bool _openSettingsAfterClose;
+    private bool _takeFirstScreenshotAfterClose;
+
     public OnboardingWizardViewModel ViewModel { get; }
 
     public OnboardingWizardWindow()
@@ -59,7 +66,7 @@ public partial class OnboardingWizardWindow : Window
     private void SetupStepCallbacks()
     {
         // Save location step - folder browser using Avalonia StorageProvider
-        if (ViewModel.Steps.ElementAtOrDefault(1) is SaveLocationStepViewModel saveStep)
+        if (ViewModel.Steps.ElementAtOrDefault(0) is SaveLocationStepViewModel saveStep)
         {
             saveStep.BrowseFolderCallback = async () =>
             {
@@ -77,25 +84,14 @@ public partial class OnboardingWizardWindow : Window
         }
 
         // Hotkey step - test capture
-        if (ViewModel.Steps.ElementAtOrDefault(2) is HotkeyStepViewModel hotkeyStep)
+        if (ViewModel.Steps.ElementAtOrDefault(1) is HotkeyStepViewModel hotkeyStep)
         {
             hotkeyStep.TestCaptureCallback = async () =>
             {
                 try
                 {
-                    // Trigger a test region capture via the workflow orchestrator
-                    if (Application.Current is App app && app.WorkflowManager != null)
-                    {
-                        var workflows = app.WorkflowManager.Workflows;
-                        var regionWorkflow = workflows.FirstOrDefault(w => w.Job == WorkflowType.RectangleRegion);
-
-                        if (regionWorkflow != null)
-                        {
-                            DebugHelper.WriteLine("[Onboarding] Triggering test region capture");
-                            // Trigger capture if we have an orchestrator
-                            // The actual capture triggering would be done via the task manager
-                        }
-                    }
+                    DebugHelper.WriteLine("[Onboarding] Triggering test region capture");
+                    await ExecuteRegionCaptureAsync();
                 }
                 catch (Exception ex)
                 {
@@ -105,8 +101,10 @@ public partial class OnboardingWizardWindow : Window
         }
 
         // Upload step - ShareX import
-        if (ViewModel.Steps.ElementAtOrDefault(3) is UploadStepViewModel uploadStep)
+        if (ViewModel.Steps.ElementAtOrDefault(2) is UploadStepViewModel uploadStep)
         {
+            uploadStep.ConfigureUploaderCallback = ConfigureUploaderAsync;
+
             uploadStep.ImportShareXCallback = async () =>
             {
                 try
@@ -137,22 +135,15 @@ public partial class OnboardingWizardWindow : Window
         }
 
         // Complete step - take first screenshot and open settings
-        if (ViewModel.Steps.ElementAtOrDefault(5) is CompleteStepViewModel completeStep)
+        if (ViewModel.Steps.ElementAtOrDefault(3) is CompleteStepViewModel completeStep)
         {
             completeStep.TakeFirstScreenshotCallback = async () =>
             {
                 try
                 {
                     DebugHelper.WriteLine("[Onboarding] Take first screenshot requested");
-                    // Close this wizard first
-                    Close();
-
-                    // Trigger region capture via the main window
-                    if (Application.Current is App app)
-                    {
-                        // The actual triggering would be done via the workflow orchestrator
-                        // For now, the workflow is set up and will respond to hotkey
-                    }
+                    _takeFirstScreenshotAfterClose = true;
+                    await ViewModel.CompleteAsync();
                 }
                 catch (Exception ex)
                 {
@@ -160,20 +151,13 @@ public partial class OnboardingWizardWindow : Window
                 }
             };
 
-            completeStep.OpenSettingsCallback = () =>
+            completeStep.OpenSettingsCallback = async () =>
             {
                 try
                 {
                     DebugHelper.WriteLine("[Onboarding] Open settings requested");
-                    // Navigate to settings in the main window
-                    if (Application.Current is App app &&
-                        Application.Current.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-                    {
-                        if (desktop.MainWindow is MainWindow mainWindow)
-                        {
-                            mainWindow.NavigateToSettings();
-                        }
-                    }
+                    _openSettingsAfterClose = true;
+                    await ViewModel.CompleteAsync();
                 }
                 catch (Exception ex)
                 {
@@ -183,28 +167,103 @@ public partial class OnboardingWizardWindow : Window
         }
     }
 
+    private async Task ConfigureUploaderAsync(UploaderOption option)
+    {
+        UploaderInstance instance = OnboardingFileUploaderHelper.EnsureFileUploaderInstance(option.Id);
+        UploaderInstanceViewModel instanceViewModel = new(instance);
+
+        object configView = instanceViewModel.ConfigView ?? new TextBlock
+        {
+            Text = "This file uploader does not expose a configuration view.",
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        OnboardingUploaderConfigDialogViewModel dialogViewModel = new(instanceViewModel.DisplayName, configView);
+        OnboardingUploaderConfigDialog dialog = new()
+        {
+            DataContext = dialogViewModel
+        };
+
+        dialogViewModel.CloseRequested = dialog.Close;
+        await dialog.ShowDialog(this);
+
+        OnboardingFileUploaderHelper.EnsureFileUploaderInstances(
+            option.Id,
+            instance.SettingsJson,
+            updateExistingSupportedCategories: true);
+    }
+
+    private async Task ExecuteRegionCaptureAsync()
+    {
+        WorkflowSettings workflow = GetRegionCaptureWorkflow();
+
+        WindowState previousWindowState = WindowState;
+        bool wasVisible = IsVisible;
+
+        try
+        {
+            if (wasVisible)
+            {
+                WindowState = WindowState.Minimized;
+                await Task.Delay(150);
+            }
+
+            await XerahS.Core.Helpers.TaskHelpers.ExecuteWorkflow(workflow, workflow.Id, hideMainWindow: true);
+        }
+        finally
+        {
+            if (wasVisible)
+            {
+                WindowState = previousWindowState;
+                Activate();
+            }
+        }
+    }
+
+    private static WorkflowSettings GetRegionCaptureWorkflow()
+    {
+        WorkflowSettings? workflow = null;
+
+        if (Application.Current is App app)
+        {
+            workflow = app.WorkflowManager?.Workflows.FirstOrDefault(w => w.Job == WorkflowType.RectangleRegion);
+        }
+
+        workflow ??= SettingsManager.GetFirstWorkflow(WorkflowType.RectangleRegion);
+        workflow ??= new WorkflowSettings(WorkflowType.RectangleRegion, new XerahS.Platform.Abstractions.HotkeyInfo());
+        workflow.TaskSettings.Job = WorkflowType.RectangleRegion;
+        workflow.EnsureId();
+
+        return workflow;
+    }
+
+    private void OnOnboardingHotkeyChanged(object? sender, EventArgs e)
+    {
+        if (sender is Control { DataContext: HotkeyItemViewModel hotkeyItem })
+        {
+            hotkeyItem.Refresh();
+        }
+
+        if (ViewModel.CurrentStep is HotkeyStepViewModel hotkeyStep)
+        {
+            hotkeyStep.RefreshFromHotkeyItems();
+        }
+    }
+
     /// <summary>
     /// Shows the wizard as a modal dialog and returns the result.
     /// </summary>
     public async Task<OnboardingResult> ShowDialogAsync(Window owner)
     {
-        var tcs = new TaskCompletionSource<OnboardingResult>();
-
-        // Subscribe to completion
-        _ = ViewModel.CompletionTask.ContinueWith(task =>
+        Task<OnboardingResult> completionTask = ViewModel.CompletionTask;
+        _ = completionTask.ContinueWith(task =>
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 Close();
-                if (!tcs.TrySetResult(task.Result))
-                {
-                    // If result was already set (e.g., by cancel), try to get it from the source
-                    tcs.TrySetResult(task.Result);
-                }
             });
         }, TaskScheduler.Default);
 
-        // Handle window closing (cancel)
         Closing += (sender, e) =>
         {
             if (!ViewModel.CompletionTask.IsCompleted)
@@ -214,6 +273,19 @@ public partial class OnboardingWizardWindow : Window
         };
 
         await ShowDialog(owner);
-        return await tcs.Task;
+
+        if (_takeFirstScreenshotAfterClose)
+        {
+            await ExecuteRegionCaptureAsync();
+        }
+
+        if (_openSettingsAfterClose &&
+            Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow is MainWindow mainWindow)
+        {
+            mainWindow.NavigateToSettings();
+        }
+
+        return await completionTask;
     }
 }

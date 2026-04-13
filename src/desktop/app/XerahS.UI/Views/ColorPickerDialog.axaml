@@ -8,6 +8,7 @@
         xmlns:cpControls="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ColorPicker"
         mc:Ignorable="d"
         x:Class="XerahS.UI.Views.ColorPickerDialog"
+        x:Name="ColorPickerDialogRoot"
         x:DataType="vm:ColorPickerViewModel"
         Width="940"
         MinWidth="760"
@@ -92,7 +93,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="x:Object">
                                 <StackPanel Classes="ColorSwatchItem" Spacing="4" Margin="0,0,6,6">
-                                    <Button Command="{ReflectionBinding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    <Button Command="{Binding #ColorPickerDialogRoot.DataContext.SelectSwatchCommand}"
                                             CommandParameter="{Binding}"
                                             Classes="ColorSwatchButton"
                                             Padding="0" Height="26"
@@ -133,7 +134,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="x:Object">
                                 <StackPanel Classes="ColorSwatchItem" Spacing="4" Margin="0,0,6,6">
-                                    <Button Command="{ReflectionBinding DataContext.SelectSwatchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    <Button Command="{Binding #ColorPickerDialogRoot.DataContext.SelectSwatchCommand}"
                                             CommandParameter="{Binding}"
                                             Classes="ColorSwatchButton"
                                             Padding="0" Height="26"
@@ -271,7 +272,10 @@
                         BorderThickness="1"
                         CornerRadius="4"
                         Padding="16">
-                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" AutomationProperties.Name="Status Message"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               TextWrapping="Wrap"
+                               AutomationProperties.Name="Status Message"
+                               AutomationProperties.LiveSetting="Polite"/>
                 </Border>
                 </StackPanel>
             </ScrollViewer>

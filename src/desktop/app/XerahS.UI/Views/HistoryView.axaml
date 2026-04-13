@@ -139,8 +139,22 @@
                         <StackPanel Spacing="12">
                             <!-- Thumbnail -->
                             <Border Height="140" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
-                                <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
-                                       Stretch="Uniform"/>
+                                <Grid>
+                                    <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}"
+                                           Stretch="Uniform"/>
+                                    <Border HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="6"
+                                            Padding="6,3"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                            IsVisible="{Binding HasEditableAnnotations}"
+                                            AutomationProperties.Name="Editable annotations available">
+                                        <TextBlock Text="Edit"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
                             </Border>
                             <!-- Info -->
                             <StackPanel Spacing="4">
@@ -181,11 +195,6 @@
                  SelectionMode="Multiple"
                  SelectionChanged="OnHistorySelectionChanged"
                  AutomationProperties.Name="History List">
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Spacing="2"/>
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="history:HistoryItem">
                     <Border Classes="history-list-item"
@@ -207,8 +216,18 @@
                         <Grid ColumnDefinitions="48, *, 160, 220">
                             <!-- Thumbnail -->
                             <Border Grid.Column="0" Width="36" Height="36" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
-                                <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
-                                       Stretch="UniformToFill"/>
+                                <Grid>
+                                    <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}"
+                                           Stretch="UniformToFill"/>
+                                    <Border HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Width="10"
+                                            Height="10"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                            IsVisible="{Binding HasEditableAnnotations}"
+                                            AutomationProperties.Name="Editable annotations available"/>
+                                </Grid>
                             </Border>
                             <!-- Filename -->
                             <TextBlock Grid.Column="1" Text="{Binding FileName}" 

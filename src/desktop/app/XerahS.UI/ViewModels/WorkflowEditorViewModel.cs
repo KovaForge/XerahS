@@ -265,6 +265,7 @@ public partial class WorkflowEditorViewModel : ViewModelBase
         {
             case EnumExtensions.WorkflowType_Category_ScreenCapture:
                 yield return UploaderCategory.Image;
+                yield return UploaderCategory.File;
                 yield break;
 
             case EnumExtensions.WorkflowType_Category_ScreenRecord:
@@ -292,6 +293,13 @@ public partial class WorkflowEditorViewModel : ViewModelBase
                 yield break;
 
             case EnumExtensions.WorkflowType_Category_Tools:
+                if (job == WorkflowType.OCR)
+                {
+                    yield return UploaderCategory.Text;
+                    yield return UploaderCategory.File;
+                    yield break;
+                }
+
                 yield return UploaderCategory.Image;
                 yield return UploaderCategory.File;
                 yield break;

@@ -1,5 +1,5 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/wavafx/2006">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
   <!-- ========== WINDOW STYLE ========== -->
 
@@ -182,6 +182,7 @@
     <Setter Property="Padding" Value="12,0" />
     <Setter Property="FontSize" Value="14" />
     <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector="TextBox.WizardInput:pointerover">

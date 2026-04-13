@@ -32,6 +32,7 @@ using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
+using ShareXStepTailStyle = ShareX.ImageEditor.Core.Annotations.StepTailStyle;
 
 namespace XerahS.RegionCapture.ViewModels;
 
@@ -307,7 +308,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     }
 
     [ObservableProperty]
-    private StepTailStyle _tailStyle = StepTailStyle.Triangle;
+    private ShareXStepTailStyle _tailStyle = ShareXStepTailStyle.Triangle;
 
     [RelayCommand]
     private void ToggleShadow()
