@@ -203,15 +203,15 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    - Confirm adherence to Keep a Changelog format
 
 8. **Fix Double-Encoding Mojibake**
-   After any write to `docs/CHANGELOG.md`, scan for mojibake characters (commonly `ΓÇö`, `Ã─`, etc.) and replace them with their correct Unicode equivalents. This occurs when UTF-8 bytes are double-encoded through a round-trip tool. Apply this as a final step every time:
+   After any write to `docs/CHANGELOG.md`, scan for corrupted UTF-8 round-trip artifacts and replace them with their correct Unicode equivalents. This occurs when UTF-8 bytes are decoded and re-encoded by the wrong tool chain. Apply this as a final step every time:
 
    ```powershell
    $c = [System.IO.File]::ReadAllText('docs/CHANGELOG.md', [System.Text.Encoding]::UTF8)
 
-   # Fix double-encoded em-dash: C2 A7 is Â§ mojibake of U+2014
+   # Fix mojibake involving the section-sign byte pair and normalize the output.
    $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
 
-   # Normalize any remaining C2 A7 → A7 (section sign mojibake)
+   # Normalize any remaining section-sign corruption.
    $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
 
    # Collapse 3+ blank lines
@@ -222,11 +222,10 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    [System.IO.File]::WriteAllText('docs/CHANGELOG.md', $c, [System.Text.Encoding]::UTF8)
    ```
 
-   Common patterns to watch for:
-   - `ΓÇö` → `—` (em-dash, U+2014)
-   - `Ã─` → `—` (another em-dash variant)
-   - `Â§` → `§` (section sign)
-   - `Ã³` → `ó` (accented character)
+   Common victims to watch for:
+   - em dash (`—`, U+2014)
+   - section sign (`§`, U+00A7)
+   - accented letters such as `ó` (U+00F3)
 
 ### Example Command Sequence
 ```powershell

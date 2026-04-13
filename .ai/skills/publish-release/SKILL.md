@@ -1,4 +1,4 @@
-﻿---
+---
 name: publish-release
 description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional only if docs/CHANGELOG.md is intentionally absent), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---

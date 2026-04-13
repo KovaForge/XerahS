@@ -158,7 +158,7 @@ A day is only considered complete when:
 
 **Cursor Automations** can run this full skill on a daily schedule (cloud agent with cron or preset). See [SCHEDULING.md](SCHEDULING.md) for setup at [cursor.com/automations](https://cursor.com/automations).
 
-To only ensure todayÃ¢â‚¬â„¢s draft file exists (no content or commit), use the daily wrapper:
+To only ensure today's draft file exists (no content or commit), use the daily wrapper:
 
 ```powershell
 .ai/skills/draft-blog-post/scripts/run-daily-draft.ps1
