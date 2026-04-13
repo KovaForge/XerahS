@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.IO;
 using System.Linq;
 using System.Timers;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -115,6 +116,9 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private RecordingIntent _recordingIntent = RecordingIntent.Default;
 
+    [ObservableProperty]
+    private string _codecAvailabilityMessage = string.Empty;
+
     /// <summary>
     /// Available recording intents
     /// </summary>
@@ -123,13 +127,8 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Available codecs for selection
     /// </summary>
-    public List<VideoCodec> AvailableCodecs { get; } = new()
-    {
-        VideoCodec.H264,
-        VideoCodec.HEVC,
-        VideoCodec.VP9,
-        VideoCodec.AV1
-    };
+    public IReadOnlyList<VideoCodec> AvailableCodecs { get; } =
+        RecordingCodecSupportPolicy.GetSelectableCodecs(IsFfmpegAvailableForAdvancedCodecs());
 
     /// <summary>
     /// Available FPS options
@@ -154,11 +153,19 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
             // Simple platform check - detailed detection happens at runtime
             if (OperatingSystem.IsWindows() && Environment.OSVersion.Version.Build >= 17134)
             {
-                return "Modern recording available (Windows.Graphics.Capture + Media Foundation). Hardware encoding will be used if available.";
+                return IsFfmpegAvailableForAdvancedCodecs()
+                    ? "Windows uses native capture with Media Foundation for H.264. HEVC, VP9, and AV1 automatically switch to the FFmpeg backend in this build."
+                    : "Windows uses native capture with Media Foundation for H.264. Install FFmpeg to enable HEVC, VP9, and AV1 recording.";
             }
             else if (OperatingSystem.IsWindows())
             {
                 return "Using FFmpeg fallback for recording (requires Windows 10 1803+ for native recording).";
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                return IsFfmpegAvailableForAdvancedCodecs()
+                    ? "macOS uses native recording for H.264. HEVC, VP9, and AV1 automatically switch to FFmpeg in this build."
+                    : "macOS native recording currently covers H.264 only. Install FFmpeg to enable HEVC, VP9, and AV1 recording.";
             }
             else
             {
@@ -202,11 +209,19 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
         {
             if (OperatingSystem.IsWindows() && Environment.OSVersion.Version.Build >= 17134)
             {
-                return "Note: Recording uses Windows.Graphics.Capture (Windows 10 1803+) with Media Foundation H.264 encoding.";
+                return IsFfmpegAvailableForAdvancedCodecs()
+                    ? "Note: H.264 records through Windows.Graphics.Capture + Media Foundation. HEVC, VP9, and AV1 are routed through FFmpeg automatically."
+                    : "Note: H.264 records through Windows.Graphics.Capture + Media Foundation. Install FFmpeg to unlock HEVC, VP9, and AV1.";
             }
             else if (OperatingSystem.IsWindows())
             {
                 return "Note: Recording uses FFmpeg for video encoding. Requires Windows 10 1803+ for native Windows.Graphics.Capture support.";
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                return IsFfmpegAvailableForAdvancedCodecs()
+                    ? "Note: H.264 records natively. HEVC, VP9, and AV1 use FFmpeg on macOS in this build."
+                    : "Note: Install FFmpeg if you want HEVC, VP9, or AV1 on macOS.";
             }
             else
             {
@@ -513,6 +528,19 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
         _workflow.TaskSettings = _taskSettings;
 
         var recordingSettings = _taskSettings.CaptureSettings.ScreenRecordingSettings;
+        if (!AvailableCodecs.Contains(recordingSettings.Codec))
+        {
+            recordingSettings.Codec = VideoCodec.H264;
+            CodecAvailabilityMessage = "FFmpeg is not available, so advanced codecs are hidden and the recording codec was reset to H.264.";
+        }
+        else if ((OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()) && !IsFfmpegAvailableForAdvancedCodecs())
+        {
+            CodecAvailabilityMessage = "Install FFmpeg to enable HEVC, VP9, and AV1 on this platform.";
+        }
+        else
+        {
+            CodecAvailabilityMessage = string.Empty;
+        }
 
         // Seed UI from workflow settings
         Fps = recordingSettings.FPS;
@@ -576,6 +604,8 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
     {
         if (!_initialized) return;
         _taskSettings.CaptureSettings.ScreenRecordingSettings.Codec = value;
+        OnPropertyChanged(nameof(EncoderInfo));
+        OnPropertyChanged(nameof(UsageNotes));
     }
 
     partial void OnShowCursorChanged(bool value)
@@ -618,5 +648,16 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
         _screenRecordingCoordinator.ErrorOccurred -= OnErrorOccurred;
 
         GC.SuppressFinalize(this);
+    }
+
+    private static bool IsFfmpegAvailableForAdvancedCodecs()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            return true;
+        }
+
+        string ffmpegPath = PathsManager.GetFFmpegPath();
+        return !string.IsNullOrWhiteSpace(ffmpegPath) && File.Exists(ffmpegPath);
     }
 }

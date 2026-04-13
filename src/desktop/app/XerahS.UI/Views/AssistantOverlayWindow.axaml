@@ -1,0 +1,318 @@
+<views:OverlayWindow xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:views="using:XerahS.UI.Views"
+                     xmlns:vm="using:XerahS.UI.ViewModels"
+                     xmlns:assistant="using:XerahS.Assistant.Models"
+                     x:Class="XerahS.UI.Views.AssistantOverlayWindow"
+                     x:DataType="vm:AssistantViewModel"
+                     Width="640"
+                     Height="460"
+                     MinWidth="560"
+                     MinHeight="380"
+                     CanResize="False"
+                     ShowInTaskbar="False"
+                     Topmost="True"
+                     WindowStartupLocation="Manual"
+                     WindowDecorations="None"
+                     TransparencyLevelHint="Transparent"
+                     Background="Transparent"
+                     AutomationProperties.Name="XerahS Assistant">
+    <Window.Resources>
+        <x:Double x:Key="SpaceXS">4</x:Double>
+        <x:Double x:Key="SpaceS">8</x:Double>
+        <x:Double x:Key="SpaceM">12</x:Double>
+        <x:Double x:Key="SpaceL">16</x:Double>
+        <x:Double x:Key="SpaceXL">20</x:Double>
+        <Thickness x:Key="OuterPadding">20</Thickness>
+        <Thickness x:Key="InnerPadding">16</Thickness>
+        <CornerRadius x:Key="CardCornerRadius">14</CornerRadius>
+        <CornerRadius x:Key="SectionCornerRadius">10</CornerRadius>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.overlay-title">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="TextBlock.overlay-caption">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.section-label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.keyboard-hint">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <Style Selector="Border.section-card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource SectionCornerRadius}" />
+        </Style>
+
+        <Style Selector="Border.result-card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource SectionCornerRadius}" />
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Button.suggestion">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="12,6" />
+        </Style>
+
+        <Style Selector="TextBox#PromptTextBox">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+    </Window.Styles>
+
+    <Border Classes="xerahs-surface"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource CardCornerRadius}"
+            Padding="{StaticResource OuterPadding}"
+            BoxShadow="0 20 48 -24 #66000000">
+        <Grid RowDefinitions="Auto, Auto, *"
+              RowSpacing="{StaticResource SpaceL}">
+            <Grid ColumnDefinitions="*, Auto"
+                  ColumnSpacing="{StaticResource SpaceM}">
+                <Grid RowDefinitions="Auto, Auto, Auto"
+                      RowSpacing="{StaticResource SpaceXS}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="{StaticResource SpaceS}">
+                        <Border Classes="accent-chip"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="Assistant"
+                                       Classes="on-accent"
+                                       FontSize="11"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock Text="Ask XerahS to find, open, OCR, upload, or copy capture paths."
+                                   Classes="overlay-caption"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Grid.Row="1"
+                               Text="Use natural language. Enter runs the request, and Esc clears or closes."
+                               Classes="overlay-title" />
+                    <TextBlock Grid.Row="2"
+                               Text="Commands that produce text output show it directly below the status line."
+                               Classes="overlay-caption" />
+                </Grid>
+
+                <StackPanel Grid.Column="1"
+                            Spacing="{StaticResource SpaceXS}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <Border Classes="section-card"
+                            Padding="10,6">
+                        <TextBlock Text="Esc to close"
+                                   Classes="keyboard-hint"
+                                   HorizontalAlignment="Center" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Classes="section-card"
+                    Padding="{StaticResource InnerPadding}">
+                <Grid ColumnDefinitions="*, Auto"
+                      ColumnSpacing="{StaticResource SpaceM}">
+                    <TextBox x:Name="PromptTextBox"
+                             Text="{Binding Prompt}"
+                             PlaceholderText="Copy the last 5 screenshot paths separated by ;"
+                             AutomationProperties.Name="Assistant prompt" />
+                    <Button Grid.Column="1"
+                            Content="Submit"
+                            Command="{Binding SubmitCommand}"
+                            IsDefault="True"
+                            AutomationProperties.Name="Submit assistant prompt" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2"
+                  RowDefinitions="Auto, Auto, Auto, *, Auto, Auto"
+                  RowSpacing="{StaticResource SpaceM}">
+                <Border Classes="section-card"
+                        Padding="{StaticResource InnerPadding}">
+                    <TextBlock Text="{Binding StatusText}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                </Border>
+
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding Actions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="assistant:AssistantAction">
+                            <Button Content="{Binding Label}"
+                                    Margin="0,0,8,8"
+                                    Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.ExecuteActionCommand}"
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="{Binding Label}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Grid.Row="2"
+                        Classes="section-card"
+                        Padding="{StaticResource InnerPadding}"
+                        IsVisible="{Binding HasResultPreview}">
+                    <Grid RowDefinitions="Auto, Auto"
+                          RowSpacing="{StaticResource SpaceS}">
+                        <TextBlock Text="Processed output"
+                                   Classes="section-label" />
+                        <TextBox Grid.Row="1"
+                                 Text="{Binding ResultPreviewText}"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="72"
+                                 MaxHeight="132"
+                                 AutomationProperties.Name="Processed assistant output" />
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="3"
+                        Classes="section-card">
+                    <Grid RowDefinitions="Auto, *"
+                          RowSpacing="{StaticResource SpaceM}"
+                          Margin="{StaticResource InnerPadding}">
+                        <TextBlock Text="Results"
+                                   Classes="section-label" />
+
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="assistant:AssistantResultItem">
+                                        <Border Classes="result-card"
+                                                Padding="{StaticResource InnerPadding}"
+                                                Margin="0,0,0,10">
+                                            <Grid RowDefinitions="Auto, Auto, Auto"
+                                                  RowSpacing="{StaticResource SpaceS}">
+                                                <TextBlock Text="{Binding Title}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Grid.Row="1"
+                                                           Text="{Binding Subtitle}"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <ItemsControl Grid.Row="2"
+                                                              ItemsSource="{Binding Actions}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="assistant:AssistantAction">
+                                                            <Button Content="{Binding Label}"
+                                                                    Margin="0,0,8,8"
+                                                                    Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.ExecuteActionCommand}"
+                                                                    CommandParameter="{Binding}"
+                                                                    AutomationProperties.Name="{Binding Label}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="4"
+                        Classes="section-card"
+                        Padding="{StaticResource InnerPadding}"
+                        IsVisible="{Binding HasPendingConfirmation}"
+                        Background="{DynamicResource AccentFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}">
+                    <Grid RowDefinitions="Auto, Auto"
+                          RowSpacing="{StaticResource SpaceS}">
+                        <TextBlock Text="Confirmation required"
+                                   Classes="section-label" />
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="*, Auto"
+                              ColumnSpacing="{StaticResource SpaceM}">
+                            <TextBlock Text="{Binding ConfirmationText}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="{StaticResource SpaceS}">
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelConfirmationCommand}"
+                                        AutomationProperties.Name="Cancel confirmation" />
+                                <Button Content="Confirm"
+                                        Classes="accent"
+                                        Command="{Binding ConfirmCommand}"
+                                        AutomationProperties.Name="Confirm action" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="5"
+                        Classes="section-card"
+                        Padding="{StaticResource InnerPadding}"
+                        MaxHeight="164">
+                    <Grid RowDefinitions="Auto, *"
+                          RowSpacing="{StaticResource SpaceS}">
+                    <TextBlock Text="Suggestions"
+                               Classes="section-label" />
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Suggestions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Button Content="{Binding}"
+                                                Classes="suggestion"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.UseSuggestionCommand}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</views:OverlayWindow>

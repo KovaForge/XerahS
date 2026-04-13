@@ -32,6 +32,7 @@ using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Assistant;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -44,6 +45,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
     private readonly IScreenRecordingCoordinator _screenRecordingCoordinator;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private Core.Hotkeys.WorkflowManager? _workflowManager;
+    private AssistantOverlayCoordinator? _assistantOverlayCoordinator;
     private int _activeUploadCount;
     private string _baseTitle = AppResources.ProductNameWithVersion;
 
@@ -62,6 +64,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         ConfigureWorkerTaskCallbacks();
         InitializeHotkeys();
+        _assistantOverlayCoordinator ??= new AssistantOverlayCoordinator();
+        _assistantOverlayCoordinator.Start();
 
         _taskManager.TaskCompleted -= OnWorkflowTaskCompleted;
         _taskManager.TaskStarted -= OnWorkflowTaskStarted;
@@ -86,6 +90,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 var vm = new ImageAnalyzerViewModel();
+                vm.SetInputImage(bitmap);
+
                 var w = new ImageAnalyzerWindow();
                 w.Initialize(vm);
                 w.Show();

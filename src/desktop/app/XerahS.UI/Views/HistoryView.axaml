@@ -195,11 +195,6 @@
                  SelectionMode="Multiple"
                  SelectionChanged="OnHistorySelectionChanged"
                  AutomationProperties.Name="History List">
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Spacing="2"/>
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="history:HistoryItem">
                     <Border Classes="history-list-item"

@@ -26,6 +26,7 @@
 using Vortice.DXGI;
 using System.Runtime.InteropServices;
 using XerahS.RegionCapture.ScreenRecording;
+using XerahS.Platform.Windows.Capture;
 
 namespace XerahS.Platform.Windows.Recording;
 
@@ -125,6 +126,13 @@ public class MediaFoundationEncoder : IVideoEncoder
     private void CreateSinkWriter()
     {
         Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "CreateSinkWriter() starting...");
+
+        if (_format?.Codec != VideoCodec.H264)
+        {
+            throw new PlatformNotSupportedException(
+                $"Media Foundation recording currently supports {VideoCodec.H264} only. " +
+                $"{_format?.Codec} must use the FFmpeg recording backend.");
+        }
         
         // Create attributes
         Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Calling MFCreateAttributes...");
@@ -350,40 +358,15 @@ public class MediaFoundationEncoder : IVideoEncoder
     private unsafe void CopyFrame(FrameData frame, IntPtr bufferPtr, int destStride)
     {
         int bytesPerRow = frame.Width * 4;
-        int srcStride = frame.Stride;
-
-        if (_applyVerticalFlip)
-        {
-            // [2026-01-10T14:37:00+08:00] Apply vertical flip only; prior 180° rotation fixed upside-down but left horizontal mirror.
-            byte* srcBase = (byte*)frame.DataPtr.ToPointer();
-            byte* dstBase = (byte*)bufferPtr.ToPointer();
-            int height = frame.Height;
-
-            for (int y = 0; y < height; y++)
-            {
-                byte* srcRow = srcBase + (height - 1 - y) * srcStride;
-                byte* dstRow = dstBase + y * destStride;
-                Buffer.MemoryCopy(srcRow, dstRow, destStride, bytesPerRow);
-            }
-        }
-        else
-        {
-            if (srcStride == destStride)
-            {
-                Buffer.MemoryCopy(frame.DataPtr.ToPointer(), bufferPtr.ToPointer(), destStride * frame.Height, destStride * frame.Height);
-                return;
-            }
-
-            byte* srcBase = (byte*)frame.DataPtr.ToPointer();
-            byte* dstBase = (byte*)bufferPtr.ToPointer();
-
-            for (int y = 0; y < frame.Height; y++)
-            {
-                byte* srcRow = srcBase + y * srcStride;
-                byte* dstRow = dstBase + y * destStride;
-                Buffer.MemoryCopy(srcRow, dstRow, destStride, bytesPerRow);
-            }
-        }
+        System.Diagnostics.Debug.Assert(frame.Stride >= bytesPerRow, "Frame stride must include a full pixel row.");
+        BgraRowCopyHelper.CopyRows(
+            frame.DataPtr,
+            frame.Stride,
+            bufferPtr,
+            destStride,
+            bytesPerRow,
+            frame.Height,
+            flipVertically: _applyVerticalFlip);
     }
 
     private void Cleanup()

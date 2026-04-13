@@ -130,6 +130,12 @@
 
                         </Grid>
 
+                        <TextBlock Text="{Binding CodecAvailabilityMessage}"
+                                   Theme="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{DynamicResource SystemFillColorAttentionBrush}"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding CodecAvailabilityMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
                         <TextBlock Text="Note: Higher bitrates and frame rates will result in larger file sizes. Hardware encoding may be used automatically if available. Audio capture requires FFmpeg and appropriate system audio devices."
                                    Theme="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"

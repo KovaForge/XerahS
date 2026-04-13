@@ -1,4 +1,4 @@
-# XIP0069 AfterCapture OCR Integration
+# XIP0074 AfterCapture OCR Integration
 
 ## Summary
 
@@ -60,9 +60,9 @@ Implemented the `DoOCR` AfterCapture task flag defined in `TaskEnums.cs` (bit 17
 
 ## Branches
 
-- `stage1/xip-0069-workflow-ocr-integration` — Core implementation
-- `stage2/xip-0069-workflow-ocr-refactor` — OcrOptions fix
-- `stage3/xip-0069-workflow-ocr-test` — Tests
+- `stage1/xip-0074-workflow-ocr-integration` — Core implementation
+- `stage2/xip-0074-workflow-ocr-refactor` — OcrOptions fix
+- `stage3/xip-0074-workflow-ocr-test` — Tests
 
 ## Notes
 
