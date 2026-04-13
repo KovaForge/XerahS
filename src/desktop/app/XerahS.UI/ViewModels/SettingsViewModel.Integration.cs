@@ -70,6 +70,54 @@ namespace XerahS.UI.ViewModels
 
         public string McpManifestUrl => "https://xerahs.com/.well-known/mcp/manifest.json";
 
+        private string _assistantHotkeyStatusText = "Use the assistant shortcut to open the in-app command overlay.";
+
+        public bool AssistantEnabled
+        {
+            get => SettingsManager.Settings.AssistantEnabled;
+            set
+            {
+                if (SettingsManager.Settings.AssistantEnabled == value)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.AssistantEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool AssistantPromptHistoryEnabled
+        {
+            get => SettingsManager.Settings.AssistantPromptHistoryEnabled;
+            set
+            {
+                if (SettingsManager.Settings.AssistantPromptHistoryEnabled == value)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.AssistantPromptHistoryEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string AssistantHotkeyText => SettingsManager.Settings.AssistantHotkey.GetDisplayString();
+
+        public string AssistantHotkeyStatusText
+        {
+            get => _assistantHotkeyStatusText;
+            private set => SetProperty(ref _assistantHotkeyStatusText, value);
+        }
+
+        [RelayCommand]
+        private void TestAssistantShortcut()
+        {
+            AssistantHotkeyStatusText = PlatformServices.IsInitialized
+                ? $"Current shortcut: {AssistantHotkeyText}"
+                : "Platform services are not initialized yet.";
+        }
+
         partial void OnIsPluginExtensionRegisteredChanged(bool value)
         {
             if (_isLoading) return; // Don't trigger during initial load

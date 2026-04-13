@@ -1,0 +1,137 @@
+<views:OverlayWindow xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:views="using:XerahS.UI.Views"
+                     xmlns:vm="using:XerahS.UI.ViewModels"
+                     xmlns:assistant="using:XerahS.UI.Assistant"
+                     x:Class="XerahS.UI.Views.AssistantOverlayWindow"
+                     x:DataType="vm:AssistantViewModel"
+                     Width="600"
+                     Height="400"
+                     CanResize="False"
+                     ShowInTaskbar="False"
+                     Topmost="True"
+                     WindowStartupLocation="Manual"
+                     WindowDecorations="None"
+                     Background="Transparent">
+    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="16">
+        <Grid RowDefinitions="Auto, 12, Auto, 12, *, 12, Auto">
+            <Grid ColumnDefinitions="Auto, 8, *, Auto">
+                <Ellipse Grid.Column="0"
+                         Width="8"
+                         Height="8"
+                         Fill="#FF453A"
+                         VerticalAlignment="Center"
+                         ToolTip.Tip="No AI provider. Local commands still work."/>
+                <TextBlock Grid.Column="2"
+                           Text="XerahS Assistant"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="3"
+                           Text="Esc"
+                           FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           VerticalAlignment="Center"/>
+            </Grid>
+
+            <TextBox x:Name="PromptTextBox"
+                     Grid.Row="2"
+                     Text="{Binding Prompt}"
+                     PlaceholderText="Ask XerahS..."
+                     FontSize="18"
+                     MinHeight="44"
+                     VerticalContentAlignment="Center"
+                     AutomationProperties.Name="Assistant prompt"/>
+
+            <Border Grid.Row="4"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <Grid RowDefinitions="Auto, 8, *, 8, Auto">
+                    <TextBlock Grid.Row="0"
+                               Text="{Binding StatusText}"
+                               TextWrapping="Wrap"/>
+
+                    <ItemsControl Grid.Row="2"
+                                  ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="assistant:AssistantResultItem">
+                                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="10"
+                                        Margin="0,0,0,8">
+                                    <Grid RowDefinitions="Auto, 4, Auto, 8, Auto">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                        <TextBlock Grid.Row="2"
+                                                   Text="{Binding Subtitle}"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                        <ItemsControl Grid.Row="4"
+                                                      ItemsSource="{Binding Actions}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="assistant:AssistantAction">
+                                                    <Button Content="{Binding Label}"
+                                                            Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.ExecuteActionCommand}"
+                                                            CommandParameter="{Binding}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Grid.Row="4"
+                                Spacing="8"
+                                IsVisible="{Binding HasPendingConfirmation}">
+                        <TextBlock Text="{Binding ConfirmationText}"
+                                   TextWrapping="Wrap"
+                                   FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+                            <Button Content="Cancel"
+                                    Command="{Binding CancelConfirmationCommand}"/>
+                            <Button Content="Confirm"
+                                    Command="{Binding ConfirmCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="6" ColumnDefinitions="*, Auto">
+                <ItemsControl Grid.Column="0"
+                              ItemsSource="{Binding Suggestions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="8"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Button Content="{Binding}"
+                                    Command="{Binding $parent[views:AssistantOverlayWindow].DataContext.UseSuggestionCommand}"
+                                    CommandParameter="{Binding}"
+                                    FontSize="12"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Content="Submit"
+                            Command="{Binding SubmitCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</views:OverlayWindow>

@@ -75,6 +75,18 @@ public sealed class AssistantPrivacyGuard
             return AssistantPrivacyDecision.Block("Assistant file actions are limited to known XerahS history items.");
         }
 
+        if (check.ToolName == AssistantToolNames.FileReveal)
+        {
+            string fileName = SafeFileName(check.FilePath);
+            return AssistantPrivacyDecision.Confirm($"Reveal file in folder? `{fileName}`");
+        }
+
+        if (check.ToolName == AssistantToolNames.EditorOpenImage)
+        {
+            string fileName = SafeFileName(check.FilePath);
+            return AssistantPrivacyDecision.Confirm($"Open image in editor? `{fileName}`");
+        }
+
         if (check.ItemCount > 5)
         {
             return AssistantPrivacyDecision.Confirm($"Run {check.ToolName} on {check.ItemCount} items?");
@@ -164,4 +176,3 @@ public sealed class AssistantPrivacyGuard
         }
     }
 }
-

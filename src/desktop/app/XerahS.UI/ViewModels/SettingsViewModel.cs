@@ -150,6 +150,8 @@ namespace XerahS.UI.ViewModels
             nameof(McpApiKeyDisplay),
             nameof(McpApiKeyStatusText),
             nameof(McpManifestUrl),
+            nameof(AssistantHotkeyText),
+            nameof(AssistantHotkeyStatusText),
             nameof(WatchFolderDaemonSupported),
             nameof(ShowWatchFolderDaemonScopeSelector),
             nameof(WatchFolderDaemonRunning),

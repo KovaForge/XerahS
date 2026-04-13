@@ -28,6 +28,8 @@ using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using System.ComponentModel;
 using System.Drawing;
+using Avalonia.Input;
+using HotkeyInfo = XerahS.Platform.Abstractions.HotkeyInfo;
 
 namespace XerahS.Core;
 
@@ -57,6 +59,11 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
         {
             UseWhiteShareXIcon = true;
         }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            AssistantHotkey = new HotkeyInfo(Key.Space, KeyModifiers.Meta | KeyModifiers.Shift);
+        }
     }
 
     #region Settings - General
@@ -82,6 +89,10 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public UpdateChannel UpdateChannel = UpdateChannel.Release;
     public bool CheckPreReleaseUpdates = false;
     public string McpApiKey { get; set; } = string.Empty;
+    public bool AssistantEnabled { get; set; } = true;
+    public HotkeyInfo AssistantHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Shift);
+    public bool AssistantPromptHistoryEnabled { get; set; }
+    public string AssistantActiveProviderId { get; set; } = string.Empty;
 
     // OS Integration (platform-agnostic naming)
     public bool RunAtStartup = false;

@@ -372,6 +372,46 @@
                             </Border>
                         </StackPanel>
 
+                        <!-- Assistant -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Assistant" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Use a local-first command overlay for XerahS history and capture actions."
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+
+                                    <CheckBox IsChecked="{Binding AssistantEnabled}"
+                                              Content="Enable XerahS Assistant"
+                                              AutomationProperties.Name="Enable Assistant"/>
+
+                                    <Grid ColumnDefinitions="Auto, 16, *, 16, Auto">
+                                        <TextBlock Grid.Column="0" Text="Shortcut:" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="2"
+                                                 Text="{Binding AssistantHotkeyText}"
+                                                 IsReadOnly="True"
+                                                 AutomationProperties.Name="Assistant Shortcut"/>
+                                        <Button Grid.Column="4"
+                                                Content="Test Shortcut"
+                                                Command="{Binding TestAssistantShortcutCommand}"
+                                                AutomationProperties.Name="Test Assistant Shortcut"/>
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding AssistantHotkeyStatusText}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+
+                                    <CheckBox IsChecked="{Binding AssistantPromptHistoryEnabled}"
+                                              Content="Save assistant command history"
+                                              AutomationProperties.Name="Save Assistant History"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- MCP Server -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="MCP Server" FontWeight="SemiBold"/>
