@@ -25,9 +25,13 @@
 
 using NUnit.Framework;
 using SkiaSharp;
+using XerahS.Assistant.Configuration;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Providers;
+using XerahS.Assistant.Routing;
+using XerahS.Assistant.Services;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
-using XerahS.UI.Assistant;
 
 namespace XerahS.Tests.Assistant;
 

@@ -27,6 +27,7 @@
 
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Common\XerahS.Common.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Media\XerahS.Media.csproj" />

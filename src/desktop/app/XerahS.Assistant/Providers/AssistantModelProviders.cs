@@ -27,8 +27,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using XerahS.Common;
+using XerahS.Assistant.Configuration;
+using XerahS.Assistant.Models;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Providers;
 
 public interface IAssistantModelProvider
 {

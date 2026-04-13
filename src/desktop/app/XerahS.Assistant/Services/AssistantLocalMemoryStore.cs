@@ -27,8 +27,9 @@ using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Assistant.Routing;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Services;
 
 public sealed record AssistantAliasDefinition(string Alias, string Command);
 

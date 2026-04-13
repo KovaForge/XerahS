@@ -25,7 +25,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Routing;
 
 public enum AssistantDeterministicIntentKind
 {

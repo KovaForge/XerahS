@@ -25,8 +25,9 @@
 
 using XerahS.Core;
 using XerahS.Core.Uploaders;
+using XerahS.Assistant.Models;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Configuration;
 
 public sealed record AssistantProviderRuntimeSettings(
     AssistantProviderMetadata Metadata,

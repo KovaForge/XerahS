@@ -26,8 +26,10 @@
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.History;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Routing;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Services;
 
 public sealed record AssistantHistoryItem(
     string Id,
@@ -136,4 +138,3 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         }
     }
 }
-

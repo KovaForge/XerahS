@@ -28,9 +28,11 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using XerahS.Common;
+using XerahS.Assistant.Configuration;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Providers;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
-using XerahS.UI.Assistant;
 
 namespace XerahS.UI.ViewModels
 {

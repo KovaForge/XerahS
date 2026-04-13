@@ -27,13 +27,17 @@ using SkiaSharp;
 using System.Text.Json;
 using XerahS.Bootstrap;
 using XerahS.Common;
+using XerahS.Assistant.Configuration;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Providers;
+using XerahS.Assistant.Routing;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
 using XerahS.Platform.Abstractions;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Services;
 
 public interface IAssistantService
 {

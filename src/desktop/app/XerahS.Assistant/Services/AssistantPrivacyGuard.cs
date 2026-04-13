@@ -24,8 +24,9 @@
 #endregion License Information (GPL v3)
 
 using System.Text.RegularExpressions;
+using XerahS.Assistant.Models;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Services;
 
 public sealed record AssistantPrivacyCheck(
     string ToolName,

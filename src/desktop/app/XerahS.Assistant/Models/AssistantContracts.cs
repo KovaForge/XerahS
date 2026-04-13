@@ -26,7 +26,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json.Nodes;
 
-namespace XerahS.UI.Assistant;
+namespace XerahS.Assistant.Models;
 
 public static class AssistantToolNames
 {

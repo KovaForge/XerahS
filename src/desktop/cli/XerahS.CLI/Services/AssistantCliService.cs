@@ -24,7 +24,8 @@
 #endregion License Information (GPL v3)
 
 using XerahS.Common;
-using XerahS.UI.Assistant;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Services;
 
 namespace XerahS.CLI.Services
 {

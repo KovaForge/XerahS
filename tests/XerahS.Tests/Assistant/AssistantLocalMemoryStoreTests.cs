@@ -24,7 +24,7 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
-using XerahS.UI.Assistant;
+using XerahS.Assistant.Services;
 
 namespace XerahS.Tests.Assistant;
 

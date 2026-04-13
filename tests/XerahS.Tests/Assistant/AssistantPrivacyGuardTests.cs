@@ -24,7 +24,8 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
-using XerahS.UI.Assistant;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Services;
 
 namespace XerahS.Tests.Assistant;
 
@@ -109,4 +110,3 @@ public sealed class AssistantPrivacyGuardTests
         Assert.That(decision.RequiresConfirmation, Is.True);
     }
 }
-

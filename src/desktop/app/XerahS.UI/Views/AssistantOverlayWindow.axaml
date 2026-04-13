@@ -2,7 +2,7 @@
                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                      xmlns:views="using:XerahS.UI.Views"
                      xmlns:vm="using:XerahS.UI.ViewModels"
-                     xmlns:assistant="using:XerahS.UI.Assistant"
+                     xmlns:assistant="using:XerahS.Assistant.Models"
                      x:Class="XerahS.UI.Views.AssistantOverlayWindow"
                      x:DataType="vm:AssistantViewModel"
                      Width="640"

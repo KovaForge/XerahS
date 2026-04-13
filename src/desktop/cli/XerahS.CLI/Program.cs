@@ -29,7 +29,7 @@ using XerahS.CLI.Commands;
 using XerahS.CLI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
-using XerahS.UI.Assistant;
+using XerahS.Assistant.Services;
 
 namespace XerahS.CLI
 {

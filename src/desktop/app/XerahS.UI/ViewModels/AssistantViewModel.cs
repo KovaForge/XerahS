@@ -27,7 +27,9 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
-using XerahS.UI.Assistant;
+using XerahS.Assistant.Models;
+using XerahS.Assistant.Routing;
+using XerahS.Assistant.Services;
 
 namespace XerahS.UI.ViewModels;
 
