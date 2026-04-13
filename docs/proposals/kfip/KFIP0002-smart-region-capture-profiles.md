@@ -1,4 +1,4 @@
-# XIP0073: Smart Region Capture Profiles & Social Media Screenshot Automation
+# KFIP0002: Smart Region Capture Profiles & Social Media Screenshot Automation
 
 **Status**: Draft
 **Priority**: P1

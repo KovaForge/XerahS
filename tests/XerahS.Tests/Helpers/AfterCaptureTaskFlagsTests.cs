@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using System.Reflection;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 
@@ -31,7 +32,7 @@ namespace XerahS.Tests.Helpers;
 
 /// <summary>
 /// Unit tests for AfterCapture task flags defined in TaskEnums.cs.
-/// Verifies that DoOCR, BeautifyImage, ScanQRCode and other AfterCapture tasks
+/// Verifies that DoOCR, ScanQRCode and other AfterCapture tasks
 /// are correctly defined as powers of 2 for flag-based composition.
 /// </summary>
 [TestFixture]
@@ -50,15 +51,6 @@ public class AfterCaptureTaskFlagsTests
     }
 
     [Test]
-    public void BeautifyImage_IsDefinedAsBitFlag()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That((int)AfterCaptureTasks.BeautifyImage, Is.EqualTo(1 << 2));
-        });
-    }
-
-    [Test]
     public void ScanQRCode_IsDefinedAsBitFlag()
     {
         Assert.Multiple(() =>
@@ -70,8 +62,11 @@ public class AfterCaptureTaskFlagsTests
     [Test]
     public void AllAfterCaptureTaskFlags_AreDistinctPowersOfTwo()
     {
-        var values = Enum.GetValues<AfterCaptureTasks>()
-            .Where(v => v != AfterCaptureTasks.None)
+        var values = typeof(AfterCaptureTasks)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.Name != nameof(AfterCaptureTasks.None))
+            .Where(field => field.GetCustomAttribute<ObsoleteAttribute>() == null)
+            .Select(field => (AfterCaptureTasks)field.GetValue(null)!)
             .ToList();
 
         var bits = values.Select(v => (int)v).ToList();
@@ -92,14 +87,12 @@ public class AfterCaptureTaskFlagsTests
     {
         // Verify flags can be safely combined without collision
         var combined = AfterCaptureTasks.DoOCR
-                             | AfterCaptureTasks.BeautifyImage
                              | AfterCaptureTasks.ScanQRCode
                              | AfterCaptureTasks.ShowAfterCaptureWindow;
 
         Assert.Multiple(() =>
         {
             Assert.That(combined.HasFlag(AfterCaptureTasks.DoOCR), Is.True);
-            Assert.That(combined.HasFlag(AfterCaptureTasks.BeautifyImage), Is.True);
             Assert.That(combined.HasFlag(AfterCaptureTasks.ScanQRCode), Is.True);
             Assert.That(combined.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow), Is.True);
         });

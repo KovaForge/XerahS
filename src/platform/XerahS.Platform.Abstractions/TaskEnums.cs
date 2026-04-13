@@ -31,7 +31,6 @@ public enum AfterCaptureTasks // Localized
     None = 0,
     ShowQuickTaskMenu = 1,
     ShowAfterCaptureWindow = 1 << 1,
-    BeautifyImage = 1 << 2,
     AddImageEffects = 1 << 3,
     AnnotateMedia = 1 << 4,
     [Obsolete("Renamed to AnnotateMedia. Kept for JSON backwards-compatibility.")]

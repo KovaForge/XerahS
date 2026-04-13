@@ -74,6 +74,25 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         Core.Tasks.WorkerTask.ShowWindowSelectorCallback = ShowWindowSelectorAsync;
         Core.Tasks.WorkerTask.ShowOpenFileDialogCallback = ShowOpenFileDialogAsync;
         Core.Tasks.WorkerTask.HandleToolWorkflowCallback = HandleToolWorkflowAsync;
+        Core.Tasks.Processors.CaptureJobProcessor.PinToScreenCallback = async (bitmap, location, options) =>
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PinToScreenManager.PinImage(bitmap, location == null ? null : (Avalonia.PixelPoint?)location, options);
+            });
+        };
+        Core.Tasks.Processors.CaptureJobProcessor.ShowAnalyzerCallback = async bitmap =>
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var vm = new ImageAnalyzerViewModel();
+                vm.SetInputImage(bitmap);
+
+                var w = new ImageAnalyzerWindow();
+                w.Initialize(vm);
+                w.Show();
+            });
+        };
 
         Core.Tasks.WorkerTask.OpenMainWindowCallback = () =>
         {
