@@ -7,6 +7,16 @@
 #
 
 $ErrorActionPreference = "Stop"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$MarkdownChecker = Join-Path (Split-Path -Parent $ScriptDir) "scripts/check-markdown-mojibake.py"
+
+if (Get-Command python -ErrorAction SilentlyContinue) {
+    $PythonCommand = "python"
+} elseif (Get-Command py -ErrorAction SilentlyContinue) {
+    $PythonCommand = "py"
+} else {
+    $PythonCommand = $null
+}
 
 # Expected header components
 $CURRENT_YEAR = (Get-Date).Year
@@ -21,9 +31,27 @@ $EXPECTED_SWIFT_PROJECT = "XerahS Mobile (Swift)"
 $STAGED_CS_FILES = git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -match '\.cs$' }
 $STAGED_SWIFT_FILES = git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -match '\.swift$' }
 $STAGED_KT_FILES = git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -match '\.kt$' }
+$STAGED_MD_FILES = git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -match '\.md$' }
 
 $TOTAL_VIOLATIONS = 0
 $VIOLATION_FILES = @()
+
+if ($STAGED_MD_FILES) {
+    if (-not $PythonCommand) {
+        Write-Host "FAIL: Python 3 is required to run the Markdown mojibake checker." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "Checking Markdown files for mojibake and BOM issues..."
+    if ($PythonCommand -eq "py") {
+        & py -3 $MarkdownChecker @STAGED_MD_FILES
+    } else {
+        & python $MarkdownChecker @STAGED_MD_FILES
+    }
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
 
 # --- C# files ---
 if ($STAGED_CS_FILES) {
@@ -84,8 +112,8 @@ if ($STAGED_KT_FILES) {
     }
 }
 
-if (-not $STAGED_CS_FILES -and -not $STAGED_SWIFT_FILES -and -not $STAGED_KT_FILES) {
-    Write-Host "OK: No C#, Swift, or Kotlin files to check" -ForegroundColor Green
+if (-not $STAGED_MD_FILES -and -not $STAGED_CS_FILES -and -not $STAGED_SWIFT_FILES -and -not $STAGED_KT_FILES) {
+    Write-Host "OK: No Markdown, C#, Swift, or Kotlin files to check" -ForegroundColor Green
     exit 0
 }
 
@@ -111,5 +139,6 @@ if ($TOTAL_VIOLATIONS -gt 0) {
 $csCount = if ($STAGED_CS_FILES) { ($STAGED_CS_FILES | Measure-Object).Count } else { 0 }
 $swiftCount = if ($STAGED_SWIFT_FILES) { ($STAGED_SWIFT_FILES | Measure-Object).Count } else { 0 }
 $ktCount = if ($STAGED_KT_FILES) { ($STAGED_KT_FILES | Measure-Object).Count } else { 0 }
-Write-Host "OK: All staged C#, Swift, and Kotlin files have valid GPL v3 license headers (C#: $csCount, Swift: $swiftCount, Kotlin: $ktCount)" -ForegroundColor Green
+$mdCount = if ($STAGED_MD_FILES) { ($STAGED_MD_FILES | Measure-Object).Count } else { 0 }
+Write-Host "OK: Staged file checks passed (Markdown: $mdCount, C#: $csCount, Swift: $swiftCount, Kotlin: $ktCount)" -ForegroundColor Green
 exit 0
