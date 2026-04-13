@@ -714,6 +714,8 @@ namespace XerahS.UI.Services
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 var viewModel = new ImageAnalyzerViewModel();
+                viewModel.SetInputImage(image);
+
                 var window = new Views.ImageAnalyzerWindow();
                 window.Initialize(viewModel);
 
