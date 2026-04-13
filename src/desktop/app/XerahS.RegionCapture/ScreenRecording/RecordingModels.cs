@@ -131,7 +131,11 @@ public readonly struct FrameData
     /// <summary>Pointer to raw pixel data</summary>
     public IntPtr DataPtr { get; init; }
 
-    /// <summary>Stride (bytes per row) of the frame</summary>
+    /// <summary>
+    /// Actual source stride in bytes per row.
+    /// This may be larger than <c>Width * bytesPerPixel</c> when the source surface includes padding.
+    /// Consumers must treat this as the row pitch used for address calculation, not as a guarantee of tight packing.
+    /// </summary>
     public int Stride { get; init; }
 
     /// <summary>Frame width in pixels</summary>

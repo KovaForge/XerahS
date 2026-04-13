@@ -30,6 +30,7 @@ using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
 using XerahS.Platform.Windows;
+using XerahS.Platform.Windows.Capture;
 
 namespace ShareX.Avalonia.Platform.Windows.Capture;
 
@@ -148,17 +149,13 @@ internal sealed class GdiCaptureStrategy : ICaptureStrategy
 
             unsafe
             {
-                var src = (byte*)bitmapData.Scan0;
-                var dst = (byte*)skBitmap.GetPixels();
-
-                for (int y = 0; y < gdiBitmap.Height; y++)
-                {
-                    Buffer.MemoryCopy(
-                        src + y * bitmapData.Stride,
-                        dst + y * rowBytes,
-                        rowBytes,
-                        Math.Min(bitmapData.Stride, rowBytes));
-                }
+                BgraRowCopyHelper.CopyRows(
+                    bitmapData.Scan0,
+                    bitmapData.Stride,
+                    skBitmap.GetPixels(),
+                    rowBytes,
+                    gdiBitmap.Width * 4,
+                    gdiBitmap.Height);
             }
 
             return skBitmap;
