@@ -241,6 +241,113 @@ jobs:
           if-no-files-found: warn
           path: build/logs/linux-${{ matrix.rid }}-build.log
 
+  build-flatpak:
+    needs: validate-version
+    runs-on: ubuntu-24.04
+    # NOTE: ARM64 Flatpak builds require an ARM64 runner (or QEMU) and are
+    # better handled by Flathub's infrastructure. This job produces the x86_64
+    # bundle only. To add ARM64: switch to ubuntu-24.04-arm and add QEMU user
+    # static (binfmt-support) for cross-building.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Flatpak & flatpak-builder
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder desktop-file-utils
+
+      - name: Install FreeDesktop runtime (one-time)
+        shell: bash
+        run: |
+          flatpak remote-add --user --no-sign-verify flathub https://flathub.org/repo/flathub.flatpakrepo || true
+          flatpak install --user --or-update --noninteractive \
+            flathub org.freedesktop.Platform//24.08 \
+            flathub org.freedesktop.Sdk//24.08 || true
+
+      - name: Build Linux publish (staging for Flatpak)
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x ./build/linux/package-linux.sh
+          XERAHS_ARCHITECTURES="linux-x64" ./build/linux/package-linux.sh
+
+      - name: Extract tarball to Flatpak staging dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          # Remove any previous staging dir
+          rm -rf "dist/xerahs-flatpak-staging"
+          mkdir -p "dist/xerahs-flatpak-staging"
+          # Extract the self-contained publish into the staging dir.
+          # The tarball root is the publish root; flatten it into staging directly.
+          tar -xzf "dist/XerahS-${VERSION}-linux-x64.tar.gz" \
+            --strip-components=1 \
+            -C "dist/xerahs-flatpak-staging"
+
+      - name: Validate WebUI dist is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "dist/xerahs-flatpak-staging/frontend/dist" ]; then
+            echo "Error: WebUI dist missing at dist/xerahs-flatpak-staging/frontend/dist"
+            echo "This means ShareX.VideoEditor was not built. Ensure git submodules are initialized."
+            exit 1
+          fi
+
+      - name: Build Flatpak
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build/logs
+          flatpak-builder --user --force-clean --ccache \
+            build/com.getsharex.XerahS \
+            flatpak/com.getsharex.XerahS.yml 2>&1 | tee build/logs/flatpak-build.log || {
+            echo "flatpak-builder failed. Logs:"
+            cat build/logs/flatpak-build.log
+            exit 1
+          }
+
+      - name: Validate Flatpak
+        shell: bash
+        run: |
+          set -euo pipefail
+          flatpak build-info build/com.getsharex.XerahS
+
+      - name: Export Flatpak bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          flatpak build-bundle ~/.local/share/flatpak/repo \
+            "dist/com.getsharex.XerahS-$VERSION-linux-x64.flatpak" \
+            com.getsharex.XerahS
+
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-release
+          if-no-files-found: error
+          path: |
+            dist/com.getsharex.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
+
+      - name: Upload Flatpak build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-build-log
+          if-no-files-found: warn
+          path: build/logs/flatpak-build.log
+
   release:
     if: github.ref_type == 'tag'
     needs:
@@ -248,6 +355,7 @@ jobs:
       - build-windows
       - build-macos
       - build-linux
+      - build-flatpak
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -285,6 +393,7 @@ jobs:
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.deb
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.rpm
+            release-assets/com.getsharex.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
