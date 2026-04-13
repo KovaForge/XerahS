@@ -1,4 +1,4 @@
-﻿# XerahS Build System Documentation
+# XerahS Build System Documentation
 
 This document describes the build system structure and how builds work for each operating system.
 
@@ -8,35 +8,35 @@ This document describes the build system structure and how builds work for each 
 
 ```
 build/
-â”œâ”€â”€ README.md                          # This file
-â”œâ”€â”€ windows/                           # Windows build scripts
-â”‚   â”œâ”€â”€ package-windows.ps1           # Main PowerShell build script
-â”‚   â”œâ”€â”€ XerahS-setup.iss              # Inno Setup installer script
-â”‚   â”œâ”€â”€ scoop/                        # Scoop manifests
-â”‚   â”‚   â””â”€â”€ scoop.json                # Scoop manifest for XerahS
-â”‚   â”œâ”€â”€ winget/                       # WinGet manifests
-â”‚   â”‚   â””â”€â”€ generate-winget.ps1       # Script to generate WinGet manifests
-â”‚   â””â”€â”€ chocolatey/                   # Chocolatey packages
-â”‚       â”œâ”€â”€ Sync-ChocolateyPackage.ps1# Sync + pack Chocolatey package metadata
-â”‚       â”œâ”€â”€ xerahs.nuspec             # Chocolatey package definition
-â”‚       â””â”€â”€ tools/                    # Chocolatey install/uninstall scripts
-â”œâ”€â”€ linux/                             # Linux build scripts
-â”‚   â”œâ”€â”€ package-linux.ps1             # PowerShell wrapper for Linux build (Windows)
-â”‚   â”œâ”€â”€ package-linux.sh              # Bash script for Linux build (Linux/macOS)
-â”‚   â”œâ”€â”€ package-aur.sh                # Bash script for building a local Arch package
-â”‚   â”œâ”€â”€ aur/                          # Arch packaging metadata
-â”‚   â”‚   â””â”€â”€ xerahs-git/
-â”‚   â”‚       â””â”€â”€ PKGBUILD             # Local PKGBUILD used by package-aur.sh
-â”‚   â””â”€â”€ XerahS.Packaging/             # C# packaging tool
-â”‚       â”œâ”€â”€ Program.cs                # Packaging logic (tar.gz, .deb, .rpm)
-â”‚       â””â”€â”€ XerahS.Packaging.csproj   # Project file
-â”œâ”€â”€ macos/                             # macOS build scripts
-â”‚   â”œâ”€â”€ package-mac.ps1               # PowerShell script for macOS build (Windows)
-â”‚   â””â”€â”€ package-mac.sh                # Bash script for macOS build (macOS)
-â””â”€â”€ android/                           # Android/Mobile build scripts
-    â”œâ”€â”€ build-android.sh              # Bash script for Android build (Linux)
-    â”œâ”€â”€ build-android.ps1             # PowerShell script for Android build (Windows)
-    â””â”€â”€ README.md                     # Detailed Android build documentation
+├── README.md                          # This file
+├── windows/                           # Windows build scripts
+│   ├── package-windows.ps1           # Main PowerShell build script
+│   ├── XerahS-setup.iss              # Inno Setup installer script
+│   ├── scoop/                        # Scoop manifests
+│   │   └── scoop.json                # Scoop manifest for XerahS
+│   ├── winget/                       # WinGet manifests
+│   │   └── generate-winget.ps1       # Script to generate WinGet manifests
+│   └── chocolatey/                   # Chocolatey packages
+│       ├── Sync-ChocolateyPackage.ps1# Sync + pack Chocolatey package metadata
+│       ├── xerahs.nuspec             # Chocolatey package definition
+│       └── tools/                    # Chocolatey install/uninstall scripts
+├── linux/                             # Linux build scripts
+│   ├── package-linux.ps1             # PowerShell wrapper for Linux build (Windows)
+│   ├── package-linux.sh              # Bash script for Linux build (Linux/macOS)
+│   ├── package-aur.sh                # Bash script for building a local Arch package
+│   ├── aur/                          # Arch packaging metadata
+│   │   └── xerahs-git/
+│   │       └── PKGBUILD             # Local PKGBUILD used by package-aur.sh
+│   └── XerahS.Packaging/             # C# packaging tool
+│       ├── Program.cs                # Packaging logic (tar.gz, .deb, .rpm)
+│       └── XerahS.Packaging.csproj   # Project file
+├── macos/                             # macOS build scripts
+│   ├── package-mac.ps1               # PowerShell script for macOS build (Windows)
+│   └── package-mac.sh                # Bash script for macOS build (macOS)
+└── android/                           # Android/Mobile build scripts
+    ├── build-android.sh              # Bash script for Android build (Linux)
+    ├── build-android.ps1             # PowerShell script for Android build (Windows)
+    └── README.md                     # Detailed Android build documentation
 ```
 
 ---
@@ -50,32 +50,32 @@ build/
 ### How It Works
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                        Windows Build Flow                               â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                                         â”‚
-â”‚  1. Detect version from Directory.Build.props                           â”‚
-â”‚                              â†“                                          â”‚
-â”‚  2. For each architecture (win-x64, win-arm64):                         â”‚
-â”‚                              â†“                                          â”‚
-â”‚     a. dotnet publish (main app) â†’ build/publish-temp-{arch}/           â”‚
-â”‚                              â†“                                          â”‚
-â”‚     b. Publish Plugins to Plugins/ subfolder                            â”‚
-â”‚        â€¢ Reads plugin.json for pluginId                                 â”‚
-â”‚        â€¢ Publishes each plugin to Plugins/{pluginId}/                   â”‚
-â”‚                              â†“                                          â”‚
-â”‚     c. Deduplicate plugin files                                         â”‚
-â”‚        â€¢ Removes duplicate DLLs already in main app                     â”‚
-â”‚        â€¢ Saves ~170 MB per architecture                                 â”‚
-â”‚                              â†“                                          â”‚
-â”‚     d. ISCC.exe (Inno Setup)                                            â”‚
-â”‚        â€¢ /dMyAppReleaseDirectory={publish-temp}                         â”‚
-â”‚        â€¢ /dOutputBaseFilename=XerahS-{version}-{arch}                   â”‚
-â”‚        â€¢ /dOutputDir={dist}                                             â”‚
-â”‚                              â†“                                          â”‚
-â”‚  3. Output: dist/XerahS-{version}-{arch}.exe                            â”‚
-â”‚                                                                         â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Windows Build Flow                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. Detect version from Directory.Build.props                           │
+│                              ↓                                          │
+│  2. For each architecture (win-x64, win-arm64):                         │
+│                              ↓                                          │
+│     a. dotnet publish (main app) → build/publish-temp-{arch}/           │
+│                              ↓                                          │
+│     b. Publish Plugins to Plugins/ subfolder                            │
+│        • Reads plugin.json for pluginId                                 │
+│        • Publishes each plugin to Plugins/{pluginId}/                   │
+│                              ↓                                          │
+│     c. Deduplicate plugin files                                         │
+│        • Removes duplicate DLLs already in main app                     │
+│        • Saves ~170 MB per architecture                                 │
+│                              ↓                                          │
+│     d. ISCC.exe (Inno Setup)                                            │
+│        • /dMyAppReleaseDirectory={publish-temp}                         │
+│        • /dOutputBaseFilename=XerahS-{version}-{arch}                   │
+│        • /dOutputDir={dist}                                             │
+│                              ↓                                          │
+│  3. Output: dist/XerahS-{version}-{arch}.exe                            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Features
@@ -113,42 +113,42 @@ The `build/windows` directory also contains resources for submitting XerahS to p
 ### How It Works
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                         Linux Build Flow                                â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                                         â”‚
-â”‚  1. Detect version from Directory.Build.props                           â”‚
-â”‚                              â†“                                          â”‚
-â”‚  2. dotnet publish (main app)                                           â”‚
-â”‚     â€¢ Runtime: linux-x64                                                â”‚
-â”‚     â€¢ Single file: true                                                 â”‚
-â”‚     â€¢ Self-contained: true                                              â”‚
-â”‚     â†’ src/desktop/app/XerahS.App/bin/Release/net10.0/linux-x64/publish/ â”‚
-â”‚                              â†“                                          â”‚
-â”‚  3. Publish Plugins to Plugins/ subfolder                               â”‚
-â”‚     â€¢ Same process as Windows                                           â”‚
-â”‚     â€¢ Deduplicates files against main app                               â”‚
-â”‚                              â†“                                          â”‚
-â”‚  4. XerahS.Packaging tool creates:                                      â”‚
-â”‚                              â†“                                          â”‚
-â”‚     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”‚
-â”‚     â”‚   Tarball       â”‚ XerahS-{version}-linux-x64.tar.gz        â”‚     â”‚
-â”‚     â”‚   (.tar.gz)     â”‚ Portable, extract and run                â”‚     â”‚
-â”‚     â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤     â”‚
-â”‚     â”‚   Debian        â”‚ XerahS-{version}-linux-x64.deb           â”‚     â”‚
-â”‚     â”‚   Package       â”‚ Installs to /usr/lib/xerahs/             â”‚     â”‚
-â”‚     â”‚   (.deb)        â”‚ Creates /usr/bin/xerahs wrapper          â”‚     â”‚
-â”‚     â”‚                 â”‚ Desktop entry + icon included            â”‚     â”‚
-â”‚     â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤     â”‚
-â”‚     â”‚   RPM Package   â”‚ XerahS-{version}-linux-x64.rpm           â”‚     â”‚
-â”‚     â”‚   (.rpm)        â”‚ For Fedora/RHEL/CentOS/SUSE              â”‚     â”‚
-â”‚     â”‚                 â”‚ Requires rpmbuild tool                   â”‚     â”‚
-â”‚     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â”‚
-â”‚                              â†“                                          â”‚
-â”‚  5. Individual plugin .zip files also created                           â”‚
-â”‚     â€¢ {pluginId}-{version}-linux-x64.zip                                â”‚
-â”‚                                                                         â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Linux Build Flow                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. Detect version from Directory.Build.props                           │
+│                              ↓                                          │
+│  2. dotnet publish (main app)                                           │
+│     • Runtime: linux-x64                                                │
+│     • Single file: true                                                 │
+│     • Self-contained: true                                              │
+│     → src/desktop/app/XerahS.App/bin/Release/net10.0/linux-x64/publish/ │
+│                              ↓                                          │
+│  3. Publish Plugins to Plugins/ subfolder                               │
+│     • Same process as Windows                                           │
+│     • Deduplicates files against main app                               │
+│                              ↓                                          │
+│  4. XerahS.Packaging tool creates:                                      │
+│                              ↓                                          │
+│     ┌─────────────────┬──────────────────────────────────────────┐     │
+│     │   Tarball       │ XerahS-{version}-linux-x64.tar.gz        │     │
+│     │   (.tar.gz)     │ Portable, extract and run                │     │
+│     ├─────────────────┼──────────────────────────────────────────┤     │
+│     │   Debian        │ XerahS-{version}-linux-x64.deb           │     │
+│     │   Package       │ Installs to /usr/lib/xerahs/             │     │
+│     │   (.deb)        │ Creates /usr/bin/xerahs wrapper          │     │
+│     │                 │ Desktop entry + icon included            │     │
+│     ├─────────────────┼──────────────────────────────────────────┤     │
+│     │   RPM Package   │ XerahS-{version}-linux-x64.rpm           │     │
+│     │   (.rpm)        │ For Fedora/RHEL/CentOS/SUSE              │     │
+│     │                 │ Requires rpmbuild tool                   │     │
+│     └─────────────────┴──────────────────────────────────────────┘     │
+│                              ↓                                          │
+│  5. Individual plugin .zip files also created                           │
+│     • {pluginId}-{version}-linux-x64.zip                                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Package Details
@@ -189,53 +189,53 @@ This script:
 #### Option 1: Build from Windows (Cross-Compilation)
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                    macOS Build Flow (from Windows)                      â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                                         â”‚
-â”‚  1. Detect version from Directory.Build.props                           â”‚
-â”‚                              â†“                                          â”‚
-â”‚  2. Verify pre-compiled native library exists                           â”‚
-â”‚     â€¢ native/macos/libscreencapturekit_bridge.dylib                     â”‚
-â”‚     â€¢ (Compile on macOS first if update needed)                         â”‚
-â”‚                              â†“                                          â”‚
-â”‚  3. For each architecture (osx-arm64, osx-x64):                         â”‚
-â”‚                              â†“                                          â”‚
-â”‚     a. dotnet publish with -p:CrossCompile=true                         â”‚
-â”‚        â€¢ Uses net10.0 (not net10.0-windows...)                          â”‚
-â”‚        â€¢ References XerahS.Platform.MacOS (not Windows)                 â”‚
-â”‚                              â†“                                          â”‚
-â”‚     b. Create .app bundle structure                                     â”‚
-â”‚        XerahS.app/Contents/MacOS/                                       â”‚
-â”‚                              â†“                                          â”‚
-â”‚     c. Publish Plugins to Plugins/ subfolder                            â”‚
-â”‚        â€¢ Same process as other platforms                                â”‚
-â”‚                              â†“                                          â”‚
-â”‚     d. Package as .tar.gz                                               â”‚
-â”‚                              â†“                                          â”‚
-â”‚  4. Output: dist/XerahS-{version}-mac-{arch}.tar.gz                     â”‚
-â”‚                                                                         â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    macOS Build Flow (from Windows)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. Detect version from Directory.Build.props                           │
+│                              ↓                                          │
+│  2. Verify pre-compiled native library exists                           │
+│     • native/macos/libscreencapturekit_bridge.dylib                     │
+│     • (Compile on macOS first if update needed)                         │
+│                              ↓                                          │
+│  3. For each architecture (osx-arm64, osx-x64):                         │
+│                              ↓                                          │
+│     a. dotnet publish with -p:CrossCompile=true                         │
+│        • Uses net10.0 (not net10.0-windows...)                          │
+│        • References XerahS.Platform.MacOS (not Windows)                 │
+│                              ↓                                          │
+│     b. Create .app bundle structure                                     │
+│        XerahS.app/Contents/MacOS/                                       │
+│                              ↓                                          │
+│     c. Publish Plugins to Plugins/ subfolder                            │
+│        • Same process as other platforms                                │
+│                              ↓                                          │
+│     d. Package as .tar.gz                                               │
+│                              ↓                                          │
+│  4. Output: dist/XerahS-{version}-mac-{arch}.tar.gz                     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Option 2: Build from macOS (Native)
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                      macOS Build Flow (from macOS)                      â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                                         â”‚
-â”‚  1. Detect version from Directory.Build.props                           â”‚
-â”‚                              â†“                                          â”‚
-â”‚  2. Build native ScreenCaptureKit library                               â”‚
-â”‚     â€¢ cd native/macos && make                                           â”‚
-â”‚     â€¢ Produces libscreencapturekit_bridge.dylib                         â”‚
-â”‚                              â†“                                          â”‚
-â”‚  3. dotnet publish (triggers CreateMacOSAppBundle target)               â”‚
-â”‚                              â†“                                          â”‚
-â”‚  4. Plugins, packaging same as cross-compile                            â”‚
-â”‚                                                                         â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      macOS Build Flow (from macOS)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. Detect version from Directory.Build.props                           │
+│                              ↓                                          │
+│  2. Build native ScreenCaptureKit library                               │
+│     • cd native/macos && make                                           │
+│     • Produces libscreencapturekit_bridge.dylib                         │
+│                              ↓                                          │
+│  3. dotnet publish (triggers CreateMacOSAppBundle target)               │
+│                              ↓                                          │
+│  4. Plugins, packaging same as cross-compile                            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Cross-Compilation (`CrossCompile` Property)
@@ -283,29 +283,29 @@ The `-p:CrossCompile=true` flag enables building macOS/Linux binaries from Windo
 ### How It Works
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                      Android Build Flow                                 â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                                         â”‚
-â”‚  1. Detect version from Directory.Build.props                           â”‚
-â”‚                              â†“                                          â”‚
-â”‚  2. Configure Java environment                                          â”‚
-â”‚     â€¢ Set JAVA_HOME to JDK 21                                           â”‚
-â”‚     â€¢ Verify Java version                                               â”‚
-â”‚                              â†“                                          â”‚
-â”‚  3. Build XerahS.Mobile.Ava (Avalonia Android)                          â”‚
-â”‚     â€¢ dotnet build -c Release -f net10.0-android                        â”‚
-â”‚     â†’ src/mobile-experimental/XerahS.Mobile.Ava/bin/.../net10.0-android/ â”‚
-â”‚                              â†“                                          â”‚
-â”‚  4. Build XerahS.Mobile.Maui (MAUI/Android)                             â”‚
-â”‚     â€¢ dotnet build -c Release -f net10.0-android                        â”‚
-â”‚     â†’ src/mobile-experimental/XerahS.Mobile.Maui/bin/.../net10.0-android/â”‚
-â”‚                              â†“                                          â”‚
-â”‚  6. Copy APKs to dist/android/                                          â”‚
-â”‚     â€¢ XerahS-{version}-Android.apk                                      â”‚
-â”‚     â€¢ XerahS-{version}-MAUI-Android.apk                                 â”‚
-â”‚                                                                         â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      Android Build Flow                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. Detect version from Directory.Build.props                           │
+│                              ↓                                          │
+│  2. Configure Java environment                                          │
+│     • Set JAVA_HOME to JDK 21                                           │
+│     • Verify Java version                                               │
+│                              ↓                                          │
+│  3. Build XerahS.Mobile.Ava (Avalonia Android)                          │
+│     • dotnet build -c Release -f net10.0-android                        │
+│     → src/mobile-experimental/XerahS.Mobile.Ava/bin/.../net10.0-android/ │
+│                              ↓                                          │
+│  4. Build XerahS.Mobile.Maui (MAUI/Android)                             │
+│     • dotnet build -c Release -f net10.0-android                        │
+│     → src/mobile-experimental/XerahS.Mobile.Maui/bin/.../net10.0-android/│
+│                              ↓                                          │
+│  6. Copy APKs to dist/android/                                          │
+│     • XerahS-{version}-Android.apk                                      │
+│     • XerahS-{version}-MAUI-Android.apk                                 │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Platform-Specific Configuration
@@ -351,25 +351,25 @@ iOS projects (`XerahS.Mobile.iOS`, `XerahS.Mobile.iOS.ShareExtension`) **require
 All platforms use the same plugin discovery and build logic:
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                    Plugin Build Flow                            â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                                 â”‚
-â”‚  src/desktop/plugins/                                            â”‚
-â”‚  â”œâ”€â”€ AmazonS3.Plugin/                                            â”‚
-â”‚  â”‚   â”œâ”€â”€ XerahS.AmazonS3.Plugin.csproj                           â”‚
-â”‚  â”‚   â””â”€â”€ plugin.json                                             â”‚
-â”‚  â”œâ”€â”€ Auto.Plugin/                                                â”‚
-â”‚  â”‚   â””â”€â”€ plugin.json                                             â”‚
-â”‚  â””â”€â”€ ...                                                         â”‚
-â”‚                                                                  â”‚
-â”‚  Build script:                                                   â”‚
-â”‚  1. Find all .csproj in src/desktop/plugins/                     â”‚
-â”‚  2. Read plugin.json â†’ extract "pluginId"                       â”‚
-â”‚  3. dotnet publish to Plugins/{pluginId}/                       â”‚
-â”‚  4. Remove files that already exist in main app                 â”‚
-â”‚                                                                 â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────────────┐
+│                    Plugin Build Flow                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  src/desktop/plugins/                                            │
+│  ├── AmazonS3.Plugin/                                            │
+│  │   ├── XerahS.AmazonS3.Plugin.csproj                           │
+│  │   └── plugin.json                                             │
+│  ├── Auto.Plugin/                                                │
+│  │   └── plugin.json                                             │
+│  └── ...                                                         │
+│                                                                  │
+│  Build script:                                                   │
+│  1. Find all .csproj in src/desktop/plugins/                     │
+│  2. Read plugin.json → extract "pluginId"                       │
+│  3. dotnet publish to Plugins/{pluginId}/                       │
+│  4. Remove files that already exist in main app                 │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Current Plugins
@@ -390,23 +390,23 @@ All builds place their final artifacts in the `dist/` folder:
 
 ```
 dist/
-â”œâ”€â”€ Windows
-â”‚   â”œâ”€â”€ XerahS-0.14.3-win-x64.exe
-â”‚   â””â”€â”€ XerahS-0.14.3-win-arm64.exe
-â”‚
-â”œâ”€â”€ Linux
-â”‚   â”œâ”€â”€ XerahS-0.14.3-linux-x64.tar.gz
-â”‚   â”œâ”€â”€ XerahS-0.14.3-linux-x64.deb
-â”‚   â”œâ”€â”€ XerahS-0.14.3-linux-x64.rpm
-â”‚   â”œâ”€â”€ amazons3-0.14.3-linux-x64.zip
-â”‚   â”œâ”€â”€ auto-0.14.3-linux-x64.zip
-â”‚   â”œâ”€â”€ gist-0.14.3-linux-x64.zip
-â”‚   â”œâ”€â”€ imgur-0.14.3-linux-x64.zip
-â”‚   â””â”€â”€ paste2-0.14.3-linux-x64.zip
-â”‚
-â””â”€â”€ macOS
-    â”œâ”€â”€ XerahS-0.14.3-mac-arm64.tar.gz  (Apple Silicon)
-    â””â”€â”€ XerahS-0.14.3-mac-x64.tar.gz    (Intel Mac)
+├── Windows
+│   ├── XerahS-0.14.3-win-x64.exe
+│   └── XerahS-0.14.3-win-arm64.exe
+│
+├── Linux
+│   ├── XerahS-0.14.3-linux-x64.tar.gz
+│   ├── XerahS-0.14.3-linux-x64.deb
+│   ├── XerahS-0.14.3-linux-x64.rpm
+│   ├── amazons3-0.14.3-linux-x64.zip
+│   ├── auto-0.14.3-linux-x64.zip
+│   ├── gist-0.14.3-linux-x64.zip
+│   ├── imgur-0.14.3-linux-x64.zip
+│   └── paste2-0.14.3-linux-x64.zip
+│
+└── macOS
+    ├── XerahS-0.14.3-mac-arm64.tar.gz  (Apple Silicon)
+    └── XerahS-0.14.3-mac-x64.tar.gz    (Intel Mac)
 ```
 
 ---
