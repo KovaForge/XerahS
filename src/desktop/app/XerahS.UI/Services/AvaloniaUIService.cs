@@ -708,5 +708,34 @@ namespace XerahS.UI.Services
                 }
             });
         }
+
+        public async Task ShowAnalyzerWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new ImageAnalyzerViewModel();
+                var window = new Views.ImageAnalyzerWindow();
+                window.Initialize(viewModel);
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
     }
 }

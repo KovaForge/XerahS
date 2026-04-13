@@ -103,5 +103,11 @@ namespace XerahS.Platform.Abstractions
         /// Used as an AfterCapture task triggered by the DoOCR flag.
         /// </summary>
         Task ShowOcrWindowAsync(SKBitmap image);
+
+        /// <summary>
+        /// Shows the image analyzer window with the provided image.
+        /// Used as an AfterCapture task triggered by the AnalyzeImage flag.
+        /// </summary>
+        Task ShowAnalyzerWindowAsync(SKBitmap image);
     }
 }
