@@ -23,24 +23,25 @@
 
 #endregion License Information (GPL v3)
 
+using Android.App;
+using Android.Runtime;
 using Avalonia;
-using Avalonia.Headless;
-using Avalonia.Headless.NUnit;
+using Avalonia.Android;
 
-[assembly: AvaloniaTestApplication(typeof(XerahS.Tests.Avalonia.AvaloniaTestAppBuilder))]
+namespace Ava.Platforms.Android;
 
-namespace XerahS.Tests.Avalonia;
-
-public static class AvaloniaTestAppBuilder
+[Application]
+public sealed class AndroidApp : AvaloniaAndroidApplication<MobileApp>
 {
-    public static AppBuilder BuildAvaloniaApp()
+    public AndroidApp(IntPtr javaReference, JniHandleOwnership transfer)
+        : base(javaReference, transfer)
     {
-        return AppBuilder.Configure<AvaloniaTestApp>()
-            .UseSkia()
-            .UseHarfBuzz()
-            .UseHeadless(new AvaloniaHeadlessPlatformOptions
-            {
-                UseHeadlessDrawing = false
-            });
+    }
+
+    protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
+    {
+        return builder
+            .UseAndroid()
+            .LogToTrace();
     }
 }

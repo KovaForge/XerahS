@@ -34,14 +34,17 @@
     <Border Grid.Row="0"
             Classes="section-card"
             Padding="24"
-            Margin="0,0,0,16">
+            Margin="0,0,0,16"
+            AutomationProperties.LandmarkType="Main"
+            AutomationProperties.AccessibilityView="Control">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel Spacing="16">
           <StackPanel Spacing="8">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
               <StackPanel Spacing="2" VerticalAlignment="Center">
                 <TextBlock Text="{Binding CurrentStep.StepTitle}"
-                           Classes="section-header" />
+                           Classes="section-header"
+                           AutomationProperties.HeadingLevel="1" />
                 <TextBlock Text="{Binding CurrentStep.StepSubtitle}"
                            FontSize="14"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -59,10 +62,13 @@
                   IsVisible="{Binding CurrentStep.HasValidationError}">
             <TextBlock Text="{Binding CurrentStep.ValidationError}"
                        Foreground="{DynamicResource StatusErrorForegroundBrush}"
-                       TextWrapping="Wrap" />
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
           </Border>
 
-          <ContentControl Content="{Binding CurrentStep}">
+          <ContentControl Content="{Binding CurrentStep}"
+                          AutomationProperties.LandmarkType="Form"
+                          AutomationProperties.AccessibilityView="Control">
             <ContentControl.DataTemplates>
               <DataTemplate DataType="steps:SaveLocationStepViewModel">
                 <StackPanel Spacing="16">

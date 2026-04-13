@@ -12,19 +12,19 @@
         <!-- Context menu for media items -->
         <MenuFlyout x:Key="ItemMenuFlyout" x:DataType="vm:MediaItemViewModel">
             <MenuItem Header="Open / Preview"
-                      Command="{ReflectionBinding DataContext.OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      Command="{Binding #Root.DataContext.OpenItemCommand}"
                       CommandParameter="{Binding}"/>
             <MenuItem Header="Copy URL"
-                      Command="{ReflectionBinding DataContext.CopyUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      Command="{Binding #Root.DataContext.CopyUrlCommand}"
                       CommandParameter="{Binding}"
                       IsVisible="{Binding Item.Url, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
             <MenuItem Header="Download"
-                      Command="{ReflectionBinding DataContext.DownloadItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      Command="{Binding #Root.DataContext.DownloadItemCommand}"
                       CommandParameter="{Binding}"
                       IsVisible="{Binding !Item.IsFolder}"/>
             <Separator/>
             <MenuItem Header="Delete"
-                      Command="{ReflectionBinding DataContext.DeleteItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      Command="{Binding #Root.DataContext.DeleteItemCommand}"
                       CommandParameter="{Binding}"/>
         </MenuFlyout>
     </UserControl.Resources>
