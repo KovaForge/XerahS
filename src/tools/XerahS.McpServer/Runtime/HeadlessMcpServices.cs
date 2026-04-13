@@ -28,6 +28,10 @@ internal sealed class HeadlessMcpUIService : IUIService
         Task.FromResult(new SendToPromptResult { Action = SendToAction.UploadNow, IsFallback = true, Reason = "MCP server runs headlessly." });
 
     public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
+
+    public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+    public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
 }
 
 internal sealed class HeadlessMcpToastService : IToastService

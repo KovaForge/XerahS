@@ -1,10 +1,11 @@
-# XIP0072: Screen Recording Bug Fixes — AV1, HEVC Launch Policy, and Stride Safety
+# XIP0072: Screen Recording Bug Fixes — AV1, HEVC Video Editor Launch, and Stride Safety
 
 **Status**: Draft
 **Priority**: P0 (stride) / P1 (HEVC) / P2 (AV1)
 **Area**: Screen Recording | Video Encoding | Memory Safety | Video Editor
 **Created**: 2026-04-12
 **Related**: XIP0070 (User Research - Top Screen Capture Needs)
+**Co-Authors**: Milena (research), Nadia (critical review)
 
 ---
 
@@ -14,9 +15,9 @@ Three user-reported bugs in XerahS screen recording are dissected and addressed:
 
 1. **Stride Safety (P0)**: A memory safety bug in the DXGI capture pipeline causes random red border artifacts on both screenshots and recordings — `dataBox.RowPitch` (GPU-aligned stride, e.g. 3712 bytes for 1920px) is ignored and `width*4` (7680) is hardcoded as stride, causing out-of-bounds memory access and padding bytes interpreted as pixel color values.
 
-2. **HEVC Video Editor Launch (P1)**: HEVC recordings produce valid MP4 files that play in external players, but the integrated video editor reports "video editor doesn't exist" — the `VideoEditorLaunchPolicy` incorrectly rejects HEVC MP4 files before the editor subprocess is spawned.
+2. **HEVC Video Editor Launch (P1)**: HEVC recordings produce valid MP4 files that play in external players, but the integrated video editor fails to open them — the diagnosis that `VideoEditorLaunchPolicy` has a codec allowlist is incorrect; the real failure point is FFprobe codec detection and/or missing Windows HEVC Video Extensions for WebView2 playback.
 
-3. **AV1 Screen Recording (P2)**: AV1 is listed in the `VideoCodec` enum but has no runtime implementation — selecting it fails silently or with an unhandled encoder exception. AV1 should either use Windows Media Foundation (hardware-accelerated when available) or fall back to FFmpeg.
+3. **AV1 Screen Recording (P2)**: AV1 is listed in the `VideoCodec` enum but has no encoder implementation — selecting it fails silently or with an unhandled encoder exception. AV1 should either use Windows Media Foundation (hardware-accelerated when available) or fall back to FFmpeg.
 
 ---
 
@@ -26,61 +27,72 @@ Three user-reported bugs in XerahS screen recording are dissected and addressed:
 
 Users report red borders appearing randomly on both screenshots and screen recordings. The artifacts are **random** in position and severity — the hallmark of a memory safety bug where misaligned padding bytes from a strided DXGI surface are copied into the destination buffer and later interpreted as pixel color values.
 
-### Root Cause
+### Root Cause ✅ Verified
 
-DXGI surfaces are allocated with GPU-aligned row pitches. For example, a 1920px-wide surface at 32bpp may have a row pitch of 3712 bytes (64-byte L1 cache line alignment) instead of the expected 7680 bytes (`1920 * 4`). The current copy code in `WindowsModernCaptureService.cs:536` hard-codes `sourceWidth * 4` as stride:
+DXGI surfaces are allocated with GPU-aligned row pitches. For example, a 1920px-wide surface at 32bpp may have a row pitch of 3712 bytes (64-byte L1 cache line alignment) instead of the expected 7680 bytes (`1920 * 4`). The current copy code in `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs:433-447` hard-codes `sourceWidth * 4` as stride:
 
 ```csharp
-// Unsafe — ignores DXGI dataBox.RowPitch
+// BUG: sourcePitch hardcodes width*4, ignoring actual DXGI dataBox.RowPitch
+int srcPitch = (int)dataBox.RowPitch;
 int sourcePitch = sourceWidth * 4; // e.g. 7680 for 1920px
-...
-Buffer.MemoryCopy((void*)srcRow, (void*)destRow, sourcePitch, sourcePitch);
+
+unsafe
+{
+    for (int y = 0; y < sourceHeight; y++)
+    {
+        IntPtr srcRow = IntPtr.Add(dataBox.DataPointer, y * srcPitch);
+        IntPtr destRow = IntPtr.Add(destPixels, y * sourcePitch);
+        Buffer.MemoryCopy((void*)srcRow, (void*)destRow, sourcePitch, sourcePitch);
+    }
+}
 ```
 
-When `srcPitch` (from DXGI `dataBox.RowPitch`, e.g. 3712) differs from `sourcePitch` (7680), the copy either reads beyond the source buffer or writes beyond the destination, corrupting memory or interpreting padding bytes as pixel color values (appearing as red borders at row edges).
+When `srcPitch` (from DXGI `dataBox.RowPitch`, e.g. 3712) differs from `sourcePitch` (7680), the copy reads beyond the source row into padding bytes, which get interpreted as pixel color values (appearing as red borders at row edges).
 
-The `FrameData.Stride` contract is also inconsistent — `RegionCropper` and `MediaFoundationEncoder.CopyFrame` assume stride == `width * 4`, but if the actual stride is larger, downstream consumers will misread pixel data.
+**The `FrameData.Stride` contract is also undocumented** — the struct in `RecordingModels.cs` says only "Stride (bytes per row)" without clarifying whether it holds the actual GPU row pitch (with padding) or the tight pixel stride (`width * 4`). This ambiguity is the root cause of the bug propagating to downstream consumers.
+
+### Affected Files
+
+- `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs` — primary bug location
+- `src/platform/XerahS.Platform.Windows/Recording/MediaFoundationEncoder.cs` — uses `frame.Stride` for flip math but assumes tight stride
+- `src/desktop/app/XerahS.RegionCapture/Frames/FrameData.cs` — stride contract undocumented
+- `src/desktop/core/XerahS.Common/RegionCropper.cs` — sets cropped stride to tight `region.Width * bytesPerPixel`, assumes contiguous output
+- `src/desktop/app/XerahS.ScreenCapture/GdiCaptureStrategy.cs` — uses `Math.Min(bitmapData.Stride, rowBytes)` which drops pixels silently
 
 ### Proposed Fix
 
-**Step 1 — Fix `WindowsModernCaptureService` copy loop**
+**Step 1 — Fix `WindowsModernCaptureService` copy loop** (`src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`)
 
-Use `srcPitch` only to find each row's starting address. Always copy exactly `width * bytesPerPixel` bytes per row (the actual pixel data):
+Use `srcPitch` only for row address calculation. Copy exactly `width * bytesPerPixel` bytes per row:
 
 ```csharp
-// After: safe — srcPitch only used for row address calculation
+// FIXED: srcPitch used only for row addressing, copy size is always tight pixel width
+int bytesPerRow = sourceWidth * 4;
 for (int y = 0; y < sourceHeight; y++)
 {
     IntPtr srcRow = IntPtr.Add(dataBox.DataPointer, y * srcPitch);
-    IntPtr destRow = IntPtr.Add(destPixels, y * sourceWidth * 4);
-    Buffer.MemoryCopy((void*)srcRow, (void*)destRow, sourceWidth * 4, sourceWidth * 4);
+    IntPtr destRow = IntPtr.Add(destPixels, y * bytesPerRow);
+    Buffer.MemoryCopy((void*)srcRow, (void*)destRow, bytesPerRow, bytesPerRow);
 }
 ```
 
-**Step 2 — Fix `MediaFoundationEncoder.CopyFrame`**
+**Step 2 — Fix `MediaFoundationEncoder.CopyFrame`** (`src/platform/XerahS.Platform.Windows/Recording/MediaFoundationEncoder.cs`)
 
-The encoder uses `frame.Stride` for vertical flip source row calculation but `frame.Width * 4` for copy size — if stride differs, this copies wrong amounts:
+The vertical flip path is correct (uses `frame.Stride` for addressing, `width * 4` for copy size). Verify the non-flip path handles non-contiguous stride:
 
 ```csharp
-// After: use actual stride for source addressing, fixed pixel width for copy size
+// Verify: uses srcStride for addressing, bytesPerRow for copy — correct pattern
 int srcStride = frame.Stride;
 int bytesPerRow = frame.Width * 4;
-
-for (int y = 0; y < frame.Height; y++)
-{
-    byte* srcRow = srcBase + (height - 1 - y) * srcStride; // flip using actual stride
-    byte* dstRow = dstBase + y * destStride;
-    Buffer.MemoryCopy(srcRow, dstRow, destStride, bytesPerRow);
-}
 ```
 
-**Step 3 — Audit `GdiCaptureStrategy`**
+**Step 3 — Audit `GdiCaptureStrategy`** (`src/desktop/app/XerahS.ScreenCapture/GdiCaptureStrategy.cs`)
 
-`GdiCaptureStrategy.cs:160` uses `Math.Min(bitmapData.Stride, rowBytes)` — this prevents buffer overflow but silently drops pixels if source stride is larger. Verify this is intentional and document it.
+Uses `Math.Min(bitmapData.Stride, rowBytes)` — prevents overflow but silently drops pixels if source stride is larger. Document whether this is intentional behavior.
 
-**Step 4 — Document `FrameData.Stride` contract**
+**Step 4 — Document `FrameData.Stride` contract** (`src/desktop/app/XerahS.RegionCapture/Frames/FrameData.cs`)
 
-Add a comment to `FrameData` struct clarifying that `Stride` is the **actual source surface row pitch** (may include padding), not a pixel-width-aligned value. All consumers must handle non-contiguous rows.
+Clarify in the struct XML docs that `Stride` is the **actual source surface row pitch** (may include padding bytes), not a pixel-width-aligned value. All consumers must handle `Stride >= Width * BytesPerPixel`.
 
 **Step 5 — Add stride validation asserts**
 
@@ -95,76 +107,106 @@ Debug.Assert(frame.Stride % 4 == 0, "Frame stride must be 4-byte aligned");
 2. Record full-screen HEVC/H264 at 1920×1080 and 2560×1440 — verify no red borders
 3. Capture full-screen screenshots at mixed resolutions — verify no red borders
 4. Window capture at various sizes — verify no red borders at window edges
+5. **HDR monitors** — test with `DXGI_FORMAT_R10G10B10A2_UNORM` and `DXGI_FORMAT_R16G16B16A16_FLOAT` surfaces
+6. **Rotated displays** — verify per-output stride is handled independently
+7. **Multi-monitor mixed DPI** — each output may have different alignments
 
 ### Acceptance Criteria
 
 - [ ] No red border artifacts on recordings at any resolution, codec, or capture mode
 - [ ] No red border artifacts on screenshots
 - [ ] `XERAHS_RECORDING_DUMP_RAW` frames show correct pixel data — no padding byte corruption at row boundaries
-- [ ] `RegionCropper.CropFrame` and `MediaFoundationEncoder.CopyFrame` correctly handle non-contiguous source stride
+- [ ] `RegionCropper.CropFrame` correctly handles source stride != tight stride
+- [ ] `FrameData.Stride` contract documented in code XML comments
+- [ ] HDR/10-bit formats explicitly handled (reject or support — no silent corruption)
+- [ ] Rotated displays and multi-monitor mixed DPI configurations tested
 
 ---
 
-## Bug 2 — HEVC Recording "Video Editor Doesn't Exist"
+## Bug 2 — HEVC Recording Video Editor Fails to Open
 
 ### Problem Statement
 
-A user records with HEVC codec. The recording completes and produces a valid MP4 that plays in VLC/mpv. When XerahS tries to open it in the integrated video editor, it reports "video editor doesn't exist" — but the file is valid and opens when double-clicked directly. The error is in the launch policy gate, not the file itself.
+A user records with HEVC codec. The recording completes and produces a valid MP4 that plays in VLC/mpv. When XerahS tries to open it in the integrated video editor, it fails — but the file is valid and opens when double-clicked directly.
 
-### Root Cause
+### Root Cause ⚠️ XIP Had Wrong Target
 
-The `VideoEditorLaunchPolicy` and/or `VideoEditorRuntimeValidator` checks one or more of:
+**The original XIP incorrectly assumed `VideoEditorLaunchPolicy` had a codec allowlist.** `VideoEditorLaunchPolicy.cs` is a Linux Wayland policy struct — it has no codec allowlist or file validation logic.
 
-1. **Codec allowlist**: The policy may block HEVC (`hev1`/`hvc1` FOURCC atoms) because it predates HEVC support wiring
-2. **FFmpeg availability**: `VideoEditorFfprobeResolver` may not detect FFmpeg correctly for HEVC input, or FFmpeg version is too old for HEVC profiles
-3. **File extension**: `.mp4` should be accepted but the MIME type validation may fail for HEVC MP4
+**The real failure path is:**
 
-The error message "video editor doesn't exist" is a generic rejection — it should instead report the specific validation failure (e.g., "FFmpeg version too old for HEVC" or "HEVC profile not supported").
+1. **FFprobe codec detection** — `VideoEditorFfprobeResolver` runs `ffprobe` to extract video metadata. If the installed FFmpeg build lacks `libhevc` support, it cannot identify HEVC codec, causing silent failure or generic error when opening the editor.
+
+2. **WebView2 codec dependency** — The integrated video editor uses WebView2's `<video>` element for playback. WebView2 relies on **Windows HEVC Video Extensions** (a paid Microsoft Store app) for HEVC hardware decoding. If the user doesn't have this installed, playback fails even with a valid FFmpeg-built file.
+
+3. **The error message** — The "video editor doesn't exist" message likely comes from `VideoEditorRuntimeValidator` or is a user-reported paraphrase of a generic failure. The actual code path needs inspection.
+
+### Affected Files
+
+- `src/desktop/core/XerahS.Common/VideoEditorLaunchPolicy.cs` — NOT the bug location (was a misdiagnosis)
+- `VideoEditorFfprobeResolver.cs` — likely failure point for HEVC detection
+- `VideoEditorHost.cs` — validates native libraries, not codecs
+- `AvaloniaUIService.cs` / `VideoEditorHost.cs` — video editor dialog launch
 
 ### Proposed Fix
 
-**Step 1 — Add diagnostic logging**
+**Step 1 — Inspect actual code path**
 
-```csharp
-TroubleshootingHelper.Log("VideoEditor", "LaunchPolicy",
-    $"Validating: {filePath}, ext: {Path.GetExtension(filePath)}, " +
-    $"codec: {detectedCodec}, ffmpegAvailable: {_ffmpegResolver.IsAvailable}");
-```
+Before proposing fixes, the full video editor launch code path needs inspection to confirm:
+- Does `VideoEditorFfprobeResolver` handle HEVC codec identification?
+- Does the editor launch flow report specific errors or generic ones?
+- Is the "video editor doesn't exist" message from user report or actual code?
 
-**Step 2 — Fix codec allowlist in VideoEditorLaunchPolicy**
+**Step 2 — Add FFprobe codec capability detection**
 
-Ensure HEVC (`hev1`/`hvc1`) is in the accepted codec list. If MIME type validation fails for HEVC MP4, add a fallback that uses Media Foundation (`MF/source reader`) to probe the file's codec.
-
-**Step 3 — Verify FFmpeg for HEVC detection**
-
-Test FFprobe HEVC detection:
+Test FFprobe HEVC detection before opening editor:
 ```bash
 ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1 input.mp4
 # Should output: codec_name=hevc
 ```
 
-If FFprobe cannot identify HEVC (FFmpeg too old or HEVC support not compiled in), add a fallback using Media Foundation for codec probing.
+If FFprobe output is empty or unrecognized, check FFmpeg version and codec support:
+```bash
+ffprobe -version | head -3
+ffmpeg -encoders 2>/dev/null | grep -i hevc
+```
+
+**Step 3 — Add Windows HEVC Video Extensions guidance**
+
+The video editor uses WebView2 which depends on the Windows HEVC Video Extensions store app. Before attempting to open HEVC files:
+
+1. Check if the extensions are installed (via `AppxPackage` or Store API)
+2. If missing, show a descriptive error with a link to install:
+   > "HEVC video playback requires the Windows HEVC Video Extensions. [Install from Microsoft Store]"
 
 **Step 4 — Descriptive error messages**
 
-Replace the generic "video editor doesn't exist" with specific failures:
-- "FFmpeg not found — required for video editing"
-- "FFmpeg version too old for HEVC decoding (minimum: ffmpeg 4.x with libhevc)"
-- "HEVC profile not supported by current FFmpeg build"
+Replace generic failures with specific, actionable messages:
+- "FFmpeg not found — required for video metadata extraction"
+- "FFmpeg version too old for HEVC decoding (minimum: ffmpeg 4.x with libhevc support)"
+- "HEVC Video Extensions not installed — [Install from Microsoft Store]"
+- "FFmpeg cannot decode this HEVC profile (Main 10, etc.)"
+
+**Step 5 — Linux behavior**
+
+Define what happens when a HEVC file is opened on Linux (no WebView2, no HEVC extensions). FFmpeg can decode HEVC if built with `libhevc`, but the embedded editor won't work — specify graceful fallback or error.
 
 ### Testing
 
-1. Record with HEVC codec, click "Open in editor" — verify editor opens and plays the clip
-2. Confirm same file plays in VLC as a baseline
-3. If editor fails, error message should be specific and actionable
+1. HEVC recording + "Open in editor" — verify editor opens and plays the clip (on system with HEVC Video Extensions)
+2. HEVC recording on system WITHOUT HEVC Video Extensions — verify clear install prompt, not generic error
+3. FFmpeg < 4.x with HEVC file — verify descriptive error message
 4. H264 recordings continue to open correctly (regression test)
+5. Linux: define expected behavior for HEVC files
 
 ### Acceptance Criteria
 
-- [ ] HEVC-encoded MP4 recordings open in XerahS video editor
-- [ ] Error messages are descriptive when the editor fails to open
+- [ ] HEVC-encoded MP4 recordings open in XerahS video editor (on HEVC-capable systems)
+- [ ] Systems without HEVC Video Extensions show a clear install prompt with Store link
+- [ ] FFmpeg codec detection failures produce specific, actionable error messages
 - [ ] H264 recordings continue to open correctly (no regression)
-- [ ] `ffprobe -show_streams` correctly identifies HEVC in test recordings
+- [ ] Linux behavior for HEVC files is defined and documented
+- [ ] `ffprobe -show_streams` correctly identifies HEVC on supported FFmpeg builds
 
 ---
 
@@ -174,72 +216,76 @@ Replace the generic "video editor doesn't exist" with specific failures:
 
 AV1 is declared in the `VideoCodec` enum but has no encoder implementation in `MediaFoundationEncoder`. Selecting AV1 fails silently or throws an unhandled encoder exception. This creates a poor first impression — users expect the codec to either work or fail gracefully.
 
-### Root Cause
+**Note:** VP9 has the same problem — declared but unimplemented in `MediaFoundationEncoder`.
 
-`MediaFoundationEncoder.CreateSinkWriter` only supports H264:
+### Root Cause ✅ Confirmed
 
-```csharp
-SetGuid(outputMediaType, MF_MT_SUBTYPE, MFVideoFormat_H264);
-```
-
-No AV1 GUID, no AV1 FourCC handling, no AV1 hardware detection, no FFmpeg fallback path for AV1.
+`MediaFoundationEncoder.CreateSinkWriter` (line 198) only sets `MFVideoFormat_H264`. No handling for AV1, HEVC, or VP9 codecs.
 
 ### Technical Background
 
-Windows 10 2004+ (SDK 10.0.19041+) supports AV1 via Media Foundation with the `MFVideoFormat_AV1` FourCC (`av01`). Hardware acceleration is available on Intel 10th Gen+, AMD RDNA 2+, and NVIDIA RTX 20-series+ GPUs. Software fallback uses `libaom-av1` via FFmpeg.
+- **AV1 encoding** requires Windows 10 2004+ (SDK 10.0.19041+) with `MFVideoFormat_AV1` FourCC (`av01`)
+- Hardware acceleration available on Intel Arc, AMD RDNA 2+, NVIDIA RTX 40-series+
+- Software fallback uses `libaom-av1` via FFmpeg
+- **HEVC encoding** GUID needs verification against current Windows SDK `mfapi.h` — the XIP's HEVC GUID may be incorrect
+- **VP9** has limited Media Foundation support; FFmpeg is the more reliable path
 
 ### Proposed Fix
 
-**Step 1 — Add AV1 GUID and HEVC path to MediaFoundationEncoder**
+**Phase 1 — Graceful Failure (P2, immediate)**
 
-```csharp
-// GUID from mfapi.h — verify against current SDK
-private static readonly Guid MFVideoFormat_AV1 = new("39326caf-d300-4d70-8c38-3aa4b33d1cc6");
-private static readonly Guid MFVideoFormat_HEVC = new("4c552e48-ab84-4d6d-8298-1aee8f02c1f7"); // verify
+Make AV1 fail gracefully before attempting encoding:
 
-// In CreateSinkWriter, switch on videoFormat.Codec:
-switch (videoFormat.Codec)
-{
-    case VideoCodec.H264: SetGuid(outputMediaType, MF_MT_SUBTYPE, MFVideoFormat_H264); break;
-    case VideoCodec.HEVC: SetGuid(outputMediaType, MF_MT_SUBTYPE, MFVideoFormat_HEVC); break;
-    case VideoCodec.AV1:  SetGuid(outputMediaType, MF_MT_SUBTYPE, MFVideoFormat_AV1); break;
-    case VideoCodec.VP9:  // Route to FFmpeg fallback (MF VP9 support is limited)
-}
-```
+1. **Add AV1 to `VideoCodec` switch with explicit `NotSupportedException`** in `MediaFoundationEncoder` — replace silent failures with clear errors
+2. **Detect AV1 capability before selection** — check if AV1 encoder is available when user opens codec dropdown
+3. **UI guard** — disable AV1 option in settings with tooltip when no encoder is available:
+   ```
+   AV1: Requires Windows 10 2004+ with AV1 codec, or FFmpeg with libaom-av1
+   ```
 
-**Step 2 — Add AV1 hardware capability detection**
+**Phase 2 — AV1/HEVC Media Foundation Implementation (P3, separate XIP)**
 
-```csharp
-private static bool IsAV1EncoderAvailable()
-{
-    // Use MFTEnum to check for AV1 codec presence on system
-    // Return true if hardware or software AV1 encoder found
-}
-```
+This requires significant work beyond a single bug fix:
 
-**Step 3 — Automatic FFmpeg fallback**
+1. **Verify GUIDs against Windows SDK headers** — the XIP's HEVC GUID needs confirmation; AV1 GUID (`39326caf-d300-4d70-8c38-3aa4b33d1cc6`) needs the same
+2. **Hardware encoder detection via `MFTEnumEx`** — COM interop to find hardware vs software encoders
+3. **Bitrate configuration** — AV1/HEVC use different rate control modes; `VideoFormat.Bitrate` may need profile/level configuration
+4. **FFmpeg fallback path** — confirm `FFmpegRecordingService` handles AV1 input and wire it as fallback
+5. **VP9 handling** — same implementation needed; decide whether VP9 goes to FFmpeg exclusively
 
-In `ScreenRecorderService.StartRecordingAsync`, catch `NotSupportedException` from encoder init when AV1 is selected and no encoder is available. If `FallbackServiceFactory` is available, delegate to `FFmpegRecordingService`. Show a toast that FFmpeg fallback is active.
+### Affected Files
 
-**Step 4 — UI guard for AV1**
-
-Disable AV1 option in settings UI with a tooltip when no AV1 encoder is available:
-```
-AV1: Requires Windows 10 2004+ with AV1 codec, or FFmpeg with libaom-av1
-```
+- `src/platform/XerahS.Platform.Windows/Recording/MediaFoundationEncoder.cs` — encoder switch
+- `src/desktop/app/XerahS.RegionCapture/ScreenRecording/RecordingEnums.cs` — `enum VideoCodec`
+- `ScreenRecorderService.cs` — fallback routing
+- Settings UI — codec dropdown with AV1 guard
 
 ### Testing
 
-1. AV1-available system: record 30s clip, verify output is `codec_name=av1` via `ffprobe -show_streams`
-2. AV1-unavailable system: select AV1 → clear error or automatic FFmpeg fallback
-3. FFmpeg fallback: with no AV1 support, verify FFmpeg is invoked with `libaom-av1`
+**Phase 1:**
+1. Select AV1 on any system — clear error or graceful fallback
+2. No silent encoder exceptions in logs
+
+**Phase 2:**
+1. AV1-available system: record 30s clip, verify `codec_name=av1` via `ffprobe -show_streams`
+2. AV1-unavailable system: clear error or FFmpeg fallback
+3. AV1 software encoding: performance warning displayed
+4. FFmpeg fallback: verify AV1 is routed correctly when MF fails
 
 ### Acceptance Criteria
 
-- [ ] AV1 selection on AV1-capable system produces valid AV1 MP4
-- [ ] AV1 selection on non-AV1 system shows clear error or falls back to FFmpeg
-- [ ] No silent failures for any codec selection
-- [ ] `ffprobe -show_streams` confirms `codec_name = av1` in output
+**Phase 1 (Graceful Failure):**
+- [ ] AV1 selection produces clear error or FFmpeg fallback — no silent failures
+- [ ] AV1 option disabled in UI with tooltip when no encoder available
+- [ ] No unhandled encoder exceptions logged
+
+**Phase 2 (Full Implementation):**
+- [ ] AV1 GUID verified against Windows SDK `mfapi.h`
+- [ ] HEVC GUID verified (XIP's GUID may be incorrect — needs confirmation)
+- [ ] Hardware encoder detection via `MFTEnumEx` implemented and tested
+- [ ] Software AV1 encoding shows performance warning
+- [ ] FFmpeg fallback path confirmed to exist and functional
+- [ ] VP9 handling decision documented (MF or FFmpeg-only)
 
 ---
 
@@ -253,11 +299,11 @@ ScreenRecorderService
   ├── RegionCropper (uses FrameData.Stride for cropping)
   └── MediaFoundationEncoder
         ├── H264 (working)
-        ├── HEVC (Bug 2: launch policy, Bug 3: encode path)
-        └── AV1  (Bug 3: unimplemented)
+        ├── HEVC (encode path — needs XIP0073 or later)
+        └── AV1  (encode path — needs Phase 2)
 ```
 
-Bug 1 (stride) affects all three codecs because it corrupts pixel data before it reaches any encoder. Bug 3 affects both HEVC and AV1 encoding paths in `MediaFoundationEncoder`. Fixing Bug 1 first is a prerequisite for validating Bug 2 and Bug 3 fixes.
+Bug 1 (stride) affects all three codecs because it corrupts pixel data before it reaches any encoder. Bug 2 and Bug 3 are independent of stride but should be validated after Bug 1 is fixed to avoid compounding failures.
 
 ---
 
@@ -265,9 +311,10 @@ Bug 1 (stride) affects all three codecs because it corrupts pixel data before it
 
 | Bug | Risk | Mitigation |
 |-----|------|------------|
-| Stride | Changing stride handling could affect HDR or rotated monitor captures | Test on rotated displays and HDR monitors |
-| HEVC | HEVC patent licensing affects error message wording | Use factual, non-legal phrasing ("not supported" not "licensed") |
-| AV1 | AV1 codec detection is driver-dependent; software encoding is slow | Provide clear hardware capability detection; use FFmpeg fallback; warn about performance |
+| Stride | HDR or rotated monitor captures have unusual stride patterns | Test on HDR monitors and rotated displays |
+| HEVC | WebView2/HEVC extensions are Windows Store-dependent | Check for extensions before opening; show install prompt |
+| AV1 | AV1/HEVC GUIDs from XIP may not match current SDK | Verify against `mfapi.h` before implementation |
+| AV1 | Software AV1 encoding is very slow | Show performance warning; default to FFmpeg on weak hardware |
 
 ---
 
@@ -275,6 +322,7 @@ Bug 1 (stride) affects all three codecs because it corrupts pixel data before it
 
 | Priority | Bug | Task | Reason |
 |----------|-----|------|--------|
-| **P0** | Stride | Fix DXGI copy loop, MF encoder stride handling | Memory corruption affecting both screenshots AND recordings |
-| **P1** | HEVC | Fix launch policy codec allowlist, FFmpeg HEVC detection | Feature works end-to-end but editor integration is broken |
-| **P2** | AV1 | Implement AV1 encoder or FFmpeg fallback | Unimplemented codec; should fail gracefully |
+| **P0** | Stride | Fix DXGI copy loop, document FrameData.Stride | Memory corruption affecting screenshots AND recordings |
+| **P1** | HEVC | Inspect actual error path, fix FFprobe + HEVC extensions | Works end-to-end but editor integration is broken |
+| **P2** | AV1 Phase 1 | Graceful failure, UI guard | No more silent failures; immediate value |
+| **P3** | AV1 Phase 2 | Full MF AV1 + HEVC encoding | Significant scope — separate from bug fix |

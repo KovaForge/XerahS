@@ -97,5 +97,17 @@ namespace XerahS.Platform.Abstractions
         /// Executes a non-upload Send-to action against the provided selection.
         /// </summary>
         Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection);
+
+        /// <summary>
+        /// Shows the OCR window with the provided image and runs text recognition.
+        /// Used as an AfterCapture task triggered by the DoOCR flag.
+        /// </summary>
+        Task ShowOcrWindowAsync(SKBitmap image);
+
+        /// <summary>
+        /// Shows the image analyzer window with the provided image.
+        /// Used as an AfterCapture task triggered by the AnalyzeImage flag.
+        /// </summary>
+        Task ShowAnalyzerWindowAsync(SKBitmap image);
     }
 }
