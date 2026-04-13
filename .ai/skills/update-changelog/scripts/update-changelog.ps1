@@ -352,7 +352,13 @@ $section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits
 
 if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
     $resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) { $OutputPath } else { Join-Path $repoRoot $OutputPath }
-    [System.IO.File]::WriteAllText($resolvedOutput, $section, [System.Text.UTF8Encoding]::new($false))
+    $outText = $section
+    $outText = $outText -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
+    $outText = $outText -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
+    $outText = $outText -replace "\r?\n", "`n"
+    $outText = $outText -replace "`n{3,}", "`n`n"
+    $outText = $outText -replace "`n", "`r`n"
+    [System.IO.File]::WriteAllText($resolvedOutput, $outText, [System.Text.UTF8Encoding]::new($false))
 }
 
 if ($Apply) {
@@ -363,6 +369,16 @@ if ($Apply) {
 
     $existing = Get-Content -Path $resolvedChangelog -Raw
     $updated = Upsert-ChangelogSection -Content $existing -Version $resolvedVersion -Section $section
+
+    # Fix double-encoded em-dash (C2 A7 mojibake → U+2014) and section-sign artifacts
+    $updated = $updated -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
+    $updated = $updated -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
+
+    # Collapse 3+ consecutive blank lines
+    $updated = $updated -replace "\r?\n", "`n"
+    $updated = $updated -replace "`n{3,}", "`n`n"
+    $updated = $updated -replace "`n", "`r`n"
+
     [System.IO.File]::WriteAllText($resolvedChangelog, $updated, [System.Text.UTF8Encoding]::new($false))
 }
 
