@@ -12,9 +12,8 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ## v0.22.1
 
 ### Features
-- **Core**: Group loaded libraries in About (ab8a6034)
+- **Core**: Group loaded libraries and show versions in About (ab8a6034, 246a37f7)
 - **Core**: Preserve editable annotation sidecars (9112999a)
-- **Core**: Show loaded library versions in About (246a37f7)
 
 ### Fixes
 - **Core**: Align ImageEditor Avalonia with XerahS, upgrade Tmds.DBus, async Sample.png load (e9ceb393)
