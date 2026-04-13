@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to XerahS will be documented in this file.
 
@@ -8,6 +8,134 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **PATCH** (z): Bug fixes and patches
 
 ## Unreleased
+
+## v0.22.1
+
+### Features
+- **Core**: Group loaded libraries in About (ab8a6034)
+- **Core**: Preserve editable annotation sidecars (9112999a)
+- **Core**: Show loaded library versions in About (246a37f7)
+
+### Fixes
+- **Core**: Align ImageEditor Avalonia with XerahS, upgrade Tmds.DBus, async Sample.png load (e9ceb393)
+- **Core**: Apply name format pattern to CLI file uploads (007b6cda)
+- **Core**: Atomic debounce + ObjectDisposedException guard inside Dispatcher.Post lambda (c5e19538)
+- **Core**: Avoid duplicate developer tools attachment (f1c859e9)
+- **Core**: Bias scrolling capture away from nested panes (623ba1eb)
+- **Core**: Catch ConfigureShortcuts NotImplemented in KDE portal fallback (1412b67f)
+- **Core**: Debounce rapid hotkey fires to prevent duplicate capture tasks (c83ed6b3)
+- **Core**: Enable Avalonia dev tools and dispose sample bitmap (51f23270)
+- **Core**: Exclude hidden Windows capture surfaces (4d189427)
+- **Core**: Fix DevTools double-attachment in DEBUG builds (1cbf5afb)
+- **Core**: Forward onboarding debug args (6d5e236e)
+- **Core**: Guard DBus calls against ObjectDisposedException in hotkey service (6f72f244)
+- **Core**: Harden Linux portal request waiting (42a0df55)
+- **Core**: Harden publish-release tag existence checks (4e882baf)
+- **Core**: HasEditableAnnotations falls back to default sidecar path convention (4d5d99c8)
+- **Core**: Keep scrolling capture bottom detection on active scroller (b680bcad)
+- **Core**: Prefer the main scrolling capture scroller (a9f0be8b)
+- **Core**: Prevent infinite recursion in UploadJobProcessor.TryUploadWithFallback — Vladislava Kova (adc18dea)
+- **Core**: Refresh history thumbnail after annotation re-edit (0b9b0f8f)
+- **Core**: Remove KDE_SESSION_VERSION false-positive in Wayland detection (64727c45)
+- **Core**: Repair onboarding step state flow (b87caa39)
+- **Core**: Repair onboarding wizard rendering (2ef18e36)
+- **Core**: resolve RID-agnostic plugin path in CopyPluginsToOutput target (ede42e21)
+- **Core**: Respect task XerahSOverlay preference on KDE Plasma Wayland (cb75a733)
+- **Core**: Restore build and sync pending updates (5305afdc)
+- **Core**: Restore screenshot uploader resolution (c32ab11e)
+- **Core**: Sync Linux portal hotkey state (bab44e5b)
+- **Core**: Use info.FileName for GenericUploader file uploads (d2d45d32)
+- **Core**: Use upload pipeline from toast (90592583)
+
+### Build
+- **Core**: remove stale csproj.bak (08ee12b5)
+- **Core**: Rename UI views folder (854878e6)
+- **Core**: Update port-imageeditor workflow and Vortice packages (ab19a591)
+- **Core**: Upgrade to Avalonia 12 (513071ca)
+
+### Documentation
+- **Core**: Align changelog skill categories (e180fd8b)
+- **Core**: Align commit version policy with tags (d1aaa3bd)
+- **Core**: Align release changelog path (ff523e30)
+- **Core**: Align XIPs with Avalonia 12 release (b4c43b5e)
+- **Core**: Blog drafts (2026 series, add/update) (0087f904, 2340b1b5, 2d628d7b, 33f5c573, 6e1e7a40, 88d35930, a976d281, b4c42e32, b4f537e2, bda406d3, d25e1379, dcb60a58)
+- **Core**: Clarify spotlight assistant settings placement (e167810a)
+- **Core**: Consolidate build skill guardrails (aa8a9540)
+- **Core**: Consolidate release workflow skills (a9edddd7)
+- **Core**: Consolidate XIP skill guidance (e9a1959d)
+- **Core**: Correct uploader UI skill references (2d73018d)
+- **Core**: Draft spotlight assistant XIP (54ef3380)
+- **Core**: Expand spotlight assistant provider plan (b7964cb0)
+- **Core**: Normalize XIP reference format (XIP-NNNN -> XIPNNNN) (7c730871)
+- **Core**: Refine editable annotation sidecar design (1b53648d)
+- **Core**: Repair maintenance sync guardrails (39ef0ba1)
+- **Core**: Update Avalonia 12 XIP backlog (700561db)
+- **Core**: Update XIP sync skill (1fc53d26)
+- **Core**: XIP/IEIP proposals and related documentation (5ef03e41, b574e02d)
+
+### Changed
+- **Core**: [Docs] Add XIP0072 screen recording bug fixes proposal (3964cbcd)
+- **Core**: [Docs] Ensure current and previous UTC+8 blog drafts. (2421a562, 259797ec, 3c59c826, 43098032, 44377dcc, 4b9ee237, 522dbdef, 5e008f47, 906cb5e7, cab2e50d, e2506064)
+- **Core**: [Docs] XIP0060: State of the Art Onboarding Wizard (4910906a)
+- **Core**: [Docs] XIP0061: KDE Plasma / Nobara ΓÇö portal fixes, version deps, remaining open items (460d1c65)
+- **Core**: [Draft] XIP0062 EagleShot overlay modernization (5 RECs) (c745a88d)
+- **Core**: [Draft] XIP0064 ΓÇö activate Phase 2, add HTTP+SSE transport, manifest, phased deliverables (3f3b8bbb)
+- **Core**: [Draft] XIP0064 ΓÇö XerahS MCP Server: Model Context Protocol integration spec (2c3c9132, 6d0ff315)
+- **Core**: [Enhancement] Add "Ignore empty folders" option to Index Folder (53b86e32)
+- **Core**: [Enhancement] XIP0060: [Milena] Onboarding state machine, step ViewModels, navigation (5d032a17)
+- **Core**: [Enhancement] XIP0060: [Nadia] Complete onboarding UI build ΓÇö all errors fixed (4939680c)
+- **Core**: [Enhancement] XIP0060: [Viktor] Design system, step views, reusable controls (16ef57dc)
+- **Core**: [Fix] Add missing using XerahS.RegionCapture in RegionCaptureAnnotationViewModel ΓÇö resolves StepTailStyle not found (c48380c7)
+- **Core**: [Fix] Auto uploader falls back to Text uploaders for text-based files when File uploaders fail (6d93bba4)
+- **Core**: [Fix] Auto-build and copy plugins to CLI output directory (dac37123)
+- **Core**: [Fix] Scrolling Capture no longer triggers tab switch on child window scroll (6490d078)
+- **Core**: [Fix] Scrolling Capture targets window main scroll bar instead of scroll bar thumb/track (4712e39d)
+- **Core**: [Fix] XIP0060: Restore XerahS.UI build ΓÇö remove duplicate Onboarding folders causing AXN0002 (5c73b9c0)
+- **Core**: [MCP] Add README (e2764bce)
+- **Core**: [MCP] Documentation ΓÇö usage guide (de12d8f2)
+- **Core**: [MCP] Initial stdio transport skeleton (bfa6f82b)
+- **Core**: [MCP] Integration tests for MCP server (133881d9)
+- **Core**: [MCP] Phase 2: HTTP transport server + Cloudflare Worker + manifest (10aa1d58)
+- **Core**: [MCP] Prompt templates ΓÇö typed records, no anonymous types (c1845a77)
+- **Core**: [Refactor] Extract magic strings and GUIDs into central AppContracts.cs (8bf723b9)
+- **Core**: [Refactor] Split OverlayWindow.axaml.cs into logical partial classes (9bf57ef8)
+- **Core**: [Refactor] Update VideoEditor submodule to decoupled npm build (8c1d715c)
+- **Core**: [XerahS] [Port] Use ImageFilePath instead of LastSavedPath from ShareX@879f2b5e1 (69a4043a)
+- **Core**: [XIP] XIP0068 design review added (fc3e71c1)
+- **Core**: [XIP] XIP0068 Re-editing saved annotations (a2fc92bd)
+- **Core**: [XIP] XIP0068 updated with critique (9fd13117)
+- **Core**: [XIP0060] Add OnboardingConverters with 10 missing converters (42497263)
+- **Core**: [XIP0060] Mark onboarding wizard as Complete and bump version to 0.22.0 (6bf203a8)
+- **Core**: [XIP0060] Rewrite onboarding styles to use existing XerahS theme (ccaf6ce9)
+- **Core**: [XIP0060] Update OnboardingWizardWindow to use XerahS styles (68dbf543)
+- **Core**: [XIP0060] Wire up onboarding wizard trigger on first run (bee2b008)
+- **Core**: Add --name flag to CLI upload command for custom filenames (fc5236c8)
+- **Core**: Add onboarding debug launcher mode (8181ac98)
+- **Core**: Add XIP0063 upload command to XerahS CLI (b29c2dff)
+- **Core**: Add XIP0063 ΓÇö XerahS CLI OpenClaw compatibility spec ΓÇö Vladislava Kova (196ba194)
+- **Core**: Align MCP contract and prompts (3f416b01)
+- **Core**: Catch up ImageEditor through ShareX@c6e3c5260 (f361802d)
+- **Core**: Cover editable annotation sidecars (aa577153)
+- **Core**: Expose MCP settings in desktop UI (f450dde8)
+- **Core**: Fix onboarding actions and destinations (543ce29c)
+- **Core**: Fix onboarding trigger race and move it to OnWindowOpened (7921fd4b)
+- **Core**: Fix WaylandPortalHotkeyService to implement IHotkeyService.HotkeysChanged (f490e35a)
+- **Core**: Fix XerahS.UI build errors in onboarding code (9b8b79ab)
+- **Core**: Implement XerahS MCP runtime (ba6da988)
+- **Core**: Move desktop views out of Views_PARTIAL (b54282da)
+- **Core**: Pre-load Sample.png in editor on startup (bd148d88)
+- **Core**: Refresh MCP usage guide (94a09599)
+- **Core**: Remove deprecated _Onboarding_BACKUP directories (bee92a84)
+- **Core**: Remove save location quick select shortcuts (2cf84f27)
+- **Core**: Restore workflow destination category mapping (df0161f8)
+- **Core**: Restore XIP0061 fixes accidentally removed from WaylandPortalHotkeyService (bc4311ca)
+- **Core**: Revise onboarding wizard flow (4ba7d3c3)
+- **Core**: ShareX.ImageEditor submodule updates (040a20e9, 38368ae8, 71f38ce6, 765c57c9, a3e3cc85, b8a45537)
+- **Core**: Update run-debug-app.ps1 (09a66938)
+- **Core**: Update ShareX.VideoEditor (41bf06fa)
+- **Core**: Use xann annotation sidecar extension (f71c0ed4)
+- **Core**: Wire onboarding hotkey selection (5c598d5b)
+- **Fix AVLN2000**: invalid binding path syntax in OnboardingWizardWindow.axaml (be6b7a2d)
 
 ## v0.21.0
 
@@ -19,7 +147,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Overlay & capture parity**: Align Linux overlay capture with Windows; fix region selector preference on hotkey-triggered captures `(4688c133, ee254f7b)`
 - **Modals & catalog**: Centralize modal opening; dispatch opens on UI thread for Add from Catalog on Linux `(be448902, 326d1049)`
 - **Recording & video editor**: Gate unsupported pause on Wayland; harden editor launch `(2a6a0b50, 06659ec3)`
-- **Core**: Upload fallback File→Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
+- **Core**: Upload fallback Fileâ†’Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
 - **Hotkeys / Imgur**: X11 fallback when portal bind cancelled; cross-platform OAuth URL helpers `(0939672f, 656e2975)`
 - **Linux (Wayland / GNOME / KDE)**: Portal retry, transparent overlay and mixed-DPI, `UseTransparentOverlay` plumbing, DBus crash guard, selector defaults, GNOME crop workflow `(377425be, a3685245, b65e9848, e65bcc56, 08e4ed7e, c0c04c84, a72a6e6c)`
 - **Paths / UI / upload**: User-writable plugins folder; effect browser aligned with unified editor API; auto-heal stale destination instance IDs `(fb1c443b, 0ad4bfb4, f1e87b3a)`
@@ -33,8 +161,8 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Tooling & quality**: Upload fallback logging/comments; default publish-release to prerelease; LF enforcement; CS8604/DBus `(9b2e33db, 4ab11c88, bd3e9c53, 90fa44b6, f5e6d2d0)`
 
 ### Documentation
-- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series — add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
-- **XIPs & proposals**: XIP0054–0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
+- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series â€” add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
+- **XIPs & proposals**: XIP0054â€“0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
 - **IEIP0004 / Linux**: Lessons from catalog browser integration; INSTALL.md; GNOME Wayland portal/overlay notes; interactive fallback explanation `(c920beee, fb6ec404, 5397a7f3, 6fa792a6)`
 - **Developers**: Move `PLUGIN_SDK.md` to `developers/guidelines/` `(e4e407ea)`
 
@@ -138,7 +266,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Linux Recording**: Harden GStreamer pipeline by correcting region crop, removing conflicting `video/x-raw` caps before `glupload`, adding GL-to-CPU fallback, making fatal errors selectable in RecordingView, and cleaning up portal session on fatal errors `(01527ef5, ef55b9e7, 78523202, eba1e9d0, ba13d971, d69bd5a1)`
 - **Core**: Validate URL before OpenURL Process.Start; SaveRequested/SaveAsRequested for embedded and standalone editor; fall back to File-category instances when no Image uploader; default white tray icon on Linux/macOS; Tools_* nav items and VideoEditor dispatch; AnnotateImage JSON deserialization; Linux portal handle format and RPM packaging; fix tray stop button behavior and hotkey recording stop flow `(d16c0179, 6595731d, 7ec997c0, 63f81ce6, ddf64eb5, e9f8594b, b4b47f53, 1172b9a5, c6e9dd21, 36410a85)`
 - **Core**: Correct DXGI capture ModeRotation mapping for DMDO_90/DMDO_270 rotations `(b484d197)`
-- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; §7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
+- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; —7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
 - **VideoEditor submodule**: Button theme isolation and ReactiveUI main thread scheduler fixes `(ac7a1eec, 672a1e09)`
 - **Watch Folder**: Support legacy watchfolder.service `(9d291a15)`
 - **Core**: Hide Video Editor from Tools menu in release builds `(692cb5a0)`

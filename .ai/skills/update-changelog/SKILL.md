@@ -202,6 +202,32 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    - Check that external contributor attributions are preserved
    - Confirm adherence to Keep a Changelog format
 
+8. **Fix Double-Encoding Mojibake**
+   After any write to `docs/CHANGELOG.md`, scan for mojibake characters (commonly `ΓÇö`, `Ã─`, etc.) and replace them with their correct Unicode equivalents. This occurs when UTF-8 bytes are double-encoded through a round-trip tool. Apply this as a final step every time:
+
+   ```powershell
+   $c = [System.IO.File]::ReadAllText('docs/CHANGELOG.md', [System.Text.Encoding]::UTF8)
+
+   # Fix double-encoded em-dash: C2 A7 is Â§ mojibake of U+2014
+   $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
+
+   # Normalize any remaining C2 A7 → A7 (section sign mojibake)
+   $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
+
+   # Collapse 3+ blank lines
+   $c = $c -replace "\r?\n", "`n"
+   $c = $c -replace "`n{3,}", "`n`n"
+   $c = $c -replace "`n", "`r`n"
+
+   [System.IO.File]::WriteAllText('docs/CHANGELOG.md', $c, [System.Text.Encoding]::UTF8)
+   ```
+
+   Common patterns to watch for:
+   - `ΓÇö` → `—` (em-dash, U+2014)
+   - `Ã─` → `—` (another em-dash variant)
+   - `Â§` → `§` (section sign)
+   - `Ã³` → `ó` (accented character)
+
 ### Example Command Sequence
 ```powershell
 # Check latest tags with version-aware sorting.
@@ -245,8 +271,8 @@ $c = [System.Text.RegularExpressions.Regex]::Replace(
     $newSection
 )
 
-# Normalize the common double-encoded section-sign artifact.
-$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)
+# Normalize the double-encoded section-sign artifact (C2 A7 → A7).
+$c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
 
 # Collapse 3+ consecutive blank lines down to 2
 $c = $c -replace "\r\n", "`n"
