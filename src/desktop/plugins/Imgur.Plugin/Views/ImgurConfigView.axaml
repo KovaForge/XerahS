@@ -15,7 +15,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Client ID *" FontWeight="Medium"/>
             <TextBox Text="{Binding ClientId}" 
-                     PlaceholderText="Enter Imgur Client ID"
+                     Watermark="Enter Imgur Client ID"
                      Width="400"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Get your Client ID from https://api.imgur.com/oauth2/addclient" 
@@ -60,7 +60,7 @@
                     <TextBlock Text="Step 2: Paste the full callback URL from Imgur" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <TextBox Text="{Binding AuthCallbackUrl}" 
-                                 PlaceholderText="Paste full callback URL here" 
+                                 Watermark="Paste full callback URL here" 
                                  Width="350"/>
                         <Button Content="Complete Login" 
                                 Command="{Binding CompleteLoginCommand}"
