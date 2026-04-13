@@ -62,14 +62,14 @@ public static class ImageHelpers
         data.SaveTo(stream);
     }
 
-    public static SKBitmap ResizeImage(SKBitmap bitmap, int width, int height, SKFilterQuality quality = SKFilterQuality.High)
+    public static SKBitmap ResizeImage(SKBitmap bitmap, int width, int height, SKSamplingOptions? sampling = null)
     {
         if (bitmap is null) throw new ArgumentNullException(nameof(bitmap));
         if (width <= 0 && height <= 0) return bitmap;
 
         (int targetWidth, int targetHeight) = ApplyAspectRatio(width, height, bitmap.Width, bitmap.Height);
         SKImageInfo info = new SKImageInfo(targetWidth, targetHeight, bitmap.ColorType, bitmap.AlphaType, bitmap.ColorSpace);
-        SKBitmap? resized = bitmap.Resize(info, quality);
+        SKBitmap? resized = bitmap.Resize(info, sampling ?? new SKSamplingOptions(SKCubicResampler.Mitchell));
         return resized ?? new SKBitmap(info);
     }
 

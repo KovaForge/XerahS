@@ -1,0 +1,47 @@
+name: Draft Daily Blog Posts
+
+on:
+  schedule:
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draft-blog-post-daily
+  cancel-in-progress: false
+
+jobs:
+  upsert-drafts:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Configure git identity
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Upsert current and previous UTC+8 drafts
+        shell: pwsh
+        run: |
+          .\.ai\skills\draft-blog-post\scripts\run-daily-draft.ps1 -IncludePreviousDay
+
+      - name: Commit and push draft updates
+        shell: pwsh
+        run: |
+          $changedFiles = git status --porcelain -- docs/blog
+          if ([string]::IsNullOrWhiteSpace($changedFiles)) {
+            Write-Host "No draft changes detected."
+            exit 0
+          }
+
+          git add docs/blog
+          git commit -m "[Docs] Ensure current and previous UTC+8 blog drafts."
+          git push origin HEAD:develop

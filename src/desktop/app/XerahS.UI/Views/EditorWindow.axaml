@@ -13,6 +13,7 @@
         Icon="/Assets/Logo.ico"
         WindowStartupLocation="CenterScreen">
     
-    <views:EditorView Name="EditorViewControl"/>
+    <views:EditorView Name="EditorViewControl"
+                      Classes="xerahs-editor-host"/>
     
 </ui:SurfaceWindow>

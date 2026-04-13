@@ -52,6 +52,10 @@ Follow these instructions when building or deploying Android apps. **Never let a
   <kt_apk>src\mobile\android\app\build\outputs\apk\debug\app-debug.apk</kt_apk>
 </context>
 
+## Shared Build Guardrails
+
+Before Android-specific work, follow [build-common](../build-common/SKILL.md) for shared timeout, lock recovery, no-concurrent-build, `-m:1`, TFM, and SkiaSharp rules. This Android skill owns Android-specific prerequisites, emulator/device handling, APK output paths, and deploy commands.
+
 ## 5-minute build rule (critical)
 
 **Do not wait more than 5 minutes for an Android build to complete.** A normal single-node Android build finishes in about 2–5 minutes. If the build has not completed within 5 minutes:
@@ -276,9 +280,10 @@ $apk = (Get-ChildItem "src\mobile-experimental\XerahS.Mobile.Ava\bin\Debug\net10
 
 ## References
 
+- `.ai/skills/build-common/SKILL.md` - Shared timeout, lock recovery, no-concurrent-build, `-m:1`, TFM, and SkiaSharp guardrails
+
 - `developers/lessons-learnt/android_avalonia_init_fix.md` — Avalonia host-Content bug, MAUI defer-init and white screen
 - `build/android/README.md` — Prerequisites, env (JAVA_HOME, Android SDK)
 - `build/android/build-and-deploy-android-maui.ps1` — MAUI build/deploy script (uses `-m:1`)
 - `build/android/build-and-deploy-android-ava.ps1` — Avalonia build/deploy script (uses `-m:1`)
 - `.ai/skills/build-android/SKILL.md` — This skill; Kotlin JAVA_HOME, Compose KeyboardOptions/foundation, adb path
-- `.ai/skills/build-linux-binary/SKILL.md` — Same `/m:1` and "never run two builds" guidance for Linux

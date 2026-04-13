@@ -14,7 +14,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Text Format *" FontWeight="Medium"/>
             <TextBox Text="{Binding TextFormat, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="text"
+                     PlaceholderText="text"
                      Width="300"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Example: text, csharp, json, xml"
@@ -29,7 +29,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Description (Optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="Add a description for your paste"
+                     PlaceholderText="Add a description for your paste"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>

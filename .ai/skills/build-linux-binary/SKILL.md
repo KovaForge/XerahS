@@ -1,6 +1,6 @@
 ---
 name: build-linux-binary
-description: Builds Linux binaries (x64 and ARM64) for XerahS using the packaging script. Handles common file locking, stale process, and Avalonia XAML precompilation issues specific to Linux builds. Ensures deb/rpm packages are created in dist/.
+description: Builds Linux binaries (x64 and ARM64) for XerahS using the packaging script. Handles Linux packaging, log monitoring, and Avalonia XAML precompilation issues. Use build-common for shared build timeout, lock, and dependency guardrails.
 metadata:
   keywords:
     - build
@@ -40,6 +40,10 @@ Follow these instructions **exactly** and in order to build Linux binaries for X
     - XerahS-{version}-linux-arm64.rpm (if rpmbuild is available)
   </expected_outputs>
 </context>
+
+## Shared Build Guardrails
+
+Before Linux packaging work, follow [build-common](../build-common/SKILL.md) for shared timeout, lock recovery, no-concurrent-build, `-m:1`, TFM, and SkiaSharp rules. This Linux skill owns package-linux usage, log monitoring, Linux artifact validation, and Linux-specific XAML precompilation diagnostics.
 
 ## Build Process
 
@@ -247,11 +251,12 @@ Timestamps should match the current build session.
 | `Error: No plugins were published` | Check `src/desktop/plugins/` structure and `plugin.json` presence in each plugin directory |
 | ARM64 cross-compile fails | Ensure `linux-arm64` .NET SDK cross-compile support is installed; Fedora needs `dotnet-sdk-10.0` |
 | `rpmbuild: command not found` | RPM skipped (not fatal); install with `sudo dnf install rpm-build` if needed |
-| Build succeeds but app segfaults | SkiaSharp native library issue; **never bump SkiaSharp beyond 2.88.9** |
+| Build succeeds but app segfaults | SkiaSharp native library issue; verify the current centrally managed SkiaSharp/native-assets set and published runtimes before changing versions |
 
 ---
 
 ## Related Files
+- Shared guardrails: [build-common](../build-common/SKILL.md)
 - Build script: [build/linux/package-linux.sh](../../../build/linux/package-linux.sh)
 - Packaging tool: [build/linux/XerahS.Packaging/](../../../build/linux/XerahS.Packaging/)
 - Version config: [Directory.Build.props](../../../Directory.Build.props)

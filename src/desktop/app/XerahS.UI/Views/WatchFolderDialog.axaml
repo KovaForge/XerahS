@@ -24,7 +24,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <TextBox Grid.Column="0"
                          Text="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="C:\Path\To\Folder"
+                         PlaceholderText="C:\Path\To\Folder"
                          AutomationProperties.Name="Folder Path Input"/>
                 <Button Grid.Column="1"
                         Content="Browse..."
@@ -40,7 +40,7 @@
         <StackPanel Spacing="8">
             <TextBlock Text="Filter Pattern" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
             <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="*.png;*.jpg"
+                     PlaceholderText="*.png;*.jpg"
                      AutomationProperties.Name="Filter Pattern Input"/>
             <TextBlock Text="Separate multiple patterns with ';' (example: *.png;*.jpg)."
                        Theme="{StaticResource CaptionTextBlockStyle}"

@@ -65,6 +65,7 @@ public class WorkflowManager : IDisposable
     {
         _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
         _hotkeyService.HotkeyTriggered += OnHotkeyServiceTriggered;
+        _hotkeyService.HotkeysChanged += OnHotkeyServiceChanged;
     }
 
     private void OnHotkeyServiceTriggered(object? sender, HotkeyTriggeredEventArgs e)
@@ -74,6 +75,11 @@ public class WorkflowManager : IDisposable
             Debug.WriteLine($"HotkeyManager: Triggering {settings}");
             HotkeyTriggered?.Invoke(this, settings);
         }
+    }
+
+    private void OnHotkeyServiceChanged(object? sender, EventArgs e)
+    {
+        WorkflowsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -103,6 +109,8 @@ public class WorkflowManager : IDisposable
     /// </summary>
     public bool RegisterHotkey(WorkflowSettings settings)
     {
+        settings.HotkeyInfo.NativeTriggerDescription = null;
+
         // If this workflow had a previously registered hotkey, release it first.
         // This is required when editing a hotkey and clearing it to None.
         if (settings.HotkeyInfo.Id != 0)
@@ -199,6 +207,7 @@ public class WorkflowManager : IDisposable
         {
             settings.HotkeyInfo.Status = HotkeyStatus.NotConfigured;
             settings.HotkeyInfo.Id = 0;
+            settings.HotkeyInfo.NativeTriggerDescription = null;
         }
     }
 
@@ -284,6 +293,7 @@ public class WorkflowManager : IDisposable
 
         UnregisterAllHotkeys();
         _hotkeyService.HotkeyTriggered -= OnHotkeyServiceTriggered;
+        _hotkeyService.HotkeysChanged -= OnHotkeyServiceChanged;
 
         _disposed = true;
         GC.SuppressFinalize(this);

@@ -366,4 +366,12 @@ namespace XerahS.RegionCapture
         Aborted
     }
 
+    public enum StepTailStyle
+    {
+        Triangle,
+        Circle,
+        Square,
+        Line
+    }
+
 }

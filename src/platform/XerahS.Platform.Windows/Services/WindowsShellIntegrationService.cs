@@ -44,7 +44,7 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
     private const string SendToShortcutName = "XerahS";
     private const string SendToLegacyScriptName = "XerahS.cmd";
     private const string SendToShortcutDescription = "Send selected files to XerahS";
-    private const string SendToFlag = "--send-to";
+    private const string SendToFlag = AppContracts.Cli.SendToFlag;
     private const string SendToScriptMarker = "REM XerahS SendTo Integration";
 
     private const string ShellPluginExtensionPath = @"Software\Classes\.xsdp";
@@ -70,7 +70,7 @@ public sealed class WindowsShellIntegrationService : IShellIntegrationService
         ProcessPath = Environment.ProcessPath ?? string.Empty;
         ApplicationPath = $"\"{ProcessPath}\"";
         ShellPluginIconValue = $"{ApplicationPath},0"; // Extract icon from .exe
-        ShellPluginCommandValue = $"{ApplicationPath} -InstallPlugin \"%1\"";
+        ShellPluginCommandValue = $"{ApplicationPath} {AppContracts.Cli.LegacyInstallPluginFlag} \"%1\"";
         SendToShortcutIconLocation = $"{ProcessPath},0";
     }
 

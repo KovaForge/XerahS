@@ -32,6 +32,7 @@ using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
+using ShareXStepTailStyle = ShareX.ImageEditor.Core.Annotations.StepTailStyle;
 
 namespace XerahS.RegionCapture.ViewModels;
 
@@ -61,6 +62,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     }
 
     public EditorCore EditorCore => _editorCore;
+
+    public bool ImageEditorMode => false;
 
     public event Action? InvalidateRequested;
 
@@ -304,6 +307,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ApplyTextStyle(value, TextStyle.Underline);
     }
 
+    [ObservableProperty]
+    private ShareXStepTailStyle _tailStyle = ShareXStepTailStyle.Triangle;
+
     [RelayCommand]
     private void ToggleShadow()
     {
@@ -387,6 +393,12 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         _ => false
     };
 
+    public bool ShowTailStyle => GetToolOptionsContext() switch
+    {
+        EditorTool.SpeechBalloon or EditorTool.Step => true,
+        _ => false
+    };
+
     public bool ShowToolOptionsSeparator =>
         ShowBorderColor ||
         ShowFillColor ||
@@ -396,7 +408,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ShowCornerRadius ||
         ShowStrength ||
         ShowTextStyle ||
-        ShowShadow;
+        ShowShadow ||
+        ShowTailStyle;
 
     public bool ShowToolOptions => ShowToolOptionsSeparator;
 
@@ -1038,6 +1051,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         OnPropertyChanged(nameof(ShowStrength));
         OnPropertyChanged(nameof(ShowShadow));
         OnPropertyChanged(nameof(ShowTextStyle));
+        OnPropertyChanged(nameof(ShowTailStyle));
         OnPropertyChanged(nameof(ShowToolOptionsSeparator));
         OnPropertyChanged(nameof(ActiveToolIcon));
         OnPropertyChanged(nameof(ActiveToolName));

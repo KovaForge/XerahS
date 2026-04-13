@@ -255,11 +255,10 @@ namespace XerahS.UI.ViewModels
                 using var textPaint = new SKPaint
                 {
                     Color = SKColors.Black,
-                    TextSize = 20,
-                    IsAntialias = true,
-                    TextAlign = SKTextAlign.Left
+                    IsAntialias = true
                 };
-                canvas.DrawText("Preview", padding, PreviewSize - padding / 2, textPaint);
+                using var textFont = new SKFont(SKTypeface.Default, 20);
+                canvas.DrawText("Preview", padding, PreviewSize - padding / 2, SKTextAlign.Left, textFont, textPaint);
             }
             catch
             {
@@ -899,7 +898,11 @@ namespace XerahS.UI.ViewModels
             {
                 int width = mapped.Properties.TryGetValue("_width", out var widthValue) ? ReadInt(widthValue, 0) : 0;
                 int height = mapped.Properties.TryGetValue("_height", out var heightValue) ? ReadInt(heightValue, 0) : 0;
-                return new ResizeImageEffect(width, height);
+                return new ResizeImageEffect
+                {
+                    Width = width,
+                    Height = height
+                };
             }
 
             var assembly = typeof(ImageEffect).Assembly;

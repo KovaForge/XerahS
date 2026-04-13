@@ -34,8 +34,8 @@ public sealed class LinuxShellIntegrationService : IShellIntegrationService
     private const string PluginMimeType = "application/x-xerahs-plugin";
     private const string PluginDesktopEntryFileName = "xerahs-xsdp.desktop";
     private const string PluginMimeXmlFileName = "xerahs-xsdp.xml";
-    private const string SendToFlag = "--send-to";
-    private const string SendToMarkerKey = "X-XerahS-SendTo";
+    private const string SendToFlag = AppContracts.Cli.SendToFlag;
+    private const string SendToMarkerKey = AppContracts.LinuxIntegration.SendToMarkerKey;
     private const string SendToMarkerValue = "true";
 
     private readonly string _processPath;

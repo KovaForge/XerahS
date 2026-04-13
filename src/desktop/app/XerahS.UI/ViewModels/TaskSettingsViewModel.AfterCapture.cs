@@ -108,6 +108,20 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool DoOCR
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR);
+            set
+            {
+                if (DoOCR != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.DoOCR, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+
         private void UpdateAfterCaptureTask(AfterCaptureTasks task, bool enabled)
         {
             if (enabled)

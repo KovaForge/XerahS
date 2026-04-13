@@ -32,6 +32,7 @@ using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Assistant;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -44,6 +45,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
     private readonly IScreenRecordingCoordinator _screenRecordingCoordinator;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private Core.Hotkeys.WorkflowManager? _workflowManager;
+    private AssistantOverlayCoordinator? _assistantOverlayCoordinator;
     private int _activeUploadCount;
     private string _baseTitle = AppResources.ProductNameWithVersion;
 
@@ -62,6 +64,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         ConfigureWorkerTaskCallbacks();
         InitializeHotkeys();
+        _assistantOverlayCoordinator ??= new AssistantOverlayCoordinator();
+        _assistantOverlayCoordinator.Start();
 
         _taskManager.TaskCompleted -= OnWorkflowTaskCompleted;
         _taskManager.TaskStarted -= OnWorkflowTaskStarted;
@@ -74,6 +78,25 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         Core.Tasks.WorkerTask.ShowWindowSelectorCallback = ShowWindowSelectorAsync;
         Core.Tasks.WorkerTask.ShowOpenFileDialogCallback = ShowOpenFileDialogAsync;
         Core.Tasks.WorkerTask.HandleToolWorkflowCallback = HandleToolWorkflowAsync;
+        Core.Tasks.Processors.CaptureJobProcessor.PinToScreenCallback = async (bitmap, location, options) =>
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PinToScreenManager.PinImage(bitmap, location == null ? null : (Avalonia.PixelPoint?)location, options);
+            });
+        };
+        Core.Tasks.Processors.CaptureJobProcessor.ShowAnalyzerCallback = async bitmap =>
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var vm = new ImageAnalyzerViewModel();
+                vm.SetInputImage(bitmap);
+
+                var w = new ImageAnalyzerWindow();
+                w.Initialize(vm);
+                w.Show();
+            });
+        };
 
         Core.Tasks.WorkerTask.OpenMainWindowCallback = () =>
         {
@@ -358,6 +381,12 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         if (settings.Job == Core.WorkflowType.PauseScreenRecording &&
             (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
+            if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+            {
+                DebugHelper.WriteLine("Pause/Resume hotkey ignored because the active recording backend does not support pause/resume safely.");
+                return;
+            }
+
             DebugHelper.WriteLine("Pause/Resume hotkey triggered - toggling recording pause state...");
             await _screenRecordingCoordinator.TogglePauseResumeAsync();
             return;

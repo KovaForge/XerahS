@@ -238,72 +238,84 @@ public partial class WorkflowEditorViewModel : ViewModelBase
             InitializeCategories();
         }
 
+        var previousSelectionId = SelectedDestination?.Instance?.InstanceId;
         AvailableDestinations.Clear();
 
-        string category = SelectedJob.GetHotkeyCategory();
-
-        // Determine which destination types to show based on category
-        bool showImageUploaders = false;
-        bool showTextUploaders = false;
-        bool showFileUploaders = false;
-
-        switch (category)
+        foreach (var uploaderCategory in GetDestinationCategoriesForJob(SelectedJob))
         {
-            case EnumExtensions.WorkflowType_Category_ScreenCapture:
-            case EnumExtensions.WorkflowType_Category_ScreenRecord:
-                showImageUploaders = true;
-                showFileUploaders = true;
-                break;
-
-            case EnumExtensions.WorkflowType_Category_Upload:
-                if (SelectedJob == WorkflowType.ClipboardUpload ||
-                    SelectedJob == WorkflowType.ClipboardUploadWithContentViewer)
-                {
-                    showImageUploaders = true;
-                    showTextUploaders = true;
-                    showFileUploaders = true;
-                }
-                else if (SelectedJob == WorkflowType.FileUpload)
-                {
-                    showFileUploaders = true;
-                }
-                else
-                {
-                    showImageUploaders = true;
-                    showFileUploaders = true;
-                }
-                break;
-
-            case EnumExtensions.WorkflowType_Category_Tools:
-                showImageUploaders = true;
-                showFileUploaders = true;
-                break;
-        }
-
-        if (showImageUploaders && _imageCategory != null)
-        {
-            foreach (var instance in _imageCategory.Instances)
+            foreach (var instance in GetDestinationInstances(uploaderCategory))
+            {
                 AvailableDestinations.Add(instance);
+            }
         }
 
-        if (showTextUploaders && _textCategory != null)
-        {
-            foreach (var instance in _textCategory.Instances)
-                AvailableDestinations.Add(instance);
-        }
+        SelectedDestination = !string.IsNullOrEmpty(previousSelectionId)
+            ? AvailableDestinations.FirstOrDefault(d =>
+                string.Equals(d.Instance.InstanceId, previousSelectionId, StringComparison.OrdinalIgnoreCase))
+            : null;
 
-        if (showFileUploaders && _fileCategory != null)
-        {
-            foreach (var instance in _fileCategory.Instances)
-                AvailableDestinations.Add(instance);
-        }
-
-        if (SelectedDestination == null)
-        {
-            SelectedDestination = AvailableDestinations.FirstOrDefault();
-        }
+        SelectedDestination ??= AvailableDestinations.FirstOrDefault();
 
         DebugHelper.WriteLine($"[WorkflowEditorVM] UpdateDestinations end. Count={AvailableDestinations.Count}, Selected={SelectedDestination?.DisplayName ?? "none"}");
+    }
+
+    private IEnumerable<UploaderCategory> GetDestinationCategoriesForJob(WorkflowType job)
+    {
+        switch (job.GetHotkeyCategory())
+        {
+            case EnumExtensions.WorkflowType_Category_ScreenCapture:
+                yield return UploaderCategory.Image;
+                yield return UploaderCategory.File;
+                yield break;
+
+            case EnumExtensions.WorkflowType_Category_ScreenRecord:
+                yield return UploaderCategory.File;
+                yield break;
+
+            case EnumExtensions.WorkflowType_Category_Upload:
+                if (job == WorkflowType.FileUpload)
+                {
+                    yield return UploaderCategory.File;
+                    yield break;
+                }
+
+                if (job == WorkflowType.ClipboardUpload ||
+                    job == WorkflowType.ClipboardUploadWithContentViewer)
+                {
+                    yield return UploaderCategory.Image;
+                    yield return UploaderCategory.Text;
+                    yield return UploaderCategory.File;
+                    yield break;
+                }
+
+                yield return UploaderCategory.Image;
+                yield return UploaderCategory.File;
+                yield break;
+
+            case EnumExtensions.WorkflowType_Category_Tools:
+                if (job == WorkflowType.OCR)
+                {
+                    yield return UploaderCategory.Text;
+                    yield return UploaderCategory.File;
+                    yield break;
+                }
+
+                yield return UploaderCategory.Image;
+                yield return UploaderCategory.File;
+                yield break;
+        }
+    }
+
+    private IEnumerable<UploaderInstanceViewModel> GetDestinationInstances(UploaderCategory category)
+    {
+        return category switch
+        {
+            UploaderCategory.Image => _imageCategory?.Instances ?? Enumerable.Empty<UploaderInstanceViewModel>(),
+            UploaderCategory.Text => _textCategory?.Instances ?? Enumerable.Empty<UploaderInstanceViewModel>(),
+            UploaderCategory.File => _fileCategory?.Instances ?? Enumerable.Empty<UploaderInstanceViewModel>(),
+            UploaderCategory.UrlShortener => _urlCategory?.Instances ?? Enumerable.Empty<UploaderInstanceViewModel>(),
+            _ => Enumerable.Empty<UploaderInstanceViewModel>()
+        };
     }
 
 

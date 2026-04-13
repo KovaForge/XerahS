@@ -297,7 +297,34 @@ namespace XerahS.Core.Tasks.Processors
 
             if (allInstances.Count == 0)
             {
-                DebugHelper.WriteLine($"No available uploaders for category {category} (excluding already attempted).");
+                // Ensure we have an auto destination for File category
+                var targetInstance = category == UploaderCategory.File ? EnsureAutoFileDestinationInstance(instanceManager) : null;
+
+                // Prevent infinite recursion: if the auto instance was already attempted, don't try again
+                if (targetInstance != null && attemptedInstanceIds.Contains(targetInstance.InstanceId))
+                {
+                    DebugHelper.WriteLine($"Auto instance {targetInstance.InstanceId} already attempted; skipping to avoid recursion.");
+                    return new UploadResult { IsSuccess = false, Response = $"All uploaders failed for category {category} and fallback." };
+                }
+
+                if (targetInstance == null)
+                {
+                    DebugHelper.WriteLine($"No available uploaders for category {category} (excluding already attempted).");
+                }
+                else
+                {
+                    // Try the auto instance as a last resort
+                    DebugHelper.WriteLine($"Trying auto destination: {targetInstance.InstanceId}");
+                    attemptedInstanceIds.Add(targetInstance.InstanceId);
+                    var primaryResult = TryUploadWithInstance(targetInstance, info);
+                    if (IsSuccessfulUploadResult(primaryResult))
+                    {
+                        return primaryResult;
+                    }
+
+                    var errorMsg = primaryResult?.Errors?.ToString() ?? primaryResult?.Response ?? "Unknown error";
+                    DebugHelper.WriteLine($"Auto uploader failed ({errorMsg}), no more fallbacks available.");
+                }
             }
             else
             {
@@ -349,6 +376,17 @@ namespace XerahS.Core.Tasks.Processors
                 if (imageFallbackResult != null && !imageFallbackResult.IsError && !string.IsNullOrEmpty(imageFallbackResult.URL))
                 {
                     return imageFallbackResult;
+                }
+            }
+
+            // If File category failed and the file is text-based, try Text-category uploaders
+            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsTextFile(info.FileName))
+            {
+                DebugHelper.WriteLine("File is text-based; trying Text category uploaders as fallback...");
+                var textFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Text, info, excludeInstanceId, attemptedInstanceIds);
+                if (textFallbackResult != null && !textFallbackResult.IsError && !string.IsNullOrEmpty(textFallbackResult.URL))
+                {
+                    return textFallbackResult;
                 }
             }
 
@@ -434,7 +472,7 @@ namespace XerahS.Core.Tasks.Processors
                     return uploader switch
                     {
                         FileUploader fileUploader => fileUploader.UploadFile(info.FilePath),
-                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info.FilePath),
+                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
                         _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
                     };
                 }
@@ -493,6 +531,13 @@ namespace XerahS.Core.Tasks.Processors
         {
             using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return uploader.Upload(stream, Path.GetFileName(filePath));
+        }
+
+        private static UploadResult UploadWithGenericUploader(GenericUploader uploader, TaskInfo info)
+        {
+            using FileStream stream = new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            string fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
+            return uploader.Upload(stream, fileName);
         }
 
         private static bool IsSuccessfulUploadResult(UploadResult? result)

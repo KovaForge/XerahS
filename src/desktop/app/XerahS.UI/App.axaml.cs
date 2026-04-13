@@ -41,6 +41,7 @@ using XerahS.Platform.Abstractions;
 #if WINDOWS
 using XerahS.Platform.Windows;
 #endif
+using SkiaSharp;
 using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
@@ -73,7 +74,9 @@ public partial class App : Application
         Services.ThemeService.Initialize();
 
 #if DEBUG
-        this.AttachDeveloperTools();
+        // DevTools are configured once in Program.BuildAvaloniaApp().
+        // Attaching again here causes Avalonia to throw because multiple
+        // DeveloperTools attachments are not supported.
 
         // Load Audit Styles (Debug Only)
         Styles.Add(new Avalonia.Markup.Xaml.Styling.StyleInclude(new Uri("avares://XerahS.UI/Themes/AuditStyles.axaml"))
@@ -132,11 +135,48 @@ public partial class App : Application
                     Common.DebugHelper.WriteLine(diagnosticEvent.ExceptionText!);
                 }
             });
-            EditorServices.DesktopWallpaper = new Services.EditorDesktopWallpaperAdapter();
+            EditorServices.EnsureDefaultDesktopWallpaperService();
 
             var mainViewModel = new MainViewModel(Services.ThemeService.CreateImageEditorOptions());
             mainViewModel.ApplicationName = AppResources.AppName;
             mainViewModel.ShowTaskModeButtons = false;
+
+            // Pre-load default image so annotation toolbar is usable before first capture
+            // Load asynchronously to avoid blocking the UI thread during startup
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var sampleUri = new Uri("avares://ShareX.ImageEditor/Assets/Sample.png");
+                    using var sampleStream = Avalonia.Platform.AssetLoader.Open(sampleUri);
+                    if (sampleStream == null)
+                    {
+                        DebugHelper.WriteLine($"Sample.png stream is null - asset not found at {sampleUri}");
+                        return;
+                    }
+                    using var ms = new MemoryStream();
+                    sampleStream.CopyTo(ms);
+                    ms.Position = 0;
+                    SKBitmap? sampleBitmap = SKBitmap.Decode(ms);
+                    if (sampleBitmap == null)
+                    {
+                        DebugHelper.WriteLine($"SKBitmap.Decode returned null for Sample.png");
+                        return;
+                    }
+
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        mainViewModel.UpdatePreview(sampleBitmap, clearAnnotations: true);
+                        sampleBitmap = null;
+                    });
+
+                    sampleBitmap?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"Failed to pre-load default editor image (Sample.png): {ex}");
+                }
+            });
 
             // Wire up UploadRequested for embedded editor in MainWindow
             Services.MainViewModelHelper.WireUploadRequested(mainViewModel, taskManager);
@@ -250,6 +290,13 @@ public partial class App : Application
                     _clipboardChangedHandler = null;
                 }
                 PlatformServices.ClipboardMonitor.Stop();
+                // OOBE/first-run planning:
+                // Keep `IsFirstTimeRun=true` during the first session so UI (e.g. migration buttons) can show,
+                // then persist it as completed when the app exits.
+                if (XerahS.Core.SettingsManager.Settings.IsFirstTimeRun)
+                {
+                    XerahS.Core.SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+                }
                 XerahS.Core.SettingsManager.SaveAllSettings();
                 DebugHelper.Shutdown();
             };
@@ -266,6 +313,25 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task ShowOnboardingWizardAsync(Window owner)
+    {
+        try
+        {
+            var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
+            var result = await wizard.ShowDialogAsync(owner);
+
+            if (result.Completed || result.Skipped)
+            {
+                DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
+        }
     }
 
     /// <summary>

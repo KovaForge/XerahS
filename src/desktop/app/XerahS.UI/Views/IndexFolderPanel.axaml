@@ -41,7 +41,7 @@
                         <StackPanel Spacing="16">
                             <TextBlock Text="Folder" Theme="{StaticResource SubtitleTextBlockStyle}"/>
                             <Grid ColumnDefinitions="*, Auto">
-                                <TextBox Grid.Column="0" Text="{Binding FolderPath}" Watermark="Select folder to index..."
+                                <TextBox Grid.Column="0" Text="{Binding FolderPath}" PlaceholderText="Select folder to index..."
                                          AutomationProperties.Name="Folder Path"/>
                                 <Button Grid.Column="1" Content="Browse" Command="{Binding BrowseFolderCommand}" Margin="8,0,0,0"
                                         MinWidth="90"
@@ -79,6 +79,7 @@
                             <CheckBox IsChecked="{Binding SkipHiddenFolders}" Content="Skip hidden folders" AutomationProperties.Name="Skip Hidden Folders"/>
                             <CheckBox IsChecked="{Binding SkipHiddenFiles}" Content="Skip hidden files" AutomationProperties.Name="Skip Hidden Files"/>
                             <CheckBox IsChecked="{Binding SkipFiles}" Content="Skip files (Folders only)" AutomationProperties.Name="Skip Files"/>
+                            <CheckBox IsChecked="{Binding IgnoreEmptyFolders}" Content="Ignore empty folders" AutomationProperties.Name="Ignore Empty Folders"/>
                             <CheckBox IsChecked="{Binding ShowSizeInfo}" Content="Include size information" AutomationProperties.Name="Include Size Info"/>
                             <CheckBox IsChecked="{Binding BinaryUnits}" Content="Use binary units for size" AutomationProperties.Name="Use Binary Units"/>
                             <CheckBox IsChecked="{Binding AddFooter}" Content="Add generation footer" AutomationProperties.Name="Add Footer"/>
@@ -91,12 +92,12 @@
                             <TextBlock Text="File Extension Filters" Theme="{StaticResource SubtitleTextBlockStyle}"/>
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Include only (e.g., cs, txt, md):" FontSize="12" Opacity="0.8"/>
-                                <TextBox Text="{Binding IncludedFileExtensionsText}" Watermark="Leave empty to include all files..."
+                                <TextBox Text="{Binding IncludedFileExtensionsText}" PlaceholderText="Leave empty to include all files..."
                                          AutomationProperties.Name="Included File Extensions"/>
                             </StackPanel>
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Exclude (e.g., pdb, obj, exe):" FontSize="12" Opacity="0.8"/>
-                                <TextBox Text="{Binding ExcludedFileExtensionsText}" Watermark="Leave empty to exclude nothing..."
+                                <TextBox Text="{Binding ExcludedFileExtensionsText}" PlaceholderText="Leave empty to exclude nothing..."
                                          AutomationProperties.Name="Excluded File Extensions"/>
                             </StackPanel>
                         </StackPanel>
@@ -120,7 +121,7 @@
                             <TextBlock Text="HTML Options" Theme="{StaticResource SubtitleTextBlockStyle}"/>
                             <CheckBox IsChecked="{Binding UseCustomCssFile}" Content="Use custom CSS file" AutomationProperties.Name="Use Custom CSS"/>
                             <Grid ColumnDefinitions="*, Auto" IsEnabled="{Binding UseCustomCssFile}">
-                                <TextBox Grid.Column="0" Text="{Binding CustomCssFilePath}" Watermark="Path to CSS file"
+                                <TextBox Grid.Column="0" Text="{Binding CustomCssFilePath}" PlaceholderText="Path to CSS file"
                                          AutomationProperties.Name="Custom CSS Path"/>
                                 <Button Grid.Column="1" Content="Browse" Command="{Binding BrowseCssCommand}" Margin="8,0,0,0"
                                         MinWidth="90"

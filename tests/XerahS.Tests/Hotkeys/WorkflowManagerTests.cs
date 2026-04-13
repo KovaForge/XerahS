@@ -60,6 +60,30 @@ public class WorkflowManagerTests
         });
     }
 
+    [Test]
+    public void WorkflowsChanged_WhenHotkeyMetadataChanges_IsRelayedFromService()
+    {
+        var service = new FakeHotkeyService();
+        using var manager = new WorkflowManager(service);
+        int callCount = 0;
+
+        manager.WorkflowsChanged += (_, _) => callCount++;
+        service.RaiseHotkeysChanged();
+
+        Assert.That(callCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void HotkeyInfo_DisplayString_PrefersNativeTriggerDescription()
+    {
+        var hotkey = new HotkeyInfo(Key.F, KeyModifiers.Control | KeyModifiers.Shift)
+        {
+            NativeTriggerDescription = "Ctrl+Alt+S"
+        };
+
+        Assert.That(hotkey.GetDisplayString(), Is.EqualTo("Ctrl+Alt+S"));
+    }
+
     private sealed class FakeHotkeyService : IHotkeyService
     {
         private readonly HashSet<ushort> _registeredIds = new();
@@ -72,6 +96,8 @@ public class WorkflowManagerTests
             add { }
             remove { }
         }
+
+        public event EventHandler? HotkeysChanged;
 
         public bool IsSuspended { get; set; }
 
@@ -117,6 +143,11 @@ public class WorkflowManagerTests
 
         public void Dispose()
         {
+        }
+
+        public void RaiseHotkeysChanged()
+        {
+            HotkeysChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

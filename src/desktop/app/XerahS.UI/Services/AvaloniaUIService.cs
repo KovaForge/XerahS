@@ -30,11 +30,13 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
+using System.IO;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
+using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
@@ -109,14 +111,27 @@ namespace XerahS.UI.Services
             });
         }
 
-        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
+        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
+        {
+            ImageEditorSessionResult? result = await ShowEditorSessionAsync(image, sourceFilePath, taskMode);
+            result?.SourceImage?.Dispose();
+            return result?.RenderedImage;
+        }
+
+        public async Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
+            SKBitmap image,
+            string? sourceFilePath = null,
+            bool taskMode = false,
+            IReadOnlyList<Annotation>? annotations = null,
+            bool restoredAnnotations = false)
         {
             if (_taskManager == null)
             {
                 throw new InvalidOperationException("AvaloniaUIService requires an IDesktopTaskManager before showing the editor.");
             }
 
-            var tcs = new TaskCompletionSource<SKBitmap?>();
+            var tcs = new TaskCompletionSource<ImageEditorSessionResult?>();
+            var restoredAnnotationSnapshot = annotations?.Select(annotation => annotation.Clone()).ToList();
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -152,10 +167,30 @@ namespace XerahS.UI.Services
 
                 // Initialize the preview image
                 editorViewModel.UpdatePreview(image);
+                if (!string.IsNullOrWhiteSpace(sourceFilePath))
+                {
+                    editorViewModel.ImageFilePath = sourceFilePath;
+                    editorViewModel.IsDirty = false;
+                }
+
+                if (restoredAnnotationSnapshot?.Count > 0)
+                {
+                    editorWindow.Opened += (_, _) =>
+                    {
+                        var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                        editorView?.RestoreAnnotations(restoredAnnotationSnapshot, resetHistory: true);
+                        editorViewModel.IsDirty = false;
+                    };
+                }
 
                 // Handle window closing to capture result
                 editorWindow.Closing += (s, e) =>
                 {
+                    if (!editorWindow.IsCloseRequestedByViewModel)
+                    {
+                        return;
+                    }
+
                     try
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
@@ -171,7 +206,16 @@ namespace XerahS.UI.Services
                         else if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
-                            tcs.TrySetResult(snapshot);
+                            if (snapshot == null)
+                            {
+                                tcs.TrySetResult(null);
+                            }
+                            else
+                            {
+                                var source = editorView.GetSource();
+                                var annotationSnapshot = editorView.GetAnnotationSnapshot().ToList();
+                                tcs.TrySetResult(new ImageEditorSessionResult(snapshot, source, annotationSnapshot));
+                            }
                         }
                         else
                         {
@@ -201,6 +245,13 @@ namespace XerahS.UI.Services
                 try
                 {
                     Exception? startupFailure = null;
+                    VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
+                    if (!launchPolicy.AllowInteractiveLaunch)
+                    {
+                        await ShowVideoEditorStartupErrorAsync("The video editor is unavailable on this platform/session.");
+                        return null;
+                    }
+
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
@@ -230,6 +281,7 @@ namespace XerahS.UI.Services
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
                         FFprobePath = ffprobePath,
                         Theme = ResolveTheme(),
+                        EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };
 
                     var events = new VideoEditorEvents
@@ -443,6 +495,229 @@ namespace XerahS.UI.Services
 
                 viewModel.RequestClose += () => window.Close();
                 window.Closed += (_, _) => viewModel.Dispose();
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
+
+        public async Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+        {
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var viewModel = new SendToPromptViewModel(selection);
+                var window = new Views.SendToPromptWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = TryGetDialogOwner();
+                if (CanUseDialogOwner(owner))
+                {
+                    await window.ShowDialog(owner!);
+                }
+                else
+                {
+                    var closedTcs = new TaskCompletionSource<bool>();
+                    window.Closed += (_, _) => closedTcs.TrySetResult(true);
+                    window.Show();
+                    await closedTcs.Task;
+                }
+
+                return new SendToPromptResult
+                {
+                    Action = viewModel.SelectedAction
+                };
+            });
+        }
+
+        public async Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection)
+        {
+            if (action is SendToAction.Cancel or SendToAction.UploadNow)
+            {
+                return;
+            }
+
+            Window? owner = TryGetDialogOwner();
+
+            switch (action)
+            {
+                case SendToAction.OpenUploadContent:
+                    await UploadContentToolService.ShowSelectionAsync(selection.FilePaths, selection.FolderPaths, owner);
+                    break;
+
+                case SendToAction.OpenImageEditor:
+                    await OpenSelectedImagesInEditorAsync(selection);
+                    break;
+
+                case SendToAction.PinToScreen:
+                    await PinSelectedImagesAsync(selection);
+                    break;
+
+                case SendToAction.IndexFolders:
+                    await OpenSelectedFoldersInIndexFolderAsync(selection, owner);
+                    break;
+            }
+        }
+
+        private async Task OpenSelectedImagesInEditorAsync(SendToSelection selection)
+        {
+            if (!selection.CanOpenImageEditor)
+            {
+                return;
+            }
+
+            foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                {
+                    continue;
+                }
+
+                using var bitmap = SkiaSharp.SKBitmap.Decode(filePath);
+                if (bitmap == null)
+                {
+                    continue;
+                }
+
+                await ShowEditorAsync(bitmap, sourceFilePath: filePath);
+            }
+        }
+
+        private static Task PinSelectedImagesAsync(SendToSelection selection)
+        {
+            if (!selection.CanPinToScreen)
+            {
+                return Task.CompletedTask;
+            }
+
+            return PinToScreenToolService.PinFilesAsync(selection.FilePaths);
+        }
+
+        private async Task OpenSelectedFoldersInIndexFolderAsync(SendToSelection selection, Window? owner)
+        {
+            if (!selection.CanIndexFolders)
+            {
+                return;
+            }
+
+            foreach (var folderPath in selection.FolderPaths ?? Array.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+                {
+                    continue;
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var viewModel = UiViewModelFactoryAccessor.GetRequired().CreateIndexFolderViewModel();
+                    viewModel.FolderPath = folderPath;
+
+                    var window = new Views.IndexFolderView
+                    {
+                        DataContext = viewModel
+                    };
+
+                    if (CanUseDialogOwner(owner))
+                    {
+                        window.Show(owner!);
+                    }
+                    else
+                    {
+                        window.Show();
+                    }
+
+                    if (viewModel.CanStartIndexing)
+                    {
+                        _ = viewModel.IndexFolderCommand.ExecuteAsync(null);
+                    }
+                });
+            }
+        }
+
+        public async Task ShowOcrWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new OcrViewModel(image);
+
+                // Wire the SelectRegion callback so users can re-capture inside the OCR window
+                viewModel.SelectRegionRequested = async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(300); // Allow window to minimize
+                        var captureSettings = SettingsManager.DefaultTaskSettings?.CaptureSettings
+                            ?? new TaskSettingsCapture();
+                        var captureOptions = new CaptureOptions
+                        {
+                            UseModernCapture = captureSettings.UseModernCapture,
+                            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+                            ShowCursor = captureSettings.ShowCursor,
+                            CaptureTransparent = captureSettings.CaptureTransparent,
+                            CaptureShadow = captureSettings.CaptureShadow,
+                            CaptureClientArea = captureSettings.CaptureClientArea
+                        };
+                        return await PlatformServices.ScreenCapture.CaptureRegionAsync(captureOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "OCR region capture");
+                        return null;
+                    }
+                };
+
+                var window = new Views.OcrWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
+
+        public async Task ShowAnalyzerWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new ImageAnalyzerViewModel();
+                viewModel.SetInputImage(image);
+
+                var window = new Views.ImageAnalyzerWindow();
+                window.Initialize(viewModel);
 
                 Window? owner = null;
                 if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

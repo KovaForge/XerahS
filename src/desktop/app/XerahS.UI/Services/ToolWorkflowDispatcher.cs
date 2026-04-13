@@ -167,7 +167,7 @@ internal static class ToolWorkflowDispatcher
                 return;
             }
 
-            await PlatformServices.UI.ShowEditorAsync(skBitmap);
+            await PlatformServices.UI.ShowEditorAsync(skBitmap, sourceFilePath: path);
         }
         catch (Exception ex)
         {

@@ -29,6 +29,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
@@ -44,6 +45,7 @@ public partial class ToastWindow : OverlayWindow
     private ToastConfig? _config;
     private bool _isDragging;
     private Avalonia.Point _dragStart;
+    private PointerPressedEventArgs? _dragStartEventArgs;
     private Border? _urlOverlay;
     private Border? _flyoutHost;
 
@@ -74,7 +76,7 @@ public partial class ToastWindow : OverlayWindow
         }
     }
 
-    public void Initialize(ToastConfig config)
+    public void Initialize(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
         _config = config;
 
@@ -86,7 +88,7 @@ public partial class ToastWindow : OverlayWindow
         PositionWindow(config.Placement, config.Offset, config.Size);
 
         // Create and bind ViewModel
-        _viewModel = new ToastViewModel(config);
+        _viewModel = new ToastViewModel(config, taskManager);
         DataContext = _viewModel;
 
         _viewModel.CloseRequested += OnCloseRequested;
@@ -162,6 +164,7 @@ public partial class ToastWindow : OverlayWindow
         {
             _dragStart = point.Position;
             _isDragging = true;
+            _dragStartEventArgs = e;
         }
     }
 
@@ -190,6 +193,7 @@ public partial class ToastWindow : OverlayWindow
         }
 
         _isDragging = false;
+        _dragStartEventArgs = null;
     }
 
     private async void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -223,7 +227,10 @@ public partial class ToastWindow : OverlayWindow
             dataTransfer.Add(DataTransferItem.CreateFile(storageFile));
 
             // Start drag operation
-            await DragDrop.DoDragDropAsync(e, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            if (_dragStartEventArgs != null)
+            {
+                await DragDrop.DoDragDropAsync(_dragStartEventArgs, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            }
         }
     }
 

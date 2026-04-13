@@ -176,6 +176,19 @@ public partial class IndexFolderViewModel : ViewModelBase
         }
     }
 
+    public bool IgnoreEmptyFolders
+    {
+        get => _taskSettings.ToolsSettings.IndexerSettings.IgnoreEmptyFolders;
+        set
+        {
+            if (_taskSettings.ToolsSettings.IndexerSettings.IgnoreEmptyFolders != value)
+            {
+                _taskSettings.ToolsSettings.IndexerSettings.IgnoreEmptyFolders = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public int MaxDepthLevel
     {
         get => _taskSettings.ToolsSettings.IndexerSettings.MaxDepthLevel;

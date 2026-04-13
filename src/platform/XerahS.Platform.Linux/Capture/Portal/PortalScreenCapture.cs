@@ -63,7 +63,8 @@ internal static class PortalScreenCapture
             LogPortalDiagnosticsOnce();
 
             using var connection = new Connection(Address.Session);
-            await connection.ConnectAsync().ConfigureAwait(false);
+            var connectionInfo = await connection.ConnectAsync().ConfigureAwait(false);
+            global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(connection, connectionInfo);
 
             var portal = connection.CreateProxy<IScreenshotPortal>(PortalBusName, PortalObjectPath);
 
@@ -116,13 +117,17 @@ internal static class PortalScreenCapture
     {
         var requestStartUtc = DateTime.UtcNow;
         using var monitor = PortalBusMonitor.TryStart("LinuxScreenCaptureService");
-        var requestPath = await portal.ScreenshotAsync(string.Empty, options).ConfigureAwait(false);
-        var request = connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
         using var cts = new CancellationTokenSource(PortalResponseTimeout);
         (uint response, IDictionary<string, object> results) result;
         try
         {
-            result = await request.WaitForResponseAsync(cts.Token).ConfigureAwait(false);
+            result = await connection
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => portal.ScreenshotAsync(string.Empty, options),
+                    cts.Token)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

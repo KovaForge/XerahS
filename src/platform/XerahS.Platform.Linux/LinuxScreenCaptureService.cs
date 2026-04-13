@@ -130,6 +130,14 @@ namespace XerahS.Platform.Linux
 
         Task<(SKBitmap? bitmap, uint response)> ILinuxCaptureRuntime.TryPortalCaptureAsync(LinuxCaptureKind kind, CaptureOptions? options)
         {
+            if (kind == LinuxCaptureKind.FullScreen &&
+                ShouldSkipPortalAfterOverlaySelection(options, LinuxRuntimeContextDetector.Detect()))
+            {
+                DebugHelper.WriteLine(
+                    "LinuxScreenCaptureService: skipping portal full-screen capture because the XerahS overlay follow-up on GNOME Wayland must not reopen portal UI after region selection.");
+                return Task.FromResult<(SKBitmap? bitmap, uint response)>((null, PortalScreenCapture.PortalResponseFailed));
+            }
+
             bool forceInteractive = kind != LinuxCaptureKind.FullScreen || ShouldForceInteractivePortalFullScreen(options);
             // Do not enable allowInteractiveFallback: on GNOME, the portal can emit response=2 while the
             // capture path is still acceptable; a silent-then-interactive retry then prompts twice or
@@ -263,6 +271,7 @@ namespace XerahS.Platform.Linux
             DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Input rect (from UI): Left={rect.Left}, Top={rect.Top}, Right={rect.Right}, Bottom={rect.Bottom}, Size={rect.Right - rect.Left:F0}x{rect.Bottom - rect.Top:F0}");
 
             var context = LinuxRuntimeContextDetector.Detect();
+            var fullScreenFallbackOptions = options;
             if (ShouldUseDirectGnomeAreaCapture(options, context))
             {
                 var areaRect = CreateDirectAreaCaptureRect(rect);
@@ -278,11 +287,12 @@ namespace XerahS.Platform.Linux
                     }
 
                     DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: GNOME direct area capture returned null; falling back to full-screen crop path.");
+                    fullScreenFallbackOptions = CreateFullScreenFallbackOptionsAfterDirectAreaFailure(options, context);
                 }
             }
 
             // Capture full screen with the same options and crop.
-            var fullBitmap = await CaptureFullScreenAsync(options);
+            var fullBitmap = await CaptureFullScreenAsync(fullScreenFallbackOptions);
             if (fullBitmap == null)
             {
                 DebugHelper.WriteLine("LinuxScreenCaptureService: CaptureRectAsync: CaptureFullScreenAsync returned null");
@@ -562,7 +572,15 @@ namespace XerahS.Platform.Linux
         internal static bool ShouldUseDirectGnomeAreaCapture(CaptureOptions? options, ILinuxCaptureContext context)
         {
             return context.IsWayland &&
-                options?.UseTransparentOverlay == true &&
+                string.Equals(context.Desktop, "GNOME", StringComparison.Ordinal) &&
+                (options?.UseTransparentOverlay == true ||
+                 options?.LinuxDisallowPortalAfterOverlaySelection == true);
+        }
+
+        internal static bool ShouldSkipPortalAfterOverlaySelection(CaptureOptions? options, ILinuxCaptureContext context)
+        {
+            return context.IsWayland &&
+                options?.LinuxDisallowPortalAfterOverlaySelection == true &&
                 string.Equals(context.Desktop, "GNOME", StringComparison.Ordinal);
         }
 
@@ -573,6 +591,41 @@ namespace XerahS.Platform.Linux
                 (int)Math.Floor(rect.Top),
                 (int)Math.Ceiling(rect.Right),
                 (int)Math.Ceiling(rect.Bottom));
+        }
+
+        internal static CaptureOptions? CreateFullScreenFallbackOptionsAfterDirectAreaFailure(
+            CaptureOptions? options,
+            ILinuxCaptureContext context)
+        {
+            if (!ShouldSkipPortalAfterOverlaySelection(options, context))
+            {
+                return options;
+            }
+
+            DebugHelper.WriteLine(
+                "LinuxScreenCaptureService: GNOME direct area capture failed; restoring v0.20.12-style full-screen fallback for the follow-up crop.");
+
+            return new CaptureOptions
+            {
+                UseModernCapture = options?.UseModernCapture ?? true,
+                LinuxRegionSelectorPreference = options?.LinuxRegionSelectorPreference ?? LinuxInteractiveRegionSelectorPreference.Automatic,
+                LinuxForceLegacyCapturePath = options?.LinuxForceLegacyCapturePath ?? false,
+                LinuxDisallowPortalAfterOverlaySelection = false,
+                ShowCursor = options?.ShowCursor ?? true,
+                CaptureTransparent = options?.CaptureTransparent ?? false,
+                // Match the pre-direct-area fallback path: once the fast transparent-overlay path
+                // has already failed, fall back to a normal full-screen capture request/crop flow.
+                UseTransparentOverlay = false,
+                CaptureShadow = options?.CaptureShadow ?? true,
+                CaptureClientArea = options?.CaptureClientArea ?? false,
+                WorkflowId = options?.WorkflowId,
+                WorkflowCategory = options?.WorkflowCategory,
+                CaptureStartDelaySeconds = options?.CaptureStartDelaySeconds ?? 0,
+                CaptureStartDelayCancellationToken = options?.CaptureStartDelayCancellationToken ?? default,
+                VirtualScreenBoundsForCrop = options?.VirtualScreenBoundsForCrop,
+                PhysicalVirtualScreenBoundsForCrop = options?.PhysicalVirtualScreenBoundsForCrop,
+                PhysicalRectForCrop = options?.PhysicalRectForCrop
+            };
         }
 
         private static bool ShouldForceInteractivePortalFullScreen(CaptureOptions? options)

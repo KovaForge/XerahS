@@ -75,6 +75,13 @@ namespace XerahS.Indexer
                         }
 
                         FolderInfo subFolderInfo = GetFolderInfo(directoryInfo.FullName, level + 1);
+
+                        // Skip empty folders if the setting is enabled
+                        if (settings.IgnoreEmptyFolders && subFolderInfo.Files.Count == 0 && subFolderInfo.Folders.Count == 0)
+                        {
+                            continue;
+                        }
+
                         folderInfo.Folders.Add(subFolderInfo);
                         subFolderInfo.Parent = folderInfo;
                     }

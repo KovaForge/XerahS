@@ -114,7 +114,7 @@
                         <StackPanel Spacing="6">
                             <TextBlock Classes="fieldLabel" Text="Server URL *"/>
                             <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
-                                     Watermark="https://photos.example.com or https://photos.example.com/api"/>
+                                     PlaceholderText="https://photos.example.com or https://photos.example.com/api"/>
                             <TextBlock Classes="helper"
                                        Text="The plugin accepts a base URL or an /api URL and normalizes it to the correct Immich server root."/>
                         </StackPanel>
@@ -130,14 +130,14 @@
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="API Key Name"/>
                                 <TextBox Text="{Binding ApiKeyName, UpdateSourceTrigger=PropertyChanged}"
-                                         Watermark="XerahS Uploads"/>
+                                         PlaceholderText="XerahS Uploads"/>
                             </StackPanel>
 
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="API Key *"/>
                                 <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
                                          PasswordChar="*"
-                                         Watermark="Stored securely in the secret store"/>
+                                         PlaceholderText="Stored securely in the secret store"/>
                             </StackPanel>
                         </StackPanel>
 
@@ -146,14 +146,14 @@
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="Immich Email *"/>
                                 <TextBox Text="{Binding BootstrapEmail, UpdateSourceTrigger=PropertyChanged}"
-                                         Watermark="name@example.com"/>
+                                         PlaceholderText="name@example.com"/>
                             </StackPanel>
 
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="Immich Password *"/>
                                 <TextBox Text="{Binding BootstrapPassword, UpdateSourceTrigger=PropertyChanged}"
                                          PasswordChar="*"
-                                         Watermark="Used once to mint a scoped API key"/>
+                                         PlaceholderText="Used once to mint a scoped API key"/>
                             </StackPanel>
 
                             <TextBlock Classes="helper"
@@ -272,7 +272,7 @@
                                     IsEnabled="{Binding CanEditAlbumPicker}">
                             <TextBlock Classes="fieldLabel" Text="Album Name"/>
                             <TextBox Text="{Binding AlbumName, UpdateSourceTrigger=PropertyChanged}"
-                                     Watermark="ShareX Uploads"/>
+                                     PlaceholderText="ShareX Uploads"/>
                             <TextBlock Classes="helper"
                                        Text="Used for album creation and supports ShareX pattern variables if you want dated or project-based upload buckets."/>
                         </StackPanel>
@@ -309,7 +309,7 @@
                                     IsEnabled="{Binding IsShareEnabled}">
                             <TextBlock Classes="fieldLabel" Text="Custom Slug"/>
                             <TextBox Text="{Binding ShareSlug, UpdateSourceTrigger=PropertyChanged}"
-                                     Watermark="optional public short name"/>
+                                     PlaceholderText="optional public short name"/>
                         </StackPanel>
 
                         <CheckBox Content="Expire shared link automatically"
@@ -329,7 +329,7 @@
                             <TextBlock Classes="fieldLabel" Text="Share Password"/>
                             <TextBox Text="{Binding SharePassword, UpdateSourceTrigger=PropertyChanged}"
                                      PasswordChar="*"
-                                     Watermark="Stored securely if provided"/>
+                                     PlaceholderText="Stored securely if provided"/>
                         </StackPanel>
 
                         <WrapPanel ItemWidth="180" ItemHeight="36"

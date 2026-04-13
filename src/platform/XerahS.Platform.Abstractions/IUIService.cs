@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using XerahS.Core;
+using ShareX.ImageEditor.Hosting;
 using SkiaSharp;
 // REMOVED: System.Drawing
 
@@ -46,9 +47,26 @@ namespace XerahS.Platform.Abstractions
 
         /// <summary>
         /// Shows the image editor with the provided image and returns the edited image.
+        /// When sourceFilePath is provided, Save can overwrite the original file.
         /// When taskMode is true, the editor behaves like an in-workflow annotation step.
         /// </summary>
-        Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false);
+        Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false);
+
+        /// <summary>
+        /// Shows the image editor and returns the rendered image plus editable annotation state.
+        /// </summary>
+        async Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
+            SKBitmap image,
+            string? sourceFilePath = null,
+            bool taskMode = false,
+            IReadOnlyList<ShareX.ImageEditor.Core.Annotations.Annotation>? annotations = null,
+            bool restoredAnnotations = false)
+        {
+            SKBitmap? renderedImage = await ShowEditorAsync(image, sourceFilePath, taskMode);
+            return renderedImage == null
+                ? null
+                : new ImageEditorSessionResult(renderedImage, null, Array.Empty<ShareX.ImageEditor.Core.Annotations.Annotation>());
+        }
 
         /// <summary>
         /// Shows the video editor for the given video file. Returns the exported output path
@@ -68,5 +86,28 @@ namespace XerahS.Platform.Abstractions
         /// Shows the After Upload window with upload results and actions.
         /// </summary>
         Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info);
+
+        /// <summary>
+        /// Shows the Send-to action prompt and returns the chosen action.
+        /// Implementations may return a fallback upload decision when interactive UI is unavailable.
+        /// </summary>
+        Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection);
+
+        /// <summary>
+        /// Executes a non-upload Send-to action against the provided selection.
+        /// </summary>
+        Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection);
+
+        /// <summary>
+        /// Shows the OCR window with the provided image and runs text recognition.
+        /// Used as an AfterCapture task triggered by the DoOCR flag.
+        /// </summary>
+        Task ShowOcrWindowAsync(SKBitmap image);
+
+        /// <summary>
+        /// Shows the image analyzer window with the provided image.
+        /// Used as an AfterCapture task triggered by the AnalyzeImage flag.
+        /// </summary>
+        Task ShowAnalyzerWindowAsync(SKBitmap image);
     }
 }

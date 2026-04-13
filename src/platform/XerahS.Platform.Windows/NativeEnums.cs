@@ -444,6 +444,8 @@ namespace XerahS.Platform.Windows
         WS_THICKFRAME = 0x00040000,
         WS_GROUP = 0x00020000,
         WS_TABSTOP = 0x00010000,
+        WS_HSCROLL = 0x00100000,
+        WS_VSCROLL = 0x00200000,
         WS_MINIMIZEBOX = 0x00020000,
         WS_MAXIMIZEBOX = 0x00010000,
         WS_TILED = WS_OVERLAPPED,

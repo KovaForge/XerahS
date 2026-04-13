@@ -33,6 +33,11 @@ namespace XerahS.RegionCapture.ScreenRecording;
 public interface IRecordingService : IDisposable
 {
     /// <summary>
+    /// Returns the runtime capabilities this backend can safely provide for the requested start options.
+    /// </summary>
+    RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options);
+
+    /// <summary>
     /// Start a new recording session
     /// Note: CancellationToken support deferred to future optimization
     /// </summary>
@@ -56,6 +61,15 @@ public interface IRecordingService : IDisposable
     /// Fired when recording status changes (Idle -> Initializing -> Recording -> Finalizing -> Idle)
     /// </summary>
     event EventHandler<RecordingStatusEventArgs> StatusChanged;
+}
+
+/// <summary>
+/// Optional backend contract for true in-process pause/resume support.
+/// </summary>
+public interface IPausableRecordingService
+{
+    Task PauseRecordingAsync();
+    Task ResumeRecordingAsync();
 }
 
 /// <summary>

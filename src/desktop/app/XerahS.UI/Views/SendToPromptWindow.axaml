@@ -1,0 +1,227 @@
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:ui="using:XerahS.UI.Views"
+                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                  xmlns:vm="using:XerahS.UI.ViewModels"
+                  mc:Ignorable="d"
+                  x:Class="XerahS.UI.Views.SendToPromptWindow"
+                  x:DataType="vm:SendToPromptViewModel"
+                  x:CompileBindings="True"
+                  Title="How should XerahS handle sent files?"
+                  Icon="/Assets/Logo.ico"
+                  Width="{DynamicResource WindowWidth}"
+                  Height="{DynamicResource WindowHeight}"
+                  MinWidth="{DynamicResource WindowMinWidth}"
+                  MinHeight="{DynamicResource WindowMinHeight}"
+                  WindowStartupLocation="CenterOwner">
+
+  <Window.Resources>
+    <x:Double x:Key="WindowWidth">920</x:Double>
+    <x:Double x:Key="WindowHeight">620</x:Double>
+    <x:Double x:Key="WindowMinWidth">760</x:Double>
+    <x:Double x:Key="WindowMinHeight">520</x:Double>
+
+    <x:Double x:Key="SpaceXS">4</x:Double>
+    <x:Double x:Key="SpaceS">8</x:Double>
+    <x:Double x:Key="SpaceM">12</x:Double>
+    <x:Double x:Key="SpaceL">16</x:Double>
+    <x:Double x:Key="SpaceXL">24</x:Double>
+
+    <x:Double x:Key="FontTitle">22</x:Double>
+    <x:Double x:Key="FontSection">16</x:Double>
+    <x:Double x:Key="FontBody">13</x:Double>
+    <x:Double x:Key="FontCaption">12</x:Double>
+
+    <x:Double x:Key="ControlHeight">40</x:Double>
+    <x:Double x:Key="ButtonMinWidth">150</x:Double>
+
+    <Thickness x:Key="PagePadding">24</Thickness>
+    <Thickness x:Key="CardPadding">16</Thickness>
+    <Thickness x:Key="CardPaddingCompact">12</Thickness>
+    <Thickness x:Key="ButtonPadding">16,8</Thickness>
+    <Thickness x:Key="BorderThin">1</Thickness>
+
+    <CornerRadius x:Key="CornerMd">8</CornerRadius>
+    <CornerRadius x:Key="CornerLg">12</CornerRadius>
+  </Window.Resources>
+
+  <Window.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource FontBody}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="{StaticResource FontTitle}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.section-header">
+      <Setter Property="FontSize" Value="{StaticResource FontSection}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="FontSize" Value="{StaticResource FontCaption}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+      <Setter Property="BorderThickness" Value="{StaticResource BorderThin}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource CornerLg}"/>
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="{StaticResource ControlHeight}"/>
+      <Setter Property="MinWidth" Value="{StaticResource ButtonMinWidth}"/>
+      <Setter Property="Padding" Value="{StaticResource ButtonPadding}"/>
+      <Setter Property="CornerRadius" Value="{StaticResource CornerMd}"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+  </Window.Styles>
+
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="{StaticResource PagePadding}">
+    <Grid RowDefinitions="Auto,*,Auto"
+          RowSpacing="{StaticResource SpaceXL}">
+      <Border Grid.Row="0"
+              Classes="card"
+              Padding="{StaticResource CardPadding}">
+        <Grid RowDefinitions="Auto,Auto"
+              RowSpacing="{StaticResource SpaceXS}">
+          <TextBlock Text="How should XerahS handle sent files?"
+                     Classes="title"
+                     AutomationProperties.Name="Send to title"/>
+          <TextBlock Grid.Row="1"
+                     Text="Choose the action before XerahS starts processing this Send-to batch."
+                     Classes="caption"
+                     AutomationProperties.Name="Send to description"/>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1"
+            ColumnDefinitions="1.05*,0.95*"
+            ColumnSpacing="{StaticResource SpaceL}">
+        <Border Classes="card"
+                Padding="{StaticResource CardPadding}">
+          <StackPanel Spacing="{StaticResource SpaceL}">
+            <StackPanel Spacing="{StaticResource SpaceXS}">
+              <TextBlock Text="Selection"
+                         Classes="section-header"
+                         AutomationProperties.Name="Selection heading"/>
+              <TextBlock Text="{Binding SelectionSummaryText}"
+                         FontWeight="SemiBold"
+                         AutomationProperties.Name="Selection summary"/>
+              <TextBlock Text="{Binding SelectionDetailsText}"
+                         Classes="caption"
+                         AutomationProperties.Name="Selection detail"/>
+            </StackPanel>
+
+            <Border Classes="card"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                    Padding="{StaticResource CardPaddingCompact}">
+              <StackPanel Spacing="{StaticResource SpaceXS}">
+                <TextBlock Text="Classification"
+                           Classes="caption"
+                           AutomationProperties.Name="Selection kind label"/>
+                <TextBlock Text="{Binding SelectionKindText}"
+                           FontWeight="SemiBold"
+                           AutomationProperties.Name="Selection kind"/>
+                <TextBlock Text="{Binding ActionScopeText}"
+                           Classes="caption"
+                           AutomationProperties.Name="Selection action scope"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1"
+                Classes="card"
+                Padding="{StaticResource CardPadding}">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="{StaticResource SpaceM}">
+              <StackPanel Spacing="{StaticResource SpaceXS}">
+                <TextBlock Text="Actions"
+                           Classes="section-header"
+                           AutomationProperties.Name="Actions heading"/>
+                <TextBlock Text="Primary actions are always available. Context-specific actions appear only when the sent items support them."
+                           Classes="caption"
+                           AutomationProperties.Name="Actions description"/>
+              </StackPanel>
+
+              <StackPanel Spacing="{StaticResource SpaceS}">
+                <StackPanel Spacing="{StaticResource SpaceXS}">
+                  <Button Content="Upload now"
+                          Classes="accent"
+                          Command="{Binding UploadNowCommand}"
+                          IsDefault="True"
+                          AutomationProperties.Name="Upload now"/>
+                  <TextBlock Text="{Binding UploadNowDescription}"
+                             Classes="caption"
+                             AutomationProperties.Name="Upload now description"/>
+                </StackPanel>
+
+                <StackPanel Spacing="{StaticResource SpaceXS}">
+                  <Button Content="Open in Upload Content"
+                          Command="{Binding OpenUploadContentCommand}"
+                          AutomationProperties.Name="Open in Upload Content"/>
+                  <TextBlock Text="{Binding UploadContentDescription}"
+                             Classes="caption"
+                             AutomationProperties.Name="Upload Content description"/>
+                </StackPanel>
+
+                <StackPanel Spacing="{StaticResource SpaceXS}"
+                            IsVisible="{Binding CanOpenImageEditor}">
+                  <Button Content="Open in Image Editor"
+                          Command="{Binding OpenImageEditorCommand}"
+                          AutomationProperties.Name="Open in Image Editor"/>
+                  <TextBlock Text="{Binding ImageEditorDescription}"
+                             Classes="caption"
+                             AutomationProperties.Name="Image Editor description"/>
+                </StackPanel>
+
+                <StackPanel Spacing="{StaticResource SpaceXS}"
+                            IsVisible="{Binding CanPinToScreen}">
+                  <Button Content="Pin to Screen"
+                          Command="{Binding PinToScreenCommand}"
+                          AutomationProperties.Name="Pin to Screen"/>
+                  <TextBlock Text="{Binding PinToScreenDescription}"
+                             Classes="caption"
+                             AutomationProperties.Name="Pin to Screen description"/>
+                </StackPanel>
+
+                <StackPanel Spacing="{StaticResource SpaceXS}"
+                            IsVisible="{Binding CanIndexFolders}">
+                  <Button Content="{Binding IndexActionLabel}"
+                          Command="{Binding IndexFoldersCommand}"
+                          AutomationProperties.Name="Index folders"/>
+                  <TextBlock Text="{Binding IndexActionDescription}"
+                             Classes="caption"
+                             AutomationProperties.Name="Index folders description"/>
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+      </Grid>
+
+      <Border Grid.Row="2"
+              Classes="card"
+              Padding="{StaticResource CardPaddingCompact}">
+        <Grid ColumnDefinitions="*,Auto"
+              ColumnSpacing="{StaticResource SpaceM}"
+              VerticalAlignment="Center">
+          <TextBlock Text="Closing the dialog cancels this Send-to request."
+                     Classes="caption"
+                     AutomationProperties.Name="Cancel hint"/>
+          <Button Grid.Column="1"
+                  Content="Cancel"
+                  Command="{Binding CancelCommand}"
+                  IsCancel="True"
+                  AutomationProperties.Name="Cancel"/>
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

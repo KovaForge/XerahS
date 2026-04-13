@@ -86,7 +86,7 @@ public class WindowsOcrService : IOcrService
         int newHeight = (int)(source.Height * scaleFactor);
         var info = new SKImageInfo(newWidth, newHeight, source.ColorType, source.AlphaType);
         var scaled = new SKBitmap(info);
-        source.ScalePixels(scaled, SKFilterQuality.High);
+        source.ScalePixels(scaled, new SKSamplingOptions(SKCubicResampler.Mitchell));
         return scaled;
     }
 

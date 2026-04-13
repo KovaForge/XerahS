@@ -32,6 +32,10 @@
                 <MenuItem Header="Edit..."
                           Command="{Binding EditImageCommand}"
                           InputGesture="Enter"/>
+                <MenuItem Header="Edit Annotations"
+                          Command="{Binding EditAnnotationsCommand}"
+                          IsVisible="{Binding Item.HasEditableAnnotations}"
+                          InputGesture="Ctrl+Shift+E"/>
                 <MenuItem Header="Open File"
                           Command="{Binding OpenFileCommand}"/>
                 <MenuItem Header="Upload"
@@ -87,6 +91,8 @@
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <StyleInclude Source="avares://XerahS.UI/Themes/Typography.axaml" />
         <StyleInclude Source="avares://XerahS.UI/Themes/ThemeResources.axaml" />
+        <StyleInclude Source="avares://XerahS.UI/Onboarding/Styles/OnboardingStyles.axaml" />
+        <StyleInclude Source="avares://XerahS.UI/Onboarding/Styles/OnboardingDesignTokens.axaml" />
     </Application.Styles>
 
     <TrayIcon.Icons>
@@ -104,4 +110,3 @@
         </TrayIcons>
     </TrayIcon.Icons>
 </Application>
-

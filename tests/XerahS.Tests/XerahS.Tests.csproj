@@ -28,8 +28,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\src\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
@@ -54,6 +57,8 @@
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <Compile Remove="Platform\Windows\WindowsClipboardImageHelperTests.cs" />
+    <Compile Remove="Platform\Windows\WindowsScrollingCaptureServiceTests.cs" />
+    <Compile Remove="RegionCapture\NativeWindowServiceTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,5 @@
 # One-time: merge legacy XIP*.md (old naming) into GitHub issues (masters), then remove old files.
-# Master = file name that matches GitHub issue (XIP####-slug.md). Old = any other XIP*.md under tasks/.
+# Master = file name that matches GitHub issue (XIP####-slug.md). Old = any other XIP*.md under docs/proposals/xip/.
 # Usage: run from repo root: .\.ai\skills\sync-xips\scripts\merge-old-xips.ps1
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +12,7 @@ for ($i = 0; $i -lt 5; $i++) {
 if (-not (Test-Path (Join-Path $repoRoot ".git"))) {
     Write-Error "Repo root not found. Run from XerahS repo."
 }
-$tasksRoot = Join-Path $repoRoot "tasks"
+$backupRoot = Join-Path $repoRoot "docs/proposals/xip"
 
 function Get-XipNumFromTitle($title) {
     if ($title -match 'XIP[\s\-]?(\d+)') { return $Matches[1].PadLeft(4, '0') }
@@ -23,7 +23,8 @@ function Get-TitleWithoutXipPrefix($title) {
     return $t.Trim()
 }
 function Get-Slug($titlePart) {
-    $s = $titlePart -replace '[^\w\s\-]', ''
+    $s = $titlePart -replace '[^\x20-\x7E]', '-'
+    $s = $s -replace '[^a-zA-Z0-9\s\-]', ''
     $s = $s -replace '\s+', '-'
     $s = $s -replace '\-+', '-'
     $s = $s.Trim('-').ToLowerInvariant()
@@ -48,15 +49,15 @@ foreach ($issue in $issues) {
     $byXipNum[$xipNum] = @{ issueNumber = $issue.number; body = $issue.body; canonicalFileName = $canonical }
 }
 
-# Find all XIP*.md under tasks/ (recursive)
-$allMd = Get-ChildItem -Path $tasksRoot -Recurse -Filter "XIP*.md" -File -ErrorAction SilentlyContinue
+# Find all XIP*.md under docs/proposals/xip/ (recursive)
+$allMd = Get-ChildItem -Path $backupRoot -Recurse -Filter "XIP*.md" -File -ErrorAction SilentlyContinue
 $oldFiles = @()
 foreach ($f in $allMd) {
     $base = $f.Name
     $xipNum = Get-XipNumFromFilename $base
     if (-not $xipNum) { continue }
     $canonical = $byXipNum[$xipNum].canonicalFileName
-    $isInRoot = ($f.DirectoryName -eq $tasksRoot)
+    $isInRoot = ($f.DirectoryName -eq $backupRoot)
     if ($base -eq $canonical -and $isInRoot) { continue }
     $oldFiles += @{ path = $f.FullName; base = $base; xipNum = $xipNum }
 }
@@ -134,14 +135,14 @@ foreach ($o in $oldFiles) {
 }
 
 foreach ($sub in @("active", "complete", "parked")) {
-    $dir = Join-Path $tasksRoot $sub
+    $dir = Join-Path $backupRoot $sub
     if (Test-Path $dir) {
         $left = Get-ChildItem -Path $dir -Force -ErrorAction SilentlyContinue
         if (-not $left -or $left.Count -eq 0) {
             Remove-Item -Path $dir -Force
-            Write-Host "  Removed empty folder: tasks/$sub/" -ForegroundColor Gray
+            Write-Host "  Removed empty folder: docs/proposals/xip/$sub/" -ForegroundColor Gray
         }
     }
 }
 
-Write-Host "Done. Legacy content merged into GitHub; backup synced to tasks/; old files removed." -ForegroundColor Green
+Write-Host "Done. Legacy content merged into GitHub; backup synced to docs/proposals/xip/; old files removed." -ForegroundColor Green

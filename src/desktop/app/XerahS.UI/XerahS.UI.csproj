@@ -21,11 +21,13 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="SkiaSharp" />
 
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Common\XerahS.Common.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Media\XerahS.Media.csproj" />
@@ -42,6 +44,9 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Remove="_Onboarding_DISABLED_\**" />
+    <Compile Remove="_Onboarding_DISABLED_\**" />
+    <EmbeddedResource Remove="_Onboarding_DISABLED_\**" />
+    <None Remove="_Onboarding_DISABLED_\**" />
   </ItemGroup>
 </Project>
-

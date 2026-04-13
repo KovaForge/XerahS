@@ -224,13 +224,22 @@ namespace XerahS.Core.Tasks
                     if (taskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia)
                         && PlatformServices.IsInitialized && PlatformServices.UI != null)
                     {
-                        string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
-                        string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
-                        if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
+                        VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
+                        if (!launchPolicy.AllowAutoLaunchAfterCapture)
                         {
-                            outputPath = editedPath;
-                            Info.FilePath = outputPath;
-                            DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
+                            DebugHelper.WriteLine($"VideoEditor auto-launch skipped: {launchPolicy.AutoLaunchBlockedReason}");
+                            ShowDeferredVideoEditorToast(outputPath, launchPolicy.AutoLaunchBlockedReason);
+                        }
+                        else
+                        {
+                            string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
+                            string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
+                            if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
+                            {
+                                outputPath = editedPath;
+                                Info.FilePath = outputPath;
+                                DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
+                            }
                         }
                     }
 
@@ -403,6 +412,36 @@ namespace XerahS.Core.Tasks
 
             string detectedPath = PathsManager.GetFFmpegPath();
             return string.IsNullOrWhiteSpace(detectedPath) ? null : detectedPath;
+        }
+
+        private static void ShowDeferredVideoEditorToast(string outputPath, string? message)
+        {
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                return;
+            }
+
+            try
+            {
+                PlatformServices.Toast?.ShowToast(new Platform.Abstractions.ToastConfig
+                {
+                    Title = "Recording Saved",
+                    Text = string.IsNullOrWhiteSpace(message)
+                        ? "Recording saved. Open the video editor manually if needed."
+                        : message,
+                    FilePath = outputPath,
+                    Duration = 8f,
+                    Size = new SizeI(480, 140),
+                    AutoHide = true,
+                    LeftClickAction = Platform.Abstractions.ToastClickAction.OpenFile,
+                    MiddleClickAction = Platform.Abstractions.ToastClickAction.AnnotateMedia,
+                    RightClickAction = Platform.Abstractions.ToastClickAction.CloseNotification
+                });
+            }
+            catch
+            {
+                // Ignore toast failures so the recording flow can finish cleanly.
+            }
         }
 
         private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)

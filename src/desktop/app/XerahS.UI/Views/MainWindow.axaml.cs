@@ -34,6 +34,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
 using SkiaSharp;
@@ -59,7 +60,9 @@ namespace XerahS.UI.Views
         private readonly IDesktopTaskManager? _taskManager;
         private EditorView? _editorView = null;
         private DestinationSettingsView? _destinationSettingsView = null;
+        private MainViewModel? _mainViewModel;
         private bool _isOpenImageInProgress;
+        private bool _onboardingShown;
 
         /// <summary>
         /// Collection of user-configured workflows for menu binding.
@@ -83,8 +86,14 @@ namespace XerahS.UI.Views
             NavigateMenuCommand = new RelayCommand<string?>(NavigateFromMenuTag);
             RunWorkflowFromMenuCommand = new RelayCommand<WorkflowSettings?>(RunWorkflowFromMenu);
             InitializeComponent();
+            DataContextChanged += OnMainWindowDataContextChanged;
             KeyDown += OnKeyDown;
             ApplyInitialWindowPlacement();
+
+            if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)
+            {
+                contentFrame.PropertyChanged += OnContentFramePropertyChanged;
+            }
 
 #if !DEBUG
             // Video Editor is a work-in-progress; hide it in release builds.
@@ -103,6 +112,75 @@ namespace XerahS.UI.Views
 
             LoadUserWorkflows();
             NavigateTo("Editor");
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            DataContextChanged -= OnMainWindowDataContextChanged;
+
+            if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)
+            {
+                contentFrame.PropertyChanged -= OnContentFramePropertyChanged;
+            }
+
+            if (_mainViewModel != null)
+            {
+                _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+                _mainViewModel = null;
+            }
+
+            base.OnClosed(e);
+        }
+
+        private void OnMainWindowDataContextChanged(object? sender, EventArgs e)
+        {
+            if (_mainViewModel != null)
+            {
+                _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+            }
+
+            if (sender is not MainWindow window || window.DataContext is not MainViewModel nextVm)
+            {
+                _mainViewModel = null;
+                UpdateShellModalVisibility();
+                return;
+            }
+
+            _mainViewModel = nextVm;
+            _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
+            UpdateShellModalVisibility();
+        }
+
+        private void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(MainViewModel.IsModalOpen) or nameof(MainViewModel.ModalContent))
+            {
+                UpdateShellModalVisibility();
+            }
+        }
+
+        private void OnContentFramePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == ContentControl.ContentProperty)
+            {
+                UpdateShellModalVisibility();
+            }
+        }
+
+        private void UpdateShellModalVisibility()
+        {
+            Grid? overlay = this.FindControl<Grid>("MainWindowModalOverlay");
+            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
+
+            if (overlay == null)
+            {
+                return;
+            }
+
+            bool isEditorContent = contentFrame?.Content is EditorView;
+            bool isModalOpen = _mainViewModel?.IsModalOpen == true;
+
+            overlay.IsVisible = isModalOpen && !isEditorContent;
         }
 
         private void NavigateFromMenuTag(string? navTag)
@@ -241,7 +319,7 @@ namespace XerahS.UI.Views
 
                 // Ownership of bitmap is transferred to ViewModel.
                 vm.UpdatePreview(bitmap, clearAnnotations: true);
-                vm.LastSavedPath = path;
+                vm.ImageFilePath = path;
                 bitmap = null;
             }
             catch (Exception ex)
@@ -405,6 +483,29 @@ namespace XerahS.UI.Views
 
             // Pre-warm Destination Settings so the first navigation does not pay init cost.
             Dispatcher.UIThread.Post(() => _ = PreWarmDestinationSettingsAsync(), DispatcherPriority.Background);
+
+            // Show onboarding wizard once on first run — guard prevents double-fire on repeated OnWindowOpened calls.
+            if (SettingsManager.Settings.IsFirstTimeRun && !_onboardingShown)
+            {
+                _onboardingShown = true;
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    try
+                    {
+                        var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
+                        var result = await wizard.ShowDialogAsync(this);
+                        if (result.Completed || result.Skipped)
+                        {
+                            XerahS.Common.DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                            SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
+                    }
+                }, DispatcherPriority.Background);
+            }
         }
 
         private async Task PreWarmDestinationSettingsAsync()

@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using ShareX.ImageEditor.Core.Persistence;
 using ShareX.ImageEditor.Presentation.Rendering;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
@@ -101,9 +102,9 @@ public static class MainViewModelHelper
         DebugHelper.WriteLine("MainViewModelHelper: SaveRequested received");
         try
         {
-            if (!string.IsNullOrEmpty(viewModel.LastSavedPath))
+            if (!string.IsNullOrEmpty(viewModel.ImageFilePath))
             {
-                SaveToPath(viewModel, getEditedSnapshot, viewModel.LastSavedPath);
+                await SaveToPathAsync(viewModel, getEditedSnapshot, viewModel.ImageFilePath);
             }
             else
             {
@@ -130,9 +131,9 @@ public static class MainViewModelHelper
                 return;
             }
 
-            string suggestedName = string.IsNullOrEmpty(viewModel.LastSavedPath)
+            string suggestedName = string.IsNullOrEmpty(viewModel.ImageFilePath)
                 ? "image.png"
-                : Path.GetFileName(viewModel.LastSavedPath);
+                : Path.GetFileName(viewModel.ImageFilePath);
 
             var options = new FilePickerSaveOptions
             {
@@ -154,7 +155,7 @@ public static class MainViewModelHelper
                 return;
             }
 
-            SaveToPath(viewModel, getEditedSnapshot, path);
+            await SaveToPathAsync(viewModel, getEditedSnapshot, path);
         }
         catch (Exception ex)
         {
@@ -163,7 +164,7 @@ public static class MainViewModelHelper
         }
     }
 
-    private static void SaveToPath(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, string path)
+    private static async Task SaveToPathAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, string path)
     {
         SKBitmap? bitmap = getEditedSnapshot?.Invoke();
         if (bitmap == null && viewModel.PreviewImage != null)
@@ -185,8 +186,25 @@ public static class MainViewModelHelper
             data.SaveTo(stream);
         }
 
-        viewModel.LastSavedPath = path;
+        viewModel.ImageFilePath = path;
         viewModel.IsDirty = false;
+
+        var annotations = viewModel.GetAnnotationSnapshotForPersistence();
+        using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
+        if (annotations.Count > 0 && sourceImage != null)
+        {
+            string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
+        }
+        else
+        {
+            bool deleted = XannProjectFileService.TryDeleteSidecar(path);
+            if (deleted)
+            {
+                DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");
+            }
+        }
+
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
     }
 
