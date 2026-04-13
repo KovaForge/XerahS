@@ -1,4 +1,4 @@
-﻿# XerahS.Uploaders Usage Audit (Desktop Plugin Architecture)
+# XerahS.Uploaders Usage Audit (Desktop Plugin Architecture)
 
 Date: 2026-02-23
 

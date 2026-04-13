@@ -123,7 +123,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Overlay & capture parity**: Align Linux overlay capture with Windows; fix region selector preference on hotkey-triggered captures `(4688c133, ee254f7b)`
 - **Modals & catalog**: Centralize modal opening; dispatch opens on UI thread for Add from Catalog on Linux `(be448902, 326d1049)`
 - **Recording & video editor**: Gate unsupported pause on Wayland; harden editor launch `(2a6a0b50, 06659ec3)`
-- **Core**: Upload fallback Fileâ†’Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
+- **Core**: Upload fallback File→Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
 - **Hotkeys / Imgur**: X11 fallback when portal bind cancelled; cross-platform OAuth URL helpers `(0939672f, 656e2975)`
 - **Linux (Wayland / GNOME / KDE)**: Portal retry, transparent overlay and mixed-DPI, `UseTransparentOverlay` plumbing, DBus crash guard, selector defaults, GNOME crop workflow `(377425be, a3685245, b65e9848, e65bcc56, 08e4ed7e, c0c04c84, a72a6e6c)`
 - **Paths / UI / upload**: User-writable plugins folder; effect browser aligned with unified editor API; auto-heal stale destination instance IDs `(fb1c443b, 0ad4bfb4, f1e87b3a)`
@@ -134,8 +134,8 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **ShareX.ImageEditor**: Submodule tracking (IEIP0004 branch, develop, parity/revert/schema fixes) `(6d4a3939, 4377f217, e5acc011, 337bc8aa, f49f8cb2, 31348f9f, e06a47ed)`
 - **Tooling & quality**: Upload fallback logging/comments; default publish-release to prerelease; LF enforcement; CS8604/DBus `(9b2e33db, 4ab11c88, bd3e9c53, 90fa44b6, f5e6d2d0)`
 ### Documentation
-- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series â€” add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
-- **XIPs & proposals**: XIP0054â€“0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
+- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series — add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
+- **XIPs & proposals**: XIP0054–0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
 - **IEIP0004 / Linux**: Lessons from catalog browser integration; INSTALL.md; GNOME Wayland portal/overlay notes; interactive fallback explanation `(c920beee, fb6ec404, 5397a7f3, 6fa792a6)`
 - **Developers**: Move `PLUGIN_SDK.md` to `developers/guidelines/` `(e4e407ea)`
 ### Changed
