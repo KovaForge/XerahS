@@ -87,6 +87,11 @@ public sealed class AssistantPrivacyGuard
             return AssistantPrivacyDecision.Confirm($"Open image in editor? `{fileName}`");
         }
 
+        if (check.ToolName == AssistantToolNames.WorkflowRun)
+        {
+            return AssistantPrivacyDecision.Confirm("Run this configured XerahS workflow?");
+        }
+
         if (check.ItemCount > 5)
         {
             return AssistantPrivacyDecision.Confirm($"Run {check.ToolName} on {check.ItemCount} items?");

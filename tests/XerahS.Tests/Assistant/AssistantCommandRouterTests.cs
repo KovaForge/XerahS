@@ -102,4 +102,13 @@ public sealed class AssistantCommandRouterTests
         Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.UploadLatestScreenshot));
         Assert.That(intent.Limit, Is.EqualTo(1));
     }
+
+    [Test]
+    public void RunWorkflow_ParsesWorkflowName()
+    {
+        var intent = _router.Parse("run workflow region capture");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.RunWorkflow));
+        Assert.That(intent.Argument, Is.EqualTo("region capture"));
+    }
 }

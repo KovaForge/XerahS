@@ -260,4 +260,3 @@ public sealed record AssistantResponse(
     public static AssistantResponse Error(string message) =>
         new(AssistantResponseKind.Error, message, ReadOnlyCollection<AssistantResultItem>.Empty, ReadOnlyCollection<AssistantAction>.Empty);
 }
-

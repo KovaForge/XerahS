@@ -36,13 +36,15 @@ public enum AssistantDeterministicIntentKind
     RevealLatestScreenshot,
     OcrLatestScreenshot,
     CopyOcrLatestScreenshot,
-    UploadLatestScreenshot
+    UploadLatestScreenshot,
+    RunWorkflow
 }
 
 public sealed record AssistantDeterministicIntent(
     AssistantDeterministicIntentKind Kind,
     int Limit,
-    bool CopyRequested);
+    bool CopyRequested,
+    string? Argument = null);
 
 public sealed class AssistantCommandRouter
 {
@@ -78,6 +80,10 @@ public sealed class AssistantCommandRouter
 
     private static readonly Regex UploadLatestScreenshotRegex = new(
         @"\b(?:upload|share)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex RunWorkflowRegex = new(
+        @"\b(?:run|start)\s+(?:the\s+)?(?:workflow\s+)?(?<name>.+)$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     public AssistantDeterministicIntent Parse(string prompt)
@@ -142,6 +148,16 @@ public sealed class AssistantCommandRouter
                 CopyRequested: prompt.Contains("copy", StringComparison.OrdinalIgnoreCase));
         }
 
+        var workflowMatch = RunWorkflowRegex.Match(prompt);
+        if (workflowMatch.Success)
+        {
+            return new AssistantDeterministicIntent(
+                AssistantDeterministicIntentKind.RunWorkflow,
+                1,
+                CopyRequested: false,
+                Argument: workflowMatch.Groups["name"].Value.Trim());
+        }
+
         return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.Unknown, 0, CopyRequested: false);
     }
 
@@ -152,6 +168,7 @@ public sealed class AssistantCommandRouter
         "Open the latest screenshot in the editor",
         "Reveal the latest capture in Explorer",
         "Copy OCR text from the latest screenshot",
-        "Upload the latest screenshot"
+        "Upload the latest screenshot",
+        "Run workflow region capture"
     ];
 }

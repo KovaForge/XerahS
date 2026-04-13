@@ -27,6 +27,7 @@ using SkiaSharp;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
 using XerahS.Platform.Abstractions;
@@ -45,9 +46,10 @@ public sealed class AssistantService : IAssistantService
     private readonly IAssistantHistoryService _history;
     private readonly AssistantPrivacyGuard _privacyGuard;
     private readonly IDesktopTaskManager? _taskManager;
+    private readonly AssistantLocalMemoryStore _memoryStore;
 
     public AssistantService()
-        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard(), null)
+        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard(), null, null)
     {
     }
 
@@ -55,16 +57,29 @@ public sealed class AssistantService : IAssistantService
         AssistantCommandRouter router,
         IAssistantHistoryService history,
         AssistantPrivacyGuard privacyGuard,
-        IDesktopTaskManager? taskManager = null)
+        IDesktopTaskManager? taskManager = null,
+        AssistantLocalMemoryStore? memoryStore = null)
     {
         _router = router;
         _history = history;
         _privacyGuard = privacyGuard;
         _taskManager = taskManager ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
+        _memoryStore = memoryStore ?? new AssistantLocalMemoryStore();
     }
 
     public async Task<AssistantResponse> ProcessPromptAsync(string prompt, CancellationToken cancellationToken)
     {
+        if (_memoryStore.TryParseAliasDefinition(prompt, out AssistantAliasDefinition aliasDefinition))
+        {
+            _memoryStore.SaveAlias(aliasDefinition);
+            return AssistantResponse.Info($"Saved assistant alias: {aliasDefinition.Alias}");
+        }
+
+        if (_memoryStore.TryResolveAlias(prompt, out string aliasCommand))
+        {
+            prompt = aliasCommand;
+        }
+
         var intent = _router.Parse(prompt);
         if (intent.Kind == AssistantDeterministicIntentKind.Unknown)
         {
@@ -75,7 +90,9 @@ public sealed class AssistantService : IAssistantService
             }
         }
 
-        return await ProcessIntentAsync(intent, cancellationToken);
+        AssistantResponse response = await ProcessIntentAsync(intent, cancellationToken);
+        _memoryStore.RecordExecution(intent, BuildActionSummary(response));
+        return response;
     }
 
     private async Task<AssistantResponse> ProcessIntentAsync(
@@ -91,6 +108,7 @@ public sealed class AssistantService : IAssistantService
             AssistantDeterministicIntentKind.OcrLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RunOcr, cancellationToken),
             AssistantDeterministicIntentKind.CopyOcrLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RunOcr, cancellationToken, "copy"),
             AssistantDeterministicIntentKind.UploadLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.UploadFile, cancellationToken),
+            AssistantDeterministicIntentKind.RunWorkflow => await PrepareWorkflowRunAsync(intent.Argument, cancellationToken),
             _ => AssistantResponse.Info(
                 "AI provider not configured. XerahS Assistant can only run local commands without a provider.",
                 new AssistantAction(AssistantActionKind.ConfigureProvider, "Configure AI Provider"))
@@ -200,6 +218,9 @@ public sealed class AssistantService : IAssistantService
 
                 case AssistantActionKind.UploadFile:
                     return await UploadFileAsync(action.FilePath, cancellationToken);
+
+                case AssistantActionKind.RunWorkflow:
+                    return await RunWorkflowAsync(action.Text, cancellationToken);
 
                 default:
                     return AssistantResponse.Error("Unsupported assistant action.");
@@ -334,6 +355,27 @@ public sealed class AssistantService : IAssistantService
         return AssistantResponse.Info("Opened latest screenshot in the editor.");
     }
 
+    private Task<AssistantResponse> PrepareWorkflowRunAsync(string? workflowName, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        WorkflowSettings? workflow = ResolveWorkflow(workflowName);
+        if (workflow == null)
+        {
+            return Task.FromResult(AssistantResponse.Error("Configured workflow not found."));
+        }
+
+        string displayName = GetWorkflowDisplayName(workflow);
+        var action = new AssistantAction(
+            AssistantActionKind.RunWorkflow,
+            $"Run {displayName}",
+            Text: workflow.Id,
+            ToolName: AssistantToolNames.WorkflowRun,
+            RequiresConfirmation: true);
+
+        return ExecuteActionAsync(action, confirmed: false, cancellationToken);
+    }
+
     private async Task<AssistantResponse> RunOcrAsync(AssistantAction action, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -420,6 +462,27 @@ public sealed class AssistantService : IAssistantService
             : AssistantResponse.Error(task?.Info.Result?.Response ?? "Upload finished without a URL.");
     }
 
+    private async Task<AssistantResponse> RunWorkflowAsync(string? workflowId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_taskManager == null)
+        {
+            return AssistantResponse.Error("Workflow services are not ready yet.");
+        }
+
+        WorkflowSettings? workflow = ResolveWorkflow(workflowId);
+        if (workflow?.TaskSettings == null)
+        {
+            return AssistantResponse.Error("Configured workflow not found.");
+        }
+
+        TaskSettings settings = WatchFolderManager.CloneTaskSettings(workflow.TaskSettings);
+        settings.WorkflowId = workflow.Id;
+        await _taskManager.StartTask(settings);
+        return AssistantResponse.Info($"Workflow finished: {GetWorkflowDisplayName(workflow)}");
+    }
+
     private AssistantResultItem ToResultItem(AssistantHistoryItem item)
     {
         return new AssistantResultItem(
@@ -447,6 +510,7 @@ public sealed class AssistantService : IAssistantService
             AssistantActionKind.RevealFile => AssistantToolNames.FileReveal,
             AssistantActionKind.RunOcr => AssistantToolNames.OcrRun,
             AssistantActionKind.UploadFile => AssistantToolNames.UploadFile,
+            AssistantActionKind.RunWorkflow => AssistantToolNames.WorkflowRun,
             _ => string.Empty
         };
 
@@ -462,6 +526,48 @@ public sealed class AssistantService : IAssistantService
             FilePath: action.FilePath,
             IsKnownHistoryItem: isKnown,
             UserExplicitlyRequested: true));
+    }
+
+    private WorkflowSettings? ResolveWorkflow(string? workflowNameOrId)
+    {
+        if (string.IsNullOrWhiteSpace(workflowNameOrId))
+        {
+            return null;
+        }
+
+        string normalized = NormalizeWorkflowName(workflowNameOrId);
+        return SettingsManager.WorkflowsConfig.Hotkeys
+            .Where(workflow => workflow.Enabled && workflow.Job != WorkflowType.None)
+            .FirstOrDefault(workflow =>
+                string.Equals(workflow.Id, workflowNameOrId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(NormalizeWorkflowName(workflow.Name), normalized, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(NormalizeWorkflowName(workflow.TaskSettings?.Description), normalized, StringComparison.OrdinalIgnoreCase) ||
+                NormalizeWorkflowName(EnumExtensions.GetDescription(workflow.Job)).Contains(normalized, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string GetWorkflowDisplayName(WorkflowSettings workflow) =>
+        !string.IsNullOrWhiteSpace(workflow.Name)
+            ? workflow.Name
+            : EnumExtensions.GetDescription(workflow.Job);
+
+    private static string NormalizeWorkflowName(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : string.Join(' ', value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private static string BuildActionSummary(AssistantResponse response)
+    {
+        if (response.PendingConfirmation != null)
+        {
+            return $"confirmation:{response.PendingConfirmation.ToolName}";
+        }
+
+        if (response.Actions.Count > 0)
+        {
+            return string.Join(",", response.Actions.Select(action => action.Kind.ToString()));
+        }
+
+        return response.Kind.ToString();
     }
 
     private static TaskSettings GetUploadTaskSettings()

@@ -21,6 +21,7 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="SkiaSharp" />
 
@@ -48,4 +49,3 @@
     <None Remove="_Onboarding_DISABLED_\**" />
   </ItemGroup>
 </Project>
-
