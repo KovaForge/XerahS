@@ -62,4 +62,6 @@ internal sealed class HeadlessUIService : IUIService
     public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
 
     public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+    public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
 }

@@ -25,6 +25,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using XerahS.Mobile.Core;
 
 namespace Ava.Views;
@@ -50,12 +51,25 @@ public partial class MobileCustomUploaderConfigView : UserControl
         if (vm == null) return;
 
         Avalonia.Controls.Control? target = null;
+        Avalonia.Controls.Control? focusTarget = null;
 
         if (vm.HasNameError || vm.HasDestinationError)
+        {
             target = this.FindControl<Avalonia.Controls.Border>("BasicInfoSection");
+            focusTarget = vm.HasNameError
+                ? this.FindControl<TextBox>("EditorNameTextBox")
+                : this.FindControl<Avalonia.Controls.CheckBox>("ImageUploaderCheckBox");
+        }
         else if (vm.HasUrlError)
+        {
             target = this.FindControl<Avalonia.Controls.Border>("HttpRequestSection");
+            focusTarget = this.FindControl<TextBox>("RequestUrlTextBox");
+        }
 
         target?.BringIntoView();
+        if (focusTarget != null)
+        {
+            Dispatcher.UIThread.Post(() => focusTarget.Focus(), DispatcherPriority.Input);
+        }
     }
 }

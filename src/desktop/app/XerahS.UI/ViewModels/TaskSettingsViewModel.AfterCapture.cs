@@ -121,6 +121,7 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+
         private void UpdateAfterCaptureTask(AfterCaptureTasks task, bool enabled)
         {
             if (enabled)

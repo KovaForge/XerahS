@@ -26,15 +26,29 @@
 using XerahS.Common;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
+using XerahS.Services;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
 using ShareX.ImageEditor.Core.Persistence;
 using ShareX.ImageEditor.Hosting;
+using XerahS.Core.Services;
+using SkiaSharp;
 
 namespace XerahS.Core.Tasks.Processors
 {
     public class CaptureJobProcessor : IJobProcessor
     {
+        /// <summary>
+        /// Callback to pin an image to the desktop. Set by the UI layer to dispatch to PinToScreenManager.
+        /// Takes bitmap, location (object for cross-layer safety), and options.
+        /// </summary>
+        public static Func<SKBitmap, object?, PinToScreenOptions, Task>? PinToScreenCallback { get; set; }
+
+        /// <summary>
+        /// Callback to show the analyzer window. Set by the UI layer to dispatch to AvaloniaUIService.
+        /// </summary>
+        public static Func<SKBitmap, Task>? ShowAnalyzerCallback { get; set; }
+
         /// <summary>
         /// Executes after-capture tasks for the current job.
         /// </summary>
@@ -153,6 +167,154 @@ namespace XerahS.Core.Tasks.Processors
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
             {
                 await PerformOCRAsync(info);
+            }
+
+            // ScanQRCode
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ScanQRCode))
+            {
+                if (info.Metadata?.Image == null)
+                {
+                    DebugHelper.WriteLine("ScanQRCode skipped: no image in metadata.");
+                }
+                else
+                {
+                    try
+                    {
+                        var results = QrCodeService.Decode(info.Metadata.Image, out var error);
+                        if (!string.IsNullOrEmpty(error))
+                        {
+                            DebugHelper.WriteLine($"ScanQRCode error: {error}");
+                        }
+                        else if (results.Count > 0)
+                        {
+                            PlatformServices.Clipboard.SetText(string.Join(Environment.NewLine, results));
+                            DebugHelper.WriteLine($"ScanQRCode decoded {results.Count} code(s) and copied to clipboard.");
+                        }
+                        else
+                        {
+                            DebugHelper.WriteLine("ScanQRCode: no QR codes detected.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "ScanQRCode");
+                    }
+                }
+            }
+
+            // PinToScreen
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.PinToScreen))
+            {
+                if (info.Metadata?.Image == null)
+                {
+                    DebugHelper.WriteLine("PinToScreen skipped: no image in metadata.");
+                }
+                else if (PinToScreenCallback == null)
+                {
+                    DebugHelper.WriteLine("PinToScreen skipped: callback not set.");
+                }
+                else
+                {
+                    try
+                    {
+                        var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
+                        await PinToScreenCallback(info.Metadata.Image, null, options);
+                        DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "PinToScreen");
+                    }
+                }
+            }
+
+            // CopyFileToClipboard
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFileToClipboard))
+            {
+                if (string.IsNullOrEmpty(info.FilePath))
+                {
+                    DebugHelper.WriteLine("CopyFileToClipboard skipped: no file path.");
+                }
+                else
+                {
+                    try
+                    {
+                        PlatformServices.Clipboard.SetFileDropList(new[] { info.FilePath });
+                        DebugHelper.WriteLine($"CopyFileToClipboard: copied {info.FilePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "CopyFileToClipboard");
+                    }
+                }
+            }
+
+            // CopyFilePathToClipboard
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard))
+            {
+                if (string.IsNullOrEmpty(info.FilePath))
+                {
+                    DebugHelper.WriteLine("CopyFilePathToClipboard skipped: no file path.");
+                }
+                else
+                {
+                    try
+                    {
+                        PlatformServices.Clipboard.SetText(info.FilePath);
+                        DebugHelper.WriteLine($"CopyFilePathToClipboard: copied path {info.FilePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "CopyFilePathToClipboard");
+                    }
+                }
+            }
+
+            // ShowInExplorer
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ShowInExplorer))
+            {
+                if (string.IsNullOrEmpty(info.FilePath))
+                {
+                    DebugHelper.WriteLine("ShowInExplorer skipped: no file path.");
+                }
+                else
+                {
+                    try
+                    {
+                        PlatformServices.System.ShowFileInExplorer(info.FilePath);
+                        DebugHelper.WriteLine($"ShowInExplorer: opened for {info.FilePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "ShowInExplorer");
+                    }
+                }
+            }
+
+
+            // AnalyzeImage
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnalyzeImage))
+            {
+                if (info.Metadata?.Image == null)
+                {
+                    DebugHelper.WriteLine("AnalyzeImage skipped: no image in metadata.");
+                }
+                else if (ShowAnalyzerCallback == null)
+                {
+                    DebugHelper.WriteLine("AnalyzeImage skipped: callback not set.");
+                }
+                else
+                {
+                    try
+                    {
+                        await ShowAnalyzerCallback(info.Metadata.Image);
+                        DebugHelper.WriteLine("AnalyzeImage: analyzer window shown.");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "AnalyzeImage");
+                    }
+                }
             }
 
             if (!annotationSidecarSaveAttempted)

@@ -150,6 +150,17 @@ namespace XerahS.UI.ViewModels
             nameof(McpApiKeyDisplay),
             nameof(McpApiKeyStatusText),
             nameof(McpManifestUrl),
+            nameof(AssistantHotkeyText),
+            nameof(AssistantHotkeyStatusText),
+            nameof(AssistantProviderOptions),
+            nameof(SelectedAssistantProvider),
+            nameof(AssistantProviderModelId),
+            nameof(AssistantProviderBaseUrl),
+            nameof(AssistantProviderApiKey),
+            nameof(AssistantProviderStatusText),
+            nameof(AssistantProviderNeedsApiKey),
+            nameof(AssistantProviderHasApiKey),
+            nameof(AssistantProviderKeyStatus),
             nameof(WatchFolderDaemonSupported),
             nameof(ShowWatchFolderDaemonScopeSelector),
             nameof(WatchFolderDaemonRunning),
@@ -270,6 +281,7 @@ namespace XerahS.UI.ViewModels
             SupportsFileAssociations = shellIntegration?.SupportsPluginExtensionRegistration == true;
             SupportsContextMenuIntegration = shellIntegration?.SupportsContextMenuIntegration == true;
             SupportsSendToIntegration = shellIntegration?.SupportsSendToIntegration == true;
+            LoadAssistantProviderSettings();
 
             if (shellIntegration != null)
             {

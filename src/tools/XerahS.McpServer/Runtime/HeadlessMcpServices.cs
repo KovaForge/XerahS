@@ -30,6 +30,8 @@ internal sealed class HeadlessMcpUIService : IUIService
     public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
 
     public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+    public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
 }
 
 internal sealed class HeadlessMcpToastService : IToastService
