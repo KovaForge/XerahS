@@ -59,6 +59,22 @@ public sealed class AssistantService : IAssistantService
     public async Task<AssistantResponse> ProcessPromptAsync(string prompt, CancellationToken cancellationToken)
     {
         var intent = _router.Parse(prompt);
+        if (intent.Kind == AssistantDeterministicIntentKind.Unknown)
+        {
+            AssistantResponse? providerResponse = await TryProcessWithProviderAsync(prompt, cancellationToken);
+            if (providerResponse != null)
+            {
+                return providerResponse;
+            }
+        }
+
+        return await ProcessIntentAsync(intent, cancellationToken);
+    }
+
+    private async Task<AssistantResponse> ProcessIntentAsync(
+        AssistantDeterministicIntent intent,
+        CancellationToken cancellationToken)
+    {
         return intent.Kind switch
         {
             AssistantDeterministicIntentKind.LatestScreenshotPaths => await GetLatestScreenshotPathsAsync(intent, cancellationToken),
@@ -69,6 +85,68 @@ public sealed class AssistantService : IAssistantService
                 "AI provider not configured. XerahS Assistant can only run local commands without a provider.",
                 new AssistantAction(AssistantActionKind.ConfigureProvider, "Configure AI Provider"))
         };
+    }
+
+    private async Task<AssistantResponse?> TryProcessWithProviderAsync(
+        string prompt,
+        CancellationToken cancellationToken)
+    {
+        if (!AssistantProviderSettingsResolver.TryGetActive(out AssistantProviderRuntimeSettings providerSettings))
+        {
+            return null;
+        }
+
+        AssistantPrivacyDecision decision = _privacyGuard.Evaluate(new AssistantPrivacyCheck(
+            AssistantToolNames.HistorySearch,
+            AssistantPrivacyScope.CloudText,
+            Text: prompt,
+            UserExplicitlyRequested: true));
+
+        if (!decision.Allowed || decision.RequiresConfirmation)
+        {
+            return AssistantResponse.Error("The assistant did not send this prompt to the provider because it may contain paths, URLs, or sensitive text. Try one of the local command suggestions.");
+        }
+
+        string commandPrompt = string.Join(Environment.NewLine, AssistantCommandRouter.GetSuggestions().Select(item => $"- {item}"));
+        AssistantModelRequest request = new(
+            providerSettings.Metadata.Id,
+            providerSettings.ModelId,
+            [
+                new AssistantMessage(
+                    AssistantModelMessageRole.System,
+                    "Convert the user's request into exactly one safe XerahS local command from the list. Return only the command text. Return NO_MATCH if none apply."),
+                new AssistantMessage(
+                    AssistantModelMessageRole.User,
+                    $"Available commands:{Environment.NewLine}{commandPrompt}{Environment.NewLine}{Environment.NewLine}User request: {prompt}")
+            ],
+            [],
+            AssistantPrivacyScope.CloudText,
+            AllowImageContent: false);
+
+        IAssistantModelProvider provider = AssistantModelProviderFactory.Create(providerSettings);
+        AssistantModelResult result = await provider.CompleteAsync(request, cancellationToken);
+        if (result.Kind == AssistantModelResultKind.Cancelled)
+        {
+            return AssistantResponse.Error("Provider request cancelled.");
+        }
+
+        if (result.Kind == AssistantModelResultKind.Error || string.IsNullOrWhiteSpace(result.Text))
+        {
+            return AssistantResponse.Error(result.Text ?? "Provider request failed.");
+        }
+
+        if (result.Text.Contains("NO_MATCH", StringComparison.OrdinalIgnoreCase))
+        {
+            return AssistantResponse.Info("AI provider could not map that request to a safe local command. Try one of the suggestions.");
+        }
+
+        AssistantDeterministicIntent inferredIntent = _router.Parse(result.Text);
+        if (inferredIntent.Kind == AssistantDeterministicIntentKind.Unknown)
+        {
+            return AssistantResponse.Info("AI provider returned a response, but it did not match an allowlisted assistant command. Try one of the suggestions.");
+        }
+
+        return await ProcessIntentAsync(inferredIntent, cancellationToken);
     }
 
     public async Task<AssistantResponse> ExecuteActionAsync(AssistantAction action, bool confirmed, CancellationToken cancellationToken)
@@ -262,4 +340,3 @@ public sealed class AssistantService : IAssistantService
             UserExplicitlyRequested: true));
     }
 }
-

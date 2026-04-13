@@ -25,15 +25,19 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Assistant;
 
 namespace XerahS.UI.ViewModels
 {
     public partial class SettingsViewModel
     {
+        private bool _isLoadingAssistantProvider;
+
         // Integration Settings
         [ObservableProperty]
         private bool _isPluginExtensionRegistered;
@@ -72,6 +76,24 @@ namespace XerahS.UI.ViewModels
 
         private string _assistantHotkeyStatusText = "Use the assistant shortcut to open the in-app command overlay.";
 
+        public ObservableCollection<AssistantProviderOptionViewModel> AssistantProviderOptions { get; } = new(
+            AssistantProviderCatalog.GetProviders().Select(provider => new AssistantProviderOptionViewModel(provider.Id, provider.DisplayName)));
+
+        [ObservableProperty]
+        private AssistantProviderOptionViewModel? _selectedAssistantProvider;
+
+        [ObservableProperty]
+        private string _assistantProviderModelId = string.Empty;
+
+        [ObservableProperty]
+        private string _assistantProviderBaseUrl = string.Empty;
+
+        [ObservableProperty]
+        private string _assistantProviderApiKey = string.Empty;
+
+        [ObservableProperty]
+        private string _assistantProviderStatusText = "Local commands are available without an AI provider.";
+
         public bool AssistantEnabled
         {
             get => SettingsManager.Settings.AssistantEnabled;
@@ -104,6 +126,17 @@ namespace XerahS.UI.ViewModels
 
         public string AssistantHotkeyText => SettingsManager.Settings.AssistantHotkey.GetDisplayString();
 
+        public bool AssistantProviderNeedsApiKey => SelectedAssistantProvider?.Id != "ollama";
+
+        public bool AssistantProviderHasApiKey =>
+            SelectedAssistantProvider != null && AssistantProviderSecrets.HasApiKey(SelectedAssistantProvider.Id);
+
+        public string AssistantProviderKeyStatus => AssistantProviderHasApiKey
+            ? "API key is stored in the XerahS secret store."
+            : AssistantProviderNeedsApiKey
+                ? "API key is not configured."
+                : "Ollama uses the local daemon and does not need an API key.";
+
         public string AssistantHotkeyStatusText
         {
             get => _assistantHotkeyStatusText;
@@ -116,6 +149,139 @@ namespace XerahS.UI.ViewModels
             AssistantHotkeyStatusText = PlatformServices.IsInitialized
                 ? $"Current shortcut: {AssistantHotkeyText}"
                 : "Platform services are not initialized yet.";
+        }
+
+        [RelayCommand]
+        private void SaveAssistantProviderSettings()
+        {
+            if (SelectedAssistantProvider == null)
+            {
+                AssistantProviderStatusText = "Select a provider first.";
+                return;
+            }
+
+            SaveSelectedAssistantProviderSettings();
+            AssistantProviderStatusText = $"{SelectedAssistantProvider.DisplayName} is the active assistant provider.";
+        }
+
+        [RelayCommand]
+        private async Task ValidateAssistantProviderAsync()
+        {
+            if (SelectedAssistantProvider == null)
+            {
+                AssistantProviderStatusText = "Select a provider first.";
+                return;
+            }
+
+            SaveSelectedAssistantProviderSettings();
+            if (!AssistantProviderSettingsResolver.TryGetActive(out AssistantProviderRuntimeSettings runtimeSettings))
+            {
+                AssistantProviderStatusText = AssistantProviderNeedsApiKey
+                    ? "Save an API key before validating this provider."
+                    : "Provider settings are incomplete.";
+                return;
+            }
+
+            AssistantProviderStatusText = $"Validating {SelectedAssistantProvider.DisplayName}...";
+            IAssistantModelProvider provider = AssistantModelProviderFactory.Create(runtimeSettings);
+            AssistantModelResult result = await provider.ValidateAsync(runtimeSettings.ModelId, CancellationToken.None);
+
+            if (result.Kind == AssistantModelResultKind.Text)
+            {
+                AssistantProviderConfig config = AssistantProviderSettingsResolver.GetOrCreateConfig(runtimeSettings.Metadata.Id);
+                config.LastValidatedAt = DateTime.UtcNow;
+                SettingsManager.SaveApplicationConfig();
+                AssistantProviderStatusText = $"{SelectedAssistantProvider.DisplayName} validated successfully.";
+            }
+            else
+            {
+                AssistantProviderStatusText = result.Text ?? "Provider validation failed.";
+            }
+        }
+
+        [RelayCommand]
+        private void RemoveAssistantProviderKey()
+        {
+            if (SelectedAssistantProvider == null)
+            {
+                return;
+            }
+
+            AssistantProviderSecrets.DeleteApiKey(SelectedAssistantProvider.Id);
+            AssistantProviderApiKey = string.Empty;
+            AssistantProviderStatusText = $"{SelectedAssistantProvider.DisplayName} API key removed.";
+            NotifyAssistantProviderSecretProperties();
+        }
+
+        partial void OnSelectedAssistantProviderChanged(AssistantProviderOptionViewModel? value)
+        {
+            if (_isLoadingAssistantProvider || value == null)
+            {
+                return;
+            }
+
+            LoadSelectedAssistantProviderSettings(value.Id);
+        }
+
+        private void LoadAssistantProviderSettings()
+        {
+            string providerId = string.IsNullOrWhiteSpace(SettingsManager.Settings.AssistantActiveProviderId)
+                ? "openai"
+                : SettingsManager.Settings.AssistantActiveProviderId;
+
+            SelectedAssistantProvider = AssistantProviderOptions.FirstOrDefault(provider =>
+                string.Equals(provider.Id, providerId, StringComparison.OrdinalIgnoreCase)) ?? AssistantProviderOptions.FirstOrDefault();
+
+            if (SelectedAssistantProvider != null)
+            {
+                LoadSelectedAssistantProviderSettings(SelectedAssistantProvider.Id);
+            }
+        }
+
+        private void LoadSelectedAssistantProviderSettings(string providerId)
+        {
+            _isLoadingAssistantProvider = true;
+
+            AssistantProviderMetadata? metadata = AssistantProviderCatalog.Find(providerId);
+            AssistantProviderConfig config = AssistantProviderSettingsResolver.GetOrCreateConfig(providerId);
+            AssistantProviderModelId = string.IsNullOrWhiteSpace(config.ModelId) ? metadata?.DefaultModelId ?? string.Empty : config.ModelId;
+            AssistantProviderBaseUrl = string.IsNullOrWhiteSpace(config.BaseUrl) ? metadata?.DefaultBaseUrl ?? string.Empty : config.BaseUrl;
+            AssistantProviderApiKey = string.Empty;
+            AssistantProviderStatusText = string.Equals(SettingsManager.Settings.AssistantActiveProviderId, providerId, StringComparison.OrdinalIgnoreCase)
+                ? $"{metadata?.DisplayName ?? providerId} is active."
+                : $"{metadata?.DisplayName ?? providerId} is selected. Save to make it active.";
+
+            _isLoadingAssistantProvider = false;
+            NotifyAssistantProviderSecretProperties();
+        }
+
+        private void SaveSelectedAssistantProviderSettings()
+        {
+            if (SelectedAssistantProvider == null)
+            {
+                return;
+            }
+
+            AssistantProviderConfig config = AssistantProviderSettingsResolver.GetOrCreateConfig(SelectedAssistantProvider.Id);
+            config.ModelId = AssistantProviderModelId.Trim();
+            config.BaseUrl = AssistantProviderBaseUrl.Trim().TrimEnd('/');
+            SettingsManager.Settings.AssistantActiveProviderId = SelectedAssistantProvider.Id;
+
+            if (AssistantProviderNeedsApiKey && !string.IsNullOrWhiteSpace(AssistantProviderApiKey))
+            {
+                AssistantProviderSecrets.SetApiKey(SelectedAssistantProvider.Id, AssistantProviderApiKey);
+                AssistantProviderApiKey = string.Empty;
+            }
+
+            SettingsManager.SaveApplicationConfig();
+            NotifyAssistantProviderSecretProperties();
+        }
+
+        private void NotifyAssistantProviderSecretProperties()
+        {
+            OnPropertyChanged(nameof(AssistantProviderNeedsApiKey));
+            OnPropertyChanged(nameof(AssistantProviderHasApiKey));
+            OnPropertyChanged(nameof(AssistantProviderKeyStatus));
         }
 
         partial void OnIsPluginExtensionRegisteredChanged(bool value)
@@ -237,5 +403,10 @@ namespace XerahS.UI.ViewModels
                 return false;
             }
         }
+    }
+
+    public sealed record AssistantProviderOptionViewModel(string Id, string DisplayName)
+    {
+        public override string ToString() => DisplayName;
     }
 }

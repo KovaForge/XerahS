@@ -93,6 +93,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public HotkeyInfo AssistantHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Shift);
     public bool AssistantPromptHistoryEnabled { get; set; }
     public string AssistantActiveProviderId { get; set; } = string.Empty;
+    public List<AssistantProviderConfig> AssistantProviders { get; set; } = new();
 
     // OS Integration (platform-agnostic naming)
     public bool RunAtStartup = false;
@@ -386,4 +387,12 @@ public class RecentTask
     public string ThumbnailURL { get; set; } = "";
     public string DeletionURL { get; set; } = "";
     public string ShortenedURL { get; set; } = "";
+}
+
+public class AssistantProviderConfig
+{
+    public string ProviderId { get; set; } = "";
+    public string ModelId { get; set; } = "";
+    public string BaseUrl { get; set; } = "";
+    public DateTime LastValidatedAt { get; set; }
 }
