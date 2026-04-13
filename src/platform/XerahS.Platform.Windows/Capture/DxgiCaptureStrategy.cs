@@ -29,6 +29,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
+using XerahS.Platform.Windows.Capture;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
@@ -239,21 +240,13 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
                 var info = bitmap.Info;
                 var rowBytes = info.RowBytes;
 
-                // Copy row by row (handles pitch difference)
-                unsafe
-                {
-                    var src = (byte*)mapped.DataPointer;
-                    var dst = (byte*)bitmap.GetPixels();
-
-                    for (int y = 0; y < captureRegion.Height; y++)
-                    {
-                        Buffer.MemoryCopy(
-                            src + y * mapped.RowPitch,
-                            dst + y * rowBytes,
-                            rowBytes,
-                            rowBytes);
-                    }
-                }
+                BgraRowCopyHelper.CopyRows(
+                    mapped.DataPointer,
+                    (int)mapped.RowPitch,
+                    bitmap.GetPixels(),
+                    rowBytes,
+                    captureRegion.Width * 4,
+                    captureRegion.Height);
 
                 return new CapturedBitmap(bitmap, captureRegion, monitor.ScaleFactor);
             }

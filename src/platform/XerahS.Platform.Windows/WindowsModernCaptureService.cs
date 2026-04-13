@@ -30,6 +30,7 @@ using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 using System.Runtime.InteropServices;
+using XerahS.Platform.Windows.Capture;
 
 namespace XerahS.Platform.Windows
 {
@@ -533,18 +534,14 @@ namespace XerahS.Platform.Windows
             using var sourceBitmap = new SKBitmap(sourceWidth, sourceHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
             var destPixels = sourceBitmap.GetPixels();
             int srcPitch = (int)dataBox.RowPitch;
-            int sourcePitch = sourceWidth * 4;
-
-            unsafe
-            {
-                for (int y = 0; y < sourceHeight; y++)
-                {
-                    IntPtr srcRow = IntPtr.Add(dataBox.DataPointer, y * srcPitch);
-                    IntPtr destRow = IntPtr.Add(destPixels, y * sourcePitch);
-
-                    Buffer.MemoryCopy((void*)srcRow, (void*)destRow, sourcePitch, sourcePitch);
-                }
-            }
+            int bytesPerRow = sourceWidth * 4;
+            BgraRowCopyHelper.CopyRows(
+                dataBox.DataPointer,
+                srcPitch,
+                destPixels,
+                bytesPerRow,
+                bytesPerRow,
+                sourceHeight);
 
             using SKBitmap bitmapToDraw = RotateBitmapForDesktop(sourceBitmap, rotation);
             var destRect = new SKRect(destX, destY, destX + destWidth, destY + destHeight);

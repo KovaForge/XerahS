@@ -471,6 +471,15 @@ public class ScreenRecordingManager : IScreenRecordingManager
             return true;
         }
 
+        if (settings is not null && RecordingCodecSupportPolicy.RequiresFfmpegFallback(settings.Codec))
+        {
+            TroubleshootingHelper.Log(
+                "ScreenRecorder",
+                "FALLBACK",
+                $"Codec {settings.Codec} requires FFmpeg because the native backend only supports H.264 in this build.");
+            return true;
+        }
+
         // Check if we have a native recording service factory (complete IRecordingService)
         if (ScreenRecorderService.NativeRecordingServiceFactory != null)
         {
