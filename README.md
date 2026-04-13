@@ -1,4 +1,4 @@
-﻿# XerahS
+# XerahS
 
 [![XerahS Health](https://oss-health-monitor.vercel.app/api/badge/ShareX/XerahS)](https://github.com/volotat/OSS-Health-Monitor)
 
