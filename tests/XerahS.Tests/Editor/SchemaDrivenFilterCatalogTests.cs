@@ -29,8 +29,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.ImageEffects.Filters;
-using ShareX.ImageEditor.Presentation.Controls;
-using ShareX.ImageEditor.Presentation.Filters;
+using ShareX.ImageEditor.Presentation.Effects;
 using ShareX.ImageEditor.Presentation.Views.Dialogs;
 using SkiaSharp;
 
@@ -40,50 +39,30 @@ namespace XerahS.Tests.Editor;
 public class SchemaDrivenFilterCatalogTests
 {
     [AvaloniaTest]
-    public void EffectDialogRegistry_Creates_SchemaDriven_Dialogs_For_Catalog_Filters()
+    public void EffectDialogRegistry_Creates_SchemaDriven_Dialogs_For_Catalog_Effects()
     {
         Assert.Multiple(() =>
         {
-            foreach (FilterDefinition definition in FilterCatalog.Definitions)
+            foreach (EffectDefinition definition in ImageEffectCatalog.Definitions)
             {
+                if (definition.ApplyImmediately)
+                {
+                    continue;
+                }
+
                 Assert.That(EffectDialogRegistry.TryCreate(definition.Id, out UserControl? dialog), Is.True, definition.Id);
-                Assert.That(dialog, Is.TypeOf<SchemaDrivenFilterDialog>(), definition.Id);
-                Assert.That(((SchemaDrivenFilterDialog)dialog!).Title, Is.EqualTo(definition.Name), definition.Id);
+                Assert.That(dialog, Is.TypeOf<SchemaDrivenEffectDialog>(), definition.Id);
+                Assert.That(((SchemaDrivenEffectDialog)dialog!).Title, Is.EqualTo(definition.Name), definition.Id);
             }
         });
     }
 
     [AvaloniaTest]
-    public void EffectBrowserPanel_Uses_FilterCatalog_Metadata_For_Catalog_Filters()
+    public void SchemaDrivenEffectDialog_Blur_Apply_Uses_Configured_Radius()
     {
-        var panel = new EffectBrowserPanel();
-        var filtersCategory = panel.Categories.Single(category => category.Name == "Filters");
-        Dictionary<string, EffectItem> filterEffectsById = filtersCategory.AllEffects
-            .ToDictionary(effect => effect.EffectId, StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, EffectItem> allEffectsById = panel.Categories
-            .Where(category => category.Name != "Favorites")
-            .SelectMany(category => category.AllEffects)
-            .ToDictionary(effect => effect.EffectId, StringComparer.OrdinalIgnoreCase);
-
-        Assert.Multiple(() =>
-        {
-            foreach (FilterDefinition definition in FilterCatalog.Definitions)
-            {
-                Assert.That(allEffectsById.TryGetValue(definition.Id, out EffectItem? effectItem), Is.True, definition.Id);
-                Assert.That(effectItem!.Name, Is.EqualTo(definition.BrowserLabel), definition.Id);
-                Assert.That(effectItem.Icon, Is.EqualTo(definition.Icon), definition.Id);
-                Assert.That(effectItem.Description, Is.EqualTo(definition.Description), definition.Id);
-                Assert.That(filterEffectsById.ContainsKey(definition.Id), Is.EqualTo(definition.IncludeInFiltersCategory), definition.Id);
-            }
-        });
-    }
-
-    [AvaloniaTest]
-    public void SchemaDrivenFilterDialog_Blur_Apply_Uses_Configured_Radius()
-    {
-        FilterDefinition definition = GetDefinition("blur");
-        var dialog = new SchemaDrivenFilterDialog(definition);
-        SliderFilterParameterState radius = dialog.ParameterStates.OfType<SliderFilterParameterState>().Single(parameter => parameter.Key == "radius");
+        EffectDefinition definition = GetDefinition("blur");
+        var dialog = new SchemaDrivenEffectDialog(definition);
+        SliderParameterState radius = dialog.ParameterStates.OfType<SliderParameterState>().Single(parameter => parameter.Key == "radius");
         radius.Value = 17;
 
         EffectEventArgs args = CaptureApply(dialog);
@@ -99,14 +78,14 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenFilterDialog_Dithering_Apply_Uses_Configured_Enum_Settings()
+    public void SchemaDrivenEffectDialog_Dithering_Apply_Uses_Configured_Enum_Settings()
     {
-        FilterDefinition definition = GetDefinition("dithering");
-        var dialog = new SchemaDrivenFilterDialog(definition);
+        EffectDefinition definition = GetDefinition("dithering");
+        var dialog = new SchemaDrivenEffectDialog(definition);
 
-        EnumFilterParameterState method = dialog.ParameterStates.OfType<EnumFilterParameterState>().Single(parameter => parameter.Key == "method");
-        EnumFilterParameterState palette = dialog.ParameterStates.OfType<EnumFilterParameterState>().Single(parameter => parameter.Key == "palette");
-        SliderFilterParameterState strength = dialog.ParameterStates.OfType<SliderFilterParameterState>().Single(parameter => parameter.Key == "strength");
+        EnumParameterState method = dialog.ParameterStates.OfType<EnumParameterState>().Single(parameter => parameter.Key == "method");
+        EnumParameterState palette = dialog.ParameterStates.OfType<EnumParameterState>().Single(parameter => parameter.Key == "palette");
+        SliderParameterState strength = dialog.ParameterStates.OfType<SliderParameterState>().Single(parameter => parameter.Key == "strength");
 
         method.SelectedOption = method.Options.Single(option => Equals(option.Value, DitheringMethod.Bayer4x4));
         palette.SelectedOption = palette.Options.Single(option => Equals(option.Value, DitheringPalette.RGB332));
@@ -131,17 +110,17 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenFilterDialog_Glow_Apply_Uses_Configured_Color_And_Toggle()
+    public void SchemaDrivenEffectDialog_Glow_Apply_Uses_Configured_Color_And_Toggle()
     {
-        FilterDefinition definition = GetDefinition("glow");
-        var dialog = new SchemaDrivenFilterDialog(definition);
+        EffectDefinition definition = GetDefinition("glow");
+        var dialog = new SchemaDrivenEffectDialog(definition);
 
-        SliderFilterParameterState size = GetParameterState<SliderFilterParameterState>(dialog, "size");
-        SliderFilterParameterState strength = GetParameterState<SliderFilterParameterState>(dialog, "strength");
-        SliderFilterParameterState offsetX = GetParameterState<SliderFilterParameterState>(dialog, "offset_x");
-        SliderFilterParameterState offsetY = GetParameterState<SliderFilterParameterState>(dialog, "offset_y");
-        ColorFilterParameterState color = GetParameterState<ColorFilterParameterState>(dialog, "color");
-        CheckboxFilterParameterState autoResize = GetParameterState<CheckboxFilterParameterState>(dialog, "auto_resize");
+        SliderParameterState size = GetParameterState<SliderParameterState>(dialog, "size");
+        SliderParameterState strength = GetParameterState<SliderParameterState>(dialog, "strength");
+        SliderParameterState offsetX = GetParameterState<SliderParameterState>(dialog, "offset_x");
+        SliderParameterState offsetY = GetParameterState<SliderParameterState>(dialog, "offset_y");
+        ColorParameterState color = GetParameterState<ColorParameterState>(dialog, "color");
+        CheckboxParameterState autoResize = GetParameterState<CheckboxParameterState>(dialog, "auto_resize");
 
         size.Value = 12;
         strength.Value = 65;
@@ -169,17 +148,17 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenFilterDialog_ASCIIArt_Apply_Uses_Configured_Text_And_Checkboxes()
+    public void SchemaDrivenEffectDialog_ASCIIArt_Apply_Uses_Configured_Text_And_Checkboxes()
     {
-        FilterDefinition definition = GetDefinition("ascii_art");
-        var dialog = new SchemaDrivenFilterDialog(definition);
+        EffectDefinition definition = GetDefinition("ascii_art");
+        var dialog = new SchemaDrivenEffectDialog(definition);
 
-        GetParameterState<SliderFilterParameterState>(dialog, "cell_size").Value = 10;
-        GetParameterState<SliderFilterParameterState>(dialog, "contrast").Value = 145;
-        GetParameterState<CheckboxFilterParameterState>(dialog, "invert").Value = true;
-        GetParameterState<CheckboxFilterParameterState>(dialog, "dark_background").Value = false;
-        GetParameterState<CheckboxFilterParameterState>(dialog, "use_source_color").Value = false;
-        GetParameterState<TextFilterParameterState>(dialog, "character_set").Value = "@. ";
+        GetParameterState<SliderParameterState>(dialog, "cell_size").Value = 10;
+        GetParameterState<SliderParameterState>(dialog, "contrast").Value = 145;
+        GetParameterState<CheckboxParameterState>(dialog, "invert").Value = true;
+        GetParameterState<CheckboxParameterState>(dialog, "dark_background").Value = false;
+        GetParameterState<CheckboxParameterState>(dialog, "use_source_color").Value = false;
+        GetParameterState<TextParameterState>(dialog, "character_set").Value = "@. ";
 
         EffectEventArgs args = CaptureApply(dialog);
 
@@ -202,18 +181,18 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenFilterDialog_ConvolutionMatrix_Apply_Uses_Configured_Numeric_Settings()
+    public void SchemaDrivenEffectDialog_ConvolutionMatrix_Apply_Uses_Configured_Numeric_Settings()
     {
-        FilterDefinition definition = GetDefinition("convolution_matrix");
-        var dialog = new SchemaDrivenFilterDialog(definition);
+        EffectDefinition definition = GetDefinition("convolution_matrix");
+        var dialog = new SchemaDrivenEffectDialog(definition);
 
-        GetParameterState<NumericFilterParameterState>(dialog, "x1_y0").Value = -1;
-        GetParameterState<NumericFilterParameterState>(dialog, "x0_y1").Value = -1;
-        GetParameterState<NumericFilterParameterState>(dialog, "x1_y1").Value = 5;
-        GetParameterState<NumericFilterParameterState>(dialog, "x2_y1").Value = -1;
-        GetParameterState<NumericFilterParameterState>(dialog, "x1_y2").Value = -1;
-        GetParameterState<NumericFilterParameterState>(dialog, "factor").Value = 2.5m;
-        GetParameterState<NumericFilterParameterState>(dialog, "offset").Value = 6;
+        GetParameterState<NumericParameterState>(dialog, "x1_y0").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x0_y1").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x1_y1").Value = 5;
+        GetParameterState<NumericParameterState>(dialog, "x2_y1").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x1_y2").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "factor").Value = 2.5m;
+        GetParameterState<NumericParameterState>(dialog, "offset").Value = 6;
 
         EffectEventArgs args = CaptureApply(dialog);
 
@@ -240,22 +219,22 @@ public class SchemaDrivenFilterCatalogTests
         AssertBitmapsEqual(expected, actual);
     }
 
-    private static FilterDefinition GetDefinition(string id)
+    private static EffectDefinition GetDefinition(string id)
     {
-        Assert.That(FilterCatalog.TryGetDefinition(id, out FilterDefinition? definition), Is.True, id);
+        Assert.That(ImageEffectCatalog.TryGetDefinition(id, out EffectDefinition? definition), Is.True, id);
         Assert.That(definition, Is.Not.Null, id);
         return definition!;
     }
 
-    private static TState GetParameterState<TState>(SchemaDrivenFilterDialog dialog, string key)
-        where TState : FilterParameterState
+    private static TState GetParameterState<TState>(SchemaDrivenEffectDialog dialog, string key)
+        where TState : EffectParameterState
     {
         return dialog.ParameterStates
             .OfType<TState>()
             .Single(parameter => parameter.Key == key);
     }
 
-    private static EffectEventArgs CaptureApply(SchemaDrivenFilterDialog dialog)
+    private static EffectEventArgs CaptureApply(SchemaDrivenEffectDialog dialog)
     {
         EffectEventArgs? capturedArgs = null;
         dialog.ApplyRequested += (_, args) => capturedArgs = args;
