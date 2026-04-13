@@ -26,6 +26,8 @@
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using System.Security.Cryptography;
+using System.Text;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
@@ -40,6 +42,13 @@ namespace XerahS.App
         private static XerahS.Common.SingleInstanceManager? _singleInstanceManager;
         private static string[] _startupArguments = Array.Empty<string>();
 
+        private sealed class StartupOptions
+        {
+            public string[] ForwardedArguments { get; init; } = Array.Empty<string>();
+
+            public string? PersonalFolderOverride { get; init; }
+        }
+
         private sealed class IncomingPathSet
         {
             public List<string> Files { get; } = [];
@@ -51,10 +60,18 @@ namespace XerahS.App
         {
             try
             {
-                _startupArguments = args ?? Array.Empty<string>();
+                StartupOptions startupOptions = ParseStartupOptions(args ?? Array.Empty<string>());
+                _startupArguments = startupOptions.ForwardedArguments;
+
+                if (!string.IsNullOrWhiteSpace(startupOptions.PersonalFolderOverride))
+                {
+                    SettingsManager.PersonalFolder = startupOptions.PersonalFolderOverride;
+                }
+
+                (string mutexName, string pipeName) = GetSingleInstanceIdentifiers(startupOptions.PersonalFolderOverride);
 
                 // Single instance enforcement
-                _singleInstanceManager = new XerahS.Common.SingleInstanceManager(AppContracts.SingleInstance.MutexName, AppContracts.SingleInstance.PipeName, _startupArguments);
+                _singleInstanceManager = new XerahS.Common.SingleInstanceManager(mutexName, pipeName, _startupArguments);
 
                 if (!_singleInstanceManager.IsFirstInstance)
                 {
@@ -88,6 +105,10 @@ namespace XerahS.App
 
                 dh.WriteLine($"Command line: \"{Environment.ProcessPath}\"");
                 dh.WriteLine($"Personal path: {XerahS.Common.PathsManager.GetLogsFolderForMonth()}");
+                if (!string.IsNullOrWhiteSpace(startupOptions.PersonalFolderOverride))
+                {
+                    dh.WriteLine($"Personal folder override: {startupOptions.PersonalFolderOverride}");
+                }
                 dh.WriteLine($"Operating system: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})");
                 dh.WriteLine($".NET version: {System.Environment.Version}");
 
@@ -186,6 +207,82 @@ namespace XerahS.App
                 }
 #endif
             }
+        }
+
+        private static StartupOptions ParseStartupOptions(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                return new StartupOptions();
+            }
+
+            List<string> forwardedArguments = new List<string>(args.Length);
+            string? personalFolderOverride = null;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                string arg = args[i];
+
+                if (arg.Equals(AppContracts.Cli.SettingsFolderFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                    {
+                        throw new ArgumentException($"{AppContracts.Cli.SettingsFolderFlag} requires a folder path.");
+                    }
+
+                    personalFolderOverride = NormalizePersonalFolder(args[++i]);
+                    continue;
+                }
+
+                string prefix = AppContracts.Cli.SettingsFolderFlag + "=";
+                if (arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    string value = arg.Substring(prefix.Length);
+                    if (string.IsNullOrWhiteSpace(value))
+                    {
+                        throw new ArgumentException($"{AppContracts.Cli.SettingsFolderFlag} requires a folder path.");
+                    }
+
+                    personalFolderOverride = NormalizePersonalFolder(value);
+                    continue;
+                }
+
+                forwardedArguments.Add(arg);
+            }
+
+            return new StartupOptions
+            {
+                ForwardedArguments = forwardedArguments.ToArray(),
+                PersonalFolderOverride = personalFolderOverride
+            };
+        }
+
+        private static string NormalizePersonalFolder(string path)
+        {
+            string fullPath = Path.GetFullPath(path);
+            return fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+
+        private static (string MutexName, string PipeName) GetSingleInstanceIdentifiers(string? personalFolderOverride)
+        {
+            if (string.IsNullOrWhiteSpace(personalFolderOverride))
+            {
+                return (AppContracts.SingleInstance.MutexName, AppContracts.SingleInstance.PipeName);
+            }
+
+            string normalizedPath = NormalizePersonalFolder(personalFolderOverride);
+
+            if (OperatingSystem.IsWindows())
+            {
+                normalizedPath = normalizedPath.ToUpperInvariant();
+            }
+
+            byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
+            string suffix = Convert.ToHexString(hashBytes).Substring(0, 16);
+
+            return (
+                $"{AppContracts.SingleInstance.MutexName}-{suffix}",
+                $"{AppContracts.SingleInstance.PipeName}-{suffix}");
         }
 
         private static bool IsLinuxDisplayError(Exception ex)
@@ -649,11 +746,12 @@ namespace XerahS.App
         }
 
         public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<XerahS.UI.App>()
+        {
+            return AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
                 .WithInterFont()
-                .WithDeveloperTools()
                 .LogToTrace();
+        }
 
         /// <summary>
         /// Runs once after the Avalonia UI completes initialization.

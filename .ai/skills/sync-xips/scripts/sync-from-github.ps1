@@ -12,9 +12,9 @@ for ($i = 0; $i -lt 5; $i++) {
 if (-not (Test-Path (Join-Path $repoRoot ".git"))) {
     Write-Error "Repo root not found. Run from XerahS repo."
 }
-$tasksRoot = Join-Path $repoRoot "docs/proposals/xip"
-if (-not (Test-Path $tasksRoot)) { New-Item -ItemType Directory -Path $tasksRoot -Force | Out-Null }
-Get-ChildItem -Path $tasksRoot -Filter "XIP*.md" -File | Remove-Item -Force
+$backupRoot = Join-Path $repoRoot "docs/proposals/xip"
+if (-not (Test-Path $backupRoot)) { New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null }
+Get-ChildItem -Path $backupRoot -Filter "XIP*.md" -File | Remove-Item -Force
 
 # Fetch all issues with label xip
 $json = gh issue list --label "xip" --state all --limit 500 --json number,title,body,state,labels
@@ -65,7 +65,7 @@ foreach ($issue in $issues) {
 
     $slug = Get-Slug $titlePart
     $fileName = "XIP$num-$slug.md"
-    $outPath = Join-Path $tasksRoot $fileName
+    $outPath = Join-Path $backupRoot $fileName
     $content = Get-BodyContent $issue.body
 
     # Ensure first line is # XIP#### Title (canonical)

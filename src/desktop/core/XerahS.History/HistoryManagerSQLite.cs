@@ -237,8 +237,8 @@ SELECT last_insert_rowid();";
 
         public void Edit(HistoryItem item)
         {
-            using (SqliteTransaction? transaction = connection?.BeginTransaction())
-            using (SqliteCommand cmd = connection!.CreateCommand())
+            using (SqliteTransaction transaction = EnsureConnection().BeginTransaction())
+            using (SqliteCommand cmd = EnsureConnection().CreateCommand())
             {
                 cmd.CommandText = @"
 UPDATE History SET
@@ -278,14 +278,15 @@ WHERE Id = @Id;";
                 using (SqliteCommand cmd = EnsureConnection().CreateCommand())
                 {
                     cmd.CommandText = "DELETE FROM History WHERE Id = @Id;";
-                    SqliteParameter idParam = cmd.CreateParameter();
-                    idParam.ParameterName = "@Id";
-                    cmd.Parameters.Add(idParam);
 
                     foreach (HistoryItem item in items)
                     {
+                        SqliteParameter idParam = cmd.CreateParameter();
+                        idParam.ParameterName = "@Id";
                         idParam.Value = item.Id;
+                        cmd.Parameters.Add(idParam);
                         cmd.ExecuteNonQuery();
+                        cmd.Parameters.Clear();
                     }
 
                     transaction.Commit();

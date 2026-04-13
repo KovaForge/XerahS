@@ -25,19 +25,19 @@ if [[ ! -d "$repo_root/.git" ]]; then
   exit 1
 fi
 
-tasks_root="$repo_root/docs/proposals/xip"
-mkdir -p "$tasks_root"
-find "$tasks_root" -maxdepth 1 -type f -name 'XIP*.md' -delete
+backup_root="$repo_root/docs/proposals/xip"
+mkdir -p "$backup_root"
+find "$backup_root" -maxdepth 1 -type f -name 'XIP*.md' -delete
 
 issues_json="$(gh issue list --label xip --state all --limit 500 --json number,title,body,state,labels)"
 
-TASKS_ROOT="$tasks_root" ISSUES_JSON="$issues_json" python3 - <<'PY'
+BACKUP_ROOT="$backup_root" ISSUES_JSON="$issues_json" python3 - <<'PY'
 import json
 import re
 import sys
 from pathlib import Path
 
-tasks_root = Path(Path(__import__("os").environ["TASKS_ROOT"]))
+backup_root = Path(Path(__import__("os").environ["BACKUP_ROOT"]))
 issues = json.loads(__import__("os").environ["ISSUES_JSON"])
 
 def get_xip_number_from_title(title: str):
@@ -78,7 +78,7 @@ for issue in issues:
 
     slug = get_slug(title_part)
     file_name = f"XIP{num}-{slug}.md"
-    out_path = tasks_root / file_name
+    out_path = backup_root / file_name
     content = get_body_content(issue.get("body") or "")
 
     first_line = f"# XIP{num} {title_part}"

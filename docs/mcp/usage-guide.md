@@ -1,231 +1,402 @@
-# XerahS MCP Server — Usage Guide
+# XerahS MCP Server Usage Guide
 
-## Building
+This guide describes the current `xerahs-mcp` implementation. It matches XIP0064 and the server in `src/tools/XerahS.McpServer`.
 
-```bash
-cd src/tools/XerahS.McpServer
-dotnet build -c Release
+## What It Does
+
+`xerahs-mcp` exposes XerahS over the Model Context Protocol (MCP). It boots the real XerahS runtime headlessly and provides tools for:
+
+- screen capture
+- headless annotation rendering
+- file and clipboard upload
+- history search and item details
+- workflow discovery
+- MCP-safe settings access
+
+The MCP server is not a shell wrapper around the CLI.
+
+## Prerequisites
+
+- A built XerahS tree or a released build that includes `xerahs-mcp`.
+- A logged-in desktop session on the machine that will run captures.
+- OS permissions for screen capture, window capture, clipboard, and accessibility features as required by the platform.
+- Configured uploader destinations if you want `upload_file` or `upload_clipboard` to return upload URLs.
+
+## Build
+
+From the repository root:
+
+```powershell
+dotnet build .\src\tools\XerahS.McpServer\XerahS.McpServer.csproj -c Release
 ```
 
-## Running
+For development, you can run without publishing:
 
-```bash
-dotnet exec xerahs-mcp-server
+```powershell
+dotnet run --project .\src\tools\XerahS.McpServer\XerahS.McpServer.csproj -- --mcp
 ```
 
-## Protocol
+For packaged builds, use the `xerahs-mcp` executable produced by the project.
 
-JSON-RPC 2.0 over stdio. Each line is a complete JSON object.
+## Local Stdio Mode
 
-## Initialize
+Use stdio mode for local MCP hosts such as editor integrations or desktop agents running on the same machine:
 
--> `{ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {} }`
-<- `{ "jsonrpc": "2.0", "id": 1, "result": { "protocolVersion": "2024-11-05", ... } }`
+```powershell
+xerahs-mcp --mcp
+```
+
+Equivalent:
+
+```powershell
+xerahs-mcp --mcp-server --transport stdio
+```
+
+Each stdin line is one JSON-RPC 2.0 request. Each stdout line is one JSON-RPC 2.0 response.
+
+## HTTP and SSE Mode
+
+Use HTTP mode when an MCP client connects over the network:
+
+```powershell
+xerahs-mcp --mcp-server --transport http --port 7890
+```
+
+Endpoints:
+
+- `POST /mcp/` for JSON-RPC requests
+- `GET /mcp/events/` for SSE notifications and heartbeats
+- `GET /health` for health checks
+
+HTTP transport requires bearer authentication:
+
+```http
+Authorization: Bearer <mcp-api-key>
+```
+
+The API key is stored in `ApplicationConfig.McpApiKey`. It can be copied or regenerated from XerahS application settings under `Integration -> MCP Server`. If no key exists, the MCP runtime generates and saves one on first startup.
+
+## Public Discovery Manifest
+
+The public manifest is:
+
+```text
+https://xerahs.com/.well-known/mcp/manifest.json
+```
+
+It points remote clients to:
+
+```text
+https://mcp.xerahs.com/mcp/
+https://mcp.xerahs.com/mcp/events/
+```
+
+GitHub Pages hosts the manifest and documentation. It is not the MCP execution host.
+
+## Basic JSON-RPC Examples
+
+Initialize:
+
+```json
+{ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {} }
+```
+
+List tools:
+
+```json
+{ "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {} }
+```
+
+Call a tool:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "capture_full_screen",
+    "arguments": {
+      "monitor": 0
+    }
+  }
+}
+```
+
+Read a resource:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "resources/read",
+  "params": {
+    "uri": "xerahs://settings/general"
+  }
+}
+```
+
+Get a prompt:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "prompts/get",
+  "params": {
+    "name": "upload_workflow",
+    "arguments": {
+      "user_request_describing_what_to_capture_and_annotate": "Capture the browser window",
+      "destination_id_or_default": "default"
+    }
+  }
+}
+```
 
 ## Tools
 
-### capture_region
+### `capture_region`
 
-Opens the XerahS region selector overlay. User selects an area; returns the saved file path. Blocks until capture completes or is cancelled.
+Opens the XerahS region selector overlay, waits for the user to choose a region, saves the capture, and returns the saved path.
+
+Arguments:
 
 ```json
 {
-  "name": "capture_region",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "workflow_id": { "type": "string", "description": "Optional workflow UUID to apply after capture" },
-      "monitor": { "type": "integer", "description": "Monitor index (0 = primary)" }
+  "workflow_id": "optional workflow id",
+  "monitor": 0
+}
+```
+
+Notes:
+
+- `workflow_id` applies workflow capture settings when supplied.
+- `monitor` constrains the selected region to that monitor.
+- User cancellation returns an MCP user-cancelled error.
+
+### `capture_window`
+
+Captures the foreground window or the first window whose title contains `window_title`.
+
+Arguments:
+
+```json
+{
+  "window_title": "Firefox",
+  "include_decoration": true
+}
+```
+
+Notes:
+
+- If `window_title` is omitted, the foreground window is captured.
+- `include_decoration=false` captures only the client area.
+
+### `capture_full_screen`
+
+Captures all monitors, or a single monitor when `monitor` is supplied.
+
+Arguments:
+
+```json
+{
+  "monitor": 0
+}
+```
+
+### `capture_scrolling`
+
+Runs XerahS scrolling capture against the active window when supported by the platform.
+
+Arguments:
+
+```json
+{
+  "scroll_direction": "down",
+  "max_frames": 50
+}
+```
+
+Notes:
+
+- `scroll_direction` and `max_frames` are accepted and returned for contract stability.
+- The current scrolling capture engine is not hard-capped by `max_frames`.
+
+### `annotate_image`
+
+Applies annotations to an existing image and writes a new annotated file.
+
+Arguments:
+
+```json
+{
+  "image_path": "C:/path/to/image.png",
+  "annotations": [
+    {
+      "type": "rectangle",
+      "params": {
+        "x": 10,
+        "y": 20,
+        "width": 200,
+        "height": 120,
+        "color": "#ff3b30",
+        "thickness": 4
+      }
     }
-  }
+  ],
+  "auto_save": true
 }
 ```
 
-### capture_window
+Supported annotation types:
 
-Captures a specific window by title. Opens window picker if title is omitted.
+- `arrow`
+- `rectangle`
+- `ellipse`
+- `line`
+- `text`
+- `freehand`
+- `blur`
+- `pixelate`
+- `step`
+
+Notes:
+
+- This is a headless renderer.
+- It does not launch the interactive image editor.
+- `auto_save` is accepted for compatibility; MCP annotation always writes the output file.
+
+### `upload_file`
+
+Uploads a file through configured XerahS uploader instances.
+
+Arguments:
 
 ```json
 {
-  "name": "capture_window",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "window_title": { "type": "string", "description": "Substring match on window title" },
-      "include_decoration": { "type": "boolean", "default": true, "description": "Include title bar and borders" }
-    }
-  }
+  "file_path": "C:/path/to/file.png",
+  "destination": "optional instance id, provider id, or display name"
 }
 ```
 
-### capture_full_screen
+If `destination` is omitted, XerahS resolves the default destination for the file category.
 
-Captures all monitors or a specific monitor.
+### `upload_clipboard`
+
+Uploads current clipboard data when it contains a supported image, text, or file drop list.
+
+Arguments:
 
 ```json
 {
-  "name": "capture_full_screen",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "monitor": { "type": "integer", "description": "Monitor index (0 = primary). If omitted, captures all monitors stitched." }
-    }
-  }
+  "destination": "optional instance id, provider id, or display name"
 }
 ```
 
-### capture_scrolling
+### `query_history`
 
-Activates XerahS scrolling capture mode. User selects a region then scrolls manually. Returns the stitched result.
+Searches the XerahS history database.
+
+Arguments:
 
 ```json
 {
-  "name": "capture_scrolling",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "scroll_direction": { "type": "string", "enum": ["down", "up", "left", "right"], "default": "down" },
-      "max_frames": { "type": "integer", "default": 50, "description": "Maximum frames before auto-stop" }
-    }
-  }
+  "query": "optional free text",
+  "from_date": "2026-04-01",
+  "to_date": "2026-04-11",
+  "file_type": "all",
+  "limit": 20
 }
 ```
 
-### annotate_image
+Supported `file_type` values:
 
-Opens XerahS image editor with the specified image pre-loaded for annotation.
+- `image`
+- `video`
+- `text`
+- `file`
+- `all`
+
+### `get_history_item`
+
+Returns detailed metadata for one history item.
+
+Arguments:
 
 ```json
 {
-  "name": "annotate_image",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "image_path": { "type": "string", "description": "Absolute path to the image file", "required": true },
-      "annotations": {
-        "type": "array",
-        "description": "Optional list of annotations to apply automatically",
-        "items": {
-          "type": "object",
-          "properties": {
-            "type": { "type": "string", "enum": ["arrow", "rectangle", "ellipse", "line", "text", "freehand", "blur", "pixelate", "step"] },
-            "params": { "type": "object" }
-          }
-        }
-      },
-      "auto_save": { "type": "boolean", "default": false, "description": "If true, applies annotations and saves without showing the editor UI" }
-    },
-    "required": ["image_path"]
-  }
+  "id": "123"
 }
 ```
 
-### query_history
+History IDs are SQLite row IDs serialized as strings. They are not UUIDs.
 
-Searches XerahS capture history with optional filters.
+### `list_workflows`
+
+Lists configured workflows with their job, capture mode, after-capture actions, after-upload actions, enabled state, and tray pin state.
+
+Arguments:
+
+```json
+{}
+```
+
+### `get_settings`
+
+Returns MCP-safe settings.
+
+Arguments:
 
 ```json
 {
-  "name": "query_history",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "query": { "type": "string", "description": "Free-text search (filename, OCR text)" },
-      "from_date": { "type": "string", "format": "date", "description": "Start date (ISO 8601)" },
-      "to_date": { "type": "string", "format": "date", "description": "End date (ISO 8601)" },
-      "file_type": { "type": "string", "enum": ["image", "video", "text", "all"], "default": "all" },
-      "limit": { "type": "integer", "default": 20, "maximum": 100 }
-    }
-  }
+  "category": "integration"
 }
 ```
 
-### get_history_item
+Supported categories:
 
-Retrieves full details for a specific history item.
+- `capture`
+- `upload`
+- `history`
+- `general`
+- `integration`
 
-```json
-{
-  "name": "get_history_item",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "id": { "type": "string", "description": "History item UUID", "required": true }
-    },
-    "required": ["id"]
-  }
-}
-```
-
-### list_workflows
-
-Lists all configured XerahS workflows with their capture modes and after-capture actions.
-
-```json
-{
-  "name": "list_workflows",
-  "inputSchema": { "type": "object", "properties": {} }
-}
-```
-
-### get_settings
-
-Reads XerahS settings. Optionally scoped to a specific settings category.
-
-```json
-{
-  "name": "get_settings",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "category": { "type": "string", "enum": ["capture", "upload", "history", "general"], "description": "If omitted, returns all settings (excluding secrets)" }
-    }
-  }
-}
-```
-
-### upload_file
-
-Uploads a file to the configured default (or specified) upload destination.
-
-```json
-{
-  "name": "upload_file",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "file_path": { "type": "string", "description": "Absolute path to the file to upload", "required": true },
-      "destination": { "type": "string", "description": "Destination ID (e.g. 'imgur', 'dropbox'). Uses default if omitted." }
-    },
-    "required": ["file_path"]
-  }
-}
-```
-
-### upload_clipboard
-
-Reads the current clipboard contents (image or text) and uploads to the configured destination.
-
-```json
-{
-  "name": "upload_clipboard",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "destination": { "type": "string", "description": "Destination ID. Uses default if omitted." }
-    }
-  }
-}
-```
+If `category` is omitted, all MCP-safe categories are returned. Secrets are not returned.
 
 ## Resources
 
-- `xerahs://history/` — capture history
-- `xerahs://settings/` — XerahS settings
-- `xerahs://workflows/` — workflow configurations
+Supported resource URIs:
+
+- `xerahs://history/{id}`
+- `xerahs://history/thumb/{id}`
+- `xerahs://history/search?q={query}`
+- `xerahs://capture/latest`
+- `xerahs://workflows`
+- `xerahs://workflows/{id}`
+- `xerahs://settings/capture`
+- `xerahs://settings/upload`
+- `xerahs://settings/history`
+- `xerahs://settings/general`
+- `xerahs://settings/integration`
+- `xerahs://destinations`
+- `xerahs://monitors`
+
+`xerahs://history/thumb/{id}` currently returns a base64 blob of the stored history item file. It is not a separate thumbnail-rendering pipeline.
 
 ## Prompts
 
-- `capture_and_annotate` — Two-step capture then annotate workflow
-- `batch_capture_report` — Capture multiple regions and compile a report
-- `upload_workflow` — Standard screenshot-to-URL workflow
+Supported prompts:
+
+- `capture_and_annotate`
+- `batch_capture_report`
+- `upload_workflow`
+
+Use `prompts/list` to discover prompt metadata and `prompts/get` to render a prompt with arguments.
+
+## Troubleshooting
+
+- If HTTP requests return `401`, verify the bearer token from `Integration -> MCP Server`.
+- If upload tools fail, verify uploader instances and defaults are configured in XerahS.
+- If capture tools fail, verify the server is running inside an interactive desktop session with capture permissions.
+- If `capture_scrolling` fails, verify the current platform and active window support scrolling capture.
+- If the public manifest resolves but remote requests fail, verify that `mcp.xerahs.com` points at a running `xerahs-mcp` HTTP deployment or proxy.

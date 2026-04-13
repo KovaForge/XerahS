@@ -25,11 +25,12 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.UI.Onboarding;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
 /// <summary>
-/// Step 6: Completion and Summary
+/// Completion and Summary
 /// </summary>
 public partial class CompleteStepViewModel : StepViewModelBase
 {
@@ -50,11 +51,11 @@ public partial class CompleteStepViewModel : StepViewModelBase
     /// <summary>
     /// Callback to open full settings. Set by the wizard.
     /// </summary>
-    public Action? OpenSettingsCallback { get; set; }
+    public Func<Task>? OpenSettingsCallback { get; set; }
 
     public CompleteStepViewModel()
     {
-        StepTitle = "All Set!";
+        StepTitle = "All Set";
         StepSubtitle = "You're ready to capture";
         StepDescription = "Here's a summary of your configuration.";
         CanSkip = false;
@@ -62,67 +63,64 @@ public partial class CompleteStepViewModel : StepViewModelBase
 
     public void GenerateSummary(OnboardingState state)
     {
-        var parts = new List<string>();
+        List<string> parts = [];
         int configuredCount = 0;
 
-        // Language
         if (!state.SkippedSteps.Contains(0))
         {
-            parts.Add($"• Language: {state.SelectedLanguage}");
-            configuredCount++;
-        }
-
-        // Save location
-        if (!state.SkippedSteps.Contains(1))
-        {
-            parts.Add($"• Screenshots saved to: {state.ScreenshotsFolder}");
+            parts.Add($"- Screenshots saved to: {state.ScreenshotsFolder}");
             if (state.CreateDateSubfolders)
             {
-                parts.Add("  (with date subfolders)");
+                parts.Add("  with date subfolders");
             }
+
             configuredCount++;
         }
 
-        // Hotkeys
-        if (!state.SkippedSteps.Contains(2) && state.PrimaryCaptureHotkey != null)
+        if (!state.SkippedSteps.Contains(1) && state.PrimaryCaptureHotkey != null)
         {
-            parts.Add($"• Primary hotkey: {state.PrimaryCaptureHotkey}");
+            parts.Add($"- Primary hotkey: {state.PrimaryCaptureHotkey}");
             if (state.AdditionalHotkeys.Count > 0)
             {
-                parts.Add($"  ({state.AdditionalHotkeys.Count} additional shortcuts)");
+                parts.Add($"  {state.AdditionalHotkeys.Count} additional shortcuts");
             }
+
             configuredCount++;
         }
 
-        // Upload
-        if (!state.SkippedSteps.Contains(3))
+        if (!state.SkippedSteps.Contains(2))
         {
-            var uploadText = state.SelectedUploaderId switch
-            {
-                "local" => "Local storage only",
-                "imgur_anon" => "Imgur (anonymous)",
-                "imgur_auth" => "Imgur (authenticated)",
-                "custom" => "Custom uploader",
-                _ => "Not configured"
-            };
-            parts.Add($"• Upload destination: {uploadText}");
-            configuredCount++;
-        }
-
-        // OCR
-        if (!state.SkippedSteps.Contains(4) && state.SelectedOcrLanguages.Count > 0)
-        {
-            var langList = string.Join(", ", state.SelectedOcrLanguages.Take(3));
-            if (state.SelectedOcrLanguages.Count > 3)
-            {
-                langList += $" (+{state.SelectedOcrLanguages.Count - 3} more)";
-            }
-            parts.Add($"• OCR languages: {langList}");
+            string uploadText = GetUploadDestinationDisplayName(state.SelectedUploaderId);
+            parts.Add($"- Upload destination: {uploadText}");
             configuredCount++;
         }
 
         ConfiguredStepCount = configuredCount;
         SummaryText = string.Join(Environment.NewLine, parts);
+    }
+
+    private static string GetUploadDestinationDisplayName(string? selectedUploaderId)
+    {
+        if (string.IsNullOrWhiteSpace(selectedUploaderId))
+        {
+            return "Not configured";
+        }
+
+        if (string.Equals(selectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Local storage only";
+        }
+
+        try
+        {
+            return OnboardingFileUploaderHelper.GetFileUploaderProviders()
+                .FirstOrDefault(provider => string.Equals(provider.ProviderId, selectedUploaderId, StringComparison.OrdinalIgnoreCase))
+                ?.Name ?? selectedUploaderId;
+        }
+        catch
+        {
+            return selectedUploaderId;
+        }
     }
 
     [RelayCommand]
@@ -135,20 +133,27 @@ public partial class CompleteStepViewModel : StepViewModelBase
     }
 
     [RelayCommand]
-    private void OpenSettings()
+    private async Task OpenSettingsAsync()
     {
-        OpenSettingsCallback?.Invoke();
+        if (OpenSettingsCallback != null)
+        {
+            await OpenSettingsCallback();
+        }
     }
 
     public override void LoadFromState(OnboardingState state)
     {
         GenerateSummary(state);
+        SetValidationState(true);
     }
 
     public override void SaveToState(OnboardingState state)
     {
-        // Nothing to save from this step
     }
 
-    public override bool Validate() => true;
+    public override bool Validate()
+    {
+        SetValidationState(true);
+        return true;
+    }
 }

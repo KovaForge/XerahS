@@ -57,6 +57,8 @@ public partial class OcrLanguageOption : ObservableObject
 /// </summary>
 public partial class OcrStepViewModel : StepViewModelBase
 {
+    private bool _syncingSelections;
+
     [ObservableProperty]
     private ObservableCollection<string> _selectedLanguages = new();
 
@@ -65,14 +67,11 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     public ObservableCollection<OcrLanguageOption> AvailableLanguages { get; } = new();
 
-    public long TotalDownloadSizeMb => SelectedLanguages
-        .Select(lang => AvailableLanguages.FirstOrDefault(l => l.LanguageTag == lang))
-        .Where(l => l != null)
-        .Sum(l => l!.DownloadSizeMb);
+    public long TotalDownloadSizeMb => AvailableLanguages
+        .Where(language => language.IsSelected)
+        .Sum(language => language.DownloadSizeMb);
 
     public bool ExceedsRecommendedSize => TotalDownloadSizeMb > 200;
-
-    private string _defaultLanguage = "en";
 
     public OcrStepViewModel()
     {
@@ -81,93 +80,83 @@ public partial class OcrStepViewModel : StepViewModelBase
         StepDescription = "Select languages for OCR. You can always add more later in Settings.";
         CanSkip = true;
 
+        SelectedLanguages.CollectionChanged += SelectedLanguages_CollectionChanged;
         InitializeLanguages();
+        UpdateValidationState();
     }
 
     private void InitializeLanguages()
     {
-        // Common OCR languages with estimated download sizes
-        AvailableLanguages.Add(new OcrLanguageOption("en", "English", "English", 25) { IsSelected = true });
-        AvailableLanguages.Add(new OcrLanguageOption("es", "Spanish", "Español", 20));
-        AvailableLanguages.Add(new OcrLanguageOption("fr", "French", "Français", 20));
-        AvailableLanguages.Add(new OcrLanguageOption("de", "German", "Deutsch", 20));
-        AvailableLanguages.Add(new OcrLanguageOption("it", "Italian", "Italiano", 18));
-        AvailableLanguages.Add(new OcrLanguageOption("pt", "Portuguese", "Português", 18));
-        AvailableLanguages.Add(new OcrLanguageOption("ru", "Russian", "Русский", 22));
-        AvailableLanguages.Add(new OcrLanguageOption("ja", "Japanese", "日本語", 35));
-        AvailableLanguages.Add(new OcrLanguageOption("ko", "Korean", "한국어", 30));
-        AvailableLanguages.Add(new OcrLanguageOption("zh-Hans", "Chinese (Simplified)", "简体中文", 40));
-        AvailableLanguages.Add(new OcrLanguageOption("zh-Hant", "Chinese (Traditional)", "繁體中文", 40));
-        AvailableLanguages.Add(new OcrLanguageOption("ar", "Arabic", "العربية", 25));
-        AvailableLanguages.Add(new OcrLanguageOption("hi", "Hindi", "हिन्दी", 28));
-        AvailableLanguages.Add(new OcrLanguageOption("pl", "Polish", "Polski", 18));
-        AvailableLanguages.Add(new OcrLanguageOption("nl", "Dutch", "Nederlands", 18));
-        AvailableLanguages.Add(new OcrLanguageOption("tr", "Turkish", "Türkçe", 18));
+        RegisterLanguage(new OcrLanguageOption("en", "English", "English", 25) { IsSelected = true });
+        RegisterLanguage(new OcrLanguageOption("es", "Spanish", "Spanish", 20));
+        RegisterLanguage(new OcrLanguageOption("fr", "French", "French", 20));
+        RegisterLanguage(new OcrLanguageOption("de", "German", "German", 20));
+        RegisterLanguage(new OcrLanguageOption("it", "Italian", "Italian", 18));
+        RegisterLanguage(new OcrLanguageOption("pt", "Portuguese", "Portuguese", 18));
+        RegisterLanguage(new OcrLanguageOption("ru", "Russian", "Russian", 22));
+        RegisterLanguage(new OcrLanguageOption("ja", "Japanese", "Japanese", 35));
+        RegisterLanguage(new OcrLanguageOption("ko", "Korean", "Korean", 30));
+        RegisterLanguage(new OcrLanguageOption("zh-Hans", "Chinese (Simplified)", "Chinese (Simplified)", 40));
+        RegisterLanguage(new OcrLanguageOption("zh-Hant", "Chinese (Traditional)", "Chinese (Traditional)", 40));
+        RegisterLanguage(new OcrLanguageOption("ar", "Arabic", "Arabic", 25));
+        RegisterLanguage(new OcrLanguageOption("hi", "Hindi", "Hindi", 28));
+        RegisterLanguage(new OcrLanguageOption("pl", "Polish", "Polish", 18));
+        RegisterLanguage(new OcrLanguageOption("nl", "Dutch", "Dutch", 18));
+        RegisterLanguage(new OcrLanguageOption("tr", "Turkish", "Turkish", 18));
 
-        // Default to English
-        SelectedLanguages.Add("en");
+        SyncSelectedLanguagesFromOptions();
+    }
+
+    private void RegisterLanguage(OcrLanguageOption option)
+    {
+        option.PropertyChanged += OnLanguageOptionPropertyChanged;
+        AvailableLanguages.Add(option);
     }
 
     public void SetDefaultLanguage(string languageCode)
     {
-        _defaultLanguage = languageCode;
+        OcrLanguageOption? match = AvailableLanguages.FirstOrDefault(language =>
+            language.LanguageTag.Equals(languageCode, StringComparison.OrdinalIgnoreCase) ||
+            language.LanguageTag.StartsWith(languageCode + "-", StringComparison.OrdinalIgnoreCase));
 
-        // Add the default language if available
-        var match = AvailableLanguages.FirstOrDefault(l =>
-            l.LanguageTag.Equals(languageCode, StringComparison.OrdinalIgnoreCase) ||
-            l.LanguageTag.StartsWith(languageCode + "-", StringComparison.OrdinalIgnoreCase));
-
-        if (match != null && !SelectedLanguages.Contains(match.LanguageTag))
+        if (match != null)
         {
-            SelectedLanguages.Add(match.LanguageTag);
+            match.IsSelected = true;
         }
     }
 
     [RelayCommand]
     private void ToggleLanguage(string languageTag)
     {
-        if (SelectedLanguages.Contains(languageTag))
+        OcrLanguageOption? option = AvailableLanguages.FirstOrDefault(language => language.LanguageTag == languageTag);
+        if (option == null)
         {
-            // Don't remove the last language
-            if (SelectedLanguages.Count > 1)
-            {
-                SelectedLanguages.Remove(languageTag);
-            }
-        }
-        else
-        {
-            SelectedLanguages.Add(languageTag);
+            return;
         }
 
-        OnPropertyChanged(nameof(TotalDownloadSizeMb));
-        OnPropertyChanged(nameof(ExceedsRecommendedSize));
+        option.IsSelected = !option.IsSelected;
     }
 
     [RelayCommand]
     private async Task RefreshAvailableLanguagesAsync()
     {
-        // Query the platform OCR service for available languages
         var ocrService = PlatformServices.Ocr;
         if (ocrService != null && ocrService.IsSupported)
         {
-            var platformLanguages = ocrService.GetAvailableLanguages();
+            IEnumerable<OcrLanguage> platformLanguages = ocrService.GetAvailableLanguages();
 
-            // Update available languages based on platform support
             AvailableLanguages.Clear();
-            foreach (var lang in platformLanguages)
+            foreach (OcrLanguage language in platformLanguages)
             {
-                // Estimate size (platform languages typically don't require download)
-                AvailableLanguages.Add(new OcrLanguageOption(
-                    lang.LanguageTag,
-                    lang.DisplayName,
-                    lang.DisplayName, // Native name not provided by platform
+                RegisterLanguage(new OcrLanguageOption(
+                    language.LanguageTag,
+                    language.DisplayName,
+                    language.DisplayName,
                     0));
             }
-        }
-        else
-        {
-            // OCR not supported on this platform
-            AvailableLanguages.Clear();
+
+            SyncOptionsFromSelectedLanguages();
+            UpdateValidationState();
         }
 
         await Task.CompletedTask;
@@ -175,18 +164,22 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     public override void LoadFromState(OnboardingState state)
     {
+        _syncingSelections = true;
         SelectedLanguages.Clear();
-        foreach (var lang in state.SelectedOcrLanguages)
+
+        List<string> languagesToSelect = state.SelectedOcrLanguages.Count > 0
+            ? state.SelectedOcrLanguages
+            : ["en"];
+
+        foreach (string language in languagesToSelect)
         {
-            SelectedLanguages.Add(lang);
+            SelectedLanguages.Add(language);
         }
 
-        if (SelectedLanguages.Count == 0)
-        {
-            SelectedLanguages.Add("en");
-        }
-
+        _syncingSelections = false;
+        SyncOptionsFromSelectedLanguages();
         DownloadInBackground = state.DownloadOcrInBackground;
+        UpdateValidationState();
     }
 
     public override void SaveToState(OnboardingState state)
@@ -197,12 +190,92 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     public override bool Validate()
     {
+        UpdateValidationState();
         return SelectedLanguages.Count > 0;
     }
 
     partial void OnSelectedLanguagesChanged(ObservableCollection<string> value)
     {
+        value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        UpdateValidationState();
+    }
+
+    private void SelectedLanguages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        UpdateValidationState();
+    }
+
+    private void OnLanguageOptionPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_syncingSelections || e.PropertyName != nameof(OcrLanguageOption.IsSelected) || sender is not OcrLanguageOption option)
+        {
+            return;
+        }
+
+        if (option.IsSelected)
+        {
+            if (!SelectedLanguages.Contains(option.LanguageTag))
+            {
+                SelectedLanguages.Add(option.LanguageTag);
+            }
+        }
+        else if (SelectedLanguages.Contains(option.LanguageTag))
+        {
+            if (SelectedLanguages.Count == 1)
+            {
+                _syncingSelections = true;
+                option.IsSelected = true;
+                _syncingSelections = false;
+                return;
+            }
+
+            SelectedLanguages.Remove(option.LanguageTag);
+        }
+
+        UpdateValidationState();
+    }
+
+    private void SyncSelectedLanguagesFromOptions()
+    {
+        _syncingSelections = true;
+        SelectedLanguages.Clear();
+
+        foreach (OcrLanguageOption option in AvailableLanguages.Where(language => language.IsSelected))
+        {
+            SelectedLanguages.Add(option.LanguageTag);
+        }
+
+        _syncingSelections = false;
+        UpdateValidationState();
+    }
+
+    private void SyncOptionsFromSelectedLanguages()
+    {
+        _syncingSelections = true;
+
+        foreach (OcrLanguageOption option in AvailableLanguages)
+        {
+            option.IsSelected = SelectedLanguages.Contains(option.LanguageTag);
+        }
+
+        if (SelectedLanguages.Count == 0)
+        {
+            OcrLanguageOption? english = AvailableLanguages.FirstOrDefault(language => language.LanguageTag == "en");
+            if (english != null)
+            {
+                english.IsSelected = true;
+                SelectedLanguages.Add(english.LanguageTag);
+            }
+        }
+
+        _syncingSelections = false;
+        UpdateValidationState();
+    }
+
+    private void UpdateValidationState()
+    {
         OnPropertyChanged(nameof(TotalDownloadSizeMb));
         OnPropertyChanged(nameof(ExceedsRecommendedSize));
+        SetValidationState(SelectedLanguages.Count > 0, SelectedLanguages.Count > 0 ? null : "Select at least one OCR language.");
     }
 }

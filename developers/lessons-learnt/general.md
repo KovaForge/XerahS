@@ -173,6 +173,8 @@ This forces the build system to include the correct Windows SDK reference assemb
 
 - Never assume `npm ci` can always clear `ShareX.VideoEditor/frontend/node_modules` on Windows; always delete that folder and rerun the build when `ENOTEMPTY` appears because file locks in `node_modules` can make the first clean fail even though the project itself is valid.
 - Never let `XerahS.App` or `XerahS.CLI` publish transitive `ShareX.VideoEditor/frontend/dist` assets directly; always remove those `ResolvedFileToPublish` entries and copy the Web UI once after `Publish` because duplicate Video Editor frontend publish items trigger `NETSDK1152` on Windows and macOS release packaging.
+- Never pair `.WithDeveloperTools()` with `AttachDeveloperTools()` in XerahS DEBUG startup; always keep exactly one developer-tools attachment path in the application layer because Avalonia 12 throws when DevTools are attached twice.
+- Never call `UseSkia()` in an Avalonia 12 headless/test host without also configuring `Avalonia.HarfBuzz` and `.UseHarfBuzz()` because Skia-only builders no longer get text shaping automatically.
 
 ---
 
@@ -254,6 +256,8 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: Editing workflows or hotkeys on Wayland can trigger debounce-driven portal rebinds while the `WaylandPortalHotkeyService` is also being torn down.
 
 **Lesson**: Never dispose portal hotkey D-Bus state while debounce or rebind work can still be running. Mark the service as disposed first, cancel the debounce token, and wait for in-flight rebind tasks to drain before releasing the connection, session, or semaphore. Otherwise workflow edits can surface unobserved `ObjectDisposedException` failures against `Tmds.DBus.Connection`.
+
+- Never keep `Material.Avalonia` or `Material.Icons.Avalonia` referenced in `XerahS.Mobile.Ava` unless the app actually imports and uses that theme stack; always remove dead UI packages because stale theme dependencies create fake Avalonia upgrade work and complicate Android validation for no runtime benefit.
 
 ### Predict Portal Request Paths Before Waiting
 

@@ -1,6 +1,6 @@
 ---
 name: build-windows-exe
-description: Builds Windows executables (x64 and ARM64) for XerahS using the packaging script. Handles common file locking issues during compilation by killing processes, clearing locks, and using single-threaded builds when needed. Ensures successful creation of Inno Setup installers.
+description: Builds Windows executables (x64 and ARM64) for XerahS using the packaging script. Handles Windows packaging, Inno Setup, artifact validation, and Windows-specific file lock recovery. Use build-common for shared build timeout, lock, and dependency guardrails.
 metadata:
   keywords:
     - build
@@ -29,14 +29,18 @@ Follow these instructions **exactly** and in order to build Windows executables 
 </task>
 
 <context>
-  <build_script_path>ShareX Team\XerahS\build\windows\package-windows.ps1</build_script_path>
-  <dist_output_path>ShareX Team\XerahS\dist</dist_output_path>
-  <common_locked_file>ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\obj\Release\net10.0-windows10.0.26100.0\ShareX.ImageEditor.dll</common_locked_file>
+  <build_script_path>build\windows\package-windows.ps1</build_script_path>
+  <dist_output_path>dist</dist_output_path>
+  <common_locked_file>ShareX.ImageEditor\src\ShareX.ImageEditor\obj\Release\net10.0-windows10.0.26100.0\ShareX.ImageEditor.dll</common_locked_file>
   <expected_outputs>
     - XerahS-{version}-win-x64.exe
     - XerahS-{version}-win-arm64.exe
   </expected_outputs>
 </context>
+
+## Shared Build Guardrails
+
+Before Windows packaging work, follow [build-common](../build-common/SKILL.md) for shared timeout, lock recovery, no-concurrent-build, `-m:1`, TFM, and SkiaSharp rules. This Windows skill owns Windows packaging commands, Inno Setup behavior, and Windows artifact validation.
 
 ## Build Process
 
@@ -45,7 +49,7 @@ Follow these instructions **exactly** and in order to build Windows executables 
 **Always pull the latest `ShareX.ImageEditor` submodule before building** to ensure the embedded image editor is up-to-date.
 
 ```powershell
-cd 'ShareX Team\XerahS'
+# Run from the repository root.
 git submodule update --remote --merge ShareX.ImageEditor
 ```
 
@@ -65,21 +69,20 @@ git submodule update --remote --merge ShareX.ImageEditor
 
 2. **Clean the solution**:
    ```powershell
-   cd 'ShareX Team\XerahS'
+   # Run from the repository root.
    dotnet clean src/desktop/XerahS.sln --nologo -c Release
    ```
 
 3. **If file locks persist, delete the problematic obj folder**:
    ```powershell
-   Remove-Item 'ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\obj' -Recurse -Force -ErrorAction SilentlyContinue
+   Remove-Item 'ShareX.ImageEditor\src\ShareX.ImageEditor\obj' -Recurse -Force -ErrorAction SilentlyContinue
    ```
 
 ### Phase 2: Initial Build Attempt
 
 1. **Run the packaging script**:
    ```powershell
-   cd 'ShareX Team\XerahS\build\windows'
-   .\package-windows.ps1
+   .\build\windows\package-windows.ps1
    ```
 
 2. **Check for successful completion**:
@@ -107,20 +110,19 @@ git submodule update --remote --merge ShareX.ImageEditor
 
 2. **Remove the locked obj folder**:
    ```powershell
-   Remove-Item 'ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\obj\Release' -Recurse -Force -ErrorAction SilentlyContinue
+   Remove-Item 'ShareX.ImageEditor\src\ShareX.ImageEditor\obj\Release' -Recurse -Force -ErrorAction SilentlyContinue
    ```
 
 3. **Pre-build the `ShareX.ImageEditor` project separately with single-threaded compilation**:
    ```powershell
-   dotnet build 'ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj' -c Release -p:UseSharedCompilation=false /m:1
+   dotnet build 'ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj' -c Release -p:UseSharedCompilation=false /m:1
    ```
    - The `/m:1` flag forces single-threaded build
    - `UseSharedCompilation=false` disables the VBCSCompiler server
 
 4. **Re-run the packaging script**:
    ```powershell
-   cd 'ShareX Team\XerahS\build\windows'
-   .\package-windows.ps1
+   .\build\windows\package-windows.ps1
    ```
 
 ### Phase 4: Fallback - Manual ARM64 Build
@@ -130,17 +132,17 @@ git submodule update --remote --merge ShareX.ImageEditor
 1. **Clean and kill processes**:
    ```powershell
    Get-Process | Where-Object { $_.Name -like '*VBCSCompiler*' -or $_.Name -like '*dotnet*' } | Stop-Process -Force -ErrorAction SilentlyContinue
-   Remove-Item 'ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\obj\Release' -Recurse -Force -ErrorAction SilentlyContinue
+   Remove-Item 'ShareX.ImageEditor\src\ShareX.ImageEditor\obj\Release' -Recurse -Force -ErrorAction SilentlyContinue
    ```
 
 2. **Pre-build `ShareX.ImageEditor`**:
    ```powershell
-   dotnet build 'ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj' -c Release -p:UseSharedCompilation=false /m:1
+   dotnet build 'ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj' -c Release -p:UseSharedCompilation=false /m:1
    ```
 
 3. **Publish ARM64 manually**:
    ```powershell
-   $root = 'ShareX Team\XerahS'
+   $root = (Get-Location).Path
    $project = "$root\src\desktop\app\XerahS.App\XerahS.App.csproj"
    $publishOutput = "$root\build\publish-temp-win-arm64"
    
@@ -178,7 +180,7 @@ git submodule update --remote --merge ShareX.ImageEditor
 
 1. **Check that both installers exist**:
    ```powershell
-   Get-ChildItem 'ShareX Team\XerahS\dist' -Filter '*.exe' | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
+   Get-ChildItem 'dist' -Filter '*.exe' | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
    ```
 
 2. **Verify they were created recently** (within the last few minutes)
@@ -244,6 +246,7 @@ git submodule update --remote --merge ShareX.ImageEditor
 | All builds fail | Clean solution, restart terminal, ensure no XerahS instances running |
 
 ## Related Files
+- Shared guardrails: [build-common](../build-common/SKILL.md)
 - Build script: [build\windows\package-windows.ps1](../../../build/windows/package-windows.ps1)
 - Inno Setup script: [build\windows\XerahS-setup.iss](../../../build/windows/XerahS-setup.iss)
 - Version config: [Directory.Build.props](../../../Directory.Build.props)

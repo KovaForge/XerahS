@@ -36,6 +36,7 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
+using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
@@ -112,12 +113,25 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
         {
+            ImageEditorSessionResult? result = await ShowEditorSessionAsync(image, sourceFilePath, taskMode);
+            result?.SourceImage?.Dispose();
+            return result?.RenderedImage;
+        }
+
+        public async Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
+            SKBitmap image,
+            string? sourceFilePath = null,
+            bool taskMode = false,
+            IReadOnlyList<Annotation>? annotations = null,
+            bool restoredAnnotations = false)
+        {
             if (_taskManager == null)
             {
                 throw new InvalidOperationException("AvaloniaUIService requires an IDesktopTaskManager before showing the editor.");
             }
 
-            var tcs = new TaskCompletionSource<SKBitmap?>();
+            var tcs = new TaskCompletionSource<ImageEditorSessionResult?>();
+            var restoredAnnotationSnapshot = annotations?.Select(annotation => annotation.Clone()).ToList();
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -159,6 +173,16 @@ namespace XerahS.UI.Services
                     editorViewModel.IsDirty = false;
                 }
 
+                if (restoredAnnotationSnapshot?.Count > 0)
+                {
+                    editorWindow.Opened += (_, _) =>
+                    {
+                        var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                        editorView?.RestoreAnnotations(restoredAnnotationSnapshot, resetHistory: true);
+                        editorViewModel.IsDirty = false;
+                    };
+                }
+
                 // Handle window closing to capture result
                 editorWindow.Closing += (s, e) =>
                 {
@@ -182,7 +206,16 @@ namespace XerahS.UI.Services
                         else if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
-                            tcs.TrySetResult(snapshot);
+                            if (snapshot == null)
+                            {
+                                tcs.TrySetResult(null);
+                            }
+                            else
+                            {
+                                var source = editorView.GetSource();
+                                var annotationSnapshot = editorView.GetAnnotationSnapshot().ToList();
+                                tcs.TrySetResult(new ImageEditorSessionResult(snapshot, source, annotationSnapshot));
+                            }
                         }
                         else
                         {
@@ -616,6 +649,95 @@ namespace XerahS.UI.Services
                     }
                 });
             }
+        }
+
+        public async Task ShowOcrWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new OcrViewModel(image);
+
+                // Wire the SelectRegion callback so users can re-capture inside the OCR window
+                viewModel.SelectRegionRequested = async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(300); // Allow window to minimize
+                        var captureSettings = SettingsManager.DefaultTaskSettings?.CaptureSettings
+                            ?? new TaskSettingsCapture();
+                        var captureOptions = new CaptureOptions
+                        {
+                            UseModernCapture = captureSettings.UseModernCapture,
+                            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+                            ShowCursor = captureSettings.ShowCursor,
+                            CaptureTransparent = captureSettings.CaptureTransparent,
+                            CaptureShadow = captureSettings.CaptureShadow,
+                            CaptureClientArea = captureSettings.CaptureClientArea
+                        };
+                        return await PlatformServices.ScreenCapture.CaptureRegionAsync(captureOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "OCR region capture");
+                        return null;
+                    }
+                };
+
+                var window = new Views.OcrWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
+
+        public async Task ShowAnalyzerWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new ImageAnalyzerViewModel();
+                viewModel.SetInputImage(image);
+
+                var window = new Views.ImageAnalyzerWindow();
+                window.Initialize(viewModel);
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
         }
     }
 }

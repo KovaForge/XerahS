@@ -153,7 +153,6 @@ These features are fully implemented as standalone tool workflows (hotkey-trigge
 | Flag | Blocker |
 |------|---------|
 | `ShowQuickTaskMenu` | No quick-task menu UI designed |
-| `BeautifyImage` | `ImageBeautifier` missing from `XerahS.MediaLib` |
 | `SendImageToPrinter` | `PrintHelper` not ported |
 | `SaveImageToFileWithDialog` | No Save-As dialog wired into pipeline |
 | `SaveThumbnailImageToFile` | No thumbnail generation in pipeline |

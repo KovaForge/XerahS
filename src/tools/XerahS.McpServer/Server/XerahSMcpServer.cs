@@ -1,16 +1,17 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using XerahS.McpServer.JsonRpc;
-using XerahS.McpServer.Tools;
-using XerahS.McpServer.Resources;
 using XerahS.McpServer.Prompts;
+using XerahS.McpServer.Resources;
+using XerahS.McpServer.Runtime;
+using XerahS.McpServer.Tools;
 
 namespace XerahS.McpServer.Server;
 
 /// <summary>
-/// Main MCP server class handling JSON-RPC requests
+/// Main MCP server class handling JSON-RPC requests.
 /// </summary>
-public class XerahSMcpServer
+public sealed class XerahSMcpServer
 {
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly CaptureTools _captureTools;
@@ -22,38 +23,42 @@ public class XerahSMcpServer
     private readonly SettingsResourceProvider _settingsResourceProvider;
     private readonly WorkflowResourceProvider _workflowResourceProvider;
 
-    public XerahSMcpServer()
+    public XerahSMcpServer(IXerahSMcpRuntime runtime)
     {
+        Runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false
         };
 
-        _captureTools = new CaptureTools();
-        _annotationTools = new AnnotationTools();
-        _uploadTools = new UploadTools();
-        _historyTools = new HistoryTools();
-        _settingsTools = new SettingsTools();
+        _captureTools = new CaptureTools(Runtime);
+        _annotationTools = new AnnotationTools(Runtime);
+        _uploadTools = new UploadTools(Runtime);
+        _historyTools = new HistoryTools(Runtime);
+        _settingsTools = new SettingsTools(Runtime);
         _historyResourceProvider = new HistoryResourceProvider();
         _settingsResourceProvider = new SettingsResourceProvider();
         _workflowResourceProvider = new WorkflowResourceProvider();
     }
 
+    public IXerahSMcpRuntime Runtime { get; }
+
     /// <summary>
-    /// Handle a JSON-RPC request
+    /// Handle a JSON-RPC request.
     /// </summary>
-    public Task<JsonRpcResponse> HandleRequestAsync(JsonRpcRequest request)
+    public Task<JsonRpcResponse> HandleRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken = default)
     {
         return request.Method switch
         {
             "initialize" => HandleInitializeAsync(request),
             "initialized" => HandleInitializedAsync(request),
             "tools/list" => HandleToolsListAsync(request),
-            "tools/call" => HandleToolsCallAsync(request),
+            "tools/call" => HandleToolsCallAsync(request, cancellationToken),
             "resources/list" => HandleResourcesListAsync(request),
-            "resources/read" => HandleResourcesReadAsync(request),
+            "resources/read" => HandleResourcesReadAsync(request, cancellationToken),
             "prompts/list" => HandlePromptsListAsync(request),
+            "prompts/get" => HandlePromptsGetAsync(request),
             "shutdown" => HandleShutdownAsync(request),
             _ => Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.MethodNotFound, $"Method not found: {request.Method}"))
         };
@@ -61,19 +66,22 @@ public class XerahSMcpServer
 
     private Task<JsonRpcResponse> HandleInitializeAsync(JsonRpcRequest request)
     {
-        var result = new
+        var result = new JsonObject
         {
-            protocolVersion = Capabilities.ProtocolVersion,
-            serverInfo = Capabilities.GetServerInfo(),
-            capabilities = Capabilities.GetCapabilities()
+            ["protocolVersion"] = Capabilities.ProtocolVersion,
+            ["serverInfo"] = new JsonObject
+            {
+                ["name"] = Capabilities.ServerName,
+                ["version"] = Runtime.ServerVersion
+            },
+            ["capabilities"] = JsonSerializer.SerializeToNode(Capabilities.GetCapabilities(), _jsonOptions)
         };
 
         return Task.FromResult(JsonRpcResponse.Success(request.Id, result));
     }
 
-    private Task<JsonRpcResponse> HandleInitializedAsync(JsonRpcRequest request)
+    private static Task<JsonRpcResponse> HandleInitializedAsync(JsonRpcRequest request)
     {
-        // Notification - no response needed
         return Task.FromResult(JsonRpcResponse.Success(request.Id, null));
     }
 
@@ -92,39 +100,47 @@ public class XerahSMcpServer
         foreach (var json in _settingsTools.GetToolDefinitionsJson())
             allTools.Add(JsonNode.Parse(json)!);
 
-        var result = new { tools = allTools };
-        return Task.FromResult(JsonRpcResponse.Success(request.Id, result));
+        return Task.FromResult(JsonRpcResponse.Success(request.Id, new JsonObject
+        {
+            ["tools"] = new JsonArray(allTools.ToArray())
+        }));
     }
 
-    private async Task<JsonRpcResponse> HandleToolsCallAsync(JsonRpcRequest request)
+    private async Task<JsonRpcResponse> HandleToolsCallAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (request.Params == null)
+        var paramsNode = ToParamsNode(request.Params);
+        if (paramsNode == null)
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params");
         }
 
-        JsonNode? paramsNode;
-        if (request.Params is JsonNode node)
-        {
-            paramsNode = node;
-        }
-        else
-        {
-            var paramsJson = JsonSerializer.Serialize(request.Params, _jsonOptions);
-            paramsNode = JsonNode.Parse(paramsJson);
-        }
-
-        var name = paramsNode?["name"]?.GetValue<string>();
-        if (string.IsNullOrEmpty(name))
+        var name = paramsNode["name"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(name))
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing tool name");
         }
 
-        var arguments = paramsNode?["arguments"];
+        var arguments = paramsNode["arguments"];
         try
         {
-            var result = await ExecuteToolAsync(name, arguments);
-            return JsonRpcResponse.Success(request.Id, JsonNode.Parse(result));
+            var result = await ExecuteToolAsync(name, arguments, cancellationToken);
+            return JsonRpcResponse.Success(request.Id, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
+        }
+        catch (McpUserCancelledException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.UserCancelled, ex.Message);
+        }
+        catch (FileNotFoundException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.ServerError, ex.Message);
         }
         catch (Exception ex)
         {
@@ -132,47 +148,51 @@ public class XerahSMcpServer
         }
     }
 
-    private Task<string> ExecuteToolAsync(string name, JsonNode? arguments)
+    private async Task<JsonObject> ExecuteToolAsync(string name, JsonNode? arguments, CancellationToken cancellationToken)
     {
-        string? query = null, fromDate = null, toDate = null, fileType = null;
-        int limit = 20;
-        if (arguments != null)
-        {
-            query = arguments["query"]?.GetValue<string>();
-            fromDate = arguments["from_date"]?.GetValue<string>();
-            toDate = arguments["to_date"]?.GetValue<string>();
-            fileType = arguments["file_type"]?.GetValue<string>() ?? "all";
-            limit = arguments["limit"]?.GetValue<int>() ?? 20;
-        }
+        string? query = arguments?["query"]?.GetValue<string>();
+        string? fromDate = arguments?["from_date"]?.GetValue<string>();
+        string? toDate = arguments?["to_date"]?.GetValue<string>();
+        string fileType = arguments?["file_type"]?.GetValue<string>() ?? "all";
+        int limit = arguments?["limit"]?.GetValue<int>() ?? 20;
 
         return name switch
         {
-            "capture_region" => _captureTools.CaptureRegionAsync(
+            "capture_region" => await _captureTools.CaptureRegionAsync(
                 arguments?["workflow_id"]?.GetValue<string>(),
-                arguments?["monitor"]?.GetValue<int>()),
-            "capture_window" => _captureTools.CaptureWindowAsync(
+                arguments?["monitor"]?.GetValue<int>(),
+                cancellationToken),
+            "capture_window" => await _captureTools.CaptureWindowAsync(
                 arguments?["window_title"]?.GetValue<string>(),
-                arguments?["include_decoration"]?.GetValue<bool>() ?? true),
-            "capture_full_screen" => _captureTools.CaptureFullScreenAsync(
-                arguments?["monitor"]?.GetValue<int>()),
-            "capture_scrolling" => _captureTools.CaptureScrollingAsync(
+                arguments?["include_decoration"]?.GetValue<bool>() ?? true,
+                cancellationToken),
+            "capture_full_screen" => await _captureTools.CaptureFullScreenAsync(
+                arguments?["monitor"]?.GetValue<int>(),
+                cancellationToken),
+            "capture_scrolling" => await _captureTools.CaptureScrollingAsync(
                 arguments?["scroll_direction"]?.GetValue<string>() ?? "down",
-                arguments?["max_frames"]?.GetValue<int>() ?? 50),
-            "annotate_image" => _annotationTools.AnnotateImageAsync(
+                arguments?["max_frames"]?.GetValue<int>() ?? 50,
+                cancellationToken),
+            "annotate_image" => await _annotationTools.AnnotateImageAsync(
                 arguments?["image_path"]?.GetValue<string>(),
-                arguments?["auto_save"]?.GetValue<bool>() ?? false,
-                arguments?["annotations"]?.AsArray().Count ?? 0),
-            "upload_file" => _uploadTools.UploadFileAsync(
+                arguments?["annotations"] as JsonArray,
+                arguments?["auto_save"]?.GetValue<bool>() ?? true,
+                cancellationToken),
+            "upload_file" => await _uploadTools.UploadFileAsync(
                 arguments?["file_path"]?.GetValue<string>(),
-                arguments?["destination"]?.GetValue<string>()),
-            "upload_clipboard" => _uploadTools.UploadClipboardAsync(
-                arguments?["destination"]?.GetValue<string>()),
-            "query_history" => _historyTools.QueryHistoryAsync(query, fromDate, toDate, fileType ?? "all", limit),
-            "get_history_item" => _historyTools.GetHistoryItemAsync(
-                arguments?["id"]?.GetValue<string>()),
-            "list_workflows" => _settingsTools.ListWorkflowsAsync(),
-            "get_settings" => _settingsTools.GetSettingsAsync(
-                arguments?["category"]?.GetValue<string>()),
+                arguments?["destination"]?.GetValue<string>(),
+                cancellationToken),
+            "upload_clipboard" => await _uploadTools.UploadClipboardAsync(
+                arguments?["destination"]?.GetValue<string>(),
+                cancellationToken),
+            "query_history" => await _historyTools.QueryHistoryAsync(query, fromDate, toDate, fileType, limit, cancellationToken),
+            "get_history_item" => await _historyTools.GetHistoryItemAsync(
+                arguments?["id"]?.GetValue<string>(),
+                cancellationToken),
+            "list_workflows" => await _settingsTools.ListWorkflowsAsync(cancellationToken),
+            "get_settings" => await _settingsTools.GetSettingsAsync(
+                arguments?["category"]?.GetValue<string>(),
+                cancellationToken),
             _ => throw new ArgumentException($"Unknown tool: {name}")
         };
     }
@@ -188,69 +208,122 @@ public class XerahSMcpServer
         foreach (var json in _workflowResourceProvider.GetResourceTemplatesJson())
             allResources.Add(JsonNode.Parse(json)!);
 
-        var result = new { resources = allResources };
-        return Task.FromResult(JsonRpcResponse.Success(request.Id, result));
+        return Task.FromResult(JsonRpcResponse.Success(request.Id, new JsonObject
+        {
+            ["resources"] = new JsonArray(allResources.ToArray())
+        }));
     }
 
-    private Task<JsonRpcResponse> HandleResourcesReadAsync(JsonRpcRequest request)
+    private async Task<JsonRpcResponse> HandleResourcesReadAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        if (request.Params == null)
+        var paramsNode = ToParamsNode(request.Params);
+        if (paramsNode == null)
         {
-            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params"));
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params");
         }
 
-        JsonNode? paramsNode;
-        if (request.Params is JsonNode node)
+        var uri = paramsNode["uri"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(uri))
         {
-            paramsNode = node;
-        }
-        else
-        {
-            var paramsJson = JsonSerializer.Serialize(request.Params, _jsonOptions);
-            paramsNode = JsonNode.Parse(paramsJson);
-        }
-
-        var uri = paramsNode?["uri"]?.GetValue<string>();
-        if (string.IsNullOrEmpty(uri))
-        {
-            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing resource URI"));
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing resource URI");
         }
 
         try
         {
-            var result = ReadResource(uri);
-            return Task.FromResult(JsonRpcResponse.Success(request.Id, JsonNode.Parse(result)));
+            return JsonRpcResponse.Success(request.Id, await Runtime.ReadResourceAsync(uri, cancellationToken));
+        }
+        catch (ArgumentException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
+        }
+        catch (FileNotFoundException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.ServerError, ex.Message);
         }
         catch (Exception ex)
         {
-            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InternalError, ex.Message));
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InternalError, ex.Message);
         }
     }
 
-    private string ReadResource(string uri)
+    private static Task<JsonRpcResponse> HandlePromptsListAsync(JsonRpcRequest request)
     {
-        if (uri.StartsWith("xerahs://history/"))
-            return _historyResourceProvider.ReadResourceJson(uri);
-
-        if (uri.StartsWith("xerahs://settings/"))
-            return _settingsResourceProvider.ReadResourceJson(uri);
-
-        if (uri.StartsWith("xerahs://workflows"))
-            return _workflowResourceProvider.ReadResourceJson(uri);
-
-        throw new ArgumentException($"Unknown resource URI: {uri}");
+        return Task.FromResult(JsonRpcResponse.Success(request.Id, new JsonObject
+        {
+            ["prompts"] = JsonSerializer.SerializeToNode(PromptTemplates.GetPrompts())!
+        }));
     }
 
-    private Task<JsonRpcResponse> HandlePromptsListAsync(JsonRpcRequest request)
+    private Task<JsonRpcResponse> HandlePromptsGetAsync(JsonRpcRequest request)
     {
-        var prompts = PromptTemplates.GetPrompts();
-        var result = new { prompts };
-        return Task.FromResult(JsonRpcResponse.Success(request.Id, result));
+        var paramsNode = ToParamsNode(request.Params);
+        if (paramsNode == null)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params"));
+        }
+
+        var name = paramsNode["name"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing prompt name"));
+        }
+
+        try
+        {
+            var text = PromptTemplates.GetPromptTemplate(name);
+            if (paramsNode["arguments"] is JsonObject arguments)
+            {
+                foreach (var pair in arguments)
+                {
+                    var replacement = pair.Value is JsonValue value && value.TryGetValue<string>(out var stringValue)
+                        ? stringValue
+                        : pair.Value?.ToJsonString() ?? string.Empty;
+                    text = text.Replace($"{{{{{pair.Key}}}}}", replacement, StringComparison.Ordinal);
+                }
+            }
+
+            return Task.FromResult(JsonRpcResponse.Success(request.Id, new JsonObject
+            {
+                ["description"] = PromptTemplates.GetPrompts().FirstOrDefault(prompt => prompt.Name == name)?.Description,
+                ["messages"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["role"] = "user",
+                        ["content"] = new JsonObject
+                        {
+                            ["type"] = "text",
+                            ["text"] = text
+                        }
+                    })
+            }));
+        }
+        catch (ArgumentException ex)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message));
+        }
     }
 
-    private Task<JsonRpcResponse> HandleShutdownAsync(JsonRpcRequest request)
+    private static Task<JsonRpcResponse> HandleShutdownAsync(JsonRpcRequest request)
     {
-        var result = new { };
-        return Task.FromResult(JsonRpcResponse.Success(request.Id, result));
+        return Task.FromResult(JsonRpcResponse.Success(request.Id, new JsonObject()));
+    }
+
+    private JsonNode? ToParamsNode(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is JsonNode node)
+        {
+            return node;
+        }
+
+        return JsonSerializer.SerializeToNode(value, _jsonOptions);
     }
 }

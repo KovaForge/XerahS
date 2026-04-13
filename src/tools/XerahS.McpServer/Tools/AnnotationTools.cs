@@ -1,66 +1,58 @@
+using System.Text.Json.Nodes;
+using XerahS.McpServer.Runtime;
+
 namespace XerahS.McpServer.Tools;
 
 /// <summary>
-/// Annotation tools for MCP server
+/// Annotation tools for MCP server.
 /// </summary>
-public class AnnotationTools
+public sealed class AnnotationTools(IXerahSMcpRuntime runtime)
 {
+    private readonly IXerahSMcpRuntime _runtime = runtime;
+
     public string[] GetToolDefinitionsJson() => [
-        @"{
-          ""name"": ""annotate_image"",
-          ""title"": ""Annotate Image"",
-          ""description"": ""Opens XerahS image editor with the specified image pre-loaded for annotation."",
-          ""inputSchema"": {
-            ""type"": ""object"",
-            ""properties"": {
-              ""image_path"": {
-                ""type"": ""string"",
-                ""description"": ""Absolute path to the image file to annotate"",
-                ""required"": true
+        """
+        {
+          "name": "annotate_image",
+          "title": "Annotate Image",
+          "description": "Applies XerahS-compatible annotations to an existing image and writes a new annotated file. This MCP path is headless and does not launch the interactive editor.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "image_path": {
+                "type": "string",
+                "description": "Absolute path to the image file to annotate."
               },
-              ""annotations"": {
-                ""type"": ""array"",
-                ""description"": ""Optional list of annotations to apply automatically before opening the editor"",
-                ""items"": {
-                  ""type"": ""object"",
-                  ""properties"": {
-                    ""type"": {
-                      ""type"": ""string"",
-                      ""enum"": [""arrow"", ""rectangle"", ""ellipse"", ""line"", ""text"", ""freehand"", ""blur"", ""pixelate"", ""step""]
+              "annotations": {
+                "type": "array",
+                "description": "Ordered list of annotations to render.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["arrow", "rectangle", "ellipse", "line", "text", "freehand", "blur", "pixelate", "step"]
                     },
-                    ""params"": {
-                      ""type"": ""object"",
-                      ""description"": ""Annotation-specific parameters""
+                    "params": {
+                      "type": "object",
+                      "description": "Annotation-specific parameters such as coordinates, color, or text."
                     }
-                  }
+                  },
+                  "required": ["type"]
                 }
               },
-              ""auto_save"": {
-                ""type"": ""boolean"",
-                ""default"": false,
-                ""description"": ""If true, applies annotations and saves without showing the editor UI""
+              "auto_save": {
+                "type": "boolean",
+                "default": true,
+                "description": "Accepted for compatibility; the MCP implementation always writes the annotated result to disk."
               }
             },
-            ""required"": [""image_path""]
+            "required": ["image_path"]
           }
-        }"
+        }
+        """
     ];
 
-    public Task<string> AnnotateImageAsync(string? imagePath, bool autoSave, int annotationsCount)
-    {
-        if (string.IsNullOrEmpty(imagePath))
-        {
-            return Task.FromResult(@"{ ""error"": ""image_path is required"" }");
-        }
-
-        // STUB: needs integration with annotation pipeline
-        var outputPath = imagePath.Replace(".png", "_annotated.png");
-        return Task.FromResult($@"{{
-          ""input_path"": ""{imagePath}"",
-          ""output_path"": ""{outputPath}"",
-          ""auto_save"": {autoSave.ToString().ToLower()},
-          ""annotations_applied"": {annotationsCount},
-          ""note"": ""STUB: needs integration with annotation pipeline""
-        }}");
-    }
+    public Task<JsonObject> AnnotateImageAsync(string? imagePath, JsonArray? annotations, bool autoSave, CancellationToken cancellationToken = default) =>
+        _runtime.AnnotateImageAsync(imagePath, annotations, autoSave, cancellationToken);
 }

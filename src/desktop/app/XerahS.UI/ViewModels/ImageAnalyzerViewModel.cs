@@ -50,6 +50,9 @@ public partial class ImageAnalyzerViewModel : ViewModelBase
     private string? _inputFilePath;
 
     [ObservableProperty]
+    private string _inputDisplayText = "";
+
+    [ObservableProperty]
     private string _inputFileName = "";
 
     [ObservableProperty]
@@ -76,10 +79,23 @@ public partial class ImageAnalyzerViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return;
 
         InputFilePath = filePath;
+        InputDisplayText = filePath;
         InputFileName = Path.GetFileName(filePath);
         HasInput = true;
 
         Analyze();
+    }
+
+    public void SetInputImage(SkiaSharp.SKBitmap image, string inputName = "Captured image")
+    {
+        if (image.Width <= 0 || image.Height <= 0) return;
+
+        InputFilePath = null;
+        InputDisplayText = inputName;
+        InputFileName = inputName;
+        HasInput = true;
+
+        AnalyzeBitmap(image);
     }
 
     [RelayCommand]
@@ -95,7 +111,6 @@ public partial class ImageAnalyzerViewModel : ViewModelBase
         {
             var fileInfo = new FileInfo(InputFilePath);
 
-            // File properties
             AddProperty("File", "Name", fileInfo.Name);
             AddProperty("File", "Size", FormatFileSize(fileInfo.Length));
             AddProperty("File", "Extension", fileInfo.Extension);
@@ -103,27 +118,10 @@ public partial class ImageAnalyzerViewModel : ViewModelBase
             AddProperty("File", "Created", fileInfo.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"));
             AddProperty("File", "Modified", fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"));
 
-            // Image properties
             using var bmp = ImageHelpers.LoadBitmap(InputFilePath);
             if (bmp != null)
             {
-                AddProperty("Image", "Width", $"{bmp.Width} px");
-                AddProperty("Image", "Height", $"{bmp.Height} px");
-                AddProperty("Image", "Pixel Count", $"{(long)bmp.Width * bmp.Height:N0}");
-                AddProperty("Image", "Aspect Ratio", GetAspectRatio(bmp.Width, bmp.Height));
-                AddProperty("Image", "Color Type", bmp.ColorType.ToString());
-                AddProperty("Image", "Alpha Type", bmp.AlphaType.ToString());
-                AddProperty("Image", "Bytes Per Pixel", bmp.BytesPerPixel.ToString());
-                AddProperty("Image", "Row Bytes", $"{bmp.RowBytes:N0}");
-                AddProperty("Image", "Total Bytes", FormatFileSize((long)bmp.RowBytes * bmp.Height));
-
-                // Sample average color (center region)
-                var avgColor = SampleAverageColor(bmp);
-                AddProperty("Color", "Average Color", $"#{avgColor.Red:X2}{avgColor.Green:X2}{avgColor.Blue:X2}");
-                AddProperty("Color", "Average RGB", $"R:{avgColor.Red} G:{avgColor.Green} B:{avgColor.Blue}");
-                AddProperty("Color", "Has Transparency", (bmp.AlphaType != SkiaSharp.SKAlphaType.Opaque).ToString());
-
-                StatusText = $"{InputFileName} ({bmp.Width} x {bmp.Height})";
+                AddBitmapProperties(bmp);
             }
             else
             {
@@ -139,6 +137,50 @@ public partial class ImageAnalyzerViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+
+    private void AnalyzeBitmap(SkiaSharp.SKBitmap bmp)
+    {
+        IsLoading = true;
+        Properties.Clear();
+        StatusText = "Analyzing...";
+
+        try
+        {
+            AddProperty("Source", "Name", InputFileName);
+            AddProperty("Source", "Type", "In-memory image");
+
+            AddBitmapProperties(bmp);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error: {ex.Message}";
+            DebugHelper.WriteException(ex, "ImageAnalyzer");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void AddBitmapProperties(SkiaSharp.SKBitmap bmp)
+    {
+        AddProperty("Image", "Width", $"{bmp.Width} px");
+        AddProperty("Image", "Height", $"{bmp.Height} px");
+        AddProperty("Image", "Pixel Count", $"{(long)bmp.Width * bmp.Height:N0}");
+        AddProperty("Image", "Aspect Ratio", GetAspectRatio(bmp.Width, bmp.Height));
+        AddProperty("Image", "Color Type", bmp.ColorType.ToString());
+        AddProperty("Image", "Alpha Type", bmp.AlphaType.ToString());
+        AddProperty("Image", "Bytes Per Pixel", bmp.BytesPerPixel.ToString());
+        AddProperty("Image", "Row Bytes", $"{bmp.RowBytes:N0}");
+        AddProperty("Image", "Total Bytes", FormatFileSize((long)bmp.RowBytes * bmp.Height));
+
+        var avgColor = SampleAverageColor(bmp);
+        AddProperty("Color", "Average Color", $"#{avgColor.Red:X2}{avgColor.Green:X2}{avgColor.Blue:X2}");
+        AddProperty("Color", "Average RGB", $"R:{avgColor.Red} G:{avgColor.Green} B:{avgColor.Blue}");
+        AddProperty("Color", "Has Transparency", (bmp.AlphaType != SkiaSharp.SKAlphaType.Opaque).ToString());
+
+        StatusText = $"{InputFileName} ({bmp.Width} x {bmp.Height})";
     }
 
     [RelayCommand]
@@ -171,6 +213,7 @@ public partial class ImageAnalyzerViewModel : ViewModelBase
     private void Clear()
     {
         InputFilePath = null;
+        InputDisplayText = "";
         InputFileName = "";
         HasInput = false;
         Properties.Clear();

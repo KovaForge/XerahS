@@ -23,16 +23,9 @@
 
 #endregion
 
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
-using XerahS.Platform.Abstractions;
-using XerahS.UI.Onboarding.Controls;
 using XerahS.UI.Onboarding.ViewModels.Steps;
-using Key = Avalonia.Input.Key;
-using KeyModifiers = Avalonia.Input.KeyModifiers;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Onboarding.Steps;
 
@@ -51,85 +44,16 @@ public partial class HotkeyStepView : UserControl
         Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
     }
 
-    protected override void OnDataContextChanged(System.EventArgs e)
+    private void OnOnboardingHotkeyChanged(object? sender, EventArgs e)
     {
-        base.OnDataContextChanged(e);
-        WireHotkeyRecorder();
-    }
-
-    private void WireHotkeyRecorder()
-    {
-        if (PrimaryHotkeyRecorder == null) return;
-        if (DataContext is not HotkeyStepViewModel vm) return;
-
-        // Wire the recorder's HotkeyChanged event to sync Value → ViewModel
-        PrimaryHotkeyRecorder.HotkeyChanged -= OnRecorderHotkeyChanged;
-        PrimaryHotkeyRecorder.HotkeyChanged += OnRecorderHotkeyChanged;
-
-        // Sync ViewModel.PrimaryHotkey → Recorder.Value
-        if (vm.PrimaryHotkey != null)
+        if (sender is Control { DataContext: HotkeyItemViewModel hotkeyItem })
         {
-            PrimaryHotkeyRecorder.Value = vm.PrimaryHotkey.ToString();
-        }
-    }
-
-    private void OnRecorderHotkeyChanged(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not HotkeyRecorder recorder) return;
-        if (DataContext is not HotkeyStepViewModel vm) return;
-
-        var hotkeyString = recorder.Value;
-        if (string.IsNullOrEmpty(hotkeyString))
-        {
-            vm.PrimaryHotkey = null;
-            return;
+            hotkeyItem.Refresh();
         }
 
-        // Parse the hotkey string back to HotkeyInfo
-        var hotkey = ParseHotkeyString(hotkeyString);
-        vm.PrimaryHotkey = hotkey;
-    }
-
-    private static HotkeyInfo? ParseHotkeyString(string hotkeyString)
-    {
-        if (string.IsNullOrEmpty(hotkeyString)) return null;
-
-        var parts = hotkeyString.Split(" + ");
-        if (parts.Length == 0) return null;
-
-        var modifiers = KeyModifiers.None;
-        Key key = Key.None;
-
-        foreach (var part in parts)
+        if (DataContext is HotkeyStepViewModel vm)
         {
-            var normalized = part.Trim();
-            switch (normalized.ToLowerInvariant())
-            {
-                case "ctrl":
-                case "control":
-                    modifiers |= KeyModifiers.Control;
-                    break;
-                case "alt":
-                    modifiers |= KeyModifiers.Alt;
-                    break;
-                case "shift":
-                    modifiers |= KeyModifiers.Shift;
-                    break;
-                case "win":
-                case "windows":
-                    modifiers |= KeyModifiers.Meta;
-                    break;
-                default:
-                    // Try to parse as a key
-                    if (Enum.TryParse<Key>(normalized, true, out var parsedKey))
-                    {
-                        key = parsedKey;
-                    }
-                    break;
-            }
+            vm.RefreshFromHotkeyItems();
         }
-
-        if (key == Key.None) return null;
-        return new HotkeyInfo(key, modifiers);
     }
 }
