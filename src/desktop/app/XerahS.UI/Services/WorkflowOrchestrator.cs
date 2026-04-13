@@ -86,6 +86,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 var vm = new ImageAnalyzerViewModel();
+                vm.SetInputImage(bitmap);
+
                 var w = new ImageAnalyzerWindow();
                 w.Initialize(vm);
                 w.Show();
