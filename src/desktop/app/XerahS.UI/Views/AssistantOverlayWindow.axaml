@@ -34,6 +34,7 @@
             <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <Style Selector="TextBlock.overlay-caption">
@@ -97,7 +98,8 @@
               RowSpacing="{StaticResource SpaceL}">
             <Grid ColumnDefinitions="*, Auto"
                   ColumnSpacing="{StaticResource SpaceM}">
-                <StackPanel Spacing="{StaticResource SpaceXS}">
+                <Grid RowDefinitions="Auto, Auto, Auto"
+                      RowSpacing="{StaticResource SpaceXS}">
                     <StackPanel Orientation="Horizontal"
                                 Spacing="{StaticResource SpaceS}">
                         <Border Classes="accent-chip"
@@ -111,13 +113,18 @@
                                    Classes="overlay-caption"
                                    VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Text="Use natural language. Enter runs the request, and Esc clears or closes."
+                    <TextBlock Grid.Row="1"
+                               Text="Use natural language. Enter runs the request, and Esc clears or closes."
                                Classes="overlay-title" />
-                </StackPanel>
+                    <TextBlock Grid.Row="2"
+                               Text="Commands that produce text output show it directly below the status line."
+                               Classes="overlay-caption" />
+                </Grid>
 
                 <StackPanel Grid.Column="1"
                             Spacing="{StaticResource SpaceXS}"
-                            HorizontalAlignment="Right">
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
                     <Border Classes="section-card"
                             Padding="10,6">
                         <TextBlock Text="Esc"
@@ -148,7 +155,7 @@
             </Border>
 
             <Grid Grid.Row="2"
-                  RowDefinitions="Auto, Auto, *, Auto"
+                  RowDefinitions="Auto, Auto, Auto, *, Auto"
                   RowSpacing="{StaticResource SpaceM}">
                 <Border Classes="section-card"
                         Padding="{StaticResource InnerPadding}">
@@ -176,6 +183,25 @@
                 </ItemsControl>
 
                 <Border Grid.Row="2"
+                        Classes="section-card"
+                        Padding="{StaticResource InnerPadding}"
+                        IsVisible="{Binding HasResultPreview}">
+                    <Grid RowDefinitions="Auto, Auto"
+                          RowSpacing="{StaticResource SpaceS}">
+                        <TextBlock Text="Processed output"
+                                   Classes="section-label" />
+                        <TextBox Grid.Row="1"
+                                 Text="{Binding ResultPreviewText}"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="72"
+                                 MaxHeight="132"
+                                 AutomationProperties.Name="Processed assistant output" />
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="3"
                         Classes="section-card">
                     <Grid RowDefinitions="Auto, *"
                           RowSpacing="{StaticResource SpaceM}"
@@ -227,7 +253,7 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="3"
+                <Border Grid.Row="4"
                         Classes="section-card"
                         Padding="{StaticResource InnerPadding}"
                         IsVisible="{Binding HasPendingConfirmation}"

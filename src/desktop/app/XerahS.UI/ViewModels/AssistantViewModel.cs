@@ -52,6 +52,12 @@ public partial class AssistantViewModel : ViewModelBase
     [ObservableProperty]
     private string _confirmationText = string.Empty;
 
+    [ObservableProperty]
+    private bool _hasResultPreview;
+
+    [ObservableProperty]
+    private string _resultPreviewText = string.Empty;
+
     private AssistantAction? _pendingAction;
 
     public ObservableCollection<AssistantResultItem> Items { get; } = new();
@@ -188,6 +194,8 @@ public partial class AssistantViewModel : ViewModelBase
     {
         Items.Clear();
         Actions.Clear();
+        HasResultPreview = false;
+        ResultPreviewText = string.Empty;
 
         foreach (var item in response.Items)
         {
@@ -203,6 +211,30 @@ public partial class AssistantViewModel : ViewModelBase
         ConfirmationText = response.PendingConfirmation?.Copy ?? string.Empty;
         _pendingAction = response.PendingConfirmation?.Action;
         StatusText = response.Message;
+        UpdateResultPreview(response);
+    }
+
+    private void UpdateResultPreview(AssistantResponse response)
+    {
+        string? preview = response.Actions
+            .FirstOrDefault(action => action.Kind == AssistantActionKind.CopyText && !string.IsNullOrWhiteSpace(action.Text))
+            ?.Text;
+
+        if (string.IsNullOrWhiteSpace(preview) && response.Items.Count > 0)
+        {
+            preview = string.Join(
+                Environment.NewLine,
+                response.Items.Select(item => !string.IsNullOrWhiteSpace(item.Subtitle) ? item.Subtitle : item.Title)
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
+        }
+
+        if (string.IsNullOrWhiteSpace(preview))
+        {
+            return;
+        }
+
+        ResultPreviewText = preview;
+        HasResultPreview = true;
     }
 
     private void CancelRequest()
@@ -212,4 +244,3 @@ public partial class AssistantViewModel : ViewModelBase
         _requestCts = null;
     }
 }
-
