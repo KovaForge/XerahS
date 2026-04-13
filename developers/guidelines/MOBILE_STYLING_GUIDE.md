@@ -1,4 +1,4 @@
-﻿# Mobile Styling Guide
+# Mobile Styling Guide
 
 ## Purpose
 
