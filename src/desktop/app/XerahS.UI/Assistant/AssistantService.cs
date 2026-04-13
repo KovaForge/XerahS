@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using SkiaSharp;
+using System.Text.Json;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
@@ -47,9 +48,11 @@ public sealed class AssistantService : IAssistantService
     private readonly AssistantPrivacyGuard _privacyGuard;
     private readonly IDesktopTaskManager? _taskManager;
     private readonly AssistantLocalMemoryStore _memoryStore;
+    private readonly Func<AssistantProviderRuntimeSettings?> _activeProviderResolver;
+    private readonly Func<AssistantProviderRuntimeSettings, IAssistantModelProvider> _providerFactory;
 
     public AssistantService()
-        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard(), null, null)
+        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard(), null, null, null, null)
     {
     }
 
@@ -58,13 +61,17 @@ public sealed class AssistantService : IAssistantService
         IAssistantHistoryService history,
         AssistantPrivacyGuard privacyGuard,
         IDesktopTaskManager? taskManager = null,
-        AssistantLocalMemoryStore? memoryStore = null)
+        AssistantLocalMemoryStore? memoryStore = null,
+        Func<AssistantProviderRuntimeSettings?>? activeProviderResolver = null,
+        Func<AssistantProviderRuntimeSettings, IAssistantModelProvider>? providerFactory = null)
     {
         _router = router;
         _history = history;
         _privacyGuard = privacyGuard;
         _taskManager = taskManager ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
         _memoryStore = memoryStore ?? new AssistantLocalMemoryStore();
+        _activeProviderResolver = activeProviderResolver ?? ResolveActiveProvider;
+        _providerFactory = providerFactory ?? AssistantModelProviderFactory.Create;
     }
 
     public async Task<AssistantResponse> ProcessPromptAsync(string prompt, CancellationToken cancellationToken)
@@ -80,14 +87,19 @@ public sealed class AssistantService : IAssistantService
             prompt = aliasCommand;
         }
 
+        AssistantResponse? providerResponse = await TryProcessWithProviderAsync(prompt, cancellationToken);
+        if (providerResponse != null)
+        {
+            _memoryStore.RecordExecution(new AssistantDeterministicIntent(AssistantDeterministicIntentKind.Unknown, 0, CopyRequested: false), BuildActionSummary(providerResponse));
+            return providerResponse;
+        }
+
         var intent = _router.Parse(prompt);
         if (intent.Kind == AssistantDeterministicIntentKind.Unknown)
         {
-            AssistantResponse? providerResponse = await TryProcessWithProviderAsync(prompt, cancellationToken);
-            if (providerResponse != null)
-            {
-                return providerResponse;
-            }
+            AssistantResponse noMatchResponse = AssistantResponse.Info("The assistant could not map that request to a safe local command. Try one of the suggestions.");
+            _memoryStore.RecordExecution(intent, BuildActionSummary(noMatchResponse));
+            return noMatchResponse;
         }
 
         AssistantResponse response = await ProcessIntentAsync(intent, cancellationToken);
@@ -119,7 +131,8 @@ public sealed class AssistantService : IAssistantService
         string prompt,
         CancellationToken cancellationToken)
     {
-        if (!AssistantProviderSettingsResolver.TryGetActive(out AssistantProviderRuntimeSettings providerSettings))
+        AssistantProviderRuntimeSettings? providerSettings = _activeProviderResolver();
+        if (providerSettings == null)
         {
             return null;
         }
@@ -132,26 +145,44 @@ public sealed class AssistantService : IAssistantService
 
         if (!decision.Allowed || decision.RequiresConfirmation)
         {
-            return AssistantResponse.Error("The assistant did not send this prompt to the provider because it may contain paths, URLs, or sensitive text. Try one of the local command suggestions.");
+            return null;
         }
 
-        string commandPrompt = string.Join(Environment.NewLine, AssistantCommandRouter.GetSuggestions().Select(item => $"- {item}"));
         AssistantModelRequest request = new(
             providerSettings.Metadata.Id,
             providerSettings.ModelId,
             [
                 new AssistantMessage(
                     AssistantModelMessageRole.System,
-                    "Convert the user's request into exactly one safe XerahS local command from the list. Return only the command text. Return NO_MATCH if none apply."),
+                    """
+                    You are the local intent planner for XerahS Assistant.
+                    Convert the user's request into exactly one JSON object with no surrounding prose.
+                    Allowed intents: latest_screenshot_paths, copy_latest_screenshot_path, open_latest_screenshot,
+                    reveal_latest_screenshot, ocr_latest_screenshot, copy_ocr_latest_screenshot,
+                    upload_latest_screenshot, run_workflow, no_match.
+                    JSON schema:
+                    {
+                      "intent": string,
+                      "limit": number or null,
+                      "copyRequested": boolean or null,
+                      "separator": string or null,
+                      "argument": string or null
+                    }
+                    Rules:
+                    - Use latest_screenshot_paths for requests asking for one or more screenshot file paths.
+                    - Preserve an explicit separator like ";", ",", "|", "newline", or "tab" in the separator field.
+                    - For run_workflow, place the workflow name in argument.
+                    - Return no_match when the request does not cleanly map to one safe local action.
+                    """),
                 new AssistantMessage(
                     AssistantModelMessageRole.User,
-                    $"Available commands:{Environment.NewLine}{commandPrompt}{Environment.NewLine}{Environment.NewLine}User request: {prompt}")
+                    prompt)
             ],
             [],
             AssistantPrivacyScope.CloudText,
             AllowImageContent: false);
 
-        IAssistantModelProvider provider = AssistantModelProviderFactory.Create(providerSettings);
+        IAssistantModelProvider provider = _providerFactory(providerSettings);
         AssistantModelResult result = await provider.CompleteAsync(request, cancellationToken);
         if (result.Kind == AssistantModelResultKind.Cancelled)
         {
@@ -163,15 +194,18 @@ public sealed class AssistantService : IAssistantService
             return AssistantResponse.Error(result.Text ?? "Provider request failed.");
         }
 
-        if (result.Text.Contains("NO_MATCH", StringComparison.OrdinalIgnoreCase))
+        AssistantDeterministicIntent? providerIntent = TryParseProviderIntent(result.Text);
+        if (providerIntent != null)
         {
-            return AssistantResponse.Info("AI provider could not map that request to a safe local command. Try one of the suggestions.");
+            return providerIntent.Kind == AssistantDeterministicIntentKind.Unknown
+                ? null
+                : await ProcessIntentAsync(providerIntent, cancellationToken);
         }
 
         AssistantDeterministicIntent inferredIntent = _router.Parse(result.Text);
         if (inferredIntent.Kind == AssistantDeterministicIntentKind.Unknown)
         {
-            return AssistantResponse.Info("AI provider returned a response, but it did not match an allowlisted assistant command. Try one of the suggestions.");
+            return null;
         }
 
         return await ProcessIntentAsync(inferredIntent, cancellationToken);
@@ -247,7 +281,8 @@ public sealed class AssistantService : IAssistantService
             return AssistantResponse.Error("No recent captures found. Try taking a screenshot first.");
         }
 
-        string paths = string.Join(Environment.NewLine, items.Select(item => item.FilePath));
+        string separator = string.IsNullOrEmpty(intent.Separator) ? Environment.NewLine : intent.Separator;
+        string paths = string.Join(separator, items.Select(item => item.FilePath));
         if (intent.CopyRequested)
         {
             await PlatformServices.Clipboard.SetTextAsync(paths);
@@ -580,5 +615,83 @@ public sealed class AssistantService : IAssistantService
         settings.Job = WorkflowType.FileUpload;
         settings.AfterUploadJob |= AfterUploadTasks.CopyURLToClipboard;
         return settings;
+    }
+
+    private static AssistantProviderRuntimeSettings? ResolveActiveProvider() =>
+        AssistantProviderSettingsResolver.TryGetActive(out AssistantProviderRuntimeSettings settings) ? settings : null;
+
+    private static AssistantDeterministicIntent? TryParseProviderIntent(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(text);
+            JsonElement root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("intent", out JsonElement intentElement))
+            {
+                return null;
+            }
+
+            string? intentName = intentElement.GetString();
+            if (string.IsNullOrWhiteSpace(intentName))
+            {
+                return null;
+            }
+
+            int limit = root.TryGetProperty("limit", out JsonElement limitElement) && limitElement.ValueKind == JsonValueKind.Number && limitElement.TryGetInt32(out int parsedLimit)
+                ? Math.Clamp(parsedLimit, 1, AssistantCommandRouter.MaxLatestScreenshotLimit)
+                : 1;
+
+            bool copyRequested = root.TryGetProperty("copyRequested", out JsonElement copyElement) && copyElement.ValueKind is JsonValueKind.True or JsonValueKind.False
+                ? copyElement.GetBoolean()
+                : false;
+
+            string? separator = root.TryGetProperty("separator", out JsonElement separatorElement) && separatorElement.ValueKind == JsonValueKind.String
+                ? NormalizeProviderSeparator(separatorElement.GetString())
+                : null;
+
+            string? argument = root.TryGetProperty("argument", out JsonElement argumentElement) && argumentElement.ValueKind == JsonValueKind.String
+                ? argumentElement.GetString()
+                : null;
+
+            return intentName switch
+            {
+                "latest_screenshot_paths" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.LatestScreenshotPaths, limit, copyRequested, separator),
+                "copy_latest_screenshot_path" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.CopyLatestScreenshotPath, 1, true),
+                "open_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.OpenLatestScreenshot, 1, false),
+                "reveal_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.RevealLatestScreenshot, 1, false),
+                "ocr_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.OcrLatestScreenshot, 1, false),
+                "copy_ocr_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.CopyOcrLatestScreenshot, 1, true),
+                "upload_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.UploadLatestScreenshot, 1, false),
+                "run_workflow" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.RunWorkflow, 1, false, Argument: argument),
+                "no_match" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.Unknown, 0, false),
+                _ => null
+            };
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? NormalizeProviderSeparator(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "newline" => Environment.NewLine,
+            "linebreak" => Environment.NewLine,
+            "line-break" => Environment.NewLine,
+            "tab" => "\t",
+            _ => value
+        };
     }
 }

@@ -44,6 +44,7 @@ public sealed record AssistantDeterministicIntent(
     AssistantDeterministicIntentKind Kind,
     int Limit,
     bool CopyRequested,
+    string? Separator = null,
     string? Argument = null);
 
 public sealed class AssistantCommandRouter
@@ -137,7 +138,8 @@ public sealed class AssistantCommandRouter
             return new AssistantDeterministicIntent(
                 AssistantDeterministicIntentKind.LatestScreenshotPaths,
                 limit,
-                CopyRequested: prompt.Contains("copy", StringComparison.OrdinalIgnoreCase));
+                CopyRequested: prompt.Contains("copy", StringComparison.OrdinalIgnoreCase),
+                Separator: ExtractRequestedSeparator(prompt));
         }
 
         if (LatestScreenshotPathRegex.IsMatch(prompt))
@@ -145,7 +147,8 @@ public sealed class AssistantCommandRouter
             return new AssistantDeterministicIntent(
                 AssistantDeterministicIntentKind.LatestScreenshotPaths,
                 1,
-                CopyRequested: prompt.Contains("copy", StringComparison.OrdinalIgnoreCase));
+                CopyRequested: prompt.Contains("copy", StringComparison.OrdinalIgnoreCase),
+                Separator: ExtractRequestedSeparator(prompt));
         }
 
         var workflowMatch = RunWorkflowRegex.Match(prompt);
@@ -160,6 +163,54 @@ public sealed class AssistantCommandRouter
 
         return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.Unknown, 0, CopyRequested: false);
     }
+
+    private static string? ExtractRequestedSeparator(string prompt)
+    {
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(
+            prompt,
+            @"\b(?:separated|joined)\s+by\s+(?<separator>""[^""]*""|'[^']*'|[^\s,]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        if (match.Success)
+        {
+            string rawValue = match.Groups["separator"].Value.Trim().Trim('"', '\'');
+            if (!string.IsNullOrWhiteSpace(rawValue))
+            {
+                return NormalizeSeparator(rawValue);
+            }
+        }
+
+        if (prompt.Contains("semicolon-separated", StringComparison.OrdinalIgnoreCase) ||
+            prompt.Contains("semicolon separated", StringComparison.OrdinalIgnoreCase))
+        {
+            return ";";
+        }
+
+        if (prompt.Contains("comma-separated", StringComparison.OrdinalIgnoreCase) ||
+            prompt.Contains("comma separated", StringComparison.OrdinalIgnoreCase))
+        {
+            return ",";
+        }
+
+        return null;
+    }
+
+    private static string NormalizeSeparator(string value) => value.ToLowerInvariant() switch
+    {
+        "semicolon" => ";",
+        "comma" => ",",
+        "pipe" => "|",
+        "tab" => "\t",
+        "newline" => Environment.NewLine,
+        "linebreak" => Environment.NewLine,
+        "line-break" => Environment.NewLine,
+        _ => value
+    };
 
     public static IReadOnlyList<string> GetSuggestions() =>
     [
