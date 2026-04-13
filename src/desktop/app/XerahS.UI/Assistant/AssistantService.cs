@@ -24,7 +24,11 @@
 #endregion License Information (GPL v3)
 
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Common;
+using XerahS.Core;
+using XerahS.Core.Managers;
+using XerahS.Core.Tasks;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.Assistant;
@@ -40,20 +44,23 @@ public sealed class AssistantService : IAssistantService
     private readonly AssistantCommandRouter _router;
     private readonly IAssistantHistoryService _history;
     private readonly AssistantPrivacyGuard _privacyGuard;
+    private readonly IDesktopTaskManager? _taskManager;
 
     public AssistantService()
-        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard())
+        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard(), null)
     {
     }
 
     public AssistantService(
         AssistantCommandRouter router,
         IAssistantHistoryService history,
-        AssistantPrivacyGuard privacyGuard)
+        AssistantPrivacyGuard privacyGuard,
+        IDesktopTaskManager? taskManager = null)
     {
         _router = router;
         _history = history;
         _privacyGuard = privacyGuard;
+        _taskManager = taskManager ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
     }
 
     public async Task<AssistantResponse> ProcessPromptAsync(string prompt, CancellationToken cancellationToken)
@@ -81,6 +88,9 @@ public sealed class AssistantService : IAssistantService
             AssistantDeterministicIntentKind.CopyLatestScreenshotPath => await CopyLatestScreenshotPathAsync(cancellationToken),
             AssistantDeterministicIntentKind.OpenLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.OpenFile, cancellationToken),
             AssistantDeterministicIntentKind.RevealLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RevealFile, cancellationToken),
+            AssistantDeterministicIntentKind.OcrLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RunOcr, cancellationToken),
+            AssistantDeterministicIntentKind.CopyOcrLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RunOcr, cancellationToken, "copy"),
+            AssistantDeterministicIntentKind.UploadLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.UploadFile, cancellationToken),
             _ => AssistantResponse.Info(
                 "AI provider not configured. XerahS Assistant can only run local commands without a provider.",
                 new AssistantAction(AssistantActionKind.ConfigureProvider, "Configure AI Provider"))
@@ -185,6 +195,12 @@ public sealed class AssistantService : IAssistantService
                 case AssistantActionKind.OpenFile:
                     return await OpenImageInEditorAsync(action.FilePath, cancellationToken);
 
+                case AssistantActionKind.RunOcr:
+                    return await RunOcrAsync(action, cancellationToken);
+
+                case AssistantActionKind.UploadFile:
+                    return await UploadFileAsync(action.FilePath, cancellationToken);
+
                 default:
                     return AssistantResponse.Error("Unsupported assistant action.");
             }
@@ -249,7 +265,8 @@ public sealed class AssistantService : IAssistantService
 
     private async Task<AssistantResponse> ExecuteLatestFileActionAsync(
         AssistantActionKind actionKind,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? actionText = null)
     {
         var items = await _history.GetLatestScreenshotsAsync(1, cancellationToken);
         if (items.Count == 0)
@@ -265,6 +282,19 @@ public sealed class AssistantService : IAssistantService
                 "Open",
                 FilePath: item.FilePath,
                 ToolName: AssistantToolNames.EditorOpenImage,
+                RequiresConfirmation: true),
+            AssistantActionKind.RunOcr => new AssistantAction(
+                AssistantActionKind.RunOcr,
+                string.Equals(actionText, "copy", StringComparison.OrdinalIgnoreCase) ? "Copy OCR text" : "Run OCR",
+                Text: actionText,
+                FilePath: item.FilePath,
+                ToolName: AssistantToolNames.OcrRun,
+                RequiresConfirmation: true),
+            AssistantActionKind.UploadFile => new AssistantAction(
+                AssistantActionKind.UploadFile,
+                "Upload",
+                FilePath: item.FilePath,
+                ToolName: AssistantToolNames.UploadFile,
                 RequiresConfirmation: true),
             _ => new AssistantAction(
                 AssistantActionKind.RevealFile,
@@ -304,6 +334,92 @@ public sealed class AssistantService : IAssistantService
         return AssistantResponse.Info("Opened latest screenshot in the editor.");
     }
 
+    private async Task<AssistantResponse> RunOcrAsync(AssistantAction action, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (PlatformServices.Ocr == null || !PlatformServices.Ocr.IsSupported)
+        {
+            return AssistantResponse.Error("OCR is not available on this platform.");
+        }
+
+        if (string.IsNullOrWhiteSpace(action.FilePath) || !File.Exists(action.FilePath))
+        {
+            return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
+        }
+
+        using SKBitmap? bitmap = SKBitmap.Decode(action.FilePath);
+        if (bitmap == null)
+        {
+            return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
+        }
+
+        OcrResult result = await PlatformServices.Ocr.RecognizeAsync(bitmap, new OcrOptions { Language = "en" });
+        if (!result.Success || string.IsNullOrWhiteSpace(result.Text))
+        {
+            return AssistantResponse.Error(result.ErrorMessage ?? "OCR did not find text in the latest screenshot.");
+        }
+
+        if (string.Equals(action.Text, "copy", StringComparison.OrdinalIgnoreCase))
+        {
+            await PlatformServices.Clipboard.SetTextAsync(result.Text);
+            return AssistantResponse.Info(
+                "Copied OCR text to clipboard.",
+                new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", result.Text, ToolName: AssistantToolNames.ClipboardCopyText));
+        }
+
+        return AssistantResponse.Info(
+            result.Text,
+            new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", result.Text, ToolName: AssistantToolNames.ClipboardCopyText));
+    }
+
+    private async Task<AssistantResponse> UploadFileAsync(string? filePath, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
+        }
+
+        if (_taskManager == null)
+        {
+            return AssistantResponse.Error("Upload services are not ready yet.");
+        }
+
+        TaskSettings settings = GetUploadTaskSettings();
+        WorkerTask? task = null;
+        void OnTaskStarted(object? sender, WorkerTask startedTask)
+        {
+            if (string.Equals(startedTask.Info.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            {
+                task = startedTask;
+            }
+        }
+
+        _taskManager.TaskStarted += OnTaskStarted;
+        try
+        {
+            await _taskManager.StartFileTask(settings, filePath);
+        }
+        finally
+        {
+            _taskManager.TaskStarted -= OnTaskStarted;
+        }
+
+        string? url = task?.Info.Metadata.UploadURL ?? task?.Info.Result?.URL;
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            return AssistantResponse.Info(
+                $"Uploaded latest screenshot: {url}",
+                new AssistantAction(AssistantActionKind.CopyText, "Copy URL", url, ToolName: AssistantToolNames.ClipboardCopyText));
+        }
+
+        return task?.Error != null
+            ? AssistantResponse.Error($"Upload failed: {task.Error.Message}")
+            : AssistantResponse.Error(task?.Info.Result?.Response ?? "Upload finished without a URL.");
+    }
+
     private AssistantResultItem ToResultItem(AssistantHistoryItem item)
     {
         return new AssistantResultItem(
@@ -316,7 +432,9 @@ public sealed class AssistantService : IAssistantService
             [
                 new AssistantAction(AssistantActionKind.CopyText, "Copy path", item.FilePath, ToolName: AssistantToolNames.ClipboardCopyText),
                 new AssistantAction(AssistantActionKind.OpenFile, "Open", FilePath: item.FilePath, ToolName: AssistantToolNames.EditorOpenImage, RequiresConfirmation: true),
-                new AssistantAction(AssistantActionKind.RevealFile, "Reveal", FilePath: item.FilePath, ToolName: AssistantToolNames.FileReveal, RequiresConfirmation: true)
+                new AssistantAction(AssistantActionKind.RevealFile, "Reveal", FilePath: item.FilePath, ToolName: AssistantToolNames.FileReveal, RequiresConfirmation: true),
+                new AssistantAction(AssistantActionKind.RunOcr, "OCR", FilePath: item.FilePath, ToolName: AssistantToolNames.OcrRun, RequiresConfirmation: true),
+                new AssistantAction(AssistantActionKind.UploadFile, "Upload", FilePath: item.FilePath, ToolName: AssistantToolNames.UploadFile, RequiresConfirmation: true)
             ]);
     }
 
@@ -327,16 +445,34 @@ public sealed class AssistantService : IAssistantService
             AssistantActionKind.CopyText => AssistantToolNames.ClipboardCopyText,
             AssistantActionKind.OpenFile => AssistantToolNames.EditorOpenImage,
             AssistantActionKind.RevealFile => AssistantToolNames.FileReveal,
+            AssistantActionKind.RunOcr => AssistantToolNames.OcrRun,
+            AssistantActionKind.UploadFile => AssistantToolNames.UploadFile,
             _ => string.Empty
         };
+
+        AssistantPrivacyScope scope = action.Kind == AssistantActionKind.UploadFile
+            ? AssistantPrivacyScope.ExternalShare
+            : AssistantPrivacyScope.LocalContent;
 
         bool isKnown = string.IsNullOrWhiteSpace(action.FilePath) || _history.IsKnownHistoryFile(action.FilePath);
         return _privacyGuard.Evaluate(new AssistantPrivacyCheck(
             toolName,
-            AssistantPrivacyScope.LocalContent,
+            scope,
             Text: action.Text,
             FilePath: action.FilePath,
             IsKnownHistoryItem: isKnown,
             UserExplicitlyRequested: true));
+    }
+
+    private static TaskSettings GetUploadTaskSettings()
+    {
+        var uploadWorkflow = SettingsManager.GetFirstWorkflow(WorkflowType.FileUpload);
+        TaskSettings settings = uploadWorkflow?.TaskSettings != null
+            ? WatchFolderManager.CloneTaskSettings(uploadWorkflow.TaskSettings)
+            : WatchFolderManager.CloneTaskSettings(SettingsManager.DefaultTaskSettings ?? new TaskSettings());
+
+        settings.Job = WorkflowType.FileUpload;
+        settings.AfterUploadJob |= AfterUploadTasks.CopyURLToClipboard;
+        return settings;
     }
 }

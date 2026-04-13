@@ -75,5 +75,31 @@ public sealed class AssistantCommandRouterTests
 
         Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.RevealLatestScreenshot));
     }
-}
 
+    [Test]
+    public void OcrLatestScreenshot_ParsesOcrIntent()
+    {
+        var intent = _router.Parse("extract text from the latest screenshot");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.OcrLatestScreenshot));
+        Assert.That(intent.CopyRequested, Is.False);
+    }
+
+    [Test]
+    public void CopyOcrLatestScreenshot_ParsesCopyOcrIntent()
+    {
+        var intent = _router.Parse("copy OCR text from the latest screenshot");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.CopyOcrLatestScreenshot));
+        Assert.That(intent.CopyRequested, Is.True);
+    }
+
+    [Test]
+    public void UploadLatestScreenshot_ParsesUploadIntent()
+    {
+        var intent = _router.Parse("upload the latest screenshot");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.UploadLatestScreenshot));
+        Assert.That(intent.Limit, Is.EqualTo(1));
+    }
+}

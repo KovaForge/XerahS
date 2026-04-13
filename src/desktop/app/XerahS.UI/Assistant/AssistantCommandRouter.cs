@@ -33,7 +33,10 @@ public enum AssistantDeterministicIntentKind
     LatestScreenshotPaths,
     CopyLatestScreenshotPath,
     OpenLatestScreenshot,
-    RevealLatestScreenshot
+    RevealLatestScreenshot,
+    OcrLatestScreenshot,
+    CopyOcrLatestScreenshot,
+    UploadLatestScreenshot
 }
 
 public sealed record AssistantDeterministicIntent(
@@ -65,6 +68,18 @@ public sealed class AssistantCommandRouter
         @"\b(?:reveal|show)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b.*\b(?:folder|explorer|finder|files)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex OcrLatestScreenshotRegex = new(
+        @"\b(?:ocr|extract\s+text|read\s+text)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex CopyOcrLatestScreenshotRegex = new(
+        @"\bcopy\b.*\b(?:ocr|extracted\s+text|text)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b|\b(?:ocr|extract\s+text|read\s+text)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b.*\bcopy\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex UploadLatestScreenshotRegex = new(
+        @"\b(?:upload|share)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     public AssistantDeterministicIntent Parse(string prompt)
     {
         if (string.IsNullOrWhiteSpace(prompt))
@@ -75,6 +90,21 @@ public sealed class AssistantCommandRouter
         if (CopyLatestScreenshotPathRegex.IsMatch(prompt))
         {
             return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.CopyLatestScreenshotPath, 1, CopyRequested: true);
+        }
+
+        if (CopyOcrLatestScreenshotRegex.IsMatch(prompt))
+        {
+            return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.CopyOcrLatestScreenshot, 1, CopyRequested: true);
+        }
+
+        if (OcrLatestScreenshotRegex.IsMatch(prompt))
+        {
+            return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.OcrLatestScreenshot, 1, CopyRequested: false);
+        }
+
+        if (UploadLatestScreenshotRegex.IsMatch(prompt))
+        {
+            return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.UploadLatestScreenshot, 1, CopyRequested: false);
         }
 
         if (OpenLatestScreenshotRegex.IsMatch(prompt))
@@ -120,6 +150,8 @@ public sealed class AssistantCommandRouter
         "Give me the local file path of my last 5 screenshots",
         "Copy the path of the latest screenshot",
         "Open the latest screenshot in the editor",
-        "Reveal the latest capture in Explorer"
+        "Reveal the latest capture in Explorer",
+        "Copy OCR text from the latest screenshot",
+        "Upload the latest screenshot"
     ];
 }
