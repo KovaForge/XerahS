@@ -77,6 +77,16 @@ public partial class AfterCaptureViewModel : ViewModelBase
         }
     }
 
+    public bool CopyFilePathToClipboard
+    {
+        get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard);
+        set
+        {
+            SetAfterCaptureFlag(AfterCaptureTasks.CopyFilePathToClipboard, value);
+            OnPropertyChanged();
+        }
+    }
+
     public bool AnnotateMedia
     {
         get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.AnnotateMedia);
@@ -155,6 +165,7 @@ public partial class AfterCaptureViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(SaveImageToFile));
         OnPropertyChanged(nameof(CopyImageToClipboard));
+        OnPropertyChanged(nameof(CopyFilePathToClipboard));
         OnPropertyChanged(nameof(AnnotateMedia));
         OnPropertyChanged(nameof(UploadImageToHost));
     }
