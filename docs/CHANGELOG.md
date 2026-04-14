@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 All notable changes to XerahS will be documented in this file.
 The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MAJOR** (x): Breaking changes (0 while unreleased)
