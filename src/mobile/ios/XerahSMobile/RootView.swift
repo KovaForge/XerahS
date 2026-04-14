@@ -23,22 +23,94 @@
 //
 
 import SwiftUI
+import UIKit
 
 private enum AppPhase {
     case loading
     case main
 }
 
+private struct TransientToast: Equatable {
+    let title: String?
+    let message: String
+    let isError: Bool
+}
+
 struct RootView: View {
     @EnvironmentObject var appState: AppState
     @State private var phase: AppPhase = .loading
     @State private var navPath: [Screen] = []
-    @State private var copyFeedback = false
+    @State private var transientToast: TransientToast?
+    @State private var settingsRevision: Int = 0
 
     private func copyToClipboard(_ text: String) {
         UIPasteboard.general.string = text
-        copyFeedback = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { copyFeedback = false }
+        showToast(TransientToast(title: nil, message: "Copied to clipboard", isError: false))
+    }
+
+    private func showToast(_ toast: TransientToast) {
+        transientToast = toast
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if transientToast == toast {
+                transientToast = nil
+            }
+        }
+    }
+
+    private func handleAutoShareUploadFinished(_ results: [UploadResultItem]) {
+        guard !results.isEmpty else { return }
+
+        let successes = results.filter(\.success)
+        let failures = results.filter { !$0.success }
+        let copiedUrls = successes.compactMap(\.url).filter { !$0.isEmpty }
+
+        if !copiedUrls.isEmpty {
+            UIPasteboard.general.string = copiedUrls.joined(separator: "\n")
+        }
+
+        if failures.isEmpty {
+            let title = results.count == 1 ? "Upload Complete" : "Uploads Complete"
+            let message: String
+            if copiedUrls.count == 1 {
+                message = "Link copied to clipboard."
+            } else {
+                message = "\(copiedUrls.count) links copied to clipboard."
+            }
+            showToast(TransientToast(title: title, message: message, isError: false))
+            return
+        }
+
+        navPath = []
+
+        if successes.isEmpty {
+            showToast(TransientToast(
+                title: "Upload Failed",
+                message: "Shared item could not be uploaded. Open XerahS to review the error details.",
+                isError: true
+            ))
+        } else {
+            showToast(TransientToast(
+                title: "Upload Finished With Errors",
+                message: "\(successes.count) completed, \(failures.count) failed. Successful links were copied to clipboard.",
+                isError: true
+            ))
+        }
+    }
+
+    private func navigate(to screen: Screen) {
+        switch screen {
+        case .customUploaderConfig:
+            if !navPath.contains(.settings) {
+                navPath.append(.settings)
+            }
+            if navPath.last != .customUploaderConfig {
+                navPath.append(.customUploaderConfig)
+            }
+        default:
+            if navPath.last != screen {
+                navPath.append(screen)
+            }
+        }
     }
 
     var body: some View {
@@ -50,17 +122,50 @@ struct RootView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if copyFeedback {
-                Text("Copied to clipboard")
-                    .font(.subheadline)
+            if let toast = transientToast {
+                XerahSGlassCard(padding: 0) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let title = toast.title, !title.isEmpty {
+                            Text(title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
+                        Text(toast.message)
+                            .font(.footnote)
+                            .foregroundStyle(toast.isError ? Color(red: 1.0, green: 0.82, blue: 0.82) : .white.opacity(0.88))
+                    }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    .padding(.bottom, 32)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .frame(maxWidth: 340)
+                .padding(.bottom, 32)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: copyFeedback)
+        .animation(.easeInOut(duration: 0.25), value: transientToast)
+        .onReceive(NotificationCenter.default.publisher(for: .xerahSSettingsDidChange)) { _ in
+            settingsRevision += 1
+        }
+        .onAppear {
+            if let banner = appState.bannerMessage, !banner.isEmpty {
+                showToast(TransientToast(title: nil, message: banner, isError: false))
+                appState.bannerMessage = nil
+            }
+            if let pending = appState.pendingNavigation {
+                navigate(to: pending)
+                appState.pendingNavigation = nil
+            }
+        }
+        .onChange(of: appState.bannerMessage) { _, newValue in
+            guard let newValue, !newValue.isEmpty else { return }
+            showToast(TransientToast(title: nil, message: newValue, isError: false))
+            appState.bannerMessage = nil
+        }
+        .onChange(of: appState.pendingNavigation) { _, newValue in
+            guard let newValue else { return }
+            navigate(to: newValue)
+            appState.pendingNavigation = nil
+        }
     }
 
     private var mainNav: some View {
@@ -80,9 +185,11 @@ struct RootView: View {
             onOpenHistory: { navPath.append(.history) },
             onOpenSettings: { navPath.append(.settings) },
             onCopyToClipboard: copyToClipboard,
+            onAutoShareUploadFinished: handleAutoShareUploadFinished,
             initialPaths: pending.isEmpty ? nil : pending,
             activeDestinationLabel: activeLabel
         )
+        .id(settingsRevision)
         .onAppear {
             if !pending.isEmpty {
                 appState.pendingSharedPaths = []

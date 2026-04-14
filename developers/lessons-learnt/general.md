@@ -26,13 +26,13 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 - Never assume explicit `TextBox.Background` is enough for read-only previews; always map the `TextControl*ReadOnly` and related Fluent resource keys in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` because Avalonia's read-only text templates can bypass the normal editable text brushes and fall back to black.
 - Never use outer `Margin` on the first child of a `UserControl` to create themed gutters; always use a painted root `Border` with `Padding` because `UserControl` itself does not own a background and transparent gutter space will fall through to the host surface.
 - Never rely on `VerticalScrollBarVisibility="Visible"` by itself when a scrollbar must stay fully shown; always pair it with `AllowAutoHide="False"` and prefer setting that once in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` because the Fluent `ScrollViewer` template can still collapse the bar until hover.
-- Never put `Padding` on a `ScrollViewer` that wraps a `StackPanel`; always move it to the inner element as `Margin` because `ScrollViewer.Padding` shrinks the *viewport* but is **not** added to the scroll extent â€” so the bottom `padding`-worth of content becomes permanently unreachable no matter how far the user drags the scrollbar.
-- Never use `SplitView` as a two-column shell when the content column must have a bounded (finite) height; always replace it with a plain `Grid ColumnDefinitions="auto,*"` because `SplitView` derives from `ContentControl` whose default `VerticalContentAlignment=Top` causes the internal `ContentPresenter` to pass an infinite (`âˆž`) height constraint to its child â€” which prevents any nested `ScrollViewer` from activating.
-- Never use `TransitioningContentControl` as a page host when the page contains a `ScrollViewer`; the animation `Panel` inside `TransitioningContentControl` passes `âˆž` height during its measure pass, breaking the bounded constraint that `ScrollViewer` requires to activate â€” use a plain `ContentControl` with `HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"` instead.
-- Never leave `TabControl.VerticalContentAlignment` at its default (`Top`) when tab content contains a `ScrollViewer`; always set `VerticalContentAlignment="Stretch"` on the `TabControl` because the internal `ContentPresenter` templates it to `{TemplateBinding VerticalContentAlignment}` â€” without `Stretch`, the presenter passes `âˆž` height to each `TabItem` body and the `ScrollViewer` never activates.
+- Never put `Padding` on a `ScrollViewer` that wraps a `StackPanel`; always move it to the inner element as `Margin` because `ScrollViewer.Padding` shrinks the *viewport* but is **not** added to the scroll extent — so the bottom `padding`-worth of content becomes permanently unreachable no matter how far the user drags the scrollbar.
+- Never use `SplitView` as a two-column shell when the content column must have a bounded (finite) height; always replace it with a plain `Grid ColumnDefinitions="auto,*"` because `SplitView` derives from `ContentControl` whose default `VerticalContentAlignment=Top` causes the internal `ContentPresenter` to pass an infinite (`∞`) height constraint to its child — which prevents any nested `ScrollViewer` from activating.
+- Never use `TransitioningContentControl` as a page host when the page contains a `ScrollViewer`; the animation `Panel` inside `TransitioningContentControl` passes `∞` height during its measure pass, breaking the bounded constraint that `ScrollViewer` requires to activate — use a plain `ContentControl` with `HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"` instead.
+- Never leave `TabControl.VerticalContentAlignment` at its default (`Top`) when tab content contains a `ScrollViewer`; always set `VerticalContentAlignment="Stretch"` on the `TabControl` because the internal `ContentPresenter` templates it to `{TemplateBinding VerticalContentAlignment}` — without `Stretch`, the presenter passes `∞` height to each `TabItem` body and the `ScrollViewer` never activates.
 - Never rely on `Classes="accent"` being added manually to every new button; always make accent the default in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` and use semantic opt-out classes such as `NoAccent`, `SettingsRow`, or `ColorSwatchButton` because Avalonia Fluent keeps ordinary buttons neutral unless the app supplies a shared default.
 - Never bind XerahS views directly to raw `SystemAccentColor` when a shared app accent brush already exists; always consume `AccentFillColorDefaultBrush` / `XerahS.Brush.Accent.*` from `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml` because that keeps future accent-foreground and opacity tuning centralized instead of scattered through individual controls.
-- Never hardcode accent colours or reference `ShareX.Color.Accent.Start` / `ShareX.Color.Accent.End` in new brush definitions; always use `SystemAccentColor` / `SystemAccentColorLight1` / `SystemAccentColorDark1` from Avalonia's platform resources because those resolve to the user's OS accent colour on every platform (Windows personalisation, macOS accent, Linux default blue fallback) and keep all accent-coloured controls â€” buttons, checkboxes, focus borders, list highlights â€” visually consistent regardless of which machine the app runs on.
+- Never hardcode accent colours or reference `ShareX.Color.Accent.Start` / `ShareX.Color.Accent.End` in new brush definitions; always use `SystemAccentColor` / `SystemAccentColorLight1` / `SystemAccentColorDark1` from Avalonia's platform resources because those resolve to the user's OS accent colour on every platform (Windows personalisation, macOS accent, Linux default blue fallback) and keep all accent-coloured controls — buttons, checkboxes, focus borders, list highlights — visually consistent regardless of which machine the app runs on.
 - Never apply XerahS-wide control styles directly to every `Window` or `Button`; always scope them through a root class such as `xerahs-surface` on `PageView` / `SurfaceWindow` and explicitly remove that class from `EditorWindow` because the embedded `ShareX.ImageEditor` owns its own theme contract and app-level selectors will otherwise bleed into the editor.
 - Never drive XerahS app-level resources with `ShareX.ImageEditor` custom theme variants; always set `Application.RequestedThemeVariant` to Avalonia's built-in `ThemeVariant.Light` / `ThemeVariant.Dark` and feed `ShareXDark` / `ShareXLight` only into the editor theme manager, because XerahS theme dictionaries and third-party controls expect the standard Avalonia variants.
 - Never redefine `ShareX.ImageEditor` theme resource keys such as `ShareX.Brush.Accent` or `ShareX.FontFamily.*` in `src/desktop/app/XerahS.UI/Themes/ThemeResources.axaml`; always keep XerahS-owned palette tokens under `XerahS.*` and let editor hosts load `ImageEditorTheme.axaml` because upstream editor changes can alter those `ShareX.*` resource contracts and types (for example the accent brush becoming a gradient driven by platform accent tracking).
@@ -49,7 +49,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 **Solution**: Use `ContextMenu` for ordinary context menus. Keep `ContextFlyout` with `MenuFlyout` for cases that need richer flyout behavior, shared popup content, or a flyout attached to a non-standard host (e.g., a button that always opens its flyout below).
 
-**âœ… Plain context menu**:
+**✅ Plain context menu**:
 ```xml
 <Border.ContextMenu>
     <ContextMenu>
@@ -58,7 +58,7 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 </Border.ContextMenu>
 ```
 
-**âœ… Flyout for richer behavior**:
+**✅ Flyout for richer behavior**:
 ```xml
 <Button.Content>
     <StackPanel Orientation="Horizontal">
@@ -108,12 +108,12 @@ Promote only repository-wide policy changes to `AGENTS.md`.
 
 **Solution**: You must reference **`WebView.Avalonia.Desktop`** in addition to the base package.
 
-**âŒ Incorrect**:
+**❌ Incorrect**:
 ```xml
 <PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
 ```
 
-**âœ… Correct**:
+**✅ Correct**:
 ```xml
 <PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
 <PackageReference Include="WebView.Avalonia.Desktop" Version="11.0.0.1" />
@@ -141,8 +141,8 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 ## Changelog & Documentation Tooling
 
 - Never use `git tag -l | Sort-Object -Descending` to find the latest release tag; always use `git tag -l --sort=-version:refname` or (preferred) `mcp_io_github_git_list_releases` filtering for `prerelease:false, draft:false` because plain lexicographic sort puts `v0.7.7` after `v0.20.5`.
-- Never attempt `replace_string_in_file` on multi-line changelog blocks; always use PowerShell `[System.IO.File]::ReadAllText` + `[System.Text.RegularExpressions.Regex]::Replace` with `(?s)` dotall mode because the changelog can contain multi-byte UTF-8 sequences (e.g. `Â§`) that round-trip as mojibake (`Ãƒâ€šÃ‚Â§`) and break exact-text matching.
-- Never forget a mojibake normalization pass after a PowerShell `WriteAllText` to a changelog; always run `$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)` before writing because double-encoded `Â§` can slip through even when the source text looked correct.
+- Never attempt `replace_string_in_file` on multi-line changelog blocks; always use PowerShell `[System.IO.File]::ReadAllText` + `[System.Text.RegularExpressions.Regex]::Replace` with `(?s)` dotall mode because the changelog can contain multi-byte UTF-8 sequences such as `§` that get rewritten into mojibake text during a bad encode/decode round-trip, breaking exact-text matching.
+- Never forget a mojibake normalization pass after a PowerShell `WriteAllText` to a changelog; always run `$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)` before writing because mojibake text for the section-sign character can slip through even when the source text looked correct.
 - Never leave raw `\n{3,}` runs in CHANGELOG.md after regex block removal; always normalize with `-replace "\n{3,}", "\n\n"` (on LF-normalized content) because removing multi-line sections leaves stray blank lines that accumulate across consolidations.
 - Never create separate changelog headings for each prerelease tag between two stable releases; always consolidate all prerelease sections into a single heading for the stable tag, using `git log <prev_stable>..<latest_stable> --oneline --no-decorate` to enumerate commits that belong under that heading.
 
@@ -158,13 +158,13 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 **Solution**: Use the **explicit TFM** string which combines the framework and the platform version.
 
-**âŒ Incorrect configuration for solution builds**:
+**❌ Incorrect configuration for solution builds**:
 ```xml
 <TargetFramework>net10.0-windows</TargetFramework>
 <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
 ```
 
-**âœ… Correct configuration**:
+**✅ Correct configuration**:
 ```xml
 <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
 ```

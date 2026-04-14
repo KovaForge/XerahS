@@ -29,6 +29,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.ImageEffects.Filters;
+using ShareX.ImageEditor.Presentation.Controls;
 using ShareX.ImageEditor.Presentation.Effects;
 using ShareX.ImageEditor.Presentation.Views.Dialogs;
 using SkiaSharp;
@@ -39,17 +40,12 @@ namespace XerahS.Tests.Editor;
 public class SchemaDrivenFilterCatalogTests
 {
     [AvaloniaTest]
-    public void EffectDialogRegistry_Creates_SchemaDriven_Dialogs_For_Catalog_Effects()
+    public void EffectDialogRegistry_Creates_SchemaDriven_Dialogs_For_Catalog_Filters()
     {
         Assert.Multiple(() =>
         {
             foreach (EffectDefinition definition in ImageEffectCatalog.Definitions)
             {
-                if (definition.ApplyImmediately)
-                {
-                    continue;
-                }
-
                 Assert.That(EffectDialogRegistry.TryCreate(definition.Id, out UserControl? dialog), Is.True, definition.Id);
                 Assert.That(dialog, Is.TypeOf<SchemaDrivenEffectDialog>(), definition.Id);
                 Assert.That(((SchemaDrivenEffectDialog)dialog!).Title, Is.EqualTo(definition.Name), definition.Id);
@@ -58,7 +54,32 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenEffectDialog_Blur_Apply_Uses_Configured_Radius()
+    public void EffectBrowserPanel_Uses_FilterCatalog_Metadata_For_Catalog_Filters()
+    {
+        var panel = new EffectBrowserPanel();
+        var filtersCategory = panel.Categories.Single(category => category.Name == "Filters");
+        Dictionary<string, EffectItem> filterEffectsById = filtersCategory.AllEffects
+            .ToDictionary(effect => effect.EffectId, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, EffectItem> allEffectsById = panel.Categories
+            .Where(category => category.Name != "Favorites")
+            .SelectMany(category => category.AllEffects)
+            .ToDictionary(effect => effect.EffectId, StringComparer.OrdinalIgnoreCase);
+
+        Assert.Multiple(() =>
+        {
+            foreach (EffectDefinition definition in ImageEffectCatalog.Definitions)
+            {
+                Assert.That(allEffectsById.TryGetValue(definition.Id, out EffectItem? effectItem), Is.True, definition.Id);
+                Assert.That(effectItem!.Name, Is.EqualTo(definition.BrowserLabel), definition.Id);
+                Assert.That(effectItem.Icon, Is.EqualTo(definition.Icon), definition.Id);
+                Assert.That(effectItem.Description, Is.EqualTo(definition.Description), definition.Id);
+                Assert.That(filterEffectsById.ContainsKey(definition.Id), Is.EqualTo(definition.Category == ShareX.ImageEditor.Core.ImageEffects.ImageEffectCategory.Filters), definition.Id);
+            }
+        });
+    }
+
+    [AvaloniaTest]
+    public void SchemaDrivenFilterDialog_Blur_Apply_Uses_Configured_Radius()
     {
         EffectDefinition definition = GetDefinition("blur");
         var dialog = new SchemaDrivenEffectDialog(definition);
@@ -78,7 +99,7 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenEffectDialog_Dithering_Apply_Uses_Configured_Enum_Settings()
+    public void SchemaDrivenFilterDialog_Dithering_Apply_Uses_Configured_Enum_Settings()
     {
         EffectDefinition definition = GetDefinition("dithering");
         var dialog = new SchemaDrivenEffectDialog(definition);
@@ -110,7 +131,7 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenEffectDialog_Glow_Apply_Uses_Configured_Color_And_Toggle()
+    public void SchemaDrivenFilterDialog_Glow_Apply_Uses_Configured_Color_And_Toggle()
     {
         EffectDefinition definition = GetDefinition("glow");
         var dialog = new SchemaDrivenEffectDialog(definition);
@@ -148,7 +169,7 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenEffectDialog_ASCIIArt_Apply_Uses_Configured_Text_And_Checkboxes()
+    public void SchemaDrivenFilterDialog_ASCIIArt_Apply_Uses_Configured_Text_And_Checkboxes()
     {
         EffectDefinition definition = GetDefinition("ascii_art");
         var dialog = new SchemaDrivenEffectDialog(definition);
@@ -181,7 +202,7 @@ public class SchemaDrivenFilterCatalogTests
     }
 
     [AvaloniaTest]
-    public void SchemaDrivenEffectDialog_ConvolutionMatrix_Apply_Uses_Configured_Numeric_Settings()
+    public void SchemaDrivenFilterDialog_ConvolutionMatrix_Apply_Uses_Configured_Numeric_Settings()
     {
         EffectDefinition definition = GetDefinition("convolution_matrix");
         var dialog = new SchemaDrivenEffectDialog(definition);

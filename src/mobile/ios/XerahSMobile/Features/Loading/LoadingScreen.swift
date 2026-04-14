@@ -28,15 +28,29 @@ struct LoadingScreen: View {
     var onInitComplete: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("XerahS")
-                .font(.largeTitle)
-            ProgressView()
-                .scaleEffect(1.5)
-            Text("Initializing XerahS…")
-                .font(.body)
+        ZStack {
+            XerahSPageBackground()
+
+            XerahSGlassCard(alignment: .center) {
+                VStack(spacing: 18) {
+                    Text("XerahS")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+
+                    ProgressView()
+                        .scaleEffect(1.35)
+                        .tint(.white)
+
+                    Text("Initializing uploads, history, and settings…")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.white.opacity(0.76))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+            }
+            .padding(.horizontal, 24)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 onInitComplete()

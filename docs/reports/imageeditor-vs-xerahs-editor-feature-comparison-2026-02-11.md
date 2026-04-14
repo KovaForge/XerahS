@@ -1,4 +1,4 @@
-﻿# Feature Comparison: `XerahS.Editor` (`develop`) vs `ImageEditor` (current branch)
+# Feature Comparison: `XerahS.Editor` (`develop`) vs `ImageEditor` (current branch)
 
 ## Scope
 - Compared `XerahS.Editor` from temporary `develop` worktree against `ImageEditor` from current root branch `experimental/ShareX.ImageEditor`.

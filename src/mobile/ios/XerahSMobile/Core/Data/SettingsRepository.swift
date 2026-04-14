@@ -26,6 +26,10 @@ import Foundation
 
 private let configFileName = "ApplicationConfig.json"
 
+extension Notification.Name {
+    static let xerahSSettingsDidChange = Notification.Name("XerahS.SettingsDidChange")
+}
+
 /// Load/save ApplicationConfig as JSON in settings folder. Thread-safe via serial queue.
 final class SettingsRepository {
     private let queue = DispatchQueue(label: "SettingsRepository")
@@ -56,6 +60,7 @@ final class SettingsRepository {
             Paths.settingsFolder.flatMap { try? FileManager.default.createDirectory(at: $0, withIntermediateDirectories: true) }
             try? encoder.encode(config).write(to: file)
         }
+        NotificationCenter.default.post(name: .xerahSSettingsDidChange, object: nil)
     }
 
     func loadS3Config() -> S3Config { load().s3Config }

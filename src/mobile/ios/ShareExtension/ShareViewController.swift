@@ -27,6 +27,7 @@ import UniformTypeIdentifiers
 
 private let appGroupId = "group.com.getsharex.xerahs"
 private let pendingPathsKey = "PendingSharedPaths"
+private let pendingSxcuImportsKey = "PendingSxcuImports"
 private let openAppURLString = "xerahs://share"
 
 final class ShareViewController: UIViewController {
@@ -143,9 +144,21 @@ final class ShareViewController: UIViewController {
             return
         }
         let defaults = UserDefaults(suiteName: appGroupId)
-        var pending = (defaults?.array(forKey: pendingPathsKey) as? [String]) ?? []
-        pending.append(contentsOf: savedPaths)
-        defaults?.set(pending, forKey: pendingPathsKey)
+        let sxcuPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "sxcu" }
+        let uploadPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() != "sxcu" }
+
+        if !uploadPaths.isEmpty {
+            var pending = (defaults?.array(forKey: pendingPathsKey) as? [String]) ?? []
+            pending.append(contentsOf: uploadPaths)
+            defaults?.set(pending, forKey: pendingPathsKey)
+        }
+
+        if !sxcuPaths.isEmpty {
+            var pendingImports = (defaults?.array(forKey: pendingSxcuImportsKey) as? [String]) ?? []
+            pendingImports.append(contentsOf: sxcuPaths)
+            defaults?.set(pendingImports, forKey: pendingSxcuImportsKey)
+        }
+
         defaults?.synchronize()
         if let url = URL(string: openAppURLString) {
             extensionContext?.open(url, completionHandler: nil)

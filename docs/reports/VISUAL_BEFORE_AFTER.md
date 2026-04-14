@@ -105,8 +105,8 @@ USER STATE: Satisfied, responsive UI, data loads smoothly
     ?                       ?
  [INSTANT]            [BACKGROUND]
     ?                       ?
-[Panel             • Load items (1-2s)
- appears]          • Load thumbnails (2-15s)
+[Panel             â€¢ Load items (1-2s)
+ appears]          â€¢ Load thumbnails (2-15s)
     ?                       ?
     ?????????????????????????
     ?                       ?

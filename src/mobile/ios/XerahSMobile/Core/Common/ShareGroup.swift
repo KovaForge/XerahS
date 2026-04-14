@@ -28,12 +28,21 @@ import Foundation
 enum ShareGroup {
     static let appGroupId = "group.com.getsharex.xerahs"
     static let pendingPathsKey = "PendingSharedPaths"
+    static let pendingSxcuImportsKey = "PendingSxcuImports"
 
     /// Reads and clears pending shared file paths from the Share Extension. Call on launch and when opened via xerahs://share.
     static func consumePendingPaths() -> [String] {
         guard let defaults = UserDefaults(suiteName: appGroupId) else { return [] }
         let paths = (defaults.array(forKey: pendingPathsKey) as? [String]) ?? []
         defaults.removeObject(forKey: pendingPathsKey)
+        defaults.synchronize()
+        return paths
+    }
+
+    static func consumePendingSxcuImports() -> [String] {
+        guard let defaults = UserDefaults(suiteName: appGroupId) else { return [] }
+        let paths = (defaults.array(forKey: pendingSxcuImportsKey) as? [String]) ?? []
+        defaults.removeObject(forKey: pendingSxcuImportsKey)
         defaults.synchronize()
         return paths
     }

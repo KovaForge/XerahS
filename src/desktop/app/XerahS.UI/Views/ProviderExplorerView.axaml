@@ -12,19 +12,19 @@
         <!-- Context menu for media items -->
         <MenuFlyout x:Key="ItemMenuFlyout" x:DataType="vm:MediaItemViewModel">
             <MenuItem Header="Open / Preview"
-                      Command="{Binding #Root.DataContext.OpenItemCommand}"
+                      Command="{ReflectionBinding DataContext.OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding}"/>
             <MenuItem Header="Copy URL"
-                      Command="{Binding #Root.DataContext.CopyUrlCommand}"
+                      Command="{ReflectionBinding DataContext.CopyUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding}"
                       IsVisible="{Binding Item.Url, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
             <MenuItem Header="Download"
-                      Command="{Binding #Root.DataContext.DownloadItemCommand}"
+                      Command="{ReflectionBinding DataContext.DownloadItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding}"
                       IsVisible="{Binding !Item.IsFolder}"/>
             <Separator/>
             <MenuItem Header="Delete"
-                      Command="{Binding #Root.DataContext.DeleteItemCommand}"
+                      Command="{ReflectionBinding DataContext.DeleteItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                       CommandParameter="{Binding}"/>
         </MenuFlyout>
     </UserControl.Resources>
@@ -127,7 +127,7 @@
                 <!-- Search box -->
                 <TextBox Grid.Column="0"
                          Text="{Binding SearchText}"
-                         PlaceholderText="Search files..."
+                         Watermark="Search files..."
                          AutomationProperties.Name="Search Files">
                     <TextBox.KeyBindings>
                         <KeyBinding Gesture="Return" Command="{Binding SearchCommand}"/>
