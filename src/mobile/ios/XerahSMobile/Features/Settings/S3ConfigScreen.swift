@@ -90,6 +90,11 @@ struct S3ConfigScreen: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                Toggle("Use path-style endpoint URLs", isOn: $viewModel.usePathStyle)
+                Text("Recommended for dotted bucket names and some S3-compatible endpoints where TLS fails with virtual-host style URLs.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Toggle("Use Custom Domain (CDN)", isOn: $viewModel.useCustomDomain)
                 if viewModel.useCustomDomain {
                     TextField("Custom domain URL", text: $viewModel.customDomain, prompt: Text("https://cdn.example.com"))
@@ -121,6 +126,7 @@ final class S3ConfigViewModel: ObservableObject {
     @Published var bucketName: String = ""
     @Published var regionIndex: Int = 0
     @Published var customEndpoint: String = ""
+    @Published var usePathStyle: Bool = false
     @Published var useCustomDomain: Bool = false
     @Published var customDomain: String = ""
     @Published var signedPayload: Bool = true
@@ -139,6 +145,7 @@ final class S3ConfigViewModel: ObservableObject {
         secretAccessKey = config.secretAccessKey
         bucketName = config.bucketName
         customEndpoint = config.customEndpoint
+        usePathStyle = config.usePathStyle
         useCustomDomain = config.useCustomDomain
         customDomain = config.customDomain
         signedPayload = config.signedPayload
@@ -162,6 +169,7 @@ final class S3ConfigViewModel: ObservableObject {
         config.bucketName = bucket
         config.region = region
         config.customEndpoint = customEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        config.usePathStyle = usePathStyle
         config.useCustomDomain = useCustomDomain
         config.customDomain = customDomain.trimmingCharacters(in: .whitespacesAndNewlines)
         config.signedPayload = signedPayload

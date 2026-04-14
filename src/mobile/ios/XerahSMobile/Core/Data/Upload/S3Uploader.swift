@@ -28,26 +28,25 @@ import Foundation
 /// Upload a file to S3 using AWS Signature V4 and PUT. Returns the object URL on success.
 /// For production, consider AWS SDK for Swift; this is a minimal implementation.
 final class S3Uploader {
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 120
+        return URLSession(configuration: config)
+    }()
+
     func uploadFile(filePath: String, config: S3Config) -> UploadOutcome {
-        guard config.isConfigured else { return .failure(error: "S3 is not configured") }
-        guard FileManager.default.fileExists(atPath: filePath) else { return .failure(error: "File not found") }
+        guard config.isConfigured else { return .failure(UploadFailure(message: "S3 is not configured")) }
+        guard FileManager.default.fileExists(atPath: filePath) else { return .failure(UploadFailure(message: "File not found")) }
         let fileUrl = URL(fileURLWithPath: filePath)
         let uploadName = UploadFileNameGenerator.uploadFileName(for: filePath)
         let key = "uploads/\(uploadName)"
-        let bucket = config.bucketName
         let region = config.region
 
-        // Request always goes to S3 API (bucket.s3.region or custom endpoint), not to custom domain CDN.
-        let host: String
-        let requestUrlString: String
-        if !config.customEndpoint.isEmpty {
-            let base = config.customEndpoint.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            host = base.replacingOccurrences(of: "https://", with: "").replacingOccurrences(of: "http://", with: "")
-            requestUrlString = "https://\(host)/\(bucket)/\(key)"
-        } else {
-            host = "\(bucket).s3.\(region).amazonaws.com"
-            requestUrlString = "https://\(host)/\(key)"
+        guard let requestTarget = buildRequestTarget(bucket: config.bucketName, key: key, config: config) else {
+            return .failure(UploadFailure(message: "Invalid S3 request URL"))
         }
+
         // Result URL shown to user: custom domain (CDN) if set, else the request URL.
         let resultUrlString: String
         if config.useCustomDomain && !config.customDomain.isEmpty {
@@ -55,11 +54,15 @@ final class S3Uploader {
             let baseUrl = base.hasPrefix("http") ? base : "https://\(base)"
             resultUrlString = "\(baseUrl)/\(key)"
         } else {
-            resultUrlString = requestUrlString
+            resultUrlString = requestTarget.requestUrlString
         }
 
-        guard let url = URL(string: requestUrlString) else { return .failure(error: "Invalid URL") }
-        guard let data = try? Data(contentsOf: fileUrl) else { return .failure(error: "Cannot read file") }
+        guard let url = URL(string: requestTarget.requestUrlString) else {
+            return .failure(UploadFailure(message: "Invalid URL"))
+        }
+        guard let fileData = try? Data(contentsOf: fileUrl) else {
+            return .failure(UploadFailure(message: "Cannot read file"))
+        }
 
         let now = Date()
         let formatter = ISO8601DateFormatter()
@@ -70,13 +73,14 @@ final class S3Uploader {
             let comp = cal.dateComponents([.year, .month, .day], from: now)
             return String(format: "%04d%02d%02d", comp.year!, comp.month!, comp.day!)
         }()
-        let payloadHash = data.sha256Hex
+        let payloadHash = config.signedPayload ? fileData.sha256Hex : "UNSIGNED-PAYLOAD"
         let contentType = "application/octet-stream"
 
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
-        request.httpBody = data
+        request.httpBody = fileData
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.setValue(requestTarget.hostHeader, forHTTPHeaderField: "Host")
         request.setValue(payloadHash, forHTTPHeaderField: "x-amz-content-sha256")
         request.setValue(amzDate, forHTTPHeaderField: "x-amz-date")
         if config.setPublicAcl {
@@ -85,14 +89,14 @@ final class S3Uploader {
 
         let (signedHeaders, canonicalHeaders): (String, String) = if config.setPublicAcl {
             ("content-type;host;x-amz-acl;x-amz-content-sha256;x-amz-date",
-             "content-type:\(contentType)\nhost:\(host)\nx-amz-acl:public-read\nx-amz-content-sha256:\(payloadHash)\nx-amz-date:\(amzDate)")
+             "content-type:\(contentType)\nhost:\(requestTarget.hostHeader)\nx-amz-acl:public-read\nx-amz-content-sha256:\(payloadHash)\nx-amz-date:\(amzDate)")
         } else {
             ("content-type;host;x-amz-content-sha256;x-amz-date",
-             "content-type:\(contentType)\nhost:\(host)\nx-amz-content-sha256:\(payloadHash)\nx-amz-date:\(amzDate)")
+             "content-type:\(contentType)\nhost:\(requestTarget.hostHeader)\nx-amz-content-sha256:\(payloadHash)\nx-amz-date:\(amzDate)")
         }
         let canonicalRequest = [
             "PUT",
-            "/\(key)",
+            requestTarget.canonicalURI,
             "",
             canonicalHeaders,
             "",
@@ -120,24 +124,189 @@ final class S3Uploader {
 
         var outcome: UploadOutcome?
         let sem = DispatchSemaphore(value: 0)
-        let task = URLSession.shared.dataTask(with: request) { _, response, error in
+        let task = session.dataTask(with: request) { data, response, error in
+            let httpResponse = response as? HTTPURLResponse
             if let error = error {
-                outcome = .failure(error: error.localizedDescription)
+                outcome = .failure(self.makeFailure(
+                    message: error.localizedDescription,
+                    filePath: filePath,
+                    fileSize: fileData.count,
+                    uploadName: uploadName,
+                    request: request,
+                    requestTarget: requestTarget,
+                    resultUrlString: resultUrlString,
+                    config: config,
+                    response: httpResponse,
+                    responseBody: data,
+                    error: error
+                ))
                 sem.signal()
                 return
             }
-            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let code = httpResponse?.statusCode ?? 0
             if code >= 200 && code < 300 {
                 outcome = .success(url: resultUrlString)
             } else {
-                outcome = .failure(error: "S3 returned HTTP \(code)")
+                outcome = .failure(self.makeFailure(
+                    message: "S3 returned HTTP \(code)",
+                    filePath: filePath,
+                    fileSize: fileData.count,
+                    uploadName: uploadName,
+                    request: request,
+                    requestTarget: requestTarget,
+                    resultUrlString: resultUrlString,
+                    config: config,
+                    response: httpResponse,
+                    responseBody: data,
+                    error: nil
+                ))
             }
             sem.signal()
         }
         task.resume()
         sem.wait()
-        return outcome ?? .failure(error: "S3 upload failed")
+        return outcome ?? .failure(makeFailure(
+            message: "S3 upload failed",
+            filePath: filePath,
+            fileSize: fileData.count,
+            uploadName: uploadName,
+            request: request,
+            requestTarget: requestTarget,
+            resultUrlString: resultUrlString,
+            config: config,
+            response: nil,
+            responseBody: nil,
+            error: nil
+        ))
     }
+
+    private func buildRequestTarget(bucket: String, key: String, config: S3Config) -> S3RequestTarget? {
+        let keyPath = normalizedPathComponent(key)
+
+        if !config.customEndpoint.isEmpty {
+            let rawEndpoint = config.customEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedEndpoint = rawEndpoint.contains("://") ? rawEndpoint : "https://\(rawEndpoint)"
+            guard let endpointURL = URL(string: normalizedEndpoint), let endpointHost = endpointURL.host else {
+                return nil
+            }
+
+            let scheme = endpointURL.scheme ?? "https"
+            let port = endpointURL.port.map { ":\($0)" } ?? ""
+            let baseHost = "\(endpointHost)\(port)"
+            let basePath = endpointURL.path
+
+            if config.usePathStyle {
+                let canonicalURI = joinedPath([basePath, bucket, keyPath])
+                return S3RequestTarget(
+                    requestUrlString: "\(scheme)://\(baseHost)\(canonicalURI)",
+                    hostHeader: baseHost,
+                    canonicalURI: canonicalURI,
+                    endpointMode: "custom-path-style"
+                )
+            }
+
+            let virtualHost = "\(bucket).\(endpointHost)\(port)"
+            let canonicalURI = joinedPath([basePath, keyPath])
+            return S3RequestTarget(
+                requestUrlString: "\(scheme)://\(virtualHost)\(canonicalURI)",
+                hostHeader: virtualHost,
+                canonicalURI: canonicalURI,
+                endpointMode: "custom-virtual-host"
+            )
+        }
+
+        if config.usePathStyle {
+            let host = "s3.\(config.region).amazonaws.com"
+            let canonicalURI = joinedPath([bucket, keyPath])
+            return S3RequestTarget(
+                requestUrlString: "https://\(host)\(canonicalURI)",
+                hostHeader: host,
+                canonicalURI: canonicalURI,
+                endpointMode: "aws-path-style"
+            )
+        }
+
+        let host = "\(bucket).s3.\(config.region).amazonaws.com"
+        let canonicalURI = joinedPath([keyPath])
+        return S3RequestTarget(
+            requestUrlString: "https://\(host)\(canonicalURI)",
+            hostHeader: host,
+            canonicalURI: canonicalURI,
+            endpointMode: "aws-virtual-host"
+        )
+    }
+
+    private func makeFailure(
+        message: String,
+        filePath: String,
+        fileSize: Int,
+        uploadName: String,
+        request: URLRequest,
+        requestTarget: S3RequestTarget,
+        resultUrlString: String,
+        config: S3Config,
+        response: HTTPURLResponse?,
+        responseBody: Data?,
+        error: Error?
+    ) -> UploadFailure {
+        let requestHeaders = UploadDebugTools.formatHeaders(
+            UploadDebugTools.sanitizedHeaders(request.allHTTPHeaderFields ?? [:])
+        )
+        let responseHeaders = UploadDebugTools.formatHeaders(
+            UploadDebugTools.sanitizedHeaders(UploadDebugTools.httpHeaders(from: response))
+        )
+        let responseBodySnippet = UploadDebugTools.responseBodySnippet(responseBody)
+        let requestSection = UploadDebugTools.formatKeyValueLines([
+            ("Uploader", "Amazon S3"),
+            ("Timestamp", ISO8601DateFormatter().string(from: Date())),
+            ("File", filePath),
+            ("File Size", "\(fileSize) bytes"),
+            ("Upload Name", uploadName),
+            ("Bucket", config.bucketName),
+            ("Region", config.region),
+            ("Request URL", request.url?.absoluteString ?? requestTarget.requestUrlString),
+            ("Canonical URI", requestTarget.canonicalURI),
+            ("Result URL", resultUrlString),
+            ("Endpoint Mode", requestTarget.endpointMode),
+            ("Custom Endpoint", config.customEndpoint.isEmpty ? nil : config.customEndpoint),
+            ("Use Path Style", config.usePathStyle ? "true" : "false"),
+            ("Bucket Contains Dots", config.bucketName.contains(".") ? "true" : "false"),
+            ("Use Custom Domain", config.useCustomDomain ? "true" : "false"),
+            ("Custom Domain", config.useCustomDomain ? config.customDomain : nil),
+            ("Signed Payload", config.signedPayload ? "true" : "false"),
+            ("Public ACL", config.setPublicAcl ? "true" : "false"),
+            ("HTTP Status", response.map { "\($0.statusCode)" }),
+            ("Potential TLS Hint", !config.usePathStyle && config.bucketName.contains(".") ? "Dotted bucket names often require path-style URLs to avoid certificate mismatches." : nil)
+        ])
+
+        let details = UploadDebugTools.formatSections([
+            ("Request", requestSection),
+            ("Request Headers", requestHeaders),
+            ("Response Headers", responseHeaders),
+            ("Response Body", responseBodySnippet),
+            ("NSError", error.map { UploadDebugTools.describe(error: $0) })
+        ])
+
+        return UploadFailure(message: message, details: details)
+    }
+
+    private func joinedPath(_ components: [String]) -> String {
+        let normalized = components
+            .map(normalizedPathComponent)
+            .filter { !$0.isEmpty }
+        return "/" + normalized.joined(separator: "/")
+    }
+
+    private func normalizedPathComponent(_ component: String) -> String {
+        component.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+}
+
+private struct S3RequestTarget {
+    let requestUrlString: String
+    let hostHeader: String
+    let canonicalURI: String
+    let endpointMode: String
 }
 
 extension Data {

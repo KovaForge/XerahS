@@ -121,7 +121,12 @@ private struct ResultCard: View {
                     .font(.caption)
                     .foregroundStyle(.red)
                     .lineLimit(3)
-                Button("Copy Error") { onCopyToClipboard(err) }
+                if let details = item.errorDetails, !details.isEmpty, details != err {
+                    Text("Copy Error includes request and response diagnostics.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Button("Copy Error") { onCopyToClipboard(item.errorClipboardText ?? err) }
                     .buttonStyle(.bordered)
             }
         }

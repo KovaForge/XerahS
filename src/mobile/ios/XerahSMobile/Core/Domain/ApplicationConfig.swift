@@ -40,6 +40,7 @@ struct S3Config: Codable, Equatable {
     var bucketName: String = ""
     var region: String = ""
     var customEndpoint: String = ""
+    /// Force path-style S3 URLs: endpoint/bucket/key instead of bucket.endpoint/key.
     var usePathStyle: Bool = false
     /// Use custom domain (CDN) for result URLs.
     var useCustomDomain: Bool = false

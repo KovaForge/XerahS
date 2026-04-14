@@ -34,9 +34,9 @@ final class CustomUploader {
     }()
 
     func uploadFile(filePath: String, entry: CustomUploaderEntry) -> UploadOutcome {
-        if entry.requestUrl.isEmpty { return .failure(error: "Request URL is empty") }
-        guard FileManager.default.fileExists(atPath: filePath) else { return .failure(error: "File not found") }
-        guard let url = URL(string: entry.requestUrl) else { return .failure(error: "Invalid URL") }
+        if entry.requestUrl.isEmpty { return .failure(UploadFailure(message: "Request URL is empty")) }
+        guard FileManager.default.fileExists(atPath: filePath) else { return .failure(UploadFailure(message: "File not found")) }
+        guard let url = URL(string: entry.requestUrl) else { return .failure(UploadFailure(message: "Invalid URL")) }
         let fileUrl = URL(fileURLWithPath: filePath)
         let formName = entry.fileFormName.isEmpty ? "file" : entry.fileFormName
         let uploadFileName = UploadFileNameGenerator.uploadFileName(for: filePath)
@@ -65,25 +65,57 @@ final class CustomUploader {
         let sem = DispatchSemaphore(value: 0)
         let task = session.dataTask(with: request) { data, response, error in
             if let error = error {
-                outcome = .failure(error: error.localizedDescription)
+                outcome = .failure(self.makeFailure(
+                    message: error.localizedDescription,
+                    filePath: filePath,
+                    fileSize: body.count,
+                    uploadFileName: uploadFileName,
+                    entry: entry,
+                    request: request,
+                    response: response as? HTTPURLResponse,
+                    responseBody: data,
+                    error: error
+                ))
                 sem.signal()
                 return
             }
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             let bodyStr = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
             if code < 200 || code >= 300 {
-                outcome = .failure(error: "HTTP \(code): \(bodyStr.prefix(200))")
+                outcome = .failure(self.makeFailure(
+                    message: "HTTP \(code): \(bodyStr.prefix(200))",
+                    filePath: filePath,
+                    fileSize: body.count,
+                    uploadFileName: uploadFileName,
+                    entry: entry,
+                    request: request,
+                    response: response as? HTTPURLResponse,
+                    responseBody: data,
+                    error: nil
+                ))
                 sem.signal()
                 return
             }
             let extracted = self.extractUrl(from: bodyStr, expression: entry.urlExpression)
             let urlResult = extracted ?? bodyStr.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500).description
-            outcome = urlResult.isEmpty ? .failure(error: "No URL in response") : .success(url: urlResult)
+            outcome = urlResult.isEmpty
+                ? .failure(self.makeFailure(
+                    message: "No URL in response",
+                    filePath: filePath,
+                    fileSize: body.count,
+                    uploadFileName: uploadFileName,
+                    entry: entry,
+                    request: request,
+                    response: response as? HTTPURLResponse,
+                    responseBody: data,
+                    error: nil
+                ))
+                : .success(url: urlResult)
             sem.signal()
         }
         task.resume()
         sem.wait()
-        return outcome ?? .failure(error: "Upload failed")
+        return outcome ?? .failure(UploadFailure(message: "Upload failed"))
     }
 
     private func extractUrl(from responseBody: String, expression: String) -> String? {
@@ -96,5 +128,46 @@ final class CustomUploader {
         }
         if let r = Range(match.range, in: responseBody) { return String(responseBody[r]) }
         return nil
+    }
+
+    private func makeFailure(
+        message: String,
+        filePath: String,
+        fileSize: Int,
+        uploadFileName: String,
+        entry: CustomUploaderEntry,
+        request: URLRequest,
+        response: HTTPURLResponse?,
+        responseBody: Data?,
+        error: Error?
+    ) -> UploadFailure {
+        let requestHeaders = UploadDebugTools.formatHeaders(
+            UploadDebugTools.sanitizedHeaders(request.allHTTPHeaderFields ?? [:])
+        )
+        let responseHeaders = UploadDebugTools.formatHeaders(
+            UploadDebugTools.sanitizedHeaders(UploadDebugTools.httpHeaders(from: response))
+        )
+        let responseBodySnippet = UploadDebugTools.responseBodySnippet(responseBody)
+        let requestSection = UploadDebugTools.formatKeyValueLines([
+            ("Uploader", "Custom Uploader"),
+            ("Timestamp", ISO8601DateFormatter().string(from: Date())),
+            ("File", filePath),
+            ("Multipart Body Size", "\(fileSize) bytes"),
+            ("Upload Name", uploadFileName),
+            ("Request URL", request.url?.absoluteString),
+            ("File Form Name", entry.fileFormName),
+            ("URL Expression", entry.urlExpression.isEmpty ? nil : entry.urlExpression),
+            ("Configured Headers", "\(entry.headers.count)")
+        ])
+
+        let details = UploadDebugTools.formatSections([
+            ("Request", requestSection),
+            ("Request Headers", requestHeaders),
+            ("Response Headers", responseHeaders),
+            ("Response Body", responseBodySnippet),
+            ("NSError", error.map { UploadDebugTools.describe(error: $0) })
+        ])
+
+        return UploadFailure(message: message, details: details)
     }
 }

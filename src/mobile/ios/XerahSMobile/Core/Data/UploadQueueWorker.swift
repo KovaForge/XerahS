@@ -99,7 +99,7 @@ final class UploadQueueWorker: ObservableObject {
     private func uploadOne(filePath: String) -> UploadResultItem {
         let fileName = (filePath as NSString).lastPathComponent
         guard FileManager.default.fileExists(atPath: filePath) else {
-            return UploadResultItem(fileName: fileName, success: false, url: nil, error: "File not found")
+            return UploadResultItem(fileName: fileName, success: false, url: nil, error: "File not found", errorDetails: nil)
         }
         let config = settingsRepository.load()
         let pathToUpload = convertHeicToPngIfNeeded(filePath: filePath, convertEnabled: config.convertHeicToPng)
@@ -107,17 +107,27 @@ final class UploadQueueWorker: ObservableObject {
 
         if config.s3Config.isConfigured && (destId == nil || destId == "amazons3" || (destId?.hasPrefix("amazons3") ?? false)) {
             switch s3Uploader.uploadFile(filePath: pathToUpload, config: config.s3Config) {
-            case .success(let url): return UploadResultItem(fileName: fileName, success: true, url: url, error: nil)
-            case .failure(let error): return UploadResultItem(fileName: fileName, success: false, url: nil, error: error)
+            case .success(let url):
+                return UploadResultItem(fileName: fileName, success: true, url: url, error: nil, errorDetails: nil)
+            case .failure(let failure):
+                return UploadResultItem(fileName: fileName, success: false, url: nil, error: failure.message, errorDetails: failure.details)
             }
         }
         if !config.customUploaders.isEmpty {
             let entry = config.customUploaders.first { $0.id == destId } ?? config.customUploaders[0]
             switch customUploader.uploadFile(filePath: pathToUpload, entry: entry) {
-            case .success(let url): return UploadResultItem(fileName: fileName, success: true, url: url, error: nil)
-            case .failure(let error): return UploadResultItem(fileName: fileName, success: false, url: nil, error: error)
+            case .success(let url):
+                return UploadResultItem(fileName: fileName, success: true, url: url, error: nil, errorDetails: nil)
+            case .failure(let failure):
+                return UploadResultItem(fileName: fileName, success: false, url: nil, error: failure.message, errorDetails: failure.details)
             }
         }
-        return UploadResultItem(fileName: fileName, success: false, url: nil, error: "No upload destination configured. Configure S3 or a custom uploader in Settings.")
+        return UploadResultItem(
+            fileName: fileName,
+            success: false,
+            url: nil,
+            error: "No upload destination configured. Configure S3 or a custom uploader in Settings.",
+            errorDetails: nil
+        )
     }
 }
