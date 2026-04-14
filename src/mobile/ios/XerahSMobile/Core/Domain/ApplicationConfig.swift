@@ -107,6 +107,59 @@ struct SxcuDefinition: Codable, Equatable {
         case deletionURL = "DeletionURL"
         case errorMessage = "ErrorMessage"
     }
+
+    init(
+        version: String = currentMobileVersion(),
+        name: String = "",
+        destinationType: String = "FileUploader",
+        requestMethod: CustomUploaderRequestMethod = .POST,
+        requestURL: String = "",
+        parameters: [String: String] = [:],
+        headers: [String: String] = [:],
+        body: CustomUploaderBodyType = .multipartFormData,
+        arguments: [String: String] = [:],
+        fileFormName: String = "file",
+        data: String = "",
+        url: String = "",
+        thumbnailURL: String = "",
+        deletionURL: String = "",
+        errorMessage: String = ""
+    ) {
+        self.version = version
+        self.name = name
+        self.destinationType = destinationType
+        self.requestMethod = requestMethod
+        self.requestURL = requestURL
+        self.parameters = parameters
+        self.headers = headers
+        self.body = body
+        self.arguments = arguments
+        self.fileFormName = fileFormName
+        self.data = data
+        self.url = url
+        self.thumbnailURL = thumbnailURL
+        self.deletionURL = deletionURL
+        self.errorMessage = errorMessage
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decodeIfPresent(String.self, forKey: .version) ?? currentMobileVersion()
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+        destinationType = try container.decodeIfPresent(String.self, forKey: .destinationType) ?? "FileUploader"
+        requestMethod = try container.decodeIfPresent(CustomUploaderRequestMethod.self, forKey: .requestMethod) ?? .POST
+        requestURL = try container.decodeIfPresent(String.self, forKey: .requestURL) ?? ""
+        parameters = try container.decodeIfPresent([String: String].self, forKey: .parameters) ?? [:]
+        headers = try container.decodeIfPresent([String: String].self, forKey: .headers) ?? [:]
+        body = try container.decodeIfPresent(CustomUploaderBodyType.self, forKey: .body) ?? .multipartFormData
+        arguments = try container.decodeIfPresent([String: String].self, forKey: .arguments) ?? [:]
+        fileFormName = try container.decodeIfPresent(String.self, forKey: .fileFormName) ?? "file"
+        data = try container.decodeIfPresent(String.self, forKey: .data) ?? ""
+        url = try container.decodeIfPresent(String.self, forKey: .url) ?? ""
+        thumbnailURL = try container.decodeIfPresent(String.self, forKey: .thumbnailURL) ?? ""
+        deletionURL = try container.decodeIfPresent(String.self, forKey: .deletionURL) ?? ""
+        errorMessage = try container.decodeIfPresent(String.self, forKey: .errorMessage) ?? ""
+    }
 }
 
 /// One custom uploader definition stored in app config but shaped for .sxcu import/export.

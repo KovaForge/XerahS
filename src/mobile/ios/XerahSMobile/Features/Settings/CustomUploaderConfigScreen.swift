@@ -49,10 +49,17 @@ struct CustomUploaderConfigScreen: View {
                 .padding(.horizontal)
 
             if let status = viewModel.statusMessage, !status.isEmpty {
-                Text(status)
-                    .font(.subheadline)
-                    .foregroundStyle(viewModel.isStatusError ? .red : .secondary)
-                    .padding(.horizontal)
+                HStack(alignment: .center, spacing: 12) {
+                    Text(status)
+                        .font(.subheadline)
+                        .foregroundStyle(viewModel.isStatusError ? .red : .secondary)
+                    Spacer()
+                    if viewModel.isStatusError, viewModel.importErrorDetails != nil {
+                        Button("Copy Error") { viewModel.copyImportErrorToClipboard() }
+                            .buttonStyle(.bordered)
+                    }
+                }
+                .padding(.horizontal)
             }
 
             List {
@@ -254,6 +261,7 @@ final class CustomUploaderConfigViewModel: ObservableObject {
     @Published var editingEntry: CustomUploaderEntry?
     @Published var statusMessage: String?
     @Published var isStatusError: Bool = false
+    @Published var importErrorDetails: String?
 
     private let settingsRepository: SettingsRepository
     private let decoder = JSONDecoder()
@@ -309,7 +317,11 @@ final class CustomUploaderConfigViewModel: ObservableObject {
 
     func importFromClipboard() {
         guard let payload = clipboardPayload() else {
-            setStatus("Clipboard does not contain .sxcu JSON or a readable .sxcu file path.", isError: true)
+            setStatus(
+                "Clipboard does not contain .sxcu JSON or a readable .sxcu file path.",
+                isError: true,
+                details: clipboardDiagnostics(payload: nil, cleanedString: UIPasteboard.general.string)
+            )
             return
         }
 
@@ -322,8 +334,19 @@ final class CustomUploaderConfigViewModel: ObservableObject {
             uploaders = list
             setStatus("Imported \(entry.displayName) from clipboard.")
         } catch {
-            setStatus("Failed to import .sxcu from clipboard: \(error.localizedDescription)", isError: true)
+            let clipboardString = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines)
+            setStatus(
+                "Failed to import .sxcu from clipboard: \(error.localizedDescription)",
+                isError: true,
+                details: clipboardDiagnostics(payload: payload, cleanedString: clipboardString, error: error)
+            )
         }
+    }
+
+    func copyImportErrorToClipboard() {
+        guard let importErrorDetails else { return }
+        UIPasteboard.general.string = importErrorDetails
+        setStatus("Copied import error details to clipboard.")
     }
 
     func copySxcuToClipboard(_ entry: CustomUploaderEntry) {
@@ -362,9 +385,47 @@ final class CustomUploaderConfigViewModel: ObservableObject {
         return lines.dropFirst().dropLast().joined(separator: "\n")
     }
 
-    private func setStatus(_ message: String, isError: Bool = false) {
+    private func clipboardDiagnostics(payload: Data?, cleanedString: String?, error: Error? = nil) -> String {
+        let cleaned = cleanedString.map(stripMarkdownCodeFence(from:))?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let preview = cleaned.map { String($0.prefix(400)) }
+        let payloadText = payload.flatMap { String(data: $0, encoding: .utf8) }
+        let decodedJsonKeys: String? = {
+            guard
+                let payload,
+                let object = try? JSONSerialization.jsonObject(with: payload) as? [String: Any]
+            else { return nil }
+            return object.keys.sorted().joined(separator: ", ")
+        }()
+
+        var lines: [String] = [
+            "SXCU clipboard import failed",
+            "Timestamp: \(ISO8601DateFormatter().string(from: Date()))",
+            "Clipboard has string: \((UIPasteboard.general.string?.isEmpty == false) ? "true" : "false")",
+            "Clipboard has URL: \(UIPasteboard.general.url != nil ? "true" : "false")",
+            "Payload bytes: \(payload?.count ?? 0)"
+        ]
+
+        if let error {
+            lines.append("Error: \(String(describing: error))")
+        }
+        if let decodedJsonKeys, !decodedJsonKeys.isEmpty {
+            lines.append("Decoded top-level keys: \(decodedJsonKeys)")
+        }
+        if let preview, !preview.isEmpty {
+            lines.append("Clipboard preview:")
+            lines.append(preview)
+        } else if let payloadText, !payloadText.isEmpty {
+            lines.append("Payload preview:")
+            lines.append(String(payloadText.prefix(400)))
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private func setStatus(_ message: String, isError: Bool = false, details: String? = nil) {
         statusMessage = message
         isStatusError = isError
+        importErrorDetails = isError ? details : nil
     }
 }
 
