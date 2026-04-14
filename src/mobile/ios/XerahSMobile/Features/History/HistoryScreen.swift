@@ -30,31 +30,66 @@ struct HistoryScreen: View {
     var onCopyToClipboard: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Button("Back", action: onBack)
-                Spacer()
-                Button("Refresh") { viewModel.refresh() }
-                    .buttonStyle(.bordered)
-                Button("Clear") { viewModel.clearAll() }
-                    .buttonStyle(.bordered)
-            }
-            .padding(.horizontal)
+        ZStack {
+            XerahSPageBackground()
 
-            TextField("Search", text: $viewModel.searchQuery)
-                .textFieldStyle(.roundedBorder)
-                .padding(.horizontal)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        Button("Back", action: onBack)
+                            .xerahSGlassButton()
+                        Spacer()
+                        Button("Refresh") { viewModel.refresh() }
+                            .xerahSGlassButton()
+                        Button("Clear") { _ = viewModel.clearAll() }
+                            .xerahSGlassButton()
+                    }
 
-            Text("History")
-                .font(.title2)
-                .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("History")
+                            .font(.system(size: 33, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("Recent uploads stay searchable and copy-ready here.")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.72))
+                    }
 
-            List {
-                ForEach(viewModel.filteredEntries) { entry in
-                    HistoryEntryRow(entry: entry, onCopyUrl: { onCopyToClipboard(entry.url) }, onDelete: { viewModel.deleteEntry(entry.id) })
+                    XerahSGlassGroup {
+                        XerahSGlassCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                XerahSSectionIntro(
+                                    title: "Search",
+                                    detail: "Filter by filename, URL, or host."
+                                )
+                                TextField("Search history", text: $viewModel.searchQuery)
+                                    .textInputAutocapitalization(.never)
+                                    .xerahSInputChrome()
+                                    .foregroundStyle(.white)
+                            }
+                        }
+
+                        if viewModel.filteredEntries.isEmpty {
+                            XerahSGlassCard {
+                                Text("No history entries matched your search.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white.opacity(0.76))
+                            }
+                        } else {
+                            ForEach(viewModel.filteredEntries) { entry in
+                                HistoryEntryRow(
+                                    entry: entry,
+                                    onCopyUrl: { onCopyToClipboard(entry.url) },
+                                    onDelete: { viewModel.deleteEntry(entry.id) }
+                                )
+                            }
+                        }
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 28)
             }
-            .listStyle(.plain)
+            .scrollIndicators(.hidden)
         }
         .onAppear { viewModel.refresh() }
     }
@@ -66,21 +101,33 @@ private struct HistoryEntryRow: View {
     var onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(entry.fileName)
-                .font(.subheadline.weight(.medium))
-            if !entry.url.isEmpty {
-                Text(entry.url)
-                    .font(.caption)
-                    .foregroundStyle(.blue)
-                    .lineLimit(2)
-                Button("Copy URL", action: onCopyUrl)
-                    .buttonStyle(.bordered)
+        XerahSGlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(entry.fileName)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                if !entry.url.isEmpty {
+                    Text(entry.url)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.78))
+                        .lineLimit(3)
+                }
+
+                Text(entry.host)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+
+                HStack {
+                    if !entry.url.isEmpty {
+                        Button("Copy URL", action: onCopyUrl)
+                            .xerahSGlassButton(prominent: true)
+                    }
+                    Button("Delete", role: .destructive, action: onDelete)
+                        .xerahSGlassButton()
+                }
             }
-            Button("Delete", role: .destructive, action: onDelete)
-                .buttonStyle(.bordered)
         }
-        .padding(.vertical, 4)
     }
 }
 

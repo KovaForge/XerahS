@@ -30,80 +30,101 @@ struct CustomUploaderConfigScreen: View {
     var onBack: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Button("Back", action: onBack)
-                Spacer()
-                Button("Import Clipboard") { viewModel.importFromClipboard() }
-                    .buttonStyle(.bordered)
-            }
-            .padding(.horizontal)
+        ZStack {
+            XerahSPageBackground()
 
-            Text("Custom Uploader")
-                .font(.title2)
-                .padding(.horizontal)
-
-            Text("Import and edit .sxcu definitions. iOS now uses the same request/body/response settings shape as desktop.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
-
-            if let status = viewModel.statusMessage, !status.isEmpty {
-                HStack(alignment: .center, spacing: 12) {
-                    Text(status)
-                        .font(.subheadline)
-                        .foregroundStyle(viewModel.isStatusError ? .red : .secondary)
-                    Spacer()
-                    if viewModel.isStatusError, viewModel.importErrorDetails != nil {
-                        Button("Copy Error") { viewModel.copyImportErrorToClipboard() }
-                            .buttonStyle(.bordered)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        Button("Back", action: onBack)
+                            .xerahSGlassButton()
+                        Spacer()
+                        Button("Import Clipboard") { viewModel.importFromClipboard() }
+                            .xerahSGlassButton(prominent: true)
                     }
-                }
-                .padding(.horizontal)
-            }
 
-            List {
-                ForEach(viewModel.uploaders) { entry in
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.displayName)
-                                    .font(.subheadline.weight(.medium))
-                                Text(entry.requestUrl.isEmpty ? "No URL" : entry.requestUrl)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                                Text("\(entry.requestMethod.rawValue) • \(entry.bodyType.rawValue) • \(entry.destinationType)")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                        }
-
-                        HStack {
-                            Button("Edit") { viewModel.edit(entry) }
-                                .buttonStyle(.bordered)
-                            Button("Copy .sxcu") { viewModel.copySxcuToClipboard(entry) }
-                                .buttonStyle(.bordered)
-                            Button("Delete", role: .destructive) { viewModel.delete(entry) }
-                                .buttonStyle(.bordered)
-                        }
+                        Text("Custom Uploader")
+                            .font(.system(size: 33, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("Import and edit `.sxcu` definitions using the same request, body, and response shape as desktop.")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.72))
                     }
-                    .padding(.vertical, 4)
-                }
-            }
-            .listStyle(.plain)
 
-            Spacer(minLength: 16)
+                    XerahSGlassGroup {
+                        XerahSSectionIntro(
+                            title: "Library",
+                            detail: "Import from clipboard, edit the request definition, or export the current uploader back to `.sxcu`."
+                        )
 
-            HStack {
-                Spacer()
-                Button(action: { viewModel.addNew() }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.largeTitle)
+                        if let status = viewModel.statusMessage, !status.isEmpty {
+                            XerahSGlassCard {
+                                HStack(alignment: .center, spacing: 12) {
+                                    Text(status)
+                                        .font(.subheadline)
+                                        .foregroundStyle(viewModel.isStatusError ? Color(red: 1.0, green: 0.82, blue: 0.82) : .white.opacity(0.78))
+                                    Spacer()
+                                    if viewModel.isStatusError, viewModel.importErrorDetails != nil {
+                                        Button("Copy Error") { viewModel.copyImportErrorToClipboard() }
+                                            .xerahSGlassButton()
+                                    }
+                                }
+                            }
+                        }
+
+                        if viewModel.uploaders.isEmpty {
+                            XerahSGlassCard {
+                                Text("No custom uploaders yet. Import a `.sxcu` from the clipboard or create one manually.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white.opacity(0.76))
+                            }
+                        } else {
+                            ForEach(viewModel.uploaders) { entry in
+                                XerahSGlassCard {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        HStack(alignment: .top) {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(entry.displayName)
+                                                    .font(.headline)
+                                                    .foregroundStyle(.white)
+                                                Text(entry.requestUrl.isEmpty ? "No URL configured" : entry.requestUrl)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.white.opacity(0.72))
+                                                    .lineLimit(3)
+                                                Text("\(entry.requestMethod.rawValue) • \(entry.bodyType.rawValue) • \(entry.destinationType)")
+                                                    .font(.caption2.weight(.semibold))
+                                                    .foregroundStyle(.white.opacity(0.58))
+                                            }
+                                            Spacer()
+                                        }
+
+                                        HStack {
+                                            Button("Edit") { viewModel.edit(entry) }
+                                                .xerahSGlassButton()
+                                            Button("Copy .sxcu") { viewModel.copySxcuToClipboard(entry) }
+                                                .xerahSGlassButton()
+                                            Button("Delete", role: .destructive) { viewModel.delete(entry) }
+                                                .xerahSGlassButton()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Button {
+                            viewModel.addNew()
+                        } label: {
+                            Label("New Custom Uploader", systemImage: "plus.circle.fill")
+                        }
+                        .xerahSGlassButton(prominent: true)
+                    }
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 28)
             }
+            .scrollIndicators(.hidden)
         }
         .onAppear { viewModel.refresh() }
         .sheet(item: $viewModel.editingEntry) { entry in
@@ -331,6 +352,9 @@ final class CustomUploaderConfigViewModel: ObservableObject {
             var list = uploaders
             list.append(entry)
             settingsRepository.saveCustomUploaders(list)
+            if settingsRepository.getDefaultDestinationInstanceId() == nil {
+                settingsRepository.setDefaultDestinationInstanceId(entry.id)
+            }
             uploaders = list
             setStatus("Imported \(entry.displayName) from clipboard.")
         } catch {

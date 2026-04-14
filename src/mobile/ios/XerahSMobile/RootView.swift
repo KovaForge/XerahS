@@ -35,6 +35,7 @@ struct RootView: View {
     @State private var phase: AppPhase = .loading
     @State private var navPath: [Screen] = []
     @State private var transientBanner: String?
+    @State private var settingsRevision: Int = 0
 
     private func copyToClipboard(_ text: String) {
         UIPasteboard.general.string = text
@@ -76,16 +77,22 @@ struct RootView: View {
         }
         .overlay(alignment: .bottom) {
             if let banner = transientBanner {
-                Text(banner)
-                    .font(.subheadline)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                XerahSGlassCard(padding: 0) {
+                    Text(banner)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                }
+                .frame(maxWidth: 340)
                     .padding(.bottom, 32)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.25), value: transientBanner)
+        .onReceive(NotificationCenter.default.publisher(for: .xerahSSettingsDidChange)) { _ in
+            settingsRevision += 1
+        }
         .onAppear {
             if let banner = appState.bannerMessage, !banner.isEmpty {
                 showBanner(banner)
@@ -128,6 +135,7 @@ struct RootView: View {
             initialPaths: pending.isEmpty ? nil : pending,
             activeDestinationLabel: activeLabel
         )
+        .id(settingsRevision)
         .onAppear {
             if !pending.isEmpty {
                 appState.pendingSharedPaths = []
