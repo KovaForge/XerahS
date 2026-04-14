@@ -71,6 +71,10 @@
 			<string>XerahS Custom Uploader</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>sxcu</string>
+			</array>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
@@ -79,7 +83,7 @@
 			</array>
 		</dict>
 	</array>
-	<key>UTImportedTypeDeclarations</key>
+	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
@@ -88,6 +92,7 @@
 			<string>XerahS Custom Uploader</string>
 			<key>UTTypeConformsTo</key>
 			<array>
+				<string>public.content</string>
 				<string>public.json</string>
 				<string>public.data</string>
 			</array>
@@ -101,6 +106,8 @@
 				<array>
 					<string>application/json</string>
 					<string>application/x-sxcu+json</string>
+					<string>application/octet-stream</string>
+					<string>text/plain</string>
 				</array>
 			</dict>
 		</dict>

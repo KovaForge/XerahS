@@ -30,24 +30,70 @@ private enum AppPhase {
     case main
 }
 
+private struct TransientToast: Equatable {
+    let title: String?
+    let message: String
+    let isError: Bool
+}
+
 struct RootView: View {
     @EnvironmentObject var appState: AppState
     @State private var phase: AppPhase = .loading
     @State private var navPath: [Screen] = []
-    @State private var transientBanner: String?
+    @State private var transientToast: TransientToast?
     @State private var settingsRevision: Int = 0
 
     private func copyToClipboard(_ text: String) {
         UIPasteboard.general.string = text
-        showBanner("Copied to clipboard")
+        showToast(TransientToast(title: nil, message: "Copied to clipboard", isError: false))
     }
 
-    private func showBanner(_ text: String) {
-        transientBanner = text
+    private func showToast(_ toast: TransientToast) {
+        transientToast = toast
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            if transientBanner == text {
-                transientBanner = nil
+            if transientToast == toast {
+                transientToast = nil
             }
+        }
+    }
+
+    private func handleAutoShareUploadFinished(_ results: [UploadResultItem]) {
+        guard !results.isEmpty else { return }
+
+        let successes = results.filter(\.success)
+        let failures = results.filter { !$0.success }
+        let copiedUrls = successes.compactMap(\.url).filter { !$0.isEmpty }
+
+        if !copiedUrls.isEmpty {
+            UIPasteboard.general.string = copiedUrls.joined(separator: "\n")
+        }
+
+        if failures.isEmpty {
+            let title = results.count == 1 ? "Upload Complete" : "Uploads Complete"
+            let message: String
+            if copiedUrls.count == 1 {
+                message = "Link copied to clipboard."
+            } else {
+                message = "\(copiedUrls.count) links copied to clipboard."
+            }
+            showToast(TransientToast(title: title, message: message, isError: false))
+            return
+        }
+
+        navPath = []
+
+        if successes.isEmpty {
+            showToast(TransientToast(
+                title: "Upload Failed",
+                message: "Shared item could not be uploaded. Open XerahS to review the error details.",
+                isError: true
+            ))
+        } else {
+            showToast(TransientToast(
+                title: "Upload Finished With Errors",
+                message: "\(successes.count) completed, \(failures.count) failed. Successful links were copied to clipboard.",
+                isError: true
+            ))
         }
     }
 
@@ -76,26 +122,33 @@ struct RootView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if let banner = transientBanner {
+            if let toast = transientToast {
                 XerahSGlassCard(padding: 0) {
-                    Text(banner)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let title = toast.title, !title.isEmpty {
+                            Text(title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
+                        Text(toast.message)
+                            .font(.footnote)
+                            .foregroundStyle(toast.isError ? Color(red: 1.0, green: 0.82, blue: 0.82) : .white.opacity(0.88))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
                 }
                 .frame(maxWidth: 340)
-                    .padding(.bottom, 32)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.bottom, 32)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: transientBanner)
+        .animation(.easeInOut(duration: 0.25), value: transientToast)
         .onReceive(NotificationCenter.default.publisher(for: .xerahSSettingsDidChange)) { _ in
             settingsRevision += 1
         }
         .onAppear {
             if let banner = appState.bannerMessage, !banner.isEmpty {
-                showBanner(banner)
+                showToast(TransientToast(title: nil, message: banner, isError: false))
                 appState.bannerMessage = nil
             }
             if let pending = appState.pendingNavigation {
@@ -105,7 +158,7 @@ struct RootView: View {
         }
         .onChange(of: appState.bannerMessage) { _, newValue in
             guard let newValue, !newValue.isEmpty else { return }
-            showBanner(newValue)
+            showToast(TransientToast(title: nil, message: newValue, isError: false))
             appState.bannerMessage = nil
         }
         .onChange(of: appState.pendingNavigation) { _, newValue in
@@ -132,6 +185,7 @@ struct RootView: View {
             onOpenHistory: { navPath.append(.history) },
             onOpenSettings: { navPath.append(.settings) },
             onCopyToClipboard: copyToClipboard,
+            onAutoShareUploadFinished: handleAutoShareUploadFinished,
             initialPaths: pending.isEmpty ? nil : pending,
             activeDestinationLabel: activeLabel
         )

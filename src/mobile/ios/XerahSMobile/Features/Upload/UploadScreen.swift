@@ -30,6 +30,7 @@ struct UploadScreen: View {
     var onOpenHistory: () -> Void
     var onOpenSettings: () -> Void
     var onCopyToClipboard: (String) -> Void
+    var onAutoShareUploadFinished: ([UploadResultItem]) -> Void
     var initialPaths: [String]?
     /// Human-readable label for the active upload destination (e.g. "Amazon S3"). Shown so user knows where files will go.
     var activeDestinationLabel: String? = nil
@@ -37,6 +38,8 @@ struct UploadScreen: View {
     @State private var statusText = "Share files to XerahS to upload them."
     @State private var isUploading = false
     @State private var results: [UploadResultItem] = []
+    @State private var pendingAutoShareUploads = 0
+    @State private var autoShareResults: [UploadResultItem] = []
 
     var body: some View {
         ZStack {
@@ -116,17 +119,30 @@ struct UploadScreen: View {
         }
         .onReceive(worker.itemCompleted.receive(on: DispatchQueue.main).compactMap { $0 }) { result in
             results.append(result)
+            if pendingAutoShareUploads > 0 {
+                pendingAutoShareUploads -= 1
+                autoShareResults.append(result)
+                if pendingAutoShareUploads == 0 {
+                    let completed = autoShareResults
+                    autoShareResults = []
+                    onAutoShareUploadFinished(completed)
+                }
+            }
         }
         .onAppear {
             worker.updateState()
-            if let paths = initialPaths, !paths.isEmpty {
-                _ = worker.enqueueFiles(paths)
-            }
+            enqueueInitialPathsIfNeeded(initialPaths)
         }
         .onChange(of: initialPaths) { _, newValue in
-            if let paths = newValue, !paths.isEmpty {
-                _ = worker.enqueueFiles(paths)
-            }
+            enqueueInitialPathsIfNeeded(newValue)
+        }
+    }
+
+    private func enqueueInitialPathsIfNeeded(_ paths: [String]?) {
+        guard let paths, !paths.isEmpty else { return }
+        let added = worker.enqueueFiles(paths)
+        if added > 0 {
+            pendingAutoShareUploads += added
         }
     }
 }

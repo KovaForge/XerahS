@@ -44,6 +44,7 @@ final class AppState: ObservableObject {
         self.settingsRepository = settingsRepository
         self.historyRepository = historyRepository
         self.uploadQueueWorker = uploadQueueWorker
+        importPendingSxcuFiles()
     }
 
     func handleIncomingURL(_ url: URL) {
@@ -61,7 +62,15 @@ final class AppState: ObservableObject {
             return
         }
 
+        importPendingSxcuFiles()
         pendingSharedPaths = ShareGroup.consumePendingPaths()
+    }
+
+    private func importPendingSxcuFiles() {
+        let pendingFiles = ShareGroup.consumePendingSxcuImports()
+        for path in pendingFiles where !path.isEmpty {
+            importSxcuFile(from: URL(fileURLWithPath: path))
+        }
     }
 
     private func importSxcuFile(from url: URL) {
