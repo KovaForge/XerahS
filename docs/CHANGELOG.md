@@ -1,120 +1,126 @@
-# Changelog
+﻿# Changelog
 All notable changes to XerahS will be documented in this file.
 The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MAJOR** (x): Breaking changes (0 while unreleased)
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
-## Unreleased
-## v0.22.1
+## v0.22.2
+
 ### Features
-- **Core**: Group loaded libraries and show versions in About (ab8a6034, 246a37f7)
-- **Core**: Preserve editable annotation sidecars (9112999a)
+- **Core**: Group loaded libraries and show versions in About `(ab8a6034, 246a37f7)`
+- **Core**: Preserve editable annotation sidecars `(9112999a, aa577153)`
+- **Core**: Add assistant BYOK providers, OCR upload workflows, overlay local commands, safety contract, and workflow aliases `(81f25416, 8ad54b57, d5d7c3d2, 65cdf93a, 92f12d9c)`
+- **Core**: Add XIP0063 — XerahS CLI OpenClaw compatibility spec and upload command `(196ba194, b29c2dff)`
+- **Core**: Add --name flag to CLI upload command for custom filenames `(fc5236c8)`
+- **Core**: Add onboarding debug launcher mode `(8181ac98)`
+- **Core**: IUIService: add ShowAnalyzerWindowAsync to all headless implementations `(b45fefa7)`
+- **Core**: Implement 6 after-capture task execution paths in CaptureJobProcessor `(acc31132)`
+- **Core**: HistoryManagerSQLite: Delete now deletes all items (was only last), Edit uses EnsureConnection for consistency `(b28d8235)`
+- **Core**: XIP0068: Re-editing saved annotations design review and critique `(fc3e71c1, a2fc92bd, 9fd13117)`
+
 ### Fixes
-- **Core**: Align ImageEditor Avalonia with XerahS, upgrade Tmds.DBus, async Sample.png load (e9ceb393)
-- **Core**: Apply name format pattern to CLI file uploads (007b6cda)
-- **Core**: Atomic debounce + ObjectDisposedException guard inside Dispatcher.Post lambda (c5e19538)
-- **Core**: Avoid duplicate developer tools attachment (f1c859e9)
-- **Core**: Bias scrolling capture away from nested panes (623ba1eb)
-- **Core**: Catch ConfigureShortcuts NotImplemented in KDE portal fallback (1412b67f)
-- **Core**: Debounce rapid hotkey fires to prevent duplicate capture tasks (c83ed6b3)
-- **Core**: Enable Avalonia dev tools and dispose sample bitmap (51f23270)
-- **Core**: Exclude hidden Windows capture surfaces (4d189427)
-- **Core**: Fix DevTools double-attachment in DEBUG builds (1cbf5afb)
-- **Core**: Forward onboarding debug args (6d5e236e)
-- **Core**: Guard DBus calls against ObjectDisposedException in hotkey service (6f72f244)
-- **Core**: Harden Linux portal request waiting (42a0df55)
-- **Core**: Harden publish-release tag existence checks (4e882baf)
-- **Core**: HasEditableAnnotations falls back to default sidecar path convention (4d5d99c8)
-- **Core**: Keep scrolling capture bottom detection on active scroller (b680bcad)
-- **Core**: Prefer the main scrolling capture scroller (a9f0be8b)
-- **Core**: Prevent infinite recursion in UploadJobProcessor.TryUploadWithFallback — Vladislava Kova (adc18dea)
-- **Core**: Refresh history thumbnail after annotation re-edit (0b9b0f8f)
-- **Core**: Remove KDE_SESSION_VERSION false-positive in Wayland detection (64727c45)
-- **Core**: Repair onboarding step state flow (b87caa39)
-- **Core**: Repair onboarding wizard rendering (2ef18e36)
-- **Core**: resolve RID-agnostic plugin path in CopyPluginsToOutput target (ede42e21)
-- **Core**: Respect task XerahSOverlay preference on KDE Plasma Wayland (cb75a733)
-- **Core**: Restore build and sync pending updates (5305afdc)
-- **Core**: Restore screenshot uploader resolution (c32ab11e)
-- **Core**: Sync Linux portal hotkey state (bab44e5b)
-- **Core**: Use info.FileName for GenericUploader file uploads (d2d45d32)
-- **Core**: Use upload pipeline from toast (90592583)
+- **Core**: Align ImageEditor Avalonia with XerahS, upgrade Tmds.DBus, async Sample.png load `(e9ceb393)`
+- **Core**: Apply name format pattern to CLI file uploads `(007b6cda)`
+- **Core**: Atomic debounce + ObjectDisposedException guard inside Dispatcher.Post lambda `(c5e19538)`
+- **Core**: Avoid duplicate developer tools attachment `(f1c859e9)`
+- **Core**: Bias scrolling capture away from nested panes `(623ba1eb)`
+- **Core**: Catch ConfigureShortcuts NotImplemented in KDE portal fallback `(1412b67f)`
+- **Core**: Debounce rapid hotkey fires to prevent duplicate capture tasks `(c83ed6b3)`
+- **Core**: Enable Avalonia dev tools and dispose sample bitmap `(51f23270)`
+- **Core**: Exclude hidden Windows capture surfaces `(4d189427)`
+- **Core**: Fix DevTools double-attachment in DEBUG builds `(1cbf5afb)`
+- **Core**: Forward onboarding debug args `(6d5e236e)`
+- **Core**: Guard DBus calls against ObjectDisposedException in hotkey service `(6f72f244)`
+- **Core**: Harden Linux portal request waiting `(42a0df55)`
+- **Core**: Harden publish-release tag existence checks `(4e882baf)`
+- **Core**: HasEditableAnnotations falls back to default sidecar path convention `(4d5d99c8)`
+- **Core**: Keep scrolling capture bottom detection on active scroller `(b680bcad)`
+- **Core**: Prefer the main scrolling capture scroller `(a9f0be8b)`
+- **Core**: Prevent infinite recursion in UploadJobProcessor.TryUploadWithFallback — Vladislava Kova `(adc18dea)`
+- **Core**: Refresh history thumbnail after annotation re-edit `(0b9b0f8f)`
+- **Core**: Remove KDE_SESSION_VERSION false-positive in Wayland detection `(64727c45)`
+- **Core**: Repair onboarding step state flow `(b87caa39)`
+- **Core**: Repair onboarding wizard rendering `(2ef18e36)`
+- **Core**: resolve RID-agnostic plugin path in CopyPluginsToOutput target `(ede42e21)`
+- **Core**: Respect task XerahSOverlay preference on KDE Plasma Wayland `(cb75a733)`
+- **Core**: Restore build and sync pending updates `(5305afdc)`
+- **Core**: Restore screenshot uploader resolution `(c32ab11e)`
+- **Core**: Sync Linux portal hotkey state `(bab44e5b)`
+- **Core**: Use info.FileName for GenericUploader file uploads `(d2d45d32)`
+- **Core**: Use upload pipeline from toast `(90592583)`
+- **Core**: Fix XIP0072 screen recording regressions `(31cccc1c)`
+- **Core**: Fix onboarding actions and destinations `(543ce29c)`
+- **Core**: Fix onboarding trigger race and move it to OnWindowOpened `(7921fd4b)`
+- **Core**: Fix WaylandPortalHotkeyService to implement IHotkeyService.HotkeysChanged `(f490e35a)`
+- **Core**: Fix XerahS.UI build errors in onboarding code `(9b8b79ab)`
+- **Core**: Add missing using XerahS.RegionCapture in RegionCaptureAnnotationViewModel — resolves StepTailStyle not found `(c48380c7)`
+- **Core**: Auto uploader falls back to Text uploaders for text-based files when File uploaders fail `(6d93bba4)`
+- **Core**: Auto-build and copy plugins to CLI output directory `(dac37123)`
+- **Core**: Scrolling Capture no longer triggers tab switch on child window scroll `(6490d078)`
+- **Core**: Scrolling Capture targets window main scroll bar instead of scroll bar thumb/track `(4712e39d)`
+- **Core**: Restore XIP0060: XerahS.UI build — remove duplicate Onboarding folders causing AXN0002 `(5c73b9c0)`
+- **Fix AVLN2000**: invalid binding path syntax in OnboardingWizardWindow.axaml `(be6b7a2d)`
+
+### Refactor
+- **Core**: Extract magic strings and GUIDs into central AppContracts.cs `(8bf723b9)`
+- **Core**: Split OverlayWindow.axaml.cs into logical partial classes `(9bf57ef8)`
+- **Core**: Update VideoEditor submodule to decoupled npm build `(8c1d715c)`
+- **Core**: Extract assistant core into shared library `(35cfcda7)`
+
 ### Build
-- **Core**: Remove stale csproj.bak and rename UI views folder (08ee12b5, 854878e6)
-- **Core**: Upgrade to Avalonia 12 and update port-imageeditor workflow and Vortice packages (513071ca, ab19a591)
+- **Core**: Upgrade to Avalonia 12; align Avalonia 12 startup, headless text shaping, desktop bindings and accessibility `(513071ca, b55e14f7, 08968745)`
+- **Core**: Update port-imageeditor workflow and Vortice packages `(ab19a591)`
+- **Core**: Align Avalonia 12 Android bootstrap and forms `(c6ece84c)`
+- **Core**: Remove stale csproj.bak and rename UI views folder `(08ee12b5, 854878e6)`
+- **Core**: ShareX.ImageEditor submodule sync with port-imageeditor skill and Vortice packages `(5a94405a)`
+- **Core**: Update changelog skill and script with mojibake fix `(9aa0c574)`
+- **Core**: Harden markdown hygiene workflow triggers and add mojibake/BOM checks `(cd3c5d3f, 3ef156d7)`
+- **Core**: Remove deprecated _Onboarding_BACKUP directories `(bee92a84)`
+- **Core**: Update run-debug-app.ps1 `(09a66938)`
+- **Core**: ShareX.ImageEditor submodule updates: LF re-applied, interaction cache, LF+Avalonia 12, Watermark placeholder, latest `(08f207bc, b8a45537, 765c57c9, c23d87d0, bfd78ace, ade66014, bb50af89)`
+- **Core**: ShareX.VideoEditor update `(41bf06fa)`
+
 ### Documentation
-- **Core**: Align changelog skill categories (e180fd8b)
-- **Core**: Align commit version policy with tags (d1aaa3bd)
-- **Core**: Align release changelog path (ff523e30)
-- **Core**: Align XIPs with and update Avalonia 12 XIP backlog (b4c43b5e, 700561db)
-- **Core**: Blog drafts (2026 series, add/update) (0087f904, 2340b1b5, 2d628d7b, 33f5c573, 6e1e7a40, 88d35930, a976d281, b4c42e32, b4f537e2, bda406d3, d25e1379, dcb60a58)
-- **Core**: Clarify spotlight assistant settings placement (e167810a)
-- **Core**: Consolidate build skill guardrails (aa8a9540)
-- **Core**: Consolidate release workflow skills (a9edddd7)
-- **Core**: Consolidate XIP skill guidance (e9a1959d)
-- **Core**: Correct uploader UI skill references (2d73018d)
-- **Core**: Draft spotlight assistant XIP (54ef3380)
-- **Core**: Expand spotlight assistant provider plan (b7964cb0)
-- **Core**: Normalize XIP reference format (XIP-NNNN -> XIPNNNN) (7c730871)
-- **Core**: Refine editable annotation sidecar design (1b53648d)
-- **Core**: Repair maintenance sync guardrails (39ef0ba1)
-- **Core**: Update XIP sync skill (1fc53d26)
-- **Core**: XIP/IEIP proposals and related documentation (5ef03e41, b574e02d)
+- **Core**: Blog drafts (2026 series, add/update) `(0087f904, 2340b1b5, 2d628d7b, 33f5c573, 6e1e7a40, 88d35930, a976d281, b4c42e32, b4f537e2, bda406d3, d25e1379, dcb60a58, bf44e8b0, 43098032)`
+- **Core**: Repair markdown encoding across .ai skills, blog, status, and developer docs `(a2563962, 0f54498a, b3273120)`
+- **Core**: Restore UTF-8 diagrams in build README; add health badge and normalize README encoding `(8d79f80e, 501a6e8e, 69590aa9)`
+- **Core**: Align changelog skill categories `(e180fd8b)`
+- **Core**: Align commit version policy with tags `(d1aaa3bd)`
+- **Core**: Align release changelog path `(ff523e30)`
+- **Core**: Align XIPs with and update Avalonia 12 XIP backlog `(b4c43b5e, 700561db)`
+- **Core**: Clarify spotlight assistant settings placement `(e167810a)`
+- **Core**: Consolidate build skill guardrails `(aa8a9540)`
+- **Core**: Consolidate release workflow skills `(a9edddd7)`
+- **Core**: Consolidate XIP skill guidance `(e9a1959d)`
+- **Core**: Correct uploader UI skill references `(2d73018d)`
+- **Core**: Draft spotlight assistant XIP `(54ef3380)`
+- **Core**: Expand spotlight assistant provider plan `(b7964cb0)`
+- **Core**: Normalize XIP reference format (XIP-NNNN -> XIPNNNN) `(7c730871)`
+- **Core**: Refine editable annotation sidecar design `(1b53648d)`
+- **Core**: Repair maintenance sync guardrails `(39ef0ba1)`
+- **Core**: Update XIP sync skill `(1fc53d26)`
+- **Core**: XIP/IEIP proposals — XIP0065, XIP0066, XIP0067 Avalonia 12 upgrade docs, XIP0069, XIP0070, user research, design/review docs `(5ef03e41, b574e02d, 32f0edbc, f9f6d370, cd8ca16b)`
+- **Core**: XIP0060: State of the Art Onboarding Wizard `(4910906a)`
+- **Core**: XIP0061: KDE Plasma / Nobara — portal fixes, version deps, remaining open items `(460d1c65)`
+- **Core**: KFIP0001 KovaForge Improvement Proposals series; KFIP0071 Part 2 privacy rules, tool specs, provider defaults, Sofia design specs `(de955b6e, b7372bb8, a0972d89)`
+
 ### Changed
-- **Core**: [Docs] Add XIP0072 screen recording bug fixes proposal (3964cbcd)
-- **Core**: [Docs] Ensure current and previous UTC+8 blog drafts. (2421a562, 259797ec, 3c59c826, 43098032, 44377dcc, 4b9ee237, 522dbdef, 5e008f47, 906cb5e7, cab2e50d, e2506064)
-- **Core**: [Docs] XIP0060: State of the Art Onboarding Wizard (4910906a)
-- **Core**: [Docs] XIP0061: KDE Plasma / Nobara — portal fixes, version deps, remaining open items (460d1c65)
-- **Core**: [Draft] XIP0062 overlay modernization (5 RECs) (c745a88d)
-- **Core**: [Draft] XIP0064 — activate Phase 2, add HTTP+SSE transport, manifest, phased deliverables (3f3b8bbb)
-- **Core**: [Draft] XIP0064 — XerahS MCP Server: Model Context Protocol integration spec (2c3c9132, 6d0ff315)
-- **Core**: [Enhancement] Add "Ignore empty folders" option to Index Folder (53b86e32)
-- **Core**: [Enhancement] XIP0060: [Milena/Nadia/Viktor] Onboarding state machine, UI build, design system, and ViewModels (5d032a17, 4939680c, 16ef57dc)
-- **Core**: [Fix] Add missing using XerahS.RegionCapture in RegionCaptureAnnotationViewModel — resolves StepTailStyle not found (c48380c7)
-- **Core**: [Fix] Auto uploader falls back to Text uploaders for text-based files when File uploaders fail (6d93bba4)
-- **Core**: [Fix] Auto-build and copy plugins to CLI output directory (dac37123)
-- **Core**: [Fix] Scrolling Capture no longer triggers tab switch on child window scroll (6490d078)
-- **Core**: [Fix] Scrolling Capture targets window main scroll bar instead of scroll bar thumb/track (4712e39d)
-- **Core**: [Fix] XIP0060: Restore XerahS.UI build — remove duplicate Onboarding folders causing AXN0002 (5c73b9c0)
-- **Core**: [MCP] Add README (e2764bce)
-- **Core**: [MCP] Documentation — usage guide (de12d8f2)
-- **Core**: [MCP] Initial stdio transport skeleton (bfa6f82b)
-- **Core**: [MCP] Integration tests for MCP server (133881d9)
-- **Core**: [MCP] Phase 2: HTTP transport server + Cloudflare Worker + manifest (10aa1d58)
-- **Core**: [MCP] Prompt templates — typed records, no anonymous types (c1845a77)
-- **Core**: [Refactor] Extract magic strings and GUIDs into central AppContracts.cs (8bf723b9)
-- **Core**: [Refactor] Split OverlayWindow.axaml.cs into logical partial classes (9bf57ef8)
-- **Core**: [Refactor] Update VideoEditor submodule to decoupled npm build (8c1d715c)
-- **Core**: [XerahS] [Port] Use ImageFilePath instead of LastSavedPath from ShareX@879f2b5e1 (69a4043a)
-- **Core**: [XIP] XIP0068 design review, re-editing saved annotations, and critique (fc3e71c1, a2fc92bd, 9fd13117)
-- **Core**: [XIP0060] Add OnboardingConverters, wire trigger, and mark wizard Complete (42497263, bee2b008, 6bf203a8)
-- **Core**: [XIP0060] Rewrite onboarding styles to use existing XerahS theme (ccaf6ce9, 68dbf543)
-- **Core**: Add --name flag to CLI upload command for custom filenames (fc5236c8)
-- **Core**: Add onboarding debug launcher mode (8181ac98)
-- **Core**: Add XIP0063 upload command to XerahS CLI (b29c2dff)
-- **Core**: Add XIP0063 — XerahS CLI OpenClaw compatibility spec — Vladislava Kova (196ba194)
-- **Core**: Align MCP contract and prompts (3f416b01)
-- **Core**: Catch up ImageEditor through ShareX@c6e3c5260 (f361802d)
-- **Core**: Cover editable annotation sidecars (aa577153)
-- **Core**: Expose MCP settings in desktop UI (f450dde8)
-- **Core**: Fix onboarding actions and destinations (543ce29c)
-- **Core**: Fix onboarding trigger race and move it to OnWindowOpened (7921fd4b)
-- **Core**: Fix WaylandPortalHotkeyService to implement IHotkeyService.HotkeysChanged (f490e35a)
-- **Core**: Fix XerahS.UI build errors in onboarding code (9b8b79ab)
-- **Core**: Implement XerahS MCP runtime (ba6da988)
-- **Core**: Move desktop views out of Views_PARTIAL (b54282da)
-- **Core**: Pre-load Sample.png in editor on startup (bd148d88)
-- **Core**: Refresh MCP usage guide (94a09599)
-- **Core**: Remove deprecated _Onboarding_BACKUP directories (bee92a84)
-- **Core**: Remove save location quick select shortcuts (2cf84f27)
-- **Core**: Restore workflow destination category mapping (df0161f8)
-- **Core**: Restore XIP0061 fixes accidentally removed from WaylandPortalHotkeyService (bc4311ca)
-- **Core**: Revise onboarding wizard flow (4ba7d3c3)
-- **Core**: ShareX.ImageEditor and ShareX.VideoEditor submodule updates (040a20e9, 38368ae8, 71f38ce6, 765c57c9, a3e3cc85, b8a45537, 41bf06fa)
-- **Core**: Update run-debug-app.ps1 (09a66938)
-- **Core**: Use xann annotation sidecar extension (f71c0ed4)
-- **Core**: Wire onboarding hotkey selection (5c598d5b)
-- **Fix AVLN2000**: invalid binding path syntax in OnboardingWizardWindow.axaml (be6b7a2d)
+- **Core**: Smart Region Capture Profiles — TweetCaptureDetector + CaptureProfileService implementation, wired into after-capture workflow `(ca8949c2, 9f433081, 0740efd2, 84b5d863, ff74a0e0)`
+- **Core**: Social Media Screenshot Automation — Tweet & Thread Capture with styled export `(bd6174b1, 4cb8a5d0, a9d7a62b, 4fc601a1, 4f56ded8)`
+- **Core**: Smart Region Capture Profiles rename XIP0073→KFIP0002; consolidate duplicate XIP0074 `(88628121, 15a0e3e6, 4ee81449)`
+- **Core**: Add "Ignore empty folders" option to Index Folder `(53b86e32)`
+- **Core**: XIP0060: Onboarding state machine, ViewModels, complete UI build, design system, step views, reusable controls, converters, trigger wiring, style rewrite, wizard complete `(5d032a17, 4939680c, 16ef57dc, 42497263, bee2b008, ccaf6ce9, 68dbf543, 6bf203a8)`
+- **Core**: [MCP] Add README, usage guide, initial stdio transport skeleton, integration tests, HTTP transport + Cloudflare Worker + manifest, prompt templates — typed records `(e2764bce, de12d8f2, bfa6f82b, 133881d9, 10aa1d58, c1845a77)`
+- **Core**: [MCP] Align MCP contract and prompts `(3f416b01)`
+- **Core**: [MCP] Implement XerahS MCP runtime; expose MCP settings in desktop UI; refresh usage guide `(ba6da988, f450dde8, 94a09599)`
+- **Core**: Update model IDs to MiniMax-M2.7, gemini-2.5-flash, claude-haiku-4-5 `(02729ca6)`
+- **Core**: ShareX.ImageEditor submodule sync through ShareX@c6e3c5260 `(f361802d)`
+- **Core**: ShareX.VideoEditor update `(41bf06fa)`
+
+### Testing
+- **Core**: Add AfterCaptureTaskFlagsTests `(0e6fc37d)`
+- **Core**: XIP0073 build verification `(a5bfad98)`
+
 ## v0.21.0
 ### Features
 - **Custom uploaders & Send-to**: Catalog multi-add, save-back flow, and Send-to behavior prompt `(07fee6a1, 11badd97, 6e552f83)`
