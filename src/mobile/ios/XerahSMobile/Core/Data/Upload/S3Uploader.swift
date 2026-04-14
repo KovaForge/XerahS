@@ -42,8 +42,15 @@ final class S3Uploader {
         let uploadName = UploadFileNameGenerator.uploadFileName(for: filePath)
         let key = "uploads/\(uploadName)"
         let region = config.region
+        let bucketContainsDots = config.bucketName.contains(".")
+        let shouldUsePathStyle = config.usePathStyle || bucketContainsDots
 
-        guard let requestTarget = buildRequestTarget(bucket: config.bucketName, key: key, config: config) else {
+        guard let requestTarget = buildRequestTarget(
+            bucket: config.bucketName,
+            key: key,
+            config: config,
+            shouldUsePathStyle: shouldUsePathStyle
+        ) else {
             return .failure(UploadFailure(message: "Invalid S3 request URL"))
         }
 
@@ -180,7 +187,7 @@ final class S3Uploader {
         ))
     }
 
-    private func buildRequestTarget(bucket: String, key: String, config: S3Config) -> S3RequestTarget? {
+    private func buildRequestTarget(bucket: String, key: String, config: S3Config, shouldUsePathStyle: Bool) -> S3RequestTarget? {
         let keyPath = normalizedPathComponent(key)
 
         if !config.customEndpoint.isEmpty {
@@ -195,13 +202,13 @@ final class S3Uploader {
             let baseHost = "\(endpointHost)\(port)"
             let basePath = endpointURL.path
 
-            if config.usePathStyle {
+            if shouldUsePathStyle {
                 let canonicalURI = joinedPath([basePath, bucket, keyPath])
                 return S3RequestTarget(
                     requestUrlString: "\(scheme)://\(baseHost)\(canonicalURI)",
                     hostHeader: baseHost,
                     canonicalURI: canonicalURI,
-                    endpointMode: "custom-path-style"
+                    endpointMode: config.usePathStyle ? "custom-path-style" : "custom-path-style-auto-dot-bucket"
                 )
             }
 
@@ -215,14 +222,14 @@ final class S3Uploader {
             )
         }
 
-        if config.usePathStyle {
+        if shouldUsePathStyle {
             let host = "s3.\(config.region).amazonaws.com"
             let canonicalURI = joinedPath([bucket, keyPath])
             return S3RequestTarget(
                 requestUrlString: "https://\(host)\(canonicalURI)",
                 hostHeader: host,
                 canonicalURI: canonicalURI,
-                endpointMode: "aws-path-style"
+                endpointMode: config.usePathStyle ? "aws-path-style" : "aws-path-style-auto-dot-bucket"
             )
         }
 
@@ -269,14 +276,16 @@ final class S3Uploader {
             ("Result URL", resultUrlString),
             ("Endpoint Mode", requestTarget.endpointMode),
             ("Custom Endpoint", config.customEndpoint.isEmpty ? nil : config.customEndpoint),
-            ("Use Path Style", config.usePathStyle ? "true" : "false"),
+            ("Configured Path Style", config.usePathStyle ? "true" : "false"),
+            ("Effective Path Style", requestTarget.endpointMode.contains("path-style") ? "true" : "false"),
             ("Bucket Contains Dots", config.bucketName.contains(".") ? "true" : "false"),
+            ("Auto Path Style Reason", (!config.usePathStyle && config.bucketName.contains(".")) ? "Bucket name contains dots; iOS TLS wildcard certificate matching requires path-style URL." : nil),
             ("Use Custom Domain", config.useCustomDomain ? "true" : "false"),
             ("Custom Domain", config.useCustomDomain ? config.customDomain : nil),
             ("Signed Payload", config.signedPayload ? "true" : "false"),
             ("Public ACL", config.setPublicAcl ? "true" : "false"),
             ("HTTP Status", response.map { "\($0.statusCode)" }),
-            ("Potential TLS Hint", !config.usePathStyle && config.bucketName.contains(".") ? "Dotted bucket names often require path-style URLs to avoid certificate mismatches." : nil)
+            ("Potential TLS Hint", (!config.usePathStyle && config.bucketName.contains(".")) ? "Dotted bucket names require path-style URLs on iOS to avoid certificate mismatches." : nil)
         ])
 
         let details = UploadDebugTools.formatSections([
