@@ -72,14 +72,19 @@ final class S3Uploader {
         }
 
         let now = Date()
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let amzDate = formatter.string(from: now)
-        let dateStamp: String = {
-            let cal = Calendar(identifier: .iso8601)
-            let comp = cal.dateComponents([.year, .month, .day], from: now)
-            return String(format: "%04d%02d%02d", comp.year!, comp.month!, comp.day!)
-        }()
+        let timestampFormatter = DateFormatter()
+        timestampFormatter.calendar = Calendar(identifier: .gregorian)
+        timestampFormatter.locale = Locale(identifier: "en_US_POSIX")
+        timestampFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        timestampFormatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+        let amzDate = timestampFormatter.string(from: now)
+
+        let dateStampFormatter = DateFormatter()
+        dateStampFormatter.calendar = Calendar(identifier: .gregorian)
+        dateStampFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateStampFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        dateStampFormatter.dateFormat = "yyyyMMdd"
+        let dateStamp = dateStampFormatter.string(from: now)
         let payloadHash = config.signedPayload ? fileData.sha256Hex : "UNSIGNED-PAYLOAD"
         let contentType = "application/octet-stream"
 
