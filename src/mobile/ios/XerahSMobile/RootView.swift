@@ -23,6 +23,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 private enum AppPhase {
     case loading
@@ -33,12 +34,36 @@ struct RootView: View {
     @EnvironmentObject var appState: AppState
     @State private var phase: AppPhase = .loading
     @State private var navPath: [Screen] = []
-    @State private var copyFeedback = false
+    @State private var transientBanner: String?
 
     private func copyToClipboard(_ text: String) {
         UIPasteboard.general.string = text
-        copyFeedback = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { copyFeedback = false }
+        showBanner("Copied to clipboard")
+    }
+
+    private func showBanner(_ text: String) {
+        transientBanner = text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if transientBanner == text {
+                transientBanner = nil
+            }
+        }
+    }
+
+    private func navigate(to screen: Screen) {
+        switch screen {
+        case .customUploaderConfig:
+            if !navPath.contains(.settings) {
+                navPath.append(.settings)
+            }
+            if navPath.last != .customUploaderConfig {
+                navPath.append(.customUploaderConfig)
+            }
+        default:
+            if navPath.last != screen {
+                navPath.append(screen)
+            }
+        }
     }
 
     var body: some View {
@@ -50,8 +75,8 @@ struct RootView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if copyFeedback {
-                Text("Copied to clipboard")
+            if let banner = transientBanner {
+                Text(banner)
                     .font(.subheadline)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
@@ -60,7 +85,27 @@ struct RootView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: copyFeedback)
+        .animation(.easeInOut(duration: 0.25), value: transientBanner)
+        .onAppear {
+            if let banner = appState.bannerMessage, !banner.isEmpty {
+                showBanner(banner)
+                appState.bannerMessage = nil
+            }
+            if let pending = appState.pendingNavigation {
+                navigate(to: pending)
+                appState.pendingNavigation = nil
+            }
+        }
+        .onChange(of: appState.bannerMessage) { _, newValue in
+            guard let newValue, !newValue.isEmpty else { return }
+            showBanner(newValue)
+            appState.bannerMessage = nil
+        }
+        .onChange(of: appState.pendingNavigation) { _, newValue in
+            guard let newValue else { return }
+            navigate(to: newValue)
+            appState.pendingNavigation = nil
+        }
     }
 
     private var mainNav: some View {

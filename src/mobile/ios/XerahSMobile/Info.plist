@@ -22,6 +22,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>NSAppTransportSecurity</key>
@@ -60,6 +62,47 @@
 			</array>
 			<key>CFBundleRoleEditor</key>
 			<string>Editor</string>
+		</dict>
+	</array>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>XerahS Custom Uploader</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.getsharex.xerahs.sxcu</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.getsharex.xerahs.sxcu</string>
+			<key>UTTypeDescription</key>
+			<string>XerahS Custom Uploader</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>sxcu</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/json</string>
+					<string>application/x-sxcu+json</string>
+				</array>
+			</dict>
 		</dict>
 	</array>
 </dict>

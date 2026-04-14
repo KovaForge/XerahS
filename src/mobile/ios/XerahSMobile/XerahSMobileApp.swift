@@ -81,9 +81,7 @@ struct XerahSMobileApp: App {
             RootView()
                 .environmentObject(appState)
                 .onOpenURL { url in
-                    if url.scheme == "xerahs" {
-                        appState.pendingSharedPaths = ShareGroup.consumePendingPaths()
-                    }
+                    appState.handleIncomingURL(url)
                 }
         }
     }
