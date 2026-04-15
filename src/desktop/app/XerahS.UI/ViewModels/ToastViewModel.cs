@@ -77,6 +77,12 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     private bool _hasUrl;
 
     [ObservableProperty]
+    private string? _headerText;
+
+    [ObservableProperty]
+    private bool _hasHeaderText;
+
+    [ObservableProperty]
     private string? _errorDetails;
 
     [ObservableProperty]
@@ -119,6 +125,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         Url = config.URL;
         HasImage = Image != null;
         HasUrl = !string.IsNullOrEmpty(config.URL);
+        HeaderText = !string.IsNullOrWhiteSpace(config.URL) ? config.URL : config.FilePath;
+        HasHeaderText = !string.IsNullOrWhiteSpace(HeaderText);
         ErrorDetails = config.ErrorDetails;
         HasErrors = !string.IsNullOrWhiteSpace(config.ErrorDetails);
 

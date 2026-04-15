@@ -238,8 +238,8 @@ public partial class ToastWindow : OverlayWindow
     {
         _viewModel?.OnMouseEnter();
 
-        // Show URL overlay if there's a URL
-        if (_urlOverlay != null && _viewModel?.HasUrl == true)
+        // Show header overlay when there is a URL or a local file path fallback.
+        if (_urlOverlay != null && _viewModel?.HasHeaderText == true)
         {
             _urlOverlay.Opacity = 1;
         }

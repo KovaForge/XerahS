@@ -70,7 +70,8 @@
                           AutomationProperties.LandmarkType="Form"
                           AutomationProperties.AccessibilityView="Control">
             <ContentControl.DataTemplates>
-              <DataTemplate DataType="steps:SaveLocationStepViewModel">
+              <DataTemplate DataType="steps:SaveLocationStepViewModel"
+                            x:DataType="steps:SaveLocationStepViewModel">
                 <StackPanel Spacing="16">
                   <StackPanel Spacing="6">
                     <TextBlock Text="Folder Path"
@@ -105,7 +106,8 @@
                 </StackPanel>
               </DataTemplate>
 
-              <DataTemplate DataType="steps:HotkeyStepViewModel">
+              <DataTemplate DataType="steps:HotkeyStepViewModel"
+                            x:DataType="steps:HotkeyStepViewModel">
                 <StackPanel Spacing="16">
                   <StackPanel Spacing="6">
                     <TextBlock Text="Primary Capture Hotkey"
@@ -162,7 +164,8 @@
                 </StackPanel>
               </DataTemplate>
 
-              <DataTemplate DataType="steps:UploadStepViewModel">
+              <DataTemplate DataType="steps:UploadStepViewModel"
+                            x:DataType="steps:UploadStepViewModel">
                 <StackPanel Spacing="16">
                   <StackPanel Spacing="6">
                     <TextBlock Text="Upload Destination"
@@ -228,7 +231,8 @@
                 </StackPanel>
               </DataTemplate>
 
-              <DataTemplate DataType="steps:CompleteStepViewModel">
+              <DataTemplate DataType="steps:CompleteStepViewModel"
+                            x:DataType="steps:CompleteStepViewModel">
                 <StackPanel Spacing="16">
                   <StackPanel Spacing="8"
                               HorizontalAlignment="Center"

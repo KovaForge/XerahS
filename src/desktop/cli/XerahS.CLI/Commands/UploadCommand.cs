@@ -42,7 +42,11 @@ public static class UploadCommand
     {
         var uploadCommand = new Command("upload", "Upload a file, text content, or stdin to configured uploaders");
 
-        var filePathArgument = new Argument<string>("file") { Description = "Path to the file to upload" };
+        var filePathArgument = new Argument<string?>("file")
+        {
+            Description = "Path to the file to upload",
+            Arity = ArgumentArity.ZeroOrOne
+        };
         var textOption = new Option<string?>("--text") { Description = "Text content to upload" };
         var pipeOption = new Option<bool>("--pipe") { Description = "Read content from stdin" };
         var nameOption = new Option<string?>("--name") { Description = "Name of the file (inferred from path if not specified)" };

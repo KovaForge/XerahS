@@ -62,10 +62,10 @@
                     VerticalAlignment="Top"
                     HorizontalAlignment="Stretch"
                     Height="40"
-                    IsVisible="{Binding HasUrl}"
+                    IsVisible="{Binding HasHeaderText}"
                     x:Name="UrlOverlay"
                     Opacity="0">
-                <TextBlock Text="{Binding Url}"
+                <TextBlock Text="{Binding HeaderText}"
                            Foreground="{DynamicResource XerahS.Brush.Overlay.Foreground}"
                            FontSize="11"
                            Margin="12,0"
