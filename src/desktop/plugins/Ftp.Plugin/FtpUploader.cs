@@ -31,7 +31,6 @@ using FluentFTP;
 using FluentFTP.Exceptions;
 using Renci.SshNet;
 using Renci.SshNet.Common;
-using Renci.SshNet.Sftp;
 using XerahS.Common;
 using XerahS.Uploaders;
 using XerahS.Uploaders.FileUploaders;
@@ -250,10 +249,41 @@ public sealed class FtpUploader : FileUploader, IDisposable
     private bool UploadSftpInternal(Stream stream, string remotePath)
     {
         if (_sftpClient == null || !_sftpClient.IsConnected) return false;
-        using (SftpFileStream remoteStream = _sftpClient.Create(remotePath))
+
+        long fileSize = stream.CanSeek ? stream.Length : -1;
+        ProgressManager? progress = fileSize > 0 ? new ProgressManager(fileSize) : null;
+        ulong lastUploadedBytes = 0;
+        object progressLock = new object();
+
+        // We have to use a lock here because UploadFile fires progress callbacks concurrently from multiple threads.
+        _sftpClient.UploadFile(stream, remotePath, canOverride: true, uploadedBytes =>
         {
-            return TransferData(stream, remoteStream);
-        }
+            if (StopUploadRequested)
+            {
+                _sftpClient.Disconnect();
+                return;
+            }
+
+            if (AllowReportProgress && progress != null)
+            {
+                lock (progressLock)
+                {
+                    long delta = (long)(uploadedBytes - lastUploadedBytes);
+
+                    if (delta > 0)
+                    {
+                        lastUploadedBytes = uploadedBytes;
+
+                        if (progress.UpdateProgress(delta))
+                        {
+                            OnProgressChanged(progress);
+                        }
+                    }
+                }
+            }
+        });
+
+        return !StopUploadRequested;
     }
 
     private void CreateMultiDirectorySftp(string path)
