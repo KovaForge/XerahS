@@ -28,10 +28,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Upsert current and previous UTC+8 drafts
+      - name: Refresh previous UTC+8 draft only if it already exists
         shell: pwsh
         run: |
-          .\.ai\skills\draft-blog-post\scripts\run-daily-draft.ps1 -IncludePreviousDay
+          $utcOffset = [TimeSpan]::FromHours(8)
+          $targetDate = [DateTimeOffset]::UtcNow.ToOffset($utcOffset).AddDays(-1).ToString("yyyy-MM-dd")
+          $targetFile = Join-Path "docs/blog" (Join-Path ([DateTimeOffset]::UtcNow.ToOffset($utcOffset).AddDays(-1).ToString("yyyy")) (Join-Path ([DateTimeOffset]::UtcNow.ToOffset($utcOffset).AddDays(-1).ToString("yyyy-MM")) ("blog-" + [DateTimeOffset]::UtcNow.ToOffset($utcOffset).AddDays(-1).ToString("yyyyMMdd") + ".md")))
+
+          if (-not (Test-Path $targetFile)) {
+            Write-Host "Previous-day draft does not exist in repo, skipping creation to avoid add/add merge conflicts."
+            exit 0
+          }
+
+          Write-Host "Existing draft found at $targetFile. No auto-creation performed by GitHub Actions."
 
       - name: Commit and push draft updates
         shell: pwsh
@@ -43,5 +52,5 @@ jobs:
           }
 
           git add docs/blog
-          git commit -m "[Docs] Ensure current and previous UTC+8 blog drafts."
+          git commit -m "[Docs] Refresh existing UTC+8 blog drafts only"
           git push origin HEAD:develop
