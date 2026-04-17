@@ -374,16 +374,11 @@ namespace XerahS.Common
                 using JsonDocument document = JsonDocument.Parse(manifestJson);
                 JsonElement root = document.RootElement;
 
-                string? assemblyFileName = null;
-                if (root.TryGetProperty("AssemblyFileName", out JsonElement assemblyFileElement))
-                {
-                    assemblyFileName = assemblyFileElement.GetString();
-                }
+                string? assemblyFileName = TryGetJsonStringProperty(root, "assemblyFileName");
 
-                if (string.IsNullOrWhiteSpace(assemblyFileName) &&
-                    root.TryGetProperty("PluginId", out JsonElement pluginIdElement))
+                if (string.IsNullOrWhiteSpace(assemblyFileName))
                 {
-                    string? pluginId = pluginIdElement.GetString();
+                    string? pluginId = TryGetJsonStringProperty(root, "pluginId");
                     if (!string.IsNullOrWhiteSpace(pluginId))
                     {
                         assemblyFileName = $"{pluginId}.dll";
@@ -406,6 +401,21 @@ namespace XerahS.Common
                 DebugHelper.WriteLine($"[Plugins] Failed to read plugin manifest '{manifestPath}': {ex.Message}");
                 return null;
             }
+        }
+
+        private static string? TryGetJsonStringProperty(JsonElement element, string propertyName)
+        {
+            foreach (JsonProperty property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return property.Value.ValueKind == JsonValueKind.String
+                        ? property.Value.GetString()
+                        : property.Value.ToString();
+                }
+            }
+
+            return null;
         }
 
         private static void MoveLegacyPluginDirectory(string sourceDirectory, string destinationDirectory)
