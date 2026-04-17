@@ -25,6 +25,9 @@
 
 using XerahS.Common;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 
 namespace XerahS.Uploaders.PluginSystem;
 
@@ -42,6 +45,13 @@ public class PluginLoader
     {
         try
         {
+            if (!IsAssemblyCompatibleWithCurrentProcess(metadata.AssemblyPath, out string? compatibilityError))
+            {
+                metadata.LoadError = compatibilityError;
+                DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+                return null;
+            }
+
             // Create isolated load context
             var loadContext = new PluginLoadContext(metadata.AssemblyPath, metadata.PluginDirectory);
 
@@ -91,6 +101,11 @@ public class PluginLoader
         catch (FileNotFoundException ex)
         {
             metadata.LoadError = $"Assembly not found: {ex.FileName}";
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (BadImageFormatException ex)
+        {
+            metadata.LoadError = $"Invalid or incompatible assembly image: {ex.Message}";
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (TypeLoadException ex)
@@ -152,4 +167,48 @@ public class PluginLoader
     /// Get list of loaded plugin contexts
     /// </summary>
     public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() => _loadedContexts;
+
+    private static bool IsAssemblyCompatibleWithCurrentProcess(string assemblyPath, out string? error)
+    {
+        error = null;
+
+        try
+        {
+            using FileStream stream = File.OpenRead(assemblyPath);
+            using PEReader peReader = new(stream);
+            PEHeaders peHeaders = peReader.PEHeaders;
+
+            bool isAnyCpu = peHeaders.CorHeader != null &&
+                (peHeaders.CorHeader.Flags & CorFlags.ILOnly) != 0 &&
+                (peHeaders.CorHeader.Flags & CorFlags.Requires32Bit) == 0;
+
+            Architecture? assemblyArchitecture = peHeaders.CoffHeader.Machine switch
+            {
+                Machine.Arm64 => Architecture.Arm64,
+                Machine.Amd64 => Architecture.X64,
+                Machine.I386 when isAnyCpu => null,
+                Machine.I386 => Architecture.X86,
+                _ => null
+            };
+
+            if (assemblyArchitecture == null)
+            {
+                return true;
+            }
+
+            if (assemblyArchitecture != RuntimeInformation.ProcessArchitecture)
+            {
+                error =
+                    $"Plugin assembly architecture '{assemblyArchitecture}' is not compatible with current process architecture '{RuntimeInformation.ProcessArchitecture}'.";
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = $"Unable to inspect plugin assembly architecture: {ex.Message}";
+            return false;
+        }
+    }
 }

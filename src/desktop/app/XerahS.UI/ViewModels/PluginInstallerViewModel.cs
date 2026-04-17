@@ -110,7 +110,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
 
         try
         {
-            string pluginsDir = Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
+            string pluginsDir = PathsManager.PluginsArchitectureFolder;
             Directory.CreateDirectory(pluginsDir);
 
             var metadata = PluginPackager.InstallPackage(PackageFilePath, pluginsDir);
