@@ -11,7 +11,7 @@
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS;Platform" />
+    <ProjectReference Include="..\..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
     <ProjectReference Include="..\..\desktop\core\XerahS.Services.Abstractions\XerahS.Services.Abstractions.csproj" />
   </ItemGroup>
 </Project>
