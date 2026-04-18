@@ -85,13 +85,22 @@ namespace XerahS.Uploaders
 
                     if (!string.IsNullOrEmpty(cookieHeader))
                     {
-                        foreach (string cookie in cookieHeader.Split(new string[] { "; " }, StringSplitOptions.RemoveEmptyEntries))
+                        foreach (string rawCookie in cookieHeader.Split(';', StringSplitOptions.RemoveEmptyEntries))
                         {
-                            string[] cookieValues = cookie.Split(new char[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
+                            string cookie = rawCookie.Trim();
+                            int separatorIndex = cookie.IndexOf('=');
 
-                            if (cookieValues.Length == 2)
+                            if (separatorIndex <= 0 || separatorIndex == cookie.Length - 1)
                             {
-                                cookies.Add(new Cookie(cookieValues[0], cookieValues[1], "/", request.Host.Split(':')[0]));
+                                continue;
+                            }
+
+                            string cookieName = cookie[..separatorIndex].Trim();
+                            string cookieValue = cookie[(separatorIndex + 1)..];
+
+                            if (!string.IsNullOrEmpty(cookieName))
+                            {
+                                cookies.Add(new Cookie(cookieName, cookieValue, "/", request.Host.Split(':')[0]));
                             }
                         }
                     }
