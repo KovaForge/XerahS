@@ -160,6 +160,12 @@ public static class ScrollingCaptureToolService
                     selectorWindow.Close();
                 };
 
+                selectorViewModel.OnCancelled = () =>
+                {
+                    tcs.TrySetResult(null);
+                    selectorWindow.Close();
+                };
+
                 selectorWindow.Closed += (_, _) =>
                 {
                     tcs.TrySetResult(null);

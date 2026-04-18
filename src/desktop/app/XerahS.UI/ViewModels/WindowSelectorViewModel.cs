@@ -49,11 +49,10 @@ public partial class WindowSelectorViewModel : ViewModelBase
     [RelayCommand]
     public void RefreshWindows()
     {
+        SelectedWindow = null;
         Windows.Clear();
         if (PlatformServices.IsInitialized && PlatformServices.Window != null)
         {
-            var myHandle = PlatformServices.Window.GetForegroundWindow(); // Assuming this is mostly correct context or handled elsewhere
-
             try
             {
                 var allWindows = PlatformServices.Window.GetAllWindows();
