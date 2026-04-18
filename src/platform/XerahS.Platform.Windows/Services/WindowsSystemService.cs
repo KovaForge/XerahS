@@ -35,7 +35,7 @@ namespace XerahS.Platform.Windows.Services
     public class WindowsSystemService : ISystemService
     {
         private const int SpiGetDesktopWallpaper = 0x0073;
-        private const int MaxWallpaperPath = 260;
+        private const int MaxWallpaperPath = 32767;
 
         public bool IsDesktopWallpaperSupported => true;
 
