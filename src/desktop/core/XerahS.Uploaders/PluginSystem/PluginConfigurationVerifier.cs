@@ -95,10 +95,8 @@ public static class PluginConfigurationVerifier
             return result;
         }
 
-        // Find plugin folder - check all plugin directories (system and user)
-        var pluginsPath = PathsManager.GetPluginDirectories()
-            .Select(d => Path.Combine(d, providerId))
-            .FirstOrDefault(Directory.Exists);
+        // Find plugin folder - prefer loaded metadata, then search known plugin roots.
+        var pluginsPath = ResolvePluginDirectory(providerId);
 
         if (pluginsPath == null)
         {
@@ -159,10 +157,11 @@ public static class PluginConfigurationVerifier
     /// <returns>Number of files deleted</returns>
     public static int CleanDuplicateFrameworkDlls(string providerId)
     {
-        // Only clean user-space plugin folders (system plugin folders may be read-only)
-        var pluginsPath = Path.Combine(PathsManager.PluginsFolder, providerId);
-
-        if (!Directory.Exists(pluginsPath))
+        // Only clean user RID-scoped plugin folders; app-bundled plugins may be read-only.
+        var pluginsPath = ResolvePluginDirectory(providerId);
+        if (pluginsPath == null ||
+            !Directory.Exists(pluginsPath) ||
+            !pluginsPath.StartsWith(PathsManager.PluginsArchitectureFolder, StringComparison.OrdinalIgnoreCase))
         {
             return 0;
         }
@@ -217,6 +216,19 @@ public static class PluginConfigurationVerifier
         }
 
         return deletedCount;
+    }
+
+    private static string ResolvePluginDirectory(string providerId)
+    {
+        var metadata = ProviderCatalog.GetPluginMetadata(providerId);
+        if (!string.IsNullOrWhiteSpace(metadata?.PluginDirectory) && Directory.Exists(metadata.PluginDirectory))
+        {
+            return metadata.PluginDirectory;
+        }
+
+        return PathsManager.GetPluginDirectories()
+            .Select(directory => Path.Combine(directory, providerId))
+            .FirstOrDefault(Directory.Exists);
     }
 }
 

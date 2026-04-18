@@ -386,9 +386,12 @@ XerahS is a cross-platform screen capture and upload application built on Avalon
 ### 7.2 Plugin Discovery
 **File**: [PluginDiscovery.cs](../../src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs)
 
-**Search Path**: `Documents\XerahS\Plugins\*.xsdp`
+**Search Paths**:
+- App-bundled binary plugins: `AppContext.BaseDirectory\Plugins\<pluginId>\`
+- User-installed binary plugins: `Documents\XerahS\Plugins\<rid>\<pluginId>\`
+- Shared custom uploaders: `Documents\XerahS\Plugins\*.sxcu`
 
-**Manifest Format**: `plugin.manifest.json`
+**Manifest Format**: `plugin.json`
 ```json
 {
   "pluginId": "unique-id",
@@ -430,8 +433,12 @@ Treated as internal plugins (no separate assemblies):
 
 **Format**: `.xsdp` archive (ZIP-based) containing:
 - Plugin DLL + dependencies
-- `plugin.manifest.json`
+- `plugin.json`
 - Optional README, license
+
+**Install Layout**:
+- Binary plugin packages are extracted into the current RID bucket under `Documents\XerahS\Plugins\<rid>\`
+- `.sxcu` custom uploader definitions stay in the shared root `Documents\XerahS\Plugins\`
 
 ---
 

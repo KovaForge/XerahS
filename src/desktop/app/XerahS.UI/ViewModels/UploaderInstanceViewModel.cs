@@ -652,7 +652,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             var customUploaderProvider = ProviderCatalog.GetProvider(ProviderId) as CustomUploaderProvider;
             var pluginsPath = customUploaderProvider != null
                 ? Path.GetDirectoryName(customUploaderProvider.FilePath) ?? PathsManager.PluginsFolder
-                : Path.Combine(PathsManager.PluginsFolder, ProviderId);
+                : ProviderCatalog.GetPluginMetadata(ProviderId)?.PluginDirectory ?? PathsManager.GetUserPluginDirectory(ProviderId);
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Opening plugins folder: {pluginsPath}");
 
             if (!Directory.Exists(pluginsPath))
