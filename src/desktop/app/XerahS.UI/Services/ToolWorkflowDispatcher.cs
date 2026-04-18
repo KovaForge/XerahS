@@ -128,8 +128,8 @@ internal static class ToolWorkflowDispatcher
     {
         try
         {
-            var topLevel = owner != null ? TopLevel.GetTopLevel(owner) : null;
-            if (topLevel == null)
+            var storageProvider = StorageProviderResolver.Resolve(owner);
+            if (storageProvider == null)
             {
                 return;
             }
@@ -148,7 +148,7 @@ internal static class ToolWorkflowDispatcher
                 ]
             };
 
-            var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
+            var files = await storageProvider.OpenFilePickerAsync(options);
             if (files.Count < 1)
             {
                 return;
@@ -179,8 +179,8 @@ internal static class ToolWorkflowDispatcher
     {
         try
         {
-            var topLevel = owner != null ? TopLevel.GetTopLevel(owner) : null;
-            if (topLevel == null)
+            var storageProvider = StorageProviderResolver.Resolve(owner);
+            if (storageProvider == null)
             {
                 return;
             }
@@ -199,7 +199,7 @@ internal static class ToolWorkflowDispatcher
                 ]
             };
 
-            var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
+            var files = await storageProvider.OpenFilePickerAsync(options);
             if (files.Count < 1)
             {
                 return;

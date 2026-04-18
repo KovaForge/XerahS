@@ -114,7 +114,7 @@ public static class PinToScreenToolService
         var dialog = new PinToScreenStartupDialog();
 
         dialog.SelectRegionRequested = SelectRegionWithLocationAsync;
-        dialog.BrowseFileRequested = () => BrowseImageFileAsync(owner);
+        dialog.BrowseFileRequested = () => BrowseImageFileAsync(dialog, owner);
 
         if (owner != null)
         {
@@ -165,7 +165,7 @@ public static class PinToScreenToolService
 
     private static async Task PinFromFileAsync(Window? owner)
     {
-        var path = await BrowseImageFileAsync(owner);
+        var path = await BrowseImageFileAsync(null, owner);
         if (string.IsNullOrEmpty(path)) return;
 
         var bitmap = SKBitmap.Decode(path);
@@ -197,10 +197,10 @@ public static class PinToScreenToolService
         return (bitmap, new PixelPoint(rect.Left, rect.Top));
     }
 
-    private static async Task<string?> BrowseImageFileAsync(Window? owner)
+    private static async Task<string?> BrowseImageFileAsync(Window? window, Window? owner)
     {
-        var topLevel = owner != null ? TopLevel.GetTopLevel(owner) : null;
-        if (topLevel == null) return null;
+        var storageProvider = StorageProviderResolver.Resolve(window, owner);
+        if (storageProvider == null) return null;
 
         var options = new FilePickerOpenOptions
         {
@@ -209,7 +209,7 @@ public static class PinToScreenToolService
             FileTypeFilter = new[] { ImageFileType }
         };
 
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
+        var files = await storageProvider.OpenFilePickerAsync(options);
         if (files.Count < 1) return null;
 
         return files[0].TryGetLocalPath();
