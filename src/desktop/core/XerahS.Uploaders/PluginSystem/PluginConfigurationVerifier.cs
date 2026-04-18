@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 #nullable disable
+using Newtonsoft.Json;
 using XerahS.Common;
 
 namespace XerahS.Uploaders.PluginSystem;
@@ -122,7 +123,46 @@ public static class PluginConfigurationVerifier
             }
         }
 
-        // Determine status based on file count and problematic files
+        var manifestPath = Path.Combine(pluginsPath, "plugin.json");
+        if (!File.Exists(manifestPath))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin manifest not found";
+            result.Issues.Add($"Missing required file: {manifestPath}");
+            return result;
+        }
+
+        PluginManifest manifest;
+        try
+        {
+            manifest = JsonConvert.DeserializeObject<PluginManifest>(File.ReadAllText(manifestPath));
+        }
+        catch (Exception ex)
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin manifest is unreadable";
+            result.Issues.Add($"Failed to read plugin.json: {ex.Message}");
+            return result;
+        }
+
+        string manifestError = null;
+        if (manifest == null || !manifest.IsValid(out manifestError))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin manifest is invalid";
+            result.Issues.Add($"Invalid plugin.json: {manifestError ?? "Failed to deserialize manifest."}");
+            return result;
+        }
+
+        var assemblyPath = Path.Combine(pluginsPath, manifest.GetAssemblyFileName());
+        if (!File.Exists(assemblyPath))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin assembly not found";
+            result.Issues.Add($"Missing plugin assembly: {assemblyPath}");
+            return result;
+        }
+
         if (result.ProblematicFiles.Count > 0)
         {
             result.Status = PluginVerificationStatus.Error;
@@ -132,19 +172,12 @@ public static class PluginConfigurationVerifier
             result.Issues.Add("");
             result.Issues.Add("Fix: Delete these duplicate DLLs from the plugin folder, then restart the app.");
         }
-        else if (result.FileCount == 3)
-        {
-            result.Status = PluginVerificationStatus.Valid;
-            result.Message = $"\u2713 Plugin properly configured ({result.FileCount} files)";
-            result.Issues.Add("Plugin folder contains the expected number of files.");
-            result.Issues.Add("No duplicate framework assemblies detected.");
-        }
         else
         {
-            result.Status = PluginVerificationStatus.Warning;
-            result.Message = $"\u26A0\uFE0F Plugin folder has {result.FileCount} files (expected 3)";
-            result.Issues.Add("Plugin folder contains an unexpected number of files.");
-            result.Issues.Add("Verify that only plugin-specific dependencies are included.");
+            result.Status = PluginVerificationStatus.Valid;
+            result.Message = $"\u2713 Plugin properly configured ({result.FileCount} top-level files)";
+            result.Issues.Add("Plugin manifest and assembly were found.");
+            result.Issues.Add("No duplicate framework assemblies detected.");
         }
 
         return result;
