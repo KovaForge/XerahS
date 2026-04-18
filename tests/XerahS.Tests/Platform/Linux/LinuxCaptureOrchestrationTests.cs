@@ -304,6 +304,35 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public async Task Coordinator_WhenProviderThrows_FallsBackToNextProviderAndRecordsFailureReason()
+    {
+        var providers = new ILinuxCaptureProvider[]
+        {
+            new ThrowingProvider("portal-throws", LinuxCaptureStage.Portal),
+            new TestProvider("gnome-success", LinuxCaptureStage.DesktopDbus, canHandle: true, resultFactory: () => LinuxCaptureResult.Success("gnome-success", new SKBitmap(1, 1)))
+        };
+
+        var coordinator = new LinuxCaptureCoordinator(providers, new WaterfallCapturePolicy());
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(isWayland: true, desktop: "GNOME", compositor: "WAYLAND", isSandboxed: false, hasScreenshotPortal: true);
+
+        var execution = await coordinator.CaptureWithTraceAsync(request, context, CancellationToken.None);
+        execution.Result.Bitmap?.Dispose();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(execution.Result.ProviderId, Is.EqualTo("gnome-success"));
+            Assert.That(execution.Trace.FinalOutcome, Is.EqualTo(CaptureDecisionOutcome.Succeeded));
+            Assert.That(execution.Trace.Steps.Count, Is.EqualTo(2));
+            Assert.That(execution.Trace.Steps[0].ProviderId, Is.EqualTo("portal-throws"));
+            Assert.That(execution.Trace.Steps[0].Outcome, Is.EqualTo(CaptureDecisionOutcome.Failed));
+            Assert.That(execution.Trace.Steps[0].Reason, Does.Contain("InvalidOperationException"));
+            Assert.That(execution.Trace.Steps[1].ProviderId, Is.EqualTo("gnome-success"));
+            Assert.That(execution.Trace.Steps[1].Outcome, Is.EqualTo(CaptureDecisionOutcome.Succeeded));
+        });
+    }
+
+    [Test]
     public async Task PortalProvider_WhenRuntimeReturnsCancelled_ResponseIsCancelled()
     {
         var runtime = new PortalRuntime(response: 1);
@@ -665,6 +694,32 @@ public class LinuxCaptureOrchestrationTests
         {
             _onTryCapture?.Invoke();
             return Task.FromResult(_resultFactory());
+        }
+    }
+
+    private sealed class ThrowingProvider : ILinuxCaptureProvider
+    {
+        public ThrowingProvider(string providerId, LinuxCaptureStage stage)
+        {
+            ProviderId = providerId;
+            Stage = stage;
+        }
+
+        public string ProviderId { get; }
+
+        public LinuxCaptureStage Stage { get; }
+
+        public bool CanHandle(LinuxCaptureRequest request, ILinuxCaptureContext context)
+        {
+            return true;
+        }
+
+        public Task<LinuxCaptureResult> TryCaptureAsync(
+            LinuxCaptureRequest request,
+            ILinuxCaptureContext context,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("boom");
         }
     }
 
