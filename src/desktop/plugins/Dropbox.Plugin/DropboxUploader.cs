@@ -363,7 +363,7 @@ public sealed class DropboxUploader : FileUploader, IOAuth2Basic
 
         if (!string.IsNullOrWhiteSpace(fileName))
         {
-            return fileName;
+            return URLHelpers.AddSlash(fileName.Trim().Replace('\\', '/').Trim('/'), SlashType.Prefix);
         }
 
         return string.Empty;
