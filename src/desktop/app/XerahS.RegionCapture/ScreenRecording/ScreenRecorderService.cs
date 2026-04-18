@@ -44,6 +44,7 @@ public class ScreenRecorderService : IRecordingService
     private ICaptureSource? _captureSource;
     private IVideoEncoder? _encoder;
     private RecordingOptions? _currentOptions;
+    private string? _activeOutputPath;
     private RecordingStatus _status = RecordingStatus.Idle;
     private readonly Stopwatch _stopwatch = new();
     private readonly object _lock = new();
@@ -146,6 +147,7 @@ public class ScreenRecorderService : IRecordingService
 
             // Determine output path
             string outputPath = GetOutputPath(options);
+            _activeOutputPath = outputPath;
             DebugHelper.WriteLine($"[ScreenRecorder] Output path resolved: {outputPath}");
 
             // Configure video format
@@ -211,7 +213,7 @@ public class ScreenRecorderService : IRecordingService
 
             captureSource = _captureSource;
             encoder = _encoder;
-            outputPath = _currentOptions?.OutputPath;
+            outputPath = _activeOutputPath;
             elapsed = _stopwatch.Elapsed;
         }
 
@@ -254,6 +256,7 @@ public class ScreenRecorderService : IRecordingService
                 _captureSource = null;
                 _encoder = null;
                 _currentOptions = null;
+                _activeOutputPath = null;
                 _windowTrackingHandle = IntPtr.Zero;
                 UpdateStatus(RecordingStatus.Idle);
             }
@@ -579,6 +582,7 @@ public class ScreenRecorderService : IRecordingService
 
             _captureSource = null;
             _encoder = null;
+            _activeOutputPath = null;
             _windowTrackingHandle = IntPtr.Zero;
         }
     }
