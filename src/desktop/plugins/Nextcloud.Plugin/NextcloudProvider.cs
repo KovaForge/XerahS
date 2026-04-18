@@ -58,7 +58,7 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
     {
         NextcloudConfigModel config = DeserializeConfig(settingsJson);
         return !string.IsNullOrWhiteSpace(config.ServerUrl) &&
-               !string.IsNullOrWhiteSpace(config.LoginName) &&
+               !string.IsNullOrWhiteSpace(ResolveLoginName(config)) &&
                !string.IsNullOrWhiteSpace(ResolveSecret(config.SecretKey, "appPassword"));
     }
 
@@ -248,7 +248,7 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
 
     private NextcloudClient CreateClient(NextcloudConfigModel config)
     {
-        return new NextcloudClient(config.ServerUrl, config.LoginName, ResolveSecret(config.SecretKey, "appPassword"));
+        return new NextcloudClient(config.ServerUrl, ResolveLoginName(config), ResolveSecret(config.SecretKey, "appPassword"));
     }
 
     private string ResolveSecret(string secretKey, string secretName)
@@ -309,6 +309,16 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
             || extension.Equals(".tiff", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string ResolveLoginName(NextcloudConfigModel config)
+    {
+        if (!string.IsNullOrWhiteSpace(config.LoginName))
+        {
+            return config.LoginName;
+        }
+
+        return config.UserId;
+    }
+
     private static string ResolveUserId(NextcloudConfigModel config)
     {
         if (!string.IsNullOrWhiteSpace(config.UserId))
@@ -316,7 +326,7 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
             return config.UserId;
         }
 
-        return config.LoginName;
+        return ResolveLoginName(config);
     }
 
     private (NextcloudConfigModel config, string userId)? ResolveItemContext(MediaItem item)
