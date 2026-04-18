@@ -245,17 +245,15 @@ public sealed class LinuxWatchFolderDaemonService : WatchFolderDaemonServiceBase
         try
         {
             string content = BuildUnitFileContent(scope, daemonPath, settingsFolder);
-            foreach (string unitName in KnownUnitNames)
+            string primaryUnitPath = GetUnitFilePath(scope, UnitName);
+            string? directory = Path.GetDirectoryName(primaryUnitPath);
+            if (!string.IsNullOrWhiteSpace(directory))
             {
-                string unitPath = GetUnitFilePath(scope, unitName);
-                string? directory = Path.GetDirectoryName(unitPath);
-                if (!string.IsNullOrWhiteSpace(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                await File.WriteAllTextAsync(unitPath, content, cancellationToken);
+                Directory.CreateDirectory(directory);
             }
+
+            await File.WriteAllTextAsync(primaryUnitPath, content, cancellationToken);
+            DeleteLegacyUnitFileIfPresent(scope);
 
             return WatchFolderDaemonResult.Ok();
         }
@@ -265,6 +263,18 @@ public sealed class LinuxWatchFolderDaemonService : WatchFolderDaemonServiceBase
         }
     }
 
+
+    private static void DeleteLegacyUnitFileIfPresent(WatchFolderDaemonScope scope)
+    {
+        string legacyUnitPath = GetUnitFilePath(scope, LegacyUnitName);
+        if (!File.Exists(legacyUnitPath))
+        {
+            return;
+        }
+
+        File.Delete(legacyUnitPath);
+    }
+
     private static async Task<WatchFolderDaemonResult> StartSystemScopeWithElevationAsync(
         string daemonPath,
         string settingsFolder,
@@ -272,12 +282,10 @@ public sealed class LinuxWatchFolderDaemonService : WatchFolderDaemonServiceBase
         CancellationToken cancellationToken)
     {
         string tempPrimaryUnitPath = Path.GetTempFileName();
-        string tempLegacyUnitPath = Path.GetTempFileName();
         try
         {
             string unitContent = BuildUnitFileContent(WatchFolderDaemonScope.System, daemonPath, settingsFolder);
             await File.WriteAllTextAsync(tempPrimaryUnitPath, unitContent, cancellationToken);
-            await File.WriteAllTextAsync(tempLegacyUnitPath, unitContent, cancellationToken);
 
             string primaryUnitPath = GetUnitFilePath(WatchFolderDaemonScope.System, UnitName);
             string legacyUnitPath = GetUnitFilePath(WatchFolderDaemonScope.System, LegacyUnitName);
@@ -285,9 +293,8 @@ public sealed class LinuxWatchFolderDaemonService : WatchFolderDaemonServiceBase
             string script = $"""
                              set -e
                              cp '{EscapeShellSingleQuotedString(tempPrimaryUnitPath)}' '{EscapeShellSingleQuotedString(primaryUnitPath)}'
-                             cp '{EscapeShellSingleQuotedString(tempLegacyUnitPath)}' '{EscapeShellSingleQuotedString(legacyUnitPath)}'
                              chmod 644 '{EscapeShellSingleQuotedString(primaryUnitPath)}'
-                             chmod 644 '{EscapeShellSingleQuotedString(legacyUnitPath)}'
+                             rm -f '{EscapeShellSingleQuotedString(legacyUnitPath)}'
                              systemctl daemon-reload
                              systemctl {enableCommand} '{EscapeShellSingleQuotedString(UnitName)}'
                              systemctl disable '{EscapeShellSingleQuotedString(LegacyUnitName)}' || true
@@ -321,7 +328,6 @@ public sealed class LinuxWatchFolderDaemonService : WatchFolderDaemonServiceBase
             try
             {
                 File.Delete(tempPrimaryUnitPath);
-                File.Delete(tempLegacyUnitPath);
             }
             catch
             {
