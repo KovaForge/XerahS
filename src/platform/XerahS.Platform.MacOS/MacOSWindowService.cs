@@ -36,8 +36,12 @@ namespace XerahS.Platform.MacOS
     /// </summary>
     public class MacOSWindowService : IWindowService
     {
+        internal const char FrontWindowInfoSeparator = '\u001F';
+
         private static readonly HashSet<string> Warned = new(StringComparer.Ordinal);
         private static readonly object WarnLock = new();
+
+        internal readonly record struct FrontWindowInfo(string AppName, string WindowTitle, Rectangle Bounds, uint ProcessId);
 
         public IntPtr GetForegroundWindow()
         {
@@ -46,39 +50,39 @@ namespace XerahS.Platform.MacOS
 
         public bool SetForegroundWindow(IntPtr handle)
         {
-            if (!TryGetFrontWindowInfo(out var appName, out _, out _))
+            if (!TryGetFrontWindowInfo(out var windowInfo))
             {
                 return false;
             }
 
-            var script = $"tell application \\\"{appName}\\\" to activate";
+            var script = $"tell application \"{EscapeAppleScriptString(windowInfo.AppName)}\" to activate";
             var output = RunOsaScriptWithOutput(script);
             return output != null;
         }
 
         public string GetWindowText(IntPtr handle)
         {
-            return TryGetFrontWindowInfo(out var title, out _, out _) ? title : string.Empty;
+            return TryGetFrontWindowInfo(out var windowInfo) ? windowInfo.WindowTitle : string.Empty;
         }
 
         public string GetWindowClassName(IntPtr handle)
         {
-            return TryGetFrontWindowInfo(out var title, out _, out _) ? title : string.Empty;
+            return TryGetFrontWindowInfo(out var windowInfo) ? windowInfo.AppName : string.Empty;
         }
 
         public Rectangle GetWindowBounds(IntPtr handle)
         {
-            return TryGetFrontWindowInfo(out _, out var bounds, out _) ? bounds : Rectangle.Empty;
+            return TryGetFrontWindowInfo(out var windowInfo) ? windowInfo.Bounds : Rectangle.Empty;
         }
 
         public Rectangle GetWindowClientBounds(IntPtr handle)
         {
-            return TryGetFrontWindowInfo(out _, out var bounds, out _) ? bounds : Rectangle.Empty;
+            return TryGetFrontWindowInfo(out var windowInfo) ? windowInfo.Bounds : Rectangle.Empty;
         }
 
         public bool IsWindowVisible(IntPtr handle)
         {
-            return TryGetFrontWindowInfo(out _, out _, out _);
+            return TryGetFrontWindowInfo(out _);
         }
 
         public bool IsWindowMaximized(IntPtr handle)
@@ -137,7 +141,7 @@ namespace XerahS.Platform.MacOS
 
         public XerahS.Platform.Abstractions.WindowInfo[] GetAllWindows()
         {
-            if (!TryGetFrontWindowInfo(out var title, out var bounds, out var pid))
+            if (!TryGetFrontWindowInfo(out var windowInfo))
             {
                 return Array.Empty<XerahS.Platform.Abstractions.WindowInfo>();
             }
@@ -147,10 +151,10 @@ namespace XerahS.Platform.MacOS
                 new XerahS.Platform.Abstractions.WindowInfo
                 {
                     Handle = IntPtr.Zero,
-                    Title = title,
-                    ClassName = title,
-                    Bounds = bounds,
-                    ProcessId = pid,
+                    Title = windowInfo.WindowTitle,
+                    ClassName = windowInfo.AppName,
+                    Bounds = windowInfo.Bounds,
+                    ProcessId = windowInfo.ProcessId,
                     IsVisible = true,
                     IsMaximized = false,
                     IsMinimized = false
@@ -160,16 +164,17 @@ namespace XerahS.Platform.MacOS
 
         public uint GetWindowProcessId(IntPtr handle)
         {
-            return TryGetFrontWindowInfo(out _, out _, out var pid) ? pid : 0;
+            return TryGetFrontWindowInfo(out var windowInfo) ? windowInfo.ProcessId : 0;
         }
 
         public IntPtr SearchWindow(string windowTitle)
         {
             // TODO: Implement proper macOS window search via AppleScript
             // For now, check if front window matches
-            if (TryGetFrontWindowInfo(out var title, out _, out _))
+            if (TryGetFrontWindowInfo(out var windowInfo))
             {
-                if (!string.IsNullOrEmpty(title) && title.Contains(windowTitle, StringComparison.OrdinalIgnoreCase))
+                if ((!string.IsNullOrEmpty(windowInfo.WindowTitle) && windowInfo.WindowTitle.Contains(windowTitle, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(windowInfo.AppName) && windowInfo.AppName.Contains(windowTitle, StringComparison.OrdinalIgnoreCase)))
                 {
                     return IntPtr.Zero; // macOS doesn't use handles the same way
                 }
@@ -204,49 +209,46 @@ namespace XerahS.Platform.MacOS
             DebugHelper.WriteLine($"MacOSWindowService: {memberName} is not implemented yet.");
         }
 
-        private static bool TryGetFrontWindowInfo(out string title, out Rectangle bounds, out uint processId)
+        private static bool TryGetFrontWindowInfo(out FrontWindowInfo windowInfo)
         {
-            title = string.Empty;
-            bounds = Rectangle.Empty;
-            processId = 0;
-
-            const string script =
-                "tell application \\\"System Events\\\"\n" +
+            var script =
+                "tell application \"System Events\"\n" +
                 "set frontApp to first application process whose frontmost is true\n" +
                 "set win to front window of frontApp\n" +
                 "set winPos to position of win\n" +
                 "set winSize to size of win\n" +
-                "return (name of frontApp) & \"|\" & (item 1 of winPos) & \"|\" & (item 2 of winPos) & \"|\" & (item 1 of winSize) & \"|\" & (item 2 of winSize) & \"|\" & (unix id of frontApp)\n" +
+                $"return (name of win as text) & \"{FrontWindowInfoSeparator}\" & (name of frontApp as text) & \"{FrontWindowInfoSeparator}\" & (item 1 of winPos) & \"{FrontWindowInfoSeparator}\" & (item 2 of winPos) & \"{FrontWindowInfoSeparator}\" & (item 1 of winSize) & \"{FrontWindowInfoSeparator}\" & (item 2 of winSize) & \"{FrontWindowInfoSeparator}\" & (unix id of frontApp)\n" +
                 "end tell";
 
-            var output = RunOsaScriptWithOutput(script);
+            return TryParseFrontWindowInfo(RunOsaScriptWithOutput(script), out windowInfo);
+        }
+
+        internal static bool TryParseFrontWindowInfo(string? output, out FrontWindowInfo windowInfo)
+        {
+            windowInfo = default;
+
             if (string.IsNullOrWhiteSpace(output))
             {
                 return false;
             }
 
-            var parts = output.Trim().Split('|');
-            if (parts.Length < 6)
+            var parts = output.Trim().Split(FrontWindowInfoSeparator);
+            if (parts.Length < 7)
             {
                 return false;
             }
 
-            if (!int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) ||
-                !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) ||
-                !int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var width) ||
-                !int.TryParse(parts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var height))
+            if (!int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) ||
+                !int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) ||
+                !int.TryParse(parts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var width) ||
+                !int.TryParse(parts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var height) ||
+                !uint.TryParse(parts[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out var processId))
             {
                 return false;
             }
 
-            title = parts[0];
-            bounds = new Rectangle(x, y, width, height);
-
-            if (uint.TryParse(parts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var pid))
-            {
-                processId = pid;
-            }
-
+            var windowTitle = string.IsNullOrWhiteSpace(parts[0]) ? parts[1] : parts[0];
+            windowInfo = new FrontWindowInfo(parts[1], windowTitle, new Rectangle(x, y, width, height), processId);
             return true;
         }
 
@@ -255,12 +257,13 @@ namespace XerahS.Platform.MacOS
             var startInfo = new ProcessStartInfo
             {
                 FileName = "osascript",
-                Arguments = $"-e \"{script}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            startInfo.ArgumentList.Add("-e");
+            startInfo.ArgumentList.Add(script);
 
             try
             {
@@ -279,6 +282,12 @@ namespace XerahS.Platform.MacOS
                 DebugHelper.WriteException(ex, "MacOSWindowService.RunOsaScriptWithOutput failed");
                 return null;
             }
+        }
+
+        private static string EscapeAppleScriptString(string value)
+        {
+            return value.Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("\"", "\\\"", StringComparison.Ordinal);
         }
     }
 }
