@@ -64,6 +64,12 @@ namespace XerahS.Common
 
         public void RefreshStatus()
         {
+            // Preserve a prior failure state instead of masking it as "Up to date".
+            if (Status == UpdateStatus.UpdateCheckFailed)
+            {
+                return;
+            }
+
             // TODO: Replace Application.ProductVersion with platform-agnostic version retrieval
             if (CurrentVersion == null)
             {
@@ -71,7 +77,7 @@ namespace XerahS.Common
                 CurrentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             }
 
-            if (Status != UpdateStatus.UpdateCheckFailed && CurrentVersion != null && LatestVersion != null && !string.IsNullOrEmpty(DownloadURL) &&
+            if (CurrentVersion != null && LatestVersion != null && !string.IsNullOrEmpty(DownloadURL) &&
                 (ForceUpdate || SystemInfo.CompareVersion(CurrentVersion, LatestVersion, IgnoreRevision) < 0))
             {
                 Status = UpdateStatus.UpdateAvailable;
