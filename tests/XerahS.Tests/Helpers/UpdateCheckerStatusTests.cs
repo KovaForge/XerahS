@@ -62,11 +62,40 @@ public class UpdateCheckerStatusTests
         Assert.That(checker.Status, Is.EqualTo(UpdateStatus.UpToDate));
     }
 
+    [Test]
+    public async Task AppVeyorUpdateChecker_LeavesStatusUpToDate_WhenLatestVersionMatchesCurrentVersion()
+    {
+        var checker = new TestAppVeyorUpdateChecker
+        {
+            CurrentVersion = new Version(1, 2, 3),
+            IsPortable = false
+        };
+
+        await checker.CheckUpdateAsync();
+
+        Assert.That(checker.Status, Is.EqualTo(UpdateStatus.UpToDate));
+        Assert.That(checker.DownloadURL, Is.EqualTo("https://ci.example.invalid/download/XerahS-setup.exe"));
+    }
+
     private sealed class TestUpdateChecker : UpdateChecker
     {
         public override Task CheckUpdateAsync()
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TestAppVeyorUpdateChecker : AppVeyorUpdateChecker
+    {
+        public override async Task CheckUpdateAsync()
+        {
+            await Task.Yield();
+
+            FileName = "XerahS-setup.exe";
+            DownloadURL = "https://ci.example.invalid/download/XerahS-setup.exe";
+            LatestVersion = new Version(1, 2, 3);
+
+            RefreshStatus();
         }
     }
 }
