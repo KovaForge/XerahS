@@ -1,0 +1,69 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
+using NUnit.Framework;
+using XerahS.History;
+
+namespace XerahS.Tests.Assistant;
+
+[TestFixture]
+public sealed class HistoryManagerSQLiteTests
+{
+    [Test]
+    public void ContainsFilePath_FindsEntriesBeyondFirstPage()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                for (int i = 0; i < 1005; i++)
+                {
+                    manager.AppendHistoryItem(new HistoryItem
+                    {
+                        FileName = $"shot-{i}.png",
+                        FilePath = Path.Combine(tempDirectory, $"shot-{i}.png"),
+                        DateTime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(i),
+                        Type = "Image"
+                    });
+                }
+
+                string lastFilePath = Path.Combine(tempDirectory, "shot-1004.png");
+                Assert.That(manager.ContainsFilePath(lastFilePath, pageSize: 200), Is.True);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+}

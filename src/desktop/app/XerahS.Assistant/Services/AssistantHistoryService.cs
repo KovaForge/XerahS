@@ -87,8 +87,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
 
         string historyPath = SettingsManager.GetHistoryFilePath();
         using var manager = new HistoryManagerSQLite(historyPath);
-        return manager.GetHistoryItems(0, 1000)
-            .Any(item => IsSamePath(item.FilePath, normalized));
+        return manager.ContainsFilePath(normalized);
     }
 
     private static AssistantHistoryItem ToAssistantHistoryItem(HistoryItem item)
@@ -121,20 +120,4 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             : null;
     }
 
-    private static bool IsSamePath(string? left, string right)
-    {
-        if (string.IsNullOrWhiteSpace(left))
-        {
-            return false;
-        }
-
-        try
-        {
-            return string.Equals(Path.GetFullPath(left), right, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }
