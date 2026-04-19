@@ -43,6 +43,9 @@ public sealed class CoordinateTransform
         if (monitors == null || monitors.Length == 0)
             throw new ArgumentException("At least one monitor required", nameof(monitors));
 
+        if (monitors.Any(m => double.IsNaN(m.ScaleFactor) || double.IsInfinity(m.ScaleFactor) || m.ScaleFactor <= 0))
+            throw new ArgumentException("All monitors must have a positive finite scale factor", nameof(monitors));
+
         _monitors = monitors.ToArray(); // Defensive copy
         _primaryMonitor = monitors.FirstOrDefault(m => m.IsPrimary) ?? monitors[0];
         _virtualDesktopBounds = CalculateVirtualDesktopBounds(monitors);
