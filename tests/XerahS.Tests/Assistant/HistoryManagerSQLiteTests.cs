@@ -66,4 +66,48 @@ public sealed class HistoryManagerSQLiteTests
             }
         }
     }
+
+    [Test]
+    public void ContainsFilePath_DoesNotCollapseDifferentCasePathsOnCaseSensitivePlatforms()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                string originalPath = Path.Combine(tempDirectory, "shot.png");
+                string differentCasePath = Path.Combine(tempDirectory, "SHOT.png");
+
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot.png",
+                    FilePath = originalPath,
+                    DateTime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+
+                bool exists = manager.ContainsFilePath(differentCasePath);
+
+                if (OperatingSystem.IsWindows())
+                {
+                    Assert.That(exists, Is.True);
+                }
+                else
+                {
+                    Assert.That(exists, Is.False);
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
 }

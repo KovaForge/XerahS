@@ -370,12 +370,19 @@ WHERE Id = @Id;";
 
             try
             {
-                return string.Equals(Path.GetFullPath(left), right, StringComparison.OrdinalIgnoreCase);
+                return string.Equals(Path.GetFullPath(left), right, GetPathComparison());
             }
             catch
             {
                 return false;
             }
+        }
+
+        private static StringComparison GetPathComparison()
+        {
+            return OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
         }
     }
 }
