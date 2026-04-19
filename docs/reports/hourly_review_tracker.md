@@ -21,7 +21,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Editor integration | 2026-04-19 22:06 GMT+8 | Reviewed | Fixed history refresh detection when editor saves without advancing file timestamp; broader test/build blocked by missing ShareX.ImageEditor restore assets | High | Reviewed Avalonia editor session flow, history refresh, and headless UI service paths |
 | Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-19 14:16 GMT+8 | Reviewed | Inspected, no safe bounded fix landed | Medium | Review summary reported in hourly cron output |
-| FTP uploader plugin | - | Pending | - | Medium | Path handling, credential flow, error surfacing |
+| FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
 | Imgur uploader plugin | - | Pending | - | Medium | Upload response validation, failures |
 | Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
 | Hotkeys/input | - | Pending | - | Medium | Recorder, edge cases, platform-specific key mapping |
@@ -30,7 +30,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | CLI / command surface | - | Pending | - | Medium | Argument handling, exit codes, error messages |
 | Platform-specific services | - | Pending | - | Medium | Windows/Linux/macOS abstractions and guards |
 | File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
-| Tests / test discoverability | - | Pending | - | High | Missing execution, solution integration, runtime targeting |
+| Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
 
 ## Review Log
 
@@ -251,3 +251,50 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Investigate why the Windows-targeted NUnit test assembly builds but exposes no discoverable tests under the current test host/runtime combination.
   - Continue the next hourly review in another stale pending area rather than revisiting file/path handling immediately unless test-discovery work is selected.
+
+### 2026-04-20 05:18 GMT+8
+- Area: Tests / test discoverability
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `Directory.Packages.props`
+  - NUnit docs: `.NET Core | NUnit Docs` (`https://docs.nunit.org/articles/nunit/getting-started/dotnet-core-and-dotnet-standard.html`)
+- Findings:
+  - The test project targets `.NET 10` (`net10.0-windows10.0.26100.0`), but the repo still pinned an older test toolchain: `Microsoft.NET.Test.Sdk 17.11.1`, `NUnit3TestAdapter 4.6.0`, `NUnit 4.5.1`, `NUnit.Analyzers 4.3.0`, and `coverlet.collector 6.0.2`.
+  - NUnit's current .NET 10 guidance uses a newer baseline (`Microsoft.NET.Test.Sdk 18.4.0`, `NUnit3TestAdapter 6.2.0`, `NUnit 4.6.0`, `NUnit.Analyzers 4.12.0`, `coverlet.collector 8.0.1`). The stale pinned versions are a credible root cause for the repeated "no discoverable tests" result.
+- Outcome:
+  - Updated `Directory.Packages.props` to the current NUnit/.NET 10 test package baseline above so the solution no longer asks a .NET 10 test assembly to run through stale discovery infrastructure.
+  - This is a bounded source fix only in this run. I could not validate, commit, or push it because cron exec is still blocked before any git/build/test command can run.
+- Verification / blockers:
+  - Mandatory upstream sync, `ShareX.ImageEditor` hygiene, build, test, commit, and push were all blocked at the first `exec` call by the gateway's non-interactive approval policy: `security=allowlist`, `ask=on-miss`.
+  - Because of that automation-policy blocker, I could not confirm whether the package updates fully restore discovery or whether follow-up test-project changes are still needed.
+- Follow-up:
+  - Re-run the mandatory git/submodule/build/test flow as soon as the cron exec allowlist is fixed.
+  - If discovery still fails after the package refresh, inspect whether the Windows-only target framework should be multi-targeted or split for Linux-hosted CI/test discovery.
+
+### 2026-04-20 06:41 GMT+8
+- Area: FTP uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Ftp.Plugin/ViewModels/FtpConfigViewModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpConfigModel.cs`
+  - `src/desktop/core/XerahS.UploadersLib/FTPHelpers.cs`
+  - `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `Directory.Packages.props`
+- Findings:
+  - `FtpConfigViewModel` left the port untouched when switching between FTP/FTPS and SFTP, so untouched defaults silently stayed on the wrong protocol port, for example `21` after switching to SFTP.
+  - `Validate()` accepted impossible port values such as `0`, which deferred a basic config error until a later connection attempt.
+  - The earlier test-discovery package baseline refresh was validated in this run, but full `dotnet test --configuration Release` still reports no discoverable tests for the Windows-targeted test assembly on this Linux host.
+- Outcome:
+  - Landed a bounded fix so protocol changes automatically carry the default port only when the user has not customized it, preserving explicit custom ports.
+  - Added config validation to reject ports outside `1..65535` with a clear message.
+  - Added regression tests covering default-port switching, custom-port preservation, and invalid-port rejection, and referenced the FTP plugin project from the test project.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts were needed.
+  - `ShareX.ImageEditor` remotes were verified (`origin=KovaForge`, `upstream=ShareX`), the submodule remained on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and the parent repo already points at the same commit, so no submodule pointer update was required.
+  - `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Investigate why the updated NUnit/.NET test package baseline still does not make the Windows-targeted test assembly discoverable on this Linux host.
+  - Review the next stale pending subsystem instead of revisiting FTP immediately unless the test-host work selects it.

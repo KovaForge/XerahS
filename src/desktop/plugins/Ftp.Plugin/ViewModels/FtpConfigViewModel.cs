@@ -32,6 +32,8 @@ namespace ShareX.Ftp.Plugin.ViewModels;
 
 public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewModel
 {
+    private FTPProtocol _previousProtocol = FTPProtocol.FTP;
+
     [ObservableProperty]
     private string _accountName = "FTP Account";
 
@@ -85,6 +87,13 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
 
     partial void OnProtocolChanged(FTPProtocol value)
     {
+        if (Port == GetDefaultPort(_previousProtocol))
+        {
+            Port = GetDefaultPort(value);
+        }
+
+        _previousProtocol = value;
+
         OnPropertyChanged(nameof(ShowFtpsOptions));
         OnPropertyChanged(nameof(ShowSftpKeyOptions));
     }
@@ -153,12 +162,22 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             StatusMessage = "Host is required.";
             return false;
         }
+
+        if (Port is <= 0 or > 65535)
+        {
+            StatusMessage = "Port must be between 1 and 65535.";
+            return false;
+        }
+
         if (Protocol == FTPProtocol.SFTP && string.IsNullOrWhiteSpace(Keypath) && string.IsNullOrWhiteSpace(Password))
         {
             StatusMessage = "SFTP requires either a key file path or password.";
             return false;
         }
+
         StatusMessage = null;
         return true;
     }
+
+    private static int GetDefaultPort(FTPProtocol protocol) => protocol == FTPProtocol.SFTP ? 22 : 21;
 }
