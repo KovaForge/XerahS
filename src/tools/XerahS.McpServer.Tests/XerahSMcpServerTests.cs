@@ -102,7 +102,7 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
-    public async Task PromptsGet_RendersTemplateArguments()
+    public async Task ToolsCall_RejectsNonObjectArguments()
     {
         var server = new XerahSMcpServer(new FakeRuntime());
 
@@ -110,6 +110,29 @@ public class XerahSMcpServerTests
         {
             JsonRpc = "2.0",
             Id = 5,
+            Method = "tools/call",
+            Params = JsonNode.Parse("""
+            {
+              "name": "capture_full_screen",
+              "arguments": [1, 2, 3]
+            }
+            """)
+        });
+
+        Assert.NotNull(response.Error);
+        Assert.Equal(JsonRpcErrorCodes.InvalidParams, response.Error!.Code);
+        Assert.Contains("JSON object", response.Error.Message);
+    }
+
+    [Fact]
+    public async Task PromptsGet_RendersTemplateArguments()
+    {
+        var server = new XerahSMcpServer(new FakeRuntime());
+
+        var response = await server.HandleRequestAsync(new JsonRpcRequest
+        {
+            JsonRpc = "2.0",
+            Id = 6,
             Method = "prompts/get",
             Params = JsonNode.Parse("""
             {

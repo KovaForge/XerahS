@@ -108,8 +108,7 @@ public sealed class XerahSMcpServer
 
     private async Task<JsonRpcResponse> HandleToolsCallAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        var paramsNode = ToParamsNode(request.Params);
-        if (paramsNode == null)
+        if (ToParamsNode(request.Params) is not JsonObject paramsNode)
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params");
         }
@@ -120,7 +119,11 @@ public sealed class XerahSMcpServer
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing tool name");
         }
 
-        var arguments = paramsNode["arguments"];
+        if (!TryGetArgumentsObject(paramsNode, out var arguments, out var argumentsError))
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, argumentsError);
+        }
+
         try
         {
             var result = await ExecuteToolAsync(name, arguments, cancellationToken);
@@ -148,7 +151,7 @@ public sealed class XerahSMcpServer
         }
     }
 
-    private async Task<JsonObject> ExecuteToolAsync(string name, JsonNode? arguments, CancellationToken cancellationToken)
+    private async Task<JsonObject> ExecuteToolAsync(string name, JsonObject? arguments, CancellationToken cancellationToken)
     {
         string? query = arguments?["query"]?.GetValue<string>();
         string? fromDate = arguments?["from_date"]?.GetValue<string>();
@@ -325,5 +328,25 @@ public sealed class XerahSMcpServer
         }
 
         return JsonSerializer.SerializeToNode(value, _jsonOptions);
+    }
+
+    private static bool TryGetArgumentsObject(JsonObject paramsNode, out JsonObject? arguments, out string error)
+    {
+        arguments = null;
+        error = string.Empty;
+
+        if (!paramsNode.TryGetPropertyValue("arguments", out var argumentsNode) || argumentsNode == null)
+        {
+            return true;
+        }
+
+        if (argumentsNode is JsonObject argumentsObject)
+        {
+            arguments = argumentsObject;
+            return true;
+        }
+
+        error = "Tool arguments must be a JSON object when provided.";
+        return false;
     }
 }
