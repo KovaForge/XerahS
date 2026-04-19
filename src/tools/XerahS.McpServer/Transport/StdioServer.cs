@@ -88,7 +88,10 @@ public class StdioServer : IDisposable
             }
 
             var response = await _mcpServer.HandleRequestAsync(request);
-            await WriteResponseAsync(response);
+            if (!request.IsNotification)
+            {
+                await WriteResponseAsync(response);
+            }
 
             // Exit on shutdown notification
             if (request.Method == "shutdown")

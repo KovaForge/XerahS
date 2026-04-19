@@ -9,4 +9,6 @@ public class JsonRpcRequest
     public string Method { get; set; } = string.Empty;
     public object? Params { get; set; }
     public object? Id { get; set; }
+
+    public bool IsNotification => Id == null;
 }
