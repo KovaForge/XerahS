@@ -93,33 +93,33 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             PrimaryHotkey));
 
         SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
-            "Region Capture",
-            "Capture a selected region of the screen",
-            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Control)));
-
-        SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
             "Window Capture",
             "Capture the active window",
-            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Alt)));
+            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Control)));
 
         SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
             "Full Screen",
             "Capture the entire screen",
-            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Shift)));
+            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Alt)));
 
-        SecondaryHotkeyItems.Add(CreateHotkeyItem(
-            WorkflowType.RectangleRegion,
-            "Region Capture",
-            SecondaryHotkeys[0].Hotkey));
+        SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
+            "OCR",
+            "Capture a region and extract text",
+            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Shift)));
 
         SecondaryHotkeyItems.Add(CreateHotkeyItem(
             WorkflowType.ActiveWindow,
             "Window Capture",
-            SecondaryHotkeys[1].Hotkey));
+            SecondaryHotkeys[0].Hotkey));
 
         SecondaryHotkeyItems.Add(CreateHotkeyItem(
             WorkflowType.PrintScreen,
             "Full Screen",
+            SecondaryHotkeys[1].Hotkey));
+
+        SecondaryHotkeyItems.Add(CreateHotkeyItem(
+            WorkflowType.OCR,
+            "OCR",
             SecondaryHotkeys[2].Hotkey));
     }
 
