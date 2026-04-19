@@ -175,6 +175,52 @@ public class CustomUploaderDefinitionBindingServiceTests
         Assert.That(reloaded.Metadata!.InstanceIds.Count, Is.EqualTo(2));
     }
 
+    [Test]
+    public void LoadPlugins_ForceReload_RemovesDeletedCustomUploaderProviders()
+    {
+        string filePath = CreateUniqueFilePath("force-reload-delete");
+        string directory = Path.GetDirectoryName(filePath)!;
+        var item = CreateItem(CustomUploaderDestinationType.ImageUploader);
+
+        Assert.That(CustomUploaderRepository.SaveToFile(item, filePath), Is.True);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Not.Null);
+
+        File.Delete(filePath);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Null);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviders().Any(provider =>
+            provider.FilePath.StartsWith(directory, StringComparison.OrdinalIgnoreCase)), Is.False);
+    }
+
+    [Test]
+    public void LoadPlugins_ForceReload_ReplacesExistingCustomUploaderDefinition()
+    {
+        string filePath = CreateUniqueFilePath("force-reload-update");
+        string directory = Path.GetDirectoryName(filePath)!;
+
+        var original = CreateItem(CustomUploaderDestinationType.ImageUploader);
+        original.Name = "Original uploader";
+        Assert.That(CustomUploaderRepository.SaveToFile(original, filePath), Is.True);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath)?.Name, Is.EqualTo("Original uploader"));
+
+        var updated = CreateItem(CustomUploaderDestinationType.ImageUploader | CustomUploaderDestinationType.FileUploader);
+        updated.Name = "Updated uploader";
+        Assert.That(CustomUploaderRepository.SaveToFile(updated, filePath), Is.True);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+
+        var provider = ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath);
+        Assert.That(provider, Is.Not.Null);
+        Assert.That(provider!.Name, Is.EqualTo("Updated uploader"));
+        Assert.That(provider.SupportedCategories, Is.EquivalentTo(new[] { UploaderCategory.Image, UploaderCategory.File }));
+    }
+
     private static CustomUploaderItem CreateItem(CustomUploaderDestinationType destinationType)
     {
         var item = CustomUploaderItem.Init();

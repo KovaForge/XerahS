@@ -69,6 +69,11 @@ public static class ProviderCatalog
                 return;
             }
 
+            if (forceReload)
+            {
+                RemoveDynamicProvidersForDirectories(pluginDirectoryList);
+            }
+
             var discovery = new PluginDiscovery();
             var allDiscovered = new List<PluginMetadata>();
 
@@ -144,6 +149,65 @@ public static class ProviderCatalog
 
             PluginFolderCleaner.ScheduleCleanup(pluginDirectoryList);
         }
+    }
+
+    private static void RemoveDynamicProvidersForDirectories(IEnumerable<string> pluginDirectories)
+    {
+        var normalizedDirectories = pluginDirectories
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(NormalizePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedDirectories.Count == 0)
+        {
+            return;
+        }
+
+        var providersToRemove = _pluginMetadata
+            .Where(kvp => IsPathWithinTrackedDirectories(kvp.Value.AssemblyPath, normalizedDirectories))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var providerId in providersToRemove)
+        {
+            _providers.Remove(providerId);
+            _pluginMetadata.Remove(providerId);
+            _pluginLoader.UnloadPlugin(providerId);
+            DebugHelper.WriteLine($"[Plugins] Removed provider during reload: {providerId}");
+        }
+
+        var customProvidersToRemove = _providers
+            .Where(kvp => kvp.Value is CustomUploaderProvider customProvider &&
+                          IsPathWithinTrackedDirectories(customProvider.FilePath, normalizedDirectories))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var providerId in customProvidersToRemove)
+        {
+            _providers.Remove(providerId);
+            _pluginMetadata.Remove(providerId);
+            DebugHelper.WriteLine($"[CustomUploader] Removed provider during reload: {providerId}");
+        }
+    }
+
+    private static bool IsPathWithinTrackedDirectories(string path, IReadOnlyCollection<string> normalizedDirectories)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        var normalizedPath = NormalizePath(path);
+        return normalizedDirectories.Any(directory =>
+            normalizedPath.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalizedPath, directory, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizePath(string path)
+    {
+        return Path.GetFullPath(path)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
 
     /// <summary>
