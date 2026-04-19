@@ -310,7 +310,7 @@ public static class FileHelpers
         string folderPath = Path.GetDirectoryName(filePath) ?? string.Empty;
         string fileName = Path.GetFileNameWithoutExtension(filePath);
         string fileExtension = Path.GetExtension(filePath);
-        int number = 1;
+        int number = 0;
 
         Match regex = Regex.Match(fileName, @"^(.+) \((\d+)\)$");
 

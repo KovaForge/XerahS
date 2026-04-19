@@ -29,7 +29,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
 | CLI / command surface | - | Pending | - | Medium | Argument handling, exit codes, error messages |
 | Platform-specific services | - | Pending | - | Medium | Windows/Linux/macOS abstractions and guards |
-| File/path handling | - | Pending | - | High | Long paths, invalid chars, normalization, temp files |
+| File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
 | Tests / test discoverability | - | Pending | - | High | Missing execution, solution integration, runtime targeting |
 
 ## Review Log
@@ -226,3 +226,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Keep submodule fetches split by remote unless the command is rewritten to fetch `develop` explicitly from both remotes.
   - Re-run full solution Release build/test verification in an environment without the current SIGKILL/resource-pressure failure.
+
+### 2026-04-20 04:39 GMT+8
+- Area: File/path handling
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`
+  - `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`
+  - `tests/XerahS.Tests/Helpers/TaskHelpersScreenshotsFolderTests.cs`
+  - `tests/XerahS.Tests/SendTo/SendToIntegrationCoordinatorTests.cs`
+  - `tests/XerahS.Tests/Editor/HistoryEditorLaunchTests.cs`
+- Findings:
+  - `FileHelpers.GetUniqueFilePath` started numbering collisions from `2` when the original file existed and had no numeric suffix.
+  - That skipped the expected first available sibling name like `capture (1).png`, creating inconsistent numbering versus common filesystem/UI expectations.
+- Outcome:
+  - Landed a bounded fix so unsuffixed collisions now start at `(1)`, while already-numbered files still increment from their current suffix.
+  - Added regression tests for both first-collision naming and incrementing an existing numbered filename.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts were needed.
+  - `ShareX.ImageEditor` remained on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; parent repo still points at the same commit, so no submodule pointer update was required.
+  - `dotnet build --configuration Release -m:1` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release -m:1` exited successfully but reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`, so the new regression coverage is present in source but still not executing in this environment.
+  - A targeted filtered run for `FileHelpersTests` produced the same underlying discoverability issue.
+- Follow-up:
+  - Investigate why the Windows-targeted NUnit test assembly builds but exposes no discoverable tests under the current test host/runtime combination.
+  - Continue the next hourly review in another stale pending area rather than revisiting file/path handling immediately unless test-discovery work is selected.
