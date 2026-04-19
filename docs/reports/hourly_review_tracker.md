@@ -19,7 +19,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Capture pipeline | 2026-04-19 20:09 GMT+8 | Reviewed | Fixed GDI bitmap DC restoration to avoid deleting selected HBITMAPs | High | Reviewed Windows capture path; tests still non-discoverable in current solution run |
 | OCR | 2026-04-19 23:11 GMT+8 | Reviewed | Fixed after-capture OCR to honor configured task OCR options instead of forcing English/2x/multiline defaults | High | Reviewed CaptureJobProcessor OCR path; full solution build still SIGKILLed in this environment and tests remain non-discoverable |
 | Editor integration | 2026-04-19 22:06 GMT+8 | Reviewed | Fixed history refresh detection when editor saves without advancing file timestamp; broader test/build blocked by missing ShareX.ImageEditor restore assets | High | Reviewed Avalonia editor session flow, history refresh, and headless UI service paths |
-| Uploader core | - | Pending | - | High | Generic uploader orchestration, retries, cancellation |
+| Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-19 14:16 GMT+8 | Reviewed | Inspected, no safe bounded fix landed | Medium | Review summary reported in hourly cron output |
 | FTP uploader plugin | - | Pending | - | Medium | Path handling, credential flow, error surfacing |
 | Imgur uploader plugin | - | Pending | - | Medium | Upload response validation, failures |
@@ -157,3 +157,45 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Restore or generate the missing `ShareX.ImageEditor` host restore assets so test runs stop failing in the plugin auto-build chain.
   - Re-run full Release build/test verification once the environment SIGKILL pressure and missing restore-assets blocker are cleared.
+
+### 2026-04-20 01:11 GMT+8
+- Area: Uploader core
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - Tracker only. Repo file inspection did not begin.
+- Findings:
+  - Chosen as the stalest pending high-priority area for this run.
+  - Mandatory repo maintenance could not start because the first local `exec` command block was denied under the current gateway approval policy for cron runs (`security=allowlist`, `ask=on-miss`).
+- Outcome:
+  - No upstream sync, submodule hygiene, code review, bug fix, build, or test work could be executed in this run.
+- Blockers / Notes:
+  - This is an automation-policy blocker, not a repo-state conclusion.
+  - Cron needs trusted local exec allowlisting or non-interactive approval disablement before this hourly job can satisfy its contract again.
+
+### 2026-04-20 03:06 GMT+8
+- Area: Uploader core
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceConfiguration.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginConfigurationVerifier.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/UploaderInstanceViewModel.cs`
+  - `tests/XerahS.Tests/CustomUploader/CustomUploaderDefinitionBindingServiceTests.cs`
+- Findings:
+  - `ProviderCatalog.LoadPlugins(..., forceReload: true)` removed stale plugin DLL metadata only by overwriting matching IDs, but it never purged custom uploader providers whose backing files were deleted or whose definitions changed category/name across a reload.
+  - That leaves deleted custom uploader definitions still selectable in memory until process restart, and updates can preserve stale provider state from the previous file contents.
+- Outcome:
+  - Landed a bounded fix in `ProviderCatalog` so force-reload now removes dynamic providers rooted under the reloaded directories before rediscovery, including custom uploader definitions and plugin metadata tracked by assembly path.
+  - Added regression tests covering deleted custom uploader cleanup and updated-definition replacement during force reload.
+  - Pushed parent repo commit `ccf77e31` to `origin/develop`.
+- Verification / blockers:
+  - Parent repo had already merged 1 upstream commit earlier in the run via `git merge --no-ff upstream/develop -m "Merge upstream/develop into develop"`; no additional merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-fetched separately (`origin`, `upstream`), left on branch `develop`, and remained at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; parent pointer still matches that commit. No submodule pointer update was required.
+  - `dotnet build src/desktop/core/XerahS.Uploaders/XerahS.Uploaders.csproj --configuration Release -m:1 -p:OS=Unix -p:HostTargetFramework=net10.0` passed with 0 warnings and 0 errors.
+  - Full-solution `dotnet test --configuration Release` remained blocked in this environment: one run failed in plugin auto-build/host restore paths and a later broader run was killed by SIGKILL before completion.
+- Follow-up:
+  - Investigate a lighter-weight way to run targeted uploader tests without pulling the full app/plugin auto-build chain.
+  - Re-run full solution Release build/test verification once the current plugin auto-build / environment memory-pressure blocker is cleared.
