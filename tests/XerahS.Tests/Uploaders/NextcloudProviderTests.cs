@@ -26,6 +26,7 @@
 using Newtonsoft.Json;
 using NUnit.Framework;
 using ShareX.Nextcloud.Plugin;
+using System.Reflection;
 using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Tests.Uploaders;
@@ -69,6 +70,28 @@ public class NextcloudProviderTests
         Assert.That(isValid, Is.False);
     }
 
+    [Test]
+    public void ExtractRelativePath_StripsServerBasePathFromAbsoluteHref()
+    {
+        string relativePath = InvokeExtractRelativePath(
+            "https://cloud.example.com/nextcloud/remote.php/dav/files/alice/ShareX/2026/cat.png",
+            "/remote.php/dav/files/alice/",
+            "alice");
+
+        Assert.That(relativePath, Is.EqualTo("ShareX/2026/cat.png"));
+    }
+
+    [Test]
+    public void ExtractRelativePath_HandlesEncodedUserIdWithoutLosingRootFolder()
+    {
+        string relativePath = InvokeExtractRelativePath(
+            "/nextcloud/remote.php/dav/files/john%2Fdoe/Screenshots",
+            "/remote.php/dav/files/john/doe/",
+            "john/doe");
+
+        Assert.That(relativePath, Is.EqualTo("Screenshots"));
+    }
+
     private static NextcloudProvider CreateProvider(string secretKey, string appPassword)
     {
         NextcloudProvider provider = new();
@@ -76,6 +99,16 @@ public class NextcloudProviderTests
         secrets.SetSecret("nextcloud", secretKey, "appPassword", appPassword);
         provider.SetContext(new TestProviderContext(secrets));
         return provider;
+    }
+
+    private static string InvokeExtractRelativePath(string href, string hrefPrefix, string userId)
+    {
+        MethodInfo? method = typeof(NextcloudClient).GetMethod("ExtractRelativePath", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(method, Is.Not.Null);
+
+        object? result = method!.Invoke(null, new object[] { href, hrefPrefix, userId });
+        Assert.That(result, Is.TypeOf<string>());
+        return (string)result!;
     }
 
     private sealed class TestProviderContext : IProviderContext
