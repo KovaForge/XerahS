@@ -115,7 +115,7 @@ namespace XerahS.UI.Views
                 SuggestedStartLocation = await topLevel.StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Pictures)
             });
 
-            return folders.Count > 0 ? folders[0].Path.LocalPath : null;
+            return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
         }
     }
 }

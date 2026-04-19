@@ -68,7 +68,7 @@ public partial class ImageCombinerWindow : SurfaceWindow
         {
             if (item.TryGetRaw(DataFormat.File) is IStorageFile file)
             {
-                var path = file.Path.LocalPath;
+                var path = file.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFileItem(path);
@@ -94,7 +94,7 @@ public partial class ImageCombinerWindow : SurfaceWindow
         {
             foreach (var file in files)
             {
-                var path = file.Path.LocalPath;
+                var path = file.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFileItem(path);

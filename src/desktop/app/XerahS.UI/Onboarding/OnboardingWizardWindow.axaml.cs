@@ -28,6 +28,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
@@ -79,7 +80,7 @@ public partial class OnboardingWizardWindow : Window
                     AllowMultiple = false
                 });
 
-                return folders.FirstOrDefault()?.Path.LocalPath;
+                return folders.FirstOrDefault()?.TryGetLocalPath();
             };
         }
 

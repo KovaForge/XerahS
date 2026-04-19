@@ -75,7 +75,7 @@ public partial class UploadContentWindow : SurfaceWindow
         {
             if (item.TryGetRaw(DataFormat.File) is IStorageFile file)
             {
-                var path = file.Path.LocalPath;
+                var path = file.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFileItem(path);
@@ -83,7 +83,7 @@ public partial class UploadContentWindow : SurfaceWindow
             }
             else if (item.TryGetRaw(DataFormat.File) is IStorageFolder folder)
             {
-                var path = folder.Path.LocalPath;
+                var path = folder.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFolderFiles(path);
@@ -104,7 +104,7 @@ public partial class UploadContentWindow : SurfaceWindow
         {
             foreach (var file in files)
             {
-                var path = file.Path.LocalPath;
+                var path = file.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFileItem(path);
@@ -123,7 +123,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
         if (_viewModel != null && folders.Count > 0)
         {
-            var path = folders[0].Path.LocalPath;
+            var path = folders[0].TryGetLocalPath();
             if (!string.IsNullOrEmpty(path))
             {
                 _viewModel.AddFolderFiles(path);

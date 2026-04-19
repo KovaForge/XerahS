@@ -86,7 +86,7 @@ public partial class ImageThumbnailerWindow : SurfaceWindow
         {
             foreach (var file in files)
             {
-                var path = file.Path.LocalPath;
+                var path = file.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFileItem(path);
@@ -105,7 +105,7 @@ public partial class ImageThumbnailerWindow : SurfaceWindow
 
         if (_viewModel != null && folders.Count > 0)
         {
-            var path = folders[0].Path.LocalPath;
+            var path = folders[0].TryGetLocalPath();
             if (!string.IsNullOrEmpty(path))
             {
                 _viewModel.OutputFolder = path;

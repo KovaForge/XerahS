@@ -93,7 +93,7 @@ public partial class DirectoryPicker : UserControl
 
         if (folder.Count > 0)
         {
-            Value = folder[0].Path.LocalPath;
+            Value = folder[0].TryGetLocalPath();
         }
     }
 
