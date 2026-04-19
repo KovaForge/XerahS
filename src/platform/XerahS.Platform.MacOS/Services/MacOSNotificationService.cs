@@ -54,17 +54,7 @@ public sealed class MacOSNotificationService : INotificationService
     {
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "osascript",
-                Arguments = $"-e \"display notification \\\"{Escape(message)}\\\" with title \\\"{Escape(title)}\\\"\"",
-                UseShellExecute = false,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
+            using var process = Process.Start(CreateStartInfo(title, message));
             if (process == null)
                 return false;
 
@@ -77,5 +67,28 @@ public sealed class MacOSNotificationService : INotificationService
         }
     }
 
-    private static string Escape(string value) => value.Replace("\"", "\\\"");
+    internal static ProcessStartInfo CreateStartInfo(string title, string message)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "osascript",
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true
+        };
+
+        startInfo.ArgumentList.Add("-e");
+        startInfo.ArgumentList.Add($"display notification \"{EscapeAppleScriptString(message)}\" with title \"{EscapeAppleScriptString(title)}\"");
+        return startInfo;
+    }
+
+    private static string EscapeAppleScriptString(string value)
+    {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
+    }
 }

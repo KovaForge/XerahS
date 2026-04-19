@@ -54,17 +54,7 @@ public sealed class LinuxNotificationService : INotificationService
     {
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "notify-send",
-                Arguments = $"\"{title}\" \"{message}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true
-            };
-
-            using var process = Process.Start(startInfo);
+            using var process = Process.Start(CreateStartInfo(title, message));
             if (process == null)
                 return false;
 
@@ -75,5 +65,21 @@ public sealed class LinuxNotificationService : INotificationService
         {
             return false;
         }
+    }
+
+    internal static ProcessStartInfo CreateStartInfo(string title, string message)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "notify-send",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true
+        };
+
+        startInfo.ArgumentList.Add(title);
+        startInfo.ArgumentList.Add(message);
+        return startInfo;
     }
 }
