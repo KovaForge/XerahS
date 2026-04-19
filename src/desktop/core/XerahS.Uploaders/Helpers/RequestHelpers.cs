@@ -90,13 +90,13 @@ namespace XerahS.Uploaders
                             string cookie = rawCookie.Trim();
                             int separatorIndex = cookie.IndexOf('=');
 
-                            if (separatorIndex <= 0 || separatorIndex == cookie.Length - 1)
+                            if (separatorIndex <= 0)
                             {
                                 continue;
                             }
 
                             string cookieName = cookie[..separatorIndex].Trim();
-                            string cookieValue = cookie[(separatorIndex + 1)..];
+                            string cookieValue = separatorIndex < cookie.Length - 1 ? cookie[(separatorIndex + 1)..] : string.Empty;
 
                             if (!string.IsNullOrEmpty(cookieName))
                             {

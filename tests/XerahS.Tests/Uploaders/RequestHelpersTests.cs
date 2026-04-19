@@ -66,4 +66,22 @@ public class RequestHelpersTests
 
         Assert.That(cookies["token"]?.Value, Is.EqualTo("abc=def=="));
     }
+
+    [Test]
+    public void CreateWebRequest_PreservesCookiesWithEmptyValues()
+    {
+        NameValueCollection headers = new()
+        {
+            ["Cookie"] = "session=abc123; theme="
+        };
+
+        HttpWebRequest request = RequestHelpers.CreateWebRequest(UploadHttpMethod.GET, "https://example.com/upload", headers);
+
+        Assert.That(request.CookieContainer, Is.Not.Null);
+        CookieCollection cookies = request.CookieContainer!.GetCookies(new Uri("https://example.com/upload"));
+
+        Assert.That(cookies["session"]?.Value, Is.EqualTo("abc123"));
+        Assert.That(cookies["theme"], Is.Not.Null);
+        Assert.That(cookies["theme"]?.Value, Is.EqualTo(string.Empty));
+    }
 }
