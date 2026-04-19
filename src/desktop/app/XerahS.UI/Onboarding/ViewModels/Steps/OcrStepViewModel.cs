@@ -196,7 +196,9 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     partial void OnSelectedLanguagesChanged(ObservableCollection<string> value)
     {
+        value.CollectionChanged -= SelectedLanguages_CollectionChanged;
         value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        SyncOptionsFromSelectedLanguages();
         UpdateValidationState();
     }
 
@@ -253,6 +255,26 @@ public partial class OcrStepViewModel : StepViewModelBase
     {
         _syncingSelections = true;
 
+        HashSet<string> supportedLanguageTags = AvailableLanguages
+            .Select(language => language.LanguageTag)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        List<string> normalizedSelectedLanguages = SelectedLanguages
+            .Where(languageTag => supportedLanguageTags.Contains(languageTag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedSelectedLanguages.Count != SelectedLanguages.Count ||
+            !normalizedSelectedLanguages.SequenceEqual(SelectedLanguages, StringComparer.OrdinalIgnoreCase))
+        {
+            SelectedLanguages.Clear();
+
+            foreach (string languageTag in normalizedSelectedLanguages)
+            {
+                SelectedLanguages.Add(languageTag);
+            }
+        }
+
         foreach (OcrLanguageOption option in AvailableLanguages)
         {
             option.IsSelected = SelectedLanguages.Contains(option.LanguageTag);
@@ -261,10 +283,12 @@ public partial class OcrStepViewModel : StepViewModelBase
         if (SelectedLanguages.Count == 0)
         {
             OcrLanguageOption? english = AvailableLanguages.FirstOrDefault(language => language.LanguageTag == "en");
-            if (english != null)
+            OcrLanguageOption? fallback = english ?? AvailableLanguages.FirstOrDefault();
+
+            if (fallback != null)
             {
-                english.IsSelected = true;
-                SelectedLanguages.Add(english.LanguageTag);
+                fallback.IsSelected = true;
+                SelectedLanguages.Add(fallback.LanguageTag);
             }
         }
 
