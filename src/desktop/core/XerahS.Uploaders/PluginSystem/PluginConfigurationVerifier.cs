@@ -87,6 +87,14 @@ public static class PluginConfigurationVerifier
     {
         var result = new PluginVerificationResult();
 
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin provider ID is missing";
+            result.Issues.Add("A plugin provider ID is required for verification.");
+            return result;
+        }
+
         // Custom uploaders are single .sxcu files, not plugin folders - skip verification
         if (providerId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase))
         {
@@ -190,6 +198,11 @@ public static class PluginConfigurationVerifier
     /// <returns>Number of files deleted</returns>
     public static int CleanDuplicateFrameworkDlls(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return 0;
+        }
+
         // Only clean user RID-scoped plugin folders; app-bundled plugins may be read-only.
         var pluginsPath = ResolvePluginDirectory(providerId);
         if (pluginsPath == null ||

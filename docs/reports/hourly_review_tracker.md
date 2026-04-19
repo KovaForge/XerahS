@@ -26,7 +26,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
 | Hotkeys/input | - | Pending | - | Medium | Recorder, edge cases, platform-specific key mapping |
 | Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
-| Plugin loading/runtime | - | Pending | - | High | Assembly loading, Avalonia compiled XAML, metadata mismatches |
+| Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
 | CLI / command surface | - | Pending | - | Medium | Argument handling, exit codes, error messages |
 | Platform-specific services | - | Pending | - | Medium | Windows/Linux/macOS abstractions and guards |
 | File/path handling | - | Pending | - | High | Long paths, invalid chars, normalization, temp files |
@@ -199,3 +199,30 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Investigate a lighter-weight way to run targeted uploader tests without pulling the full app/plugin auto-build chain.
   - Re-run full solution Release build/test verification once the current plugin auto-build / environment memory-pressure blocker is cleared.
+
+### 2026-04-20 03:17 GMT+8
+- Area: Plugin loading/runtime
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginConfigurationVerifier.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/UploaderInstanceViewModel.cs`
+  - `tests/XerahS.Tests/Helpers/PluginConfigurationVerifierTests.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+- Findings:
+  - `UploaderInstanceViewModel` calls `PluginConfigurationVerifier` directly from the config UI path, but the verifier assumed a non-empty `providerId` and would throw on null/blank values before it could surface a user-facing error state.
+  - The cleanup command had the same assumption, so an empty provider selection could also trip avoidable exceptions instead of becoming a no-op.
+- Outcome:
+  - Landed a bounded fix in `PluginConfigurationVerifier` to fail safely when `providerId` is null/blank, returning an explicit verification error and treating duplicate-DLL cleanup as a no-op.
+  - Added regression tests for blank/null provider IDs.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), fetched successfully when split into separate fetches, and the submodule was left on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046` with no parent pointer change required.
+  - `git fetch origin upstream` in the submodule is not valid as written because Git interprets `upstream` as a refspec for remote `origin`; separate `git fetch origin` and `git fetch upstream` calls work correctly.
+  - `dotnet build src/desktop/core/XerahS.Uploaders/XerahS.Uploaders.csproj --configuration Release --no-restore -m:1` passed with 0 warnings and 0 errors.
+  - Full `dotnet build --configuration Release` and `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-restore --filter PluginConfigurationVerifierTests -m:1` both progressed deep into the graph, then were killed by SIGKILL in this environment before completion.
+- Follow-up:
+  - Keep submodule fetches split by remote unless the command is rewritten to fetch `develop` explicitly from both remotes.
+  - Re-run full solution Release build/test verification in an environment without the current SIGKILL/resource-pressure failure.

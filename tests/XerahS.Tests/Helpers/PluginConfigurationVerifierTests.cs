@@ -73,6 +73,27 @@ public class PluginConfigurationVerifierTests
         });
     }
 
+    [Test]
+    public void VerifyPluginConfiguration_MissingProviderId_ReturnsErrorInsteadOfThrowing()
+    {
+        PluginVerificationResult result = PluginConfigurationVerifier.VerifyPluginConfiguration(string.Empty);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(PluginVerificationStatus.Error));
+            Assert.That(result.Message, Is.EqualTo("Plugin provider ID is missing"));
+            Assert.That(result.Issues, Does.Contain("A plugin provider ID is required for verification."));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void CleanDuplicateFrameworkDlls_MissingProviderId_IsIgnored(string? providerId)
+    {
+        Assert.That(PluginConfigurationVerifier.CleanDuplicateFrameworkDlls(providerId!), Is.Zero);
+    }
+
     private static string CreatePluginDirectory(string pluginId, bool includeAssembly = true, bool includeRuntimeAsset = false)
     {
         string pluginDirectory = Path.Combine(PathsManager.PluginsArchitectureFolder, pluginId);
