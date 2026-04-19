@@ -23,7 +23,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Nextcloud uploader plugin | 2026-04-19 14:16 GMT+8 | Reviewed | Inspected, no safe bounded fix landed | Medium | Review summary reported in hourly cron output |
 | FTP uploader plugin | - | Pending | - | Medium | Path handling, credential flow, error surfacing |
 | Imgur uploader plugin | - | Pending | - | Medium | Upload response validation, failures |
-| Settings/configuration | - | Pending | - | High | Config persistence, migration, invalid values |
+| Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
 | Hotkeys/input | - | Pending | - | Medium | Recorder, edge cases, platform-specific key mapping |
 | Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
 | Plugin loading/runtime | - | Pending | - | High | Assembly loading, Avalonia compiled XAML, metadata mismatches |
@@ -134,3 +134,26 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Investigate the broader solution/test-host memory pressure causing full Release builds to be SIGKILLed in this environment.
   - Fix test discovery so the newly added OCR regression coverage is executable in normal `dotnet test` runs.
+
+### 2026-04-20 00:11 GMT+8
+- Area: Settings/configuration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`
+  - `src/desktop/core/XerahS.Core/Security/SecretStore.cs`
+  - `tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs`
+- Findings:
+  - `SettingsManager.ResetSettings()` backed up and deleted application, uploader, and workflow config files, but it left `SecretsStore*.json` and `SecretsStore.key` behind.
+  - That means a user-visible "reset settings" could preserve stored uploader credentials on disk, which is incorrect and unsafe.
+- Outcome:
+  - Landed a bounded fix in `SettingsManager.ResetSettings()` so reset now also backs up and deletes the active secrets store file plus the AES fallback key file.
+  - Added regression coverage for machine-specific secrets path handling and for reset-time backup/deletion of the secrets store artifacts.
+  - Pushed parent repo commit `40f2bab1` to `origin/develop`.
+- Verification / blockers:
+  - Parent repo upstream sync remained current this run: 0 upstream `develop` commits to merge.
+  - `ShareX.ImageEditor` remotes were re-verified and the submodule was left on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; no submodule pointer update was required.
+  - Full `dotnet build --configuration Release -m:1` progressed deep into the solution, then was killed by SIGKILL in this environment before completing.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter SettingsManagerSecretsPathTests -m:1` failed because `ShareX.ImageEditor/src/ShareX.ImageEditor/obj/os-Unix/host-net10.0/project.assets.json` is missing, which then cascaded into plugin auto-build `MSB4181` failures.
+- Follow-up:
+  - Restore or generate the missing `ShareX.ImageEditor` host restore assets so test runs stop failing in the plugin auto-build chain.
+  - Re-run full Release build/test verification once the environment SIGKILL pressure and missing restore-assets blocker are cleared.
