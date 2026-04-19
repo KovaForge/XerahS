@@ -131,6 +131,17 @@ public class HistoryEditorLaunchTests
     [Test]
     public async Task EditImage_RefreshesHistoryItem_WhenEditedFileChanges()
     {
+        await VerifyHistoryItemRefreshesAfterEditorSessionAsync(lastWriteTimeTransform: static original => original.AddMinutes(1));
+    }
+
+    [Test]
+    public async Task EditImage_RefreshesHistoryItem_WhenEditedFileKeepsSameTimestamp()
+    {
+        await VerifyHistoryItemRefreshesAfterEditorSessionAsync(lastWriteTimeTransform: static original => original);
+    }
+
+    private static async Task VerifyHistoryItemRefreshesAfterEditorSessionAsync(Func<DateTime, DateTime> lastWriteTimeTransform)
+    {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
         string imagePath = Path.Combine(directory, "annotated.png");
@@ -161,7 +172,7 @@ public class HistoryEditorLaunchTests
                 using var updatedBitmap = new SKBitmap(8, 8);
                 updatedBitmap.Erase(SKColors.Green);
                 SaveBitmap(imagePath, updatedBitmap);
-                File.SetLastWriteTimeUtc(imagePath, originalWriteTimeUtc.AddMinutes(1));
+                File.SetLastWriteTimeUtc(imagePath, lastWriteTimeTransform(originalWriteTimeUtc));
             }
         };
         PlatformServices.RegisterUIService(uiService);

@@ -17,8 +17,8 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-04-19 20:09 GMT+8 | Reviewed | Fixed GDI bitmap DC restoration to avoid deleting selected HBITMAPs | High | Reviewed Windows capture path; tests still non-discoverable in current solution run |
-| OCR | - | Pending | - | High | OCR integration, settings, fallback/error handling |
-| Editor integration | - | Pending | - | High | ShareX.ImageEditor integration and submodule touchpoints |
+| OCR | 2026-04-19 23:11 GMT+8 | Reviewed | Fixed after-capture OCR to honor configured task OCR options instead of forcing English/2x/multiline defaults | High | Reviewed CaptureJobProcessor OCR path; full solution build still SIGKILLed in this environment and tests remain non-discoverable |
+| Editor integration | 2026-04-19 22:06 GMT+8 | Reviewed | Fixed history refresh detection when editor saves without advancing file timestamp; broader test/build blocked by missing ShareX.ImageEditor restore assets | High | Reviewed Avalonia editor session flow, history refresh, and headless UI service paths |
 | Uploader core | - | Pending | - | High | Generic uploader orchestration, retries, cancellation |
 | Nextcloud uploader plugin | 2026-04-19 14:16 GMT+8 | Reviewed | Inspected, no safe bounded fix landed | Medium | Review summary reported in hourly cron output |
 | FTP uploader plugin | - | Pending | - | Medium | Path handling, credential flow, error surfacing |
@@ -82,3 +82,55 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Review remaining Windows capture paths for similar select/restore GDI handle patterns.
   - Investigate why the test assembly is built but not exposing discoverable tests under the current target/runtime combination.
+
+### 2026-04-19 22:06 GMT+8
+- Area: Editor integration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaUIService.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/HistoryViewModel.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/Processors/CaptureJobProcessor.cs`
+  - `src/tools/XerahS.McpServer/Runtime/HeadlessMcpServices.cs`
+  - `src/desktop/core/XerahS.History/HistoryItem.cs`
+  - `tests/XerahS.Tests/Editor/HistoryEditorLaunchTests.cs`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/EditorView.CoreBridge.cs`
+- Findings:
+  - `HistoryViewModel.RefreshHistoryItemAfterEditorSessionAsync` only refreshed history entries when the edited file's last-write time increased.
+  - That misses real saves on filesystems or save flows that preserve the timestamp exactly, leaving stale `HistoryItem` instances and annotation sidecar metadata in the UI even though the image content changed.
+- Outcome:
+  - Landed a bounded fix in `HistoryViewModel`: treat any timestamp change, not only strictly newer timestamps, as an edited-file refresh trigger.
+  - Added a regression test covering the same-timestamp edit case alongside the existing changed-timestamp test path in `HistoryEditorLaunchTests`.
+- Verification / blockers:
+  - Parent repo upstream sync remained current: 0 upstream commits pending on `develop`.
+  - `ShareX.ImageEditor` remotes were corrected/verified, fetched from `origin` and `upstream`, and left on branch `develop` (not detached). No submodule pointer update was required.
+  - Full repo `dotnet build --configuration Release` could not be completed in this environment: one serial run was killed by SIGKILL, and a targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-restore --filter HistoryEditorLaunchTests -m:1` run failed because `ShareX.ImageEditor/src/ShareX.ImageEditor/obj/os-Unix/host-net10.0/project.assets.json` was missing, followed by cascading `MSB4181` errors from plugin auto-build targets.
+- Follow-up:
+  - Restore or generate the missing `ShareX.ImageEditor` host assets so targeted tests can run without tripping the plugin auto-build chain.
+  - Re-run full build/test verification once the restore-assets blocker is cleared.
+
+### 2026-04-19 23:11 GMT+8
+- Area: OCR
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Tasks/Processors/CaptureJobProcessor.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettings.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IOcrService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsOcrService.cs`
+  - `tests/XerahS.Tests/Tools/OcrViewModelTests.cs`
+  - `tests/XerahS.Tests/Tasks/CaptureJobProcessorOcrTests.cs`
+- Findings:
+  - `CaptureJobProcessor.PerformOCRAsync` ignored the workflow's configured OCR settings and always invoked OCR with hardcoded defaults (`en`, `2f`, multiline).
+  - That silently breaks non-English OCR workflows and discards task-level single-line / scale overrides even when the user configured them.
+- Outcome:
+  - Landed a bounded fix so after-capture OCR now uses `TaskSettings.CaptureSettings.OCROptions`, while still falling back to safe defaults for blank language tags or invalid scale factors.
+  - Added regression coverage for honoring task OCR options and for default fallback sanitization.
+- Verification / blockers:
+  - Parent repo synced 2 upstream `develop` commits (`c8f70cd1`, `bd5b4091`) via merge commit with no conflicts.
+  - `ShareX.ImageEditor` remotes were verified and the submodule was left on branch `develop` (not detached); no submodule pointer update was needed this run.
+  - `dotnet build src/desktop/core/XerahS.Core/XerahS.Core.csproj --configuration Release --no-restore -m:1 -p:BuildProjectReferences=false` passed with 0 warnings and 0 errors.
+  - Full `dotnet build --configuration Release` was attempted repeatedly but the process was killed by SIGKILL in this environment before completion.
+  - `dotnet test --configuration Release --no-build -m:1` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Investigate the broader solution/test-host memory pressure causing full Release builds to be SIGKILLed in this environment.
+  - Fix test discovery so the newly added OCR regression coverage is executable in normal `dotnet test` runs.

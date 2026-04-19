@@ -481,11 +481,12 @@ namespace XerahS.Core.Tasks.Processors
             try
             {
                 DebugHelper.WriteLine("Starting OCR on captured image...");
+                var taskOcrOptions = info.TaskSettings.CaptureSettings.OCROptions;
                 var options = new OcrOptions
                 {
-                    Language = "en",
-                    ScaleFactor = 2f,
-                    SingleLine = false
+                    Language = string.IsNullOrWhiteSpace(taskOcrOptions.Language) ? "en" : taskOcrOptions.Language,
+                    ScaleFactor = Math.Max(taskOcrOptions.ScaleFactor, 1f),
+                    SingleLine = taskOcrOptions.SingleLine
                 };
                 var result = await ocrService.RecognizeAsync(info.Metadata.Image, options);
 

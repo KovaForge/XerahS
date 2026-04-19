@@ -428,7 +428,7 @@ namespace XerahS.UI.ViewModels
                 return;
             }
 
-            bool imageFileChanged = File.GetLastWriteTimeUtc(item.FilePath) > originalLastWriteTimeUtc;
+            bool imageFileChanged = File.GetLastWriteTimeUtc(item.FilePath) != originalLastWriteTimeUtc;
             bool sidecarPathChanged = SynchronizeAnnotationSidecarPath(item);
 
             if (!imageFileChanged && !sidecarPathChanged)
