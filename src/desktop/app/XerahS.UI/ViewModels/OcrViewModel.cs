@@ -35,6 +35,7 @@ namespace XerahS.UI.ViewModels;
 public partial class OcrViewModel : ViewModelBase
 {
     private SKBitmap? _sourceImage;
+    private bool _hasRecognizedOnce;
 
     [ObservableProperty]
     private string _resultText = string.Empty;
@@ -127,6 +128,7 @@ public partial class OcrViewModel : ViewModelBase
                 SingleLine = SingleLine
             };
 
+            _hasRecognizedOnce = true;
             var result = await ocrService.RecognizeAsync(_sourceImage, options);
 
             if (result.Success)
@@ -215,8 +217,9 @@ public partial class OcrViewModel : ViewModelBase
 
     partial void OnSelectedLanguageChanged(OcrLanguage? value)
     {
-        // Re-run OCR when language changes and we already have a result
-        if (value != null && HasResult && _sourceImage != null)
+        // Re-run OCR when language changes after at least one OCR attempt,
+        // even if the previous attempt found no text.
+        if (value != null && _hasRecognizedOnce && _sourceImage != null && !IsProcessing)
         {
             _ = RunOcrAsync();
         }
