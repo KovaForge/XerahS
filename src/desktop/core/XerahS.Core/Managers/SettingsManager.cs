@@ -612,6 +612,22 @@ namespace XerahS.Core
                 WorkflowsConfig = new WorkflowsConfig();
                 SyncDefaultTaskSettings();
 
+                // Backup and delete secrets store artifacts
+                if (File.Exists(SecretsStoreFilePath))
+                {
+                    File.Copy(SecretsStoreFilePath,
+                        Path.Combine(backupFolder, Path.GetFileName(SecretsStoreFilePath)), overwrite: true);
+                    File.Delete(SecretsStoreFilePath);
+                }
+
+                string secretsKeyPath = Path.Combine(Path.GetDirectoryName(SecretsStoreFilePath) ?? SettingsFolder, "SecretsStore.key");
+                if (File.Exists(secretsKeyPath))
+                {
+                    File.Copy(secretsKeyPath,
+                        Path.Combine(backupFolder, Path.GetFileName(secretsKeyPath)), overwrite: true);
+                    File.Delete(secretsKeyPath);
+                }
+
                 DebugHelper.WriteLine($"Settings reset successfully. Backup created: {backupFolder}");
                 return true;
             }

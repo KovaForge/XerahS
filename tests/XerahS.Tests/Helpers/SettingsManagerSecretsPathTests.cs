@@ -33,6 +33,26 @@ namespace XerahS.Tests.Helpers;
 [NonParallelizable]
 public class SettingsManagerSecretsPathTests
 {
+    private string? _originalPersonalFolder;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _originalPersonalFolder = SettingsManager.PersonalFolder;
+        SettingsManager.PersonalFolder = Path.Combine(TestContext.CurrentContext.WorkDirectory, "settings-manager-tests", Guid.NewGuid().ToString("N"));
+        SettingsManager.LoadAllSettings();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        if (!string.IsNullOrEmpty(_originalPersonalFolder))
+        {
+            SettingsManager.PersonalFolder = _originalPersonalFolder;
+            SettingsManager.LoadAllSettings();
+        }
+    }
+
     [Test]
     public void SecretsStoreFilePath_UsesMachineSpecificFileName_WhenEnabled()
     {
@@ -74,5 +94,39 @@ public class SettingsManagerSecretsPathTests
         {
             SettingsManager.Settings.UseMachineSpecificSecretsStore = original;
         }
+    }
+
+    [Test]
+    public void ResetSettings_DeletesAndBacksUpSecretsStoreArtifacts()
+    {
+        SettingsManager.Settings.UseMachineSpecificSecretsStore = true;
+        SettingsManager.EnsureDirectoriesExist();
+
+        string secretsPath = SettingsManager.SecretsStoreFilePath;
+        string keyPath = Path.Combine(Path.GetDirectoryName(secretsPath) ?? SettingsManager.SettingsFolder, "SecretsStore.key");
+
+        File.WriteAllText(SettingsManager.ApplicationConfigFilePath, "{}");
+        File.WriteAllText(SettingsManager.UploadersConfigFilePath, "{}");
+        File.WriteAllText(SettingsManager.WorkflowsConfigFilePath, "{}");
+        File.WriteAllText(secretsPath, "{\"provider\":\"token\"}");
+        File.WriteAllText(keyPath, "secret-key");
+
+        bool reset = SettingsManager.ResetSettings();
+
+        string latestResetBackup = Directory
+            .GetDirectories(SettingsManager.BackupFolder, "Reset_*")
+            .OrderByDescending(path => path, StringComparer.Ordinal)
+            .First();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reset, Is.True);
+            Assert.That(File.Exists(secretsPath), Is.False, "SecretsStore.json should be removed during reset.");
+            Assert.That(File.Exists(keyPath), Is.False, "SecretsStore.key should be removed during reset.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(secretsPath))), Is.True,
+                "SecretsStore.json should be backed up before deletion.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(keyPath))), Is.True,
+                "SecretsStore.key should be backed up before deletion.");
+        });
     }
 }
