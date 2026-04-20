@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-19 20:09 GMT+8 | Reviewed | Fixed GDI bitmap DC restoration to avoid deleting selected HBITMAPs | High | Reviewed Windows capture path; tests still non-discoverable in current solution run |
+| Capture pipeline | 2026-04-20 17:15 GMT+8 | Reviewed | Fixed WinRT capability reporting so the current GDI fallback no longer advertises unavailable HDR/cursor/hardware support | High | Reviewed Windows capture backend selection/capability reporting; Release build passed, full `dotnet test` runs 374 tests with 16 pre-existing unrelated failures, and added regression coverage is Windows-only |
 | OCR | 2026-04-20 14:37 GMT+8 | Reviewed | Fixed assistant-triggered OCR to honor configured task OCR options instead of forcing English/defaults | High | Reviewed assistant OCR/routing path; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Editor integration | 2026-04-20 15:37 GMT+8 | Reviewed | Fixed editor-history refresh detection to compare file and sidecar content snapshots, catching same-timestamp saves and annotation-only updates | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
@@ -33,6 +33,32 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 17:15 GMT+8
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs`
+  - `src/platform/XerahS.Platform.Windows/Capture/WinRTCaptureStrategy.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsScreenCaptureService.cs`
+  - `src/desktop/app/XerahS.RegionCapture/RegionCaptureService.cs`
+  - `src/platform/XerahS.Platform.Abstractions/Capture/RegionCaptureOptions.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `tests/XerahS.Tests/Platform/Windows/WinRTCaptureStrategyTests.cs`
+- Findings:
+  - `WinRTCaptureStrategy.CaptureRegionAsync` still delegates to `GdiCaptureStrategy`, but `GetCapabilities()` was advertising WinRT-only features such as hardware acceleration, cursor capture, and HDR support.
+  - That mismatch can mislead diagnostics and backend-selection logic into believing those capabilities are available when this code path currently falls back to GDI.
+  - Added a Windows-only regression test for the fallback capability contract, and excluded it from non-Windows test compilation so Linux cron builds stay green while preserving Windows coverage.
+- Outcome:
+  - Landed a bounded fix so `WinRTCaptureStrategy.GetCapabilities()` now derives from the current GDI fallback capabilities and reports itself as `WinRT Graphics Capture (GDI fallback)` instead of overstating support.
+  - Added `WinRTCaptureStrategyTests` to lock the fallback capability contract on Windows builds.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` now runs 374 tests on this host but still fails with 16 pre-existing unrelated failures across assistant OCR behavior, editor UI smoke tests, preset serialization, screenshot-path expectations, workflow editor initialization, Linux portal policy, region-capture UI/recording setup, and Imgur auth state.
+- Follow-up:
+  - Triage the remaining 16 test failures separately; this run's capture fix did not add any new Linux-visible failures, but the Windows-only regression test should be exercised on a Windows CI/host.
 
 ### 2026-04-20 16:15 GMT+8
 - Area: Tests / test discoverability
