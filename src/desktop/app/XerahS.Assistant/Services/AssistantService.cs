@@ -256,8 +256,7 @@ public sealed class AssistantService : IAssistantService
             switch (action.Kind)
             {
                 case AssistantActionKind.CopyText:
-                    await PlatformServices.Clipboard.SetTextAsync(action.Text ?? string.Empty);
-                    return AssistantResponse.Info("Copied to clipboard.");
+                    return await CopyTextToClipboardOrErrorAsync(action.Text ?? string.Empty, "Copied to clipboard.");
 
                 case AssistantActionKind.RevealFile:
                     return PlatformServices.System.ShowFileInExplorer(action.FilePath ?? string.Empty)
@@ -307,7 +306,17 @@ public sealed class AssistantService : IAssistantService
         DebugHelper.WriteLine($"[Assistant] Built paths payload length={paths.Length} using separator='{(separator == Environment.NewLine ? "\\n" : separator)}'.");
         if (intent.CopyRequested)
         {
-            await PlatformServices.Clipboard.SetTextAsync(paths);
+            AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(paths);
+            if (clipboardResponse != null)
+            {
+                DebugHelper.WriteLine($"[Assistant] Clipboard copy for paths failed: {clipboardResponse.Message}");
+                return clipboardResponse with
+                {
+                    Items = items.Select(ToResultItem).ToList(),
+                    Actions = [new AssistantAction(AssistantActionKind.CopyText, "Copy paths", paths, ToolName: AssistantToolNames.ClipboardCopyText)]
+                };
+            }
+
             DebugHelper.WriteLine("[Assistant] Copied paths payload to clipboard.");
         }
 
@@ -333,7 +342,16 @@ public sealed class AssistantService : IAssistantService
         }
 
         string path = items[0].FilePath;
-        await PlatformServices.Clipboard.SetTextAsync(path);
+        AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(path);
+        if (clipboardResponse != null)
+        {
+            return clipboardResponse with
+            {
+                Kind = AssistantResponseKind.Results,
+                Items = [ToResultItem(items[0])],
+                Actions = [new AssistantAction(AssistantActionKind.CopyText, "Copy path", path, ToolName: AssistantToolNames.ClipboardCopyText)]
+            };
+        }
 
         return new AssistantResponse(
             AssistantResponseKind.Results,
@@ -462,8 +480,8 @@ public sealed class AssistantService : IAssistantService
 
         if (string.Equals(action.Text, "copy", StringComparison.OrdinalIgnoreCase))
         {
-            await PlatformServices.Clipboard.SetTextAsync(result.Text);
-            return AssistantResponse.Info(
+            AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(result.Text);
+            return clipboardResponse ?? AssistantResponse.Info(
                 "Copied OCR text to clipboard.",
                 new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", result.Text, ToolName: AssistantToolNames.ClipboardCopyText));
         }
@@ -483,6 +501,29 @@ public sealed class AssistantService : IAssistantService
             ScaleFactor = configuredOptions?.ScaleFactor >= 1f ? configuredOptions.ScaleFactor : 1f,
             SingleLine = configuredOptions?.SingleLine ?? false
         };
+    }
+
+    private static async Task<AssistantResponse> CopyTextToClipboardOrErrorAsync(string text, string successMessage)
+    {
+        AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(text);
+        return clipboardResponse ?? AssistantResponse.Info(successMessage);
+    }
+
+    private static async Task<AssistantResponse?> TryCopyTextToClipboardAsync(string text)
+    {
+        try
+        {
+            await PlatformServices.Clipboard.SetTextAsync(text);
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return new AssistantResponse(
+                AssistantResponseKind.Error,
+                "Clipboard is not available right now.",
+                [],
+                [new AssistantAction(AssistantActionKind.CopyText, "Copy text", text, ToolName: AssistantToolNames.ClipboardCopyText)]);
+        }
     }
 
     private async Task<AssistantResponse> UploadFileAsync(string? filePath, CancellationToken cancellationToken)

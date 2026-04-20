@@ -284,6 +284,49 @@ public sealed class AssistantServiceTests
     }
 
     [Test]
+    public async Task ExecuteActionAsync_RunOcr_CopyRequestedWithoutClipboard_ReturnsFriendlyError()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "ocr-copy.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        using (var image = SKImage.FromBitmap(bitmap))
+        using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+        using (var stream = File.OpenWrite(imagePath))
+        {
+            data.SaveTo(stream);
+        }
+
+        PlatformServices.Ocr = new RecordingOcrService();
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            new FakeHistoryService([CreateHistoryItem(imagePath, Path.GetFileName(imagePath))]),
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ExecuteActionAsync(
+                new AssistantAction(AssistantActionKind.RunOcr, "Run OCR", Text: "copy", FilePath: imagePath),
+                confirmed: true,
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Error));
+            Assert.That(response.Message, Is.EqualTo("Clipboard is not available right now."));
+            Assert.That(response.Actions, Has.Count.EqualTo(1));
+            Assert.That(response.Actions[0].Kind, Is.EqualTo(AssistantActionKind.CopyText));
+            Assert.That(response.Actions[0].Text, Is.EqualTo("bonjour"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            PlatformServices.Reset();
+        }
+    }
+
+    [Test]
     public async Task ExecuteActionAsync_RunOcr_UsesConfiguredTaskOcrOptions()
     {
         string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
@@ -306,7 +349,7 @@ public sealed class AssistantServiceTests
 
         var service = new AssistantService(
             new AssistantCommandRouter(),
-            new FakeHistoryService([]),
+            new FakeHistoryService([CreateHistoryItem(imagePath, Path.GetFileName(imagePath))]),
             new AssistantPrivacyGuard(),
             memoryStore: CreateMemoryStore());
 
