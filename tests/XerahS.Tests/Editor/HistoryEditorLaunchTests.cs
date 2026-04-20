@@ -169,7 +169,7 @@ public class HistoryEditorLaunchTests
             {
                 Assert.That(sourceFilePath, Is.EqualTo(imagePath));
 
-                using var updatedBitmap = new SKBitmap(8, 8);
+                using var updatedBitmap = new SKBitmap(16, 16);
                 updatedBitmap.Erase(SKColors.Green);
                 SaveBitmap(imagePath, updatedBitmap);
                 File.SetLastWriteTimeUtc(imagePath, lastWriteTimeTransform(originalWriteTimeUtc));

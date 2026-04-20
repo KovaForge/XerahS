@@ -361,7 +361,8 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                DateTime originalLastWriteTimeUtc = File.GetLastWriteTimeUtc(item.FilePath);
+                FileContentSnapshot originalImageSnapshot = FileContentSnapshot.Create(item.FilePath);
+                FileContentSnapshot originalSidecarSnapshot = FileContentSnapshot.Create(ResolveAnnotationSidecarPath(item));
 
                 if (preferAnnotations)
                 {
@@ -383,7 +384,7 @@ namespace XerahS.UI.ViewModels
                                 restoredAnnotations: true);
                             sessionResult?.RenderedImage.Dispose();
                             sessionResult?.SourceImage?.Dispose();
-                            await RefreshHistoryItemAfterEditorSessionAsync(item, originalLastWriteTimeUtc);
+                            await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
                             return;
                         }
                         catch (Exception ex)
@@ -402,7 +403,7 @@ namespace XerahS.UI.ViewModels
                 // Open in Editor using the platform service
                 var rendered = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
                 rendered?.Dispose();
-                await RefreshHistoryItemAfterEditorSessionAsync(item, originalLastWriteTimeUtc);
+                await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
             }
             catch (Exception ex)
             {
@@ -421,17 +422,21 @@ namespace XerahS.UI.ViewModels
             return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
         }
 
-        private async Task RefreshHistoryItemAfterEditorSessionAsync(HistoryItem item, DateTime originalLastWriteTimeUtc)
+        private async Task RefreshHistoryItemAfterEditorSessionAsync(
+            HistoryItem item,
+            FileContentSnapshot originalImageSnapshot,
+            FileContentSnapshot originalSidecarSnapshot)
         {
             if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
             {
                 return;
             }
 
-            bool imageFileChanged = File.GetLastWriteTimeUtc(item.FilePath) != originalLastWriteTimeUtc;
+            bool imageFileChanged = !FileContentSnapshot.Create(item.FilePath).Equals(originalImageSnapshot);
             bool sidecarPathChanged = SynchronizeAnnotationSidecarPath(item);
+            bool sidecarContentChanged = !FileContentSnapshot.Create(item.AnnotationSidecarPath).Equals(originalSidecarSnapshot);
 
-            if (!imageFileChanged && !sidecarPathChanged)
+            if (!imageFileChanged && !sidecarPathChanged && !sidecarContentChanged)
             {
                 return;
             }
@@ -504,6 +509,20 @@ namespace XerahS.UI.ViewModels
                     ? new Dictionary<string, string?>(item.Tags, StringComparer.Ordinal)
                     : new Dictionary<string, string?>()
             };
+        }
+
+        private readonly record struct FileContentSnapshot(bool Exists, long Length, DateTime LastWriteTimeUtc)
+        {
+            public static FileContentSnapshot Create(string? path)
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    return default;
+                }
+
+                var fileInfo = new FileInfo(path);
+                return new FileContentSnapshot(true, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+            }
         }
 
         [RelayCommand]

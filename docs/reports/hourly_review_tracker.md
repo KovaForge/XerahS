@@ -18,7 +18,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-04-19 20:09 GMT+8 | Reviewed | Fixed GDI bitmap DC restoration to avoid deleting selected HBITMAPs | High | Reviewed Windows capture path; tests still non-discoverable in current solution run |
 | OCR | 2026-04-20 14:37 GMT+8 | Reviewed | Fixed assistant-triggered OCR to honor configured task OCR options instead of forcing English/defaults | High | Reviewed assistant OCR/routing path; full Release build passed, `dotnet test` still reports no discoverable tests |
-| Editor integration | 2026-04-19 22:06 GMT+8 | Reviewed | Fixed history refresh detection when editor saves without advancing file timestamp; broader test/build blocked by missing ShareX.ImageEditor restore assets | High | Reviewed Avalonia editor session flow, history refresh, and headless UI service paths |
+| Editor integration | 2026-04-20 15:37 GMT+8 | Reviewed | Fixed editor-history refresh detection to compare file and sidecar content snapshots, catching same-timestamp saves and annotation-only updates | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
 | FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
@@ -33,6 +33,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
 
 ## Review Log
+
+### 2026-04-20 15:37 GMT+8
+- Area: Editor integration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.UI/ViewModels/HistoryViewModel.cs`
+  - `tests/XerahS.Tests/Editor/HistoryEditorLaunchTests.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IUIService.cs`
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaUIService.cs`
+- Findings:
+  - The earlier timestamp-only refresh logic in `HistoryViewModel.RefreshHistoryItemAfterEditorSessionAsync` still misses real editor saves when the image or `.xann` sidecar contents change without a last-write timestamp change.
+  - That leaves history thumbnails and editor-session-backed UI state stale after same-timestamp saves or annotation-only saves that reuse the same sidecar path.
+- Outcome:
+  - Landed a bounded follow-up fix so editor-session refresh now compares lightweight file snapshots (exists, length, last-write time) for both the image file and the annotation sidecar, in addition to sidecar path changes.
+  - Updated the regression test to exercise a same-timestamp save with changed file content length so the refresh path is covered by the intended edge case.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Investigate why the Windows-targeted .NET 10 NUnit test assembly still builds but exposes no discoverable tests under `dotnet test`.
 
 ### 2026-04-20 14:37 GMT+8
 - Area: OCR
