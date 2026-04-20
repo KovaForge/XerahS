@@ -17,7 +17,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-04-20 17:15 GMT+8 | Reviewed | Fixed WinRT capability reporting so the current GDI fallback no longer advertises unavailable HDR/cursor/hardware support | High | Reviewed Windows capture backend selection/capability reporting; Release build passed, full `dotnet test` runs 374 tests with 16 pre-existing unrelated failures, and added regression coverage is Windows-only |
-| OCR | 2026-04-20 14:37 GMT+8 | Reviewed | Fixed assistant-triggered OCR to honor configured task OCR options instead of forcing English/defaults | High | Reviewed assistant OCR/routing path; full Release build passed, `dotnet test` still reports no discoverable tests |
+| OCR | 2026-04-21 06:40 GMT+8 | Reviewed | Fixed assistant clipboard-dependent OCR and copy actions to return recoverable errors with copy-back actions instead of throwing when clipboard services are unavailable | High | Follow-up review of assistant OCR/copy flows after the earlier OCR-options fix; Release build passed, targeted assistant tests passed, and full `dotnet test` still reports 10 unrelated existing failures |
 | Editor integration | 2026-04-20 15:37 GMT+8 | Reviewed | Fixed editor-history refresh detection to compare file and sidecar content snapshots, catching same-timestamp saves and annotation-only updates | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Uploader core | 2026-04-20 19:15 GMT+8 | Reviewed | Fixed uploader-instance duplication so file-type routing rules are preserved instead of resetting copies to an empty scope | High | Reviewed plugin-system instance duplication/routing/config flows; Release build passed, targeted duplication regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,29 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 06:40 GMT+8
+- Area: OCR
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Routing/AssistantCommandRouter.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantServiceTests.cs`
+- Findings:
+  - Assistant clipboard-backed actions (`CopyText`, latest screenshot path copy, batched history-path copy, and OCR copy mode) called `PlatformServices.Clipboard.SetTextAsync` directly.
+  - When clipboard services are unavailable, those paths surfaced an exception-driven failure instead of a recoverable assistant response, which is especially rough for OCR copy because the recognized text was lost unless the user reran the action.
+  - This was a justified OCR follow-up even though the area was reviewed recently, because the previous OCR-options fix exposed the missing clipboard failure handling in the same assistant action path.
+- Outcome:
+  - Landed a bounded fix so assistant clipboard-dependent actions now return a friendly error plus a `CopyText` recovery action carrying the generated payload instead of throwing.
+  - Added assistant regression coverage for OCR copy requests when the clipboard is unavailable, and updated the existing OCR-options test fixture to use a known-history file so it exercises the real OCR path under the privacy guard.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~AssistantServiceTests|FullyQualifiedName~AssistantCommandRouterTests"` passed with 21/21 tests green.
+  - Full solution `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 10 unrelated existing failures in editor history refresh, schema-driven editor dialogs, image-effect preset serialization, Linux portal capture policy, and region-capture platform/recording setup.
+- Follow-up:
+  - Keep the next OCR/assistant pass on conversation-state and tool-routing edge cases only if a new follow-up reason appears; the immediate clipboard failure path is now covered.
 
 ### 2026-04-21 05:31 GMT+8
 - Area: Tests / test discoverability
