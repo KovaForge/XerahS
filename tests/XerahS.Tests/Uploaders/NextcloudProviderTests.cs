@@ -27,6 +27,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using ShareX.Nextcloud.Plugin;
 using System.Reflection;
+using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Tests.Uploaders;
@@ -92,6 +93,25 @@ public class NextcloudProviderTests
         Assert.That(relativePath, Is.EqualTo("Screenshots"));
     }
 
+    [Test]
+    public void Upload_AllowsNonSeekableStreamsWithoutThrowingNotSupported()
+    {
+        NextcloudUploader uploader = new(new NextcloudConfigModel
+        {
+            ServerUrl = "https://127.0.0.1:1",
+            LoginName = "alice"
+        }, "app-password", string.Empty);
+
+        using NonSeekableReadStream stream = new("hello nextcloud"u8.ToArray());
+
+        UploadResult result = uploader.Upload(stream, "note.txt");
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(uploader.Errors.Errors.Select(error => error.Text),
+            Has.None.Contains("NotSupportedException").IgnoreCase
+                .And.None.Contains("specified method is not supported").IgnoreCase);
+    }
+
     private static NextcloudProvider CreateProvider(string secretKey, string appPassword)
     {
         NextcloudProvider provider = new();
@@ -109,6 +129,43 @@ public class NextcloudProviderTests
         object? result = method!.Invoke(null, new object[] { href, hrefPrefix, userId });
         Assert.That(result, Is.TypeOf<string>());
         return (string)result!;
+    }
+
+    private sealed class NonSeekableReadStream : Stream
+    {
+        private readonly MemoryStream _inner;
+
+        public NonSeekableReadStream(byte[] data)
+        {
+            _inner = new MemoryStream(data, writable: false);
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override int Read(Span<byte> buffer) => _inner.Read(buffer);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => _inner.ReadAsync(buffer, cancellationToken);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 
     private sealed class TestProviderContext : IProviderContext

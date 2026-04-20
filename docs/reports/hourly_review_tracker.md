@@ -20,7 +20,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | OCR | 2026-04-19 23:11 GMT+8 | Reviewed | Fixed after-capture OCR to honor configured task OCR options instead of forcing English/2x/multiline defaults | High | Reviewed CaptureJobProcessor OCR path; full solution build still SIGKILLed in this environment and tests remain non-discoverable |
 | Editor integration | 2026-04-19 22:06 GMT+8 | Reviewed | Fixed history refresh detection when editor saves without advancing file timestamp; broader test/build blocked by missing ShareX.ImageEditor restore assets | High | Reviewed Avalonia editor session flow, history refresh, and headless UI service paths |
 | Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
-| Nextcloud uploader plugin | 2026-04-19 14:16 GMT+8 | Reviewed | Inspected, no safe bounded fix landed | Medium | Review summary reported in hourly cron output |
+| Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
 | FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
 | Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
 | Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
@@ -33,6 +33,29 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
 
 ## Review Log
+
+### 2026-04-20 13:12 GMT+8
+- Area: Nextcloud uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudUploader.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudClient.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudConfigModel.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudProvider.cs`
+  - `tests/XerahS.Tests/Uploaders/NextcloudProviderTests.cs`
+- Findings:
+  - `NextcloudUploader.Upload` unconditionally accessed `stream.Length` before creating `ProgressManager`.
+  - That throws for valid non-seekable streams such as piped stdin, network streams, or wrapper streams that support reads but not length/seek, so the upload fails before the HTTP request even begins.
+- Outcome:
+  - Landed a bounded fix so progress tracking is only created when the input stream exposes a seekable length, while non-seekable streams still upload normally without preflight exceptions.
+  - Added regression coverage with a non-seekable test stream to ensure the uploader no longer fails with `NotSupportedException` during setup.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), both remotes fetched successfully, and the submodule was left on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; no parent submodule pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Investigate why NUnit tests are still non-discoverable under the current Windows-targeted .NET 10 test assembly output.
 
 ### 2026-04-19 14:16 GMT+8
 - Area: Nextcloud uploader plugin

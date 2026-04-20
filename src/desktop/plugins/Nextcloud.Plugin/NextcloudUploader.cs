@@ -65,7 +65,8 @@ public sealed class NextcloudUploader : FileUploader
             string relativeFilePath = NextcloudClient.CombineRelativePath(relativeFolderPath, fileName);
             string sharePath = "/" + relativeFilePath;
 
-            ProgressManager progress = new(stream.Length);
+            long streamLength = stream.CanSeek ? stream.Length : 0;
+            ProgressManager? progress = streamLength > 0 ? new ProgressManager(streamLength) : null;
             NextcloudClient client = new(_config.ServerUrl, loginName, _appPassword);
 
             client.UploadFileAsync(
@@ -77,7 +78,7 @@ public sealed class NextcloudUploader : FileUploader
                 _config.ChunkSizeMiB,
                 bytesTransferred =>
                 {
-                    if (AllowReportProgress && progress.UpdateProgress(bytesTransferred))
+                    if (progress != null && AllowReportProgress && progress.UpdateProgress(bytesTransferred))
                     {
                         OnProgressChanged(progress);
                     }
