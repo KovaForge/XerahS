@@ -27,7 +27,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
 | Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
-| CLI / command surface | - | Pending | - | Medium | Argument handling, exit codes, error messages |
+| CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
 | Platform-specific services | - | Pending | - | Medium | Windows/Linux/macOS abstractions and guards |
 | File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
 | Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
@@ -346,3 +346,26 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Keep digging on the Windows-targeted NUnit discovery issue so the new hotkey regression coverage can execute in normal `dotnet test` runs.
   - Review another stale pending subsystem next run instead of revisiting hotkeys/input unless it becomes a follow-up area.
+
+### 2026-04-20 10:07 GMT+8
+- Area: CLI / command surface
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/cli/XerahS.CLI/Program.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/UploadCommand.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+- Findings:
+  - `UploadCommand` wrote `--text`, `--pipe`, and `--name` temp files directly under the shared temp root using the requested filename, so repeated or concurrent uploads could overwrite each other and leave stale files behind.
+  - The command also logged the temporary path instead of the user-facing upload name, which is noisy and exposes an implementation detail.
+- Outcome:
+  - Landed a bounded fix in `UploadCommand` so temp-backed uploads now get a unique per-invocation temp directory, user-supplied names are sanitized to a file name, console output uses the display name, and the temporary directory is cleaned up on exit.
+- Verification / blockers:
+  - Parent repo upstream sync remained current this run: 0 upstream `develop` commits to merge and no conflicts.
+  - `ShareX.ImageEditor` remotes were verified again and the submodule was left on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; parent pointer did not need updating.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors. A prior default-parallel build hit an Avalonia file-lock race on `XerahS.RegionCapture.dll`.
+  - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+  - A temporary attempt to add direct CLI coverage into `XerahS.Tests` was backed out because referencing both `XerahS.App` (`XerahS`) and `XerahS.CLI` (`xerahs`) in the same test project causes an assembly-name collision on the Windows-targeted test graph.
+- Follow-up:
+  - Add dedicated CLI test coverage in an isolated test project or another harness that does not collide with the app assembly name.
+  - Review remaining CLI commands for similar temp-path reuse and output-name inconsistencies.
