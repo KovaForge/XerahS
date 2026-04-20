@@ -102,6 +102,37 @@ public class WorkflowManagerTests
     }
 
     [Test]
+    public void UnregisterHotkey_WhenServiceFails_KeepsWorkflowMappedAndMetadataIntact()
+    {
+        var service = new FakeHotkeyService { FailNextUnregister = true };
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.K, KeyModifiers.Control)
+            {
+                NativeTriggerDescription = "Ctrl+K"
+            });
+        bool triggered = false;
+
+        Assert.That(manager.RegisterHotkey(settings), Is.True);
+        settings.HotkeyInfo.NativeTriggerDescription = "Ctrl+K";
+        manager.HotkeyTriggered += (_, workflow) => triggered = ReferenceEquals(workflow, settings);
+
+        bool unregistered = manager.UnregisterHotkey(settings);
+        service.RaiseHotkeyTriggered(settings.HotkeyInfo);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(unregistered, Is.False);
+            Assert.That(settings.HotkeyInfo.Id, Is.Not.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.Failed));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.EqualTo("Ctrl+K"));
+            Assert.That(manager.Workflows.Contains(settings), Is.True);
+            Assert.That(triggered, Is.True);
+        });
+    }
+
+    [Test]
     public void HotkeyInfo_DisplayString_PrefersNativeTriggerDescription()
     {
         var hotkey = new HotkeyInfo(Key.F, KeyModifiers.Control | KeyModifiers.Shift)
@@ -118,12 +149,9 @@ public class WorkflowManagerTests
         private ushort _nextId = 1;
 
         public int UnregisterCallCount { get; private set; }
+        public bool FailNextUnregister { get; set; }
 
-        public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered
-        {
-            add { }
-            remove { }
-        }
+        public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
 
         public event EventHandler? HotkeysChanged;
 
@@ -155,6 +183,14 @@ public class WorkflowManagerTests
             }
 
             UnregisterCallCount++;
+
+            if (FailNextUnregister)
+            {
+                FailNextUnregister = false;
+                hotkeyInfo.Status = HotkeyStatus.Failed;
+                return false;
+            }
+
             hotkeyInfo.Status = HotkeyStatus.NotConfigured;
             return _registeredIds.Remove(hotkeyInfo.Id);
         }
@@ -176,6 +212,11 @@ public class WorkflowManagerTests
         public void RaiseHotkeysChanged()
         {
             HotkeysChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void RaiseHotkeyTriggered(HotkeyInfo hotkeyInfo)
+        {
+            HotkeyTriggered?.Invoke(this, new HotkeyTriggeredEventArgs(hotkeyInfo));
         }
     }
 }

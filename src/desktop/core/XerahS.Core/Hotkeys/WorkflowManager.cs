@@ -174,18 +174,18 @@ public class WorkflowManager : IDisposable
         }
 
         bool result = _hotkeyService.UnregisterHotkey(settings.HotkeyInfo);
-        _hotkeyMap.Remove(hotkeyId);
 
         if (result)
         {
+            _hotkeyMap.Remove(hotkeyId);
             settings.HotkeyInfo.Id = 0;
             settings.HotkeyInfo.NativeTriggerDescription = null;
-        }
 
-        if (removeFromList && Workflows.Contains(settings))
-        {
-            Workflows.Remove(settings);
-            WorkflowsChanged?.Invoke(this, EventArgs.Empty);
+            if (removeFromList && Workflows.Contains(settings))
+            {
+                Workflows.Remove(settings);
+                WorkflowsChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         return result;

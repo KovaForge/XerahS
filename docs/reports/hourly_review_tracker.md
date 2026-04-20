@@ -24,7 +24,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
 | Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
-| Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
+| Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Notifications/toasts | 2026-04-20 12:38 GMT+8 | Reviewed | Fixed platform notification severity propagation so Linux urgency/macOS subtitle/debug fallback now reflect NotificationType | Low | Reviewed native notification services and start-info generation; `dotnet test` still reports no discoverable tests |
 | Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,32 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 23:17 GMT+8
+- Area: Hotkeys/input
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Hotkeys/WorkflowManager.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/HotkeyInfo.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IHotkeyService.cs`
+  - `tests/XerahS.Tests/Hotkeys/WorkflowManagerTests.cs`
+- Findings:
+  - `WorkflowManager.UnregisterHotkeyInternal` removed the workflow from `_hotkeyMap` before checking whether the platform hotkey service actually succeeded.
+  - If native unregister failed, XerahS kept the non-zero hotkey ID and failure status on `HotkeyInfo`, but it silently dropped the workflow mapping and could remove the workflow from the managed list, leaving a still-active hotkey orphaned from runtime dispatch.
+  - That is a bad edge case: the OS can still deliver the hotkey while XerahS no longer knows which workflow owns it.
+- Outcome:
+  - Landed a bounded fix so workflow-map removal, runtime metadata clearing, and optional workflow-list removal now happen only after a successful native unregister.
+  - Added a regression test covering unregister failure, verifying the workflow remains mapped, metadata stays intact, and trigger dispatch still reaches the owning workflow.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter "FullyQualifiedName~WorkflowManagerTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 5/5 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 16 unrelated existing failures, including image-effect preset serialization, screenshots-folder path expectations, workflow save initialization, and region-capture recording setup.
+- Follow-up:
+  - Triage the remaining 16 unrelated failing tests separately; this run's hotkey failure-path fix is covered by targeted regression tests and does not touch those subsystems.
+
+
 
 ### 2026-04-20 22:17 GMT+8
 - Area: Imgur uploader plugin
