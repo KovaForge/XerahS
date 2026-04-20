@@ -30,9 +30,34 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | CLI / command surface | 2026-04-21 02:21 GMT+8 | Reviewed | Fixed `capture region` parsing so missing or malformed `--region` values now fail cleanly with actionable errors instead of null/format exceptions | Medium | Reviewed CLI capture command argument binding and region parsing; Release build passed with 0 warnings/errors, targeted CLI parsing regression passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
-| Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
+| Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 05:31 GMT+8
+- Area: Tests / test discoverability
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `tests/XerahS.Tests/Xip0052/Xip0052TestDoubles.cs`
+  - `tests/XerahS.Tests/Hotkeys/WorkflowEditorViewModelTests.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/WorkflowEditorViewModel.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/TaskSettingsViewModel.cs`
+- Findings:
+  - `FakeUiViewModelFactory.CreateTaskSettingsViewModel` returned an uninitialized `TaskSettingsViewModel` shell via `RuntimeHelpers.GetUninitializedObject`.
+  - That left `_settings` null, so any `WorkflowEditorViewModel` test that changed `SelectedJob` crashed inside `TaskSettingsViewModel.Job` before exercising the real workflow-save behavior.
+  - The bounded safe fix was to construct a real `TaskSettingsViewModel` with the fake dialog service so the workflow editor tests run against initialized state instead of a broken test double.
+- Outcome:
+  - Landed a bounded test-fixture fix so `CreateTaskSettingsViewModel` now returns `new TaskSettingsViewModel(settings, ViewDialogService)`.
+  - The targeted workflow editor regression suite now passes, removing three false-negative failures from the Release test run.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-restore -m:1 /p:BuildProjectReferences=false /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~WorkflowEditorViewModelTests"` passed with 3/3 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` now reports 395 discovered tests with 10 remaining unrelated failures (editor overlay/context menu/schema-driven filters, image-effect preset serialization, Linux portal policy, and region-capture platform/recording setup).
+  - Full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` repeatedly reached SIGKILL/OOM pressure on this host after building most projects, so zero-warning full-build verification is blocked by environment capacity rather than a new compile error from this change.
+- Follow-up:
+  - Next test-area pass should triage the remaining 10 genuine failures, starting with the schema-driven editor and image-effect preset serialization cluster.
+
 
 ### 2026-04-21 04:31 GMT+8
 - Area: Platform-specific services
