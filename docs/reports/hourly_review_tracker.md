@@ -26,13 +26,40 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Notifications/toasts | 2026-04-20 12:38 GMT+8 | Reviewed | Fixed platform notification severity propagation so Linux urgency/macOS subtitle/debug fallback now reflect NotificationType | Low | Reviewed native notification services and start-info generation; `dotnet test` still reports no discoverable tests |
-| Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
+| Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
 | Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
 | File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 20:16 GMT+8
+- Area: Plugin loading/runtime
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginConfigurationVerifier.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/UploaderInstanceViewModel.cs`
+  - `tests/XerahS.Tests/Helpers/PluginConfigurationVerifierTests.cs`
+  - `tests/XerahS.Tests/CustomUploader/CustomUploaderDefinitionBindingServiceTests.cs`
+- Findings:
+  - `ProviderCatalog.ReloadCustomUploader` only removed the old provider after successfully parsing the updated custom uploader file.
+  - If a custom uploader definition becomes invalid or is effectively deleted, reload returned `false` but left the previously loaded provider and metadata registered, so runtime/config UI paths could still offer a stale uploader that no longer matches disk state.
+- Outcome:
+  - Landed a bounded fix so custom uploader reload now removes any existing provider/metadata entry for the file before checking the new load result, ensuring broken or removed definitions do not stay selectable.
+  - Added a regression test covering the invalid-update path and confirming the stale provider is fully removed.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter "ReloadCustomUploader_InvalidUpdatedDefinition_RemovesStaleProvider|PluginConfigurationVerifierTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 7/7 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 17 pre-existing unrelated failures across schema-driven editor dialogs, image-effect preset serialization, workflow editor initialization, Linux portal policy, region-capture UI/recording setup, and Imgur authorization-state coverage.
+- Follow-up:
+  - Triage the remaining 17 unrelated failing tests separately; this run's plugin reload fix is covered by targeted regression tests and does not touch those subsystems.
+
 
 ### 2026-04-20 19:15 GMT+8
 - Area: Uploader core

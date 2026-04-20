@@ -221,6 +221,25 @@ public class CustomUploaderDefinitionBindingServiceTests
         Assert.That(provider.SupportedCategories, Is.EquivalentTo(new[] { UploaderCategory.Image, UploaderCategory.File }));
     }
 
+    [Test]
+    public void ReloadCustomUploader_InvalidUpdatedDefinition_RemovesStaleProvider()
+    {
+        string filePath = CreateUniqueFilePath("reload-invalid-update");
+
+        var original = CreateItem(CustomUploaderDestinationType.ImageUploader);
+        original.Name = "Still valid";
+        Assert.That(CustomUploaderRepository.SaveToFile(original, filePath), Is.True);
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.True);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath)?.Name, Is.EqualTo("Still valid"));
+
+        File.WriteAllText(filePath, "{\n  \"Name\": \"Broken\"\n}");
+
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.False);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Null);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviders().Any(provider =>
+            string.Equals(provider.FilePath, filePath, StringComparison.OrdinalIgnoreCase)), Is.False);
+    }
+
     private static CustomUploaderItem CreateItem(CustomUploaderDestinationType destinationType)
     {
         var item = CustomUploaderItem.Init();

@@ -497,16 +497,10 @@ public static class ProviderCatalog
     {
         var loaded = CustomUploaderRepository.ReloadFile(filePath);
 
-        if (loaded == null)
-        {
-            return false;
-        }
-
         lock (_lock)
         {
-            var provider = new CustomUploaderProvider(loaded);
-
-            // Remove old provider with same file if exists
+            // Remove old provider with same file if exists, even when the reload failed,
+            // so invalid or deleted definitions do not leave stale providers selectable.
             var existingKey = _providers.Keys.FirstOrDefault(k =>
                 _providers[k] is CustomUploaderProvider cp &&
                 string.Equals(cp.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
@@ -517,6 +511,13 @@ public static class ProviderCatalog
                 _pluginMetadata.Remove(existingKey);
             }
 
+            if (loaded == null)
+            {
+                DebugHelper.WriteLine($"[CustomUploader] Reload failed, removed stale provider for: {filePath}");
+                return false;
+            }
+
+            var provider = new CustomUploaderProvider(loaded);
             _providers[provider.ProviderId] = provider;
             ApplyContext(provider);
             _pluginMetadata[provider.ProviderId] = CreateCustomUploaderMetadata(provider, loaded);
