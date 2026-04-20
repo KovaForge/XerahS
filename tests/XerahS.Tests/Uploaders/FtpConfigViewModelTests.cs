@@ -56,6 +56,33 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void FtpsEncryptionChange_UpdatesDefaultPortWhenUserHasNotCustomizedIt()
+    {
+        var viewModel = new FtpConfigViewModel
+        {
+            Protocol = FTPProtocol.FTPS
+        };
+
+        viewModel.FtpsEncryptionMode = FTPSEncryption.Implicit;
+
+        Assert.That(viewModel.Port, Is.EqualTo(990));
+    }
+
+    [Test]
+    public void FtpsEncryptionChange_PreservesCustomPort()
+    {
+        var viewModel = new FtpConfigViewModel
+        {
+            Protocol = FTPProtocol.FTPS,
+            Port = 2121
+        };
+
+        viewModel.FtpsEncryptionMode = FTPSEncryption.Implicit;
+
+        Assert.That(viewModel.Port, Is.EqualTo(2121));
+    }
+
+    [Test]
     public void Validate_RejectsOutOfRangePort()
     {
         var viewModel = new FtpConfigViewModel

@@ -33,6 +33,7 @@ namespace ShareX.Ftp.Plugin.ViewModels;
 public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewModel
 {
     private FTPProtocol _previousProtocol = FTPProtocol.FTP;
+    private FTPSEncryption _previousFtpsEncryptionMode = FTPSEncryption.Explicit;
 
     [ObservableProperty]
     private string _accountName = "FTP Account";
@@ -87,15 +88,25 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
 
     partial void OnProtocolChanged(FTPProtocol value)
     {
-        if (Port == GetDefaultPort(_previousProtocol))
+        if (Port == GetDefaultPort(_previousProtocol, _previousFtpsEncryptionMode))
         {
-            Port = GetDefaultPort(value);
+            Port = GetDefaultPort(value, FtpsEncryptionMode);
         }
 
         _previousProtocol = value;
 
         OnPropertyChanged(nameof(ShowFtpsOptions));
         OnPropertyChanged(nameof(ShowSftpKeyOptions));
+    }
+
+    partial void OnFtpsEncryptionModeChanged(FTPSEncryption value)
+    {
+        if (Protocol == FTPProtocol.FTPS && Port == GetDefaultPort(FTPProtocol.FTPS, _previousFtpsEncryptionMode))
+        {
+            Port = GetDefaultPort(FTPProtocol.FTPS, value);
+        }
+
+        _previousFtpsEncryptionMode = value;
     }
 
     public IReadOnlyList<FTPProtocol> ProtocolOptions { get; } = new[] { FTPProtocol.FTP, FTPProtocol.FTPS, FTPProtocol.SFTP };
@@ -179,5 +190,13 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
         return true;
     }
 
-    private static int GetDefaultPort(FTPProtocol protocol) => protocol == FTPProtocol.SFTP ? 22 : 21;
+    private static int GetDefaultPort(FTPProtocol protocol, FTPSEncryption ftpsEncryptionMode)
+    {
+        return protocol switch
+        {
+            FTPProtocol.SFTP => 22,
+            FTPProtocol.FTPS when ftpsEncryptionMode == FTPSEncryption.Implicit => 990,
+            _ => 21
+        };
+    }
 }

@@ -21,7 +21,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Editor integration | 2026-04-20 15:37 GMT+8 | Reviewed | Fixed editor-history refresh detection to compare file and sidecar content snapshots, catching same-timestamp saves and annotation-only updates | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Uploader core | 2026-04-20 19:15 GMT+8 | Reviewed | Fixed uploader-instance duplication so file-type routing rules are preserved instead of resetting copies to an empty scope | High | Reviewed plugin-system instance duplication/routing/config flows; Release build passed, targeted duplication regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
-| FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
+| FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
 | Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,33 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 21:43 GMT+8
+- Area: FTP uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Ftp.Plugin/ViewModels/FtpConfigViewModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpConfigModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpProvider.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpUploader.cs`
+  - `src/desktop/plugins/Ftp.Plugin/Views/FtpConfigView.axaml`
+  - `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`
+- Findings:
+  - The FTP config view advertises FTPS implicit mode on port 990, but `FtpConfigViewModel` only recalculated ports by protocol, not by FTPS encryption mode.
+  - Switching an account from explicit FTPS to implicit FTPS left the default port stuck at 21 unless the user noticed and changed it manually, which can silently break uploads against implicit-only servers.
+  - The safe behavior is the same as the existing protocol default sync: only auto-adjust when the current port still matches the prior default, and preserve custom user-entered ports.
+- Outcome:
+  - Landed a bounded fix so FTPS encryption-mode changes now update the default port from 21 to 990 for implicit FTPS, while still preserving customized ports.
+  - Added regression tests covering both the default-port update path and the custom-port preservation path.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~FtpConfigViewModelTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 5/5 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 17 pre-existing unrelated failures, including region-capture recording setup and Imgur authorization-state coverage.
+- Follow-up:
+  - Triage the remaining 17 unrelated failing tests separately; this run's FTP config fix is covered by targeted regression tests and does not touch those subsystems.
+
 
 ### 2026-04-20 20:16 GMT+8
 - Area: Plugin loading/runtime
