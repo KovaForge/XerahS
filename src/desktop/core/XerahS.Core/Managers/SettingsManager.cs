@@ -579,54 +579,28 @@ namespace XerahS.Core
         {
             try
             {
+                // Capture current resolved paths before resetting Settings so custom/machine-specific files are deleted correctly.
+                string applicationConfigFilePath = ApplicationConfigFilePath;
+                string uploadersConfigFilePath = UploadersConfigFilePath;
+                string workflowsConfigFilePath = WorkflowsConfigFilePath;
+                string secretsStoreFilePath = SecretsStoreFilePath;
+                string secretsKeyPath = Path.Combine(Path.GetDirectoryName(secretsStoreFilePath) ?? SettingsFolder, "SecretsStore.key");
+
                 // Create timestamped backup folder
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
                 var backupFolder = Path.Combine(BackupFolder, $"Reset_{timestamp}");
                 Directory.CreateDirectory(backupFolder);
 
-                // Backup and delete ApplicationConfig
-                if (File.Exists(ApplicationConfigFilePath))
-                {
-                    File.Copy(ApplicationConfigFilePath,
-                        Path.Combine(backupFolder, ApplicationConfigFileName), overwrite: true);
-                    File.Delete(ApplicationConfigFilePath);
-                }
+                BackupAndDeleteFile(applicationConfigFilePath, backupFolder, ApplicationConfigFileName);
+                BackupAndDeleteFile(uploadersConfigFilePath, backupFolder, Path.GetFileName(uploadersConfigFilePath));
+                BackupAndDeleteFile(workflowsConfigFilePath, backupFolder, Path.GetFileName(workflowsConfigFilePath));
+                BackupAndDeleteFile(secretsStoreFilePath, backupFolder, Path.GetFileName(secretsStoreFilePath));
+                BackupAndDeleteFile(secretsKeyPath, backupFolder, Path.GetFileName(secretsKeyPath));
+
                 Settings = new ApplicationConfig();
-
-                // Backup and delete UploadersConfig
-                if (File.Exists(UploadersConfigFilePath))
-                {
-                    File.Copy(UploadersConfigFilePath,
-                        Path.Combine(backupFolder, UploadersConfigFileName), overwrite: true);
-                    File.Delete(UploadersConfigFilePath);
-                }
                 UploadersConfig = new UploadersConfig();
-
-                // Backup and delete WorkflowsConfig
-                if (File.Exists(WorkflowsConfigFilePath))
-                {
-                    File.Copy(WorkflowsConfigFilePath,
-                        Path.Combine(backupFolder, WorkflowsConfigFileName), overwrite: true);
-                    File.Delete(WorkflowsConfigFilePath);
-                }
                 WorkflowsConfig = new WorkflowsConfig();
                 SyncDefaultTaskSettings();
-
-                // Backup and delete secrets store artifacts
-                if (File.Exists(SecretsStoreFilePath))
-                {
-                    File.Copy(SecretsStoreFilePath,
-                        Path.Combine(backupFolder, Path.GetFileName(SecretsStoreFilePath)), overwrite: true);
-                    File.Delete(SecretsStoreFilePath);
-                }
-
-                string secretsKeyPath = Path.Combine(Path.GetDirectoryName(SecretsStoreFilePath) ?? SettingsFolder, "SecretsStore.key");
-                if (File.Exists(secretsKeyPath))
-                {
-                    File.Copy(secretsKeyPath,
-                        Path.Combine(backupFolder, Path.GetFileName(secretsKeyPath)), overwrite: true);
-                    File.Delete(secretsKeyPath);
-                }
 
                 DebugHelper.WriteLine($"Settings reset successfully. Backup created: {backupFolder}");
                 return true;
@@ -636,6 +610,17 @@ namespace XerahS.Core
                 DebugHelper.WriteException(ex, "Failed to reset settings");
                 return false;
             }
+        }
+
+        private static void BackupAndDeleteFile(string filePath, string backupFolder, string backupFileName)
+        {
+            if (!File.Exists(filePath))
+            {
+                return;
+            }
+
+            File.Copy(filePath, Path.Combine(backupFolder, backupFileName), overwrite: true);
+            File.Delete(filePath);
         }
 
 

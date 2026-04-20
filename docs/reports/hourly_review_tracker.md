@@ -23,7 +23,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
 | FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
 | Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
-| Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
+| Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Notifications/toasts | 2026-04-20 12:38 GMT+8 | Reviewed | Fixed platform notification severity propagation so Linux urgency/macOS subtitle/debug fallback now reflect NotificationType | Low | Reviewed native notification services and start-info generation; `dotnet test` still reports no discoverable tests |
 | Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
@@ -33,6 +33,30 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 18:41 GMT+8
+- Area: Settings/configuration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`
+  - `src/desktop/core/XerahS.Core/Models/ApplicationConfig.cs`
+  - `tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs`
+- Findings:
+  - `SettingsManager.ResetSettings()` captured `ApplicationConfigFilePath` before resetting state, but it reset `Settings` to a new default config before deleting uploader/workflow config files.
+  - Because `UploadersConfigFilePath`, `WorkflowsConfigFilePath`, and `SecretsStoreFilePath` are computed from the live `Settings`, reset operations using custom folders or machine-specific filenames could leave the active resolved files in place while only deleting the default-path variants.
+  - That means a user-visible "reset" could silently preserve custom machine-scoped configs and secrets even though the method reported success.
+- Outcome:
+  - Landed a bounded fix so `ResetSettings()` snapshots all resolved config/secrets paths before mutating `Settings`, then backs up and deletes those exact files.
+  - Added regression coverage proving reset now removes and backs up machine-specific secrets plus resolved custom uploader/workflow config files.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SettingsManagerSecretsPathTests"` passed with 4/4 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 16 pre-existing unrelated failures across schema-driven editor dialogs, image-effect preset serialization, workflow editor initialization, Linux portal policy, region-capture UI/recording setup, screenshot-path expectations, and Imgur auth-state coverage.
+- Follow-up:
+  - Triage the remaining 16 existing test failures by subsystem in future runs; this run's settings reset fix is covered by targeted tests and does not touch those failing areas.
+
 
 ### 2026-04-20 17:15 GMT+8
 - Area: Capture pipeline

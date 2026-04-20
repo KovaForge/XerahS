@@ -129,4 +129,60 @@ public class SettingsManagerSecretsPathTests
                 "SecretsStore.key should be backed up before deletion.");
         });
     }
+
+    [Test]
+    public void ResetSettings_DeletesAndBacksUpResolvedMachineSpecificAndCustomConfigFiles()
+    {
+        SettingsManager.Settings.UseMachineSpecificUploadersConfig = true;
+        SettingsManager.Settings.UseMachineSpecificWorkflowsConfig = true;
+        SettingsManager.Settings.UseMachineSpecificSecretsStore = true;
+
+        string customUploadersFolder = Path.Combine(SettingsManager.PersonalFolder, "custom-uploaders");
+        string customWorkflowsFolder = Path.Combine(SettingsManager.PersonalFolder, "custom-workflows");
+        Directory.CreateDirectory(customUploadersFolder);
+        Directory.CreateDirectory(customWorkflowsFolder);
+
+        SettingsManager.Settings.CustomUploadersConfigPath = customUploadersFolder;
+        SettingsManager.Settings.CustomWorkflowsConfigPath = customWorkflowsFolder;
+        SettingsManager.EnsureDirectoriesExist();
+
+        string applicationConfigPath = SettingsManager.ApplicationConfigFilePath;
+        string uploadersConfigPath = SettingsManager.UploadersConfigFilePath;
+        string workflowsConfigPath = SettingsManager.WorkflowsConfigFilePath;
+        string secretsPath = SettingsManager.SecretsStoreFilePath;
+        string keyPath = Path.Combine(Path.GetDirectoryName(secretsPath) ?? SettingsManager.SettingsFolder, "SecretsStore.key");
+
+        File.WriteAllText(applicationConfigPath, "{}");
+        File.WriteAllText(uploadersConfigPath, "{}");
+        File.WriteAllText(workflowsConfigPath, "{}");
+        File.WriteAllText(secretsPath, "{\"provider\":\"token\"}");
+        File.WriteAllText(keyPath, "secret-key");
+
+        bool reset = SettingsManager.ResetSettings();
+
+        string latestResetBackup = Directory
+            .GetDirectories(SettingsManager.BackupFolder, "Reset_*")
+            .OrderByDescending(path => path, StringComparer.Ordinal)
+            .First();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reset, Is.True);
+            Assert.That(File.Exists(applicationConfigPath), Is.False, "ApplicationConfig.json should be removed during reset.");
+            Assert.That(File.Exists(uploadersConfigPath), Is.False, "Resolved uploaders config should be removed during reset.");
+            Assert.That(File.Exists(workflowsConfigPath), Is.False, "Resolved workflows config should be removed during reset.");
+            Assert.That(File.Exists(secretsPath), Is.False, "Resolved secrets store should be removed during reset.");
+            Assert.That(File.Exists(keyPath), Is.False, "SecretsStore.key should be removed during reset.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(applicationConfigPath))), Is.True,
+                "ApplicationConfig.json should be backed up before deletion.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(uploadersConfigPath))), Is.True,
+                "Resolved uploaders config should be backed up before deletion.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(workflowsConfigPath))), Is.True,
+                "Resolved workflows config should be backed up before deletion.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(secretsPath))), Is.True,
+                "Resolved secrets store should be backed up before deletion.");
+            Assert.That(File.Exists(Path.Combine(latestResetBackup, Path.GetFileName(keyPath))), Is.True,
+                "SecretsStore.key should be backed up before deletion.");
+        });
+    }
 }
