@@ -133,20 +133,26 @@ public sealed class LinuxClipboardService : IClipboardService
 
     public void SetFileDropList(string[] files)
     {
-        // GNOME/KDE expect text/uri-list; best-effort implementation.
-        var payload = string.Join("\n", files.Select(f => $"file://{f}"));
-        SetData("text/uri-list", payload);
+        if (files == null || files.Length == 0)
+        {
+            return;
+        }
+
+        // GNOME/KDE expect text/uri-list with properly escaped file URIs.
+        var payload = string.Join("\n", files
+            .Select(ToClipboardFileUri)
+            .Where(uri => !string.IsNullOrWhiteSpace(uri)));
+
+        if (!string.IsNullOrWhiteSpace(payload))
+        {
+            SetData("text/uri-list", payload);
+        }
     }
 
     public string[]? GetFileDropList()
     {
         var data = GetData("text/uri-list") as string;
-        if (string.IsNullOrWhiteSpace(data))
-            return Array.Empty<string>();
-
-        return data.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(uri => uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase) ? uri[7..] : uri)
-            .ToArray();
+        return ParseFileDropList(data);
     }
 
     public void Clear()
@@ -223,6 +229,44 @@ public sealed class LinuxClipboardService : IClipboardService
             return ContainsText();
 
         return false;
+    }
+
+    internal static string[] ParseFileDropList(string? data)
+    {
+        if (string.IsNullOrWhiteSpace(data))
+        {
+            return Array.Empty<string>();
+        }
+
+        return data
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(ParseClipboardFileUri)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToArray()!;
+    }
+
+    internal static string? ToClipboardFileUri(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        return Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri)
+            ? absoluteUri.IsFile ? absoluteUri.AbsoluteUri : null
+            : new Uri(Path.GetFullPath(path)).AbsoluteUri;
+    }
+
+    internal static string? ParseClipboardFileUri(string? uriText)
+    {
+        if (string.IsNullOrWhiteSpace(uriText))
+        {
+            return null;
+        }
+
+        return Uri.TryCreate(uriText.Trim(), UriKind.Absolute, out var uri) && uri.IsFile
+            ? uri.LocalPath
+            : uriText.Trim();
     }
 
     private async Task<bool> TryPipeAsync(string tool, string args, byte[] data)

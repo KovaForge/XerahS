@@ -28,7 +28,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
 | Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
-| Platform-specific services | - | Pending | - | Medium | Windows/Linux/macOS abstractions and guards |
+| Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
 | File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
 | Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
 
@@ -369,3 +369,25 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Add dedicated CLI test coverage in an isolated test project or another harness that does not collide with the app assembly name.
   - Review remaining CLI commands for similar temp-path reuse and output-name inconsistencies.
+
+### 2026-04-20 11:35 GMT+8
+- Area: Platform-specific services
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsClipboardService.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxClipboardServiceTests.cs`
+- Findings:
+  - Linux clipboard file drops were serialized as raw `file://{path}` strings and deserialized by stripping the prefix, which breaks paths containing spaces, `#`, `%`, and other URI-reserved characters.
+  - That can corrupt pasted file paths on Linux desktop environments that expect RFC-compliant `text/uri-list` entries.
+- Outcome:
+  - Landed a bounded fix in `LinuxClipboardService` to emit proper escaped file URIs, parse newline-delimited URI lists safely, decode file URIs back to local paths, and ignore blank entries.
+  - Added regression tests covering URI escaping, round-trip decoding, and mixed URI/plain-path clipboard payload parsing.
+- Verification / blockers:
+  - Upstream `develop` was already current: 0 commits pending merge, no conflicts.
+  - `ShareX.ImageEditor` remotes were verified and the submodule remained on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; no submodule pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Keep digging into NUnit/.NET 10 discovery so the newly added Linux clipboard regression tests actually execute in normal solution test runs.
