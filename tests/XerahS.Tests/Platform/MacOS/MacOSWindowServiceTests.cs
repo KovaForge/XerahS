@@ -81,4 +81,27 @@ public class MacOSWindowServiceTests
 
         Assert.That(result, Is.False);
     }
+
+    [Test]
+    public void IsSearchMatch_MatchesWindowTitleOrAppName()
+    {
+        var windowInfo = new MacOSWindowService.FrontWindowInfo(
+            "Preview",
+            "Quarterly report.pdf",
+            new Rectangle(10, 20, 800, 600),
+            1234);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(MacOSWindowService.IsSearchMatch(windowInfo, "report"), Is.True);
+            Assert.That(MacOSWindowService.IsSearchMatch(windowInfo, "preview"), Is.True);
+            Assert.That(MacOSWindowService.IsSearchMatch(windowInfo, "terminal"), Is.False);
+        });
+    }
+
+    [Test]
+    public void FrontWindowHandle_IsNonZeroSentinel()
+    {
+        Assert.That(MacOSWindowService.FrontWindowHandle, Is.Not.EqualTo(IntPtr.Zero));
+    }
 }

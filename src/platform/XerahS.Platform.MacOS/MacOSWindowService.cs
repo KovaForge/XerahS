@@ -37,6 +37,7 @@ namespace XerahS.Platform.MacOS
     public class MacOSWindowService : IWindowService
     {
         internal const char FrontWindowInfoSeparator = '\u001F';
+        internal static readonly IntPtr FrontWindowHandle = new(1);
 
         private static readonly HashSet<string> Warned = new(StringComparer.Ordinal);
         private static readonly object WarnLock = new();
@@ -45,7 +46,7 @@ namespace XerahS.Platform.MacOS
 
         public IntPtr GetForegroundWindow()
         {
-            return IntPtr.Zero;
+            return TryGetFrontWindowInfo(out _) ? FrontWindowHandle : IntPtr.Zero;
         }
 
         public bool SetForegroundWindow(IntPtr handle)
@@ -150,7 +151,7 @@ namespace XerahS.Platform.MacOS
             {
                 new XerahS.Platform.Abstractions.WindowInfo
                 {
-                    Handle = IntPtr.Zero,
+                    Handle = FrontWindowHandle,
                     Title = windowInfo.WindowTitle,
                     ClassName = windowInfo.AppName,
                     Bounds = windowInfo.Bounds,
@@ -169,16 +170,16 @@ namespace XerahS.Platform.MacOS
 
         public IntPtr SearchWindow(string windowTitle)
         {
-            // TODO: Implement proper macOS window search via AppleScript
-            // For now, check if front window matches
-            if (TryGetFrontWindowInfo(out var windowInfo))
+            if (string.IsNullOrWhiteSpace(windowTitle))
             {
-                if ((!string.IsNullOrEmpty(windowInfo.WindowTitle) && windowInfo.WindowTitle.Contains(windowTitle, StringComparison.OrdinalIgnoreCase)) ||
-                    (!string.IsNullOrEmpty(windowInfo.AppName) && windowInfo.AppName.Contains(windowTitle, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return IntPtr.Zero; // macOS doesn't use handles the same way
-                }
+                return IntPtr.Zero;
             }
+
+            if (TryGetFrontWindowInfo(out var windowInfo) && IsSearchMatch(windowInfo, windowTitle))
+            {
+                return FrontWindowHandle;
+            }
+
             return IntPtr.Zero;
         }
 
@@ -250,6 +251,12 @@ namespace XerahS.Platform.MacOS
             var windowTitle = string.IsNullOrWhiteSpace(parts[0]) ? parts[1] : parts[0];
             windowInfo = new FrontWindowInfo(parts[1], windowTitle, new Rectangle(x, y, width, height), processId);
             return true;
+        }
+
+        internal static bool IsSearchMatch(FrontWindowInfo windowInfo, string windowTitle)
+        {
+            return (!string.IsNullOrEmpty(windowInfo.WindowTitle) && windowInfo.WindowTitle.Contains(windowTitle, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(windowInfo.AppName) && windowInfo.AppName.Contains(windowTitle, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string? RunOsaScriptWithOutput(string script)

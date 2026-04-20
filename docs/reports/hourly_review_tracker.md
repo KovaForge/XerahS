@@ -28,11 +28,40 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | CLI / command surface | 2026-04-21 02:21 GMT+8 | Reviewed | Fixed `capture region` parsing so missing or malformed `--region` values now fail cleanly with actionable errors instead of null/format exceptions | Medium | Reviewed CLI capture command argument binding and region parsing; Release build passed with 0 warnings/errors, targeted CLI parsing regression passed, and full `dotnet test` still reports 14 unrelated existing failures |
-| Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
+| Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 04:31 GMT+8
+- Area: Platform-specific services
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Windows/WindowsWindowService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSWindowService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSScreenCaptureKitService.cs`
+  - `src/platform/XerahS.Platform.Windows/Services/WindowsSystemService.cs`
+  - `src/platform/XerahS.Platform.MacOS/Services/MacOSSystemService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxSystemService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/WaylandPortalSystemService.cs`
+  - `tests/XerahS.Tests/Platform/MacOS/MacOSWindowServiceTests.cs`
+- Findings:
+  - `MacOSWindowService.SearchWindow` checked the front window title/app name correctly, but it still returned `IntPtr.Zero` on a match, so callers could never distinguish a successful match from failure.
+  - `GetForegroundWindow` also always returned `IntPtr.Zero`, which made the service inconsistent with its own `GetAllWindows` and effectively broke any consumer expecting a usable handle for the current front window on macOS.
+  - The bounded safe fix here is to use a stable non-zero sentinel handle for the single front-window abstraction and cover the matching semantics with focused regression tests.
+- Outcome:
+  - Landed a bounded fix so macOS front-window discovery now returns a stable non-zero sentinel handle when front-window info is available.
+  - Updated `SearchWindow` and `GetAllWindows` to use that same sentinel handle, and extracted the title/app-name matching logic into a helper for direct regression coverage.
+  - Added focused macOS window-service tests covering the sentinel-handle contract and search matching behavior.
+- Verification / blockers:
+  - Parent repo upstream is current this run: 0 upstream `develop` commits pending and no merge conflicts were present.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MacOSWindowServiceTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 5/5 tests green.
+  - Full solution `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 14 unrelated existing failures across assistant OCR, editor overlay/context-menu smoke tests, image-effect preset serialization/schema-driven filter dialogs, workflow editor initialization, Linux portal policy, and region-capture recording setup.
+- Follow-up:
+  - The next platform pass should stay in macOS/Linux service edges, but this run's macOS window-handle/search regression is now covered.
 
 ### 2026-04-21 02:21 GMT+8
 - Area: CLI / command surface
