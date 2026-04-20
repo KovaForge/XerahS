@@ -39,7 +39,7 @@ namespace XerahS.CLI.Commands
         public static Command Create(IDesktopTaskManager taskManager)
         {
             var captureCommand = new Command("capture", "Screen capture operations");
-            
+
             var uploadOption = new Option<bool>("--upload") { Description = "Upload the captured image/file" };
 
             // Screen capture subcommand
@@ -67,7 +67,7 @@ namespace XerahS.CLI.Commands
 
             // Region capture subcommand
             var regionCommand = new Command("region", "Capture specific region");
-            var regionOption = new Option<string>("--region") { Description = "Region in format 'x,y,width,height' (e.g. '0,0,400,400')" };
+            var regionOption = new Option<string?>("--region") { Description = "Region in format 'x,y,width,height' (e.g. '0,0,400,400')", Required = true };
             regionCommand.Add(regionOption);
             regionCommand.Add(outputOption);
             regionCommand.Add(uploadOption);
@@ -76,7 +76,7 @@ namespace XerahS.CLI.Commands
                 var region = parseResult.GetValue(regionOption);
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureRegionAsync(taskManager, region!, output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureRegionAsync(taskManager, region, output, upload).GetAwaiter().GetResult();
             });
 
             // Transparent region capture subcommand
@@ -235,21 +235,55 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureRegionAsync(IDesktopTaskManager taskManager, string region, string? output, bool upload)
+        public static bool TryParseRegion(string? region, out SkiaSharp.SKRect rect, out string? error)
+        {
+            rect = default;
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(region))
+            {
+                error = "Region must be specified as x,y,width,height.";
+                return false;
+            }
+
+            var parts = region.Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length != 4)
+            {
+                error = "Region must be in format x,y,width,height.";
+                return false;
+            }
+
+            if (!int.TryParse(parts[0], out int x) ||
+                !int.TryParse(parts[1], out int y) ||
+                !int.TryParse(parts[2], out int width) ||
+                !int.TryParse(parts[3], out int height))
+            {
+                error = "Region values must be integers in format x,y,width,height.";
+                return false;
+            }
+
+            if (width <= 0 || height <= 0)
+            {
+                error = "Region width and height must be greater than zero.";
+                return false;
+            }
+
+            rect = new SkiaSharp.SKRect(x, y, x + width, y + height);
+            return true;
+        }
+
+        private static async Task<int> CaptureRegionAsync(IDesktopTaskManager taskManager, string? region, string? output, bool upload)
         {
             try
             {
                 Console.WriteLine($"Capturing region: {region}");
-                
-                var parts = region.Split(',');
-                if (parts.Length != 4) throw new ArgumentException("Region must be x,y,width,height");
-                
-                int x = int.Parse(parts[0]);
-                int y = int.Parse(parts[1]);
-                int w = int.Parse(parts[2]);
-                int h = int.Parse(parts[3]);
-                
-                var rect = new SkiaSharp.SKRect(x, y, x + w, y + h);
+
+                if (!TryParseRegion(region, out var rect, out var error))
+                {
+                    Console.Error.WriteLine(error);
+                    return 1;
+                }
+
                 var image = await PlatformServices.ScreenCapture.CaptureRectAsync(rect);
                 
                 if (image == null)

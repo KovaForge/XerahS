@@ -27,12 +27,39 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
-| CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
+| CLI / command surface | 2026-04-21 02:21 GMT+8 | Reviewed | Fixed `capture region` parsing so missing or malformed `--region` values now fail cleanly with actionable errors instead of null/format exceptions | Medium | Reviewed CLI capture command argument binding and region parsing; Release build passed with 0 warnings/errors, targeted CLI parsing regression passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
 | File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 02:21 GMT+8
+- Area: CLI / command surface
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `tests/XerahS.Tests/Tools/CaptureCommandRegionParsingTests.cs`
+  - `tests/XerahS.Tests/SendTo/SendToIntegrationCoordinatorTests.cs`
+  - `src/desktop/app/XerahS.App/SendToIntegrationCoordinator.cs`
+  - `src/desktop/app/XerahS.App/XerahS.App.csproj`
+- Findings:
+  - `capture region` bound `--region` as an optional string and then forced it through `region!`, `Split`, and `int.Parse`, so missing or malformed values crashed with null, format, or width/height edge-case exceptions instead of returning a CLI validation error.
+  - The CLI area was stale in the tracker, and a bounded safe fix here is to require the option, validate the region payload centrally, and cover the parsing edge cases with focused regression tests.
+  - While wiring the new regression, the existing `SendToIntegrationCoordinatorTests` dependency on `XerahS.App` still required explicitly linking `SendToIntegrationCoordinator.cs` into the test project to keep Linux Release test builds healthy.
+- Outcome:
+  - Landed a bounded fix so `capture region` now requires `--region`, rejects blank/malformed/non-integer/non-positive dimensions with actionable error messages, and exits cleanly instead of throwing.
+  - Added `CaptureCommandRegionParsingTests` covering null, malformed, non-integer, non-positive, and valid region input cases.
+  - Restored the CLI test project reference and linked `SendToIntegrationCoordinator.cs` into `XerahS.Tests` so the targeted CLI regression can compile under Release on this host.
+- Verification / blockers:
+  - Parent repo upstream is already current this run: 0 upstream `develop` commits pending and no conflicts were present.
+  - `ShareX.ImageEditor` remotes were corrected and verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~CaptureCommandRegionParsingTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 7/7 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 14 unrelated existing failures, including assistant OCR, editor UI smoke paths, image-effect preset serialization, workflow editor initialization, Linux portal policy, and region-capture recording setup.
+- Follow-up:
+  - Keep the next CLI pass focused on command-surface validation and exit-code consistency, but this run's `capture region` failure-path regression is now covered.
 
 ### 2026-04-21 01:45 GMT+8
 - Area: Notifications/toasts

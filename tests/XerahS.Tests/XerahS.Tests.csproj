@@ -35,6 +35,8 @@
     <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
+    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
+                      AdditionalProperties="EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
     <ProjectReference Include="..\..\src\desktop\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
@@ -51,6 +53,11 @@
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Uploaders\XerahS.Uploaders.csproj" />
     <ProjectReference Include="..\..\src\tools\XerahS.McpServer\XerahS.McpServer.csproj" />
     <ProjectReference Include="..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\desktop\app\XerahS.App\SendToIntegrationCoordinator.cs"
+             Link="SendTo\AppSources\SendToIntegrationCoordinator.cs" />
   </ItemGroup>
 
   <!--
