@@ -29,10 +29,38 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
 | Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
-| File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
+| File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 01:10 GMT+8
+- Area: File/path handling
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Helpers/TaskHelpers.cs`
+  - `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/SettingsViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Onboarding/OnboardingWizardViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`
+  - `tests/XerahS.Tests/Helpers/TaskHelpersScreenshotsFolderTests.cs`
+- Findings:
+  - `TaskHelpers.GetScreenshotsParentFolder` returned `settings.CustomScreenshotsPath` verbatim, unlike `GetScreenshotsFolder`, so variable-based custom paths could stay unresolved and produce inconsistent save/output locations.
+  - On Linux, `Environment.ExpandEnvironmentVariables` does not expand Windows-style `%TEMP%` tokens, so tests and runtime paths using `%TEMP%` or `%TMP%` remained partially unresolved even after the parent-folder fix.
+  - The bounded safe fix is to normalize the custom parent folder through `FileHelpers.GetAbsolutePath` and teach folder expansion to resolve `%NAME%` environment-variable tokens, with explicit TEMP/TMP fallback to `Path.GetTempPath()`.
+- Outcome:
+  - Landed a bounded fix so screenshots parent-folder resolution now uses `FileHelpers.GetAbsolutePath(settings.CustomScreenshotsPath)` instead of returning the raw config string.
+  - Extended `FileHelpers.ExpandFolderVariables` to expand `%ENV_VAR%` tokens cross-platform, including `%TEMP%` and `%TMP%` fallback handling on Linux.
+  - Added regression coverage for custom screenshots parent-folder expansion.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release` had already completed successfully earlier in this run with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter "FullyQualifiedName~TaskHelpersScreenshotsFolderTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 4/4 tests green.
+  - Full solution `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 14 unrelated existing failures, including image-effect preset serialization, workflow save initialization, and region-capture recording setup.
+- Follow-up:
+  - Triage the remaining 14 unrelated failing tests separately; this run's screenshots-folder fix is covered by targeted regression tests and does not touch those subsystems.
+
 
 ### 2026-04-20 23:17 GMT+8
 - Area: Hotkeys/input

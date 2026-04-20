@@ -427,7 +427,7 @@ public static partial class TaskHelpers
         // Check if custom path is configured
         if (settings.UseCustomScreenshotsPath && !string.IsNullOrEmpty(settings.CustomScreenshotsPath))
         {
-            return settings.CustomScreenshotsPath;
+            return FileHelpers.GetAbsolutePath(settings.CustomScreenshotsPath);
         }
 
         // Determine folder based on job category

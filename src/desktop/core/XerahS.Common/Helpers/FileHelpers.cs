@@ -76,6 +76,23 @@ public static class FileHelpers
                     path = path.Replace(token, folderPath, StringComparison.OrdinalIgnoreCase);
                 }
             }
+
+            path = Regex.Replace(path, "%([A-Za-z0-9_]+)%", match =>
+            {
+                string variableName = match.Groups[1].Value;
+                string? variableValue = Environment.GetEnvironmentVariable(variableName);
+
+                if (string.IsNullOrEmpty(variableValue))
+                {
+                    variableValue = variableName.ToUpperInvariant() switch
+                    {
+                        "TEMP" or "TMP" => Path.GetTempPath(),
+                        _ => null
+                    };
+                }
+
+                return string.IsNullOrEmpty(variableValue) ? match.Value : variableValue;
+            });
         }
         catch
         {

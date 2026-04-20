@@ -87,6 +87,19 @@ public class TaskHelpersScreenshotsFolderTests
     }
 
     [Test]
+    public void GetScreenshotsParentFolder_ExpandsCustomPath_WhenEnabled()
+    {
+        var settings = SettingsManager.Settings;
+        settings.UseCustomScreenshotsPath = true;
+        settings.CustomScreenshotsPath = Path.Combine("%TEMP%", "XerahS-ParentShots");
+
+        string folder = TaskHelpers.GetScreenshotsParentFolder();
+
+        string expected = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "XerahS-ParentShots"));
+        Assert.That(folder, Is.EqualTo(expected));
+    }
+
+    [Test]
     public void GetScreenshotsParentFolder_UsesScreencastsFolder_ForRecording_WhenCustomPathDisabled()
     {
         var settings = SettingsManager.Settings;
