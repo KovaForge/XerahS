@@ -25,7 +25,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
 | Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
-| Notifications/toasts | 2026-04-20 12:38 GMT+8 | Reviewed | Fixed platform notification severity propagation so Linux urgency/macOS subtitle/debug fallback now reflect NotificationType | Low | Reviewed native notification services and start-info generation; `dotnet test` still reports no discoverable tests |
+| Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
 | Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,36 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 01:45 GMT+8
+- Area: Notifications/toasts
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Windows/WindowsNotificationService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxNotificationService.cs`
+  - `src/platform/XerahS.Platform.MacOS/Services/MacOSNotificationService.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs`
+  - `src/desktop/cli/XerahS.CLI/Services/HeadlessToastService.cs`
+  - `src/desktop/tools/XerahS.WatchFolder.Daemon/Services/HeadlessToastService.cs`
+  - `tests/XerahS.Tests/Platform/NotificationServiceProcessStartInfoTests.cs`
+  - `tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs`
+- Findings:
+  - `ToastWindow.OnPointerPressed` only armed click tracking for left-button presses, but `OnPointerReleased` tried to handle both left and middle releases.
+  - That meant configured toast middle-click actions were never fired unless some other path happened to set drag state first, so middle-click behavior was effectively broken in the Avalonia toast UI.
+  - Native Linux/macOS/Windows notification start-info generation still looked sane on review, and the bounded safe fix here was to repair the toast pointer-routing logic with regression coverage.
+- Outcome:
+  - Landed a bounded fix so toast click tracking now starts for both left and middle pointer presses.
+  - Extracted the click-routing threshold logic into a small helper and added regression tests covering left click, middle click, and drag-above-threshold behavior.
+- Verification / blockers:
+  - Parent repo upstream was already synced earlier this run with 1 upstream commit merged into `develop` and no conflicts; current parent HEAD remains `3c5cd5c3` plus this run's unpushed local fix.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ToastWindowClickRoutingTests|FullyQualifiedName~NotificationServiceProcessStartInfoTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 6/6 tests green.
+  - Full solution `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 14 unrelated existing failures across assistant OCR, editor UI smoke tests, image-effect preset serialization, workflow editor initialization, Linux portal policy, and region-capture setup/recording.
+- Follow-up:
+  - Keep the next notifications pass focused on toast lifecycle/state issues if needed, but the immediate middle-click action regression is now covered.
+
 
 ### 2026-04-21 01:10 GMT+8
 - Area: File/path handling
