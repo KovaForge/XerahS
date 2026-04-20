@@ -22,7 +22,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Uploader core | 2026-04-20 19:15 GMT+8 | Reviewed | Fixed uploader-instance duplication so file-type routing rules are preserved instead of resetting copies to an empty scope | High | Reviewed plugin-system instance duplication/routing/config flows; Release build passed, targeted duplication regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
 | FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
-| Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
+| Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
 | Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Notifications/toasts | 2026-04-20 12:38 GMT+8 | Reviewed | Fixed platform notification severity propagation so Linux urgency/macOS subtitle/debug fallback now reflect NotificationType | Low | Reviewed native notification services and start-info generation; `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,33 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 22:17 GMT+8
+- Area: Imgur uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Imgur.Plugin/ViewModels/ImgurConfigViewModel.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurConfigModel.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurProvider.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurUploader.cs`
+  - `tests/XerahS.Tests/Uploaders/ImgurConfigViewModelTests.cs`
+- Findings:
+  - `ImgurUploader.InternalUpload` retries once after refreshing an invalid access token, but it reused the original stream without rewinding it first.
+  - For seekable streams such as `MemoryStream` or file-backed streams, that retry can run from EOF and produce an empty or failed second upload even though the token refresh succeeded.
+  - Non-seekable streams cannot be retried safely, so the bounded fix is to rewind seekable streams and fail explicitly otherwise.
+- Outcome:
+  - Landed a bounded fix so Imgur auth-refresh retries now reset seekable upload streams to position 0 before reuploading.
+  - Added regression tests covering successful rewind for seekable streams and the explicit non-seekable rejection path.
+  - Updated the pre-existing Imgur config auth-state test fixture so its OAuth token has a valid expiry, matching current runtime authorization behavior.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ImgurConfigViewModelTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 4/4 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 16 unrelated existing failures, including image-effect preset serialization, screenshots-folder path expectations, workflow save initialization, and region-capture recording setup.
+- Follow-up:
+  - Triage the remaining 16 unrelated failing tests separately; this run's Imgur retry fix is covered by targeted regression tests and does not touch those subsystems.
+
 
 ### 2026-04-20 21:43 GMT+8
 - Area: FTP uploader plugin

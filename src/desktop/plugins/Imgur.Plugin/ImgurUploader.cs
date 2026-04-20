@@ -308,6 +308,12 @@ public class ImgurUploader : ImageUploader, IOAuth2
                         errorData?.error?.ToString()?.Equals("The access token provided is invalid.", StringComparison.OrdinalIgnoreCase) == true &&
                         RefreshAccessToken())
                     {
+                        if (!TryPrepareStreamForRetry(stream))
+                        {
+                            Errors.Add("Imgur upload retry requires a seekable stream.");
+                            return result;
+                        }
+
                         DebugHelper.WriteLine("Imgur access token refreshed, reuploading image.");
                         return InternalUpload(stream, fileName, false);
                     }
@@ -322,6 +328,17 @@ public class ImgurUploader : ImageUploader, IOAuth2
         }
 
         return result;
+    }
+
+    private static bool TryPrepareStreamForRetry(Stream stream)
+    {
+        if (!stream.CanSeek)
+        {
+            return false;
+        }
+
+        stream.Position = 0;
+        return true;
     }
 
     private bool IsVideoFile(string fileName)

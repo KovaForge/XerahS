@@ -27,6 +27,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using ShareX.Imgur.Plugin;
 using ShareX.Imgur.Plugin.ViewModels;
+using System.IO;
 using System.Reflection;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
@@ -41,10 +42,14 @@ public class ImgurConfigViewModelTests
     {
         const string secretKey = "imgur-secret";
         InMemorySecretStore secrets = new();
-        secrets.SetSecret("imgur", secretKey, "oauthToken", JsonConvert.SerializeObject(new OAuth2Token
+        OAuth2Token token = new()
         {
-            access_token = "access-token"
-        }));
+            access_token = "access-token",
+            refresh_token = "refresh-token",
+            expires_in = 3600
+        };
+        token.UpdateExpireDate();
+        secrets.SetSecret("imgur", secretKey, "oauthToken", JsonConvert.SerializeObject(token));
 
         ImgurConfigViewModel viewModel = new();
         viewModel.SetContext(new TestProviderContext(secrets));
@@ -103,6 +108,31 @@ public class ImgurConfigViewModelTests
         });
     }
 
+    [Test]
+    public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
+    {
+        using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });
+        stream.Position = 3;
+
+        bool prepared = InvokeTryPrepareStreamForRetry(stream);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(prepared, Is.True);
+            Assert.That(stream.Position, Is.Zero);
+        });
+    }
+
+    [Test]
+    public void TryPrepareStreamForRetry_ReturnsFalseForNonSeekableStream()
+    {
+        using NonSeekableReadStream stream = new(new byte[] { 1, 2, 3, 4 });
+
+        bool prepared = InvokeTryPrepareStreamForRetry(stream);
+
+        Assert.That(prepared, Is.False);
+    }
+
     private static ImgurUploader GetUploader(ImgurConfigViewModel viewModel)
     {
         FieldInfo? field = typeof(ImgurConfigViewModel).GetField("_uploader", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -124,6 +154,13 @@ public class ImgurConfigViewModelTests
         MethodInfo? method = typeof(ImgurConfigViewModel).GetMethod("EnsureUploader", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         method!.Invoke(viewModel, new object[] { rebuild });
+    }
+
+    private static bool InvokeTryPrepareStreamForRetry(Stream stream)
+    {
+        MethodInfo? method = typeof(ImgurUploader).GetMethod("TryPrepareStreamForRetry", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (bool)method!.Invoke(null, new object[] { stream })!;
     }
 
     private sealed class TestProviderContext : IProviderContext
@@ -151,5 +188,22 @@ public class ImgurConfigViewModelTests
 
         public bool HasSecret(string providerId, string secretKey, string name)
             => _values.ContainsKey((providerId, secretKey, name));
+    }
+
+    private sealed class NonSeekableReadStream : MemoryStream
+    {
+        public NonSeekableReadStream(byte[] buffer) : base(buffer)
+        {
+        }
+
+        public override bool CanSeek => false;
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override long Seek(long offset, SeekOrigin loc) => throw new NotSupportedException();
     }
 }
