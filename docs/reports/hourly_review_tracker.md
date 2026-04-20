@@ -19,7 +19,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Capture pipeline | 2026-04-20 17:15 GMT+8 | Reviewed | Fixed WinRT capability reporting so the current GDI fallback no longer advertises unavailable HDR/cursor/hardware support | High | Reviewed Windows capture backend selection/capability reporting; Release build passed, full `dotnet test` runs 374 tests with 16 pre-existing unrelated failures, and added regression coverage is Windows-only |
 | OCR | 2026-04-20 14:37 GMT+8 | Reviewed | Fixed assistant-triggered OCR to honor configured task OCR options instead of forcing English/defaults | High | Reviewed assistant OCR/routing path; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Editor integration | 2026-04-20 15:37 GMT+8 | Reviewed | Fixed editor-history refresh detection to compare file and sidecar content snapshots, catching same-timestamp saves and annotation-only updates | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed, `dotnet test` still reports no discoverable tests |
-| Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
+| Uploader core | 2026-04-20 19:15 GMT+8 | Reviewed | Fixed uploader-instance duplication so file-type routing rules are preserved instead of resetting copies to an empty scope | High | Reviewed plugin-system instance duplication/routing/config flows; Release build passed, targeted duplication regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
 | FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
 | Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,35 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 19:15 GMT+8
+- Area: Uploader core
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceConfiguration.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginConfigurationVerifier.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/UploaderInstanceViewModel.cs`
+  - `tests/XerahS.Tests/CustomUploader/CustomUploaderDefinitionBindingServiceTests.cs`
+  - `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`
+- Findings:
+  - `InstanceManager.DuplicateInstance` copied provider/config metadata but dropped `FileTypeRouting`, so duplicated uploader instances came back with a fresh empty routing scope.
+  - In practice that strips category extension assignments from the duplicate and can leave the copied uploader unable to match any file types until the user manually reconfigures routing.
+- Outcome:
+  - Landed a bounded fix so duplicated uploader instances deep-copy `FileTypeRouting` including `AllFileTypes` and the explicit extension list.
+  - Added a regression test proving duplicated instances preserve routing values and do not share the original mutable routing collection.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~InstanceManagerTests" -m:1 /p:UseSharedCompilation=false /nr:false` passed with 1/1 tests green.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 16 pre-existing unrelated failures, including assistant OCR, editor overlay/context-menu smoke tests, region capture recording setup, and Imgur authorization-state coverage.
+- Follow-up:
+  - Triage the remaining 16 unrelated failing tests separately; this run's uploader duplication fix is covered by the new targeted regression and does not touch those subsystems.
+
 
 ### 2026-04-20 18:41 GMT+8
 - Area: Settings/configuration

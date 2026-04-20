@@ -240,6 +240,11 @@ public class InstanceManager
                 Category = source.Category,
                 DisplayName = newDisplayName ?? $"{source.DisplayName} (Copy)",
                 SettingsJson = source.SettingsJson,
+                FileTypeRouting = new FileTypeScope
+                {
+                    AllFileTypes = source.FileTypeRouting.AllFileTypes,
+                    FileExtensions = source.FileTypeRouting.FileExtensions.ToList()
+                },
                 CreatedAt = createdAt,
                 ModifiedAt = createdAt,
                 IsAvailable = source.IsAvailable
