@@ -167,13 +167,20 @@ public class WorkflowManager : IDisposable
 
     private bool UnregisterHotkeyInternal(WorkflowSettings settings, bool removeFromList)
     {
-        if (settings.HotkeyInfo.Id == 0)
+        ushort hotkeyId = settings.HotkeyInfo.Id;
+        if (hotkeyId == 0)
         {
             return false;
         }
 
         bool result = _hotkeyService.UnregisterHotkey(settings.HotkeyInfo);
-        _hotkeyMap.Remove(settings.HotkeyInfo.Id);
+        _hotkeyMap.Remove(hotkeyId);
+
+        if (result)
+        {
+            settings.HotkeyInfo.Id = 0;
+            settings.HotkeyInfo.NativeTriggerDescription = null;
+        }
 
         if (removeFromList && Workflows.Contains(settings))
         {

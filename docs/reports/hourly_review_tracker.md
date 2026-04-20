@@ -24,7 +24,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
 | Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
 | Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
-| Hotkeys/input | - | Pending | - | Medium | Recorder, edge cases, platform-specific key mapping |
+| Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
 | Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
 | CLI / command surface | - | Pending | - | Medium | Argument handling, exit codes, error messages |
@@ -323,3 +323,26 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - `dotnet test --configuration Release /m:1` completed successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
 - Follow-up:
   - Investigate why the current .NET 10 Windows-targeted test assembly is still non-discoverable under `dotnet test`, even after recent package baseline updates.
+
+### 2026-04-20 09:07 GMT+8
+- Area: Hotkeys/input
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Hotkeys/WorkflowManager.cs`
+  - `src/platform/XerahS.Platform.Abstractions/Models/HotkeyInfo.cs`
+  - `src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs`
+  - `tests/XerahS.Tests/Hotkeys/WorkflowManagerTests.cs`
+- Findings:
+  - `WorkflowManager.UnregisterHotkeyInternal()` removed the binding from `_hotkeyMap`, but it left `HotkeyInfo.Id` and `NativeTriggerDescription` intact on successful unregister.
+  - That stale runtime metadata can leak into later state transitions: subsequent logic still sees a non-zero registration ID, and UI/native-trigger display can continue showing a compositor-provided shortcut label even after the hotkey has been cleared or reconfigured.
+- Outcome:
+  - Landed a bounded fix so successful unregister now captures the old ID for map removal, then clears `HotkeyInfo.Id` and `NativeTriggerDescription` alongside the existing status reset.
+  - Added regression coverage for explicit unregister and strengthened the clear-to-none test to verify runtime metadata is fully reset.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts were needed.
+  - `ShareX.ImageEditor` remotes were verified as `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, so no parent pointer update was required.
+  - `dotnet build --configuration Release /m:1` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release /m:1` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Keep digging on the Windows-targeted NUnit discovery issue so the new hotkey regression coverage can execute in normal `dotnet test` runs.
+  - Review another stale pending subsystem next run instead of revisiting hotkeys/input unless it becomes a follow-up area.

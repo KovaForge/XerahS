@@ -55,6 +55,8 @@ public class WorkflowManagerTests
         {
             Assert.That(clearedRegistration, Is.False);
             Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.NotConfigured));
+            Assert.That(settings.HotkeyInfo.Id, Is.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.Null);
             Assert.That(service.IsRegistered(settings.HotkeyInfo), Is.False);
             Assert.That(service.UnregisterCallCount, Is.EqualTo(1));
         });
@@ -71,6 +73,32 @@ public class WorkflowManagerTests
         service.RaiseHotkeysChanged();
 
         Assert.That(callCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void UnregisterHotkey_ClearsRuntimeMetadata()
+    {
+        var service = new FakeHotkeyService();
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.K, KeyModifiers.Control)
+            {
+                NativeTriggerDescription = "Ctrl+K"
+            });
+
+        Assert.That(manager.RegisterHotkey(settings), Is.True);
+
+        bool unregistered = manager.UnregisterHotkey(settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(unregistered, Is.True);
+            Assert.That(settings.HotkeyInfo.Id, Is.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.NotConfigured));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.Null);
+            Assert.That(service.UnregisterCallCount, Is.EqualTo(1));
+        });
     }
 
     [Test]
