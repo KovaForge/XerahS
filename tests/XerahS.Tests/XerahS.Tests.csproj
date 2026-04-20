@@ -2,12 +2,15 @@
 
   <PropertyGroup>
     <RootNamespace>XerahS.Tests</RootNamespace>
-    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <EnableWindowsTargeting Condition="'$(OS)' != 'Windows_NT'">true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <EnableAppDrivenPluginBuild>false</EnableAppDrivenPluginBuild>
+    <SkipBundlePlugins>true</SkipBundlePlugins>
   </PropertyGroup>
 
   <ItemGroup>

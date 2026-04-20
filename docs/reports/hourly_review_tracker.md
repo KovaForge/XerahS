@@ -30,9 +30,40 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
 | Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
 | File/path handling | 2026-04-20 04:39 GMT+8 | Reviewed | Fixed unique file naming so first collisions produce (1) instead of skipping to (2) | High | Reviewed file naming/collision paths; full Release build passed, full test run still reported no discoverable tests |
-| Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
+| Tests / test discoverability | 2026-04-20 16:15 GMT+8 | Reviewed | Fixed Linux test target/build settings so NUnit tests are discoverable under `dotnet test`; full suite now exposes 374 tests with 17 existing failures | High | Reviewed test project target/build behavior on non-Windows hosts; targeted Release build passes, discovery works, but broader suite still has pre-existing cross-platform/runtime failures and full-solution `dotnet test` can still hit SIGKILL pressure in this environment |
 
 ## Review Log
+
+### 2026-04-20 16:15 GMT+8
+- Area: Tests / test discoverability
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs`
+  - `tests/XerahS.Tests/Helpers/TaskHelpersScreenshotsFolderTests.cs`
+  - `tests/XerahS.Tests/Hotkeys/WorkflowEditorViewModelTests.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxCaptureOrchestrationTests.cs`
+  - `tests/XerahS.Tests/RegionCapture/RegionCaptureUiSmokeTests.cs`
+  - `tests/XerahS.Tests/RegionCapture/ScreenRecorderServiceTests.cs`
+  - `tests/XerahS.Tests/Uploaders/ImgurConfigViewModelTests.cs`
+- Findings:
+  - The test project still targeted only `net10.0-windows10.0.26100.0`, which left `dotnet test` on this Linux cron host building a Windows-targeted assembly that previously exposed no discoverable NUnit tests.
+  - The test project also inherited app-driven plugin bundling behavior, causing extra nested plugin builds and unnecessary memory pressure during verification.
+  - After switching the test target framework to `net10.0` on non-Windows hosts and disabling app-driven plugin bundling in the test project, NUnit discovery now works locally and `dotnet test --list-tests` exposes 374 tests.
+  - A full targeted test run now executes instead of reporting zero tests, but 17 existing failures remain across preset serialization, custom screenshot path expectations, workflow editor view-model setup, Linux capture policy assertions, region-capture UI/recording initialization, and Imgur config authorization state.
+- Outcome:
+  - Landed a bounded infrastructure fix in `tests/XerahS.Tests.csproj` so Linux cron runs use `net10.0`, preserve the Windows target on Windows hosts, and skip app-driven plugin bundling during test builds.
+  - `dotnet build tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` now passes with 0 warnings and 0 errors.
+  - `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --list-tests -m:1 /p:UseSharedCompilation=false /nr:false` now lists discoverable tests instead of reporting none.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full solution `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` still hit SIGKILL in this environment after build/test startup.
+  - Targeted `XerahS.Tests` execution no longer has the discoverability blocker, but the suite currently fails with 17 real test failures that need follow-up fixes in their respective subsystems.
+- Follow-up:
+  - Triage the 17 now-visible test failures by subsystem, starting with the path-expansion, workflow editor null-state, and Linux region-capture cases because they look like likely regression candidates rather than environment-only noise.
+
 
 ### 2026-04-20 15:37 GMT+8
 - Area: Editor integration
