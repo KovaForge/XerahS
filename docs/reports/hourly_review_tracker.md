@@ -22,7 +22,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-19 14:16 GMT+8 | Reviewed | Inspected, no safe bounded fix landed | Medium | Review summary reported in hourly cron output |
 | FTP uploader plugin | 2026-04-20 06:41 GMT+8 | Reviewed | Fixed protocol-switch default port sync and rejected invalid port ranges in config validation | Medium | Reviewed config view-model validation and protocol-dependent defaults; test discovery still reports no discoverable tests after package baseline refresh |
-| Imgur uploader plugin | - | Pending | - | Medium | Upload response validation, failures |
+| Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
 | Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
 | Hotkeys/input | - | Pending | - | Medium | Recorder, edge cases, platform-specific key mapping |
 | Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
@@ -298,3 +298,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Investigate why the updated NUnit/.NET test package baseline still does not make the Windows-targeted test assembly discoverable on this Linux host.
   - Review the next stale pending subsystem instead of revisiting FTP immediately unless the test-host work selects it.
+
+### 2026-04-20 07:41 GMT+8
+- Area: Imgur uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Imgur.Plugin/ViewModels/ImgurConfigViewModel.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurUploader.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurConfigModel.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurProvider.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `tests/XerahS.Tests/Uploaders/ImgurConfigViewModelTests.cs`
+- Findings:
+  - `ImgurConfigViewModel.LoadFromJson()` rebuilt `_uploader` before the persisted `ClientId` was copied back into the public view-model state.
+  - That means an already logged-in Imgur user could reopen settings, appear authenticated via the stored token, but still have an uploader instance with a blank OAuth client ID. Refresh, authorization checks, and album-loading flows could then fail against stale or empty in-memory config.
+  - `EnsureUploader()` also only copied `ClientId` back into `_config` before rebuilding, which let other current UI selections drift away from the uploader instance until a full save.
+- Outcome:
+  - Landed a bounded fix so config load now restores the persisted UI state before rebuilding the uploader, and uploader rebuilds now synchronize the current account/link/album settings back into `_config` first.
+  - Added regression coverage that checks persisted Imgur login state rebuilds with the saved client ID and that rebuilt uploader config matches current UI selections.
+- Verification / blockers:
+  - Parent repo upstream sync remained current this run: 0 upstream `develop` commits to merge, no conflicts.
+  - `ShareX.ImageEditor` remotes were verified again and the submodule was left on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`; no submodule pointer update was required.
+  - Initial `dotnet build --configuration Release` hit an Avalonia file-lock race (`AVLN9999` on `XerahS.RegionCapture.dll`) plus cascading `MSB4181`, but `dotnet build --configuration Release /m:1` then passed clean with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release /m:1` completed successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Investigate why the current .NET 10 Windows-targeted test assembly is still non-discoverable under `dotnet test`, even after recent package baseline updates.

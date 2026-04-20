@@ -178,7 +178,6 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             {
                 _config = config;
                 _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
-                _uploader = BuildUploader();
 
                 ClientId = _config.ClientId ?? string.Empty;
                 AccountTypeIndex = (int)_config.AccountType;
@@ -187,6 +186,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
                 UseGifv = _config.UseGIFV;
                 UploadToSelectedAlbum = _config.UploadToSelectedAlbum;
                 IsLoggedIn = HasToken();
+                _uploader = BuildUploader();
 
                 // Load selected album if exists
                 if (_config.SelectedAlbum != null)
@@ -272,6 +272,13 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
         if (rebuild || _uploader == null)
         {
             _config.ClientId = ClientId;
+            _config.AccountType = (AccountType)AccountTypeIndex;
+            _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
+            _config.DirectLink = UseDirectLink;
+            _config.UseGIFV = UseGifv;
+            _config.UploadToSelectedAlbum = UploadToSelectedAlbum;
+            _config.SelectedAlbum = UploadToSelectedAlbum ? SelectedAlbum : null;
+            _config.SecretKey = _secretKey;
             _uploader = BuildUploader();
         }
     }
