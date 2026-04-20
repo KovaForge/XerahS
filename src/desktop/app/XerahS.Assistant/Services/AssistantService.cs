@@ -36,6 +36,7 @@ using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
 using XerahS.Platform.Abstractions;
+using CoreOcrOptions = XerahS.Core.OCROptions;
 
 namespace XerahS.Assistant.Services;
 
@@ -453,7 +454,7 @@ public sealed class AssistantService : IAssistantService
             return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
         }
 
-        OcrResult result = await PlatformServices.Ocr.RecognizeAsync(bitmap, new OcrOptions { Language = "en" });
+        OcrResult result = await PlatformServices.Ocr.RecognizeAsync(bitmap, CreateAssistantOcrOptions());
         if (!result.Success || string.IsNullOrWhiteSpace(result.Text))
         {
             return AssistantResponse.Error(result.ErrorMessage ?? "OCR did not find text in the latest screenshot.");
@@ -470,6 +471,18 @@ public sealed class AssistantService : IAssistantService
         return AssistantResponse.Info(
             result.Text,
             new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", result.Text, ToolName: AssistantToolNames.ClipboardCopyText));
+    }
+
+    private static OcrOptions CreateAssistantOcrOptions()
+    {
+        CoreOcrOptions? configuredOptions = SettingsManager.DefaultTaskSettings?.CaptureSettings?.OCROptions;
+
+        return new OcrOptions
+        {
+            Language = string.IsNullOrWhiteSpace(configuredOptions?.Language) ? "en" : configuredOptions.Language,
+            ScaleFactor = configuredOptions?.ScaleFactor >= 1f ? configuredOptions.ScaleFactor : 1f,
+            SingleLine = configuredOptions?.SingleLine ?? false
+        };
     }
 
     private async Task<AssistantResponse> UploadFileAsync(string? filePath, CancellationToken cancellationToken)

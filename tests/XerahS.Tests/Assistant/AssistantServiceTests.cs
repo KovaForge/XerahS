@@ -30,6 +30,7 @@ using XerahS.Assistant.Models;
 using XerahS.Assistant.Providers;
 using XerahS.Assistant.Routing;
 using XerahS.Assistant.Services;
+using XerahS.Core;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
 
@@ -282,6 +283,57 @@ public sealed class AssistantServiceTests
         Assert.That(response.Actions[0].Text, Is.EqualTo(@"C:\Shots\1.png;C:\Shots\2.png;C:\Shots\3.png;C:\Shots\4.png;C:\Shots\5.png"));
     }
 
+    [Test]
+    public async Task ExecuteActionAsync_RunOcr_UsesConfiguredTaskOcrOptions()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "ocr.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        using (var image = SKImage.FromBitmap(bitmap))
+        using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+        using (var stream = File.OpenWrite(imagePath))
+        {
+            data.SaveTo(stream);
+        }
+
+        var ocr = new RecordingOcrService();
+        PlatformServices.Ocr = ocr;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "fr";
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.ScaleFactor = 3.5f;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.SingleLine = true;
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            new FakeHistoryService([]),
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ExecuteActionAsync(
+                new AssistantAction(AssistantActionKind.RunOcr, "Run OCR", FilePath: imagePath),
+                confirmed: true,
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Information));
+            Assert.That(response.Message, Is.EqualTo("bonjour"));
+            Assert.That(ocr.LastOptions, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ocr.LastOptions!.Language, Is.EqualTo("fr"));
+                Assert.That(ocr.LastOptions.ScaleFactor, Is.EqualTo(3.5f));
+                Assert.That(ocr.LastOptions.SingleLine, Is.True);
+            });
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            PlatformServices.Reset();
+        }
+    }
+
     private static AssistantHistoryItem CreateHistoryItem(string filePath, string fileName) =>
         new(
             Guid.NewGuid().ToString("N"),
@@ -355,5 +407,30 @@ public sealed class AssistantServiceTests
             Text = text;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class RecordingOcrService : IOcrService
+    {
+        public bool IsSupported => true;
+
+        public OcrOptions? LastOptions { get; private set; }
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options)
+        {
+            LastOptions = new OcrOptions
+            {
+                Language = options.Language,
+                ScaleFactor = options.ScaleFactor,
+                SingleLine = options.SingleLine
+            };
+
+            return Task.FromResult(new OcrResult
+            {
+                Success = true,
+                Text = "bonjour"
+            });
+        }
+
+        public OcrLanguage[] GetAvailableLanguages() => [new("French", "fr")];
     }
 }

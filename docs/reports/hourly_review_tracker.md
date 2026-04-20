@@ -17,7 +17,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-04-19 20:09 GMT+8 | Reviewed | Fixed GDI bitmap DC restoration to avoid deleting selected HBITMAPs | High | Reviewed Windows capture path; tests still non-discoverable in current solution run |
-| OCR | 2026-04-19 23:11 GMT+8 | Reviewed | Fixed after-capture OCR to honor configured task OCR options instead of forcing English/2x/multiline defaults | High | Reviewed CaptureJobProcessor OCR path; full solution build still SIGKILLed in this environment and tests remain non-discoverable |
+| OCR | 2026-04-20 14:37 GMT+8 | Reviewed | Fixed assistant-triggered OCR to honor configured task OCR options instead of forcing English/defaults | High | Reviewed assistant OCR/routing path; full Release build passed, `dotnet test` still reports no discoverable tests |
 | Editor integration | 2026-04-19 22:06 GMT+8 | Reviewed | Fixed history refresh detection when editor saves without advancing file timestamp; broader test/build blocked by missing ShareX.ImageEditor restore assets | High | Reviewed Avalonia editor session flow, history refresh, and headless UI service paths |
 | Uploader core | 2026-04-20 03:06 GMT+8 | Reviewed | Fixed custom uploader force-reload cleanup so deleted/updated definitions do not leave stale providers in memory | High | Reviewed plugin-system reload paths; full-solution Release verification still hit plugin auto-build / SIGKILL pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-20 13:12 GMT+8 | Reviewed | Fixed non-seekable upload streams so progress setup no longer throws before the HTTP upload starts | Medium | Reviewed uploader/client/provider paths; full Release build passed and `dotnet test` still reports no discoverable tests |
@@ -33,6 +33,30 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-20 05:18 GMT+8 | Reviewed | Updated NUnit/test SDK package baseline for .NET 10 discovery compatibility; runtime validation blocked by cron exec approval policy | High | Review found stale test infrastructure versions vs NUnit's current .NET 10 guidance; needs build/test/commit once exec allowlist is fixed |
 
 ## Review Log
+
+### 2026-04-20 14:37 GMT+8
+- Area: OCR
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Routing/AssistantCommandRouter.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantCommandRouterTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantServiceTests.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IOcrService.cs`
+- Findings:
+  - `AssistantService.RunOcrAsync` still invoked OCR with hardcoded defaults, forcing English and ignoring configured OCR scale and single-line settings.
+  - That made assistant-triggered OCR inconsistent with the already-fixed after-capture OCR path and broke non-English or single-line assistant OCR flows.
+- Outcome:
+  - Landed a bounded fix so assistant OCR now uses `SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions` with safe fallback normalization for blank language tags and invalid scale factors.
+  - Added regression coverage in `AssistantServiceTests` to verify assistant OCR forwards configured language, scale factor, and single-line settings to `IOcrService`.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX), the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and no parent submodule pointer update was required.
+  - `dotnet build --configuration Release` passed with 0 warnings and 0 errors after rerunning sequentially to avoid an Avalonia PDB file-lock race caused by overlapping earlier verification commands.
+  - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Investigate why the Windows-targeted .NET 10 NUnit test assembly still builds but exposes no discoverable tests under `dotnet test`.
 
 ### 2026-04-20 13:12 GMT+8
 - Area: Nextcloud uploader plugin
