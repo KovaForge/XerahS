@@ -36,25 +36,25 @@ public sealed class LinuxNotificationService : INotificationService
 {
     public void ShowNotification(string title, string message, NotificationType type = NotificationType.Info)
     {
-        if (!TryNotifySend(title, message))
+        if (!TryNotifySend(title, message, type))
         {
-            DebugHelper.WriteLine($"[Notification] {title}: {message}");
+            DebugHelper.WriteLine($"[Notification:{type}] {title}: {message}");
         }
     }
 
     public void ShowNotification(string title, string message, string actionText, Action action, NotificationType type = NotificationType.Info)
     {
-        if (!TryNotifySend(title, $"{message} ({actionText})"))
+        if (!TryNotifySend(title, $"{message} ({actionText})", type))
         {
-            DebugHelper.WriteLine($"[Notification] {title}: {message} (Action: {actionText})");
+            DebugHelper.WriteLine($"[Notification:{type}] {title}: {message} (Action: {actionText})");
         }
     }
 
-    private static bool TryNotifySend(string title, string message)
+    private static bool TryNotifySend(string title, string message, NotificationType type)
     {
         try
         {
-            using var process = Process.Start(CreateStartInfo(title, message));
+            using var process = Process.Start(CreateStartInfo(title, message, type));
             if (process == null)
                 return false;
 
@@ -67,7 +67,7 @@ public sealed class LinuxNotificationService : INotificationService
         }
     }
 
-    internal static ProcessStartInfo CreateStartInfo(string title, string message)
+    internal static ProcessStartInfo CreateStartInfo(string title, string message, NotificationType type = NotificationType.Info)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -78,6 +78,14 @@ public sealed class LinuxNotificationService : INotificationService
             RedirectStandardOutput = true
         };
 
+        startInfo.ArgumentList.Add("-u");
+        startInfo.ArgumentList.Add(type switch
+        {
+            NotificationType.Success => "low",
+            NotificationType.Warning => "normal",
+            NotificationType.Error => "critical",
+            _ => "normal"
+        });
         startInfo.ArgumentList.Add(title);
         startInfo.ArgumentList.Add(message);
         return startInfo;

@@ -25,7 +25,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Imgur uploader plugin | 2026-04-20 07:41 GMT+8 | Reviewed | Fixed config load/rebuild so persisted Imgur OAuth client state is preserved instead of rebuilding with a blank client ID | Medium | Reviewed config view-model/login state paths; full Release build passed with `/m:1` after an Avalonia file-lock race in the default parallel build, and `dotnet test` still reports no discoverable tests |
 | Settings/configuration | 2026-04-20 00:11 GMT+8 | Reviewed | Fixed ResetSettings so it also backs up and deletes SecretsStore artifacts instead of leaving credentials behind | High | Reviewed settings persistence/reset paths; full Release verification still blocked by missing ShareX.ImageEditor host restore assets and SIGKILL pressure |
 | Hotkeys/input | 2026-04-20 09:07 GMT+8 | Reviewed | Fixed hotkey unregister cleanup so runtime-only metadata is cleared instead of leaving stale IDs/native labels behind | Medium | Reviewed hotkey registration/unregistration state handling; full Release build passed, `dotnet test` still reports no discoverable tests |
-| Notifications/toasts | - | Pending | - | Low | UX correctness, fallback text, timing |
+| Notifications/toasts | 2026-04-20 12:38 GMT+8 | Reviewed | Fixed platform notification severity propagation so Linux urgency/macOS subtitle/debug fallback now reflect NotificationType | Low | Reviewed native notification services and start-info generation; `dotnet test` still reports no discoverable tests |
 | Plugin loading/runtime | 2026-04-20 03:17 GMT+8 | Reviewed | Fixed plugin verification null-provider handling so config UI paths fail safely instead of throwing | High | Reviewed verifier/runtime edge cases; full-solution Release build/test still hit SIGKILL in this environment |
 | CLI / command surface | 2026-04-20 10:07 GMT+8 | Reviewed | Fixed `upload` temp file naming/cleanup so `--text`, `--pipe`, and `--name` no longer reuse shared temp paths or leak leftovers | Medium | Reviewed upload command temp-file handling, display naming, and cleanup; Release build passed serially and `dotnet test` still reports no discoverable tests |
 | Platform-specific services | 2026-04-20 11:35 GMT+8 | Reviewed | Fixed Linux clipboard file-list URI encoding/decoding so paths with spaces and special characters round-trip correctly | Medium | Reviewed Linux/macOS/Windows clipboard file-drop handling; Release build passed and `dotnet test` still reports no discoverable tests |
@@ -391,3 +391,27 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
 - Follow-up:
   - Keep digging into NUnit/.NET 10 discovery so the newly added Linux clipboard regression tests actually execute in normal solution test runs.
+
+### 2026-04-20 12:38 GMT+8
+- Area: Notifications/toasts
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxNotificationService.cs`
+  - `src/platform/XerahS.Platform.MacOS/Services/MacOSNotificationService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsNotificationService.cs`
+  - `src/desktop/core/XerahS.Services.Abstractions/INotificationService.cs`
+  - `tests/XerahS.Tests/Platform/NotificationServiceProcessStartInfoTests.cs`
+- Findings:
+  - `NotificationType` was effectively ignored by the desktop native notification implementations.
+  - Linux always invoked `notify-send` without urgency mapping, macOS emitted the same AppleScript regardless of severity, and Windows debug fallback logs dropped the type entirely.
+  - That made warning/error notifications indistinguishable from informational ones and left no typed regression coverage around the process start arguments.
+- Outcome:
+  - Landed a bounded fix so Linux maps `NotificationType` to `notify-send -u` urgency, macOS adds a subtitle for non-info severities while preserving safe AppleScript escaping, and Windows debug fallback logs now retain the notification type.
+  - Updated notification process-start tests to cover Linux urgency mapping, macOS typed subtitle generation, and info-notification behavior without a subtitle.
+- Verification / blockers:
+  - Upstream `develop` was already current this run: 0 commits pending merge and no conflicts.
+  - `ShareX.ImageEditor` remotes remain correct (`origin=KovaForge`, `upstream=ShareX`), the submodule is still on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, and the parent repo already points at that commit.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` exited successfully but still reported no discoverable tests in `tests/XerahS.Tests/bin/Release/net10.0-windows10.0.26100.0/XerahS.Tests.dll`.
+- Follow-up:
+  - Keep digging on Windows-targeted NUnit discovery on the Linux host so the notification regression tests can execute in normal solution runs.
