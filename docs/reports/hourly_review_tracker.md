@@ -28,11 +28,41 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Notifications/toasts | 2026-04-22 02:21 GMT+8 | Reviewed | Fixed toast/history markdown copy output so image links now use real Markdown image syntax instead of BBCode-style `[img]...[/img]` snippets mislabeled as Markdown | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed with 0 warnings/errors, targeted toast/notification regressions passed 8/8, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Plugin loading/runtime | 2026-04-21 21:09 GMT+8 | Reviewed | Fixed custom uploader repository discovery cleanup so deleted or newly invalid definition files are evicted from the runtime cache instead of surviving until manual reload | High | Reviewed plugin discovery/loader/provider catalog plus custom-uploader repository caching paths; Release build passed with 0 warnings/errors, targeted custom-uploader/plugin-binding tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | CLI / command surface | 2026-04-22 00:12 GMT+8 | Reviewed | Fixed CLI upload filename sanitization so `--name` values containing directory segments or `.` / `..` collapse to a safe leaf filename or fallback instead of leaking invalid path fragments into temp upload paths | Medium | Reviewed `UploadCommand` temp-file naming and CLI upload path handling; Release build passed with 0 warnings/errors, targeted upload-path regressions passed 9/9, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
-| Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
+| Platform-specific services | 2026-04-22 03:44 GMT+8 | Reviewed | Fixed Wayland directory-open portal URIs so relative folders are normalized to absolute `file://` URIs before portal dispatch instead of failing with malformed relative URIs | Medium | Reviewed Linux Wayland portal file/folder open handling plus Linux/macOS notification process-start coverage; Release build passed with 0 warnings/errors, targeted platform regression tests passed 8/8, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures before the run is SIGKILLed by the environment |
 | File/path handling | 2026-04-22 01:37 GMT+8 | Reviewed | Fixed image save path handling so leaf-only filenames no longer try to create an empty directory and throw before writing the bitmap | High | Reviewed bitmap/file-save helpers plus path-shape edge cases; Release build passed with 0 warnings/errors, targeted ImageHelpers regression passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-22 03:44 GMT+8
+- Area: Platform-specific services
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Linux/Services/WaylandPortalSystemService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxNotificationService.cs`
+  - `src/platform/XerahS.Platform.MacOS/Services/MacOSNotificationService.cs`
+  - `src/platform/XerahS.Platform.Mobile/MobileScreenService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsClipboardMonitorService.cs`
+  - `src/platform/XerahS.Platform.Windows/XerahS.Platform.Windows.csproj`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxClipboardServiceTests.cs`
+  - `tests/XerahS.Tests/Platform/Linux/WaylandPortalSystemServiceTests.cs`
+  - `tests/XerahS.Tests/Platform/NotificationServiceProcessStartInfoTests.cs`
+- Findings:
+  - `WaylandPortalSystemService.OpenFile(...)` built directory URIs with `new Uri(filePath, UriKind.Absolute)`, which throws or yields invalid portal targets when callers pass relative folder paths.
+  - That path is realistic because XerahS commonly normalizes file paths late, and the portal `OpenURI` contract expects a valid absolute `file://` URI for folders.
+  - Linux/macOS notification process-start argument escaping still looked correct in the reviewed services and their existing focused tests.
+  - The broader Release suite still contains pre-existing unrelated failures in editor UI smoke, schema-driven editor dialogs, image-effect preset serialization, Linux portal orchestration policy, and region-capture smoke coverage.
+- Outcome:
+  - Landed a bounded fix by centralizing folder URI creation in `WaylandPortalSystemService.CreateDirectoryUri(...)`, which first normalizes to `Path.GetFullPath(...)` and then emits a correct absolute URI for portal dispatch.
+  - Added focused regression tests covering relative directory normalization plus escaping of whitespace and `#` characters in folder names.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~WaylandPortalSystemServiceTests|FullyQualifiedName~LinuxClipboardServiceTests|FullyQualifiedName~NotificationServiceProcessStartInfoTests"` passed with 8/8 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in `EditorCloseConfirmationTests`, `EditorContextMenuSmokeTests`, `SchemaDrivenFilterCatalogTests`, `ImageEffectPresetSerializerTests`, `LinuxCaptureOrchestrationTests`, and `RegionCaptureUiSmokeTests` before the environment SIGKILLs the run.
+- Follow-up:
+  - Next platform-services pass should inspect whether the existing Linux portal orchestration policy failure is a genuine regression in provider eligibility on X11 when modern capture is disabled, then either fix that routing logic or quarantine the stale expectation.
 
 ### 2026-04-22 02:21 GMT+8
 - Area: Notifications/toasts

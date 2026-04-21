@@ -116,7 +116,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         {
             if (_portal != null)
             {
-                var folderUri = new Uri(filePath, UriKind.Absolute).AbsoluteUri;
+                string folderUri = CreateDirectoryUri(filePath);
                 if (TryPortalRequest(options => _portal.OpenURIAsync(string.Empty, folderUri, options)))
                 {
                     return true;
@@ -146,6 +146,12 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
     public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
     {
         return _fallback.TryGetDesktopWallpaper(out wallpaper);
+    }
+
+    internal static string CreateDirectoryUri(string directoryPath)
+    {
+        string fullPath = Path.GetFullPath(directoryPath);
+        return new Uri(fullPath, UriKind.Absolute).AbsoluteUri;
     }
 
     private bool TryPortalRequest(Func<IDictionary<string, object>, Task<ObjectPath>> requestFactory)
