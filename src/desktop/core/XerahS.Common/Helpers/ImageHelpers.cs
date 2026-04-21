@@ -53,7 +53,7 @@ public static class ImageHelpers
         if (bitmap is null) throw new ArgumentNullException(nameof(bitmap));
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath) ?? string.Empty);
+        FileHelpers.CreateDirectoryFromFilePath(filePath);
 
         SKEncodedImageFormat format = GetEncodedFormat(filePath);
         using SKImage image = SKImage.FromBitmap(bitmap);

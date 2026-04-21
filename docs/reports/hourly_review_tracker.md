@@ -29,10 +29,33 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Plugin loading/runtime | 2026-04-21 21:09 GMT+8 | Reviewed | Fixed custom uploader repository discovery cleanup so deleted or newly invalid definition files are evicted from the runtime cache instead of surviving until manual reload | High | Reviewed plugin discovery/loader/provider catalog plus custom-uploader repository caching paths; Release build passed with 0 warnings/errors, targeted custom-uploader/plugin-binding tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | CLI / command surface | 2026-04-22 00:12 GMT+8 | Reviewed | Fixed CLI upload filename sanitization so `--name` values containing directory segments or `.` / `..` collapse to a safe leaf filename or fallback instead of leaking invalid path fragments into temp upload paths | Medium | Reviewed `UploadCommand` temp-file naming and CLI upload path handling; Release build passed with 0 warnings/errors, targeted upload-path regressions passed 9/9, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
-| File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
+| File/path handling | 2026-04-22 01:37 GMT+8 | Reviewed | Fixed image save path handling so leaf-only filenames no longer try to create an empty directory and throw before writing the bitmap | High | Reviewed bitmap/file-save helpers plus path-shape edge cases; Release build passed with 0 warnings/errors, targeted ImageHelpers regression passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-22 01:37 GMT+8
+- Area: File/path handling
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Common/Helpers/ImageHelpers.cs`
+  - `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`
+  - `tests/XerahS.Tests/Helpers/ImageHelpersTests.cs`
+- Findings:
+  - `ImageHelpers.SaveBitmap` called `Directory.CreateDirectory(Path.GetDirectoryName(filePath) ?? string.Empty)` directly.
+  - When callers supplied a leaf-only filename like `capture.png`, `Path.GetDirectoryName` returned `null`, which collapsed to an empty string and caused `CreateDirectory("")` to throw before the image was written.
+  - That made simple save flows depend on callers pre-normalizing paths instead of the helper safely handling the common current-directory case.
+- Outcome:
+  - Landed a bounded fix so `SaveBitmap` now routes directory creation through `FileHelpers.CreateDirectoryFromFilePath`, which is already null/empty-safe for leaf-only filenames.
+  - Added a focused regression test proving `ImageHelpers.SaveBitmap` succeeds when given just a filename and writes the bitmap into the current working directory.
+- Verification / blockers:
+  - Parent repo merged 1 upstream `develop` commit this run (`32be1a34`, docs/blog only) with no conflicts.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~ImageHelpersTests"` passed with 1/1 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in `EditorCloseConfirmationTests`, `EditorContextMenuSmokeTests`, `SchemaDrivenFilterCatalogTests`, `ImageEffectPresetSerializerTests`, `LinuxCaptureOrchestrationTests`, and `RegionCaptureUiSmokeTests`.
+- Follow-up:
+  - The next file/path pass should inspect other helper call sites still doing raw `Directory.CreateDirectory(Path.GetDirectoryName(...))` work, especially in indexing/tooling paths, and normalize them onto the safer helper.
 
 ### 2026-04-22 00:12 GMT+8
 - Area: CLI / command surface
