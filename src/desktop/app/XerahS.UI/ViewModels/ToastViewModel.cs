@@ -437,11 +437,20 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
+    internal static string BuildMarkdownImage(string url, string? altText = null)
+    {
+        string escapedAltText = string.IsNullOrWhiteSpace(altText)
+            ? "Image"
+            : altText.Replace("[", "\\[").Replace("]", "\\]");
+
+        return $"![{escapedAltText}]({url})";
+    }
+
     private void CopyMarkdownImage()
     {
         if (string.IsNullOrEmpty(_config.URL)) return;
 
-        var markdownImage = $"[img]{_config.URL}[/img]";
+        var markdownImage = BuildMarkdownImage(_config.URL, _config.Title);
         try
         {
             PlatformServices.Clipboard.SetText(markdownImage);

@@ -620,7 +620,7 @@ namespace XerahS.UI.ViewModels
         {
             if (item == null || string.IsNullOrEmpty(item.URL)) return;
 
-            var markdownImage = $"[img]{item.URL}[/img]";
+            var markdownImage = ToastViewModel.BuildMarkdownImage(item.URL, item.FileName);
             try
             {
                 if (PlatformServices.IsInitialized)

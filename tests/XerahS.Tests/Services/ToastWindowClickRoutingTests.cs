@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using NUnit.Framework;
 using Point = global::Avalonia.Point;
+using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
 namespace XerahS.Tests.Services;
@@ -54,5 +55,21 @@ public class ToastWindowClickRoutingTests
             Assert.That(handled, Is.False);
             Assert.That(action, Is.EqualTo(ToastWindow.ToastPointerAction.None));
         });
+    }
+
+    [Test]
+    public void BuildMarkdownImage_UsesMarkdownImageSyntax_WithEscapedAltText()
+    {
+        var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/capture.png", "Latest [Capture]");
+
+        Assert.That(markdown, Is.EqualTo("![Latest \\[Capture\\]](https://example.com/capture.png)"));
+    }
+
+    [Test]
+    public void BuildMarkdownImage_FallsBackToGenericAltText_WhenBlank()
+    {
+        var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/capture.png", " ");
+
+        Assert.That(markdown, Is.EqualTo("![Image](https://example.com/capture.png)"));
     }
 }
