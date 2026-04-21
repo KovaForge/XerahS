@@ -69,6 +69,49 @@ public class InstanceManagerTests
         Assert.That(duplicate.FileTypeRouting.FileExtensions, Is.EqualTo(new[] { "png", "jpg" }));
     }
 
+    [Test]
+    public void DuplicateInstance_NormalizesMissingFileTypeRouting()
+    {
+        var source = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Legacy Source",
+            SettingsJson = "{}",
+            FileTypeRouting = null!
+        };
+
+        InstanceManager.Instance.AddInstance(source);
+
+        var duplicate = InstanceManager.Instance.DuplicateInstance(source.InstanceId);
+
+        Assert.That(source.FileTypeRouting, Is.Not.Null);
+        Assert.That(duplicate.FileTypeRouting, Is.Not.Null);
+        Assert.That(duplicate.FileTypeRouting.AllFileTypes, Is.False);
+        Assert.That(duplicate.FileTypeRouting.FileExtensions, Is.Empty);
+    }
+
+    [Test]
+    public void ValidateFileTypeConfiguration_NormalizesMissingFileTypeRouting()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Legacy Source",
+            SettingsJson = "{}",
+            FileTypeRouting = null!
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+
+        var validationError = InstanceManager.Instance.ValidateFileTypeConfiguration(instance);
+
+        Assert.That(validationError, Is.Null);
+        Assert.That(instance.FileTypeRouting, Is.Not.Null);
+        Assert.That(instance.FileTypeRouting.FileExtensions, Is.Empty);
+    }
+
     private static void ClearInstances()
     {
         foreach (var instance in InstanceManager.Instance.GetInstances().ToList())

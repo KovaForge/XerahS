@@ -19,7 +19,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Capture pipeline | 2026-04-20 17:15 GMT+8 | Reviewed | Fixed WinRT capability reporting so the current GDI fallback no longer advertises unavailable HDR/cursor/hardware support | High | Reviewed Windows capture backend selection/capability reporting; Release build passed, full `dotnet test` runs 374 tests with 16 pre-existing unrelated failures, and added regression coverage is Windows-only |
 | OCR | 2026-04-21 06:40 GMT+8 | Reviewed | Fixed assistant clipboard-dependent OCR and copy actions to return recoverable errors with copy-back actions instead of throwing when clipboard services are unavailable | High | Follow-up review of assistant OCR/copy flows after the earlier OCR-options fix; Release build passed, targeted assistant tests passed, and full `dotnet test` still reports 10 unrelated existing failures |
 | Editor integration | 2026-04-21 14:46 GMT+8 | Reviewed | Fixed history editor tests to disable constructor auto-load and preserve annotation sidecar metadata when refreshed items are cloned | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed with 0 warnings/errors, targeted history editor tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 9 unrelated existing failures |
-| Uploader core | 2026-04-20 19:15 GMT+8 | Reviewed | Fixed uploader-instance duplication so file-type routing rules are preserved instead of resetting copies to an empty scope | High | Reviewed plugin-system instance duplication/routing/config flows; Release build passed, targeted duplication regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
+| Uploader core | 2026-04-21 15:11 GMT+8 | Reviewed | Fixed legacy uploader-instance normalization so null file-type routing data no longer crashes duplication, validation, or destination selection flows | High | Reviewed plugin-system instance duplication/routing/config flows with legacy/null `FileTypeRouting` states; targeted InstanceManager regressions passed, full `dotnet test --no-build` now reports 9 unrelated existing failures, and full Release build hit SIGKILL/OOM pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-21 07:13 GMT+8 | Reviewed | Fixed credential-clear state reset so stale server profile metadata and capability flags no longer survive after disconnecting a Nextcloud account | Medium | Follow-up review of config view-model state reset after the earlier uploader/client pass; targeted Nextcloud tests passed, while full Release build/test hit SIGKILL/OOM pressure in this environment |
 | FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
@@ -33,6 +33,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 15:11 GMT+8
+- Area: Uploader core
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`
+  - `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`
+- Findings:
+  - `InstanceManager` assumed every `UploaderInstance` had a non-null `FileTypeRouting` with a non-null `FileExtensions` list.
+  - That assumption is unsafe for legacy or manually edited config payloads, because deserialization or external edits can leave `FileTypeRouting` null.
+  - Once that happens, duplication, routing validation, destination lookup, and conflict inspection can throw null-reference exceptions before the instance is repaired.
+- Outcome:
+  - Landed a bounded fix that normalizes configuration and uploader instances on load, add, update, duplication, and routing reads.
+  - Added regression coverage proving legacy instances with missing `FileTypeRouting` can now be duplicated and validated without crashing.
+- Verification / blockers:
+  - Parent repo upstream sync completed with 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no parent submodule pointer update was required.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~InstanceManagerTests"` passed with 3/3 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 9 unrelated existing failures in editor overlay/context-menu/schema-driven filter tests, image-effect preset serialization, and region-capture recording setup.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` reached late-stage compilation but was killed by SIGKILL/OOM pressure in this environment before completion, so zero-warning full-build verification could not be re-established this run.
+- Follow-up:
+  - Keep the next uploader-core pass on migration/backward-compatibility edges, especially any other nullable legacy config fields that still bypass normalization.
 
 ### 2026-04-21 14:46 GMT+8
 - Area: Editor integration
