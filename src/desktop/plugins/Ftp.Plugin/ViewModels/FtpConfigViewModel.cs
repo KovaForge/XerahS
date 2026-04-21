@@ -123,7 +123,6 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
                 AccountName = config.AccountName ?? "FTP Account";
                 Protocol = config.Protocol;
                 Host = config.Host ?? string.Empty;
-                Port = config.Port;
                 Username = config.Username ?? string.Empty;
                 Password = config.Password ?? string.Empty;
                 IsActive = config.IsActive;
@@ -133,6 +132,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
                 HttpHomePathAutoAddSubFolderPath = config.HttpHomePathAutoAddSubFolderPath;
                 HttpHomePathNoExtension = config.HttpHomePathNoExtension;
                 FtpsEncryptionMode = config.FTPSEncryption;
+                Port = config.Port > 0 ? config.Port : GetDefaultPort(config.Protocol, config.FTPSEncryption);
                 Keypath = config.Keypath ?? string.Empty;
                 Passphrase = config.Passphrase ?? string.Empty;
             }

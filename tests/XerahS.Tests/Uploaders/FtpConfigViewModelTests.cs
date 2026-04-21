@@ -23,7 +23,9 @@
 
 #endregion License Information (GPL v3)
 
+using Newtonsoft.Json;
 using NUnit.Framework;
+using ShareX.Ftp.Plugin;
 using ShareX.Ftp.Plugin.ViewModels;
 using XerahS.Uploaders;
 
@@ -80,6 +82,39 @@ public sealed class FtpConfigViewModelTests
         viewModel.FtpsEncryptionMode = FTPSEncryption.Implicit;
 
         Assert.That(viewModel.Port, Is.EqualTo(2121));
+    }
+
+    [Test]
+    public void LoadFromJson_ReplacesMissingSftpPortWithProtocolDefault()
+    {
+        var viewModel = new FtpConfigViewModel();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Protocol = FTPProtocol.SFTP,
+            Host = "example.com",
+            Port = 0
+        });
+
+        viewModel.LoadFromJson(json);
+
+        Assert.That(viewModel.Port, Is.EqualTo(22));
+    }
+
+    [Test]
+    public void LoadFromJson_ReplacesMissingImplicitFtpsPortWithProtocolDefault()
+    {
+        var viewModel = new FtpConfigViewModel();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Protocol = FTPProtocol.FTPS,
+            FTPSEncryption = FTPSEncryption.Implicit,
+            Host = "example.com",
+            Port = 0
+        });
+
+        viewModel.LoadFromJson(json);
+
+        Assert.That(viewModel.Port, Is.EqualTo(990));
     }
 
     [Test]

@@ -21,7 +21,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Editor integration | 2026-04-21 14:46 GMT+8 | Reviewed | Fixed history editor tests to disable constructor auto-load and preserve annotation sidecar metadata when refreshed items are cloned | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed with 0 warnings/errors, targeted history editor tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 9 unrelated existing failures |
 | Uploader core | 2026-04-21 15:11 GMT+8 | Reviewed | Fixed legacy uploader-instance normalization so null file-type routing data no longer crashes duplication, validation, or destination selection flows | High | Reviewed plugin-system instance duplication/routing/config flows with legacy/null `FileTypeRouting` states; targeted InstanceManager regressions passed, full `dotnet test --no-build` now reports 9 unrelated existing failures, and full Release build hit SIGKILL/OOM pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-21 07:13 GMT+8 | Reviewed | Fixed credential-clear state reset so stale server profile metadata and capability flags no longer survive after disconnecting a Nextcloud account | Medium | Follow-up review of config view-model state reset after the earlier uploader/client pass; targeted Nextcloud tests passed, while full Release build/test hit SIGKILL/OOM pressure in this environment |
-| FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
+| FTP uploader plugin | 2026-04-21 20:09 GMT+8 | Reviewed | Fixed config JSON loading so missing or invalid FTP/FTPS/SFTP ports normalize back to protocol defaults instead of deserializing to 0 and failing validation | Medium | Reviewed config model/view-model load, validation, and protocol default handling; Release plugin build passed with 0 warnings/errors, targeted FTP config tests passed 7/7, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
 | Settings/configuration | 2026-04-21 19:09 GMT+8 | Reviewed | Fixed custom uploader/workflow config path resolution so relative folders are normalized to absolute paths and whitespace-only overrides fall back to the default settings folder | High | Follow-up review of settings path resolution after the reset-path fix; Release build passed with 0 warnings/errors, targeted settings-path tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor, preset-serialization, Linux portal policy, and region-capture UI smoke |
 | Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
@@ -33,6 +33,30 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 20:09 GMT+8
+- Area: FTP uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Ftp.Plugin/ViewModels/FtpConfigViewModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpConfigModel.cs`
+  - `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`
+- Findings:
+  - `LoadFromJson` copied deserialized `Port` values directly into the view-model.
+  - Legacy or partial JSON payloads with a missing `Port` field deserialize to `0`, which immediately fails validation and breaks the intended protocol defaults.
+  - The bug was worse for implicit FTPS and SFTP because their expected defaults are protocol-specific, so loading old configs could silently downgrade valid settings into an unusable state.
+- Outcome:
+  - Landed a bounded fix so `LoadFromJson` now treats `Port <= 0` as missing/invalid and restores the protocol default via `GetDefaultPort(config.Protocol, config.FTPSEncryption)`.
+  - Kept FTPS encryption assignment ahead of port normalization so implicit FTPS resolves correctly to port `990`.
+  - Added focused regression tests covering missing-port normalization for SFTP and implicit FTPS configs.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build src/desktop/plugins/Ftp.Plugin/XerahS.Ftp.Plugin.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~FtpConfigViewModelTests"` passed with 7/7 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
+- Follow-up:
+  - The next FTP-area pass should stay off default-port hydration and instead inspect connection-test/save flows or uploader retry behavior if the subsystem comes up again.
 
 ### 2026-04-21 18:23 GMT+8
 - Area: Capture pipeline
