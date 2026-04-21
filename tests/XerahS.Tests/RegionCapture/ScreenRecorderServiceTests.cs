@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System;
+using System.Drawing;
 using System.IO;
 using NUnit.Framework;
 using XerahS.Common;
@@ -35,6 +36,7 @@ namespace XerahS.Tests.RegionCapture;
 public sealed class ScreenRecorderServiceTests
 {
     private string? _originalPersonalFolder;
+    private FakeVideoEncoder? _lastEncoder;
 
     [SetUp]
     public void SetUp()
@@ -42,7 +44,7 @@ public sealed class ScreenRecorderServiceTests
         _originalPersonalFolder = PathsManager.PersonalFolder;
         PathsManager.PersonalFolder = Path.Combine(TestContext.CurrentContext.WorkDirectory, "screen-recorder-tests", Guid.NewGuid().ToString("N"));
         ScreenRecorderService.CaptureSourceFactory = () => new FakeCaptureSource();
-        ScreenRecorderService.EncoderFactory = () => new FakeVideoEncoder();
+        ScreenRecorderService.EncoderFactory = () => _lastEncoder = new FakeVideoEncoder();
     }
 
     [TearDown]
@@ -64,17 +66,45 @@ public sealed class ScreenRecorderServiceTests
 
         await service.StartRecordingAsync(new RecordingOptions());
 
-        Assert.That(
-            async () => await service.StopRecordingAsync(),
-            Throws.InvalidOperationException.With.Message.Contains("Recording output invalid"));
+        Assert.That(_lastEncoder, Is.Not.Null);
+        Assert.That(_lastEncoder!.OutputPath, Is.Not.Null.And.Not.Empty);
+
+        Assert.DoesNotThrowAsync(async () => await service.StopRecordingAsync());
+        Assert.That(File.Exists(_lastEncoder.OutputPath), Is.True);
     }
 
-    private sealed class FakeCaptureSource : ICaptureSource
+    [Test]
+    public async Task StartRecordingAsync_ClampsOddSinglePixelRegionDimensions_ToMinimumEvenEncoderSize()
     {
+        using var service = new ScreenRecorderService();
+
+        await service.StartRecordingAsync(new RecordingOptions
+        {
+            Mode = CaptureMode.Region,
+            Region = new Rectangle(10, 20, 1, 1)
+        });
+
+        Assert.That(_lastEncoder, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_lastEncoder!.InitializedFormat, Is.Not.Null);
+            Assert.That(_lastEncoder.InitializedFormat!.Width, Is.EqualTo(2));
+            Assert.That(_lastEncoder.InitializedFormat.Height, Is.EqualTo(2));
+        });
+    }
+
+    public sealed class FakeCaptureSource : ICaptureSource
+    {
+        public bool ShowCursor { get; set; }
+
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived
         {
             add { }
             remove { }
+        }
+
+        public void InitializeForPrimaryMonitor()
+        {
         }
 
         public Task StartCaptureAsync() => Task.CompletedTask;
@@ -86,10 +116,15 @@ public sealed class ScreenRecorderServiceTests
         }
     }
 
-    private sealed class FakeVideoEncoder : IVideoEncoder
+    public sealed class FakeVideoEncoder : IVideoEncoder
     {
+        public VideoFormat? InitializedFormat { get; private set; }
+        public string? OutputPath { get; private set; }
+
         public void Initialize(VideoFormat format, string outputPath)
         {
+            InitializedFormat = format;
+            OutputPath = outputPath;
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             using var _ = File.Create(outputPath);
         }

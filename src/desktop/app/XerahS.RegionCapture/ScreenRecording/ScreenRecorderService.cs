@@ -464,8 +464,7 @@ public class ScreenRecorderService : IRecordingService
             width = GetPrimaryScreenWidth();
         }
 
-        // Ensure even dimension for Media Foundation H.264 encoder
-        return width & ~1;
+        return NormalizeEncoderDimension(width);
     }
 
     private int GetCaptureHeight(RecordingOptions options)
@@ -502,8 +501,18 @@ public class ScreenRecorderService : IRecordingService
             height = GetPrimaryScreenHeight();
         }
 
-        // Ensure even dimension for Media Foundation H.264 encoder
-        return height & ~1;
+        return NormalizeEncoderDimension(height);
+    }
+
+    private static int NormalizeEncoderDimension(int dimension)
+    {
+        if (dimension <= 0)
+        {
+            return 2;
+        }
+
+        int evenDimension = dimension & ~1;
+        return evenDimension > 0 ? evenDimension : 2;
     }
 
     private static int GetPrimaryScreenWidth()

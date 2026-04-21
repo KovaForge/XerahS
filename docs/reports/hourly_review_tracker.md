@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-20 17:15 GMT+8 | Reviewed | Fixed WinRT capability reporting so the current GDI fallback no longer advertises unavailable HDR/cursor/hardware support | High | Reviewed Windows capture backend selection/capability reporting; Release build passed, full `dotnet test` runs 374 tests with 16 pre-existing unrelated failures, and added regression coverage is Windows-only |
+| Capture pipeline | 2026-04-21 18:23 GMT+8 | Reviewed | Fixed screen-recorder encoder dimension normalization so 1px region captures no longer collapse to 0x0 and break recording startup | High | Reviewed `ScreenRecorderService` capture sizing and start/stop test coverage; Release build passed with 0 warnings/errors, targeted screen-recorder tests passed, and full `dotnet test --configuration Release` now reports 8 unrelated existing failures in editor, preset-serialization, Linux portal policy, and region-capture UI smoke |
 | OCR | 2026-04-21 06:40 GMT+8 | Reviewed | Fixed assistant clipboard-dependent OCR and copy actions to return recoverable errors with copy-back actions instead of throwing when clipboard services are unavailable | High | Follow-up review of assistant OCR/copy flows after the earlier OCR-options fix; Release build passed, targeted assistant tests passed, and full `dotnet test` still reports 10 unrelated existing failures |
 | Editor integration | 2026-04-21 14:46 GMT+8 | Reviewed | Fixed history editor tests to disable constructor auto-load and preserve annotation sidecar metadata when refreshed items are cloned | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed with 0 warnings/errors, targeted history editor tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 9 unrelated existing failures |
 | Uploader core | 2026-04-21 15:11 GMT+8 | Reviewed | Fixed legacy uploader-instance normalization so null file-type routing data no longer crashes duplication, validation, or destination selection flows | High | Reviewed plugin-system instance duplication/routing/config flows with legacy/null `FileTypeRouting` states; targeted InstanceManager regressions passed, full `dotnet test --no-build` now reports 9 unrelated existing failures, and full Release build hit SIGKILL/OOM pressure in this environment |
@@ -33,6 +33,29 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 18:23 GMT+8
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/ScreenRecorderService.cs`
+  - `tests/XerahS.Tests/RegionCapture/ScreenRecorderServiceTests.cs`
+- Findings:
+  - `ScreenRecorderService` normalized encoder dimensions with `width & ~1` and `height & ~1`.
+  - That is fine for typical sizes, but it collapses a 1px capture region to `0`, which can hand an invalid 0x0 format to the recorder startup path.
+  - The existing stop-path test was also asserting an exception that the service intentionally swallows via `HandleFatalError`, so it was no longer protecting the real default-output-path contract.
+- Outcome:
+  - Landed a bounded fix that clamps encoder dimensions to a minimum even size of 2 while preserving normal even-dimension normalization for larger captures.
+  - Added regression coverage proving a 1x1 region now initializes the encoder as 2x2 instead of 0x0.
+  - Tightened the existing default-output-path test to assert the resolved file path is created and stop completes cleanly.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~ScreenRecorderServiceTests"` passed with 2/2 tests green.
+  - Full `dotnet test --configuration Release` still fails with 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
+- Follow-up:
+  - Next capture-pipeline pass should stay on the remaining region-capture UI/platform smoke failures, not this encoder-dimension edge case, because the tiny-region startup regression is now covered.
 
 ### 2026-04-21 15:11 GMT+8
 - Area: Uploader core
