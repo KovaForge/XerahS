@@ -35,6 +35,32 @@ namespace XerahS.Tests.Uploaders;
 public class NextcloudConfigViewModelTests
 {
     [Test]
+    public void LoadFromJson_PromotesLegacyUserIdIntoLoginIdentity()
+    {
+        const string secretKey = "nextcloud-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("nextcloud", secretKey, "appPassword", "app-password");
+
+        NextcloudConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            SecretKey = secretKey,
+            ServerUrl = "https://cloud.example.com",
+            LoginName = string.Empty,
+            UserId = "alice"
+        }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.LoginName, Is.EqualTo("alice"));
+            Assert.That(viewModel.UserId, Is.EqualTo("alice"));
+            Assert.That(viewModel.IsConnected, Is.True);
+            Assert.That(viewModel.Validate(), Is.True);
+        });
+    }
+
+    [Test]
     public void ClearStoredCredentials_ResetsConnectionStateAndCapabilitySummary()
     {
         NextcloudConfigViewModel viewModel = new();

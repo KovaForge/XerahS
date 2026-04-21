@@ -307,8 +307,9 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             _config = config;
             _secretKey = string.IsNullOrWhiteSpace(config.SecretKey) ? Guid.NewGuid().ToString("N") : config.SecretKey;
             ServerUrl = config.ServerUrl ?? string.Empty;
-            LoginName = config.LoginName ?? string.Empty;
-            UserId = config.UserId ?? string.Empty;
+            string normalizedLoginName = NormalizeLoginIdentity(config.LoginName, config.UserId);
+            LoginName = normalizedLoginName;
+            UserId = string.IsNullOrWhiteSpace(config.UserId) ? normalizedLoginName : config.UserId;
             DisplayName = config.DisplayName ?? string.Empty;
             RemotePath = string.IsNullOrWhiteSpace(config.RemotePath) ? "ShareX/%y/%mo" : config.RemotePath;
             CreatePublicShare = config.CreatePublicShare;
@@ -376,10 +377,16 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             return false;
         }
 
+        LoginName = NormalizeLoginIdentity(LoginName, UserId);
         if (string.IsNullOrWhiteSpace(LoginName))
         {
             StatusMessage = "Nextcloud login name is required.";
             return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            UserId = LoginName;
         }
 
         if (string.IsNullOrWhiteSpace(AppPassword))
@@ -445,9 +452,26 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
 
     private void UpdateConnectionState()
     {
+        LoginName = NormalizeLoginIdentity(LoginName, UserId);
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            UserId = LoginName;
+        }
+
         IsConnected = !string.IsNullOrWhiteSpace(LoginName) && !string.IsNullOrWhiteSpace(AppPassword);
         UpdateConnectionSummary();
         UpdateCapabilitiesSummary();
+    }
+
+    private static string NormalizeLoginIdentity(string? loginName, string? userId)
+    {
+        string normalizedLoginName = loginName?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(normalizedLoginName))
+        {
+            return normalizedLoginName;
+        }
+
+        return userId?.Trim() ?? string.Empty;
     }
 
     private void UpdateConnectionSummary()

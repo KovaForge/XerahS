@@ -472,7 +472,20 @@ public sealed class AssistantService : IAssistantService
             return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
         }
 
-        OcrResult result = await PlatformServices.Ocr.RecognizeAsync(bitmap, CreateAssistantOcrOptions());
+        OcrResult result;
+        try
+        {
+            result = await PlatformServices.Ocr.RecognizeAsync(bitmap, CreateAssistantOcrOptions());
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return AssistantResponse.Error("OCR failed: " + ex.Message);
+        }
+
         if (!result.Success || string.IsNullOrWhiteSpace(result.Text))
         {
             return AssistantResponse.Error(result.ErrorMessage ?? "OCR did not find text in the latest screenshot.");

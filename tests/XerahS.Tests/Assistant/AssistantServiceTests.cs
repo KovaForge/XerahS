@@ -284,6 +284,47 @@ public sealed class AssistantServiceTests
     }
 
     [Test]
+    public async Task ExecuteActionAsync_RunOcr_WhenRecognizerThrows_ReturnsFriendlyError()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "ocr-throws.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        using (var image = SKImage.FromBitmap(bitmap))
+        using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+        using (var stream = File.OpenWrite(imagePath))
+        {
+            data.SaveTo(stream);
+        }
+
+        PlatformServices.Ocr = new ThrowingOcrService();
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            new FakeHistoryService([CreateHistoryItem(imagePath, Path.GetFileName(imagePath))]),
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ExecuteActionAsync(
+                new AssistantAction(AssistantActionKind.RunOcr, "Run OCR", FilePath: imagePath),
+                confirmed: true,
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Error));
+            Assert.That(response.Message, Is.EqualTo("OCR failed: OCR engine offline."));
+            Assert.That(response.Actions, Is.Empty);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            PlatformServices.Reset();
+        }
+    }
+
+    [Test]
     public async Task ExecuteActionAsync_RunOcr_CopyRequestedWithoutClipboard_ReturnsFriendlyError()
     {
         string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
@@ -475,5 +516,15 @@ public sealed class AssistantServiceTests
         }
 
         public OcrLanguage[] GetAvailableLanguages() => [new("French", "fr")];
+    }
+
+    private sealed class ThrowingOcrService : IOcrService
+    {
+        public bool IsSupported => true;
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options)
+            => throw new InvalidOperationException("OCR engine offline.");
+
+        public OcrLanguage[] GetAvailableLanguages() => [new("English", "en")];
     }
 }
