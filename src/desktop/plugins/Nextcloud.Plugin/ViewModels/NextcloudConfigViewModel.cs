@@ -279,6 +279,14 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
         SharePassword = string.Empty;
         DisplayName = string.Empty;
         UserId = string.Empty;
+        ServerVersion = string.Empty;
+        ServerProductName = "Nextcloud";
+        ThemingName = string.Empty;
+        SupportsPublicShares = false;
+        SupportsSharePasswords = false;
+        SupportsExpireDate = false;
+        SupportsChunking = false;
+        SupportsSearch = false;
         IsConnected = false;
         ClearPendingLoginFlow();
         UpdateConnectionSummary();
