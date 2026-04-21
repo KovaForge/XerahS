@@ -23,7 +23,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Nextcloud uploader plugin | 2026-04-21 07:13 GMT+8 | Reviewed | Fixed credential-clear state reset so stale server profile metadata and capability flags no longer survive after disconnecting a Nextcloud account | Medium | Follow-up review of config view-model state reset after the earlier uploader/client pass; targeted Nextcloud tests passed, while full Release build/test hit SIGKILL/OOM pressure in this environment |
 | FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
 | Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
-| Settings/configuration | 2026-04-20 18:41 GMT+8 | Reviewed | Fixed ResetSettings so it resolves and removes the active custom or machine-specific config files instead of only deleting default-path files | High | Reviewed settings persistence/reset paths and machine-specific/custom config resolution; Release build passed, targeted reset-path tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
+| Settings/configuration | 2026-04-21 19:09 GMT+8 | Reviewed | Fixed custom uploader/workflow config path resolution so relative folders are normalized to absolute paths and whitespace-only overrides fall back to the default settings folder | High | Follow-up review of settings path resolution after the reset-path fix; Release build passed with 0 warnings/errors, targeted settings-path tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor, preset-serialization, Linux portal policy, and region-capture UI smoke |
 | Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
@@ -56,6 +56,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Full `dotnet test --configuration Release` still fails with 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
 - Follow-up:
   - Next capture-pipeline pass should stay on the remaining region-capture UI/platform smoke failures, not this encoder-dimension edge case, because the tiny-region startup regression is now covered.
+
+### 2026-04-21 19:09 GMT+8
+- Area: Settings/configuration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`
+  - `tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs`
+- Findings:
+  - `UploadersConfigFilePath` and `WorkflowsConfigFilePath` only used `ExpandFolderVariables` for custom config folders.
+  - Relative custom paths therefore stayed relative, which made config file resolution depend on the process working directory instead of the app base directory used elsewhere by `FileHelpers.GetAbsolutePath`.
+  - Whitespace-only custom folder values were also treated as real overrides, producing invalid-looking resolved paths instead of cleanly falling back to `SettingsFolder`.
+- Outcome:
+  - Landed a bounded fix so custom uploaders/workflows config folders now use `FileHelpers.GetAbsolutePath` and ignore whitespace-only overrides.
+  - Added regression coverage proving relative custom folders resolve against `AppDomain.CurrentDomain.BaseDirectory` and whitespace-only values fall back to the default settings folder.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~SettingsManagerSecretsPathTests"` passed with 6/6 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
+- Follow-up:
+  - The next settings/configuration pass should stay off this path-resolution edge case and instead look at other persistence or migration boundaries if the area comes up again.
 
 ### 2026-04-21 15:11 GMT+8
 - Area: Uploader core

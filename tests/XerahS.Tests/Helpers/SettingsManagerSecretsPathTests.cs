@@ -185,4 +185,37 @@ public class SettingsManagerSecretsPathTests
                 "SecretsStore.key should be backed up before deletion.");
         });
     }
+
+    [Test]
+    public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
+    {
+        SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");
+        SettingsManager.Settings.CustomWorkflowsConfigPath = Path.Combine("relative-config", "workflows");
+        SettingsManager.Settings.UseMachineSpecificUploadersConfig = false;
+        SettingsManager.Settings.UseMachineSpecificWorkflowsConfig = false;
+
+        string expectedUploadersFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "relative-config", "uploaders"));
+        string expectedWorkflowsFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "relative-config", "workflows"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Path.GetDirectoryName(SettingsManager.UploadersConfigFilePath), Is.EqualTo(expectedUploadersFolder));
+            Assert.That(Path.GetDirectoryName(SettingsManager.WorkflowsConfigFilePath), Is.EqualTo(expectedWorkflowsFolder));
+        });
+    }
+
+    [Test]
+    public void UploadersAndWorkflowsConfigPaths_IgnoreWhitespaceOnlyCustomFolders()
+    {
+        SettingsManager.Settings.CustomUploadersConfigPath = "   ";
+        SettingsManager.Settings.CustomWorkflowsConfigPath = "\t";
+        SettingsManager.Settings.UseMachineSpecificUploadersConfig = false;
+        SettingsManager.Settings.UseMachineSpecificWorkflowsConfig = false;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Path.GetDirectoryName(SettingsManager.UploadersConfigFilePath), Is.EqualTo(SettingsManager.SettingsFolder));
+            Assert.That(Path.GetDirectoryName(SettingsManager.WorkflowsConfigFilePath), Is.EqualTo(SettingsManager.SettingsFolder));
+        });
+    }
 }

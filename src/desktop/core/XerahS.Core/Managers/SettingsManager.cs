@@ -129,9 +129,9 @@ namespace XerahS.Core
             {
                 string uploadersConfigFolder = SettingsFolder;
 
-                if (Settings != null && !string.IsNullOrEmpty(Settings.CustomUploadersConfigPath))
+                if (Settings != null && !string.IsNullOrWhiteSpace(Settings.CustomUploadersConfigPath))
                 {
-                    uploadersConfigFolder = FileHelpers.ExpandFolderVariables(Settings.CustomUploadersConfigPath);
+                    uploadersConfigFolder = FileHelpers.GetAbsolutePath(Settings.CustomUploadersConfigPath);
                 }
 
                 string uploadersConfigFileName = GetUploadersConfigFileName(uploadersConfigFolder);
@@ -149,9 +149,9 @@ namespace XerahS.Core
             {
                 string workflowsConfigFolder = SettingsFolder;
 
-                if (Settings != null && !string.IsNullOrEmpty(Settings.CustomWorkflowsConfigPath))
+                if (Settings != null && !string.IsNullOrWhiteSpace(Settings.CustomWorkflowsConfigPath))
                 {
-                    workflowsConfigFolder = FileHelpers.ExpandFolderVariables(Settings.CustomWorkflowsConfigPath);
+                    workflowsConfigFolder = FileHelpers.GetAbsolutePath(Settings.CustomWorkflowsConfigPath);
                 }
 
                 string workflowsConfigFileName = GetWorkflowsConfigFileName(workflowsConfigFolder);
