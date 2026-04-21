@@ -27,12 +27,37 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Hotkeys/input | 2026-04-21 23:18 GMT+8 | Reviewed | Fixed hotkey edit/re-register cleanup so a failed native unregister no longer wipes the still-active hotkey's runtime trigger description before the old binding is actually released | Medium | Reviewed hotkey registration/unregistration and edit-time cleanup failure paths; Release build passed with 0 warnings/errors, targeted hotkey+Imgur regressions passed 11/11, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Plugin loading/runtime | 2026-04-21 21:09 GMT+8 | Reviewed | Fixed custom uploader repository discovery cleanup so deleted or newly invalid definition files are evicted from the runtime cache instead of surviving until manual reload | High | Reviewed plugin discovery/loader/provider catalog plus custom-uploader repository caching paths; Release build passed with 0 warnings/errors, targeted custom-uploader/plugin-binding tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
-| CLI / command surface | 2026-04-21 02:21 GMT+8 | Reviewed | Fixed `capture region` parsing so missing or malformed `--region` values now fail cleanly with actionable errors instead of null/format exceptions | Medium | Reviewed CLI capture command argument binding and region parsing; Release build passed with 0 warnings/errors, targeted CLI parsing regression passed, and full `dotnet test` still reports 14 unrelated existing failures |
+| CLI / command surface | 2026-04-22 00:12 GMT+8 | Reviewed | Fixed CLI upload filename sanitization so `--name` values containing directory segments or `.` / `..` collapse to a safe leaf filename or fallback instead of leaking invalid path fragments into temp upload paths | Medium | Reviewed `UploadCommand` temp-file naming and CLI upload path handling; Release build passed with 0 warnings/errors, targeted upload-path regressions passed 9/9, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-22 00:12 GMT+8
+- Area: CLI / command surface
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/cli/XerahS.CLI/Commands/UploadCommand.cs`
+  - `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`
+  - `src/desktop/cli/XerahS.CLI/Properties/AssemblyInfo.cs`
+  - `tests/XerahS.Tests/Tools/UploadCommandPathSanitizationTests.cs`
+- Findings:
+  - `UploadCommand` trusted `--name` too literally when staging temp upload files for `--text`, `--pipe`, or rename-on-upload flows.
+  - Names like `nested/path/report.png`, `.` and `..` could propagate path fragments or invalid leaf values into temp staging logic, creating misleading filenames and opening the door to path-shape edge cases.
+  - The regression tests needed explicit CLI internals visibility because the helper methods are intentionally non-public.
+- Outcome:
+  - Landed a bounded fix so upload temp-file staging now strips directory segments with `Path.GetFileName`, sanitizes only the leaf name, and falls back to the original filename when the sanitized result is empty, `.` or `..`.
+  - Added focused regression coverage for null/blank/dot-segment names, nested path inputs, and the temp upload path staying inside the unique `xerahs-upload` temp directory.
+  - Added `InternalsVisibleTo("XerahS.Tests")` for `XerahS.CLI` so the regression can exercise the non-public helper directly without widening the production API.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~UploadCommandPathSanitizationTests"` passed with 9/9 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in `EditorCloseConfirmationTests`, `EditorContextMenuSmokeTests`, `SchemaDrivenFilterCatalogTests`, `ImageEffectPresetSerializationTests`, `PortalCapturePolicyTests`, and `RegionCaptureUiSmokeTests`; those pre-existing suites are outside this bounded CLI upload fix.
+- Follow-up:
+  - The next CLI pass should inspect upload JSON/error output consistency and whether upload temp staging needs a dedicated helper/service shared with any future batch-upload path.
 
 ### 2026-04-21 23:18 GMT+8
 - Area: Hotkeys/input

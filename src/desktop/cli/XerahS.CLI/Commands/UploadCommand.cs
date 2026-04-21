@@ -40,8 +40,12 @@ public static class UploadCommand
 
     internal static string SanitizeUploadFileName(string? name, string fallbackFileName)
     {
-        var sanitizedName = Path.GetFileName(name);
-        return string.IsNullOrWhiteSpace(sanitizedName) ? fallbackFileName : sanitizedName;
+        var leafName = Path.GetFileName(name);
+        var sanitizedName = string.IsNullOrWhiteSpace(leafName) ? string.Empty : FileHelpers.SanitizeFileName(leafName);
+
+        return string.IsNullOrWhiteSpace(sanitizedName) || sanitizedName is "." or ".."
+            ? fallbackFileName
+            : sanitizedName;
     }
 
     internal static string CreateTemporaryUploadFilePath(string? requestedName, string fallbackFileName)
