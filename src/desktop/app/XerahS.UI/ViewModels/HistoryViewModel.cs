@@ -142,7 +142,7 @@ namespace XerahS.UI.ViewModels
         private CancellationTokenSource? _thumbnailCancellationTokenSource;
         private readonly IDialogService _coreDialogService;
 
-        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService)
+        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService, bool autoLoadHistory = true)
         {
             _taskManager = taskManager;
             _coreDialogService = coreDialogService;
@@ -162,7 +162,10 @@ namespace XerahS.UI.ViewModels
 
             // Start loading history asynchronously WITHOUT blocking UI
             // Use fire-and-forget to let view display immediately
-            _ = BeginHistoryLoadAsync();
+            if (autoLoadHistory)
+            {
+                _ = BeginHistoryLoadAsync();
+            }
         }
 
         /// <summary>
@@ -505,6 +508,7 @@ namespace XerahS.UI.ViewModels
                 ThumbnailURL = item.ThumbnailURL,
                 DeletionURL = item.DeletionURL,
                 ShortenedURL = item.ShortenedURL,
+                AnnotationSidecarPath = item.AnnotationSidecarPath,
                 Tags = item.Tags != null
                     ? new Dictionary<string, string?>(item.Tags, StringComparer.Ordinal)
                     : new Dictionary<string, string?>()

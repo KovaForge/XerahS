@@ -58,7 +58,7 @@ public class HistoryEditorLaunchTests
 
         try
         {
-            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
             var item = new HistoryItem
             {
                 FilePath = imagePath
@@ -107,7 +107,7 @@ public class HistoryEditorLaunchTests
 
         try
         {
-            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
             var item = new HistoryItem
             {
                 FilePath = imagePath,
@@ -179,7 +179,7 @@ public class HistoryEditorLaunchTests
 
         try
         {
-            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
             var item = new HistoryItem
             {
                 FilePath = imagePath,

@@ -18,7 +18,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-04-20 17:15 GMT+8 | Reviewed | Fixed WinRT capability reporting so the current GDI fallback no longer advertises unavailable HDR/cursor/hardware support | High | Reviewed Windows capture backend selection/capability reporting; Release build passed, full `dotnet test` runs 374 tests with 16 pre-existing unrelated failures, and added regression coverage is Windows-only |
 | OCR | 2026-04-21 06:40 GMT+8 | Reviewed | Fixed assistant clipboard-dependent OCR and copy actions to return recoverable errors with copy-back actions instead of throwing when clipboard services are unavailable | High | Follow-up review of assistant OCR/copy flows after the earlier OCR-options fix; Release build passed, targeted assistant tests passed, and full `dotnet test` still reports 10 unrelated existing failures |
-| Editor integration | 2026-04-20 15:37 GMT+8 | Reviewed | Fixed editor-history refresh detection to compare file and sidecar content snapshots, catching same-timestamp saves and annotation-only updates | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed, `dotnet test` still reports no discoverable tests |
+| Editor integration | 2026-04-21 14:46 GMT+8 | Reviewed | Fixed history editor tests to disable constructor auto-load and preserve annotation sidecar metadata when refreshed items are cloned | High | Follow-up review of Avalonia editor session flow, history refresh, and headless UI service paths; full Release build passed with 0 warnings/errors, targeted history editor tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 9 unrelated existing failures |
 | Uploader core | 2026-04-20 19:15 GMT+8 | Reviewed | Fixed uploader-instance duplication so file-type routing rules are preserved instead of resetting copies to an empty scope | High | Reviewed plugin-system instance duplication/routing/config flows; Release build passed, targeted duplication regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Nextcloud uploader plugin | 2026-04-21 07:13 GMT+8 | Reviewed | Fixed credential-clear state reset so stale server profile metadata and capability flags no longer survive after disconnecting a Nextcloud account | Medium | Follow-up review of config view-model state reset after the earlier uploader/client pass; targeted Nextcloud tests passed, while full Release build/test hit SIGKILL/OOM pressure in this environment |
 | FTP uploader plugin | 2026-04-20 21:43 GMT+8 | Reviewed | Fixed FTPS encryption-mode default port sync so implicit FTPS now auto-switches to 990 without clobbering custom ports | Medium | Reviewed config view-model validation/protocol defaults plus FTP config UI guidance; Release build passed, targeted FTP config tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
@@ -31,6 +31,31 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
+
+## Review Log
+
+### 2026-04-21 14:46 GMT+8
+- Area: Editor integration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.UI/ViewModels/HistoryViewModel.cs`
+  - `tests/XerahS.Tests/Editor/HistoryEditorLaunchTests.cs`
+- Findings:
+  - `HistoryViewModel` always kicked off asynchronous history loading from its constructor, even in isolated editor-launch tests that were trying to verify a single in-memory `HistoryItem` refresh path.
+  - That background load could race the test fixture and mutate `HistoryItems` independently of the editor-session assertions, making the focused regression suite flaky and harder to reason about.
+  - The same review also found that `CloneHistoryItem` dropped `AnnotationSidecarPath`, which could discard sidecar linkage when the edited item was replaced after refresh.
+- Outcome:
+  - Landed a bounded fix by adding an optional `autoLoadHistory` constructor flag so focused tests can instantiate `HistoryViewModel` without starting background history IO.
+  - Updated the history editor regression tests to opt out of constructor auto-load.
+  - Preserved `AnnotationSidecarPath` when cloning refreshed history items so annotation-backed editor sessions keep their sidecar association after replacement.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop`. No submodule commit or parent pointer update was required.
+  - Full solution `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~HistoryEditorLaunchTests"` passed with 4/4 tests green.
+  - Full solution `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still fails with 9 unrelated existing failures in editor overlay/context-menu/schema-driven filter tests, image-effect preset serialization, Linux portal capture policy, and region-capture platform/recording setup.
+- Follow-up:
+  - Next editor-area pass should tackle the remaining schema-driven dialog and overlay smoke-test failures, but the history editor refresh path is now deterministic and covered.
 
 ## Review Log
 
