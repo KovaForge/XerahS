@@ -109,6 +109,9 @@ public static class CustomUploaderRepository
         }
 
         var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        var normalizedDirectory = Path.GetFullPath(directory)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var scannedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var extension in SupportedExtensions)
         {
@@ -117,14 +120,21 @@ public static class CustomUploaderRepository
                 var files = Directory.GetFiles(directory, "*" + extension, searchOption);
                 foreach (var file in files)
                 {
-                    var loaded = LoadFromFile(file);
+                    string normalizedFilePath = Path.GetFullPath(file);
+                    scannedFiles.Add(normalizedFilePath);
+
+                    var loaded = LoadFromFile(normalizedFilePath);
                     results.Add(loaded);
 
-                    if (loaded.IsValid)
+                    lock (_lock)
                     {
-                        lock (_lock)
+                        if (loaded.IsValid)
                         {
-                            _loadedUploaders[file] = loaded;
+                            _loadedUploaders[normalizedFilePath] = loaded;
+                        }
+                        else
+                        {
+                            _loadedUploaders.Remove(normalizedFilePath);
                         }
                     }
                 }
@@ -132,6 +142,18 @@ public static class CustomUploaderRepository
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"[CustomUploader] Error scanning for {extension} files: {ex.Message}");
+            }
+        }
+
+        lock (_lock)
+        {
+            var stalePaths = _loadedUploaders.Keys
+                .Where(path => IsPathWithinDiscoveryScope(path, normalizedDirectory, recursive) && !scannedFiles.Contains(path))
+                .ToList();
+
+            foreach (var stalePath in stalePaths)
+            {
+                _loadedUploaders.Remove(stalePath);
             }
         }
 
@@ -344,6 +366,20 @@ public static class CustomUploaderRepository
         {
             _loadedUploaders.Remove(filePath);
         }
+    }
+
+    private static bool IsPathWithinDiscoveryScope(string filePath, string normalizedDirectory, bool recursive)
+    {
+        string normalizedFilePath = Path.GetFullPath(filePath);
+
+        if (recursive)
+        {
+            return normalizedFilePath.StartsWith(normalizedDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(normalizedFilePath, normalizedDirectory, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string? parentDirectory = Path.GetDirectoryName(normalizedFilePath)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return string.Equals(parentDirectory, normalizedDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private static CustomUploaderXerahSMetadata? ExtractMetadata(JObject root)

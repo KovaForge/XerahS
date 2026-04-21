@@ -26,13 +26,41 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Settings/configuration | 2026-04-21 19:09 GMT+8 | Reviewed | Fixed custom uploader/workflow config path resolution so relative folders are normalized to absolute paths and whitespace-only overrides fall back to the default settings folder | High | Follow-up review of settings path resolution after the reset-path fix; Release build passed with 0 warnings/errors, targeted settings-path tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor, preset-serialization, Linux portal policy, and region-capture UI smoke |
 | Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
 | Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
-| Plugin loading/runtime | 2026-04-20 20:16 GMT+8 | Reviewed | Fixed custom uploader reload cleanup so invalid or deleted definitions no longer leave stale providers selectable in runtime/config UI state | High | Reviewed plugin discovery/loader/provider catalog/runtime reload paths; Release build passed, targeted plugin reload/config verifier tests passed, and full `dotnet test` still reports 17 pre-existing unrelated failures |
+| Plugin loading/runtime | 2026-04-21 21:09 GMT+8 | Reviewed | Fixed custom uploader repository discovery cleanup so deleted or newly invalid definition files are evicted from the runtime cache instead of surviving until manual reload | High | Reviewed plugin discovery/loader/provider catalog plus custom-uploader repository caching paths; Release build passed with 0 warnings/errors, targeted custom-uploader/plugin-binding tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | CLI / command surface | 2026-04-21 02:21 GMT+8 | Reviewed | Fixed `capture region` parsing so missing or malformed `--region` values now fail cleanly with actionable errors instead of null/format exceptions | Medium | Reviewed CLI capture command argument binding and region parsing; Release build passed with 0 warnings/errors, targeted CLI parsing regression passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Platform-specific services | 2026-04-21 04:31 GMT+8 | Reviewed | Fixed macOS window search/foreground-handle reporting so matching the front window returns a usable non-zero sentinel handle instead of a false negative | Medium | Reviewed macOS window service front-window parsing/search/handle semantics; Release build passed, targeted macOS window tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | File/path handling | 2026-04-21 01:10 GMT+8 | Reviewed | Fixed screenshots parent-folder resolution so custom paths are normalized/expanded consistently, including `%TEMP%` and `%TMP%` tokens on Linux | High | Reviewed screenshot path resolution, folder-variable expansion, and settings-driven custom path flows; Release build passed, targeted screenshots-path tests passed, and full `dotnet test --no-build` still reports 14 unrelated existing failures |
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 21:09 GMT+8
+- Area: Plugin loading/runtime
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs`
+  - `src/desktop/core/XerahS.Uploaders/CustomUploader/CustomUploaderRepository.cs`
+  - `tests/XerahS.Tests/CustomUploader/CustomUploaderRepositoryTests.cs`
+  - `tests/XerahS.Tests/CustomUploader/CustomUploaderDefinitionBindingServiceTests.cs`
+  - `tests/XerahS.Tests/Helpers/PluginConfigurationVerifierTests.cs`
+- Findings:
+  - `CustomUploaderRepository.DiscoverUploaders` only added valid files to `_loadedUploaders`; it never evicted cached entries when a previously loaded definition file was deleted from disk.
+  - The same stale-cache behavior also let files that had become invalid stay resident if a later scan could no longer load them cleanly.
+  - That left plugin/runtime state inconsistent with the filesystem and could keep deleted custom uploaders selectable until a separate explicit removal or process restart.
+- Outcome:
+  - Landed a bounded fix that normalizes scanned file paths, removes invalid scan results from `_loadedUploaders` immediately, and prunes stale cached entries that fall inside the current discovery scope but were not found on disk.
+  - Added repository test isolation via `SetUp`/`TearDown` cache clears so discovery tests no longer inherit stale global state.
+  - Added a focused regression proving a deleted `.sxcu` file disappears from the repository cache after a fresh discovery scan.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~CustomUploaderRepositoryTests|FullyQualifiedName~CustomUploaderDefinitionBindingServiceTests"` passed with 24/24 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
+- Follow-up:
+  - Next plugin-loading/runtime pass should stay off stale custom-uploader cache cleanup and instead inspect provider-collision handling or reload ordering between built-in and custom providers.
 
 ### 2026-04-21 20:09 GMT+8
 - Area: FTP uploader plugin
