@@ -22,9 +22,9 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Uploader core | 2026-04-21 15:11 GMT+8 | Reviewed | Fixed legacy uploader-instance normalization so null file-type routing data no longer crashes duplication, validation, or destination selection flows | High | Reviewed plugin-system instance duplication/routing/config flows with legacy/null `FileTypeRouting` states; targeted InstanceManager regressions passed, full `dotnet test --no-build` now reports 9 unrelated existing failures, and full Release build hit SIGKILL/OOM pressure in this environment |
 | Nextcloud uploader plugin | 2026-04-21 07:13 GMT+8 | Reviewed | Fixed credential-clear state reset so stale server profile metadata and capability flags no longer survive after disconnecting a Nextcloud account | Medium | Follow-up review of config view-model state reset after the earlier uploader/client pass; targeted Nextcloud tests passed, while full Release build/test hit SIGKILL/OOM pressure in this environment |
 | FTP uploader plugin | 2026-04-21 20:09 GMT+8 | Reviewed | Fixed config JSON loading so missing or invalid FTP/FTPS/SFTP ports normalize back to protocol defaults instead of deserializing to 0 and failing validation | Medium | Reviewed config model/view-model load, validation, and protocol default handling; Release plugin build passed with 0 warnings/errors, targeted FTP config tests passed 7/7, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
-| Imgur uploader plugin | 2026-04-20 22:17 GMT+8 | Reviewed | Fixed Imgur auth-refresh retries so seekable upload streams are rewound before reupload instead of retrying from EOF and silently failing | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed, targeted Imgur tests passed, and full `dotnet test` still reports 16 pre-existing unrelated failures plus this run surfaced the suite through the same command |
+| Imgur uploader plugin | 2026-04-21 22:09 GMT+8 | Reviewed | Fixed Imgur config loading so invalid enum values normalize back to safe UI defaults instead of leaving the view-model with out-of-range selection indexes | Medium | Reviewed config model/view-model plus uploader retry paths; Release build passed with 0 warnings/errors, targeted Imgur tests passed 5/5, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Settings/configuration | 2026-04-21 19:09 GMT+8 | Reviewed | Fixed custom uploader/workflow config path resolution so relative folders are normalized to absolute paths and whitespace-only overrides fall back to the default settings folder | High | Follow-up review of settings path resolution after the reset-path fix; Release build passed with 0 warnings/errors, targeted settings-path tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor, preset-serialization, Linux portal policy, and region-capture UI smoke |
-| Hotkeys/input | 2026-04-20 23:17 GMT+8 | Reviewed | Fixed hotkey unregister failure handling so failed native unregisters keep their workflow mapping and runtime metadata instead of orphaning a still-active hotkey | Medium | Reviewed hotkey registration/unregistration state handling and failure paths; Release build passed, targeted hotkey regression passed, and full `dotnet test` still reports 16 pre-existing unrelated failures |
+| Hotkeys/input | 2026-04-21 23:18 GMT+8 | Reviewed | Fixed hotkey edit/re-register cleanup so a failed native unregister no longer wipes the still-active hotkey's runtime trigger description before the old binding is actually released | Medium | Reviewed hotkey registration/unregistration and edit-time cleanup failure paths; Release build passed with 0 warnings/errors, targeted hotkey+Imgur regressions passed 11/11, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Notifications/toasts | 2026-04-21 01:45 GMT+8 | Reviewed | Fixed toast middle-click routing so non-drag middle releases now trigger the configured middle-click action instead of being ignored | Low | Reviewed native notification services plus Avalonia/headless toast paths; Release build passed, targeted toast/notification tests passed, and full `dotnet test` still reports 14 unrelated existing failures |
 | Plugin loading/runtime | 2026-04-21 21:09 GMT+8 | Reviewed | Fixed custom uploader repository discovery cleanup so deleted or newly invalid definition files are evicted from the runtime cache instead of surviving until manual reload | High | Reviewed plugin discovery/loader/provider catalog plus custom-uploader repository caching paths; Release build passed with 0 warnings/errors, targeted custom-uploader/plugin-binding tests passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | CLI / command surface | 2026-04-21 02:21 GMT+8 | Reviewed | Fixed `capture region` parsing so missing or malformed `--region` values now fail cleanly with actionable errors instead of null/format exceptions | Medium | Reviewed CLI capture command argument binding and region parsing; Release build passed with 0 warnings/errors, targeted CLI parsing regression passed, and full `dotnet test` still reports 14 unrelated existing failures |
@@ -33,6 +33,53 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
 
 ## Review Log
+
+### 2026-04-21 23:18 GMT+8
+- Area: Hotkeys/input
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Hotkeys/WorkflowManager.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/HotkeySettings.cs`
+  - `tests/XerahS.Tests/Hotkeys/WorkflowManagerTests.cs`
+- Findings:
+  - `WorkflowManager.RegisterHotkey` cleared `NativeTriggerDescription` before attempting to unregister an existing native binding.
+  - If that unregister failed during an in-place hotkey edit, the old OS-level binding could still be active but the workflow lost the runtime metadata the UI uses to describe the live trigger.
+  - The existing unregister-failure regression covered explicit removal, but not edit-and-reregister cleanup failures.
+- Outcome:
+  - Landed a bounded fix so re-registration aborts immediately when cleanup fails, preserving the existing mapping and trigger description until the old native binding is actually released.
+  - Added a focused regression test proving failed cleanup during hotkey edits keeps the workflow mapped and its runtime trigger description intact.
+- Verification / blockers:
+  - Parent repo merged 1 upstream `develop` commit this run (`14f0687b`, docs/blog only) with no conflicts.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~WorkflowManagerTests|FullyQualifiedName~ImgurConfigViewModelTests"` passed with 11/11 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in schema-driven editor dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
+- Follow-up:
+  - The next hotkeys pass should inspect duplicate-binding collision UX and whether failed native unregisters need a user-visible retry/recovery path.
+
+### 2026-04-21 22:09 GMT+8
+- Area: Imgur uploader plugin
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Imgur.Plugin/ViewModels/ImgurConfigViewModel.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurConfigModel.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurUploader.cs`
+  - `tests/XerahS.Tests/Uploaders/ImgurConfigViewModelTests.cs`
+- Findings:
+  - `LoadFromJson` copied deserialized `AccountType` and `ThumbnailType` enum values directly into combo-box selection indexes.
+  - Legacy or hand-edited config JSON can contain out-of-range enum values, which leaves the view-model holding invalid selection indexes instead of falling back to a sane default.
+  - That makes the config screen state inconsistent and can persist invalid enum values back into saved config even when the underlying fix is just "use the default option".
+- Outcome:
+  - Landed a bounded fix so Imgur config load, save, and uploader rebuild paths normalize invalid `AccountType` values back to `Anonymous` and invalid `ThumbnailType` values back to `Medium_Thumbnail`.
+  - Added a focused regression test proving malformed JSON enum values are coerced to those safe defaults before reserialization.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~ImgurConfigViewModelTests"` passed with 5/5 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke tests.
+- Follow-up:
+  - The next Imgur-area pass should stay off enum normalization and instead inspect album-loading/login UX or upload error-surface handling if the plugin comes up again.
 
 ### 2026-04-21 21:09 GMT+8
 - Area: Plugin loading/runtime

@@ -109,6 +109,32 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_NormalizesInvalidEnumSelectionsToSafeDefaults()
+    {
+        ImgurConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(new InMemorySecretStore()));
+
+        viewModel.LoadFromJson("""
+        {
+          "AccountType": 99,
+          "ThumbnailType": 99,
+          "ClientId": "client-789"
+        }
+        """);
+
+        string json = viewModel.ToJson();
+        ImgurConfigModel saved = JsonConvert.DeserializeObject<ImgurConfigModel>(json)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.AccountTypeIndex, Is.EqualTo((int)AccountType.Anonymous));
+            Assert.That(viewModel.ThumbnailTypeIndex, Is.EqualTo((int)ImgurThumbnailType.Medium_Thumbnail));
+            Assert.That(saved.AccountType, Is.EqualTo(AccountType.Anonymous));
+            Assert.That(saved.ThumbnailType, Is.EqualTo(ImgurThumbnailType.Medium_Thumbnail));
+        });
+    }
+
+    [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
         using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });

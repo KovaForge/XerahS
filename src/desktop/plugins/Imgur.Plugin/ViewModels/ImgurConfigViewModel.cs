@@ -180,8 +180,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
                 _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
 
                 ClientId = _config.ClientId ?? string.Empty;
-                AccountTypeIndex = (int)_config.AccountType;
-                ThumbnailTypeIndex = (int)_config.ThumbnailType;
+                AccountTypeIndex = NormalizeAccountTypeIndex(_config.AccountType);
+                ThumbnailTypeIndex = NormalizeThumbnailTypeIndex(_config.ThumbnailType);
                 UseDirectLink = _config.DirectLink;
                 UseGifv = _config.UseGIFV;
                 UploadToSelectedAlbum = _config.UploadToSelectedAlbum;
@@ -203,6 +203,9 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
 
     public string ToJson()
     {
+        AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
+        ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
         _config.ClientId = ClientId;
         _config.AccountType = (AccountType)AccountTypeIndex;
         _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
@@ -271,6 +274,9 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     {
         if (rebuild || _uploader == null)
         {
+            AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
+            ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
             _config.ClientId = ClientId;
             _config.AccountType = (AccountType)AccountTypeIndex;
             _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
@@ -281,6 +287,16 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             _config.SecretKey = _secretKey;
             _uploader = BuildUploader();
         }
+    }
+
+    private static int NormalizeAccountTypeIndex(AccountType accountType)
+    {
+        return Enum.IsDefined(accountType) ? (int)accountType : (int)AccountType.Anonymous;
+    }
+
+    private static int NormalizeThumbnailTypeIndex(ImgurThumbnailType thumbnailType)
+    {
+        return Enum.IsDefined(thumbnailType) ? (int)thumbnailType : (int)ImgurThumbnailType.Medium_Thumbnail;
     }
 
     private static bool TryOpenUrl(string url)

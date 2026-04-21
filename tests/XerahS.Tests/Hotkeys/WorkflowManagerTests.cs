@@ -63,6 +63,41 @@ public class WorkflowManagerTests
     }
 
     [Test]
+    public void RegisterHotkey_WhenCleanupFails_PreservesExistingRuntimeMetadataAndMapping()
+    {
+        var service = new FakeHotkeyService { FailNextUnregister = true };
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.L, KeyModifiers.Control | KeyModifiers.Shift)
+            {
+                NativeTriggerDescription = "Ctrl+Shift+L"
+            });
+        bool triggered = false;
+
+        Assert.That(manager.RegisterHotkey(settings), Is.True);
+        settings.HotkeyInfo.NativeTriggerDescription = "Ctrl+Shift+L";
+        manager.HotkeyTriggered += (_, workflow) => triggered = ReferenceEquals(workflow, settings);
+
+        settings.HotkeyInfo.Key = Key.M;
+        settings.HotkeyInfo.Modifiers = KeyModifiers.Control | KeyModifiers.Alt;
+
+        var registrationResult = manager.RegisterHotkey(settings);
+        service.RaiseHotkeyTriggered(settings.HotkeyInfo);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(registrationResult, Is.False);
+            Assert.That(settings.HotkeyInfo.Id, Is.Not.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.Failed));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.EqualTo("Ctrl+Shift+L"));
+            Assert.That(service.UnregisterCallCount, Is.EqualTo(1));
+            Assert.That(triggered, Is.True);
+            Assert.That(manager.Workflows.Contains(settings), Is.True);
+        });
+    }
+
+    [Test]
     public void WorkflowsChanged_WhenHotkeyMetadataChanges_IsRelayedFromService()
     {
         var service = new FakeHotkeyService();
