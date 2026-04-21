@@ -30,9 +30,33 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | CLI / command surface | 2026-04-22 00:12 GMT+8 | Reviewed | Fixed CLI upload filename sanitization so `--name` values containing directory segments or `.` / `..` collapse to a safe leaf filename or fallback instead of leaking invalid path fragments into temp upload paths | Medium | Reviewed `UploadCommand` temp-file naming and CLI upload path handling; Release build passed with 0 warnings/errors, targeted upload-path regressions passed 9/9, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
 | Platform-specific services | 2026-04-22 03:44 GMT+8 | Reviewed | Fixed Wayland directory-open portal URIs so relative folders are normalized to absolute `file://` URIs before portal dispatch instead of failing with malformed relative URIs | Medium | Reviewed Linux Wayland portal file/folder open handling plus Linux/macOS notification process-start coverage; Release build passed with 0 warnings/errors, targeted platform regression tests passed 8/8, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures before the run is SIGKILLed by the environment |
 | File/path handling | 2026-04-22 01:37 GMT+8 | Reviewed | Fixed image save path handling so leaf-only filenames no longer try to create an empty directory and throw before writing the bitmap | High | Reviewed bitmap/file-save helpers plus path-shape edge cases; Release build passed with 0 warnings/errors, targeted ImageHelpers regression passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
-| Tests / test discoverability | 2026-04-21 05:31 GMT+8 | Reviewed | Fixed the workflow-editor test factory to create a real `TaskSettingsViewModel`, removing three false-negative workflow editor failures from the Release suite | High | Reviewed test double/view-model construction paths; targeted workflow-editor regression tests pass, full `dotnet test --no-build` now reports 395 tests with 10 remaining unrelated failures, and full-solution Release build still hits SIGKILL/OOM pressure in this environment |
+| Tests / test discoverability | 2026-04-22 04:21 GMT+8 | Reviewed | Fixed XSIE preset serialization so runtime-only image-effect metadata no longer gets written into `Config.json`, which restores `ImageEffectPresetSerializerTests` round-tripping for effects with computed `Parameters` lists | High | Follow-up on the stale failing Release suite: reviewed preset serializer/binder coverage, confirmed the saved archive now omits runtime-only `Parameters`, targeted preset tests pass 4/4, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` now reports 421 tests with 7 remaining unrelated failures in editor overlay/context-menu/schema-driven dialog coverage, Linux portal policy, and region-capture UI smoke |
 
 ## Review Log
+
+### 2026-04-22 04:21 GMT+8
+- Area: Tests / test discoverability
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs`
+  - `tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/ImageEffect.cs`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/ImageEffectBase.cs`
+- Findings:
+  - `ImageEffectPresetSerializer` was serializing runtime-only image-effect metadata, including computed `Parameters`, into XSIE `Config.json`.
+  - Effects deriving from `ImageEffectBase` expose `Parameters` as a computed `IReadOnlyList<EffectParameter>`, which drags compiler-generated collection types into the serialized payload and breaks round-trip deserialization.
+  - The failure was reproducible in the existing Release suite via `ImageEffectPresetSerializerTests`, making this a good stale-suite target from the tracker.
+- Outcome:
+  - Landed a bounded fix by adding an `ImageEffectPresetContractResolver` that excludes runtime-only effect metadata (`Parameters`, `HasParameters`) from XSIE serialization while keeping persisted effect state intact.
+  - Extended `ImageEffectPresetSerializerTests` to assert that saved `Config.json` omits `Parameters` and that the preset still round-trips correctly.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `f85886a3f5f3d7a3c90249e939f2f42944fe8046`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~ImageEffectPresetSerializerTests"` passed with 4/4 tests green.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` now reports 421 tests with 7 remaining unrelated failures in `EditorCloseConfirmationTests`, `EditorContextMenuSmokeTests`, `SchemaDrivenFilterCatalogTests`, `LinuxCaptureOrchestrationTests`, and `RegionCaptureUiSmokeTests`.
+- Follow-up:
+  - Next stale-suite pass should tackle one of the remaining seven Release failures, with `SchemaDrivenFilterCatalogTests` or the editor overlay smoke failures looking like the highest-leverage next targets now that preset serialization is green.
 
 ### 2026-04-22 03:44 GMT+8
 - Area: Platform-specific services
