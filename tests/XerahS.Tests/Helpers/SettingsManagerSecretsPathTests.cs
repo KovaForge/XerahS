@@ -192,6 +192,24 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void ResetSettings_ClearsCachedProviderContext()
+    {
+        SettingsManager.Settings.UseMachineSpecificSecretsStore = true;
+        var machineSpecificContext = ProviderContextManager.EnsureProviderContext();
+
+        bool reset = SettingsManager.ResetSettings();
+        var sharedContext = ProviderContextManager.EnsureProviderContext();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reset, Is.True);
+            Assert.That(ProviderContextManager.Current, Is.SameAs(sharedContext));
+            Assert.That(sharedContext, Is.Not.SameAs(machineSpecificContext));
+            Assert.That(GetProviderContextSecretsPath(), Is.EqualTo(SettingsManager.SecretsStoreFilePath));
+        });
+    }
+
+    [Test]
     public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
     {
         SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");
@@ -242,13 +260,7 @@ public class SettingsManagerSecretsPathTests
 
     private static void ResetProviderContext()
     {
-        typeof(ProviderContextManager)
-            .GetField("_context", BindingFlags.Static | BindingFlags.NonPublic)?
-            .SetValue(null, null);
-
-        typeof(ProviderContextManager)
-            .GetField("_contextSecretsPath", BindingFlags.Static | BindingFlags.NonPublic)?
-            .SetValue(null, null);
+        ProviderContextManager.ResetProviderContext();
     }
 
     private static string? GetProviderContextSecretsPath()

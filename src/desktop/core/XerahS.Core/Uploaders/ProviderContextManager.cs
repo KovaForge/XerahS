@@ -36,6 +36,15 @@ public static class ProviderContextManager
 
     public static IProviderContext? Current => _context;
 
+    public static void ResetProviderContext()
+    {
+        lock (_lock)
+        {
+            _context = null;
+            _contextSecretsPath = null;
+        }
+    }
+
     public static IProviderContext EnsureProviderContext()
     {
         lock (_lock)

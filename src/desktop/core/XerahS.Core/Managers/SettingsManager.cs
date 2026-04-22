@@ -601,6 +601,7 @@ namespace XerahS.Core
                 UploadersConfig = new UploadersConfig();
                 WorkflowsConfig = new WorkflowsConfig();
                 SyncDefaultTaskSettings();
+                XerahS.Core.Uploaders.ProviderContextManager.ResetProviderContext();
 
                 DebugHelper.WriteLine($"Settings reset successfully. Backup created: {backupFolder}");
                 return true;
