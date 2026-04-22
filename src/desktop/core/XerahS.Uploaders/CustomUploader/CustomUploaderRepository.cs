@@ -168,20 +168,22 @@ public static class CustomUploaderRepository
     /// <returns>Loaded custom uploader (check IsValid for success).</returns>
     public static LoadedCustomUploader LoadFromFile(string filePath)
     {
+        string normalizedFilePath = NormalizePath(filePath);
+
         try
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(normalizedFilePath))
             {
-                return new LoadedCustomUploader(filePath, "File not found");
+                return new LoadedCustomUploader(normalizedFilePath, "File not found");
             }
 
-            string json = File.ReadAllText(filePath);
-            return LoadFromJson(json, filePath);
+            string json = File.ReadAllText(normalizedFilePath);
+            return LoadFromJson(json, normalizedFilePath);
         }
         catch (Exception ex)
         {
-            DebugHelper.WriteLine($"[CustomUploader] Error reading file {filePath}: {ex.Message}");
-            return new LoadedCustomUploader(filePath, $"Error reading file: {ex.Message}");
+            DebugHelper.WriteLine($"[CustomUploader] Error reading file {normalizedFilePath}: {ex.Message}");
+            return new LoadedCustomUploader(normalizedFilePath, $"Error reading file: {ex.Message}");
         }
     }
 
@@ -339,17 +341,18 @@ public static class CustomUploaderRepository
     /// <returns>The reloaded uploader, or null if reload failed.</returns>
     public static LoadedCustomUploader? ReloadFile(string filePath)
     {
-        var loaded = LoadFromFile(filePath);
+        string normalizedFilePath = NormalizePath(filePath);
+        var loaded = LoadFromFile(normalizedFilePath);
 
         lock (_lock)
         {
             if (loaded.IsValid)
             {
-                _loadedUploaders[filePath] = loaded;
+                _loadedUploaders[normalizedFilePath] = loaded;
             }
             else
             {
-                _loadedUploaders.Remove(filePath);
+                _loadedUploaders.Remove(normalizedFilePath);
             }
         }
 
@@ -362,10 +365,18 @@ public static class CustomUploaderRepository
     /// <param name="filePath">Path to the file to remove.</param>
     public static void RemoveFile(string filePath)
     {
+        string normalizedFilePath = NormalizePath(filePath);
+
         lock (_lock)
         {
-            _loadedUploaders.Remove(filePath);
+            _loadedUploaders.Remove(normalizedFilePath);
         }
+    }
+
+    private static string NormalizePath(string path)
+    {
+        return Path.GetFullPath(path)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
 
     private static bool IsPathWithinDiscoveryScope(string filePath, string normalizedDirectory, bool recursive)

@@ -240,6 +240,26 @@ public class CustomUploaderDefinitionBindingServiceTests
             string.Equals(provider.FilePath, filePath, StringComparison.OrdinalIgnoreCase)), Is.False);
     }
 
+    [Test]
+    public void ReloadCustomUploader_RelativePath_RemovesStaleProvider()
+    {
+        string filePath = CreateUniqueFilePath("reload-relative-path");
+        string relativeFilePath = Path.GetRelativePath(Environment.CurrentDirectory, filePath);
+
+        var original = CreateItem(CustomUploaderDestinationType.ImageUploader);
+        original.Name = "Relative path uploader";
+        Assert.That(CustomUploaderRepository.SaveToFile(original, filePath), Is.True);
+
+        Assert.That(ProviderCatalog.ReloadCustomUploader(relativeFilePath), Is.True);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(relativeFilePath)?.Name, Is.EqualTo("Relative path uploader"));
+
+        File.WriteAllText(filePath, "{\n  \"Name\": \"Broken\"\n}");
+
+        Assert.That(ProviderCatalog.ReloadCustomUploader(relativeFilePath), Is.False);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Null);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(relativeFilePath), Is.Null);
+    }
+
     private static CustomUploaderItem CreateItem(CustomUploaderDestinationType destinationType)
     {
         var item = CustomUploaderItem.Init();

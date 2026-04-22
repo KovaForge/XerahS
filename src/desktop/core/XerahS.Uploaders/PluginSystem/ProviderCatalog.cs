@@ -480,11 +480,13 @@ public static class ProviderCatalog
     /// <returns>The matching provider if one is loaded; otherwise null.</returns>
     public static CustomUploaderProvider? GetCustomUploaderProviderByFilePath(string filePath)
     {
+        string normalizedFilePath = NormalizePath(filePath);
+
         lock (_lock)
         {
             return _providers.Values
                 .OfType<CustomUploaderProvider>()
-                .FirstOrDefault(provider => string.Equals(provider.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(provider => string.Equals(NormalizePath(provider.FilePath), normalizedFilePath, StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -495,7 +497,8 @@ public static class ProviderCatalog
     /// <returns>True if reload was successful</returns>
     public static bool ReloadCustomUploader(string filePath)
     {
-        var loaded = CustomUploaderRepository.ReloadFile(filePath);
+        string normalizedFilePath = NormalizePath(filePath);
+        var loaded = CustomUploaderRepository.ReloadFile(normalizedFilePath);
 
         lock (_lock)
         {
@@ -503,7 +506,7 @@ public static class ProviderCatalog
             // so invalid or deleted definitions do not leave stale providers selectable.
             var existingKey = _providers.Keys.FirstOrDefault(k =>
                 _providers[k] is CustomUploaderProvider cp &&
-                string.Equals(cp.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+                string.Equals(NormalizePath(cp.FilePath), normalizedFilePath, StringComparison.OrdinalIgnoreCase));
 
             if (existingKey != null)
             {
@@ -513,7 +516,7 @@ public static class ProviderCatalog
 
             if (loaded == null)
             {
-                DebugHelper.WriteLine($"[CustomUploader] Reload failed, removed stale provider for: {filePath}");
+                DebugHelper.WriteLine($"[CustomUploader] Reload failed, removed stale provider for: {normalizedFilePath}");
                 return false;
             }
 
