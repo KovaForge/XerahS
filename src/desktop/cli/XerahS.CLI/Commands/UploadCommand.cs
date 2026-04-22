@@ -30,6 +30,7 @@ using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Tasks;
+using System.Collections.Generic;
 
 namespace XerahS.CLI.Commands;
 
@@ -51,9 +52,38 @@ public static class UploadCommand
     internal static string CreateTemporaryUploadFilePath(string? requestedName, string fallbackFileName)
     {
         var sanitizedName = SanitizeUploadFileName(requestedName, fallbackFileName);
+        var uploadDirectory = CreateTemporaryUploadDirectory();
+        return Path.Combine(uploadDirectory, sanitizedName);
+    }
+
+    internal static string CreateTemporaryUploadDirectory()
+    {
         var uploadDirectory = Path.Combine(Path.GetTempPath(), "xerahs-upload", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(uploadDirectory);
-        return Path.Combine(uploadDirectory, sanitizedName);
+        return uploadDirectory;
+    }
+
+    internal static void CleanupTemporaryUploadDirectories(IEnumerable<string?> directories)
+    {
+        foreach (string directory in directories
+                     .Where(static path => !string.IsNullOrWhiteSpace(path))
+                     .Select(static path => path!)
+                     .Distinct(StringComparer.Ordinal))
+        {
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
+
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch
+            {
+                // ignore cleanup errors
+            }
+        }
     }
 
     public static Command Create(IDesktopTaskManager taskManager)
@@ -97,7 +127,7 @@ public static class UploadCommand
     private static async Task<int> UploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name)
     {
         string? tempFilePath = null;
-        string? tempDirectoryPath = null;
+        var tempDirectories = new List<string>();
 
         try
         {
@@ -117,7 +147,7 @@ public static class UploadCommand
             if (!string.IsNullOrEmpty(text))
             {
                 tempFilePath = CreateTemporaryUploadFilePath(name, "upload.txt");
-                tempDirectoryPath = Path.GetDirectoryName(tempFilePath);
+                tempDirectories.Add(Path.GetDirectoryName(tempFilePath)!);
                 await File.WriteAllTextAsync(tempFilePath, text);
                 filePath = tempFilePath;
             }
@@ -125,7 +155,7 @@ public static class UploadCommand
             else if (pipe)
             {
                 tempFilePath = CreateTemporaryUploadFilePath(name, "upload.txt");
-                tempDirectoryPath = Path.GetDirectoryName(tempFilePath);
+                tempDirectories.Add(Path.GetDirectoryName(tempFilePath)!);
                 using var stdin = Console.OpenStandardInput();
                 using var fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write);
                 await stdin.CopyToAsync(fs);
@@ -148,7 +178,7 @@ public static class UploadCommand
                     // Copy to a unique temp file with the requested name so uploaders see the right filename.
                     // Avoid reusing shared temp paths, which can clobber concurrent uploads and leave stale files behind.
                     namedFilePath = CreateTemporaryUploadFilePath(name, Path.GetFileName(filePath));
-                    tempDirectoryPath ??= Path.GetDirectoryName(namedFilePath);
+                    tempDirectories.Add(Path.GetDirectoryName(namedFilePath)!);
                     File.Copy(filePath, namedFilePath, overwrite: true);
                     filePath = namedFilePath;
                 }
@@ -230,12 +260,9 @@ public static class UploadCommand
         }
         finally
         {
-            if (!string.IsNullOrEmpty(tempDirectoryPath) && Directory.Exists(tempDirectoryPath))
-            {
-                try { Directory.Delete(tempDirectoryPath, recursive: true); }
-                catch { /* ignore cleanup errors */ }
-            }
-            else if (tempFilePath != null && File.Exists(tempFilePath))
+            CleanupTemporaryUploadDirectories(tempDirectories);
+
+            if (tempFilePath != null && File.Exists(tempFilePath))
             {
                 try { File.Delete(tempFilePath); }
                 catch { /* ignore cleanup errors */ }

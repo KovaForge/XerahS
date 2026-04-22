@@ -70,11 +70,24 @@ public class UploadCommandPathSanitizationTests
         }
         finally
         {
-            string? directory = Path.GetDirectoryName(tempPath);
-            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
-            {
-                Directory.Delete(directory, recursive: true);
-            }
+            UploadCommand.CleanupTemporaryUploadDirectories([Path.GetDirectoryName(tempPath)]);
         }
+    }
+
+    [Test]
+    public void CleanupTemporaryUploadDirectories_WhenGivenMultipleDirectories_RemovesEachDirectoryOnce()
+    {
+        string firstDirectory = UploadCommand.CreateTemporaryUploadDirectory();
+        string secondDirectory = UploadCommand.CreateTemporaryUploadDirectory();
+        File.WriteAllText(Path.Combine(firstDirectory, "upload.txt"), "first");
+        File.WriteAllText(Path.Combine(secondDirectory, "upload.txt"), "second");
+
+        UploadCommand.CleanupTemporaryUploadDirectories([firstDirectory, secondDirectory, firstDirectory, null, string.Empty]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Directory.Exists(firstDirectory), Is.False);
+            Assert.That(Directory.Exists(secondDirectory), Is.False);
+        });
     }
 }
