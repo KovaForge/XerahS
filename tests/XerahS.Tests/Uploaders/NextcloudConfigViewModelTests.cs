@@ -61,6 +61,43 @@ public class NextcloudConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_ClearsStaleSecretsWhenNewConfigHasNoStoredCredentials()
+    {
+        const string firstSecretKey = "nextcloud-secret-a";
+        const string secondSecretKey = "nextcloud-secret-b";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("nextcloud", firstSecretKey, "appPassword", "app-password");
+        secrets.SetSecret("nextcloud", firstSecretKey, "sharePassword", "share-password");
+
+        NextcloudConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            SecretKey = firstSecretKey,
+            ServerUrl = "https://cloud.example.com",
+            LoginName = "alice",
+            UserId = "alice"
+        }));
+
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            SecretKey = secondSecretKey,
+            ServerUrl = "https://cloud.example.com",
+            LoginName = "bob",
+            UserId = "bob"
+        }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.AppPassword, Is.Empty);
+            Assert.That(viewModel.SharePassword, Is.Empty);
+            Assert.That(viewModel.IsConnected, Is.False);
+            Assert.That(viewModel.Validate(), Is.False);
+            Assert.That(viewModel.StatusMessage, Is.EqualTo("Nextcloud app password is required. Use browser login or create an app password in Nextcloud security settings."));
+        });
+    }
+
+    [Test]
     public void ClearStoredCredentials_ResetsConnectionStateAndCapabilitySummary()
     {
         NextcloudConfigViewModel viewModel = new();

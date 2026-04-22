@@ -530,11 +530,13 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
     {
         if (_secrets == null || string.IsNullOrWhiteSpace(_secretKey))
         {
+            AppPassword = string.Empty;
+            SharePassword = string.Empty;
             return;
         }
 
-        AppPassword = _secrets.GetSecret("nextcloud", _secretKey, "appPassword") ?? AppPassword;
-        SharePassword = _secrets.GetSecret("nextcloud", _secretKey, "sharePassword") ?? SharePassword;
+        AppPassword = _secrets.GetSecret("nextcloud", _secretKey, "appPassword") ?? string.Empty;
+        SharePassword = _secrets.GetSecret("nextcloud", _secretKey, "sharePassword") ?? string.Empty;
     }
 
     private void PersistSecrets()
