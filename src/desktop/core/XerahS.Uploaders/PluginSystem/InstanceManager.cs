@@ -530,7 +530,22 @@ public class InstanceManager
     private static void NormalizeInstance(UploaderInstance instance)
     {
         instance.FileTypeRouting ??= new FileTypeScope();
-        instance.FileTypeRouting.FileExtensions ??= new List<string>();
+        instance.FileTypeRouting.FileExtensions = NormalizeFileExtensions(instance.FileTypeRouting.FileExtensions);
+    }
+
+    private static List<string> NormalizeFileExtensions(IEnumerable<string>? fileExtensions)
+    {
+        if (fileExtensions == null)
+        {
+            return new List<string>();
+        }
+
+        return fileExtensions
+            .Where(ext => !string.IsNullOrWhiteSpace(ext))
+            .Select(ext => ext.Trim().TrimStart('.').ToLowerInvariant())
+            .Where(ext => !string.IsNullOrWhiteSpace(ext))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void SaveConfiguration()

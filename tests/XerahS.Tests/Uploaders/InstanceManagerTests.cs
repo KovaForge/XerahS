@@ -112,6 +112,65 @@ public class InstanceManagerTests
         Assert.That(instance.FileTypeRouting.FileExtensions, Is.Empty);
     }
 
+    [Test]
+    public void AddInstance_NormalizesLegacyFileExtensionShapes()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Legacy Shapes",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { " .PNG ", "jpg", ".jpg", "   " }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+
+        Assert.That(instance.FileTypeRouting.FileExtensions, Is.EqualTo(new[] { "png", "jpg" }));
+        Assert.That(InstanceManager.Instance.GetDestinationForFile(UploaderCategory.Image, ".png")?.InstanceId, Is.EqualTo(instance.InstanceId));
+    }
+
+    [Test]
+    public void ValidateFileTypeConfiguration_FindsConflictsForLegacyDottedExtensions()
+    {
+        var existing = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "PNG Handler",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { ".PNG" }
+            }
+        };
+
+        var candidate = new UploaderInstance
+        {
+            InstanceId = "candidate",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Candidate",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(existing);
+
+        var validationError = InstanceManager.Instance.ValidateFileTypeConfiguration(candidate);
+
+        Assert.That(validationError, Does.Contain("png").And.Contain("PNG Handler"));
+    }
+
     private static void ClearInstances()
     {
         foreach (var instance in InstanceManager.Instance.GetInstances().ToList())

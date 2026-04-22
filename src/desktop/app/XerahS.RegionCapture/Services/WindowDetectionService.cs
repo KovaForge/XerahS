@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using System;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using XerahS.RegionCapture.Models;
@@ -185,9 +186,20 @@ public sealed class WindowDetectionService
         bool isWaylandSession = MonitorEnumerationService.IsWaylandSession();
         bool hasX11Display = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
         string? compositor = DetectLinuxWaylandCompositor();
-        PlatformWindowPointQueryCapability? directCapability = PlatformServices.Window is PlatformLogicalWindowPointQueryService logicalPointQueryService
-            ? logicalPointQueryService.GetLogicalWindowPointQueryCapability()
-            : null;
+        PlatformWindowPointQueryCapability? directCapability = null;
+
+        try
+        {
+            directCapability = PlatformServices.Window is PlatformLogicalWindowPointQueryService logicalPointQueryService
+                ? logicalPointQueryService.GetLogicalWindowPointQueryCapability()
+                : null;
+        }
+        catch (InvalidOperationException)
+        {
+            // Platform services are not always initialized in design-time/headless smoke tests.
+            // Fall back to compositor/env-based capability detection instead of crashing UI construction.
+        }
+
         return GetLinuxWindowPreselectionCapability(isWaylandSession, hasX11Display, compositor, IsLinuxCommandAvailable, directCapability);
     }
 
