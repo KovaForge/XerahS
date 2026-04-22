@@ -30,9 +30,35 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | CLI / command surface | 2026-04-22 17:50 GMT+8 | Reviewed | Fixed CLI upload temp-dir cleanup so `--text`/`--pipe` uploads with `--name` no longer leak the second uniquely-named temp directory after the upload completes | Medium | Follow-up review of `UploadCommand` temp-file naming and cleanup paths; full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false` passed 432/432, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
 | Platform-specific services | 2026-04-22 22:34 GMT+8 | Reviewed | Fixed Linux and macOS system-service path launching so existing relative paths are normalized to absolute paths before dispatch, and macOS `open` calls now use `--` to prevent dashed file names from being parsed as flags | Medium | Follow-up review of Linux/macOS system-service open/reveal flows; full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted system-service/portal regressions passed 5/5 via `dotnet test tests/XerahS.Tests/bin/Release/net10.0/XerahS.Tests.dll --filter "FullyQualifiedName~SystemServiceProcessStartInfoTests|FullyQualifiedName~WaylandPortalSystemServiceTests"`, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 441/441, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
 | File/path handling | 2026-04-22 20:29 GMT+8 | Reviewed | Fixed async text index export so leaf-only output filenames no longer fail while trying to create a null/empty parent directory before writing the index file | High | Follow-up review of file-save/path-shape edge cases in the async indexer and related helpers; full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 435/435, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
-| Tests / test discoverability | 2026-04-22 04:21 GMT+8 | Reviewed | Fixed XSIE preset serialization so runtime-only image-effect metadata no longer gets written into `Config.json`, which restores `ImageEffectPresetSerializerTests` round-tripping for effects with computed `Parameters` lists | High | Follow-up on the stale failing Release suite: reviewed preset serializer/binder coverage, confirmed the saved archive now omits runtime-only `Parameters`, targeted preset tests pass 4/4, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` now reports 421 tests with 7 remaining unrelated failures in editor overlay/context-menu/schema-driven dialog coverage, Linux portal policy, and region-capture UI smoke |
+| Tests / test discoverability | 2026-04-22 23:25 GMT+8 | Reviewed | Replaced the stale disabled editor-history effects test file with current `EditorCore.ApplyImageOperation` coverage so annotation/canvas undo-redo history is exercised against the live API instead of a removed legacy effects list contract | High | Follow-up review of stale disabled editor history coverage; upstream `develop` had 0 pending commits, `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted `EditorHistoryEffectsTests` passed 4/4 after rebuilding the test project, and full Release verification passed with `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` at 0 warnings/errors plus `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` at 447/447. |
 
 ## Review Log
+
+### 2026-04-22 23:25 GMT+8
+- Area: Tests / test discoverability
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `tests/XerahS.Tests/Editor/EditorHistoryEffectsTests.cs`
+  - `tests/XerahS.Tests/Editor/EditorCloseConfirmationTests.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/Core/Editor/EditorCore.cs`
+  - `ShareX.ImageEditor/src/ShareX.ImageEditor/Core/History/EditorHistory.cs`
+- Findings:
+  - `EditorHistoryEffectsTests.cs` had been excluded from the test project and was still asserting against a removed legacy `EditorCore.Effects` API, so it no longer exercised any real editor-history behavior.
+  - The live editor contract records image mutations through `ApplyImageOperation(...)` plus annotation history snapshots, which means the right regression surface is canvas pixel restoration, annotation persistence, redo invalidation, and history-change signaling.
+  - A first filtered `--no-build` run reported no matching tests because the stale compiled test assembly still reflected the old exclusion, so the test project needed a rebuild before targeted verification meant anything.
+- Outcome:
+  - Rewrote `EditorHistoryEffectsTests.cs` around the current canvas-history API and re-enabled it in `XerahS.Tests.csproj`.
+  - Added four bounded regressions covering annotation preservation across undo/redo, annotation restoration after `clearAnnotations: true`, redo-stack invalidation after branching history, and `HistoryChanged` signaling for canvas apply/undo/redo.
+  - Kept the production editor code untouched, which is the right call here because the bug was stale test coverage, not missing runtime behavior.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule commit or parent pointer update was required.
+  - The first combined targeted verification process was killed after hanging mid-run, but the rebuilt targeted pass succeeded cleanly: `dotnet build tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-restore` passed with 0 warnings/errors and `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~EditorHistoryEffectsTests"` passed 4/4.
+  - Full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 447/447 tests green.
+- Follow-up:
+  - Next stale test-surface pass should inspect any other `Compile Remove=` exclusions under `tests/XerahS.Tests` and either delete dead files outright or migrate them onto current runtime contracts before they quietly rot again.
 
 ### 2026-04-22 22:34 GMT+8
 - Area: Platform-specific services

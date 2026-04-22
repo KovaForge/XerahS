@@ -62,17 +62,11 @@
   </ItemGroup>
 
   <!--
-    XIP0039 Guardrail 7: EditorRotateAnnotationsTests.cs re-enabled after porting to the current
-    EditorCore API (Rotate90Clockwise / Rotate90CounterClockwise / FlipHorizontal / FlipVertical).
-
-    EditorHistoryEffectsTests.cs remains excluded: it targets a per-core effects management API
-    (_core.AddEffect, _core.Effects, _core.ToggleEffect, etc.) that does not exist in the current
-    upstream ShareX.ImageEditor EditorCore. Effects are managed at the ViewModel layer (MainViewModel).
-    To re-enable this file, the effects tracking API must first be introduced into EditorCore.
+    XIP0039 Guardrail 7: EditorRotateAnnotationsTests.cs and EditorHistoryEffectsTests.cs are both
+    aligned with the current upstream EditorCore API. The latter now exercises the live canvas
+    history contract (ApplyImageOperation + annotation restoration) instead of the removed legacy
+    per-core effects list API.
   -->
-  <ItemGroup>
-    <Compile Remove="Editor\EditorHistoryEffectsTests.cs" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <Compile Remove="Platform\Windows\BgraRowCopyHelperTests.cs" />
