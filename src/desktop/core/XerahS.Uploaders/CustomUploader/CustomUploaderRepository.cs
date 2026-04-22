@@ -300,7 +300,14 @@ public static class CustomUploaderRepository
                 root["XerahS"] = JObject.FromObject(normalizedMetadata, serializer);
             }
 
-            File.WriteAllText(filePath, root.ToString(Formatting.Indented));
+            string normalizedFilePath = Path.GetFullPath(filePath);
+            string? directory = Path.GetDirectoryName(normalizedFilePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(normalizedFilePath, root.ToString(Formatting.Indented));
             DebugHelper.WriteLine($"[CustomUploader] Saved uploader to: {filePath}");
             return true;
         }

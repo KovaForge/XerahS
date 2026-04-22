@@ -222,6 +222,22 @@ public class CustomUploaderDefinitionBindingServiceTests
     }
 
     [Test]
+    public void SaveDefinition_CreatesMissingDirectory_ForNewForkedDefinition()
+    {
+        string filePath = Path.Combine(_rootPath, "missing", "nested", $"{Guid.NewGuid():N}.sxcu");
+        var item = CreateItem(CustomUploaderDestinationType.ImageUploader);
+
+        Assert.That(CustomUploaderDefinitionBindingService.SaveDefinition(item, filePath, new[] { "instance-1" }, "instance-1"), Is.True);
+        Assert.That(File.Exists(filePath), Is.True);
+
+        var loaded = CustomUploaderRepository.LoadFromFile(filePath);
+        Assert.That(loaded.IsValid, Is.True, loaded.LoadError);
+        Assert.That(loaded.Metadata, Is.Not.Null);
+        Assert.That(loaded.Metadata!.InstanceIds, Is.EquivalentTo(new[] { "instance-1" }));
+        Assert.That(loaded.Metadata.PrimaryInstanceId, Is.EqualTo("instance-1"));
+    }
+
+    [Test]
     public void ReloadCustomUploader_InvalidUpdatedDefinition_RemovesStaleProvider()
     {
         string filePath = CreateUniqueFilePath("reload-invalid-update");
