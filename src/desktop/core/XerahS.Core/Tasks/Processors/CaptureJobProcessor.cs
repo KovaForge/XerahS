@@ -490,7 +490,7 @@ namespace XerahS.Core.Tasks.Processors
                 };
                 var result = await ocrService.RecognizeAsync(info.Metadata.Image, options);
 
-                if (result.Success && !string.IsNullOrEmpty(result.Text))
+                if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
                 {
                     info.Metadata.OcrText = result.Text;
                     DebugHelper.WriteLine($"OCR completed. Text length: {result.Text.Length} chars.");

@@ -108,8 +108,37 @@ public sealed class CaptureJobProcessorOcrTests
         });
     }
 
+    [Test]
+    public async Task ProcessAsync_DoOcr_WhitespaceOnlyResult_DoesNotPersistOcrText()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new RecordingOcrService("   \n\t");
+        PlatformServices.Ocr = ocr;
+
+        var taskSettings = new TaskSettings();
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR;
+
+        var info = new TaskInfo(taskSettings)
+        {
+            Metadata = new TaskMetadata(bitmap)
+        };
+
+        var processor = new CaptureJobProcessor();
+        bool shouldContinue = await processor.ProcessAsync(info, CancellationToken.None);
+
+        Assert.That(shouldContinue, Is.True);
+        Assert.That(info.Metadata.OcrText, Is.Null);
+    }
+
     private sealed class RecordingOcrService : IOcrService
     {
+        private readonly string _recognizedText;
+
+        public RecordingOcrService(string recognizedText = "bonjour")
+        {
+            _recognizedText = recognizedText;
+        }
+
         public bool IsSupported => true;
 
         public OcrOptions? LastOptions { get; private set; }
@@ -126,7 +155,7 @@ public sealed class CaptureJobProcessorOcrTests
             return Task.FromResult(new OcrResult
             {
                 Success = true,
-                Text = "bonjour"
+                Text = _recognizedText
             });
         }
 
