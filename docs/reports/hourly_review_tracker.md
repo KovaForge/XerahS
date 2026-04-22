@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-22 12:03 GMT+8 | Reviewed | Fixed screen-recorder stop validation so missing/never-written output files now raise the intended invalid-recording error instead of throwing `FileNotFoundException` while trying to log `FileInfo.Length` | High | Follow-up review of `ScreenRecorderService` stop/finalize handling and existing region-capture smoke coverage; `XerahS.RegionCapture` Release build passed with 0 warnings/errors, but full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` and `dotnet test --configuration Release` were both SIGKILLed by the environment during later solution/plugin build stages before completion |
+| Capture pipeline | 2026-04-22 20:53 GMT+8 | Reviewed | Fixed Linux selector preference normalization so a saved `XerahSOverlay` choice is preserved when the current session still resolves automatic selection to the overlay, instead of being silently downgraded to `Automatic` | High | Follow-up review of Linux capture preference resolution across settings/task capture UI; full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted Linux selector tests passed 3/3, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 438/438, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
 | OCR | 2026-04-22 06:26 GMT+8 | Reviewed | Fixed assistant OCR action error handling so recognizer exceptions return a recoverable user-facing error instead of bubbling out and crashing the action flow | High | Follow-up review of assistant OCR execution after the earlier clipboard/error-path fixes; Release build passed with 0 warnings/errors, targeted assistant+OCR regressions passed 16/16, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 7 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, Linux portal policy, and region-capture UI smoke |
 | Editor integration | 2026-04-22 08:30 GMT+8 | Reviewed | Fixed the shell-owned modal overlay visibility handoff and aligned schema-driven convolution controls with the editor test contract by exposing `factor` as a numeric input while keeping normalized matrix keys and flyout/dialog fixes intact | High | Follow-up review of the remaining editor overlay/context-menu/schema-driven failures; `dotnet build tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted editor tests passed 13/13, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` is now down to 2 unrelated failures in Linux capture portal policy and region-capture UI smoke |
 | Uploader core | 2026-04-22 10:28 GMT+8 | Reviewed | Normalized legacy uploader file-extension routing values and cleared the last two unrelated full-suite blockers in Linux capture policy and region-capture smoke initialization | High | Reviewed uploader instance routing plus the remaining Linux capture blockers; full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` now passes with 0 warnings/errors and full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passes 425/425 |
@@ -1521,3 +1521,31 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 425/425 tests green.
 - Follow-up notes:
   - Next uploader-core pass should inspect provider-specific config migration paths and extension/category precedence rules in the UI save flow, not re-open this normalization slice unless another legacy payload variant shows up.
+
+### 2026-04-22 20:53 GMT+8
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.UI/Helpers/LinuxRegionSelectorPreferenceSupport.cs`
+  - `src/desktop/app/XerahS.UI/Services/Capture/LinuxCaptureOptionsResolver.cs`
+  - `src/desktop/app/XerahS.UI/Services/Capture/LinuxRegionSelectorResolver.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/SettingsViewModel.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/TaskSettingsViewModel.Capture.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxCaptureOrchestrationTests.cs`
+  - `tests/XerahS.Tests/UI/LinuxRegionSelectorPreferenceSupportTests.cs`
+- Findings:
+  - The settings/task-capture UI normalizes saved Linux region-selector preferences through `LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(...)`.
+  - A saved `LinuxInteractiveRegionSelectorPreference.XerahSOverlay` selection could be silently downgraded to `Automatic` whenever `AvailablePreferences` omitted overlay, even if the current diagnostics still reported `AutomaticPreference == XerahSOverlay`.
+  - That made a previously valid explicit overlay choice look like it had been lost between sessions on configurations where overlay is only surfaced as the effective automatic path.
+- Outcome:
+  - Landed a bounded fix by routing normalization through a diagnostics-aware overload that preserves an explicit overlay selection when the current session's automatic preference still resolves to `XerahSOverlay`.
+  - Added focused regression coverage for visible-preference projection, overlay-preserving normalization, and the remaining fallback-to-automatic behavior when a preference is genuinely unavailable.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~LinuxRegionSelectorPreferenceSupportTests"` passed with 3/3 tests green.
+  - Full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 438/438 tests green.
+- Follow-up:
+  - Next capture-pipeline pass should inspect whether Linux capture-provider availability and the diagnostics surfaced in settings/task capture stay perfectly aligned for mixed X11/Wayland fallback cases, especially when portal/slurp availability changes between launches.
