@@ -42,7 +42,7 @@ namespace XerahS.Platform.MacOS.Services
 
             try
             {
-                Process.Start(new ProcessStartInfo("open", $"-R \"{filePath}\"") { UseShellExecute = true });
+                Process.Start(CreateRevealStartInfo(NormalizeExistingPath(filePath)));
                 return true;
             }
             catch (Exception ex)
@@ -60,7 +60,7 @@ namespace XerahS.Platform.MacOS.Services
             try
             {
                 // On macOS, 'open' handles URLs nicely
-                 Process.Start(new ProcessStartInfo("open", $"\"{url}\"") { UseShellExecute = true });
+                 Process.Start(CreateOpenStartInfo(url));
                 return true;
             }
             catch (Exception ex)
@@ -76,7 +76,7 @@ namespace XerahS.Platform.MacOS.Services
 
             try
             {
-                Process.Start(new ProcessStartInfo("open", $"\"{filePath}\"") { UseShellExecute = true });
+                Process.Start(CreateOpenStartInfo(NormalizeExistingPath(filePath)));
                 return true;
             }
             catch (Exception ex)
@@ -309,6 +309,44 @@ namespace XerahS.Platform.MacOS.Services
             }
 
             return count;
+        }
+
+        internal static ProcessStartInfo CreateOpenStartInfo(string target)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            startInfo.ArgumentList.Add("--");
+            startInfo.ArgumentList.Add(target);
+            return startInfo;
+        }
+
+        internal static ProcessStartInfo CreateRevealStartInfo(string target)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            startInfo.ArgumentList.Add("-R");
+            startInfo.ArgumentList.Add("--");
+            startInfo.ArgumentList.Add(target);
+            return startInfo;
+        }
+
+        internal static string NormalizeExistingPath(string path)
+        {
+            return Path.GetFullPath(path);
         }
 
         private static bool TryRunProcess(string fileName, string arguments, out string output)
