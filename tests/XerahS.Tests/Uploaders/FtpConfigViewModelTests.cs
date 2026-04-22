@@ -118,6 +118,30 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_NormalizesInvalidEnumValuesToSafeDefaults()
+    {
+        var viewModel = new FtpConfigViewModel();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Protocol = (FTPProtocol)999,
+            BrowserProtocol = (BrowserProtocol)999,
+            FTPSEncryption = (FTPSEncryption)999,
+            Host = "example.com",
+            Port = 0
+        });
+
+        viewModel.LoadFromJson(json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.Protocol, Is.EqualTo(FTPProtocol.FTP));
+            Assert.That(viewModel.BrowserProtocol, Is.EqualTo(BrowserProtocol.http));
+            Assert.That(viewModel.FtpsEncryptionMode, Is.EqualTo(FTPSEncryption.Explicit));
+            Assert.That(viewModel.Port, Is.EqualTo(21));
+        });
+    }
+
+    [Test]
     public void Validate_RejectsOutOfRangePort()
     {
         var viewModel = new FtpConfigViewModel

@@ -34,6 +34,9 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
 {
     private FTPProtocol _previousProtocol = FTPProtocol.FTP;
     private FTPSEncryption _previousFtpsEncryptionMode = FTPSEncryption.Explicit;
+    private const FTPProtocol DefaultProtocol = FTPProtocol.FTP;
+    private const BrowserProtocol DefaultBrowserProtocol = BrowserProtocol.http;
+    private const FTPSEncryption DefaultFtpsEncryptionMode = FTPSEncryption.Explicit;
 
     [ObservableProperty]
     private string _accountName = "FTP Account";
@@ -120,19 +123,23 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             var config = JsonConvert.DeserializeObject<FtpConfigModel>(json);
             if (config != null)
             {
+                FTPProtocol protocol = NormalizeEnum(config.Protocol, DefaultProtocol);
+                BrowserProtocol browserProtocol = NormalizeEnum(config.BrowserProtocol, DefaultBrowserProtocol);
+                FTPSEncryption ftpsEncryptionMode = NormalizeEnum(config.FTPSEncryption, DefaultFtpsEncryptionMode);
+
                 AccountName = config.AccountName ?? "FTP Account";
-                Protocol = config.Protocol;
+                Protocol = protocol;
                 Host = config.Host ?? string.Empty;
                 Username = config.Username ?? string.Empty;
                 Password = config.Password ?? string.Empty;
                 IsActive = config.IsActive;
                 SubFolderPath = config.SubFolderPath ?? string.Empty;
-                BrowserProtocol = config.BrowserProtocol;
+                BrowserProtocol = browserProtocol;
                 HttpHomePath = config.HttpHomePath ?? string.Empty;
                 HttpHomePathAutoAddSubFolderPath = config.HttpHomePathAutoAddSubFolderPath;
                 HttpHomePathNoExtension = config.HttpHomePathNoExtension;
-                FtpsEncryptionMode = config.FTPSEncryption;
-                Port = config.Port > 0 ? config.Port : GetDefaultPort(config.Protocol, config.FTPSEncryption);
+                FtpsEncryptionMode = ftpsEncryptionMode;
+                Port = config.Port > 0 ? config.Port : GetDefaultPort(protocol, ftpsEncryptionMode);
                 Keypath = config.Keypath ?? string.Empty;
                 Passphrase = config.Passphrase ?? string.Empty;
             }
@@ -198,5 +205,10 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             FTPProtocol.FTPS when ftpsEncryptionMode == FTPSEncryption.Implicit => 990,
             _ => 21
         };
+    }
+
+    private static TEnum NormalizeEnum<TEnum>(TEnum value, TEnum fallback) where TEnum : struct, Enum
+    {
+        return Enum.IsDefined(typeof(TEnum), value) ? value : fallback;
     }
 }
