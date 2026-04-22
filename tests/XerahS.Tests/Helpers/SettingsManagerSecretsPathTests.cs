@@ -23,9 +23,11 @@
 
 #endregion License Information (GPL v3)
 
+using System.Reflection;
 using NUnit.Framework;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Uploaders;
 
 namespace XerahS.Tests.Helpers;
 
@@ -40,12 +42,15 @@ public class SettingsManagerSecretsPathTests
     {
         _originalPersonalFolder = SettingsManager.PersonalFolder;
         SettingsManager.PersonalFolder = Path.Combine(TestContext.CurrentContext.WorkDirectory, "settings-manager-tests", Guid.NewGuid().ToString("N"));
+        ResetProviderContext();
         SettingsManager.LoadAllSettings();
     }
 
     [TearDown]
     public void TearDown()
     {
+        ResetProviderContext();
+
         if (!string.IsNullOrEmpty(_originalPersonalFolder))
         {
             SettingsManager.PersonalFolder = _originalPersonalFolder;
@@ -217,5 +222,39 @@ public class SettingsManagerSecretsPathTests
             Assert.That(Path.GetDirectoryName(SettingsManager.UploadersConfigFilePath), Is.EqualTo(SettingsManager.SettingsFolder));
             Assert.That(Path.GetDirectoryName(SettingsManager.WorkflowsConfigFilePath), Is.EqualTo(SettingsManager.SettingsFolder));
         });
+    }
+
+    [Test]
+    public void EnsureProviderContext_RecreatesContext_WhenSecretsStorePathChanges()
+    {
+        SettingsManager.Settings.UseMachineSpecificSecretsStore = false;
+        var sharedContext = ProviderContextManager.EnsureProviderContext();
+
+        SettingsManager.Settings.UseMachineSpecificSecretsStore = true;
+        var machineSpecificContext = ProviderContextManager.EnsureProviderContext();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(machineSpecificContext, Is.Not.SameAs(sharedContext));
+            Assert.That(GetProviderContextSecretsPath(), Is.EqualTo(SettingsManager.SecretsStoreFilePath));
+        });
+    }
+
+    private static void ResetProviderContext()
+    {
+        typeof(ProviderContextManager)
+            .GetField("_context", BindingFlags.Static | BindingFlags.NonPublic)?
+            .SetValue(null, null);
+
+        typeof(ProviderContextManager)
+            .GetField("_contextSecretsPath", BindingFlags.Static | BindingFlags.NonPublic)?
+            .SetValue(null, null);
+    }
+
+    private static string? GetProviderContextSecretsPath()
+    {
+        return typeof(ProviderContextManager)
+            .GetField("_contextSecretsPath", BindingFlags.Static | BindingFlags.NonPublic)?
+            .GetValue(null) as string;
     }
 }

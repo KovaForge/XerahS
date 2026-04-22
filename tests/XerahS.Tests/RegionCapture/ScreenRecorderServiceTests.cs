@@ -110,9 +110,9 @@ public sealed class ScreenRecorderServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(errors[0].IsFatal, Is.False);
-            Assert.That(errors[0].Exception, Is.TypeOf<InvalidOperationException>());
-            Assert.That(errors[0].Exception.Message, Does.Contain("Recording output invalid"));
-            Assert.That(errors[0].Exception.Message, Does.Contain("size=missing"));
+            Assert.That(errors[0].Error, Is.TypeOf<InvalidOperationException>());
+            Assert.That(errors[0].Error.Message, Does.Contain("Recording output invalid"));
+            Assert.That(errors[0].Error.Message, Does.Contain("size=missing"));
         });
     }
 
