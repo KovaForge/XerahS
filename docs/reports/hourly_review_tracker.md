@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-21 18:23 GMT+8 | Reviewed | Fixed screen-recorder encoder dimension normalization so 1px region captures no longer collapse to 0x0 and break recording startup | High | Reviewed `ScreenRecorderService` capture sizing and start/stop test coverage; Release build passed with 0 warnings/errors, targeted screen-recorder tests passed, and full `dotnet test --configuration Release` now reports 8 unrelated existing failures in editor, preset-serialization, Linux portal policy, and region-capture UI smoke |
+| Capture pipeline | 2026-04-22 12:03 GMT+8 | Reviewed | Fixed screen-recorder stop validation so missing/never-written output files now raise the intended invalid-recording error instead of throwing `FileNotFoundException` while trying to log `FileInfo.Length` | High | Follow-up review of `ScreenRecorderService` stop/finalize handling and existing region-capture smoke coverage; `XerahS.RegionCapture` Release build passed with 0 warnings/errors, but full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` and `dotnet test --configuration Release` were both SIGKILLed by the environment during later solution/plugin build stages before completion |
 | OCR | 2026-04-22 06:26 GMT+8 | Reviewed | Fixed assistant OCR action error handling so recognizer exceptions return a recoverable user-facing error instead of bubbling out and crashing the action flow | High | Follow-up review of assistant OCR execution after the earlier clipboard/error-path fixes; Release build passed with 0 warnings/errors, targeted assistant+OCR regressions passed 16/16, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 7 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, Linux portal policy, and region-capture UI smoke |
 | Editor integration | 2026-04-22 08:30 GMT+8 | Reviewed | Fixed the shell-owned modal overlay visibility handoff and aligned schema-driven convolution controls with the editor test contract by exposing `factor` as a numeric input while keeping normalized matrix keys and flyout/dialog fixes intact | High | Follow-up review of the remaining editor overlay/context-menu/schema-driven failures; `dotnet build tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted editor tests passed 13/13, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` is now down to 2 unrelated failures in Linux capture portal policy and region-capture UI smoke |
 | Uploader core | 2026-04-22 10:28 GMT+8 | Reviewed | Normalized legacy uploader file-extension routing values and cleared the last two unrelated full-suite blockers in Linux capture policy and region-capture smoke initialization | High | Reviewed uploader instance routing plus the remaining Linux capture blockers; full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` now passes with 0 warnings/errors and full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passes 425/425 |
@@ -33,6 +33,29 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Tests / test discoverability | 2026-04-22 04:21 GMT+8 | Reviewed | Fixed XSIE preset serialization so runtime-only image-effect metadata no longer gets written into `Config.json`, which restores `ImageEffectPresetSerializerTests` round-tripping for effects with computed `Parameters` lists | High | Follow-up on the stale failing Release suite: reviewed preset serializer/binder coverage, confirmed the saved archive now omits runtime-only `Parameters`, targeted preset tests pass 4/4, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` now reports 421 tests with 7 remaining unrelated failures in editor overlay/context-menu/schema-driven dialog coverage, Linux portal policy, and region-capture UI smoke |
 
 ## Review Log
+
+### 2026-04-22 12:03 GMT+8
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/ScreenRecorderService.cs`
+  - `tests/XerahS.Tests/RegionCapture/ScreenRecorderServiceTests.cs`
+  - `tests/XerahS.Tests/RegionCapture/RegionCaptureUiSmokeTests.cs`
+- Findings:
+  - `ScreenRecorderService.StopRecordingAsync()` logs `FileInfo.Length` before checking whether the output file exists.
+  - When an encoder fails to create the output file at all, that debug logging path throws `FileNotFoundException` first, which masks the intended `InvalidOperationException("Recording output invalid ...")` error and makes stop/finalize diagnostics inconsistent.
+  - The nearby region-capture UI smoke tests are still useful coverage for toolbar/window wiring, but they do not cover this finalize-time missing-output edge case.
+- Outcome:
+  - Landed a bounded fix that guards output-size lookup behind `info.Exists`, preserves the intended invalid-output error path, and reports `size=missing` instead of crashing inside the logger.
+  - Added a regression test with a stub encoder that never creates the output file and asserts `StopRecordingAsync()` raises the expected non-fatal invalid-output error event.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were re-verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule commit or parent pointer update was required.
+  - `dotnet build src/desktop/app/XerahS.RegionCapture/XerahS.RegionCapture.csproj --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full solution `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` reached late solution/plugin build stages and was then SIGKILLed by the environment.
+  - Full and targeted `dotnet test` attempts were blocked for the same reason because building `tests/XerahS.Tests` triggers the wider solution/plugin build graph, which is also being SIGKILLed by the environment before completion.
+- Follow-up:
+  - Next capture-pipeline pass should either reproduce the missing-output path under a lighter-weight test harness or investigate why the test-project/plugin auto-build graph is now exceeding the cron environment limits despite the main solution having passed earlier today.
 
 ### 2026-04-22 10:37 GMT+8
 - Area: Plugin loading/runtime

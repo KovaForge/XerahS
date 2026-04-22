@@ -236,12 +236,13 @@ public class ScreenRecorderService : IRecordingService
             if (!string.IsNullOrEmpty(outputPath))
             {
                 var info = new FileInfo(outputPath);
-                DebugHelper.WriteLine($"[ScreenRecorder] Output validation: exists={info.Exists}, size={info.Length} bytes");
+                long? outputSize = info.Exists ? info.Length : null;
+                DebugHelper.WriteLine($"[ScreenRecorder] Output validation: exists={info.Exists}, size={(outputSize?.ToString() ?? "(missing)")} bytes");
 
                 // [2026-01-10T14:02:37+08:00] Fail fast on zero-byte recordings observed intermittently; outcome (2026-01-10T14:09:06+08:00) validated mp4 > 0 bytes after guarded finalize.
-                if (!info.Exists || info.Length <= 0)
+                if (!info.Exists || outputSize <= 0)
                 {
-                    throw new InvalidOperationException($"Recording output invalid (exists={info.Exists}, size={info.Length}) for {outputPath}");
+                    throw new InvalidOperationException($"Recording output invalid (exists={info.Exists}, size={(outputSize?.ToString() ?? "missing")}) for {outputPath}");
                 }
             }
         }

@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using NUnit.Framework;
@@ -93,6 +94,28 @@ public sealed class ScreenRecorderServiceTests
         });
     }
 
+    [Test]
+    public async Task StopRecordingAsync_RaisesInvalidOutputError_WhenEncoderDidNotProduceFile()
+    {
+        var errors = new List<RecordingErrorEventArgs>();
+        ScreenRecorderService.EncoderFactory = () => new MissingOutputVideoEncoder();
+
+        using var service = new ScreenRecorderService();
+        service.ErrorOccurred += (_, args) => errors.Add(args);
+
+        await service.StartRecordingAsync(new RecordingOptions());
+        Assert.DoesNotThrowAsync(async () => await service.StopRecordingAsync());
+
+        Assert.That(errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors[0].IsFatal, Is.False);
+            Assert.That(errors[0].Exception, Is.TypeOf<InvalidOperationException>());
+            Assert.That(errors[0].Exception.Message, Does.Contain("Recording output invalid"));
+            Assert.That(errors[0].Exception.Message, Does.Contain("size=missing"));
+        });
+    }
+
     public sealed class FakeCaptureSource : ICaptureSource
     {
         public bool ShowCursor { get; set; }
@@ -127,6 +150,26 @@ public sealed class ScreenRecorderServiceTests
             OutputPath = outputPath;
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             using var _ = File.Create(outputPath);
+        }
+
+        public void WriteFrame(FrameData frame)
+        {
+        }
+
+        public void FinalizeEncoding()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public sealed class MissingOutputVideoEncoder : IVideoEncoder
+    {
+        public void Initialize(VideoFormat format, string outputPath)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
         }
 
         public void WriteFrame(FrameData frame)
