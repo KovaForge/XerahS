@@ -258,13 +258,10 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
         var authInfo = new OAuth2Info(ClientId, clientSecret);
         var tokenJson = _secrets?.GetSecret("imgur", _secretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
+        var token = TryDeserializeToken(tokenJson);
+        if (token != null)
         {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null)
-            {
-                authInfo.Token = token;
-            }
+            authInfo.Token = token;
         }
 
         return new ImgurUploader(_config, authInfo);
@@ -376,12 +373,24 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
         }
 
         var tokenJson = _secrets.GetSecret("imgur", _secretKey, "oauthToken");
+        var token = TryDeserializeToken(tokenJson);
+        return token != null && !string.IsNullOrEmpty(token.access_token);
+    }
+
+    private static OAuth2Token? TryDeserializeToken(string? tokenJson)
+    {
         if (string.IsNullOrWhiteSpace(tokenJson))
         {
-            return false;
+            return null;
         }
 
-        var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-        return token != null && !string.IsNullOrEmpty(token.access_token);
+        try
+        {
+            return JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

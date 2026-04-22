@@ -135,6 +135,35 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_IgnoresMalformedPersistedTokenAndKeepsConfigurationUsable()
+    {
+        const string secretKey = "imgur-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("imgur", secretKey, "oauthToken", "{not-json");
+
+        ImgurConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "client-bad-token",
+            AccountType = AccountType.Anonymous
+        }));
+
+        ImgurUploader uploader = GetUploader(viewModel);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.ClientId, Is.EqualTo("client-bad-token"));
+            Assert.That(viewModel.IsLoggedIn, Is.False);
+            Assert.That(viewModel.StatusMessage, Is.Null.Or.Empty);
+            Assert.That(uploader.AuthInfo.Client_ID, Is.EqualTo("client-bad-token"));
+            Assert.That(uploader.AuthInfo.Token, Is.Null);
+        });
+    }
+
+    [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
         using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });
