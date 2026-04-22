@@ -23,11 +23,13 @@
 
 #endregion License Information (GPL v3)
 
+using System.Reflection;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using ShareX.Ftp.Plugin;
 using ShareX.Ftp.Plugin.ViewModels;
 using XerahS.Uploaders;
+using XerahS.Uploaders.FileUploaders;
 
 namespace XerahS.Tests.Uploaders;
 
@@ -154,5 +156,37 @@ public sealed class FtpConfigViewModelTests
 
         Assert.That(isValid, Is.False);
         Assert.That(viewModel.StatusMessage, Is.EqualTo("Port must be between 1 and 65535."));
+    }
+
+    [Test]
+    public void ProviderCreateInstance_NormalizesInvalidEnumsAndMissingPort()
+    {
+        var provider = new FtpProvider();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Protocol = (FTPProtocol)999,
+            BrowserProtocol = (BrowserProtocol)999,
+            FTPSEncryption = (FTPSEncryption)999,
+            Host = "example.com",
+            Port = 0
+        });
+
+        var uploader = provider.CreateInstance(json);
+        FTPAccount account = GetAccount((FtpUploader)uploader);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(account.Protocol, Is.EqualTo(FTPProtocol.FTP));
+            Assert.That(account.BrowserProtocol, Is.EqualTo(BrowserProtocol.http));
+            Assert.That(account.FTPSEncryption, Is.EqualTo(FTPSEncryption.Explicit));
+            Assert.That(account.Port, Is.EqualTo(21));
+        });
+    }
+
+    private static FTPAccount GetAccount(FtpUploader uploader)
+    {
+        FieldInfo? field = typeof(FtpUploader).GetField("_account", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(field, Is.Not.Null);
+        return (FTPAccount)field!.GetValue(uploader)!;
     }
 }
