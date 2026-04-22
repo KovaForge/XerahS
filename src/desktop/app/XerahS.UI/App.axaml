@@ -52,7 +52,8 @@
                           Command="{Binding CopyMarkdownImageCommand}"
                           IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                 <MenuItem Header="Copy image to clipboard"
-                          Command="{Binding CopyImageToClipboardCommand}"/>
+                          Command="{Binding CopyImageToClipboardCommand}"
+                          IsVisible="{Binding Item.HasImageFile}"/>
                 <MenuItem Header="Copy Errors"
                           Command="{Binding CopyErrorsCommand}"
                           IsVisible="{Binding Item.HasErrors}"/>
