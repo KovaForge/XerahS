@@ -316,6 +316,7 @@ public class InstanceManager
                     string.Equals(i.InstanceId, defaultId, StringComparison.OrdinalIgnoreCase));
 
                 if (defaultInstance != null &&
+                    defaultInstance.IsAvailable &&
                     !IsAutoProvider(defaultInstance.ProviderId) &&
                     !string.Equals(defaultInstance.InstanceId, autoInstanceId, StringComparison.OrdinalIgnoreCase))
                 {
@@ -325,6 +326,7 @@ public class InstanceManager
 
             return _configuration.Instances.FirstOrDefault(i =>
                 i.Category == category &&
+                i.IsAvailable &&
                 !IsAutoProvider(i.ProviderId) &&
                 !string.Equals(i.InstanceId, autoInstanceId, StringComparison.OrdinalIgnoreCase));
         }
@@ -349,6 +351,7 @@ public class InstanceManager
 
             // 1. Try exact file extension match first
             var exactMatch = instances.FirstOrDefault(i =>
+                i.IsAvailable &&
                 !GetFileTypeRouting(i).AllFileTypes &&
                 GetFileTypeRouting(i).FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
 
@@ -356,7 +359,7 @@ public class InstanceManager
                 return exactMatch;
 
             // 2. Fallback to "All File Types" instance
-            var allTypesMatch = instances.FirstOrDefault(i => GetFileTypeRouting(i).AllFileTypes);
+            var allTypesMatch = instances.FirstOrDefault(i => i.IsAvailable && GetFileTypeRouting(i).AllFileTypes);
 
             return allTypesMatch;
         }

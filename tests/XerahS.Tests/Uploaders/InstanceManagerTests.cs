@@ -171,6 +171,85 @@ public class InstanceManagerTests
         Assert.That(validationError, Does.Contain("png").And.Contain("PNG Handler"));
     }
 
+    [Test]
+    public void GetDestinationForFile_SkipsUnavailableExtensionSpecificInstanceAndFallsBackToAvailableAllTypes()
+    {
+        var unavailablePng = new UploaderInstance
+        {
+            ProviderId = "png-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable PNG",
+            SettingsJson = "{}",
+            IsAvailable = false,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        var fallback = new UploaderInstance
+        {
+            ProviderId = "fallback-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Available Fallback",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(unavailablePng);
+        InstanceManager.Instance.AddInstance(fallback);
+
+        var destination = InstanceManager.Instance.GetDestinationForFile(UploaderCategory.Image, ".png");
+
+        Assert.That(destination?.InstanceId, Is.EqualTo(fallback.InstanceId));
+    }
+
+    [Test]
+    public void ResolveAutoInstance_SkipsUnavailableDefaultAndReturnsAvailableAlternative()
+    {
+        var unavailableDefault = new UploaderInstance
+        {
+            ProviderId = "default-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "Unavailable Default",
+            SettingsJson = "{}",
+            IsAvailable = false,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        var availableFallback = new UploaderInstance
+        {
+            ProviderId = "fallback-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "Available Fallback",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(unavailableDefault);
+        InstanceManager.Instance.AddInstance(availableFallback);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, unavailableDefault.InstanceId);
+
+        var resolved = InstanceManager.Instance.ResolveAutoInstance(UploaderCategory.File);
+
+        Assert.That(resolved?.InstanceId, Is.EqualTo(availableFallback.InstanceId));
+    }
+
     private static void ClearInstances()
     {
         foreach (var instance in InstanceManager.Instance.GetInstances().ToList())

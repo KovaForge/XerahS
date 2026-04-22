@@ -401,6 +401,7 @@ namespace XerahS.Core.Tasks.Processors
         private static List<UploaderInstance> GetPrioritizedInstances(InstanceManager instanceManager, UploaderCategory category, string? excludeInstanceId, string? fileName)
         {
             var allInstances = instanceManager.GetInstancesByCategory(category)
+                .Where(i => i.IsAvailable)
                 .Where(i => !InstanceManager.IsAutoProvider(i.ProviderId))
                 .Where(i => excludeInstanceId == null || !string.Equals(i.InstanceId, excludeInstanceId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
