@@ -29,10 +29,37 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Plugin loading/runtime | 2026-04-22 10:37 GMT+8 | Reviewed | Fixed relative-path custom uploader reload lookups so stale providers are evicted correctly even when file watcher or caller paths are not already normalized to the stored absolute definition path | High | Follow-up review of plugin discovery/runtime binding with focus on custom uploader reload and provider lookup path matching; full `dotnet build --configuration Release` passed with 0 warnings/errors, targeted custom-uploader regressions passed 25/25, and full `dotnet test --configuration Release` passed 426/426 |
 | CLI / command surface | 2026-04-22 17:50 GMT+8 | Reviewed | Fixed CLI upload temp-dir cleanup so `--text`/`--pipe` uploads with `--name` no longer leak the second uniquely-named temp directory after the upload completes | Medium | Follow-up review of `UploadCommand` temp-file naming and cleanup paths; full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false` passed 432/432, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
 | Platform-specific services | 2026-04-22 03:44 GMT+8 | Reviewed | Fixed Wayland directory-open portal URIs so relative folders are normalized to absolute `file://` URIs before portal dispatch instead of failing with malformed relative URIs | Medium | Reviewed Linux Wayland portal file/folder open handling plus Linux/macOS notification process-start coverage; Release build passed with 0 warnings/errors, targeted platform regression tests passed 8/8, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures before the run is SIGKILLed by the environment |
-| File/path handling | 2026-04-22 01:37 GMT+8 | Reviewed | Fixed image save path handling so leaf-only filenames no longer try to create an empty directory and throw before writing the bitmap | High | Reviewed bitmap/file-save helpers plus path-shape edge cases; Release build passed with 0 warnings/errors, targeted ImageHelpers regression passed, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` still reports 8 unrelated existing failures in editor overlay/context-menu/schema-driven dialog coverage, image-effect preset serialization, Linux portal capture policy, and region-capture UI smoke |
+| File/path handling | 2026-04-22 20:29 GMT+8 | Reviewed | Fixed async text index export so leaf-only output filenames no longer fail while trying to create a null/empty parent directory before writing the index file | High | Follow-up review of file-save/path-shape edge cases in the async indexer and related helpers; full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 435/435, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
 | Tests / test discoverability | 2026-04-22 04:21 GMT+8 | Reviewed | Fixed XSIE preset serialization so runtime-only image-effect metadata no longer gets written into `Config.json`, which restores `ImageEffectPresetSerializerTests` round-tripping for effects with computed `Parameters` lists | High | Follow-up on the stale failing Release suite: reviewed preset serializer/binder coverage, confirmed the saved archive now omits runtime-only `Parameters`, targeted preset tests pass 4/4, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` now reports 421 tests with 7 remaining unrelated failures in editor overlay/context-menu/schema-driven dialog coverage, Linux portal policy, and region-capture UI smoke |
 
 ## Review Log
+
+### 2026-04-22 20:29 GMT+8
+- Area: File/path handling
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Indexer/IndexerTextAsync.cs`
+  - `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`
+  - `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`
+  - `tests/XerahS.Tests/Helpers/ImageHelpersTests.cs`
+  - `tests/XerahS.Tests/Helpers/IndexerTextAsyncTests.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+- Findings:
+  - `IndexerTextAsync.IndexToFileAsync(...)` and `IndexWithPreviewAsync(...)` called `Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath)!)` directly.
+  - When callers supply a leaf-only output path like `index.txt`, `Path.GetDirectoryName(...)` returns `null`, so the async text indexer threw before opening the output file.
+  - The repo already has `FileHelpers.CreateDirectoryFromFilePath(...)` specifically to normalize that path shape safely, so this was a real consistency bug in another file-writing path.
+- Outcome:
+  - Landed a bounded fix by switching both async text indexer entry points to `FileHelpers.CreateDirectoryFromFilePath(outputFilePath)`.
+  - Added a regression test proving `IndexerAsync.IndexToFileAsync(...)` succeeds with a leaf-only output filename and writes the file into the current working directory.
+  - Added the missing `XerahS.Indexer` project reference to the main test project so the regression stays part of the normal solution suite.
+- Verification / blockers:
+  - Parent repo upstream remains current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were verified (`origin` = KovaForge, `upstream` = ShareX); the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule commit or parent pointer update was required.
+  - Targeted regression run `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~ImageHelpersTests|FullyQualifiedName~IndexerTextAsyncTests"` passed with 2/2 tests green.
+  - Full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 435/435 tests green.
+- Follow-up:
+  - The next file/path handling pass should inspect the remaining direct `Directory.CreateDirectory(Path.GetDirectoryName(...))` call sites, especially the MCP runtime save path, to decide whether they need the same guard or stricter absolute-path validation.
 
 ### 2026-04-22 18:53 GMT+8
 - Area: Notifications/toasts

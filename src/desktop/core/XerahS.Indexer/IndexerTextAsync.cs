@@ -49,11 +49,11 @@ namespace XerahS.Indexer
         protected override async Task<IndexResult> IndexToFileAsync(string folderPath, string outputFilePath)
         {
             var startTime = DateTime.UtcNow;
-            
+
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath)!);
-                
+                FileHelpers.CreateDirectoryFromFilePath(outputFilePath);
+
                 await using (var writer = new StreamWriter(outputFilePath, false, Encoding.UTF8))
                 {
                     _writer = writer;
@@ -105,11 +105,11 @@ namespace XerahS.Indexer
             _maxPreviewLines = maxPreviewLines;
             _previewLines = 0;
             _previewBuilder.Clear();
-            
+
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath)!);
-                
+                FileHelpers.CreateDirectoryFromFilePath(outputFilePath);
+
                 await using (var writer = new StreamWriter(outputFilePath, false, Encoding.UTF8))
                 {
                     _writer = writer;

@@ -39,6 +39,7 @@
                       AdditionalProperties="EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
     <ProjectReference Include="..\..\src\desktop\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\src\desktop\core\XerahS.Indexer\XerahS.Indexer.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Dropbox.Plugin\XerahS.Dropbox.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Ftp.Plugin\XerahS.Ftp.Plugin.csproj" />
