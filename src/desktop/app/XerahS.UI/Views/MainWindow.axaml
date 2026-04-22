@@ -188,8 +188,9 @@
         </Grid>
 
         <!-- Modal Overlay Layer (Bootstrap Style) -->
-        <Grid Grid.Row="0" Grid.RowSpan="2" 
-              IsVisible="{Binding IsModalOpen}"
+        <Grid x:Name="MainWindowModalOverlay"
+              Grid.Row="0" Grid.RowSpan="2"
+              IsVisible="False"
               ZIndex="1000">
             <!-- Backdrop -->
             <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" 
