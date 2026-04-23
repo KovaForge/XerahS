@@ -112,11 +112,10 @@ public static class CustomUploaderDefinitionBindingService
         var metadataInstanceIds = provider.Metadata?.InstanceIds
             .Where(instanceId => !string.IsNullOrWhiteSpace(instanceId))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .ToList() ?? new List<string>();
 
-        var boundInstanceIds = metadataInstanceIds is { Count: > 0 }
-            ? metadataInstanceIds
-            : GetBoundInstanceIds(provider.ProviderId, fallbackInstanceId);
+        var liveInstanceIds = GetBoundInstanceIds(provider.ProviderId, fallbackInstanceId);
+        var boundInstanceIds = liveInstanceIds.Count > 0 ? liveInstanceIds : metadataInstanceIds;
 
         if (boundInstanceIds.Count == 0 && !string.IsNullOrWhiteSpace(fallbackInstanceId))
         {
@@ -124,6 +123,12 @@ public static class CustomUploaderDefinitionBindingService
         }
 
         string? primaryInstanceId = provider.Metadata?.PrimaryInstanceId;
+        if (!string.IsNullOrWhiteSpace(primaryInstanceId) &&
+            !boundInstanceIds.Contains(primaryInstanceId, StringComparer.OrdinalIgnoreCase))
+        {
+            primaryInstanceId = null;
+        }
+
         if (string.IsNullOrWhiteSpace(primaryInstanceId) && boundInstanceIds.Count == 1)
         {
             primaryInstanceId = boundInstanceIds[0];

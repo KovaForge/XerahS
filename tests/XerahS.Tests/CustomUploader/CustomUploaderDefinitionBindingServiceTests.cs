@@ -147,6 +147,45 @@ public class CustomUploaderDefinitionBindingServiceTests
     }
 
     [Test]
+    public void GetBindingInfo_PrefersLiveInstanceBindings_OverStaleMetadata()
+    {
+        string filePath = CreateUniqueFilePath("live-bindings");
+        var item = CreateItem(CustomUploaderDestinationType.ImageUploader);
+
+        Assert.That(CustomUploaderRepository.SaveToFile(item, filePath), Is.True);
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.True);
+
+        var provider = CustomUploaderDefinitionBindingService.GetProviderByFilePath(filePath);
+        Assert.That(provider, Is.Not.Null);
+
+        var originalResult = CustomUploaderDefinitionBindingService.CreateMissingInstances(provider!);
+        Assert.That(originalResult.CreatedInstances.Count, Is.EqualTo(1));
+
+        string originalInstanceId = originalResult.CreatedInstances[0].InstanceId;
+        Assert.That(CustomUploaderDefinitionBindingService.SaveDefinition(provider!.Item, provider.FilePath, new[] { originalInstanceId }, originalInstanceId), Is.True);
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.True);
+
+        provider = CustomUploaderDefinitionBindingService.GetProviderByFilePath(filePath);
+        Assert.That(provider, Is.Not.Null);
+
+        InstanceManager.Instance.RemoveInstance(originalInstanceId);
+        var replacementInstance = new UploaderInstance
+        {
+            ProviderId = provider!.ProviderId,
+            Category = UploaderCategory.Image,
+            DisplayName = provider.Name,
+            SettingsJson = provider.GetDefaultSettings(UploaderCategory.Image),
+            FileTypeRouting = new FileTypeScope { AllFileTypes = true }
+        };
+        InstanceManager.Instance.AddInstance(replacementInstance);
+
+        var bindingInfo = CustomUploaderDefinitionBindingService.GetBindingInfo(provider!, replacementInstance.InstanceId);
+
+        Assert.That(bindingInfo.BoundInstanceIds, Is.EquivalentTo(new[] { replacementInstance.InstanceId }));
+        Assert.That(bindingInfo.PrimaryInstanceId, Is.EqualTo(replacementInstance.InstanceId));
+    }
+
+    [Test]
     public void ProviderCatalogViewModel_AddSelected_CanAddToAllSupportedCategories()
     {
         string filePath = CreateUniqueFilePath("catalog");
