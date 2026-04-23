@@ -120,6 +120,63 @@ public class HistoryEditorLaunchTests
             Assert.That(uiService.LastSourceFilePath, Is.EqualTo(imagePath));
             Assert.That(uiService.LastAnnotationCount, Is.EqualTo(1));
             Assert.That(uiService.LastRestoredAnnotations, Is.True);
+            Assert.That(uiService.LastSessionImageSize, Is.EqualTo(new SKSizeI(8, 8)));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task EditImage_UsesCurrentFileImage_WhenAnnotationSidecarHashMismatches()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "annotated.png");
+
+        using var originalBitmap = new SKBitmap(8, 8);
+        originalBitmap.Erase(SKColors.Red);
+        SaveBitmap(imagePath, originalBitmap);
+
+        string? sidecarPath = await XannProjectFileService.SaveAsync(
+            imagePath,
+            originalBitmap,
+            new Annotation[]
+            {
+                new RectangleAnnotation
+                {
+                    StartPoint = new SKPoint(1, 1),
+                    EndPoint = new SKPoint(6, 6)
+                }
+            });
+
+        using (var updatedBitmap = new SKBitmap(16, 10))
+        {
+            updatedBitmap.Erase(SKColors.Green);
+            SaveBitmap(imagePath, updatedBitmap);
+        }
+
+        var uiService = new TrackingUiService();
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath,
+                AnnotationSidecarPath = sidecarPath
+            };
+
+            await viewModel.EditImageCommand.ExecuteAsync(item);
+
+            Assert.That(uiService.SessionLaunchCount, Is.EqualTo(1));
+            Assert.That(uiService.LastSourceFilePath, Is.EqualTo(imagePath));
+            Assert.That(uiService.LastAnnotationCount, Is.EqualTo(1));
+            Assert.That(uiService.LastRestoredAnnotations, Is.True);
+            Assert.That(uiService.LastSessionImageSize, Is.EqualTo(new SKSizeI(16, 10)));
         }
         finally
         {
@@ -208,6 +265,7 @@ public class HistoryEditorLaunchTests
         public int LastAnnotationCount { get; private set; }
         public bool LastRestoredAnnotations { get; private set; }
         public int SessionLaunchCount { get; private set; }
+        public SKSizeI LastSessionImageSize { get; private set; }
         public Action<string?>? ShowEditorSessionCallback { get; init; }
 
         public Task HideMainWindowAsync() => Task.CompletedTask;
@@ -231,6 +289,7 @@ public class HistoryEditorLaunchTests
             LastSourceFilePath = sourceFilePath;
             LastAnnotationCount = annotations?.Count ?? 0;
             LastRestoredAnnotations = restoredAnnotations;
+            LastSessionImageSize = new SKSizeI(image.Width, image.Height);
             ShowEditorSessionCallback?.Invoke(sourceFilePath);
             return Task.FromResult<ImageEditorSessionResult?>(new ImageEditorSessionResult(
                 image.Copy()!,

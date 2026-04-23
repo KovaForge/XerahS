@@ -375,18 +375,36 @@ namespace XerahS.UI.ViewModels
                         try
                         {
                             var project = await XannProjectFileService.LoadAsync(sidecarPath, item.FilePath);
-                            if (!project.ImageHashMatches)
+                            SKBitmap sessionImage = project.SourceImage;
+
+                            try
                             {
-                                DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Using embedded source image.");
+                                if (!project.ImageHashMatches)
+                                {
+                                    DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Loading current file image for the editor session.");
+                                    using var currentImageStream = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                                    sessionImage = SKBitmap.Decode(currentImageStream)
+                                        ?? throw new InvalidOperationException($"Failed to decode current image file '{item.FilePath}'.");
+                                }
+
+                                var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
+                                    sessionImage,
+                                    item.FilePath,
+                                    annotations: project.Project.Annotations,
+                                    restoredAnnotations: true);
+                                sessionResult?.RenderedImage.Dispose();
+                                sessionResult?.SourceImage?.Dispose();
+                            }
+                            finally
+                            {
+                                if (!ReferenceEquals(sessionImage, project.SourceImage))
+                                {
+                                    sessionImage.Dispose();
+                                }
+
+                                project.SourceImage.Dispose();
                             }
 
-                            var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
-                                project.SourceImage,
-                                item.FilePath,
-                                annotations: project.Project.Annotations,
-                                restoredAnnotations: true);
-                            sessionResult?.RenderedImage.Dispose();
-                            sessionResult?.SourceImage?.Dispose();
                             await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
                             return;
                         }
