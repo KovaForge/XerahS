@@ -600,6 +600,7 @@ namespace XerahS.Core
                 Settings = new ApplicationConfig();
                 UploadersConfig = new UploadersConfig();
                 WorkflowsConfig = new WorkflowsConfig();
+                RecentTaskManager.Clear();
                 SyncDefaultTaskSettings();
                 XerahS.Core.Uploaders.ProviderContextManager.ResetProviderContext();
 

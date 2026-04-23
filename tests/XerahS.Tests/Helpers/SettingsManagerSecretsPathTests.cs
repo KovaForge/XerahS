@@ -210,6 +210,29 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void ResetSettings_ClearsRecentTaskManagerState()
+    {
+        SettingsManager.Settings.RecentTasksSave = true;
+        SettingsManager.RecentTaskManager.Add(new RecentTask
+        {
+            FilePath = "capture.png",
+            URL = "https://example.test/capture.png"
+        });
+
+        bool reset = SettingsManager.ResetSettings();
+        SettingsManager.SaveApplicationConfig();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reset, Is.True);
+            Assert.That(SettingsManager.RecentTaskManager.ToArray(), Is.Empty,
+                "Reset should clear the in-memory recent task queue.");
+            Assert.That(SettingsManager.Settings.RecentTasks, Is.Null,
+                "Saving immediately after reset should not repopulate ApplicationConfig with stale recent tasks.");
+        });
+    }
+
+    [Test]
     public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
     {
         SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");
