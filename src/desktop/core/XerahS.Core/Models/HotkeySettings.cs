@@ -94,9 +94,14 @@ public class WorkflowsConfig : SettingsBase<WorkflowsConfig>
                     continue;
                 }
 
-                if (string.IsNullOrEmpty(workflow.Id))
+                string originalId = workflow.Id;
+                string originalWorkflowId = workflow.TaskSettings?.WorkflowId;
+
+                workflow.EnsureId();
+
+                if (!string.Equals(originalId, workflow.Id, StringComparison.Ordinal) ||
+                    !string.Equals(originalWorkflowId, workflow.TaskSettings?.WorkflowId, StringComparison.Ordinal))
                 {
-                    workflow.EnsureId();
                     needsSave = true;
                 }
             }
