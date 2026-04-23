@@ -151,15 +151,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
 
         var authInfo = new OAuth2Info(config.ClientId, clientSecret);
-        string? tokenJson = Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
-        {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null)
-            {
-                authInfo.Token = token;
-            }
-        }
+        TryHydrateToken(authInfo, Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken"));
 
         return new ImgurUploader(config, authInfo);
     }
@@ -438,15 +430,30 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
         string clientSecret = Secrets.GetSecret(ProviderId, config.SecretKey, "clientSecret")
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
         var authInfo = new OAuth2Info(config.ClientId, clientSecret);
-
-        string? tokenJson = Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
-        {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null) authInfo.Token = token;
-        }
+        TryHydrateToken(authInfo, Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken"));
 
         return authInfo;
+    }
+
+    private static void TryHydrateToken(OAuth2Info authInfo, string? tokenJson)
+    {
+        if (string.IsNullOrWhiteSpace(tokenJson))
+        {
+            return;
+        }
+
+        try
+        {
+            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+            if (token != null)
+            {
+                authInfo.Token = token;
+            }
+        }
+        catch
+        {
+            // Ignore malformed persisted tokens and leave the provider usable.
+        }
     }
 
     // Minimal response models for the explorer (used only within this file)

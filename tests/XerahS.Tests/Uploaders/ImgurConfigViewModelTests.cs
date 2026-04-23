@@ -164,6 +164,55 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void ProviderCreateInstance_IgnoresMalformedPersistedTokenAndStillBuildsUploader()
+    {
+        const string secretKey = "imgur-provider-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("imgur", secretKey, "oauthToken", "{not-json");
+
+        ImgurProvider provider = new();
+        provider.SetContext(new TestProviderContext(secrets));
+
+        ImgurUploader uploader = (ImgurUploader)provider.CreateInstance(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "provider-client",
+            AccountType = AccountType.User
+        }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(uploader.AuthInfo.Client_ID, Is.EqualTo("provider-client"));
+            Assert.That(uploader.AuthInfo.Token, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ProviderBuildAuthInfo_IgnoresMalformedPersistedTokenForExplorerFlows()
+    {
+        const string secretKey = "imgur-provider-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("imgur", secretKey, "oauthToken", "{not-json");
+
+        ImgurProvider provider = new();
+        provider.SetContext(new TestProviderContext(secrets));
+
+        OAuth2Info? authInfo = InvokeBuildAuthInfo(provider, new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "provider-client",
+            AccountType = AccountType.User
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(authInfo, Is.Not.Null);
+            Assert.That(authInfo!.Client_ID, Is.EqualTo("provider-client"));
+            Assert.That(authInfo.Token, Is.Null);
+        });
+    }
+
+    [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
         using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });
@@ -209,6 +258,13 @@ public class ImgurConfigViewModelTests
         MethodInfo? method = typeof(ImgurConfigViewModel).GetMethod("EnsureUploader", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         method!.Invoke(viewModel, new object[] { rebuild });
+    }
+
+    private static OAuth2Info? InvokeBuildAuthInfo(ImgurProvider provider, ImgurConfigModel config)
+    {
+        MethodInfo? method = typeof(ImgurProvider).GetMethod("BuildAuthInfo", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (OAuth2Info?)method!.Invoke(provider, new object[] { config });
     }
 
     private static bool InvokeTryPrepareStreamForRetry(Stream stream)
