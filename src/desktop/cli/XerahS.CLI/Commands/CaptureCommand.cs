@@ -31,6 +31,7 @@ using XerahS.Core.Helpers;
 using XerahS.Core.Tasks;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.CLI.Commands
 {
@@ -102,17 +103,53 @@ namespace XerahS.CLI.Commands
         {
             if (!string.IsNullOrEmpty(output))
             {
-                settings.AfterCaptureJob |= AfterCaptureTasks.SaveImageToFile;
-                settings.OverrideScreenshotsFolder = true;
-                settings.ScreenshotsFolder = Path.GetDirectoryName(output) ?? string.Empty;
-                settings.UploadSettings.NameFormatPattern = Path.GetFileNameWithoutExtension(output);
+                ApplyOutputOverride(settings, output);
             }
-            
+
             if (upload)
             {
                 settings.AfterCaptureJob |= AfterCaptureTasks.UploadImageToHost;
                 settings.AfterUploadJob |= AfterUploadTasks.CopyURLToClipboard; // To match user scenario
             }
+        }
+
+        internal static void ApplyOutputOverride(TaskSettings settings, string output)
+        {
+            string fullOutputPath = Path.GetFullPath(output);
+
+            settings.AfterCaptureJob |= AfterCaptureTasks.SaveImageToFile;
+            settings.OverrideScreenshotsFolder = true;
+            settings.ScreenshotsFolder = Path.GetDirectoryName(fullOutputPath) ?? Environment.CurrentDirectory;
+            settings.UploadSettings.NameFormatPattern = Path.GetFileNameWithoutExtension(fullOutputPath);
+
+            if (TryGetImageFormat(Path.GetExtension(fullOutputPath), out var imageFormat))
+            {
+                settings.ImageSettings.ImageFormat = imageFormat;
+            }
+        }
+
+        internal static bool TryGetImageFormat(string? extension, out EImageFormat imageFormat)
+        {
+            EImageFormat? parsedFormat = extension?.Trim().TrimStart('.').ToLowerInvariant() switch
+            {
+                "png" => EImageFormat.PNG,
+                "jpg" or "jpeg" => EImageFormat.JPEG,
+                "gif" => EImageFormat.GIF,
+                "bmp" => EImageFormat.BMP,
+                "tif" or "tiff" => EImageFormat.TIFF,
+                "webp" => EImageFormat.WEBP,
+                "avif" => EImageFormat.AVIF,
+                _ => null
+            };
+
+            if (parsedFormat.HasValue)
+            {
+                imageFormat = parsedFormat.Value;
+                return true;
+            }
+
+            imageFormat = default;
+            return false;
         }
 
         private static async Task<int> RunTask(IDesktopTaskManager taskManager, TaskSettings taskSettings, SkiaSharp.SKBitmap? image = null)

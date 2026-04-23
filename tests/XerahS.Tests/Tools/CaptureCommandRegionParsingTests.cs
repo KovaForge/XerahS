@@ -25,12 +25,43 @@
 
 using NUnit.Framework;
 using XerahS.CLI.Commands;
+using XerahS.Core;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.Tests.Tools;
 
 [TestFixture]
 public class CaptureCommandRegionParsingTests
 {
+    [Test]
+    public void ApplyOutputOverride_WhenFileNameHasNoDirectory_UsesCurrentDirectoryAndOutputFormat()
+    {
+        var settings = new TaskSettings();
+        string output = "capture.jpg";
+
+        CaptureCommand.ApplyOutputOverride(settings, output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.OverrideScreenshotsFolder, Is.True);
+            Assert.That(settings.ScreenshotsFolder, Is.EqualTo(Environment.CurrentDirectory));
+            Assert.That(settings.UploadSettings.NameFormatPattern, Is.EqualTo("capture"));
+            Assert.That(settings.ImageSettings.ImageFormat, Is.EqualTo(EImageFormat.JPEG));
+        });
+    }
+
+    [Test]
+    public void TryGetImageFormat_WhenExtensionUnknown_ReturnsFalse()
+    {
+        bool result = CaptureCommand.TryGetImageFormat(".weird", out var imageFormat);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.False);
+            Assert.That(imageFormat, Is.EqualTo(default(EImageFormat)));
+        });
+    }
+
     [TestCase(null, "Region must be specified as x,y,width,height.")]
     [TestCase("", "Region must be specified as x,y,width,height.")]
     [TestCase("0,0,100", "Region must be in format x,y,width,height.")]
