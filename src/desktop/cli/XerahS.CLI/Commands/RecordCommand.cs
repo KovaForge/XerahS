@@ -25,6 +25,7 @@
 
 using System.CommandLine;
 using System.Drawing;
+using System.Globalization;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
@@ -122,22 +123,15 @@ namespace XerahS.CLI.Commands
                 };
 
                 Rectangle? regionRect = null;
-                if (captureMode == CaptureMode.Region && !string.IsNullOrEmpty(region))
+                if (captureMode == CaptureMode.Region)
                 {
-                    var parts = region.Split(',');
-                    if (parts.Length == 4)
+                    if (!TryParseRegion(region, out var parsedRegion, out var regionError))
                     {
-                        regionRect = new Rectangle(
-                            int.Parse(parts[0]),
-                            int.Parse(parts[1]),
-                            int.Parse(parts[2]),
-                            int.Parse(parts[3]));
-                    }
-                    else
-                    {
-                        Console.Error.WriteLine("Invalid region format. Expected: 'x,y,width,height'");
+                        Console.Error.WriteLine(regionError);
                         return 1;
                     }
+
+                    regionRect = parsedRegion;
                 }
 
                 // Generate default output path if not provided (match app naming conventions)
@@ -263,6 +257,43 @@ namespace XerahS.CLI.Commands
             }
         }
 
+        internal static bool TryParseRegion(string? region, out Rectangle rect, out string? error)
+        {
+            rect = Rectangle.Empty;
+
+            if (string.IsNullOrWhiteSpace(region))
+            {
+                error = "Region must be specified as 'x,y,width,height'.";
+                return false;
+            }
+
+            string[] parts = region.Split(',');
+            if (parts.Length != 4)
+            {
+                error = "Invalid region format. Expected: 'x,y,width,height'.";
+                return false;
+            }
+
+            if (!int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int x) ||
+                !int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int y) ||
+                !int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int width) ||
+                !int.TryParse(parts[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int height))
+            {
+                error = "Region values must be integers in format 'x,y,width,height'.";
+                return false;
+            }
+
+            if (width <= 0 || height <= 0)
+            {
+                error = "Region width and height must be greater than zero.";
+                return false;
+            }
+
+            rect = new Rectangle(x, y, width, height);
+            error = null;
+            return true;
+        }
+
         private static string? GetDefaultRecordingPath(CaptureMode captureMode)
         {
             WorkflowType workflowType = captureMode switch
@@ -284,7 +315,5 @@ namespace XerahS.CLI.Commands
             filePath = TaskHelpers.HandleExistsFile(filePath, taskSettings);
             return string.IsNullOrWhiteSpace(filePath) ? null : filePath;
         }
-
-
     }
 }
