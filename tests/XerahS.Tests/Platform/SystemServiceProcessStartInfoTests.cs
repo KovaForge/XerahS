@@ -2,6 +2,9 @@ using System.IO;
 using NUnit.Framework;
 using XerahS.Platform.Linux.Services;
 using XerahS.Platform.MacOS.Services;
+#if WINDOWS
+using XerahS.Platform.Windows.Services;
+#endif
 
 namespace XerahS.Tests.Platform;
 
@@ -73,4 +76,32 @@ public class SystemServiceProcessStartInfoTests
         Assert.That(normalizedPath, Is.EqualTo(Path.GetFullPath(relativePath)));
         Assert.That(Path.IsPathRooted(normalizedPath), Is.True);
     }
+
+#if WINDOWS
+    [Test]
+    public void WindowsSystemService_CreateRevealStartInfo_NormalizesExplorerSelectionArgument()
+    {
+        const string target = "C:/Capture Folder/-shot \"final\".png";
+
+        var startInfo = WindowsSystemService.CreateRevealStartInfo(target);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(startInfo.FileName, Is.EqualTo("explorer.exe"));
+            Assert.That(startInfo.Arguments, Is.EqualTo("/select,\"C:\\Capture Folder\\-shot \"final\".png\""));
+            Assert.That(startInfo.UseShellExecute, Is.True);
+        });
+    }
+
+    [Test]
+    public void WindowsSystemService_NormalizeExistingPath_ConvertsRelativeDashedPathToAbsolutePath()
+    {
+        string relativePath = Path.Combine(".", "-capture shot.png");
+
+        string normalizedPath = WindowsSystemService.NormalizeExistingPath(relativePath);
+
+        Assert.That(normalizedPath, Is.EqualTo(Path.GetFullPath(relativePath)));
+        Assert.That(Path.IsPathRooted(normalizedPath), Is.True);
+    }
+#endif
 }
