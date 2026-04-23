@@ -419,16 +419,27 @@ public class ScreenRecorderService : IRecordingService
 
     private string GetOutputPath(RecordingOptions options)
     {
+        string outputPath;
+
         if (!string.IsNullOrEmpty(options.OutputPath))
         {
-            return options.OutputPath;
+            outputPath = Path.GetFullPath(options.OutputPath);
+            string? outputDirectory = Path.GetDirectoryName(outputPath);
+
+            if (!string.IsNullOrEmpty(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            return outputPath;
         }
 
         string screencastsFolder = PathsManager.ScreencastsFolder;
         Directory.CreateDirectory(screencastsFolder);
 
         string fileName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4";
-        return Path.Combine(screencastsFolder, fileName);
+        outputPath = Path.Combine(screencastsFolder, fileName);
+        return outputPath;
     }
 
     private int GetCaptureWidth(RecordingOptions options)

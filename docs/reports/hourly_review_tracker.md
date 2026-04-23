@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-22 20:53 GMT+8 | Reviewed | Fixed Linux selector preference normalization so a saved `XerahSOverlay` choice is preserved when the current session still resolves automatic selection to the overlay, instead of being silently downgraded to `Automatic` | High | Follow-up review of Linux capture preference resolution across settings/task capture UI; full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted Linux selector tests passed 3/3, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 438/438, and `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required. |
+| Capture pipeline | 2026-04-23 12:49 AWST | Reviewed | Fixed screen-recording custom output-path resolution so relative recording targets are normalized to absolute paths and their parent directories are created before encoder startup, preventing custom capture outputs from failing on missing folders | High | Follow-up review of recording output-path handling across `ScreenRecorderService`, `ScreenRecordingManager`, Windows capture startup, and CLI record flows; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 463/463. |
 | OCR | 2026-04-23 01:10 GMT+8 | Reviewed | Fixed capture-pipeline OCR persistence so whitespace-only recognizer results no longer get stored as `Metadata.OcrText`, which previously treated blank OCR noise as a successful captured text result | High | Follow-up review of capture-task OCR result handling and OCR regression coverage; upstream merge pulled 1 commit into `develop`, `ShareX.ImageEditor` remotes were corrected and verified on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 449/449. |
 | Editor integration | 2026-04-23 02:49 GMT+8 | Reviewed | Fixed the default `IUIService.ShowEditorSessionAsync(...)` fallback so it preserves a copied source bitmap and cloned annotations instead of silently dropping editor-session state needed for annotation sidecar saves | High | Follow-up review of platform editor-session fallback and history/capture editor call sites; upstream `develop` was already current with 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 450/450. |
 | Uploader core | 2026-04-23 03:23 GMT+8 | Reviewed | Fixed uploader auto/default resolution so unavailable instances are no longer selected for file-extension or fallback routing, preventing uploads from targeting disabled providers when an available alternative exists | High | Focused review of uploader instance routing in `UploadJobProcessor` and `InstanceManager`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 452/452. |
@@ -228,6 +228,31 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 452/452 tests green.
 - Follow-up:
   - Next uploader-core pass should inspect availability-state transitions around plugin reloads and secret/auth failures, to confirm instances flip between unavailable and recoverable states without leaving stale auto-routing choices behind.
+
+### 2026-04-23 12:49 AWST
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/ScreenRecorderService.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/Processors/CaptureJobProcessor.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsScreenCaptureService.cs`
+  - `src/desktop/core/XerahS.Core/Managers/ScreenRecordingManager.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/RecordCommand.cs`
+  - `tests/XerahS.Tests/RegionCapture/ScreenRecorderServiceTests.cs`
+- Findings:
+  - `ScreenRecorderService.GetOutputPath(...)` returned custom `RecordingOptions.OutputPath` values verbatim, so relative paths stayed relative and missing parent folders were not created before encoder initialization.
+  - That made custom recording targets brittle: a CLI or desktop recording aimed at a new nested folder could fail at startup depending on encoder behavior, even though the default path flow already provisions its destination directory.
+- Outcome:
+  - Landed a bounded fix so custom recording output paths are normalized with `Path.GetFullPath(...)` and their parent directory is created before recording starts.
+  - Added a regression test covering relative custom output paths and missing destination directory creation.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes remain correct, the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule pointer update was required.
+  - `Directory.Build.props` version was bumped from `0.22.9` to `0.22.10` because a real fix landed.
+  - `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 463/463 tests green.
+- Follow-up:
+  - Next capture-pipeline pass should inspect segment/final output-path consistency during pause-resume and extension rewriting, especially where `_finalOutputPath` and actual encoder container extension can diverge.
 
 ### 2026-04-23 01:10 GMT+8
 - Area: OCR

@@ -75,6 +75,26 @@ public sealed class ScreenRecorderServiceTests
     }
 
     [Test]
+    public async Task StartRecordingAsync_UsesAbsoluteCustomOutputPath_AndCreatesMissingDirectory()
+    {
+        using var service = new ScreenRecorderService();
+        string relativeOutputPath = Path.Combine("custom-recordings", Guid.NewGuid().ToString("N"), "capture.mp4");
+        string expectedOutputPath = Path.GetFullPath(relativeOutputPath);
+
+        await service.StartRecordingAsync(new RecordingOptions
+        {
+            OutputPath = relativeOutputPath
+        });
+
+        Assert.That(_lastEncoder, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_lastEncoder!.OutputPath, Is.EqualTo(expectedOutputPath));
+            Assert.That(Directory.Exists(Path.GetDirectoryName(expectedOutputPath)!), Is.True);
+        });
+    }
+
+    [Test]
     public async Task StartRecordingAsync_ClampsOddSinglePixelRegionDimensions_ToMinimumEvenEncoderSize()
     {
         using var service = new ScreenRecorderService();
