@@ -158,15 +158,7 @@ namespace XerahS.Core.Tasks.Processors
 
             if (!string.IsNullOrEmpty(targetInstanceId))
             {
-                targetInstance = instanceManager.GetInstance(targetInstanceId);
-                if (targetInstance == null)
-                {
-                    DebugHelper.WriteLine($"Configured destination instance not found: {targetInstanceId}");
-                }
-                else if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
-                {
-                    DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Continuing with configured instance.");
-                }
+                targetInstance = ResolveRequestedInstance(instanceManager, targetInstanceId, category);
             }
 
             // Check if Auto destination is selected
@@ -176,7 +168,7 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             // Not Auto - use the configured instance directly
-            targetInstance ??= instanceManager.GetDefaultInstance(category);
+            targetInstance ??= ResolveDefaultInstance(instanceManager, category);
 
             if (targetInstance == null && category == UploaderCategory.File)
             {
@@ -229,6 +221,41 @@ namespace XerahS.Core.Tasks.Processors
                 attemptedInstanceIds);
 
             return IsSuccessfulUploadResult(fallbackResult) ? fallbackResult : fallbackResult ?? primaryResult;
+        }
+
+        internal static UploaderInstance? ResolveRequestedInstance(InstanceManager instanceManager, string targetInstanceId, UploaderCategory category)
+        {
+            var targetInstance = instanceManager.GetInstance(targetInstanceId);
+            if (targetInstance == null)
+            {
+                DebugHelper.WriteLine($"Configured destination instance not found: {targetInstanceId}");
+                return null;
+            }
+
+            if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
+            {
+                DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Continuing with configured instance.");
+            }
+
+            if (!targetInstance.IsAvailable)
+            {
+                DebugHelper.WriteLine($"Configured destination instance is unavailable: {targetInstance.DisplayName} ({targetInstance.InstanceId}). Falling back to other uploaders.");
+                return null;
+            }
+
+            return targetInstance;
+        }
+
+        internal static UploaderInstance? ResolveDefaultInstance(InstanceManager instanceManager, UploaderCategory category)
+        {
+            var targetInstance = instanceManager.GetDefaultInstance(category);
+            if (targetInstance != null && !targetInstance.IsAvailable)
+            {
+                DebugHelper.WriteLine($"Default destination instance is unavailable: {targetInstance.DisplayName} ({targetInstance.InstanceId}). Falling back to other uploaders.");
+                return null;
+            }
+
+            return targetInstance;
         }
 
         private static UploaderInstance? EnsureAutoFileDestinationInstance(InstanceManager instanceManager)
