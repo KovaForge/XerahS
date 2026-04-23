@@ -208,17 +208,38 @@ public static class UploadCommand
             var tcs = new TaskCompletionSource<bool>();
             bool handlerFired = false;
 
+            string expectedFilePath = Path.GetFullPath(filePath);
+
             EventHandler<WorkerTask>? handler = null;
             handler = (sender, task) =>
             {
+                if (task is null)
+                {
+                    return;
+                }
+
+                var taskInfo = task.Info;
+                if (taskInfo is null)
+                {
+                    return;
+                }
+
+                string? completedFilePath = taskInfo.FilePath;
+
+                if (!string.IsNullOrWhiteSpace(completedFilePath) &&
+                    !string.Equals(Path.GetFullPath(completedFilePath), expectedFilePath, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 if (handlerFired) return;
                 handlerFired = true;
                 taskManager.TaskCompleted -= handler;
 
-                bool success = task.Status == Core.TaskStatus.Completed && !string.IsNullOrEmpty(task.Info.Metadata?.UploadURL);
+                bool success = task.Status == Core.TaskStatus.Completed && !string.IsNullOrEmpty(taskInfo.Metadata?.UploadURL);
                 if (success)
                 {
-                    var url = task.Info.Metadata?.UploadURL ?? string.Empty;
+                    var url = taskInfo.Metadata?.UploadURL ?? string.Empty;
                     if (_jsonOutput)
                     {
                         var result = new UploadResult(url, displayName, new FileInfo(filePath).Length, GetContentType(filePath));

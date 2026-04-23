@@ -24,13 +24,25 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using SkiaSharp;
+using System.Reflection;
+using XerahS.Bootstrap;
 using XerahS.CLI.Commands;
+using XerahS.Core;
+using XerahS.Core.Tasks;
 
 namespace XerahS.Tests.Tools;
 
 [TestFixture]
 public class UploadCommandPathSanitizationTests
 {
+    [SetUp]
+    public void SetUp()
+    {
+        typeof(UploadCommand).GetField("_jsonOutput", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, false);
+        typeof(UploadCommand).GetField("_quiet", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, true);
+    }
+
     [TestCase(null)]
     [TestCase("")]
     [TestCase("   ")]
@@ -89,5 +101,89 @@ public class UploadCommandPathSanitizationTests
             Assert.That(Directory.Exists(firstDirectory), Is.False);
             Assert.That(Directory.Exists(secondDirectory), Is.False);
         });
+    }
+
+    [Test]
+    public async Task UploadAsync_WhenAnotherTaskCompletesFirst_IgnoresUnrelatedTaskAndWaitsForStartedFileTask()
+    {
+        string tempFile = Path.GetTempFileName();
+
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "payload");
+
+            var taskManager = new SequencedDesktopTaskManager((startedFilePath, raiseCompleted) =>
+            {
+                raiseCompleted(CreateCompletedTask(Path.Combine(Path.GetTempPath(), "other-file.txt"), url: null, status: XerahS.Core.TaskStatus.Failed, errorMessage: "Unrelated failure"));
+                raiseCompleted(CreateCompletedTask(startedFilePath, url: "https://example.invalid/uploaded.txt"));
+            });
+
+            int exitCode = await InvokeUploadAsync(taskManager, tempFile, text: null, pipe: false, name: null);
+
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(taskManager.StartedFilePaths, Is.EqualTo(new[] { tempFile }));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    private static async Task<int> InvokeUploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name)
+    {
+        MethodInfo method = typeof(UploadCommand).GetMethod("UploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name])!;
+        return await task;
+    }
+
+    private static WorkerTask CreateCompletedTask(string filePath, string? url, XerahS.Core.TaskStatus status = XerahS.Core.TaskStatus.Completed, string? errorMessage = null)
+    {
+        var task = WorkerTask.Create(new TaskSettings());
+        task.Info.FilePath = filePath;
+        task.Info.Metadata.UploadURL = url ?? string.Empty;
+
+        typeof(WorkerTask).GetProperty(nameof(WorkerTask.Status), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(task, status);
+        typeof(WorkerTask).GetProperty(nameof(WorkerTask.Error), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(task,
+            errorMessage is null ? null : new InvalidOperationException(errorMessage));
+
+        return task;
+    }
+
+    private sealed class SequencedDesktopTaskManager(Action<string, Action<WorkerTask>> onStartFileTask) : IDesktopTaskManager
+    {
+        private EventHandler<WorkerTask>? _taskCompleted;
+
+        public event EventHandler<WorkerTask>? TaskCompleted
+        {
+            add => _taskCompleted += value;
+            remove => _taskCompleted -= value;
+        }
+
+        public event EventHandler<WorkerTask>? TaskStarted
+        {
+            add { }
+            remove { }
+        }
+
+        public IEnumerable<WorkerTask> Tasks => Array.Empty<WorkerTask>();
+
+        public List<string> StartedFilePaths { get; } = [];
+
+        public Task StartTask(TaskSettings? taskSettings, SKBitmap? inputImage = null) => Task.CompletedTask;
+
+        public Task StartFileTask(TaskSettings? taskSettings, string filePath)
+        {
+            StartedFilePaths.Add(filePath);
+            Task.Run(() => onStartFileTask(filePath, task => _taskCompleted?.Invoke(this, task)));
+            return Task.CompletedTask;
+        }
+
+        public Task StartImageUploadTask(TaskSettings? taskSettings, SKBitmap image) => Task.CompletedTask;
+
+        public Task StartTextTask(TaskSettings? taskSettings, string text) => Task.CompletedTask;
+
+        public void StopAllTasks()
+        {
+        }
     }
 }
