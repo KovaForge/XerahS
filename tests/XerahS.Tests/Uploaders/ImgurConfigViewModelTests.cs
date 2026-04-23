@@ -135,6 +135,37 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_ClearsStaleSelectedAlbumWhenNewConfigHasNoAlbum()
+    {
+        ImgurConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(new InMemorySecretStore()));
+
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            ClientId = "client-with-album",
+            UploadToSelectedAlbum = true,
+            SelectedAlbum = new ImgurAlbumData { id = "album-1", title = "Album 1" }
+        }));
+
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            ClientId = "client-without-album",
+            UploadToSelectedAlbum = false,
+            SelectedAlbum = null
+        }));
+
+        string json = viewModel.ToJson();
+        ImgurConfigModel saved = JsonConvert.DeserializeObject<ImgurConfigModel>(json)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.UploadToSelectedAlbum, Is.False);
+            Assert.That(viewModel.SelectedAlbum, Is.Null);
+            Assert.That(saved.SelectedAlbum, Is.Null);
+        });
+    }
+
+    [Test]
     public void LoadFromJson_IgnoresMalformedPersistedTokenAndKeepsConfigurationUsable()
     {
         const string secretKey = "imgur-secret";

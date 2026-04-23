@@ -188,11 +188,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
                 IsLoggedIn = HasToken();
                 _uploader = BuildUploader();
 
-                // Load selected album if exists
-                if (_config.SelectedAlbum != null)
-                {
-                    SelectedAlbum = _config.SelectedAlbum;
-                }
+                // Always refresh selected album state so reused view-model instances do not keep a stale album.
+                SelectedAlbum = _config.SelectedAlbum;
             }
         }
         catch
