@@ -11,6 +11,7 @@
     <IsTestProject>true</IsTestProject>
     <EnableAppDrivenPluginBuild>false</EnableAppDrivenPluginBuild>
     <SkipBundlePlugins>true</SkipBundlePlugins>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -69,7 +70,8 @@
   -->
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-    <Compile Remove="Platform\Windows\BgraRowCopyHelperTests.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\BgraRowCopyHelper.cs"
+             Link="Platform\Windows\WindowsSources\BgraRowCopyHelper.cs" />
     <Compile Remove="Platform\Windows\WinRTCaptureStrategyTests.cs" />
     <Compile Remove="Platform\Windows\WindowsClipboardImageHelperTests.cs" />
     <Compile Remove="Platform\Windows\WindowsScrollingCaptureServiceTests.cs" />
