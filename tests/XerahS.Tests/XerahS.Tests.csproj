@@ -73,7 +73,6 @@
     <Compile Remove="Platform\Windows\WinRTCaptureStrategyTests.cs" />
     <Compile Remove="Platform\Windows\WindowsClipboardImageHelperTests.cs" />
     <Compile Remove="Platform\Windows\WindowsScrollingCaptureServiceTests.cs" />
-    <Compile Remove="RegionCapture\NativeWindowServiceTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,9 +30,36 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | CLI / command surface | 2026-04-23 09:42 AWST | Reviewed | Fixed `xerahs upload` task completion matching so the CLI ignores unrelated completed desktop tasks and waits for the upload it actually started before deciding success or failure | Medium | Follow-up review of `UploadCommand` completion-event matching and regression coverage; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted CLI regression tests passed 11/11, full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 460/460. |
 | Platform-specific services | 2026-04-23 14:22 AWST | Reviewed | Fixed cross-platform system-service regression coverage so Windows-specific `WindowsSystemService` tests are compiled only on Windows hosts, preserving Linux/macOS Release verification while keeping the Windows start-info/path-normalization assertions available on Windows | Medium | Follow-up review of Windows system-service open/reveal flows and how to expose shared path/start-info helpers for non-Windows unit coverage; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release` passed with 0 warnings/errors, targeted system-service regression tests passed 5/5 on this non-Windows host, and full `dotnet test --configuration Release` passed 463/463. |
 | File/path handling | 2026-04-23 11:58 AWST | Reviewed | Fixed `xerahs capture --output` path overrides so leaf-only filenames save into the current directory without null-directory failures, and explicit output extensions now drive the saved image format instead of being silently ignored | High | Focused review of CLI/MCP output-path handling in `CaptureCommand` and `XerahSMcpRuntime`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release` passed with 0 warnings/errors, and full `dotnet test --configuration Release` passed 462/462. |
+| Region capture / window enumeration | 2026-04-23 16:11 AWST | Reviewed | Fixed the native window capture filter so the reusable window-inclusion rules stay covered by cross-platform tests instead of being silently dropped from Linux/macOS verification, preserving regression coverage for cloaked, no-activate, ignored-class, and disabled-window filtering | High | Focused review of `NativeWindowService` window-selection logic and test coverage; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted native-window regressions passed 5/5, full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 468/468. |
 | Tests / test discoverability | 2026-04-22 23:25 GMT+8 | Reviewed | Replaced the stale disabled editor-history effects test file with current `EditorCore.ApplyImageOperation` coverage so annotation/canvas undo-redo history is exercised against the live API instead of a removed legacy effects list contract | High | Follow-up review of stale disabled editor history coverage; upstream `develop` had 0 pending commits, `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted `EditorHistoryEffectsTests` passed 4/4 after rebuilding the test project, and full Release verification passed with `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` at 0 warnings/errors plus `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` at 447/447. |
 
 ## Review Log
+
+### 2026-04-23 16:11 AWST
+- Area: Region capture / window enumeration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.RegionCapture/Platform/Windows/NativeWindowService.cs`
+  - `src/desktop/app/XerahS.RegionCapture/Platform/NativeWindowCaptureFilter.cs`
+  - `tests/XerahS.Tests/RegionCapture/NativeWindowServiceTests.cs`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `Directory.Build.props`
+- Findings:
+  - `NativeWindowService.ShouldIncludeWindowForCapture(...)` contained the real Windows window-filtering rules, but the regression tests for that behavior lived in the cross-platform test project and were explicitly excluded from `XerahS.Tests.csproj`.
+  - That meant Linux/macOS verification silently skipped the entire window-filter test file, so cloaked windows, no-activate surfaces, ignored shell classes, and disabled windows could regress without the main Release test pass noticing.
+  - The bounded safe fix was to move the pure filtering rules into a platform-agnostic internal helper that the Windows service still uses, then re-enable the existing tests against that helper so cross-platform CI actually exercises the logic.
+- Outcome:
+  - Landed a bounded region-capture fix by extracting `NativeWindowCaptureFilter` and wiring `NativeWindowService` through it, keeping runtime behavior the same while restoring portable regression coverage for native window inclusion rules.
+  - Re-enabled `NativeWindowServiceTests` in `XerahS.Tests.csproj`, updated them to target the shared helper, and bumped `Directory.Build.props` from `0.22.11` to `0.22.12` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes are correct, the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule pointer update was required.
+  - Focused build of `tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Targeted regression run `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false --filter "FullyQualifiedName~NativeWindowServiceTests"` passed 5/5.
+  - Full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 468/468 tests green.
+- Follow-up:
+  - Next region-capture pass should inspect whether shell-owned overlays with transient titles still slip through enumeration on Windows, especially around Alt-Tab surfaces and virtual-desktop transitions.
 
 ### 2026-04-23 14:22 AWST
 - Area: Platform-specific services

@@ -24,7 +24,7 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
-using XerahS.RegionCapture.Platform.Windows;
+using XerahS.RegionCapture.Platform;
 
 namespace XerahS.Tests.RegionCapture;
 
@@ -39,7 +39,7 @@ public class NativeWindowServiceTests
     [Test]
     public void ShouldIncludeWindowForCapture_RejectsCloakedSettingsHost()
     {
-        bool result = NativeWindowService.ShouldIncludeWindowForCapture(
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
             isVisible: true,
             isMinimized: false,
             isCloaked: true,
@@ -54,7 +54,7 @@ public class NativeWindowServiceTests
     [Test]
     public void ShouldIncludeWindowForCapture_RejectsNoActivateInputSurface()
     {
-        bool result = NativeWindowService.ShouldIncludeWindowForCapture(
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
             isVisible: true,
             isMinimized: false,
             isCloaked: false,
@@ -69,7 +69,7 @@ public class NativeWindowServiceTests
     [Test]
     public void ShouldIncludeWindowForCapture_RejectsIgnoredSystemClass()
     {
-        bool result = NativeWindowService.ShouldIncludeWindowForCapture(
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
             isVisible: true,
             isMinimized: false,
             isCloaked: false,
@@ -84,7 +84,7 @@ public class NativeWindowServiceTests
     [Test]
     public void ShouldIncludeWindowForCapture_RejectsDisabledWindow()
     {
-        bool result = NativeWindowService.ShouldIncludeWindowForCapture(
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
             isVisible: true,
             isMinimized: false,
             isCloaked: false,
@@ -99,7 +99,7 @@ public class NativeWindowServiceTests
     [Test]
     public void ShouldIncludeWindowForCapture_AllowsNormalAppWindow()
     {
-        bool result = NativeWindowService.ShouldIncludeWindowForCapture(
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
             isVisible: true,
             isMinimized: false,
             isCloaked: false,
