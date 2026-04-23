@@ -98,6 +98,38 @@ public class NextcloudConfigViewModelTests
     }
 
     [Test]
+    public void Validate_RejectsUnsupportedPublicShareSettings()
+    {
+        const string secretKey = "nextcloud-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("nextcloud", secretKey, "appPassword", "app-password");
+
+        NextcloudConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            SecretKey = secretKey,
+            ServerUrl = "https://cloud.example.com",
+            LoginName = "alice",
+            UserId = "alice",
+            CreatePublicShare = true,
+            AutoExpireShare = true,
+            SupportsPublicShares = false,
+            SupportsExpireDate = false,
+            SupportsSharePasswords = false
+        }));
+        viewModel.SharePassword = "secret-share-password";
+
+        bool isValid = viewModel.Validate();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isValid, Is.False);
+            Assert.That(viewModel.StatusMessage, Is.EqualTo("This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile."));
+        });
+    }
+
+    [Test]
     public void ClearStoredCredentials_ResetsConnectionStateAndCapabilitySummary()
     {
         NextcloudConfigViewModel viewModel = new();

@@ -58,6 +58,27 @@ public sealed class NextcloudUploader : FileUploader
             return result;
         }
 
+        if (_config.CreatePublicShare)
+        {
+            if (!_config.SupportsPublicShares)
+            {
+                Errors.Add("This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile.");
+                return result;
+            }
+
+            if (_config.AutoExpireShare && !_config.SupportsExpireDate)
+            {
+                Errors.Add("This Nextcloud server does not support share expiry. Disable auto-expire or refresh the server profile.");
+                return result;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_sharePassword) && !_config.SupportsSharePasswords)
+            {
+                Errors.Add("This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile.");
+                return result;
+            }
+        }
+
         try
         {
             string userId = !string.IsNullOrWhiteSpace(_config.UserId) ? _config.UserId : loginName;

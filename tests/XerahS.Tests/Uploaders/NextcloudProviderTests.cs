@@ -94,6 +94,59 @@ public class NextcloudProviderTests
     }
 
     [Test]
+    public void Upload_FailsBeforeNetworkCall_WhenPublicSharesAreUnsupported()
+    {
+        NextcloudUploader uploader = new(new NextcloudConfigModel
+        {
+            ServerUrl = "https://127.0.0.1:1",
+            LoginName = "alice",
+            CreatePublicShare = true,
+            SupportsPublicShares = false
+        }, "app-password", string.Empty);
+
+        using MemoryStream stream = new("hello nextcloud"u8.ToArray());
+
+        UploadResult result = uploader.Upload(stream, "note.txt");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(uploader.Errors.Errors.Select(error => error.Text),
+                Has.Some.EqualTo("This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile."));
+            Assert.That(uploader.Errors.Errors.Select(error => error.Text),
+                Has.None.Contains("Connection refused").IgnoreCase
+                    .And.None.Contains("actively refused").IgnoreCase);
+        });
+    }
+
+    [Test]
+    public void Upload_FailsBeforeNetworkCall_WhenSharePasswordsAreUnsupported()
+    {
+        NextcloudUploader uploader = new(new NextcloudConfigModel
+        {
+            ServerUrl = "https://127.0.0.1:1",
+            LoginName = "alice",
+            CreatePublicShare = true,
+            SupportsPublicShares = true,
+            SupportsSharePasswords = false
+        }, "app-password", "secret-share-password");
+
+        using MemoryStream stream = new("hello nextcloud"u8.ToArray());
+
+        UploadResult result = uploader.Upload(stream, "note.txt");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(uploader.Errors.Errors.Select(error => error.Text),
+                Has.Some.EqualTo("This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile."));
+            Assert.That(uploader.Errors.Errors.Select(error => error.Text),
+                Has.None.Contains("Connection refused").IgnoreCase
+                    .And.None.Contains("actively refused").IgnoreCase);
+        });
+    }
+
+    [Test]
     public void Upload_AllowsNonSeekableStreamsWithoutThrowingNotSupported()
     {
         NextcloudUploader uploader = new(new NextcloudConfigModel

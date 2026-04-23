@@ -395,6 +395,24 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             return false;
         }
 
+        if (CreatePublicShare && !SupportsPublicShares)
+        {
+            StatusMessage = "This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile.";
+            return false;
+        }
+
+        if (CreatePublicShare && AutoExpireShare && !SupportsExpireDate)
+        {
+            StatusMessage = "This Nextcloud server does not support share expiry. Disable auto-expire or refresh the server profile.";
+            return false;
+        }
+
+        if (CreatePublicShare && !string.IsNullOrWhiteSpace(SharePassword) && !SupportsSharePasswords)
+        {
+            StatusMessage = "This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile.";
+            return false;
+        }
+
         if (CreatePublicShare && AutoExpireShare && ExpireAfterDays <= 0)
         {
             StatusMessage = "Share expiry must be at least 1 day.";
