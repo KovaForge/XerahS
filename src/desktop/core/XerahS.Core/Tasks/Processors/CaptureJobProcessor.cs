@@ -347,6 +347,16 @@ namespace XerahS.Core.Tasks.Processors
                     };
                     historyItem.AnnotationSidecarPath = annotationSidecarPath;
 
+                    var tags = info.GetTags();
+                    if (tags != null)
+                    {
+                        historyItem.Tags = new Dictionary<string, string?>(tags.Count);
+                        foreach (var pair in tags)
+                        {
+                            historyItem.Tags[pair.Key] = pair.Value;
+                        }
+                    }
+
                     historyManager.AppendHistoryItem(historyItem);
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
                     DebugHelper.WriteLine($"Added to history: {historyItem.FileName}");

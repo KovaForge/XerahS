@@ -166,6 +166,11 @@ public class TaskInfo
             tags.Add("ProcessName", Metadata.ProcessName);
         }
 
+        if (!string.IsNullOrWhiteSpace(Metadata.OcrText))
+        {
+            tags.Add(nameof(Metadata.OcrText), Metadata.OcrText);
+        }
+
         return tags.Count > 0 ? tags : null;
     }
 
