@@ -101,6 +101,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand OpenURLCommand { get; }
     public ICommand DeleteItemCommand { get; }
     public bool CanCopyImage => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath);
+    internal string? FilePath => _config.FilePath;
+    internal bool HasExistingFile => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath);
 
     public ToastViewModel(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
