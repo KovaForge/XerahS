@@ -26,6 +26,7 @@
 using System.Reflection;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using Renci.SshNet;
 using ShareX.Ftp.Plugin;
 using ShareX.Ftp.Plugin.ViewModels;
 using XerahS.Uploaders;
@@ -183,10 +184,62 @@ public sealed class FtpConfigViewModelTests
         });
     }
 
+    [Test]
+    public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyPathIsMissing()
+    {
+        var uploader = new FtpUploader(new FTPAccount
+        {
+            Host = "example.com",
+            Port = 22,
+            Protocol = FTPProtocol.SFTP,
+            Username = "alice",
+            Password = "secret",
+            Keypath = " /definitely/missing/key "
+        });
+
+        SftpClient? client = InvokeCreateSftpClient(uploader);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(client, Is.Not.Null);
+            Assert.That(uploader.Errors.Errors, Is.Empty);
+        });
+
+        client?.Dispose();
+    }
+
+    [Test]
+    public void CreateSftpClient_ReportsMissingKeyFile_WhenNoPasswordFallbackExists()
+    {
+        var uploader = new FtpUploader(new FTPAccount
+        {
+            Host = "example.com",
+            Port = 22,
+            Protocol = FTPProtocol.SFTP,
+            Username = "alice",
+            Keypath = " /definitely/missing/key "
+        });
+
+        SftpClient? client = InvokeCreateSftpClient(uploader);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(client, Is.Null);
+            Assert.That(uploader.Errors.Errors.Select(error => error.Text), Contains.Item("SFTP key file not found: /definitely/missing/key"));
+        });
+    }
+
     private static FTPAccount GetAccount(FtpUploader uploader)
     {
         FieldInfo? field = typeof(FtpUploader).GetField("_account", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(field, Is.Not.Null);
         return (FTPAccount)field!.GetValue(uploader)!;
+    }
+
+    private static SftpClient? InvokeCreateSftpClient(FtpUploader uploader)
+    {
+        MethodInfo? method = typeof(FtpUploader).GetMethod("CreateSftpClient", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (SftpClient?)method!.Invoke(uploader, null);
     }
 }
