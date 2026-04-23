@@ -44,8 +44,33 @@ public class MobileHotkeyService : IHotkeyService
     public bool IsSuspended { get; set; }
     public Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
 
-    public bool RegisterHotkey(HotkeyInfo hotkeyInfo) => false;
-    public bool UnregisterHotkey(HotkeyInfo hotkeyInfo) => false;
+    public bool RegisterHotkey(HotkeyInfo hotkeyInfo)
+    {
+        if (hotkeyInfo == null)
+        {
+            return false;
+        }
+
+        hotkeyInfo.Status = hotkeyInfo.IsValid
+            ? HotkeyStatus.UnsupportedPlatform
+            : HotkeyStatus.NotConfigured;
+        hotkeyInfo.NativeTriggerDescription = null;
+        return false;
+    }
+
+    public bool UnregisterHotkey(HotkeyInfo hotkeyInfo)
+    {
+        if (hotkeyInfo == null)
+        {
+            return false;
+        }
+
+        hotkeyInfo.Id = 0;
+        hotkeyInfo.Status = HotkeyStatus.NotConfigured;
+        hotkeyInfo.NativeTriggerDescription = null;
+        return false;
+    }
+
     public void UnregisterAll() { }
     public bool IsRegistered(HotkeyInfo hotkeyInfo) => false;
 
