@@ -24,14 +24,30 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Tasks;
+using XerahS.Uploaders;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Tests.Tasks;
 
 [TestFixture]
+[NonParallelizable]
 public sealed class WorkerTaskRecordingHistoryTests
 {
+    [SetUp]
+    public void SetUp()
+    {
+        ClearInstances();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        ClearInstances();
+    }
+
     [Test]
     public void CreateRecordingHistoryItem_PreservesRecordingMetadataTags()
     {
@@ -53,6 +69,7 @@ public sealed class WorkerTaskRecordingHistoryTests
             Assert.That(historyItem.FilePath, Is.EqualTo("/tmp/capture.mp4"));
             Assert.That(historyItem.FileName, Is.EqualTo("capture.mp4"));
             Assert.That(historyItem.Type, Is.EqualTo("Video"));
+            Assert.That(historyItem.Host, Is.Empty);
             Assert.That(historyItem.URL, Is.EqualTo("https://example.com/capture.mp4"));
             Assert.That(historyItem.Tags, Contains.Key("WindowTitle").WithValue("Quarterly review"));
             Assert.That(historyItem.Tags, Contains.Key("ProcessName").WithValue("obsidian"));
@@ -71,5 +88,49 @@ public sealed class WorkerTaskRecordingHistoryTests
         var historyItem = WorkerTask.CreateRecordingHistoryItem(info, "/tmp/capture.mp4");
 
         Assert.That(historyItem.Tags, Is.Empty);
+    }
+
+    [Test]
+    public void CreateRecordingHistoryItem_PreservesUploaderHostForUploadedRecording()
+    {
+        var defaultInstance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "Default Recording Host",
+            IsAvailable = true
+        };
+
+        InstanceManager.Instance.AddInstance(defaultInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, defaultInstance.InstanceId);
+
+        var info = new TaskInfo(new TaskSettings
+        {
+            AfterCaptureJob = AfterCaptureTasks.UploadImageToHost
+        })
+        {
+            Job = TaskJob.Job,
+            DataType = EDataType.File,
+            Metadata = new TaskMetadata
+            {
+                UploadURL = "https://example.com/capture.mp4"
+            }
+        };
+
+        var historyItem = WorkerTask.CreateRecordingHistoryItem(info, "/tmp/capture.mp4");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(historyItem.URL, Is.EqualTo("https://example.com/capture.mp4"));
+            Assert.That(historyItem.Host, Is.EqualTo("Default Recording Host"));
+        });
+    }
+
+    private static void ClearInstances()
+    {
+        foreach (var instance in InstanceManager.Instance.GetInstances().ToList())
+        {
+            InstanceManager.Instance.RemoveInstance(instance.InstanceId);
+        }
     }
 }

@@ -415,6 +415,7 @@ namespace XerahS.Core.Tasks
                 FileName = Path.GetFileName(outputPath),
                 DateTime = DateTime.Now,
                 Type = "Video",
+                Host = info.UploaderHost ?? string.Empty,
                 URL = info.Metadata?.UploadURL ?? string.Empty
             };
 
