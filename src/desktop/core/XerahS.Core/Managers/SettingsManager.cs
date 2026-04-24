@@ -344,10 +344,7 @@ namespace XerahS.Core
 
         private static void InitializeRecentTasks()
         {
-            if (Settings.RecentTasks != null)
-            {
-                RecentTaskManager.Initialize(Settings.RecentTasks, Settings.RecentTasksMaxCount);
-            }
+            RecentTaskManager.Initialize(Settings.RecentTasks, Settings.RecentTasksMaxCount);
         }
 
         #endregion
@@ -629,13 +626,12 @@ namespace XerahS.Core
 
         public static void LoadAllSettings()
         {
+            EnsureDirectoriesExist();
             LoadApplicationConfig();
             LoadUploadersConfig();
             LoadWorkflowsConfig();
-
-
-            // Initialize PathsManager
-            EnsureDirectoriesExist();
+            InitializeRecentTasks();
+            XerahS.Core.Uploaders.ProviderContextManager.EnsureProviderContext();
         }
 
         public static void EnsureDirectoriesExist()

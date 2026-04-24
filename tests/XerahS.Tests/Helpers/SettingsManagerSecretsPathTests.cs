@@ -233,6 +233,50 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void LoadAllSettings_InitializesRecentTasksFromApplicationConfig()
+    {
+        var savedTask = new RecentTask
+        {
+            FilePath = "saved-capture.png",
+            URL = "https://example.test/saved-capture.png"
+        };
+
+        SettingsManager.Settings.RecentTasksSave = true;
+        SettingsManager.Settings.RecentTasksMaxCount = 5;
+        SettingsManager.RecentTaskManager.Add(savedTask);
+        SettingsManager.SaveApplicationConfig();
+        SettingsManager.RecentTaskManager.Clear();
+
+        SettingsManager.LoadAllSettings();
+
+        RecentTask[] loadedTasks = SettingsManager.RecentTaskManager.ToArray();
+        Assert.Multiple(() =>
+        {
+            Assert.That(loadedTasks, Has.Length.EqualTo(1));
+            Assert.That(loadedTasks[0].FilePath, Is.EqualTo(savedTask.FilePath));
+            Assert.That(loadedTasks[0].URL, Is.EqualTo(savedTask.URL));
+        });
+    }
+
+    [Test]
+    public void LoadAllSettings_ClearsRecentTasksWhenApplicationConfigHasNone()
+    {
+        SettingsManager.RecentTaskManager.Add(new RecentTask
+        {
+            FilePath = "stale-capture.png",
+            URL = "https://example.test/stale-capture.png"
+        });
+
+        SettingsManager.Settings.RecentTasksSave = false;
+        SettingsManager.Settings.RecentTasks = null;
+        SettingsManager.SaveApplicationConfig();
+
+        SettingsManager.LoadAllSettings();
+
+        Assert.That(SettingsManager.RecentTaskManager.ToArray(), Is.Empty);
+    }
+
+    [Test]
     public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
     {
         SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");
