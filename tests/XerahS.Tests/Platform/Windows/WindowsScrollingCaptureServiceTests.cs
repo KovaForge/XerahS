@@ -38,13 +38,13 @@ public class WindowsScrollingCaptureServiceTests
         IntPtr scrollbarHandle = new(456);
         IntPtr contentHandle = new(789);
 
-        WindowsScrollingCaptureService.ScrollTargetCandidate[] candidates =
+        ScrollTargetCandidate[] candidates =
         [
             new(scrollbarHandle, HasVerticalScrollStyle: true, IsVisible: true, ClientWidth: 17, ClientHeight: 600, ClassName: "ScrollBar"),
             new(contentHandle, HasVerticalScrollStyle: true, IsVisible: true, ClientWidth: 900, ClientHeight: 700, ClassName: "Internet Explorer_Server")
         ];
 
-        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, candidates);
+        IntPtr result = ScrollTargetResolver.Resolve(parentWindow, candidates);
 
         Assert.That(result, Is.EqualTo(contentHandle));
     }
@@ -54,7 +54,7 @@ public class WindowsScrollingCaptureServiceTests
     {
         IntPtr parentWindow = new(123);
 
-        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, []);
+        IntPtr result = ScrollTargetResolver.Resolve(parentWindow, []);
 
         Assert.That(result, Is.EqualTo(parentWindow));
     }
@@ -65,12 +65,12 @@ public class WindowsScrollingCaptureServiceTests
         IntPtr parentWindow = new(123);
         IntPtr scrollbarHandle = new(456);
 
-        WindowsScrollingCaptureService.ScrollTargetCandidate[] candidates =
+        ScrollTargetCandidate[] candidates =
         [
             new(scrollbarHandle, HasVerticalScrollStyle: true, IsVisible: true, ClientWidth: 17, ClientHeight: 600, ClassName: "ScrollBar")
         ];
 
-        IntPtr result = WindowsScrollingCaptureService.ResolveScrollTarget(parentWindow, candidates);
+        IntPtr result = ScrollTargetResolver.Resolve(parentWindow, candidates);
 
         Assert.That(result, Is.EqualTo(scrollbarHandle));
     }
