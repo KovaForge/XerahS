@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-23 12:49 AWST | Reviewed | Fixed screen-recording custom output-path resolution so relative recording targets are normalized to absolute paths and their parent directories are created before encoder startup, preventing custom capture outputs from failing on missing folders | High | Follow-up review of recording output-path handling across `ScreenRecorderService`, `ScreenRecordingManager`, Windows capture startup, and CLI record flows; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 463/463. |
+| Capture pipeline | 2026-04-24 09:55 AWST | Reviewed | Fixed recording-history persistence so saved video history items now carry recording metadata tags (window title, process name, OCR text, etc.) instead of dropping them when `WorkerTaskRecording` appends the history row | High | Follow-up review of recording/history handling across `WorkerTaskRecording`, `TaskInfo`, `TaskMetadata`, and new recording-history regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remotes were corrected and the submodule remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, `Directory.Build.props` was bumped from `0.22.25` to `0.22.26`, full `dotnet build --configuration Release` passed with 0 warnings/errors, and full `dotnet test --configuration Release` passed 500/500. |
 | OCR | 2026-04-23 20:43 AWST | Reviewed | Fixed OCR history persistence so capture-created history items now carry `OcrText` tags from task metadata, allowing assistant/history consumers to retrieve OCR text instead of silently losing it at history-write time | High | Focused follow-up review of assistant OCR/history plumbing across `AssistantHistoryService`, `TaskInfo`, and `CaptureJobProcessor`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 476/476 after rerunning serially to avoid an earlier self-induced MSBuild file-lock race from overlapping verification. |
 | Editor integration | 2026-04-23 22:56 AWST | Reviewed | Fixed history-driven editor restore so when a `.xann` sidecar hash no longer matches the current image file, XerahS now opens the current image with restored annotations instead of launching the editor against stale embedded pixels from the sidecar | High | Follow-up review of history-side editor launch/session restoration in `HistoryViewModel` plus editor-session tests; upstream `develop` was already current with 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted editor regression tests passed 9/9, and the literal full `dotnet build --configuration Release` path was attempted but the host killed it with `SIGKILL` during heavy solution/plugin build churn before completion, so full-solution build verification is currently blocked by machine memory pressure rather than a reported compiler warning/error. |
 | Uploader core | 2026-04-24 00:26 AWST | Reviewed | Fixed upload target resolution so explicitly configured or default uploader instances that are currently unavailable now fall back cleanly instead of being selected and failing before available alternatives are tried | High | Follow-up review of plugin-system upload target resolution in `UploadJobProcessor`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted uploader regression tests passed 3/3, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 480/480. |
@@ -335,6 +335,34 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 468/468 tests green.
 - Follow-up:
   - Next region-capture pass should inspect whether shell-owned overlays with transient titles still slip through enumeration on Windows, especially around Alt-Tab surfaces and virtual-desktop transitions.
+
+### 2026-04-24 09:55 AWST
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTaskRecording.cs`
+  - `src/desktop/core/XerahS.Core/Helpers/TaskHelpers.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskInfo.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskMetadata.cs`
+  - `tests/XerahS.Tests/Tasks/TaskInfoTagTests.cs`
+  - `tests/XerahS.Tests/Tasks/WorkerTaskRecordingHistoryTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The recording path wrote a fresh `HistoryItem` with file path/name and URL, but unlike capture/upload flows it never copied `TaskInfo` tags into that history row.
+  - That meant recording metadata such as `WindowTitle`, `ProcessName`, and non-empty `OcrText` survived in-memory during the run but disappeared as soon as the recording was saved to history, leaving downstream history/assistant consumers with incomplete metadata.
+  - The safe bounded fix was to centralize recording-history item creation in an internal helper and copy `info.GetTags()` into the saved `HistoryItem` before append.
+- Outcome:
+  - Landed a bounded recording-history metadata fix by adding `CreateRecordingHistoryItem(...)` in `WorkerTaskRecording` and using it for the history write path so recording tags persist consistently with the image/upload flows.
+  - Added regression coverage in `WorkerTaskRecordingHistoryTests` proving recording history items preserve metadata tags and still skip empty-tag cases.
+  - Bumped `Directory.Build.props` from `0.22.25` to `0.22.26` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes were corrected to `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, not detached, and no submodule pointer update was required.
+  - Full `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Full `dotnet test --configuration Release` passed with 500/500 tests green.
+  - While rechecking submodule hygiene I hit a self-inflicted `git fetch origin upstream` misuse that treated `upstream` as a refspec; rerunning as separate `git fetch origin` and `git fetch upstream` completed cleanly and did not affect repo state.
+- Follow-up:
+  - Next capture-pipeline pass should inspect whether recording-history entries should also preserve any host/domain-style metadata derived from upload URLs so history cards stay as rich as image captures after hosted video uploads.
 
 ### 2026-04-23 14:22 AWST
 - Area: Platform-specific services

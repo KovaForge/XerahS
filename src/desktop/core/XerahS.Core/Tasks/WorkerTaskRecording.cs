@@ -280,14 +280,7 @@ namespace XerahS.Core.Tasks
                         {
                             var historyPath = SettingsManager.GetHistoryFilePath();
                             using var historyManager = new HistoryManagerSQLite(historyPath);
-                            var historyItem = new HistoryItem
-                            {
-                                FilePath = outputPath,
-                                FileName = Path.GetFileName(outputPath),
-                                DateTime = DateTime.Now,
-                                Type = "Video",
-                                URL = metadata.UploadURL ?? string.Empty // Will be populated if upload succeeded
-                            };
+                            var historyItem = CreateRecordingHistoryItem(Info, outputPath);
 
                             DebugHelper.WriteLine($"[HistoryTrace] Preparing to add item. URL='{historyItem.URL}', File='{historyItem.FileName}'");
 
@@ -412,6 +405,30 @@ namespace XerahS.Core.Tasks
 
             string detectedPath = PathsManager.GetFFmpegPath();
             return string.IsNullOrWhiteSpace(detectedPath) ? null : detectedPath;
+        }
+
+        internal static HistoryItem CreateRecordingHistoryItem(TaskInfo info, string outputPath)
+        {
+            var historyItem = new HistoryItem
+            {
+                FilePath = outputPath,
+                FileName = Path.GetFileName(outputPath),
+                DateTime = DateTime.Now,
+                Type = "Video",
+                URL = info.Metadata?.UploadURL ?? string.Empty
+            };
+
+            var tags = info.GetTags();
+            if (tags != null)
+            {
+                historyItem.Tags = new Dictionary<string, string?>(tags.Count);
+                foreach (var pair in tags)
+                {
+                    historyItem.Tags[pair.Key] = pair.Value;
+                }
+            }
+
+            return historyItem;
         }
 
         private static void ShowDeferredVideoEditorToast(string outputPath, string? message)
