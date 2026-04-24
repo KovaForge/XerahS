@@ -348,7 +348,7 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task EditImage(HistoryItem? item)
         {
-            await OpenImageInEditorAsync(item, preferAnnotations: true);
+            await OpenImageInEditorAsync(item, preferAnnotations: false);
         }
 
         [RelayCommand]
