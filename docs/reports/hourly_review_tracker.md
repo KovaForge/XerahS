@@ -31,10 +31,38 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Platform-specific services | 2026-04-25 04:10 AWST | Reviewed | Fixed Linux autostart desktop-entry generation so executable paths containing backslashes or double quotes are escaped before being written inside the quoted `Exec=` value | Medium | Follow-up review of platform startup/watch-folder service paths across `LinuxStartupService`, macOS/Linux service launch helpers, and platform service tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.42` to `0.22.43`, full serial build passed with 0 warnings/errors, targeted Linux startup regressions passed 2/2, and full serial tests passed 544/544 with tests discoverable. |
 | File/path handling | 2026-04-25 02:10 AWST | Reviewed | Fixed `ChangeFileNameExtension(...)` and `AppendTextToFileName(...)` so dotted directory names and dot-prefixed extensionless files no longer cause extension changes/text appends to truncate the path or insert text before the dotfile name | High | Focused follow-up review of shared path mutation helpers in `FileHelpers`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.40` to `0.22.41`, targeted `FileHelpersTests` passed 7/7 after an initial host-killed full-churn attempt, full serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 541/541 with tests discoverable. |
 | Region capture / window enumeration | 2026-04-25 05:10 AWST | Reviewed | Fixed stale window-query exclusion handling so already-refreshed/cached region-capture windows are skipped after their handles become excluded, preventing overlay/helper windows from still being selected, snapped, or reported by region queries until the next refresh | High | Follow-up review of `WindowDetectionService`, `NativeWindowService`, `NativeWindowCaptureFilter`, and region-capture tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.43` to `0.22.44`, targeted window-detection tests passed 13/13, full serial build passed with 0 warnings/errors, and full serial tests passed 546/546 with tests discoverable. |
-| Tests / test discoverability | 2026-04-24 13:31 AWST | Reviewed | Restored cross-platform Release coverage for the pure Windows scroll-target selection logic by extracting it into a portable resolver and re-enabling the previously disabled `WindowsScrollingCaptureServiceTests` on non-Windows hosts | High | Focused follow-up review of disabled Windows test entries in `tests/XerahS.Tests/XerahS.Tests.csproj`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted `WindowsScrollingCaptureServiceTests` passed 3/3, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 506/506, and `Directory.Build.props` was bumped from `0.22.28` to `0.22.29`. |
+| Tests / test discoverability | 2026-04-25 06:10 AWST | Reviewed | Restored cross-platform Release coverage for Windows clipboard DIB/DIBV5 encode-decode logic by extracting the portable codec from the Windows shell helper and re-enabling clipboard regression tests on non-Windows hosts | High | Follow-up review of the remaining disabled Windows clipboard tests from the prior discoverability pass; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.44` to `0.22.45`, full serial build passed with 0 warnings/errors using `/p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true`, and full serial tests passed 551/551 with tests discoverable. |
 
 ## Review Log
 
+
+
+### 2026-04-25 06:10 AWST
+- Area: Tests / test discoverability
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `tests/XerahS.Tests/Platform/Windows/WindowsClipboardImageHelperTests.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsClipboardImageHelper.cs`
+  - `src/platform/XerahS.Platform.Windows/ClipboardDibCodec.cs`
+  - `src/platform/XerahS.Platform.Windows/XerahS.Platform.Windows.csproj`
+  - `Directory.Build.props`
+- Findings:
+  - The previous Windows test-discoverability pass left `WindowsClipboardImageHelperTests.cs` removed from non-Windows builds even though most clipboard PNG/DIB/DIBV5 serialization logic is pure byte/pixel processing and does not require Win32 clipboard APIs.
+  - The helper's decode path depended on `System.Drawing`/ShareX Windows bitmap conversion, which kept portable DIB/DIBV5 regressions tied to Windows-only runtime assumptions and left Linux Release verification blind to malformed/truncated clipboard payload handling.
+  - The bounded safe fix was to split the portable DIB codec into `ClipboardDibCodec`, keep `WindowsClipboardImageHelper` as the Windows-facing wrapper, and link the codec into `XerahS.Tests` so the clipboard regression suite can run on non-Windows hosts without dragging platform APIs into the test process.
+- Outcome:
+  - Landed a bounded test-discoverability and robustness fix: DIB/DIBV5 encode/decode now uses the shared Skia-backed `ClipboardDibCodec`, rejects unsupported compression and truncated pixel buffers deterministically, and preserves top-down/bottom-up BGRA row handling without relying on `System.Drawing` conversion.
+  - Re-enabled `WindowsClipboardImageHelperTests` on non-Windows by linking `ClipboardDibCodec.cs` into the test project, while leaving the still platform-bound `WinRTCaptureStrategyTests` disabled.
+  - Added regression coverage for unsupported compression and truncated DIBV5 pixel data.
+  - Bumped `Directory.Build.props` from `0.22.44` to `0.22.45` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, `origin/develop` matches it, upstream/develop remains `d285844652e7fa98c24baf7626959927a37762aa`, and the parent repo records the intended commit, so no pointer update was required.
+  - Full serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false /p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true` passed with 0 warnings and 0 errors.
+  - Full serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false /p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true` passed 551/551; tests were discoverable.
+- Follow-up:
+  - Next test-discoverability pass should inspect `WinRTCaptureStrategyTests` for extractable pure request/validation logic; keep actual WinRT capture activation guarded to Windows-only test runs.
 
 ### 2026-04-25 05:10 AWST
 - Area: Region capture / window enumeration

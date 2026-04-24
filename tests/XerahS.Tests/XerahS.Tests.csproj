@@ -75,8 +75,9 @@
              Link="Platform\Windows\WindowsSources\BgraRowCopyHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ScrollTargetResolver.cs"
              Link="Platform\Windows\WindowsSources\ScrollTargetResolver.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ClipboardDibCodec.cs"
+             Link="Platform\Windows\WindowsSources\ClipboardDibCodec.cs" />
     <Compile Remove="Platform\Windows\WinRTCaptureStrategyTests.cs" />
-    <Compile Remove="Platform\Windows\WindowsClipboardImageHelperTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
