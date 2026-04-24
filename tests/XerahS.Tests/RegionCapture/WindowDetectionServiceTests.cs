@@ -289,4 +289,40 @@ public class WindowDetectionServiceTests
         Assert.That(converted.Bounds, Is.EqualTo(new PixelRect(15, 30, 120, 60)));
         Assert.That(converted.ClassName, Is.EqualTo("org.example.Notes"));
     }
+
+    [Test]
+    public void ConvertLogicalPlatformWindow_FiltersExcludedHandles()
+    {
+        IReadOnlyList<MonitorInfo> monitors =
+        [
+            new MonitorInfo(
+                "Display 1",
+                new PixelRect(0, 0, 200, 100),
+                new PixelRect(0, 0, 200, 100),
+                1.0,
+                true)
+        ];
+
+        var overlayWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)88,
+            Title = "Transient helper window",
+            ClassName = "XerahS.Overlay",
+            Bounds = new Rectangle(0, 0, 100, 50),
+            IsVisible = true
+        };
+
+        WindowDetectionService.ExcludeHandle((nint)88);
+
+        try
+        {
+            Assert.That(
+                WindowDetectionService.ConvertLogicalPlatformWindow(overlayWindow, monitors),
+                Is.Null);
+        }
+        finally
+        {
+            WindowDetectionService.RemoveExcludedHandle((nint)88);
+        }
+    }
 }

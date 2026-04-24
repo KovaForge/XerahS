@@ -490,6 +490,9 @@ public sealed class WindowDetectionService
     {
         ArgumentNullException.ThrowIfNull(window);
 
+        if (window.Handle == IntPtr.Zero || IsExcludedHandle(window.Handle))
+            return null;
+
         if (window.Bounds.Width <= 1 || window.Bounds.Height <= 1)
             return null;
 
