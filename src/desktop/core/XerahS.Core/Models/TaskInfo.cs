@@ -81,14 +81,16 @@ public class TaskInfo
         {
             if (!IsUploadJob) return null;
 
-            var instanceId = TaskSettings.GetDestinationInstanceIdForDataType(DataType);
-            if (!string.IsNullOrEmpty(instanceId))
+            if (TryGetCategoryForDataType(DataType, out var category))
             {
-                var instance = InstanceManager.Instance.GetInstance(instanceId);
+                var instanceId = TaskSettings.GetDestinationInstanceIdForDataType(DataType);
+                var instance = !string.IsNullOrEmpty(instanceId)
+                    ? InstanceManager.Instance.GetInstance(instanceId)
+                    : InstanceManager.Instance.GetDefaultInstance(category);
+
                 if (instance != null)
                 {
-                    if (InstanceManager.IsAutoProvider(instance.ProviderId) &&
-                        TryGetCategoryForDataType(DataType, out var category))
+                    if (InstanceManager.IsAutoProvider(instance.ProviderId))
                     {
                         var resolved = InstanceManager.Instance.ResolveAutoInstance(category, instance.InstanceId);
                         if (resolved != null)
@@ -100,7 +102,10 @@ public class TaskInfo
                     return instance.DisplayName;
                 }
 
-                return instanceId;
+                if (!string.IsNullOrEmpty(instanceId))
+                {
+                    return instanceId;
+                }
             }
 
             // Legacy: URL shortener / sharing still read from deprecated enum for display

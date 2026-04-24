@@ -24,13 +24,29 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using XerahS.Common;
 using XerahS.Core;
+using XerahS.Uploaders;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Tests.Tasks;
 
 [TestFixture]
+[NonParallelizable]
 public sealed class TaskInfoTagTests
 {
+    [SetUp]
+    public void SetUp()
+    {
+        ClearInstances();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        ClearInstances();
+    }
+
     [Test]
     public void GetTags_IncludesNonEmptyOcrText()
     {
@@ -62,5 +78,36 @@ public sealed class TaskInfoTagTests
         var tags = info.GetTags();
 
         Assert.That(tags, Is.Null);
+    }
+
+    [Test]
+    public void UploaderHost_ReturnsDefaultInstanceDisplayNameWhenDestinationIsNotExplicit()
+    {
+        var defaultInstance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "Default File Host",
+            IsAvailable = true
+        };
+
+        InstanceManager.Instance.AddInstance(defaultInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, defaultInstance.InstanceId);
+
+        var info = new TaskInfo
+        {
+            Job = TaskJob.FileUpload,
+            DataType = EDataType.File
+        };
+
+        Assert.That(info.UploaderHost, Is.EqualTo("Default File Host"));
+    }
+
+    private static void ClearInstances()
+    {
+        foreach (var instance in InstanceManager.Instance.GetInstances().ToList())
+        {
+            InstanceManager.Instance.RemoveInstance(instance.InstanceId);
+        }
     }
 }
