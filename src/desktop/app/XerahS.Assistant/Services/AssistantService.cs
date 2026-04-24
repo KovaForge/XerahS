@@ -491,6 +491,8 @@ public sealed class AssistantService : IAssistantService
             return AssistantResponse.Error(result.ErrorMessage ?? "OCR did not find text in the latest screenshot.");
         }
 
+        await _history.CacheOcrTextAsync(action.FilePath, result.Text, cancellationToken);
+
         if (string.Equals(action.Text, "copy", StringComparison.OrdinalIgnoreCase))
         {
             AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(result.Text);

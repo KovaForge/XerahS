@@ -418,6 +418,47 @@ public sealed class AssistantServiceTests
         }
     }
 
+    [Test]
+    public async Task ExecuteActionAsync_RunOcr_CachesRecognizedTextForHistoryFile()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "ocr-cache.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        using (var image = SKImage.FromBitmap(bitmap))
+        using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+        using (var stream = File.OpenWrite(imagePath))
+        {
+            data.SaveTo(stream);
+        }
+
+        PlatformServices.Ocr = new RecordingOcrService();
+        var history = new FakeHistoryService([CreateHistoryItem(imagePath, Path.GetFileName(imagePath))]);
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            history,
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ExecuteActionAsync(
+                new AssistantAction(AssistantActionKind.RunOcr, "Run OCR", FilePath: imagePath),
+                confirmed: true,
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Information));
+            Assert.That(history.CachedOcrByPath.TryGetValue(imagePath, out string? cached), Is.True);
+            Assert.That(cached, Is.EqualTo("bonjour"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            PlatformServices.Reset();
+        }
+    }
+
     private static AssistantHistoryItem CreateHistoryItem(string filePath, string fileName) =>
         new(
             Guid.NewGuid().ToString("N"),
@@ -442,8 +483,26 @@ public sealed class AssistantServiceTests
 
     private sealed class FakeHistoryService(IReadOnlyList<AssistantHistoryItem> items) : IAssistantHistoryService
     {
+        public Dictionary<string, string> CachedOcrByPath { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         public Task<IReadOnlyList<AssistantHistoryItem>> GetLatestScreenshotsAsync(int limit, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<AssistantHistoryItem>>(items.Take(limit).ToList());
+
+        public Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken)
+        {
+            CachedOcrByPath.TryGetValue(filePath, out string? value);
+            return Task.FromResult<string?>(value);
+        }
+
+        public Task CacheOcrTextAsync(string filePath, string ocrText, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(filePath) && !string.IsNullOrWhiteSpace(ocrText))
+            {
+                CachedOcrByPath[filePath] = ocrText;
+            }
+
+            return Task.CompletedTask;
+        }
 
         public bool IsKnownHistoryFile(string filePath) =>
             items.Any(item => string.Equals(item.FilePath, filePath, StringComparison.OrdinalIgnoreCase));

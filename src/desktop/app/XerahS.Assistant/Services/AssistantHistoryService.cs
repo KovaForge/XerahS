@@ -44,6 +44,8 @@ public sealed record AssistantHistoryItem(
 public interface IAssistantHistoryService
 {
     Task<IReadOnlyList<AssistantHistoryItem>> GetLatestScreenshotsAsync(int limit, CancellationToken cancellationToken);
+    Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken);
+    Task CacheOcrTextAsync(string filePath, string ocrText, CancellationToken cancellationToken);
     bool IsKnownHistoryFile(string filePath);
 }
 
@@ -65,6 +67,50 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
                 .Take(clampedLimit)
                 .Select(ToAssistantHistoryItem)
                 .ToList();
+        }, cancellationToken);
+    }
+
+    public Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken)
+    {
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string historyPath = SettingsManager.GetHistoryFilePath();
+            using var manager = new HistoryManagerSQLite(historyPath);
+            HistoryItem? item = manager.GetLatestByFilePath(filePath);
+            return item == null ? null : TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText");
+        }, cancellationToken);
+    }
+
+    public Task CacheOcrTextAsync(string filePath, string ocrText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(ocrText))
+        {
+            return Task.CompletedTask;
+        }
+
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string historyPath = SettingsManager.GetHistoryFilePath();
+            using var manager = new HistoryManagerSQLite(historyPath);
+            HistoryItem? item = manager.GetLatestByFilePath(filePath);
+            if (item == null)
+            {
+                return;
+            }
+
+            item.Tags ??= new Dictionary<string, string?>();
+            if (item.Tags.TryGetValue("OcrText", out string? existing) && string.Equals(existing, ocrText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            item.Tags["OcrText"] = ocrText;
+            item.Tags.Remove("OCRText");
+            manager.Edit(item);
         }, cancellationToken);
     }
 

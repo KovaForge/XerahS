@@ -110,4 +110,51 @@ public sealed class HistoryManagerSQLiteTests
             }
         }
     }
+
+    [Test]
+    public void GetLatestByFilePath_ReturnsNewestMatchingHistoryItem()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+            string filePath = Path.Combine(tempDirectory, "shot.png");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot-old.png",
+                    FilePath = filePath,
+                    DateTime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    Type = "Image",
+                    Tags = new Dictionary<string, string?> { ["OcrText"] = "old" }
+                });
+
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot-new.png",
+                    FilePath = filePath,
+                    DateTime = new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc),
+                    Type = "Image",
+                    Tags = new Dictionary<string, string?> { ["OcrText"] = "new" }
+                });
+
+                HistoryItem? match = manager.GetLatestByFilePath(filePath);
+
+                Assert.That(match, Is.Not.Null);
+                Assert.That(match!.FileName, Is.EqualTo("shot-new.png"));
+                Assert.That(match.Tags["OcrText"], Is.EqualTo("new"));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
 }

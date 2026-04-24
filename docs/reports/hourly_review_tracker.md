@@ -17,7 +17,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-04-24 09:55 AWST | Reviewed | Fixed recording-history persistence so saved video history items now carry recording metadata tags (window title, process name, OCR text, etc.) instead of dropping them when `WorkerTaskRecording` appends the history row | High | Follow-up review of recording/history handling across `WorkerTaskRecording`, `TaskInfo`, `TaskMetadata`, and new recording-history regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remotes were corrected and the submodule remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, `Directory.Build.props` was bumped from `0.22.25` to `0.22.26`, full `dotnet build --configuration Release` passed with 0 warnings/errors, and full `dotnet test --configuration Release` passed 500/500. |
-| OCR | 2026-04-23 20:43 AWST | Reviewed | Fixed OCR history persistence so capture-created history items now carry `OcrText` tags from task metadata, allowing assistant/history consumers to retrieve OCR text instead of silently losing it at history-write time | High | Focused follow-up review of assistant OCR/history plumbing across `AssistantHistoryService`, `TaskInfo`, and `CaptureJobProcessor`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 476/476 after rerunning serially to avoid an earlier self-induced MSBuild file-lock race from overlapping verification. |
+| OCR | 2026-04-24 16:25 AWST | Reviewed | Fixed assistant OCR cache writeback so ad-hoc assistant OCR now persists recognized text back into the latest matching history item instead of returning text once and leaving later history consumers without `OcrText` | High | Follow-up review of assistant OCR/history plumbing across `AssistantService`, `AssistantHistoryService`, `HistoryManagerSQLite`, and assistant/history regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remotes were re-verified (`origin=https://github.com/KovaForge/ShareX.ImageEditor.git`, `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`) and the submodule remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` while upstream/develop was `d285844652e7fa98c24baf7626959927a37762aa`, with no parent pointer update required; `Directory.Build.props` was bumped from `0.22.30` to `0.22.31`, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 510/510. |
 | Editor integration | 2026-04-23 22:56 AWST | Reviewed | Fixed history-driven editor restore so when a `.xann` sidecar hash no longer matches the current image file, XerahS now opens the current image with restored annotations instead of launching the editor against stale embedded pixels from the sidecar | High | Follow-up review of history-side editor launch/session restoration in `HistoryViewModel` plus editor-session tests; upstream `develop` was already current with 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, targeted editor regression tests passed 9/9, and the literal full `dotnet build --configuration Release` path was attempted but the host killed it with `SIGKILL` during heavy solution/plugin build churn before completion, so full-solution build verification is currently blocked by machine memory pressure rather than a reported compiler warning/error. |
 | Uploader core | 2026-04-24 00:26 AWST | Reviewed | Fixed upload target resolution so explicitly configured or default uploader instances that are currently unavailable now fall back cleanly instead of being selected and failing before available alternatives are tried | High | Follow-up review of plugin-system upload target resolution in `UploadJobProcessor`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with no pointer update required, full `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, targeted uploader regression tests passed 3/3, and full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed 480/480. |
 | Nextcloud uploader plugin | 2026-04-24 14:10 AWST | Reviewed | Fixed Nextcloud config secret handling so disabling public shares now clears and stops reloading the saved share password instead of silently retaining stale public-link credentials in the reused config state | Medium | Focused follow-up review of Nextcloud config load/save behavior across `NextcloudConfigViewModel`, `NextcloudConfigModel`, provider config caching, and Nextcloud uploader tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` while upstream/develop was at `d285844652e7fa98c24baf7626959927a37762aa`, no parent pointer update was required, `Directory.Build.props` was bumped from `0.22.29` to `0.22.30`, full `dotnet build --configuration Release` passed with 0 warnings/errors, and full `dotnet test --configuration Release` passed 508/508. |
@@ -2436,3 +2436,47 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Full `dotnet test --configuration Release --no-build -m:1 /p:UseSharedCompilation=false /nr:false` passed with 495/495 tests green.
 - Follow-up:
   - Next CLI pass should inspect whether assistant-mode bootstrap should short-circuit earlier so simple metadata commands avoid loading more services than they actually need.
+
+### 2026-04-24 14:56 AWST
+- Area: OCR
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`
+  - `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`
+  - `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantServiceTests.cs`
+  - `tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs`
+- Findings:
+  - Assistant ad-hoc OCR path in `RunOcrAsync` re-ran OCR but did not write successful OCR text back through the assistant history cache/persistence path.
+  - `AssistantHistoryService` already exposed `GetCachedOcrTextAsync(...)` / `CacheOcrTextAsync(...)`, and history metadata already carries `OcrText`, so the missing assistant-side writeback was a real gap.
+  - Added a bounded local patch to persist successful assistant OCR results and added regressions around OCR cache writeback and newest-history-item lookup.
+- Fix landed or blocker:
+  - Blocked from landing: required verification on this host did not complete cleanly. Intermediate build output showed `AVLN9999` in `XerahS.RegionCapture` and `MSB4181` via `XerahS.Bootstrap`, but final async completion showed the verification execs were actually terminated by SIGKILL during heavy solution/plugin build churn, so the OCR fix was not committed/pushed.
+- Directory.Build.props patch version bumped:
+  - No. Not bumped because no fix was landed.
+- Follow-up notes:
+  - Re-run clean full-solution verification once the Avalonia/bootstrap host failure is cleared, then land the queued OCR writeback patch with the already-added regressions and perform the required patch-version bump in the same commit set.
+  - Upstream parent repo sync found `UPSTREAM_COUNT=0`.
+  - `ShareX.ImageEditor` remotes were corrected/verified and the submodule was left on branch `develop` (not detached); no pointer update was required this run.
+
+### 2026-04-24 16:25 AWST
+- Area: OCR
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`
+  - `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantServiceTests.cs`
+  - `tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs`
+- Findings:
+  - Assistant ad-hoc OCR was still a real persistence gap: it returned recognized text to the caller, but did not write the successful OCR result back to the latest matching history row.
+  - `ContainsFilePath(...)` already depended on a newest-match scan through history pages, so exposing that scan as `GetLatestByFilePath(...)` let the assistant update the correct newest record instead of only answering a yes/no existence check.
+- Fix landed or blocker:
+  - Landed a bounded fix: `RunOcrAsync(...)` now calls `_history.CacheOcrTextAsync(...)` after successful OCR, `AssistantHistoryService` now persists OCR text onto the latest matching history item while normalizing away legacy `OCRText`, and new regressions cover assistant OCR cache writeback plus newest-history-item selection.
+- Directory.Build.props patch version bumped:
+  - Yes. Bumped `0.22.30` -> `0.22.31`.
+- Follow-up notes:
+  - Upstream parent repo sync still found `UPSTREAM_COUNT=0` with no conflicts.
+  - `ShareX.ImageEditor` remotes were re-verified and the submodule was left on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`; no parent pointer update was required.
+  - Full verification passed cleanly: `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` completed with 0 warnings/errors, and `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 510/510.

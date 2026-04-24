@@ -185,9 +185,14 @@ CREATE TABLE IF NOT EXISTS History (
 
         public bool ContainsFilePath(string filePath, int pageSize = 500)
         {
+            return GetLatestByFilePath(filePath, pageSize) != null;
+        }
+
+        public HistoryItem? GetLatestByFilePath(string filePath, int pageSize = 500)
+        {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return false;
+                return null;
             }
 
             string normalized;
@@ -197,7 +202,7 @@ CREATE TABLE IF NOT EXISTS History (
             }
             catch
             {
-                return false;
+                return null;
             }
 
             int offset = 0;
@@ -208,17 +213,18 @@ CREATE TABLE IF NOT EXISTS History (
                 List<HistoryItem> items = GetHistoryItems(offset, clampedPageSize);
                 if (items.Count == 0)
                 {
-                    return false;
+                    return null;
                 }
 
-                if (items.Any(item => IsSamePath(item.FilePath, normalized)))
+                HistoryItem? match = items.FirstOrDefault(item => IsSamePath(item.FilePath, normalized));
+                if (match != null)
                 {
-                    return true;
+                    return match;
                 }
 
                 if (items.Count < clampedPageSize)
                 {
-                    return false;
+                    return null;
                 }
 
                 offset += items.Count;
