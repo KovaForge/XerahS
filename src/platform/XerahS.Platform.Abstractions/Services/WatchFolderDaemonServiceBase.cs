@@ -67,7 +67,7 @@ public abstract class WatchFolderDaemonServiceBase : IWatchFolderDaemonService
         CancellationToken cancellationToken = default)
     {
         var stopResult = await StopAsync(scope, gracefulTimeout, cancellationToken);
-        if (!stopResult.Success && stopResult.ErrorCode != WatchFolderDaemonErrorCode.CommandFailed)
+        if (!stopResult.Success)
         {
             return stopResult;
         }
