@@ -612,6 +612,9 @@ public sealed class WindowDetectionService
         // Direct lookup - sorted by Z-order (topmost first)
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             if (window.SnapBounds.Contains(physicalPoint))
             {
                 return window;
@@ -628,7 +631,7 @@ public sealed class WindowDetectionService
             if (_lastDirectQueryAt != DateTime.MinValue &&
                 DateTime.UtcNow - _lastDirectQueryAt <= DirectQueryRefreshInterval)
             {
-                if (_lastDirectQueryWindow?.SnapBounds.Contains(physicalPoint) == true)
+                if (_lastDirectQueryWindow?.SnapBounds.Contains(physicalPoint) == true && !IsExcludedHandle(_lastDirectQueryWindow.Handle))
                 {
                     return new WindowPointQueryResult(Handled: true, Window: _lastDirectQueryWindow);
                 }
@@ -664,6 +667,9 @@ public sealed class WindowDetectionService
     {
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             if (window.SnapBounds.IntersectsWith(region))
             {
                 yield return window;
@@ -681,6 +687,9 @@ public sealed class WindowDetectionService
 
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             var bounds = window.SnapBounds;
 
             // Calculate distance to nearest edge
@@ -707,6 +716,9 @@ public sealed class WindowDetectionService
 
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             var bounds = window.SnapBounds;
 
             // Check left edge
