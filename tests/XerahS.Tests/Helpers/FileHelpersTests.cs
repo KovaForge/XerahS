@@ -31,6 +31,24 @@ namespace XerahS.Tests.Helpers;
 public class FileHelpersTests
 {
     [Test]
+    public void GetFileNameExtension_WhenDirectoryContainsDotsAndFileHasNoExtension_ReturnsEmpty()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "session.v1", "capture");
+
+        string extension = FileHelpers.GetFileNameExtension(path);
+
+        Assert.That(extension, Is.Empty);
+    }
+
+    [Test]
+    public void GetFileNameExtension_WhenFileIsDotPrefixedWithoutRealExtension_ReturnsEmpty()
+    {
+        string extension = FileHelpers.GetFileNameExtension(".gitignore");
+
+        Assert.That(extension, Is.Empty);
+    }
+
+    [Test]
     public void GetUniqueFilePath_FirstCollision_UsesOneSuffix()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");

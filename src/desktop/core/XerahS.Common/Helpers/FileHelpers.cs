@@ -139,37 +139,43 @@ public static class FileHelpers
 
     public static string GetFileNameExtension(string filePath, bool includeDot = false, bool checkSecondExtension = true)
     {
-        string extension = string.Empty;
-
-        if (!string.IsNullOrEmpty(filePath))
+        if (string.IsNullOrEmpty(filePath))
         {
-            int pos = filePath.LastIndexOf('.');
+            return string.Empty;
+        }
 
-            if (pos >= 0)
+        string fileName = Path.GetFileName(filePath);
+
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return string.Empty;
+        }
+
+        string extension = Path.GetExtension(fileName);
+
+        if (string.IsNullOrEmpty(extension) || extension.Length == fileName.Length)
+        {
+            return string.Empty;
+        }
+
+        extension = includeDot ? extension : extension.TrimStart('.');
+
+        if (!checkSecondExtension)
+        {
+            return extension;
+        }
+
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        string extension2 = GetFileNameExtension(fileNameWithoutExtension, false, false);
+
+        if (!string.IsNullOrEmpty(extension2))
+        {
+            foreach (string knownExtension in new[] { "tar" })
             {
-                extension = filePath.Substring(pos + 1);
-
-                if (checkSecondExtension)
+                if (extension2.Equals(knownExtension, StringComparison.OrdinalIgnoreCase))
                 {
-                    filePath = filePath.Remove(pos);
-                    string extension2 = GetFileNameExtension(filePath, false, false);
-
-                    if (!string.IsNullOrEmpty(extension2))
-                    {
-                        foreach (string knownExtension in new[] { "tar" })
-                        {
-                            if (extension2.Equals(knownExtension, StringComparison.OrdinalIgnoreCase))
-                            {
-                                extension = extension2 + "." + extension;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (includeDot)
-                {
-                    extension = "." + extension;
+                    extension = includeDot ? $".{extension2}{extension}" : $"{extension2}.{extension}";
+                    break;
                 }
             }
         }
