@@ -104,6 +104,23 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_ClearsPreviousErrorStatusAfterSuccessfulLoad()
+    {
+        var viewModel = new FtpConfigViewModel();
+        viewModel.LoadFromJson("{");
+        Assert.That(viewModel.StatusMessage, Is.EqualTo("Failed to load configuration"));
+
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Host = "example.com"
+        });
+
+        viewModel.LoadFromJson(json);
+
+        Assert.That(viewModel.StatusMessage, Is.Null);
+    }
+
+    [Test]
     public void LoadFromJson_ReplacesMissingImplicitFtpsPortWithProtocolDefault()
     {
         var viewModel = new FtpConfigViewModel();

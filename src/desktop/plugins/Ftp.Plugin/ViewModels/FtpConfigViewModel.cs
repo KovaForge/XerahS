@@ -142,6 +142,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
                 Port = config.Port > 0 ? config.Port : GetDefaultPort(protocol, ftpsEncryptionMode);
                 Keypath = config.Keypath ?? string.Empty;
                 Passphrase = config.Passphrase ?? string.Empty;
+                StatusMessage = null;
             }
         }
         catch
