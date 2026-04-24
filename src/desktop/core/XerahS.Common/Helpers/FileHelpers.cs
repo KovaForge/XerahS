@@ -217,26 +217,28 @@ public static class FileHelpers
 
     public static string ChangeFileNameExtension(string fileName, string extension)
     {
-        if (!string.IsNullOrEmpty(fileName))
+        if (string.IsNullOrEmpty(fileName))
         {
-            int pos = fileName.LastIndexOf('.');
+            return fileName;
+        }
+
+        string currentExtension = GetFileNameExtension(fileName, includeDot: true, checkSecondExtension: false);
+
+        if (!string.IsNullOrEmpty(currentExtension))
+        {
+            fileName = fileName[..^currentExtension.Length];
+        }
+
+        if (!string.IsNullOrEmpty(extension))
+        {
+            int pos = extension.LastIndexOf('.');
 
             if (pos >= 0)
             {
-                fileName = fileName.Remove(pos);
+                extension = extension[(pos + 1)..];
             }
 
-            if (!string.IsNullOrEmpty(extension))
-            {
-                pos = extension.LastIndexOf('.');
-
-                if (pos >= 0)
-                {
-                    extension = extension[(pos + 1)..];
-                }
-
-                return $"{fileName}.{extension}";
-            }
+            return $"{fileName}.{extension}";
         }
 
         return fileName;
@@ -246,11 +248,11 @@ public static class FileHelpers
     {
         if (!string.IsNullOrEmpty(filePath))
         {
-            int pos = filePath.LastIndexOf('.');
+            string extension = GetFileNameExtension(filePath, includeDot: true, checkSecondExtension: false);
 
-            if (pos >= 0)
+            if (!string.IsNullOrEmpty(extension))
             {
-                return filePath[..pos] + text + filePath[pos..];
+                return filePath[..^extension.Length] + text + extension;
             }
         }
 

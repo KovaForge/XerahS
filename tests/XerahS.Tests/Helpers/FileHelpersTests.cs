@@ -49,6 +49,34 @@ public class FileHelpersTests
     }
 
     [Test]
+    public void ChangeFileNameExtension_WhenDirectoryContainsDotsAndFileHasNoExtension_AppendsExtensionToFileName()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "session.v1", "capture");
+
+        string changedPath = FileHelpers.ChangeFileNameExtension(path, "png");
+
+        Assert.That(changedPath, Is.EqualTo(Path.Combine(Path.GetTempPath(), "session.v1", "capture.png")));
+    }
+
+    [Test]
+    public void AppendTextToFileName_WhenDirectoryContainsDotsAndFileHasNoExtension_AppendsTextToFileName()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "session.v1", "capture");
+
+        string changedPath = FileHelpers.AppendTextToFileName(path, "-edited");
+
+        Assert.That(changedPath, Is.EqualTo(Path.Combine(Path.GetTempPath(), "session.v1", "capture-edited")));
+    }
+
+    [Test]
+    public void AppendTextToFileName_WhenFileIsDotPrefixedWithoutRealExtension_AppendsTextAfterFileName()
+    {
+        string changedPath = FileHelpers.AppendTextToFileName(".gitignore", "-backup");
+
+        Assert.That(changedPath, Is.EqualTo(".gitignore-backup"));
+    }
+
+    [Test]
     public void GetUniqueFilePath_FirstCollision_UsesOneSuffix()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
