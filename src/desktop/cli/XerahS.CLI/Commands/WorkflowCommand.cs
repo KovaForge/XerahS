@@ -72,10 +72,34 @@ namespace XerahS.CLI.Commands
             return runCommand;
         }
 
+        internal static bool TryValidateDuration(int duration, out string? error)
+        {
+            error = null;
+
+            if (duration < 0)
+            {
+                error = "Duration must be zero or greater.";
+                return false;
+            }
+
+            return true;
+        }
+
+        internal static bool TryParseRegion(string? region, out SkiaSharp.SKRect rect, out string? error)
+        {
+            return CaptureCommand.TryParseRegion(region, out rect, out error);
+        }
+
         private static async Task<int> RunWorkflowAsync(IDesktopTaskManager taskManager, IScreenRecordingCoordinator recordingCoordinator, string workflowId, int duration, bool dumpFrame, bool exitOnComplete, string? region)
         {
             try
             {
+                if (!TryValidateDuration(duration, out var durationError))
+                {
+                    Console.Error.WriteLine(durationError);
+                    return 1;
+                }
+
                 var workflow = SettingsManager.WorkflowsConfig?.Hotkeys?
                     .FirstOrDefault(w => w.Id == workflowId);
 
@@ -142,15 +166,13 @@ namespace XerahS.CLI.Commands
                      // Region Override Mode
                     try 
                     {
-                        var parts = region.Split(',');
-                        if (parts.Length != 4) throw new ArgumentException("Region must be x,y,width,height");
-                        int x = int.Parse(parts[0]);
-                        int y = int.Parse(parts[1]);
-                        int w = int.Parse(parts[2]);
-                        int h = int.Parse(parts[3]);
-                        
+                        if (!TryParseRegion(region, out var rect, out var regionError))
+                        {
+                            Console.Error.WriteLine(regionError);
+                            return 1;
+                        }
+
                         Console.WriteLine($"Capturing override region: {region}");
-                        var rect = new SkiaSharp.SKRect(x, y, x + w, y + h);
                         var image = await XerahS.Platform.Abstractions.PlatformServices.ScreenCapture.CaptureRectAsync(rect);
                         
                         if (image == null)
