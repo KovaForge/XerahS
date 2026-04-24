@@ -444,9 +444,13 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     {
         string escapedAltText = string.IsNullOrWhiteSpace(altText)
             ? "Image"
-            : altText.Replace("[", "\\[").Replace("]", "\\]");
+            : altText.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
 
-        return $"![{escapedAltText}]({url})";
+        string markdownUrl = url.IndexOfAny([' ', '(', ')']) >= 0
+            ? $"<{url}>"
+            : url;
+
+        return $"![{escapedAltText}]({markdownUrl})";
     }
 
     private void CopyMarkdownImage()

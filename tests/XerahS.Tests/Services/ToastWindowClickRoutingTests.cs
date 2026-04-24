@@ -72,4 +72,12 @@ public class ToastWindowClickRoutingTests
 
         Assert.That(markdown, Is.EqualTo("![Image](https://example.com/capture.png)"));
     }
+
+    [Test]
+    public void BuildMarkdownImage_WrapsUrlsWithSpacesOrParentheses()
+    {
+        var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/screenshots/file (1).png", "Capture");
+
+        Assert.That(markdown, Is.EqualTo("![Capture](<https://example.com/screenshots/file (1).png>)"));
+    }
 }
