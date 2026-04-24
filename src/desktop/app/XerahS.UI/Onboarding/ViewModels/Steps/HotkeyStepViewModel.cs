@@ -351,36 +351,16 @@ public partial class HotkeyStepViewModel : StepViewModelBase
                     break;
                 case "win":
                 case "windows":
+                case "cmd":
+                case "command":
+                case "meta":
                     modifiers |= KeyModifiers.Meta;
                     break;
                 default:
-                    if (string.Equals(part, "Print Screen", StringComparison.OrdinalIgnoreCase))
+                    Key? displayKey = ParseDisplayKeyName(part);
+                    if (displayKey.HasValue)
                     {
-                        key = Key.PrintScreen;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Page Up", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.PageUp;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Page Down", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.PageDown;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Num Lock", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.NumLock;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Scroll Lock", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.Scroll;
+                        key = displayKey.Value;
                         break;
                     }
 
@@ -398,5 +378,38 @@ public partial class HotkeyStepViewModel : StepViewModelBase
         }
 
         return new HotkeyInfo(key, modifiers);
+    }
+
+    private static Key? ParseDisplayKeyName(string part)
+    {
+        if (string.IsNullOrWhiteSpace(part))
+        {
+            return null;
+        }
+
+        if (part.Length == 1 && part[0] is >= '0' and <= '9')
+        {
+            return Key.D0 + (part[0] - '0');
+        }
+
+        if (part.StartsWith("Numpad ", StringComparison.OrdinalIgnoreCase) &&
+            part.Length == "Numpad ".Length + 1 &&
+            part[^1] is >= '0' and <= '9')
+        {
+            return Key.NumPad0 + (part[^1] - '0');
+        }
+
+        return part switch
+        {
+            _ when string.Equals(part, "Backspace", StringComparison.OrdinalIgnoreCase) => Key.Back,
+            _ when string.Equals(part, "Caps Lock", StringComparison.OrdinalIgnoreCase) => Key.Capital,
+            _ when string.Equals(part, "Enter", StringComparison.OrdinalIgnoreCase) => Key.Return,
+            _ when string.Equals(part, "Page Down", StringComparison.OrdinalIgnoreCase) => Key.PageDown,
+            _ when string.Equals(part, "Page Up", StringComparison.OrdinalIgnoreCase) => Key.PageUp,
+            _ when string.Equals(part, "Print Screen", StringComparison.OrdinalIgnoreCase) => Key.PrintScreen,
+            _ when string.Equals(part, "Num Lock", StringComparison.OrdinalIgnoreCase) => Key.NumLock,
+            _ when string.Equals(part, "Scroll Lock", StringComparison.OrdinalIgnoreCase) => Key.Scroll,
+            _ => null,
+        };
     }
 }
