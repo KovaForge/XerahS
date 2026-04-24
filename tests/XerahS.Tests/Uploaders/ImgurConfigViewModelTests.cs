@@ -166,6 +166,76 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_AnonymousAccountClearsLoggedInAlbumSessionState()
+    {
+        const string secretKey = "imgur-anonymous-secret";
+        InMemorySecretStore secrets = new();
+        OAuth2Token token = new()
+        {
+            access_token = "access-token",
+            refresh_token = "refresh-token",
+            expires_in = 3600
+        };
+        token.UpdateExpireDate();
+        secrets.SetSecret("imgur", secretKey, "oauthToken", JsonConvert.SerializeObject(token));
+
+        ImgurConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.Albums.Add(new ImgurAlbumData { id = "stale-album", title = "Stale album" });
+        viewModel.AlbumStatusMessage = "Loaded 1 albums";
+        viewModel.IsLoggedIn = true;
+
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "client-anonymous",
+            AccountType = AccountType.Anonymous
+        }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.IsLoggedIn, Is.False);
+            Assert.That(viewModel.Albums, Is.Empty);
+            Assert.That(viewModel.AlbumStatusMessage, Is.Null);
+        });
+    }
+
+    [Test]
+    public void AccountTypeChange_ToAnonymousClearsCachedAlbumSessionState()
+    {
+        const string secretKey = "imgur-user-secret";
+        InMemorySecretStore secrets = new();
+        OAuth2Token token = new()
+        {
+            access_token = "access-token",
+            refresh_token = "refresh-token",
+            expires_in = 3600
+        };
+        token.UpdateExpireDate();
+        secrets.SetSecret("imgur", secretKey, "oauthToken", JsonConvert.SerializeObject(token));
+
+        ImgurConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "client-user",
+            AccountType = AccountType.User
+        }));
+        viewModel.Albums.Add(new ImgurAlbumData { id = "album-1", title = "Album 1" });
+        viewModel.AlbumStatusMessage = "Loaded 1 albums";
+
+        viewModel.AccountTypeIndex = (int)AccountType.Anonymous;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.IsLoggedIn, Is.False);
+            Assert.That(viewModel.Albums, Is.Empty);
+            Assert.That(viewModel.AlbumStatusMessage, Is.Null);
+        });
+    }
+
+    [Test]
     public void LoadFromJson_IgnoresMalformedPersistedTokenAndKeepsConfigurationUsable()
     {
         const string secretKey = "imgur-secret";

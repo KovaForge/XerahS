@@ -185,7 +185,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
                 UseDirectLink = _config.DirectLink;
                 UseGifv = _config.UseGIFV;
                 UploadToSelectedAlbum = _config.UploadToSelectedAlbum;
-                IsLoggedIn = HasToken();
+                SyncAccountSessionState();
                 _uploader = BuildUploader();
 
                 // Always refresh selected album state so reused view-model instances do not keep a stale album.
@@ -291,6 +291,32 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     private static int NormalizeThumbnailTypeIndex(ImgurThumbnailType thumbnailType)
     {
         return Enum.IsDefined(thumbnailType) ? (int)thumbnailType : (int)ImgurThumbnailType.Medium_Thumbnail;
+    }
+
+    partial void OnAccountTypeIndexChanged(int value)
+    {
+        AccountType accountType = Enum.IsDefined((AccountType)value) ? (AccountType)value : AccountType.Anonymous;
+        if (accountType != AccountType.User)
+        {
+            IsLoggedIn = false;
+            ClearAlbumSessionState();
+        }
+    }
+
+    private void SyncAccountSessionState()
+    {
+        IsLoggedIn = AccountTypeIndex == (int)AccountType.User && HasToken();
+
+        if (!IsLoggedIn)
+        {
+            ClearAlbumSessionState();
+        }
+    }
+
+    private void ClearAlbumSessionState()
+    {
+        Albums.Clear();
+        AlbumStatusMessage = null;
     }
 
     private static bool TryOpenUrl(string url)
