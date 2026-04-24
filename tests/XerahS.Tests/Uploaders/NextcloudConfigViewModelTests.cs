@@ -130,6 +130,52 @@ public class NextcloudConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_DoesNotRestoreSharePasswordWhenPublicSharesAreDisabled()
+    {
+        const string secretKey = "nextcloud-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("nextcloud", secretKey, "appPassword", "app-password");
+        secrets.SetSecret("nextcloud", secretKey, "sharePassword", "secret-share-password");
+
+        NextcloudConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            SecretKey = secretKey,
+            ServerUrl = "https://cloud.example.com",
+            LoginName = "alice",
+            UserId = "alice",
+            CreatePublicShare = false
+        }));
+
+        Assert.That(viewModel.SharePassword, Is.Empty);
+    }
+
+    [Test]
+    public void ToJson_RemovesStoredSharePasswordWhenPublicSharesAreDisabled()
+    {
+        const string secretKey = "nextcloud-secret";
+        InMemorySecretStore secrets = new();
+        secrets.SetSecret("nextcloud", secretKey, "appPassword", "app-password");
+        secrets.SetSecret("nextcloud", secretKey, "sharePassword", "secret-share-password");
+
+        NextcloudConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(secrets));
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            SecretKey = secretKey,
+            ServerUrl = "https://cloud.example.com",
+            LoginName = "alice",
+            UserId = "alice",
+            CreatePublicShare = false
+        }));
+
+        _ = viewModel.ToJson();
+
+        Assert.That(secrets.HasSecret("nextcloud", secretKey, "sharePassword"), Is.False);
+    }
+
+    [Test]
     public void ClearStoredCredentials_ResetsConnectionStateAndCapabilitySummary()
     {
         NextcloudConfigViewModel viewModel = new();

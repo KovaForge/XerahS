@@ -554,7 +554,9 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
         }
 
         AppPassword = _secrets.GetSecret("nextcloud", _secretKey, "appPassword") ?? string.Empty;
-        SharePassword = _secrets.GetSecret("nextcloud", _secretKey, "sharePassword") ?? string.Empty;
+        SharePassword = CreatePublicShare
+            ? _secrets.GetSecret("nextcloud", _secretKey, "sharePassword") ?? string.Empty
+            : string.Empty;
     }
 
     private void PersistSecrets()
@@ -573,13 +575,14 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             _secrets.SetSecret("nextcloud", _secretKey, "appPassword", AppPassword);
         }
 
-        if (string.IsNullOrWhiteSpace(SharePassword))
+        string effectiveSharePassword = CreatePublicShare ? SharePassword : string.Empty;
+        if (string.IsNullOrWhiteSpace(effectiveSharePassword))
         {
             _secrets.DeleteSecret("nextcloud", _secretKey, "sharePassword");
         }
         else
         {
-            _secrets.SetSecret("nextcloud", _secretKey, "sharePassword", SharePassword);
+            _secrets.SetSecret("nextcloud", _secretKey, "sharePassword", effectiveSharePassword);
         }
     }
 
