@@ -72,6 +72,14 @@ public class NextcloudProviderTests
     }
 
     [Test]
+    public void CombineRelativePath_NormalizesBackslashesInNameSegment()
+    {
+        string relativePath = NextcloudClient.CombineRelativePath("ShareX/2026", @"April\cat.png");
+
+        Assert.That(relativePath, Is.EqualTo("ShareX/2026/April/cat.png"));
+    }
+
+    [Test]
     public void ExtractRelativePath_StripsServerBasePathFromAbsoluteHref()
     {
         string relativePath = InvokeExtractRelativePath(

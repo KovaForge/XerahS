@@ -81,7 +81,7 @@ public sealed class NextcloudClient
     public static string CombineRelativePath(string? folderPath, string? name)
     {
         string safeFolderPath = NormalizeRelativePath(folderPath);
-        string safeName = name?.Trim().Trim('/') ?? string.Empty;
+        string safeName = NormalizeRelativePath(name);
 
         if (string.IsNullOrWhiteSpace(safeFolderPath))
         {
