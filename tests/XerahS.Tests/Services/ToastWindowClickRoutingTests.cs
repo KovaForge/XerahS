@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using NUnit.Framework;
 using Point = global::Avalonia.Point;
+using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -54,6 +55,18 @@ public class ToastWindowClickRoutingTests
         {
             Assert.That(handled, Is.False);
             Assert.That(action, Is.EqualTo(ToastWindow.ToastPointerAction.None));
+        });
+    }
+
+    [Test]
+    public void ToastConfig_IsValid_RejectsNegativeToastTimings()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(new ToastConfig { Duration = -1, FadeDuration = 1 }.IsValid, Is.False);
+            Assert.That(new ToastConfig { Duration = 1, FadeDuration = -1 }.IsValid, Is.False);
+            Assert.That(new ToastConfig { Duration = 0, FadeDuration = 1 }.IsValid, Is.True);
+            Assert.That(new ToastConfig { Duration = 1, FadeDuration = 0 }.IsValid, Is.True);
         });
     }
 
