@@ -226,4 +226,5 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
 - Flatpak build commands run from the module build directory, not the repository root; add icons, desktop files, metainfo, or other repository assets as explicit manifest sources before installing them.
 - Flatpak `finish-args` must use options supported by `flatpak build-finish`; clipboard read/write flags are not valid `finish-args`.
+- Flatpak session bus access is expressed as `--socket=session-bus` or narrower `--talk-name=` policies, not `--bus=session`.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.

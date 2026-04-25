@@ -25,7 +25,7 @@ finish-args:
   # System tray on GNOME
   - --talk-name=org.kde.StatusNotifierWatcher
   # DBus session bus
-  - --bus=session
+  - --socket=session-bus
   # Filesystem — captures saved here; config read from XDG_CONFIG_HOME
   - --filesystem=xdg-pictures
   - --filesystem=xdg-videos
