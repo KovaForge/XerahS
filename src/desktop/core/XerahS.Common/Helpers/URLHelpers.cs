@@ -369,9 +369,7 @@ namespace XerahS.Common
         {
             if (replaceSpace) url = url.Replace(' ', '_');
 
-            // System.Web.HttpUtility.UrlPathEncode is obsolete and not in .NET Core usually
-            // We can emulate it or use WebUtility
-            return Uri.EscapeDataString(url);
+            return URLEncode(url, isPath: true);
         }
 
         public static void OpenURL(string url)
