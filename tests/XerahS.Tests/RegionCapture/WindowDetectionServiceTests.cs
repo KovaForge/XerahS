@@ -360,6 +360,43 @@ public class WindowDetectionServiceTests
     }
 
     [Test]
+    public void ConvertLogicalPlatformWindow_FiltersHiddenAndMinimizedWindows()
+    {
+        IReadOnlyList<MonitorInfo> monitors =
+        [
+            new MonitorInfo(
+                "Display 1",
+                new PixelRect(0, 0, 200, 100),
+                new PixelRect(0, 0, 200, 100),
+                1.0,
+                true)
+        ];
+
+        var hiddenWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)91,
+            Title = "Hidden helper",
+            ClassName = "org.example.Hidden",
+            Bounds = new Rectangle(0, 0, 100, 50),
+            IsVisible = false,
+            IsMinimized = false
+        };
+
+        var minimizedWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)92,
+            Title = "Minimized app",
+            ClassName = "org.example.Minimized",
+            Bounds = new Rectangle(0, 0, 100, 50),
+            IsVisible = true,
+            IsMinimized = true
+        };
+
+        Assert.That(WindowDetectionService.ConvertLogicalPlatformWindow(hiddenWindow, monitors), Is.Null);
+        Assert.That(WindowDetectionService.ConvertLogicalPlatformWindow(minimizedWindow, monitors), Is.Null);
+    }
+
+    [Test]
     public void ConvertLogicalPlatformWindow_FiltersExcludedHandles()
     {
         IReadOnlyList<MonitorInfo> monitors =

@@ -493,6 +493,9 @@ public sealed class WindowDetectionService
         if (window.Handle == IntPtr.Zero || IsExcludedHandle(window.Handle))
             return null;
 
+        if (!window.IsVisible || window.IsMinimized)
+            return null;
+
         if (window.Bounds.Width <= 1 || window.Bounds.Height <= 1)
             return null;
 
