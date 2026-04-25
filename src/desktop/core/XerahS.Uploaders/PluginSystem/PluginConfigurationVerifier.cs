@@ -266,15 +266,39 @@ public static class PluginConfigurationVerifier
 
     private static string ResolvePluginDirectory(string providerId)
     {
+        if (!IsSafeProviderDirectoryName(providerId))
+        {
+            return null;
+        }
+
         var metadata = ProviderCatalog.GetPluginMetadata(providerId);
         if (!string.IsNullOrWhiteSpace(metadata?.PluginDirectory) && Directory.Exists(metadata.PluginDirectory))
         {
-            return metadata.PluginDirectory;
+            return Path.GetFullPath(metadata.PluginDirectory);
         }
 
         return PathsManager.GetPluginDirectories()
             .Select(directory => Path.Combine(directory, providerId))
+            .Select(Path.GetFullPath)
             .FirstOrDefault(Directory.Exists);
     }
-}
 
+    private static bool IsSafeProviderDirectoryName(string providerId)
+    {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return false;
+        }
+
+        if (providerId == "." || providerId == "..")
+        {
+            return false;
+        }
+
+        return providerId.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
+            providerId.IndexOf(Path.DirectorySeparatorChar) < 0 &&
+            providerId.IndexOf(Path.AltDirectorySeparatorChar) < 0 &&
+            providerId.IndexOf('/') < 0 &&
+            providerId.IndexOf('\\') < 0;
+    }
+}

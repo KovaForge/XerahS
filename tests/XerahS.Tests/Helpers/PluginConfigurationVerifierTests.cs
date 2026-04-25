@@ -86,12 +86,48 @@ public class PluginConfigurationVerifierTests
         });
     }
 
+    [TestCase("..")]
+    [TestCase("../linux-x64-evil")]
+    [TestCase("nested/plugin")]
+    [TestCase(@"nested\plugin")]
+    public void VerifyPluginConfiguration_UnsafeProviderId_DoesNotResolveOutsidePluginRoots(string providerId)
+    {
+        string escapedDirectory = Path.GetFullPath(Path.Combine(PathsManager.PluginsArchitectureFolder, providerId));
+        Directory.CreateDirectory(escapedDirectory);
+        File.WriteAllText(Path.Combine(escapedDirectory, "plugin.json"), "{}");
+
+        PluginVerificationResult result = PluginConfigurationVerifier.VerifyPluginConfiguration(providerId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(PluginVerificationStatus.Error));
+            Assert.That(result.Message, Is.EqualTo("Plugin folder not found"));
+        });
+    }
+
     [TestCase(null)]
     [TestCase("")]
     [TestCase("   ")]
     public void CleanDuplicateFrameworkDlls_MissingProviderId_IsIgnored(string? providerId)
     {
         Assert.That(PluginConfigurationVerifier.CleanDuplicateFrameworkDlls(providerId!), Is.Zero);
+    }
+
+    [Test]
+    public void CleanDuplicateFrameworkDlls_TraversalProviderId_DoesNotDeleteSiblingFiles()
+    {
+        string siblingDirectory = Path.Combine(PathsManager.PluginsFolder, $"{PathsManager.CurrentArchitectureFolderName}-evil");
+        Directory.CreateDirectory(siblingDirectory);
+        string frameworkDll = Path.Combine(siblingDirectory, "Avalonia.Base.dll");
+        File.WriteAllText(frameworkDll, "keep me");
+
+        int deleted = PluginConfigurationVerifier.CleanDuplicateFrameworkDlls($"../{PathsManager.CurrentArchitectureFolderName}-evil");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(deleted, Is.Zero);
+            Assert.That(File.Exists(frameworkDll), Is.True);
+        });
     }
 
     private static string CreatePluginDirectory(string pluginId, bool includeAssembly = true, bool includeRuntimeAsset = false)
