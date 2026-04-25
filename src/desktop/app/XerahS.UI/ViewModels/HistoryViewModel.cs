@@ -418,12 +418,16 @@ namespace XerahS.UI.ViewModels
 
                 // Load the image from file directly as SKBitmap
                 using var fs = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read);
-                var skBitmap = SKBitmap.Decode(fs);
+                using var skBitmap = SKBitmap.Decode(fs);
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
                 var rendered = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
-                rendered?.Dispose();
+                if (rendered != null && !ReferenceEquals(rendered, skBitmap))
+                {
+                    rendered.Dispose();
+                }
+
                 await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
             }
             catch (Exception ex)

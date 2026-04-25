@@ -243,6 +243,47 @@ public class HistoryEditorLaunchTests
     }
 
     [Test]
+    public async Task EditImage_DisposesLoadedBitmap_WhenEditorReturnsSeparateRenderedImage()
+    {
+        string imagePath = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        {
+            bitmap.Erase(SKColors.Red);
+            SaveBitmap(imagePath, bitmap);
+        }
+
+        var uiService = new TrackingUiService
+        {
+            ReturnCopiedEditorImage = true
+        };
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath
+            };
+
+            await viewModel.EditImageCommand.ExecuteAsync(item);
+
+            Assert.That(uiService.LastEditorInputImage, Is.Not.Null);
+            Assert.That(uiService.LastEditorInputImage!.Handle, Is.EqualTo(IntPtr.Zero));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Test]
     public async Task EditImage_RefreshesHistoryItem_WhenEditedFileKeepsSameTimestamp()
     {
         await VerifyHistoryItemRefreshesAfterEditorSessionAsync(lastWriteTimeTransform: static original => original);
@@ -321,6 +362,8 @@ public class HistoryEditorLaunchTests
         public int EditorLaunchCount { get; private set; }
         public int SessionLaunchCount { get; private set; }
         public SKSizeI LastSessionImageSize { get; private set; }
+        public bool ReturnCopiedEditorImage { get; init; }
+        public SKBitmap? LastEditorInputImage { get; private set; }
         public Action<string?>? ShowEditorCallback { get; init; }
         public Action<string?>? ShowEditorSessionCallback { get; init; }
 
@@ -334,8 +377,16 @@ public class HistoryEditorLaunchTests
             LastSourceFilePath = sourceFilePath;
             LastAnnotationCount = 0;
             LastRestoredAnnotations = false;
+            LastEditorInputImage = image;
             ShowEditorCallback?.Invoke(sourceFilePath);
-            return Task.FromResult<SKBitmap?>(image);
+
+            if (!ReturnCopiedEditorImage)
+            {
+                return Task.FromResult<SKBitmap?>(image);
+            }
+
+            SKBitmap renderedImage = image.Copy();
+            return Task.FromResult<SKBitmap?>(renderedImage);
         }
 
         public Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
