@@ -137,22 +137,38 @@ function Invoke-VideoEditorFrontendBuild {
     }
 }
 
-function Invoke-ImageEditorRestore {
+function Invoke-ProjectRestoreForOS {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectPath,
+        [Parameter(Mandatory = $true)]
+        [string]$OSValue
+    )
+
+    dotnet restore $ProjectPath -p:OS=$OSValue --disable-build-servers -p:nodeReuse=false -p:UseSharedCompilation=false -p:BuildInParallel=false /m:1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Restore failed with exit code $LASTEXITCODE for $ProjectPath (OS=$OSValue)."
+    }
+}
+
+function Invoke-ScopedIntermediateRestores {
     $imageEditorProject = Join-Path (Join-Path (Join-Path (Join-Path $root "ShareX.ImageEditor") "src") "ShareX.ImageEditor") "ShareX.ImageEditor.csproj"
+    $uiProject = Join-Path (Join-Path (Join-Path (Join-Path (Join-Path $root "src") "desktop") "app") "XerahS.UI") "XerahS.UI.csproj"
 
     if (!(Test-Path $imageEditorProject)) {
         throw "ShareX.ImageEditor project not found: $imageEditorProject"
     }
-
-    Write-Host "Restoring ShareX.ImageEditor assets for Windows intermediate path..."
-    dotnet restore $imageEditorProject -p:OS=Windows_NT --disable-build-servers -p:nodeReuse=false -p:UseSharedCompilation=false -p:BuildInParallel=false /m:1
-    if ($LASTEXITCODE -ne 0) {
-        throw "ShareX.ImageEditor restore failed with exit code $LASTEXITCODE."
+    if (!(Test-Path $uiProject)) {
+        throw "XerahS.UI project not found: $uiProject"
     }
+
+    Write-Host "Restoring scoped intermediate assets for Windows packaging..."
+    Invoke-ProjectRestoreForOS -ProjectPath $imageEditorProject -OSValue "Windows_NT"
+    Invoke-ProjectRestoreForOS -ProjectPath $uiProject -OSValue "Windows_NT"
 }
 
 Invoke-VideoEditorFrontendBuild
-Invoke-ImageEditorRestore
+Invoke-ScopedIntermediateRestores
 
 $archs = @("win-x64", "win-arm64")
 

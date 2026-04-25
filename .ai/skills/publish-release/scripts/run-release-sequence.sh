@@ -172,7 +172,7 @@ monitor_release_run() {
   local log_file=""
 
   while true; do
-    line="$(gh run view "$run_id" --repo "$gh_repo" --json status,conclusion,url --jq '[.status, (.conclusion // "n/a"), .url] | @tsv')"
+    line="$(gh run view "$run_id" --repo "$gh_repo" --json status,conclusion,url --jq '[.status, (if (.conclusion == null or .conclusion == "") then "n/a" else .conclusion end), .url] | @tsv')"
     IFS=$'\t' read -r status conclusion run_url <<< "$line"
 
     echo "Run $run_id: status=$status conclusion=${conclusion:-n/a} url=$run_url"

@@ -1,4 +1,4 @@
-## v0.22.65
+## v0.22.66
 
 ### Features
 - **Core**: Add assistant BYOK providers (81f25416)
