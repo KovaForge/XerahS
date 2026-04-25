@@ -497,12 +497,15 @@ namespace XerahS.Core.Tasks.Processors
             {
                 if (!string.IsNullOrEmpty(info.FilePath))
                 {
-                    return uploader switch
+                    var result = uploader switch
                     {
                         FileUploader fileUploader => fileUploader.UploadFile(info.FilePath),
                         GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
                         _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
                     };
+
+                    ApplyResolvedUploaderHost(info, instance, result);
+                    return result;
                 }
 
                 if (info.DataType == EDataType.Text && !string.IsNullOrEmpty(info.TextContent))
@@ -520,7 +523,9 @@ namespace XerahS.Core.Tasks.Processors
 
                         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(info.TextContent));
                         ms.Position = 0;
-                        return genericUploader.Upload(ms, fileName);
+                        var result = genericUploader.Upload(ms, fileName);
+                        ApplyResolvedUploaderHost(info, instance, result);
+                        return result;
                     }
 
                     return new UploadResult
@@ -539,9 +544,12 @@ namespace XerahS.Core.Tasks.Processors
                 {
                     if (ms == null) return new UploadResult { IsSuccess = false, Response = "Failed to create image stream." };
                     ms.Position = 0;
-                    return uploader is GenericUploader genericUploader
+                    var result = uploader is GenericUploader genericUploader
                         ? genericUploader.Upload(ms, info.FileName)
                         : new UploadResult { IsSuccess = false, Response = "Uploader type not supported for images." };
+
+                    ApplyResolvedUploaderHost(info, instance, result);
+                    return result;
                 }
             }
             catch (Exception ex)
@@ -566,6 +574,14 @@ namespace XerahS.Core.Tasks.Processors
             using FileStream stream = new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             string fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
             return uploader.Upload(stream, fileName);
+        }
+
+        internal static void ApplyResolvedUploaderHost(TaskInfo info, UploaderInstance instance, UploadResult? result)
+        {
+            if (IsSuccessfulUploadResult(result))
+            {
+                info.ResolvedUploaderHost = instance.DisplayName;
+            }
         }
 
         private static bool IsSuccessfulUploadResult(UploadResult? result)

@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using XerahS.Common;
+using XerahS.Core;
 using XerahS.Core.Tasks.Processors;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
@@ -59,6 +61,53 @@ public class UploadJobProcessorTests
             UploaderCategory.Image);
 
         Assert.That(result, Is.SameAs(availableInstance));
+    }
+
+    [Test]
+    public void ApplyResolvedUploaderHost_PrefersActualSuccessfulUploaderOverConfiguredDefault()
+    {
+        var configuredDefault = CreateInstance("Configured Default");
+        var fallbackInstance = CreateInstance("Actual Fallback");
+        InstanceManager.Instance.AddInstance(configuredDefault);
+        InstanceManager.Instance.AddInstance(fallbackInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, configuredDefault.InstanceId);
+
+        var info = new TaskInfo
+        {
+            Job = TaskJob.FileUpload,
+            DataType = EDataType.Image
+        };
+
+        UploadJobProcessor.ApplyResolvedUploaderHost(info, fallbackInstance, new UploadResult
+        {
+            URL = "https://example.test/image.png"
+        });
+
+        Assert.That(info.UploaderHost, Is.EqualTo("Actual Fallback"));
+    }
+
+    [Test]
+    public void ApplyResolvedUploaderHost_DoesNotReplaceConfiguredHostAfterFailedUpload()
+    {
+        var configuredDefault = CreateInstance("Configured Default");
+        var failedFallback = CreateInstance("Failed Fallback");
+        InstanceManager.Instance.AddInstance(configuredDefault);
+        InstanceManager.Instance.AddInstance(failedFallback);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, configuredDefault.InstanceId);
+
+        var info = new TaskInfo
+        {
+            Job = TaskJob.FileUpload,
+            DataType = EDataType.Image
+        };
+
+        UploadJobProcessor.ApplyResolvedUploaderHost(info, failedFallback, new UploadResult
+        {
+            IsSuccess = false,
+            Response = "boom"
+        });
+
+        Assert.That(info.UploaderHost, Is.EqualTo("Configured Default"));
     }
 
     private static UploaderInstance CreateInstance(string name, bool isAvailable = true)

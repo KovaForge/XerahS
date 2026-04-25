@@ -75,11 +75,18 @@ public class TaskInfo
     public EDataType DataType { get; set; }
     public TaskMetadata Metadata { get; set; }
 
+    internal string? ResolvedUploaderHost { get; set; }
+
     public string? UploaderHost
     {
         get
         {
             if (!IsUploadJob) return null;
+
+            if (!string.IsNullOrWhiteSpace(ResolvedUploaderHost))
+            {
+                return ResolvedUploaderHost;
+            }
 
             if (TryGetCategoryForDataType(DataType, out var category))
             {
