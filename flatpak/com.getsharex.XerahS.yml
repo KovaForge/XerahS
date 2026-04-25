@@ -2,7 +2,7 @@ app-id: com.getsharex.XerahS
 runtime: org.freedesktop.Platform
 runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
-command: XerahS
+command: xerahs
 
 finish-args:
   # X11 + Wayland display
@@ -52,9 +52,10 @@ modules:
       # Install self-contained publish to /app
       - cp -rT self-contained /app
 
-      # Symlink for xdg-desktop-portal app-ID resolution (must be on a
-      # filesystem that /proc/PID/exe can traverse from a portal subprocess).
-      - ln -s /app/XerahS /usr/bin/xerahs
+      # Flatpak application commands must be installed under /app.
+      - mkdir -p /app/bin
+      - ln -s ../XerahS /app/bin/XerahS
+      - ln -s ../XerahS /app/bin/xerahs
 
       # Install app icon
       - install -Dm644 src/desktop/app/XerahS.UI/Assets/Logo.png /app/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
