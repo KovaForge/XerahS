@@ -102,6 +102,23 @@ public class NextcloudProviderTests
     }
 
     [Test]
+    public async Task CreateFolderAsync_RejectsBlankFolderNameWithoutUsingCachedSettings()
+    {
+        const string secretKey = "nextcloud-secret";
+        NextcloudProvider provider = CreateProvider(secretKey, "app-password");
+        SetLatestSettings(provider, JsonConvert.SerializeObject(new NextcloudConfigModel
+        {
+            ServerUrl = "https://cloud.example.com",
+            LoginName = "alice",
+            SecretKey = secretKey
+        }));
+
+        bool created = await provider.CreateFolderAsync(string.Empty, "   ");
+
+        Assert.That(created, Is.False);
+    }
+
+    [Test]
     public void Upload_FailsBeforeNetworkCall_WhenPublicSharesAreUnsupported()
     {
         NextcloudUploader uploader = new(new NextcloudConfigModel
@@ -180,6 +197,13 @@ public class NextcloudProviderTests
         secrets.SetSecret("nextcloud", secretKey, "appPassword", appPassword);
         provider.SetContext(new TestProviderContext(secrets));
         return provider;
+    }
+
+    private static void SetLatestSettings(NextcloudProvider provider, string settingsJson)
+    {
+        FieldInfo? field = typeof(NextcloudProvider).GetField("_latestSettingsJson", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(field, Is.Not.Null);
+        field!.SetValue(provider, settingsJson);
     }
 
     private static string InvokeExtractRelativePath(string href, string hrefPrefix, string userId)

@@ -32,9 +32,48 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Platform-specific services | 2026-04-25 23:13 AWST | Reviewed | Fixed macOS system-service process timeout handling so helper commands such as `osascript`/`defaults` are killed and reported as failed when they exceed the timeout instead of returning stale/late output after an ignored `WaitForExit` timeout | Medium | Focused follow-up review of platform startup/status and service-manager timeout paths across `LinuxStartupService`, `MacOSStartupService`, `MacOSSystemService`, Linux/macOS watch-folder daemon services, `WatchFolderDaemonServiceBase`, and platform process-start regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.59` to `0.22.60`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, targeted platform process regressions passed 6/6, and exact `dotnet test --configuration Release` passed 589/589 with tests discoverable. |
 | File/path handling | 2026-04-25 21:12 AWST | Reviewed | Fixed `GetUniqueFilePath(...)` so dot-prefixed extensionless names and known compound extensions are suffixed correctly instead of treating `.gitignore` as an extension or splitting `.tar.gz` incorrectly | High | Focused follow-up review of shared path uniqueness/extension helpers in `FileHelpers`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.57` to `0.22.58`, targeted `FileHelpersTests` passed 9/9, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and exact serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 582/582 with tests discoverable. |
 | Region capture / window enumeration | 2026-04-26 01:20 AWST | Reviewed | Fixed logical/direct window conversion so hidden or minimized platform windows cannot be returned for Wayland/direct window preselection after coordinate conversion | High | Focused follow-up review of `WindowDetectionService` logical conversion/direct Wayland probe paths and region-capture regressions; upstream `develop` had 1 pending commit, merged cleanly with no conflicts, and pushed; `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, origin matched, upstream/develop is `d285844652e7fa98c24baf7626959927a37762aa`, and no parent pointer update was required; `Directory.Build.props` was bumped from `0.22.60` to `0.22.61`; full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors after the first exact restore/build attempt was host-killed; exact full `dotnet test --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed 590/590 with tests discoverable. |
-| Tests / test discoverability | 2026-04-25 06:10 AWST | Reviewed | Restored cross-platform Release coverage for Windows clipboard DIB/DIBV5 encode-decode logic by extracting the portable codec from the Windows shell helper and re-enabling clipboard regression tests on non-Windows hosts | High | Follow-up review of the remaining disabled Windows clipboard tests from the prior discoverability pass; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.44` to `0.22.45`, full serial build passed with 0 warnings/errors using `/p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true`, and full serial tests passed 551/551 with tests discoverable. |
+| Tests / test discoverability | 2026-04-26 03:54 AWST | Reviewed | Fixed Nextcloud explorer folder creation so blank folder names are rejected before using cached settings or creating the current/parent folder, and added regression coverage for the edge case | High | Focused review of test project discoverability/layout plus uploader regression coverage across `XerahS.Tests.csproj`, assistant/Avalonia/composition tests, `XerahS.McpServer.Tests.csproj`, solution test entries, and Nextcloud provider regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.62` to `0.22.63`, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-restore` passed with 0 warnings/errors after an earlier filtered full-build test attempt was host-killed, and exact full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 592/592 with tests discoverable. |
 
 ## Review Log
+
+
+### 2026-04-26 03:54 AWST
+- Area: Tests / test discoverability and Nextcloud provider regression coverage
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `tests/XerahS.Tests/Assistant/AssistantCommandRouterTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantServiceTests.cs`
+  - `tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs`
+  - `tests/XerahS.Tests/Avalonia/AvaloniaTestApp.axaml`
+  - `tests/XerahS.Tests/Avalonia/AvaloniaTestApp.axaml.cs`
+  - `tests/XerahS.Tests/Avalonia/AvaloniaTestAppBuilder.cs`
+  - `tests/XerahS.Tests/Avalonia/ViewLocatorTests.cs`
+  - `tests/XerahS.Tests/Composition/DesktopHostCompositionTests.cs`
+  - `tests/XerahS.Tests/Uploaders/NextcloudProviderTests.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudProvider.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudClient.cs`
+  - `src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj`
+  - `XerahS.sln`
+  - `Directory.Build.props`
+- Findings:
+  - The focused test-infrastructure pass verified the main NUnit test project, the MCP server test project, and solution-level test discoverability, then followed uploader regression coverage into Nextcloud explorer operations.
+  - `NextcloudProvider.CreateFolderAsync(...)` accepted blank/whitespace folder names. With cached settings present, `NextcloudClient.CombineRelativePath(parentPath, folderName)` collapses the blank name to the parent/current path, so an explorer create-folder action could try to create the current folder instead of rejecting invalid input before any WebDAV work.
+  - This was a small bounded correctness bug and a useful test-discoverability improvement because the new regression proves the provider rejects the invalid operation before relying on cached settings or network behavior.
+- Outcome:
+  - Landed a bounded Nextcloud provider fix: `CreateFolderAsync(...)` now returns `false` immediately for blank/whitespace folder names.
+  - Added a regression test that seeds cached Nextcloud settings and proves a blank folder name is rejected without proceeding through folder creation.
+  - Bumped `Directory.Build.props` from `0.22.62` to `0.22.63` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked after correcting the combined-fetch typo; final state is branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, `origin/develop` matches it, `upstream/develop` is `d285844652e7fa98c24baf7626959927a37762aa`, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - An initial filtered full-solution test attempt was SIGKILLed by the host during build churn before test execution; the exact mandatory full verification commands then completed.
+  - Exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-restore` passed with 0 warnings and 0 errors.
+  - Exact full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable: `XerahS.Tests` passed 584/584 and `XerahS.McpServer.Tests` passed 8/8.
+- Follow-up:
+  - Future test-infrastructure passes should inspect whether filtered test invocations can be made less build-heavy, since filtered `dotnet test` still triggered enough full-solution/plugin churn to be host-killed on this machine.
 
 
 ### 2026-04-26 02:20 AWST

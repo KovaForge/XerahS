@@ -185,6 +185,11 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
 
     public async Task<bool> CreateFolderAsync(string parentPath, string folderName, CancellationToken cancellation = default)
     {
+        if (string.IsNullOrWhiteSpace(folderName))
+        {
+            return false;
+        }
+
         string? settingsJson = GetLatestSettingsJson();
         if (string.IsNullOrWhiteSpace(settingsJson))
         {
