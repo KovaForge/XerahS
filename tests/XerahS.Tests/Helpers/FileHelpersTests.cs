@@ -115,4 +115,44 @@ public class FileHelpersTests
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    [Test]
+    public void GetUniqueFilePath_DotPrefixedFileWithoutRealExtension_AppendsSuffixAfterFileName()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string filePath = Path.Combine(directory, ".gitignore");
+        File.WriteAllText(filePath, "existing");
+
+        try
+        {
+            string uniquePath = FileHelpers.GetUniqueFilePath(filePath);
+
+            Assert.That(uniquePath, Is.EqualTo(Path.Combine(directory, ".gitignore (1)")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void GetUniqueFilePath_KnownDoubleExtension_PreservesCompoundExtension()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string filePath = Path.Combine(directory, "archive.tar.gz");
+        File.WriteAllText(filePath, "existing");
+
+        try
+        {
+            string uniquePath = FileHelpers.GetUniqueFilePath(filePath);
+
+            Assert.That(uniquePath, Is.EqualTo(Path.Combine(directory, "archive (1).tar.gz")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }
