@@ -58,13 +58,13 @@ modules:
       - ln -s ../XerahS /app/bin/xerahs
 
       # Install app icon
-      - install -Dm644 src/desktop/app/XerahS.UI/Assets/Logo.png /app/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
+      - install -Dm644 com.getsharex.XerahS.png /app/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
 
       # Install .desktop file (converted to use the /usr/bin symlink)
-      - install -Dm644 flatpak/com.getsharex.XerahS.desktop /app/share/applications/com.getsharex.XerahS.desktop
+      - install -Dm644 com.getsharex.XerahS.desktop /app/share/applications/com.getsharex.XerahS.desktop
 
       # Install AppStream metainfo (for software-center compliance)
-      - install -Dm644 flatpak/com.getsharex.XerahS.metainfo.xml /app/share/metainfo/com.getsharex.XerahS.metainfo.xml
+      - install -Dm644 com.getsharex.XerahS.metainfo.xml /app/share/metainfo/com.getsharex.XerahS.metainfo.xml
 
       # WebUI dist must exist (copied into publish dir by CopyWebUIDist MSBuild target)
       # Validate it was included
@@ -78,3 +78,10 @@ modules:
       - type: dir
         path: ../dist/xerahs-flatpak-staging
         dest: self-contained
+      - type: file
+        path: ../src/desktop/app/XerahS.UI/Assets/Logo.png
+        dest-filename: com.getsharex.XerahS.png
+      - type: file
+        path: com.getsharex.XerahS.desktop
+      - type: file
+        path: com.getsharex.XerahS.metainfo.xml
