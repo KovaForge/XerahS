@@ -15,6 +15,45 @@ fi
 VERSION=$(grep '<Version>' "$ROOT/Directory.Build.props" | sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' | tr -d '[:space:]')
 echo "Building XerahS version $VERSION for Linux..."
 
+prepare_video_editor_frontend() {
+    local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
+
+    if [ ! -f "$frontend_dir/package.json" ]; then
+        echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
+        exit 1
+    fi
+
+    echo "Building ShareX.VideoEditor frontend..."
+    (
+        cd "$frontend_dir"
+        npm ci
+        npm run build
+    )
+
+    if [ ! -d "$frontend_dir/dist" ]; then
+        echo "Error: ShareX.VideoEditor frontend dist missing after build: $frontend_dir/dist"
+        exit 1
+    fi
+}
+
+restore_image_editor_assets() {
+    local image_editor_project="$ROOT/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
+
+    if [ ! -f "$image_editor_project" ]; then
+        echo "Error: ShareX.ImageEditor project not found: $image_editor_project"
+        exit 1
+    fi
+
+    echo "Restoring ShareX.ImageEditor assets for Unix intermediate path..."
+    dotnet restore "$image_editor_project" \
+        -p:OS=Unix \
+        --disable-build-servers \
+        -p:nodeReuse=false \
+        -p:UseSharedCompilation=false \
+        -p:BuildInParallel=false \
+        -m:1
+}
+
 dotnet_publish_serial() {
     dotnet publish "$@" \
         --disable-build-servers \
@@ -105,6 +144,9 @@ if [ -n "${XERAHS_ARCHITECTURES:-}" ]; then
 else
     ARCHITECTURES=("linux-x64" "linux-arm64")
 fi
+
+prepare_video_editor_frontend
+restore_image_editor_assets
 
 for ARCH in "${ARCHITECTURES[@]}"; do
     echo ""

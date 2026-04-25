@@ -18,6 +18,45 @@ fi
 
 echo "Building XerahS version $VERSION for macOS..."
 
+prepare_video_editor_frontend() {
+    local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
+
+    if [ ! -f "$frontend_dir/package.json" ]; then
+        echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
+        exit 1
+    fi
+
+    echo "Building ShareX.VideoEditor frontend..."
+    (
+        cd "$frontend_dir"
+        npm ci
+        npm run build
+    )
+
+    if [ ! -d "$frontend_dir/dist" ]; then
+        echo "Error: ShareX.VideoEditor frontend dist missing after build: $frontend_dir/dist"
+        exit 1
+    fi
+}
+
+restore_image_editor_assets() {
+    local image_editor_project="$ROOT/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
+
+    if [ ! -f "$image_editor_project" ]; then
+        echo "Error: ShareX.ImageEditor project not found: $image_editor_project"
+        exit 1
+    fi
+
+    echo "Restoring ShareX.ImageEditor assets for Unix intermediate path..."
+    dotnet restore "$image_editor_project" \
+        -p:OS=Unix \
+        --disable-build-servers \
+        -p:nodeReuse=false \
+        -p:UseSharedCompilation=false \
+        -p:BuildInParallel=false \
+        -m:1
+}
+
 dotnet_publish_serial() {
     dotnet publish "$@" \
         --disable-build-servers \
@@ -71,6 +110,9 @@ build_native_library() {
     echo "Using pre-compiled native library: $NATIVE_LIB"
     echo "(To rebuild native library, run package-mac.sh on macOS)"
 }
+
+prepare_video_editor_frontend
+restore_image_editor_assets
 
 configure_macos_bundle_icon() {
     local app_bundle_path="$1"

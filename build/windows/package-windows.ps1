@@ -106,6 +106,54 @@ if ([string]::IsNullOrEmpty($version)) {
 
 Write-Host "Building XerahS version $version for Windows..."
 
+function Invoke-VideoEditorFrontendBuild {
+    $frontendDir = Join-Path (Join-Path $root "ShareX.VideoEditor") "frontend"
+    $packageJson = Join-Path $frontendDir "package.json"
+    $distDir = Join-Path $frontendDir "dist"
+
+    if (!(Test-Path $packageJson)) {
+        throw "ShareX.VideoEditor frontend package.json not found: $packageJson"
+    }
+
+    Write-Host "Building ShareX.VideoEditor frontend..."
+    Push-Location $frontendDir
+    try {
+        npm ci
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm ci failed with exit code $LASTEXITCODE."
+        }
+
+        npm run build
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm run build failed with exit code $LASTEXITCODE."
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    if (!(Test-Path $distDir)) {
+        throw "ShareX.VideoEditor frontend dist missing after build: $distDir"
+    }
+}
+
+function Invoke-ImageEditorRestore {
+    $imageEditorProject = Join-Path (Join-Path (Join-Path (Join-Path $root "ShareX.ImageEditor") "src") "ShareX.ImageEditor") "ShareX.ImageEditor.csproj"
+
+    if (!(Test-Path $imageEditorProject)) {
+        throw "ShareX.ImageEditor project not found: $imageEditorProject"
+    }
+
+    Write-Host "Restoring ShareX.ImageEditor assets for Windows intermediate path..."
+    dotnet restore $imageEditorProject -p:OS=Windows_NT --disable-build-servers -p:nodeReuse=false -p:UseSharedCompilation=false -p:BuildInParallel=false /m:1
+    if ($LASTEXITCODE -ne 0) {
+        throw "ShareX.ImageEditor restore failed with exit code $LASTEXITCODE."
+    }
+}
+
+Invoke-VideoEditorFrontendBuild
+Invoke-ImageEditorRestore
+
 $archs = @("win-x64", "win-arm64")
 
 foreach ($arch in $archs) {
