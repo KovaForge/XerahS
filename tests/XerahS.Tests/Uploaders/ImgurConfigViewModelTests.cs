@@ -314,6 +314,43 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public async Task ProviderListAsync_MalformedSettingsJsonReturnsEmptyPage()
+    {
+        ImgurProvider provider = new();
+        provider.SetContext(new TestProviderContext(new InMemorySecretStore()));
+
+        ExplorerPage page = await provider.ListAsync(new ExplorerQuery
+        {
+            SettingsJson = "{not-json",
+            PageSize = 25
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(page.Items, Is.Empty);
+            Assert.That(page.ContinuationToken, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task ProviderDeleteAsync_RejectsMissingDeleteHashWithoutThrowing()
+    {
+        ImgurProvider provider = new();
+        provider.SetContext(new TestProviderContext(new InMemorySecretStore()));
+
+        bool deleted = await provider.DeleteAsync(new MediaItem
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                ["deleteHash"] = "",
+                ["settingsJson"] = "{not-json"
+            }
+        });
+
+        Assert.That(deleted, Is.False);
+    }
+
+    [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
         using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });

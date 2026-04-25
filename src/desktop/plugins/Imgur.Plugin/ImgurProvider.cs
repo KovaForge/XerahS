@@ -250,14 +250,14 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     /// <inheritdoc/>
     public async Task<bool> DeleteAsync(MediaItem item, CancellationToken cancellation = default)
     {
-        if (!item.Metadata.TryGetValue("deleteHash", out string? deleteHash)) return false;
+        if (!item.Metadata.TryGetValue("deleteHash", out string? deleteHash) || string.IsNullOrWhiteSpace(deleteHash)) return false;
         if (!item.Metadata.TryGetValue("settingsJson", out string? settingsJson)) return false;
 
         var config = DeserializeImgurConfig(settingsJson);
         var authInfo = BuildAuthInfo(config);
         if (authInfo?.Token == null) return false;
 
-        string deleteUrl = $"https://api.imgur.com/3/image/{deleteHash}";
+        string deleteUrl = $"https://api.imgur.com/3/image/{Uri.EscapeDataString(deleteHash)}";
         using var request = new SysHttpRequestMessage(SysHttpMethod.Delete, deleteUrl);
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token.access_token);
         try
@@ -420,7 +420,15 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     private ImgurConfigModel DeserializeImgurConfig(string? settingsJson)
     {
         if (string.IsNullOrWhiteSpace(settingsJson)) return new ImgurConfigModel();
-        return JsonConvert.DeserializeObject<ImgurConfigModel>(settingsJson) ?? new ImgurConfigModel();
+
+        try
+        {
+            return JsonConvert.DeserializeObject<ImgurConfigModel>(settingsJson) ?? new ImgurConfigModel();
+        }
+        catch
+        {
+            return new ImgurConfigModel();
+        }
     }
 
     private OAuth2Info? BuildAuthInfo(ImgurConfigModel config)
