@@ -177,6 +177,47 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void Validate_RejectsMissingSftpKeyFileWhenNoPasswordFallbackExists()
+    {
+        var viewModel = new FtpConfigViewModel
+        {
+            Protocol = FTPProtocol.SFTP,
+            Host = "example.com",
+            Port = 22,
+            Keypath = " /definitely/missing/key "
+        };
+
+        bool isValid = viewModel.Validate();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isValid, Is.False);
+            Assert.That(viewModel.StatusMessage, Is.EqualTo("SFTP key file does not exist."));
+        });
+    }
+
+    [Test]
+    public void Validate_AllowsMissingSftpKeyFileWhenPasswordFallbackExists()
+    {
+        var viewModel = new FtpConfigViewModel
+        {
+            Protocol = FTPProtocol.SFTP,
+            Host = "example.com",
+            Port = 22,
+            Password = "secret",
+            Keypath = " /definitely/missing/key "
+        };
+
+        bool isValid = viewModel.Validate();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isValid, Is.True);
+            Assert.That(viewModel.StatusMessage, Is.Null);
+        });
+    }
+
+    [Test]
     public void ProviderCreateInstance_NormalizesInvalidEnumsAndMissingPort()
     {
         var provider = new FtpProvider();

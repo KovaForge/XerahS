@@ -188,10 +188,22 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             return false;
         }
 
-        if (Protocol == FTPProtocol.SFTP && string.IsNullOrWhiteSpace(Keypath) && string.IsNullOrWhiteSpace(Password))
+        if (Protocol == FTPProtocol.SFTP)
         {
-            StatusMessage = "SFTP requires either a key file path or password.";
-            return false;
+            string keypath = Keypath?.Trim() ?? string.Empty;
+            bool hasPassword = !string.IsNullOrWhiteSpace(Password);
+
+            if (string.IsNullOrWhiteSpace(keypath) && !hasPassword)
+            {
+                StatusMessage = "SFTP requires either a key file path or password.";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(keypath) && !File.Exists(keypath) && !hasPassword)
+            {
+                StatusMessage = "SFTP key file does not exist.";
+                return false;
+            }
         }
 
         StatusMessage = null;

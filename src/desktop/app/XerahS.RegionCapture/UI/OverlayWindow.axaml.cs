@@ -260,7 +260,7 @@ public partial class OverlayWindow : Window
 
     private void InitializeComponent()
     {
-        AvaloniaXamlLoader.Load(this);
+        InitializeComponent(loadXaml: true);
         EnsureImageEditorResources();
     }
 
