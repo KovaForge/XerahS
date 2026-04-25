@@ -438,6 +438,7 @@ jobs:
         run: |
           .\build\windows\chocolatey\Sync-ChocolateyPackage.ps1 `
             -Version "${{ needs.validate-version.outputs.version }}" `
+            -Repository "${{ github.repository }}" `
             -Pack `
             -OutputDirectory "dist\chocolatey"
 
