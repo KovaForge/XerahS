@@ -50,7 +50,7 @@ modules:
     buildsystem: simple
     build-commands:
       # Install self-contained publish to /app
-      - cp -rT /self-contained /app
+      - cp -rT self-contained /app
 
       # Symlink for xdg-desktop-portal app-ID resolution (must be on a
       # filesystem that /proc/PID/exe can traverse from a portal subprocess).
@@ -73,13 +73,7 @@ modules:
       - chmod 755 /app/XerahS
       - test -f /app/xerahs-watchfolder-daemon && chmod 755 /app/xerahs-watchfolder-daemon || true
 
-    build-inputs:
-      # These are NOT build deps — they are the pre-built self-contained publish
-      # produced by package-linux.sh. We source them as a build directory so
-      # flatpak-builder can copy from /self-contained.
-      self-contained: null
-
     sources:
       - type: dir
-        path: dist/xerahs-flatpak-staging
+        path: ../dist/xerahs-flatpak-staging
         dest: self-contained

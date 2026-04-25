@@ -222,4 +222,5 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Chocolatey asset naming: `build/windows/chocolatey/tools/chocolateyInstall.ps1` resolves `XerahS-<version>-win-x64.exe` or `XerahS-<version>-win-arm64.exe` from `ChocolateyPackageVersion`, so release bumps should not hardcode installer filenames there.
 - Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
 - Flatpak CI setup must fail loudly when the runtime cannot be installed; use `flatpak remote-add --no-gpg-verify` for unsigned Flathub setup, not `--no-sign-verify`.
+- Flatpak manifest source paths are resolved relative to the manifest directory, so staging paths outside `flatpak/` need a `../` prefix.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.
