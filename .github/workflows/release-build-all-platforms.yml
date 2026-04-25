@@ -274,10 +274,13 @@ jobs:
       - name: Install FreeDesktop runtime (one-time)
         shell: bash
         run: |
-          flatpak remote-add --user --no-sign-verify flathub https://flathub.org/repo/flathub.flatpakrepo || true
+          set -euo pipefail
+          flatpak remote-add --user --if-not-exists --no-gpg-verify flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --or-update --noninteractive \
-            flathub org.freedesktop.Platform//24.08 \
-            flathub org.freedesktop.Sdk//24.08 || true
+            flathub \
+            org.freedesktop.Platform//24.08 \
+            org.freedesktop.Sdk//24.08
+          flatpak list --user --runtime | grep -E 'org\.freedesktop\.(Platform|Sdk).*24\.08'
 
       - name: Build Linux publish (staging for Flatpak)
         shell: bash
