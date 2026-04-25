@@ -223,4 +223,5 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
 - Flatpak CI setup must fail loudly when the runtime cannot be installed; use `flatpak remote-add --no-gpg-verify` for unsigned Flathub setup, not `--no-sign-verify`.
 - Flatpak manifest source paths are resolved relative to the manifest directory, so staging paths outside `flatpak/` need a `../` prefix.
+- Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.
