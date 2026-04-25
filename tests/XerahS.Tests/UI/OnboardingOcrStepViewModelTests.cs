@@ -37,4 +37,17 @@ public sealed class OnboardingOcrStepViewModelTests
         Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.False);
         Assert.That(viewModel.TotalDownloadSizeMb, Is.EqualTo(20));
     }
+
+    [Test]
+    public void ReplacingSelectedLanguages_NormalizesCaseToCanonicalTag_AndSyncsOptions()
+    {
+        OcrStepViewModel viewModel = new();
+
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["EN", "Fr"]);
+
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en", "fr" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").IsSelected, Is.True);
+        Assert.That(viewModel.TotalDownloadSizeMb, Is.EqualTo(45));
+    }
 }

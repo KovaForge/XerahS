@@ -255,17 +255,17 @@ public partial class OcrStepViewModel : StepViewModelBase
     {
         _syncingSelections = true;
 
-        HashSet<string> supportedLanguageTags = AvailableLanguages
-            .Select(language => language.LanguageTag)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> supportedLanguageTags = AvailableLanguages
+            .ToDictionary(language => language.LanguageTag, language => language.LanguageTag, StringComparer.OrdinalIgnoreCase);
 
         List<string> normalizedSelectedLanguages = SelectedLanguages
-            .Where(languageTag => supportedLanguageTags.Contains(languageTag))
+            .Where(languageTag => supportedLanguageTags.ContainsKey(languageTag))
+            .Select(languageTag => supportedLanguageTags[languageTag])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (normalizedSelectedLanguages.Count != SelectedLanguages.Count ||
-            !normalizedSelectedLanguages.SequenceEqual(SelectedLanguages, StringComparer.OrdinalIgnoreCase))
+            !normalizedSelectedLanguages.SequenceEqual(SelectedLanguages, StringComparer.Ordinal))
         {
             SelectedLanguages.Clear();
 
@@ -277,7 +277,7 @@ public partial class OcrStepViewModel : StepViewModelBase
 
         foreach (OcrLanguageOption option in AvailableLanguages)
         {
-            option.IsSelected = SelectedLanguages.Contains(option.LanguageTag);
+            option.IsSelected = SelectedLanguages.Contains(option.LanguageTag, StringComparer.OrdinalIgnoreCase);
         }
 
         if (SelectedLanguages.Count == 0)
