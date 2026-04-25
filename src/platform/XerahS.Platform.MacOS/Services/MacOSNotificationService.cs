@@ -58,13 +58,31 @@ public sealed class MacOSNotificationService : INotificationService
             if (process == null)
                 return false;
 
-            process.WaitForExit(2000);
-            return process.ExitCode == 0;
+            return WaitForSuccessfulExit(process, 2000);
         }
         catch
         {
             return false;
         }
+    }
+
+    internal static bool WaitForSuccessfulExit(Process process, int timeoutMilliseconds)
+    {
+        if (process.WaitForExit(timeoutMilliseconds))
+        {
+            return process.ExitCode == 0;
+        }
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to kill timed-out notification process");
+        }
+
+        return false;
     }
 
     internal static ProcessStartInfo CreateStartInfo(string title, string message, NotificationType type = NotificationType.Info)

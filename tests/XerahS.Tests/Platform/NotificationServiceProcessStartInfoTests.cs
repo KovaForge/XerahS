@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using NUnit.Framework;
 using XerahS.Platform.Linux.Services;
 using XerahS.Platform.MacOS.Services;
@@ -45,5 +46,42 @@ public class NotificationServiceProcessStartInfoTests
         var startInfo = MacOSNotificationService.CreateStartInfo("Capture complete", "Saved", NotificationType.Info);
 
         Assert.That(startInfo.ArgumentList[1], Is.EqualTo("display notification \"Saved\" with title \"Capture complete\""));
+    }
+
+    [Test]
+    [Platform(Include = "Linux")]
+    public void LinuxNotificationService_WaitForSuccessfulExit_KillsTimedOutProcess()
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "/bin/sh",
+            UseShellExecute = false,
+            ArgumentList = { "-c", "sleep 5" }
+        });
+
+        Assert.That(process, Is.Not.Null);
+
+        var result = LinuxNotificationService.WaitForSuccessfulExit(process!, 50);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.False);
+            Assert.That(process!.HasExited, Is.True);
+        });
+    }
+
+    [Test]
+    public void LinuxNotificationService_WaitForSuccessfulExit_ReturnsFalseForNonZeroExit()
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "/bin/sh",
+            UseShellExecute = false,
+            ArgumentList = { "-c", "exit 7" }
+        });
+
+        Assert.That(process, Is.Not.Null);
+
+        Assert.That(LinuxNotificationService.WaitForSuccessfulExit(process!, 2000), Is.False);
     }
 }
