@@ -31,6 +31,7 @@ public class OnboardingHotkeyConfigurationTests
     [TestCase("Alt + Caps Lock", Key.Capital, KeyModifiers.Alt)]
     [TestCase("Shift + Numpad 7", Key.NumPad7, KeyModifiers.Shift)]
     [TestCase("Ctrl + 5", Key.D5, KeyModifiers.Control)]
+    [TestCase("Ctrl+Alt+S", Key.S, KeyModifiers.Control | KeyModifiers.Alt)]
     public void PrimaryHotkeyText_ParsesFormattedDisplayNames(string text, Key expectedKey, KeyModifiers expectedModifiers)
     {
         HotkeyStepViewModel viewModel = new();

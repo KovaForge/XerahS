@@ -331,7 +331,7 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             return null;
         }
 
-        string[] parts = value.Split(" + ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string[] parts = value.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         KeyModifiers modifiers = KeyModifiers.None;
         Key key = Key.None;
 
