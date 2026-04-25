@@ -16,6 +16,11 @@ Use this skill to run release steps in strict order:
 - Step 6: Ensure standard release notes block is present on the GitHub release
 - Step 7: Set the successful release as pre-release by default (opt out only when intentionally publishing stable)
 
+Repository target behavior:
+- The automation is repository-agnostic. Git pushes use the local `origin` remote.
+- GitHub CLI operations (`gh run`, `gh release`) resolve the target from the GitHub `origin` remote by default, for example `ShareX/XerahS` or `KovaForge/XerahS`.
+- Use `--repo owner/name` to override the inferred target when needed.
+
 Step 3 performs:
 - Pre-check: Run `dotnet build src/desktop/XerahS.sln`; do not proceed if build fails.
 - Prompts for `x/y/z` bump type (major/minor/patch) unless specified.
@@ -55,6 +60,12 @@ Automated monitor + default pre-release (recommended):
 
 ```bash
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
+```
+
+Explicit repository target example:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --assume-changelog-done --monitor --set-prerelease --bump z --yes
 ```
 
 Stable release opt-out example:
