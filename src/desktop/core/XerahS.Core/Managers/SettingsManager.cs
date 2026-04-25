@@ -382,6 +382,7 @@ namespace XerahS.Core
         {
             UpdateRecentTasks();
             Settings?.SaveAsync(ApplicationConfigFilePath);
+            RaiseSettingsChanged();
         }
 
         /// <summary>

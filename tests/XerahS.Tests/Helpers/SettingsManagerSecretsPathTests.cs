@@ -277,6 +277,25 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void SaveApplicationConfigAsync_RaisesSettingsChangedLikeSynchronousSave()
+    {
+        int raisedCount = 0;
+        EventHandler handler = (_, _) => raisedCount++;
+
+        SettingsManager.SettingsChanged += handler;
+        try
+        {
+            SettingsManager.SaveApplicationConfigAsync();
+        }
+        finally
+        {
+            SettingsManager.SettingsChanged -= handler;
+        }
+
+        Assert.That(raisedCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
     {
         SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");
