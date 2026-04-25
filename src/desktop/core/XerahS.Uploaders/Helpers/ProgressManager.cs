@@ -73,6 +73,7 @@ namespace XerahS.Uploaders
 
             if (Position >= Length)
             {
+                Position = Length;
                 startTimer.Stop();
 
                 return true;
