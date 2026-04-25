@@ -219,10 +219,10 @@ public sealed class XerahSMcpServer
 
     private async Task<JsonRpcResponse> HandleResourcesReadAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        var paramsNode = ToParamsNode(request.Params);
+        var paramsNode = ToParamsObject(request.Params);
         if (paramsNode == null)
         {
-            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params");
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Params must be a JSON object");
         }
 
         var uri = paramsNode["uri"]?.GetValue<string>();
@@ -263,10 +263,10 @@ public sealed class XerahSMcpServer
 
     private Task<JsonRpcResponse> HandlePromptsGetAsync(JsonRpcRequest request)
     {
-        var paramsNode = ToParamsNode(request.Params);
+        var paramsNode = ToParamsObject(request.Params);
         if (paramsNode == null)
         {
-            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params"));
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Params must be a JSON object"));
         }
 
         var name = paramsNode["name"]?.GetValue<string>();
@@ -328,6 +328,11 @@ public sealed class XerahSMcpServer
         }
 
         return JsonSerializer.SerializeToNode(value, _jsonOptions);
+    }
+
+    private JsonObject? ToParamsObject(object? value)
+    {
+        return ToParamsNode(value) as JsonObject;
     }
 
     private static bool TryGetArgumentsObject(JsonObject paramsNode, out JsonObject? arguments, out string error)
