@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using NUnit.Framework;
 using XerahS.Platform.Linux.Services;
@@ -75,6 +76,27 @@ public class SystemServiceProcessStartInfoTests
 
         Assert.That(normalizedPath, Is.EqualTo(Path.GetFullPath(relativePath)));
         Assert.That(Path.IsPathRooted(normalizedPath), Is.True);
+    }
+
+    [Test]
+    public void MacOSSystemService_TryRunProcess_WhenCommandTimesOut_ReturnsFalsePromptly()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Ignore("Shell timeout regression uses /bin/sh.");
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+
+        bool success = MacOSSystemService.TryRunProcess("/bin/sh", "-c 'sleep 5; printf wallpaper'", 100, out string output);
+
+        stopwatch.Stop();
+        Assert.Multiple(() =>
+        {
+            Assert.That(success, Is.False);
+            Assert.That(output, Is.Empty);
+            Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(2)));
+        });
     }
 
 #if WINDOWS

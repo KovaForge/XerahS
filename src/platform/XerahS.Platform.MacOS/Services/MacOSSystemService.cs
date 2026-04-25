@@ -351,27 +351,51 @@ namespace XerahS.Platform.MacOS.Services
 
         private static bool TryRunProcess(string fileName, string arguments, out string output)
         {
+            return TryRunProcess(fileName, arguments, timeoutMs: 2000, out output);
+        }
+
+        internal static bool TryRunProcess(string fileName, string arguments, int timeoutMs, out string output)
+        {
             output = string.Empty;
 
             try
             {
-                using var process = Process.Start(new ProcessStartInfo
+                using var process = new Process
                 {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                });
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = fileName,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    }
+                };
 
-                if (process == null)
+                if (!process.Start())
                 {
                     return false;
                 }
 
-                output = process.StandardOutput.ReadToEnd().Trim();
-                process.WaitForExit(2000);
+                Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+                Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+
+                if (!process.WaitForExit(timeoutMs))
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch
+                    {
+                    }
+
+                    return false;
+                }
+
+                output = stdoutTask.GetAwaiter().GetResult().Trim();
+                _ = stderrTask.GetAwaiter().GetResult();
                 return process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output);
             }
             catch (Exception ex)
