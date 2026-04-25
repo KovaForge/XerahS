@@ -43,7 +43,7 @@ namespace XerahS.Core.Tasks
                 return true;
             }
 
-            var delayMs = (int)Math.Round(delaySeconds * 1000, MidpointRounding.AwayFromZero);
+            var delayMs = TaskHelpers.GetCaptureStartDelayMilliseconds(delaySeconds);
             var workflowId = string.IsNullOrWhiteSpace(taskSettings.WorkflowId) ? "none" : taskSettings.WorkflowId;
             TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelaySeconds={delaySeconds:F3}, DelayMs={delayMs}");
 

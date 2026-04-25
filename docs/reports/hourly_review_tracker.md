@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-25 03:10 AWST | Reviewed | Fixed uploaded-recording history attribution so screen recordings that are uploaded now preserve the resolved uploader host in the history row instead of saving a URL with blank host metadata | High | Follow-up review of recording/history handling across `WorkerTaskRecording`, `TaskInfo`, uploader host fallback, and recording-history regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.41` to `0.22.42`, full serial build passed with 0 warnings/errors using `/p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true`, and full serial tests passed 542/542 with tests discoverable. |
+| Capture pipeline | 2026-04-25 22:13 AWST | Reviewed | Fixed capture start-delay conversion so invalid or oversized delay values cannot wrap into negative milliseconds and crash `Task.Delay` in capture/region workflows | High | Focused follow-up review of capture start-delay handling across `TaskHelpers`, `WorkerTaskCapture`, `ScreenCaptureService`, capture settings, and delay regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.58` to `0.22.59`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 588/588 with tests discoverable. |
 | OCR | 2026-04-25 08:17 AWST | Reviewed | Fixed assistant OCR cache reuse so cached OCR text is returned before platform OCR/file availability checks, preserving already-extracted text even if the source screenshot was moved/deleted or OCR services are unavailable | High | Focused follow-up review of assistant OCR action handling across `AssistantService`, `AssistantCommandRouter`, and assistant regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remotes were re-verified and the submodule remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.46` to `0.22.47`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 553/553 with tests discoverable. |
 | Editor integration | 2026-04-25 09:13 AWST | Reviewed | Fixed plain history editor bitmap lifetime so `HistoryViewModel` disposes the decoded source image after editor launch while avoiding double-dispose when the editor returns the same bitmap | High | Focused review of plain history editor launch/lifetime handling across `HistoryViewModel`, `IUIService.ShowEditorAsync`, and `HistoryEditorLaunchTests`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.47` to `0.22.48`, targeted editor regressions passed 7/7, full serial app build passed with 0 warnings/errors using `/p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true`, and full `dotnet test --configuration Release --no-restore -m:1 /p:EnableAppDrivenPluginBuild=false /p:SkipBundlePlugins=true` passed 554/554 with tests discoverable. |
 | Uploader core | 2026-04-25 11:15 AWST | Reviewed | Fixed retry/fallback uploader-history attribution so uploads now record the actual successful uploader instance instead of the configured/default destination when fallback succeeds | High | Focused review of upload job processing and history host attribution across `UploadJobProcessor`, `WorkerTaskUpload`, `UploadHistoryService`, `TaskInfo`, and uploader processor regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.49` to `0.22.50`, targeted uploader processor regressions passed 3/3, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 561/561 with tests discoverable. |
@@ -3254,3 +3254,31 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Next file/path pass should inspect any remaining callers that combine `Path.GetExtension(...)` with user-visible names to ensure dotfiles, dotted directories, and known multi-part extensions stay consistent across upload/download/clipboard flows.
 
+
+
+### 2026-04-25 22:13 AWST
+- Area: Capture pipeline
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Core/Helpers/TaskHelpers.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTaskCapture.cs`
+  - `src/desktop/app/XerahS.UI/Services/ScreenCaptureService.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettings.cs`
+  - `tests/XerahS.Tests/Helpers/TaskHelpersCaptureDelayTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused follow-up reviewed capture and region-capture start-delay flow from task settings through worker delay application and interactive region capture delay application.
+  - Both delay call sites multiplied seconds by 1000 and cast directly to `int` before `Task.Delay(...)`.
+  - Invalid or oversized persisted delay values could therefore produce an invalid/negative millisecond value, throwing instead of safely skipping/clamping the delay before capture.
+- Outcome:
+  - Landed a bounded capture delay hardening fix: `TaskHelpers.GetCaptureStartDelayMilliseconds(...)` now normalizes NaN, infinity, negative, and overflow values before any `Task.Delay(...)` call.
+  - Updated both worker capture and region capture delay paths to use the shared conversion helper.
+  - Added regression coverage for normal fractional delays, negative/NaN/infinite values, and overflow clamping.
+  - Bumped `Directory.Build.props` from `0.22.58` to `0.22.59` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; the submodule remains on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, `origin/develop` matches it, upstream/develop is `d285844652e7fa98c24baf7626959927a37762aa`, and the parent repo records the intended commit, so no pointer update was required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed 588/588; tests were discoverable.
+- Follow-up:
+  - Next capture-pipeline pass should inspect whether UI/settings validation should cap screenshot and screen-recording start delays before persistence so users get immediate feedback instead of only runtime normalization.

@@ -195,6 +195,26 @@ public static partial class TaskHelpers
     }
 
     /// <summary>
+    /// Convert a capture start delay from seconds to milliseconds for Task.Delay without overflow or invalid values.
+    /// </summary>
+    public static int GetCaptureStartDelayMilliseconds(double delaySeconds)
+    {
+        if (double.IsNaN(delaySeconds) || double.IsInfinity(delaySeconds) || delaySeconds <= 0)
+        {
+            return 0;
+        }
+
+        var delayMilliseconds = Math.Round(delaySeconds * 1000d, MidpointRounding.AwayFromZero);
+
+        if (delayMilliseconds >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        return Math.Max(0, (int)delayMilliseconds);
+    }
+
+    /// <summary>
     /// Check if a job is image-related
     /// </summary>
     public static bool IsImageJob(WorkflowType job)

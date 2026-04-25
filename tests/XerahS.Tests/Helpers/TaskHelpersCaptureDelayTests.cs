@@ -98,5 +98,25 @@ public class TaskHelpersCaptureDelayTests
         Assert.That(category, Is.EqualTo(EnumExtensions.WorkflowType_Category_Upload));
         Assert.That(delaySeconds, Is.EqualTo(0d));
     }
+
+    [TestCase(0.001d, 1)]
+    [TestCase(2.5d, 2500)]
+    [TestCase(-1d, 0)]
+    [TestCase(double.NaN, 0)]
+    [TestCase(double.PositiveInfinity, 0)]
+    public void GetCaptureStartDelayMilliseconds_NormalizesDelayValues(double delaySeconds, int expectedMilliseconds)
+    {
+        var milliseconds = TaskHelpers.GetCaptureStartDelayMilliseconds(delaySeconds);
+
+        Assert.That(milliseconds, Is.EqualTo(expectedMilliseconds));
+    }
+
+    [Test]
+    public void GetCaptureStartDelayMilliseconds_ClampsOverflowInsteadOfWrapping()
+    {
+        var milliseconds = TaskHelpers.GetCaptureStartDelayMilliseconds(int.MaxValue / 1000d + 1000d);
+
+        Assert.That(milliseconds, Is.EqualTo(int.MaxValue));
+    }
 }
 

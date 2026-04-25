@@ -301,7 +301,7 @@ namespace XerahS.UI.Services
 
             if (effectiveOptions?.CaptureStartDelaySeconds > 0)
             {
-                var delayMs = (int)Math.Round(effectiveOptions.CaptureStartDelaySeconds * 1000, MidpointRounding.AwayFromZero);
+                var delayMs = XerahS.Core.TaskHelpers.GetCaptureStartDelayMilliseconds(effectiveOptions.CaptureStartDelaySeconds);
                 var workflowId = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowId) ? "none" : effectiveOptions.WorkflowId;
                 var workflowCategory = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowCategory) ? "Unknown" : effectiveOptions.WorkflowCategory;
                 TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelaySeconds={effectiveOptions.CaptureStartDelaySeconds:F3}, DelayMs={delayMs}");
