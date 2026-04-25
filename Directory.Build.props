@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
-    <Version>0.22.72</Version>
+    <Version>0.22.75</Version>
+
     <Product>XerahS</Product>
     <Authors>ShareX Team</Authors>
     <Company>ShareX Team</Company>

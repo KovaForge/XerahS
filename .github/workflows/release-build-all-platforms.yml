@@ -316,8 +316,9 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p build/logs
+          mkdir -p build/logs dist/flatpak-repo
           flatpak-builder --user --force-clean --ccache \
+            --repo=dist/flatpak-repo \
             build/com.getsharex.XerahS \
             flatpak/com.getsharex.XerahS.yml 2>&1 | tee build/logs/flatpak-build.log || {
             echo "flatpak-builder failed. Logs:"
@@ -329,14 +330,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          flatpak build-info build/com.getsharex.XerahS
+          test -f build/com.getsharex.XerahS/metadata
+          test -x build/com.getsharex.XerahS/files/bin/xerahs
+          test -f build/com.getsharex.XerahS/files/share/applications/com.getsharex.XerahS.desktop
+          test -f build/com.getsharex.XerahS/files/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
+          test -f build/com.getsharex.XerahS/files/share/metainfo/com.getsharex.XerahS.metainfo.xml
+          test -f dist/flatpak-repo/config
 
       - name: Export Flatpak bundle
         shell: bash
         run: |
           set -euo pipefail
           VERSION="${{ needs.validate-version.outputs.version }}"
-          flatpak build-bundle ~/.local/share/flatpak/repo \
+          flatpak build-bundle dist/flatpak-repo \
             "dist/com.getsharex.XerahS-$VERSION-linux-x64.flatpak" \
             com.getsharex.XerahS
 

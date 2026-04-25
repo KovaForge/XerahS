@@ -13,9 +13,6 @@ finish-args:
   - --device=dri
   # Network (uploaders, update checks)
   - --share=network
-  # Clipboard
-  - --clipboard=read
-  - --clipboard=write
   # Freedesktop notifications
   - --talk-name=org.freedesktop.Notifications
   # DBus screenshot APIs
@@ -28,7 +25,7 @@ finish-args:
   # System tray on GNOME
   - --talk-name=org.kde.StatusNotifierWatcher
   # DBus session bus
-  - --bus=session
+  - --socket=session-bus
   # Filesystem — captures saved here; config read from XDG_CONFIG_HOME
   - --filesystem=xdg-pictures
   - --filesystem=xdg-videos
