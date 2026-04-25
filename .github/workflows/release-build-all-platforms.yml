@@ -77,16 +77,22 @@ jobs:
       - name: Install WiX Toolset
         shell: pwsh
         run: |
+          $wixVersion = "6.0.2"
           $toolList = dotnet tool list --global 2>&1
           if ($toolList | Select-String 'wix') {
-            dotnet tool update --global wix
+            dotnet tool update --global wix --version $wixVersion
           } else {
-            dotnet tool install --global wix
+            dotnet tool install --global wix --version $wixVersion
           }
           # Ensure dotnet tools directory is on PATH for subsequent steps.
           $dotnetTools = Join-Path $env:USERPROFILE ".dotnet\tools"
           "$dotnetTools" | Out-File -Append -FilePath $env:GITHUB_PATH
           $env:PATH = "$dotnetTools;$env:PATH"
+          wix --version
+          $extensions = wix extension list --global 2>&1
+          if (!($extensions | Select-String 'WixToolset.UI.wixext')) {
+            wix extension add --global "WixToolset.UI.wixext/$wixVersion"
+          }
 
       - name: Build Windows packages
         shell: pwsh
@@ -268,10 +274,13 @@ jobs:
       - name: Install FreeDesktop runtime (one-time)
         shell: bash
         run: |
-          flatpak remote-add --user --no-sign-verify flathub https://flathub.org/repo/flathub.flatpakrepo || true
+          set -euo pipefail
+          flatpak remote-add --user --if-not-exists --no-gpg-verify flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --or-update --noninteractive \
-            flathub org.freedesktop.Platform//24.08 \
-            flathub org.freedesktop.Sdk//24.08 || true
+            flathub \
+            org.freedesktop.Platform//24.08 \
+            org.freedesktop.Sdk//24.08
+          flatpak list --user --runtime | grep -E 'org\.freedesktop\.(Platform|Sdk).*24\.08'
 
       - name: Build Linux publish (staging for Flatpak)
         shell: bash
@@ -289,9 +298,8 @@ jobs:
           rm -rf "dist/xerahs-flatpak-staging"
           mkdir -p "dist/xerahs-flatpak-staging"
           # Extract the self-contained publish into the staging dir.
-          # The tarball root is the publish root; flatten it into staging directly.
+          # The tarball entries are already relative to the publish root.
           tar -xzf "dist/XerahS-${VERSION}-linux-x64.tar.gz" \
-            --strip-components=1 \
             -C "dist/xerahs-flatpak-staging"
 
       - name: Validate WebUI dist is present

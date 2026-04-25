@@ -18,6 +18,58 @@ fi
 
 echo "Building XerahS version $VERSION for macOS..."
 
+prepare_video_editor_frontend() {
+    local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
+
+    if [ ! -f "$frontend_dir/package.json" ]; then
+        echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
+        exit 1
+    fi
+
+    echo "Building ShareX.VideoEditor frontend..."
+    (
+        cd "$frontend_dir"
+        npm ci
+        npm run build
+    )
+
+    if [ ! -d "$frontend_dir/dist" ]; then
+        echo "Error: ShareX.VideoEditor frontend dist missing after build: $frontend_dir/dist"
+        exit 1
+    fi
+}
+
+restore_project_assets_for_os() {
+    local project_path="$1"
+    local os_value="$2"
+
+    dotnet restore "$project_path" \
+        -p:OS="$os_value" \
+        --disable-build-servers \
+        -p:nodeReuse=false \
+        -p:UseSharedCompilation=false \
+        -p:BuildInParallel=false \
+        -m:1
+}
+
+restore_scoped_intermediate_assets() {
+    local image_editor_project="$ROOT/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
+    local ui_project="$ROOT/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
+
+    if [ ! -f "$image_editor_project" ]; then
+        echo "Error: ShareX.ImageEditor project not found: $image_editor_project"
+        exit 1
+    fi
+    if [ ! -f "$ui_project" ]; then
+        echo "Error: XerahS.UI project not found: $ui_project"
+        exit 1
+    fi
+
+    echo "Restoring scoped intermediate assets for macOS packaging..."
+    restore_project_assets_for_os "$image_editor_project" "Unix"
+    restore_project_assets_for_os "$ui_project" "Unix"
+}
+
 dotnet_publish_serial() {
     dotnet publish "$@" \
         --disable-build-servers \
@@ -71,6 +123,9 @@ build_native_library() {
     echo "Using pre-compiled native library: $NATIVE_LIB"
     echo "(To rebuild native library, run package-mac.sh on macOS)"
 }
+
+prepare_video_editor_frontend
+restore_scoped_intermediate_assets
 
 configure_macos_bundle_icon() {
     local app_bundle_path="$1"
