@@ -456,12 +456,23 @@ public sealed class AssistantService : IAssistantService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        if (string.IsNullOrWhiteSpace(action.FilePath))
+        {
+            return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
+        }
+
+        string? cachedText = await _history.GetCachedOcrTextAsync(action.FilePath, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(cachedText))
+        {
+            return await BuildOcrTextResponseAsync(action, cachedText);
+        }
+
         if (PlatformServices.Ocr == null || !PlatformServices.Ocr.IsSupported)
         {
             return AssistantResponse.Error("OCR is not available on this platform.");
         }
 
-        if (string.IsNullOrWhiteSpace(action.FilePath) || !File.Exists(action.FilePath))
+        if (!File.Exists(action.FilePath))
         {
             return AssistantResponse.Error("File no longer available. It may have been moved or deleted.");
         }
@@ -492,18 +503,20 @@ public sealed class AssistantService : IAssistantService
         }
 
         await _history.CacheOcrTextAsync(action.FilePath, result.Text, cancellationToken);
+        return await BuildOcrTextResponseAsync(action, result.Text);
+    }
+
+    private static async Task<AssistantResponse> BuildOcrTextResponseAsync(AssistantAction action, string text)
+    {
+        var copyAction = new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", text, ToolName: AssistantToolNames.ClipboardCopyText);
 
         if (string.Equals(action.Text, "copy", StringComparison.OrdinalIgnoreCase))
         {
-            AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(result.Text);
-            return clipboardResponse ?? AssistantResponse.Info(
-                "Copied OCR text to clipboard.",
-                new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", result.Text, ToolName: AssistantToolNames.ClipboardCopyText));
+            AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(text);
+            return clipboardResponse ?? AssistantResponse.Info("Copied OCR text to clipboard.", copyAction);
         }
 
-        return AssistantResponse.Info(
-            result.Text,
-            new AssistantAction(AssistantActionKind.CopyText, "Copy OCR text", result.Text, ToolName: AssistantToolNames.ClipboardCopyText));
+        return AssistantResponse.Info(text, copyAction);
     }
 
     private static OcrOptions CreateAssistantOcrOptions()

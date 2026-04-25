@@ -284,6 +284,37 @@ public sealed class AssistantServiceTests
     }
 
     [Test]
+    public async Task ExecuteActionAsync_RunOcr_UsesCachedTextWhenRecognizerUnavailable()
+    {
+        string imagePath = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"), "missing-cached-ocr.png");
+        var history = new FakeHistoryService([CreateHistoryItem(imagePath, Path.GetFileName(imagePath))]);
+        history.CachedOcrByPath[imagePath] = "cached bonjour";
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            history,
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ExecuteActionAsync(
+                new AssistantAction(AssistantActionKind.RunOcr, "Run OCR", FilePath: imagePath),
+                confirmed: true,
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Information));
+            Assert.That(response.Message, Is.EqualTo("cached bonjour"));
+            Assert.That(response.Actions, Has.Count.EqualTo(1));
+            Assert.That(response.Actions[0].Text, Is.EqualTo("cached bonjour"));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+        }
+    }
+
+    [Test]
     public async Task ExecuteActionAsync_RunOcr_WhenRecognizerThrows_ReturnsFriendlyError()
     {
         string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
