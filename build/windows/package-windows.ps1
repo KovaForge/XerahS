@@ -1,8 +1,8 @@
 $ErrorActionPreference = "Stop"
 
 # This script builds Windows installers and requires Windows plus Inno Setup.
-# It also builds MSI packages using WiX Toolset v4 when `wix` is available in PATH.
-# Install WiX: dotnet tool install --global wix ; wix extension add --global WixToolset.UI.wixext
+# It also builds MSI packages using WiX Toolset v4+ when `wix` is available in PATH.
+# Install WiX: dotnet tool install --global wix --version 6.0.2 ; wix extension add --global WixToolset.UI.wixext/6.0.2
 
 # ---------------------------------------------------------------------------
 # Helper: generate a WiX v4 ComponentGroup fragment for all files under a
@@ -80,8 +80,8 @@ $wixCmd  = Get-Command wix -ErrorAction SilentlyContinue
 $skipMsi = $null -eq $wixCmd
 if ($skipMsi) {
     Write-Warning "WiX CLI (wix.exe) not found in PATH - MSI packages will not be built."
-    Write-Warning "Install: dotnet tool install --global wix"
-    Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext"
+    Write-Warning "Install: dotnet tool install --global wix --version 6.0.2"
+    Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext/6.0.2"
 } else {
     Write-Host "WiX CLI: $($wixCmd.Source)"
 }
