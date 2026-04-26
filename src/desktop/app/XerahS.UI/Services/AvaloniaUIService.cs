@@ -141,8 +141,11 @@ namespace XerahS.UI.Services
                 // Create independent ViewModel for this editor instance
                 var editorOptions = ThemeService.CreateImageEditorOptions(showExitConfirmation: !taskMode);
                 var editorViewModel = new MainViewModel(editorOptions);
-                editorViewModel.ShowTaskModeButtons = taskMode;
-                editorViewModel.TaskMode = taskMode;
+                editorViewModel.ShowFileMenu = !taskMode;
+                editorViewModel.ShowTaskButtons = true;
+                editorViewModel.UseContinueWorkflow = taskMode;
+                editorViewModel.ShowBottomToolbar = true;
+                editorViewModel.ShowStartScreen = !taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
                 // Wire up UploadRequested to trigger host app upload workflow

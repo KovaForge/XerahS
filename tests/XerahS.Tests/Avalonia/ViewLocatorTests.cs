@@ -40,7 +40,6 @@ public class ViewLocatorTests
     {
         var viewLocator = new ViewLocator();
         var viewModel = new ConfirmationDialogViewModel(
-            applicationName: "XerahS",
             onYes: () => { },
             onNo: () => { },
             onCancel: () => { });

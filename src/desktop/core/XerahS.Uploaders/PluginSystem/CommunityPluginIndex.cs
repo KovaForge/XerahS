@@ -3,6 +3,22 @@
 /*
     XerahS - The Avalonia UI implementation of ShareX
     Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
 */
 
 #endregion License Information (GPL v3)
@@ -12,7 +28,7 @@ using Newtonsoft.Json;
 namespace XerahS.Uploaders.PluginSystem;
 
 /// <summary>
-/// Root document for a community plugin registry index.
+/// Root model for the community plugin registry index (plugins-index.json).
 /// </summary>
 public sealed class CommunityPluginIndex
 {
@@ -61,7 +77,7 @@ public sealed class CommunityPluginIndex
 }
 
 /// <summary>
-/// Metadata for a downloadable community plugin package.
+/// Describes one downloadable community plugin package in the registry index.
 /// </summary>
 public sealed class CommunityPluginIndexEntry
 {
@@ -103,6 +119,8 @@ public sealed class CommunityPluginIndexEntry
 
     [JsonProperty("dependencies")]
     public List<string> Dependencies { get; set; } = [];
+
+    public string DisplayName => string.IsNullOrWhiteSpace(Version) ? Name : $"{Name} {Version}";
 
     public string VersionAuthor => $"Version {Version} by {Author}";
 
@@ -158,13 +176,13 @@ public sealed class CommunityPluginIndexEntry
 
         if (!IsDraft)
         {
-            if (!IsValidHttpsUri(DownloadUrl))
+            if (!IsValidHttpsUri(DownloadUrl, out var downloadUri) || downloadUri == null)
             {
                 error = $"Plugin '{PluginId}' has an invalid downloadUrl. HTTPS is required.";
                 return false;
             }
 
-            if (!DownloadUrl.EndsWith(".xsdp", StringComparison.OrdinalIgnoreCase))
+            if (!downloadUri.AbsolutePath.EndsWith(".xsdp", StringComparison.OrdinalIgnoreCase))
             {
                 error = $"Plugin '{PluginId}' downloadUrl must point to a .xsdp package.";
                 return false;
@@ -177,7 +195,7 @@ public sealed class CommunityPluginIndexEntry
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(HomepageUrl) && !IsValidHttpsUri(HomepageUrl))
+        if (!string.IsNullOrWhiteSpace(HomepageUrl) && !IsValidHttpsUri(HomepageUrl, out _))
         {
             error = $"Plugin '{PluginId}' has an invalid homepageUrl. HTTPS is required.";
             return false;
@@ -186,9 +204,9 @@ public sealed class CommunityPluginIndexEntry
         return true;
     }
 
-    private static bool IsValidHttpsUri(string? value)
+    private static bool IsValidHttpsUri(string? value, out Uri? uri)
     {
-        return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        return Uri.TryCreate(value, UriKind.Absolute, out uri) &&
             uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
     }
 
