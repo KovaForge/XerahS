@@ -382,8 +382,7 @@ namespace XerahS.UI.ViewModels
                                 if (!project.ImageHashMatches)
                                 {
                                     DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Loading current file image for the editor session.");
-                                    using var currentImageStream = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                                    sessionImage = SKBitmap.Decode(currentImageStream)
+                                    sessionImage = DecodeImageFile(item.FilePath)
                                         ?? throw new InvalidOperationException($"Failed to decode current image file '{item.FilePath}'.");
                                 }
 
@@ -416,9 +415,9 @@ namespace XerahS.UI.ViewModels
                     }
                 }
 
-                // Load the image from file directly as SKBitmap
-                using var fs = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read);
-                using var skBitmap = SKBitmap.Decode(fs);
+                // Load the image from file directly as SKBitmap and close the file before launching the editor.
+                // The editor may save back to the same source path, which would fail on platforms that enforce file-share locks.
+                using var skBitmap = DecodeImageFile(item.FilePath);
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
@@ -434,6 +433,12 @@ namespace XerahS.UI.ViewModels
             {
                 DebugHelper.WriteLine($"Failed to open image in editor: {ex.Message}");
             }
+        }
+
+        private static SKBitmap? DecodeImageFile(string filePath)
+        {
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return SKBitmap.Decode(stream);
         }
 
         private static string? ResolveAnnotationSidecarPath(HistoryItem item)

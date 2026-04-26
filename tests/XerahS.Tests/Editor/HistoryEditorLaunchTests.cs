@@ -236,6 +236,53 @@ public class HistoryEditorLaunchTests
         }
     }
 
+
+    [Test]
+    public async Task EditImage_ClosesSourceFileBeforeLaunchingEditor()
+    {
+        string imagePath = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        {
+            bitmap.Erase(SKColors.Red);
+            SaveBitmap(imagePath, bitmap);
+        }
+
+        bool editorCouldOpenExclusiveWriteHandle = false;
+        var uiService = new TrackingUiService
+        {
+            ShowEditorCallback = sourceFilePath =>
+            {
+                Assert.That(sourceFilePath, Is.EqualTo(imagePath));
+                using var stream = File.Open(sourceFilePath!, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                editorCouldOpenExclusiveWriteHandle = stream.CanWrite;
+            }
+        };
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath
+            };
+
+            await viewModel.EditImageCommand.ExecuteAsync(item);
+
+            Assert.That(editorCouldOpenExclusiveWriteHandle, Is.True);
+        }
+        finally
+        {
+            PlatformServices.Reset();
+
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
     [Test]
     public async Task EditImage_RefreshesHistoryItem_WhenEditedFileChanges()
     {
