@@ -25,8 +25,12 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using XerahS.Common;
 using XerahS.Core;
 using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace XerahS.UI.ViewModels;
 
@@ -160,20 +164,43 @@ public partial class HotkeySettingsViewModel : ViewModelBase
     {
         if (SelectedHotkey != null && _manager != null)
         {
-            // Shallow copy for now, deep would be better
             var cloneJob = SelectedHotkey.Model.Job == WorkflowType.None
                 ? WorkflowType.RectangleRegion
                 : SelectedHotkey.Model.Job;
+
+            TaskSettings clonedTaskSettings = DeepCopyTaskSettings(SelectedHotkey.Model.TaskSettings);
+
             var clone = new XerahS.Core.Hotkeys.WorkflowSettings(cloneJob,
                 new Platform.Abstractions.HotkeyInfo(
                     SelectedHotkey.Model.HotkeyInfo.Key,
-                    SelectedHotkey.Model.HotkeyInfo.Modifiers));
+                    SelectedHotkey.Model.HotkeyInfo.Modifiers))
+            {
+                TaskSettings = clonedTaskSettings
+            };
+            clone.EnsureId();
 
             // Just add to list, user needs to change key
             _manager.Workflows.Add(clone);
             LoadHotkeys();
             SaveHotkeys();
         }
+    }
+
+    private static TaskSettings DeepCopyTaskSettings(TaskSettings source)
+    {
+        if (source == null) return new TaskSettings();
+        var jsonSettings = new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ObjectCreationHandling = ObjectCreationHandling.Replace,
+            Converters = new List<JsonConverter>
+            {
+                new StringEnumConverter(),
+                new XerahS.Common.Converters.SkColorJsonConverter()
+            }
+        };
+        string json = JsonConvert.SerializeObject(source, jsonSettings);
+        return JsonConvert.DeserializeObject<TaskSettings>(json, jsonSettings) ?? new TaskSettings();
     }
 
     [RelayCommand(CanExecute = nameof(CanModifyHotkey))]
