@@ -474,6 +474,89 @@ The workflow is sound. The ambition is not. Cut platform support to X/Twitter on
 
 ---
 
+## Design Feedback
+
+*Reviewed by Sofia (Design) — 2026-04-26*
+
+### UX Flow
+
+**1. Preset Selection Timing Is Backwards**
+The flow shows preset selection *before* region capture ("User initiates capture with social preset"), but Nadia's review correctly identifies that `TweetCaptureDetector` (KFIP0003) auto-suggests presets mid-capture. This creates a conflict: user picks a preset, then context detection suggests a different one. **Recommendation**: Make preset selection *after* capture in the preview step, not before. User captures first, then chooses what to do with it. Preset auto-suggestions become gentle nudges, not overrides.
+
+**2. Region Selection Overlay Needs Clear Affordance**
+The aspect ratio guide (4:5 overlay) during region selection is good, but there's no affordance telling the user *what to do* with it. A labeled guide with "Drag to fill this area" + a corner badge showing the preset name ("X/Twitter") helps, but it needs an explicit instruction on first use. Consider: first-time tooltip overlay explaining the guide.
+
+
+**3. Preview Step Actions Need Hierarchy**
+The four post-capture actions (Upload & Copy Link, Annotate, Save, Change Preset) are shown as equal options. The primary action should be most prominent visually — "Upload & Copy Link" is almost certainly the main job-to-be-done. Consider: primary button (filled) for Upload, secondary (outline) for Annotate, tertiary (text/link) for Save and Change Preset.
+
+### Labels & Affordances
+
+**4. "ShareToUploader" Flag Name Is Cryptic**
+`ShareToUploader` as an `AfterCaptureTasks` flag name doesn't communicate what happens. Users see "ShareToUploader" in settings with no context. Rename to something action-oriented: `UploadAndCopyLink` or `SocialShare` — something that tells the user the outcome, not the mechanism.
+
+
+**5. Notification Text Should Name the Platform**
+The success notification example reads: "✅ Uploaded to Imgur. Link copied to clipboard." For a social sharing workflow, knowing *where* you just uploaded matters less than knowing what to do next. Consider: "✅ Your screenshot is ready to share on X. Link copied." Then: "[View] [Share to X] [Dismiss]" — the action is the platform, not the uploader host.
+
+
+**6. Uploader Discovery Prompt Is Too Subtle**
+"Pixelfox uploader available for X/Twitter sharing. Install?" — this is a one-line toast that's easy to miss. For a first-time user who just tried to share without a configured uploader, this is a critical moment. Consider: a non-intrusive inline suggestion in the preview step itself, not a toast that disappears. Or a clearly styled "banner" within the preview pane, not a fly-by notification.
+
+
+### Failure States
+
+**7. "Graceful Fallback If Uploader Fails" Is Too Vague**
+The spec says "save locally, notify user" but doesn't define the interaction. When a 4MB upload fails and the user is left staring at a preview with no URL, they need: (a) a specific error message — "Upload failed: connection timed out" not just "Failed", (b) a one-click retry, (c) a "Save locally instead" escape hatch that's obvious. Don't make users dig for an export option when upload fails.
+
+**8. Network Failure Mid-Upload Leaves User in Limbo**
+Nadia flagged partial upload handling. I'll reinforce: if an upload fails at 90%, the user should never be told "it's done" — even with a retry offered. Track upload progress, and if it fails, surface the partial state clearly. Don't let users copy a broken clipboard URL.
+
+
+**9. File Size Constraint Should Fail *Before* Upload**
+If an optimized image still exceeds the platform limit (e.g., X's 5MB), the system should surface this *before* attempting upload. Show: "Image is 6.2MB. X requires under 5MB. [Reduce quality] [Crop further] [Upload anyway]" — not an opaque "upload failed" after the attempt.
+
+### Accessibility
+
+**10. "Capture → Upload → Copy Link" Must Be Keyboard-Accessible**
+The proposal doesn't specify keyboard flow at all. At minimum: hotkey to trigger capture, Tab through preset options, Enter to confirm, Tab through post-capture actions, Enter to upload. Screen reader should announce each step: "Capture complete. Preview shown. Upload and copy link button. Share to X/Twitter. Press Enter to upload."
+
+**11. Alt Text Reminder Has Annoyance Risk**
+"After capture, brief notification/toast: 'Add alt text for accessibility?'" — this toast fires *every time* for accessibility-enabled presets. For power users doing 10 captures in a row, this is interruptive spam. Consider: a subtle one-time nudge per session, or a user-dismissable preference. Default to "don't show again this session" after first interaction.
+
+**12. Preset Guide Overlay Should Respect Reduced Motion**
+The aspect ratio guide overlay during region selection is a visual animation. For users with `prefers-reduced-motion`, this should degrade gracefully — a static dotted rectangle instead of an animated guide. Add a note in the overlay implementation spec.
+
+### Social Preset Discoverability
+
+**13. Users Won't Find Presets Without Prompt**
+The settings UI shows a "Social Sharing" tab, but discoverability of social presets from the main capture UI is not specified. Users capture, then... what? There's no indication in the generic capture flow that social presets exist. Consider: a contextual prompt in the preview step — "Sharing to X? Use a social preset for better results." with a direct shortcut to preset selection.
+
+
+**14. Default Preset Should Be "Last Used"**
+If a user picks "X/Twitter Tweet" once, they likely want it again. The default preset should remember the last-used selection per preset type, not reset to a global default each session. This reduces friction for the "10x/day" user identified in research.
+
+### Interaction Detail Gaps
+
+**15. "Capture Sequence" Mode Needs Interaction Spec**
+The Open Questions mention capturing 2-4 screenshots for thread documentation before upload. How does the user add to a sequence? Is there a "Add to thread" button that queues the capture, and a final "Upload all" action? If this is deferred, at minimum spec the interaction intent so Phase 2 doesn't miss it.
+
+
+**16. URL Format Preference Needs Preview**
+Users picking between raw URL, Markdown `![alt](url)`, HTML `<img>`, or custom template will make a choice without seeing the result. Include a live preview of what the clipboard will contain when they select a format. Otherwise they'll copy a raw URL when they expected Markdown and wonder why their tweet looks wrong.
+
+### Summary
+
+The workflow design is solid foundation, but three things need fixing before Phase 2:
+1. **Preset timing**: move selection to post-capture preview, not pre-capture
+2. **Failure surfacing**: fail before upload when size constraints won't pass, not after
+3. **Annoyance prevention**: alt text nudge must be one-time-per-session, not every capture
+
+The ambition of multi-platform presets is the right long-term goal — but Nadia's advice to ship X/Twitter only for v1 stands. Every additional platform adds preset maintenance, live constraint verification, and edge case surface area.
+
+
+---
+
 ## Success Metrics
 
 - Time from capture to shareable link: target <10 seconds (vs. 60+ seconds current)
