@@ -33,6 +33,7 @@
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Common\XerahS.Common.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Media\XerahS.Media.csproj" />
+    <ProjectReference Include="..\..\core\XerahS.Uploaders\XerahS.Uploaders.csproj" />
     <ProjectReference Include="..\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Indexer\XerahS.Indexer.csproj" />
