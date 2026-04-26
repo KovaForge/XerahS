@@ -271,11 +271,12 @@ public sealed class LinuxClipboardService : IClipboardService
 
     private async Task<bool> TryPipeAsync(string tool, string args, byte[] data)
     {
+        Process? process = null;
         try
         {
             StopClipboardOwnerProcess();
 
-            var process = CreateProcess(tool, args);
+            process = CreateProcess(tool, args);
             if (process == null)
                 return false;
 
@@ -299,6 +300,7 @@ public sealed class LinuxClipboardService : IClipboardService
         }
         catch
         {
+            process?.Dispose();
             return false;
         }
     }

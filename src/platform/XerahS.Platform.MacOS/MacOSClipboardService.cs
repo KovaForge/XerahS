@@ -172,7 +172,7 @@ namespace XerahS.Platform.MacOS
                 }
 
                 var script = $"set the clipboard to (read (POSIX file \\\"{tempFile}\\\") as «class PNGf»)";
-                RunOsaScript(script);
+                var scriptSucceeded = RunOsaScript(script);
             }
             catch (Exception ex)
             {
