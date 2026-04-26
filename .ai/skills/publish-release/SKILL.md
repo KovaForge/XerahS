@@ -229,4 +229,5 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Flatpak session bus access is expressed as `--socket=session-bus` or narrower `--talk-name=` policies, not `--bus=session`.
 - Flatpak CI bundling should export `flatpak-builder` output to an explicit local repo with `--repo=...`; validate files directly or use supported Flatpak commands, not `flatpak build-info`.
 - Chocolatey release metadata lookup must use the active GitHub repository (`GITHUB_REPOSITORY`, `origin`, or explicit `-Repository owner/name`), not a hardcoded upstream owner.
+- Chocolatey install scripts must also generate download URLs from the active release repository; updating only nuspec metadata is not enough.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.
