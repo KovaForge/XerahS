@@ -80,6 +80,13 @@ public class WorkflowsConfig : SettingsBase<WorkflowsConfig>
                     continue;
                 }
 
+                if (workflow.TaskSettings == null)
+                {
+                    Hotkeys.RemoveAt(i);
+                    needsSave = true;
+                    continue;
+                }
+
                 if (workflow.Job == WorkflowType.None)
                 {
                     if (workflow.TaskSettings != null)
