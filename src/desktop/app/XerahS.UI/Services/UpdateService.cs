@@ -78,12 +78,13 @@ public class UpdateService : IDisposable
         }
 
         var settings = SettingsManager.Settings;
+        bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
+        string updateOwner = includePreRelease ? "KovaForge" : "ShareX";
 
-        _updateManager = new GitHubUpdateManager("ShareX", "XerahS")
+        _updateManager = new GitHubUpdateManager(updateOwner, "XerahS")
         {
             IsPortable = IsPortableBuild(),
-            CheckPreReleaseUpdates = settings.CheckPreReleaseUpdates ||
-                                     settings.UpdateChannel == UpdateChannel.PreRelease,
+            IncludePreRelease = includePreRelease,
             AllowAutoUpdate = settings.AutoCheckUpdate
         };
 

@@ -33,7 +33,7 @@ namespace XerahS.Common
         public string GitHubOwner { get; set; }
         public string GitHubRepo { get; set; }
         public bool IsPortable { get; set; } // If current build is portable then download URL will be opened in browser instead of downloading it
-        public bool CheckPreReleaseUpdates { get; set; }
+        public bool IncludePreRelease { get; set; }
 
         /// <summary>
         /// Callback invoked when an update is available. Returns true if user accepted the update.
@@ -116,7 +116,7 @@ namespace XerahS.Common
             return new GitHubUpdateChecker(GitHubOwner, GitHubRepo)
             {
                 IsPortable = IsPortable,
-                IncludePreRelease = CheckPreReleaseUpdates
+                IncludePreRelease = this.IncludePreRelease
             };
         }
 
