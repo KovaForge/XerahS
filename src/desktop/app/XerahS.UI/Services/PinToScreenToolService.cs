@@ -79,7 +79,7 @@ public static class PinToScreenToolService
 
             try
             {
-                var bitmap = SKBitmap.Decode(filePath);
+                using var bitmap = SKBitmap.Decode(filePath);
                 if (bitmap == null)
                 {
                     skippedCount++;
@@ -197,7 +197,7 @@ public static class PinToScreenToolService
         var path = await BrowseImageFileAsync(null, owner);
         if (string.IsNullOrEmpty(path)) return;
 
-        var bitmap = SKBitmap.Decode(path);
+        using var bitmap = SKBitmap.Decode(path);
         if (bitmap == null)
         {
             ShowToast("Pin to Screen", "Failed to load image file.");

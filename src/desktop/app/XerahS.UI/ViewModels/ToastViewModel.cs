@@ -567,7 +567,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         {
             try
             {
-                var bitmap = SKBitmap.Decode(_config.FilePath);
+                using var bitmap = SKBitmap.Decode(_config.FilePath);
                 if (bitmap != null)
                 {
                     var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions
