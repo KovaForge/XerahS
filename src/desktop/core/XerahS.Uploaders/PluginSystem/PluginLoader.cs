@@ -43,6 +43,8 @@ public class PluginLoader
     /// </summary>
     public IUploaderProvider? LoadPlugin(PluginMetadata metadata)
     {
+        PluginLoadContext? loadContext = null;
+
         try
         {
             if (!IsAssemblyCompatibleWithCurrentProcess(metadata.AssemblyPath, out string? compatibilityError))
@@ -53,7 +55,7 @@ public class PluginLoader
             }
 
             // Create isolated load context
-            var loadContext = new PluginLoadContext(metadata.AssemblyPath, metadata.PluginDirectory);
+            loadContext = new PluginLoadContext(metadata.AssemblyPath, metadata.PluginDirectory);
 
             // Load the plugin assembly
             var assembly = loadContext.LoadFromAssemblyPath(metadata.AssemblyPath);
@@ -64,6 +66,7 @@ public class PluginLoader
             {
                 metadata.LoadError = $"Entry point type not found: {metadata.Manifest.EntryPoint}";
                 DebugHelper.WriteLine($"ERROR: {metadata.LoadError}");
+                UnloadFailedContext(loadContext);
                 return null;
             }
 
@@ -72,6 +75,7 @@ public class PluginLoader
             {
                 metadata.LoadError = $"Type {providerType.FullName} does not implement IUploaderProvider";
                 DebugHelper.WriteLine($"ERROR: {metadata.LoadError}");
+                UnloadFailedContext(loadContext);
                 return null;
             }
 
@@ -81,6 +85,7 @@ public class PluginLoader
             {
                 metadata.LoadError = "Failed to instantiate provider";
                 DebugHelper.WriteLine($"ERROR: {metadata.LoadError}");
+                UnloadFailedContext(loadContext);
                 return null;
             }
 
@@ -91,8 +96,10 @@ public class PluginLoader
                 // Allow it but warn
             }
 
-            // Store load context for potential unloading
-            _loadedContexts[metadata.Manifest.PluginId] = loadContext;
+            // Store load context by the runtime provider ID. ProviderCatalog registers and unloads
+            // plugins by provider.ProviderId, so using the manifest ID here can leave a
+            // mismatched plugin's collectible context alive after force reload/removal.
+            _loadedContexts[provider.ProviderId] = loadContext;
 
             metadata.Provider = provider;
 
@@ -126,6 +133,11 @@ public class PluginLoader
             metadata.LoadError = $"Unexpected error: {ex.Message}";
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
             DebugHelper.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+
+        if (loadContext != null)
+        {
+            UnloadFailedContext(loadContext);
         }
 
         return null;
@@ -167,6 +179,11 @@ public class PluginLoader
     /// Get list of loaded plugin contexts
     /// </summary>
     public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() => _loadedContexts;
+
+    private static void UnloadFailedContext(PluginLoadContext loadContext)
+    {
+        loadContext.Unload();
+    }
 
     private static bool IsAssemblyCompatibleWithCurrentProcess(string assemblyPath, out string? error)
     {
