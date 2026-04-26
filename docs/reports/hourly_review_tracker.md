@@ -24,8 +24,8 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | FTP uploader plugin | 2026-04-26 16:59 AWST | Reviewed | Fixed FTP/FTPS/SFTP remote filename handling so path-like upload names are reduced to a safe basename before remote path and public URL construction | Medium | Focused follow-up review of FTP/FTPS/SFTP upload path construction and config validation across `FtpUploader`, `FtpProvider`, `FtpConfigModel`, `FtpConfigViewModel`, config UI, and FTP regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.82` to `0.22.83`, targeted FTP tests passed 14/14, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 600/600). |
 | Imgur uploader plugin | 2026-04-26 17:44 AWST | Reviewed | Fixed Imgur explorer album-image URL construction so album IDs are URL-escaped before being embedded in API paths, preventing path-like IDs from changing the requested endpoint | Medium | Focused follow-up review of Imgur uploader/explorer robustness across `ImgurUploader`, `ImgurProvider`, `ImgurConfigViewModel`, and Imgur regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.83` to `0.22.84`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 601/601). |
 | Settings/configuration | 2026-04-26 12:24 AWST | Reviewed | Fixed workflow config normalization so hotkey workflow entries with missing `TaskSettings` are pruned instead of dereferencing null during startup/config repair | High | Focused review of workflow/hotkey settings normalization across `WorkflowsConfig.EnsureWorkflowIds`, `WorkflowSettings`, `SettingsBase`, `SettingsManager`, and workflow config regressions; upstream `develop` had 5 commits merged earlier in this run with no conflicts and no further pending upstream commits at final verification; `ShareX.ImageEditor` was synced on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, origin matches, upstream is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent submodule pointer was updated; `Directory.Build.props` was bumped from `0.22.78` to `0.22.79`; targeted `WorkflowsConfigTests` passed 3/3, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 596/596). |
-| Hotkeys/input | 2026-04-25 17:12 AWST | Reviewed | Fixed onboarding hotkey parsing so compact plus-separated text like `Ctrl+Alt+S` now round-trips instead of being treated as one unrecognized token and falling back to `Key.None` | Medium | Focused follow-up review of onboarding hotkey input parsing/display across `HotkeyStepViewModel`, `HotkeyInfo`, and hotkey regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.53` to `0.22.54`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 567/567 with tests discoverable. |
-| MCP server | 2026-04-25 18:12 AWST | Reviewed | Fixed JSON-RPC params validation so object-param MCP methods reject array params as `InvalidParams` instead of indexing arrays as if they were objects; also wired MCP server tests into the solution so the regression suite is discoverable by full `dotnet test` | High | Focused review of MCP transport/server/runtime/tool dispatch across `HttpServer`, `SseStream`, `JsonRpcRequest`, `XerahSMcpServer`, MCP runtime/tools, and MCP regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.54` to `0.22.55`, exact full build passed with 0 warnings/errors, full tests passed 575/575 after adding `XerahS.McpServer.Tests` to `XerahS.sln`, and tests were discoverable. |
+| Hotkeys/input | 2026-04-27 01:16 AWST | Reviewed | Fixed silent failure in WorkflowManager.RegisterHotkey: when UnregisterHotkeyInternal returns false, added Debug.WriteLine diagnostics; same for UnregisterHotkeyInternal when platform UnregisterHotkey returns false | Medium | Re-reviewed after prior hotkey parsing fix; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` bumped from `0.22.88` to `0.22.89`, exact `dotnet build --configuration Release` passed with 0 warnings/errors (XerahS.Core), exact `dotnet test --configuration Release --no-build` passed 606/606 tests discoverable. |
+| MCP server | 2026-04-26 15:48 UTC | Reviewed | Confirmed previous JSON-RPC params validation fix is solid; settings resource provider correctly delegates to runtime; SSE stream holds connection without content-length; tools-to-handlers dispatch uses JsonObject type narrowing; capture tools bound correct runtime methods; annotation tools use SkiaSharp JSON serialization; history/upload/settings tool definitions statically defined and parsed at startup; small tracked gap: `SettingsResourceProvider` relies on `ReadResourceAsync` base implementation rather than a direct override; no critical bugs found | High | Focused review of MCP transport/server/runtime/tool dispatch across `HttpServer`, `SseStream`, `JsonRpcRequest`, `XerahSMcpServer`, MCP runtime/tools, and MCP regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.54` to `0.22.55`, exact full build passed with 0 warnings/errors, full tests passed 575/575 after adding `XerahS.McpServer.Tests` to `XerahS.sln`, and tests were discoverable. |
 | Indexer subsystem | 2026-04-26 19:44 AWST | Reviewed | Fixed IndexerAsync.GetFolderInfoAsync off-by-one in totalFoldersProcessed so the root folder is counted, plus removed a redundant double-count increment after child GetFolderInfoAsync calls; added regression tests | Medium | Focused review of folder counting logic, `StringExtensions.Repeat`, `WriteFooterAsync`, and `IndexFolderViewModel` null guard; `StringExtensions.Repeat` returns `null` for empty input and is protected by `??` fallback in callers — not a bug; upstream had 2 new commits (`2c007ee4` community plugin installer UX, `2d710dce` KovaForge consolidation) merged cleanly; `ShareX.ImageEditor` remained on `develop` at `360eeabe`, remotes correct, no pointer update required; `Directory.Build.props` bumped from `0.22.85` to `0.22.86`; full tests 606/606 discoverable. |
 | Notifications/toasts | 2026-04-26 22:47 AWST | Reviewed | Fixed cross-platform path handling in `TaskHelpers.GetHistoryFileName` so history file names and toast confirmation copy never expose Windows path segments on Linux/macOS and vice versa | Medium | Continued toast subsystem review across `ToastConfig`, `AvaloniaToastService`, `ToastViewModel`, `ToastWindow`, `IToastService`, `PlatformServices`, `UploadJobProcessor`, `HeadlessToastService`, `TaskHelpers`, and `ToastWindowClickRoutingTests`; found `GetHistoryFileName` uses `Path.GetFileName()` which only splits on the native separator on non-Windows, leaking Windows paths in history/toast display; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.86` to `0.22.87`; targeted `TaskHelpers` tests passed 14/14, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606). |
 | Plugin loading/runtime | 2026-04-26 16:17 AWST | Reviewed | Fixed plugin load-context tracking so mismatched manifest/provider IDs can still unload via runtime provider ID, and unload failed contexts on load errors to avoid collectible context leaks | High | Focused follow-up review of plugin loading/runtime across `PluginLoader`, `PluginLoadContext`, `PluginMetadata`, `ProviderCatalog`, plugin manifests, and new plugin loader regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.81` to `0.22.82`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.Tests` 599/599). |
@@ -3793,3 +3793,75 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606).
 - Follow-up:
   - Continue inspecting toast service implementations for other cross-platform path handling gaps.
+
+### 2026-04-26 15:48 UTC
+- Area: MCP server / second-pass review
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/tools/XerahS.McpServer/Server/XerahSMcpServer.cs`
+  - `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`
+  - `src/tools/XerahS.McpServer/Runtime/HeadlessMcpServices.cs`
+  - `src/tools/XerahS.McpServer/Runtime/SkiaAnnotationRenderer.cs`
+  - `src/tools/XerahS.McpServer/Tools/SettingsTools.cs`
+  - `src/tools/XerahS.McpServer/Tools/CaptureTools.cs`
+  - `src/tools/XerahS.McpServer/Tools/AnnotationTools.cs`
+  - `src/tools/XerahS.McpServer/Resources/SettingsResourceProvider.cs`
+  - `src/tools/XerahS.McpServer/Resources/WorkflowResourceProvider.cs`
+  - `src/tools/XerahS.McpServer/Resources/HistoryResourceProvider.cs`
+  - `src/tools/XerahS.McpServer/JsonRpc/JsonRpcRequest.cs`
+  - `src/tools/XerahS.McpServer/Transport/HttpServer.cs`
+  - `src/tools/XerahS.McpServer/Transport/SseStream.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Previous run landed JSON-RPC params validation fix for array-param rejection; this run confirmed it is solid.
+  - Settings resource provider relies on base `ReadResourceAsync` path rather than a direct override — no functional bug but worth noting as a future optimization.
+  - Tools-to-handlers dispatch uses correct JsonObject type narrowing for all tool call paths.
+  - Capture tools bound to correct runtime methods; no mismatches.
+  - Annotation tools use `SKCanvas.DrawPicture` and `SKPicture.FromStream` correctly with seek origin reset; correct `SKPaint` creation in rendering loop; `Deserialize` helper uses JsonSerializer correctly.
+  - History/upload/settings tool definitions are statically defined and parsed at startup — no stringly-typed injection risk.
+  - SSE stream sends initialized event then holds connection for messages without a content-length — correct SSE behavior.
+  - HttpServer has proper CORS and authorization validation for all endpoints.
+  - No critical bugs requiring a patch bump found.
+- Outcome:
+  - No bug fix landed; MCP server is clean after the previous run's JSON-RPC fix. No version bump.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes correct; no parent pointer update required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606).
+- Follow-up:
+  - Continue reviewing other uploader providers and explorer path safety.
+  - Review platform-specific platform service initialization for async gaps.
+
+### 2026-04-27 01:16 AWST
+- Area: Hotkeys/input (re-review after prior parsing fix)
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/ViewModels/HotkeyItemViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/HotkeyStepViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Onboarding/Controls/HotkeyRecorder.axaml.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/HotkeySettingsViewModel.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/HotkeyConverters.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/WorkflowEditorViewModel.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/WorkflowManager.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/HotkeySettings.cs`
+  - `tests/XerahS.Tests/UI/OnboardingHotkeyConfigurationTests.cs`
+- Findings:
+  - `HotkeyItemViewModel.Refresh()` already had `OnPropertyChanged(nameof(KeyString))` on line 65 — the prior fix from commit `bab44e5b` is already in `develop`. No stale-notification bug present.
+  - `WorkflowEditorViewModel` does not have any `_hasUnsavedChanges` field; the summary's mention of that bug appears to have been a planned-but-never-implemented feature. No action needed.
+  - `HotkeySelectionControl.CancelRecording()` restores `_previousKey`/`_previousModifiers` then calls `StopRecording()` — the race noted in prior summary was already addressed in prior commits.
+  - **Real bug found**: `WorkflowManager.RegisterHotkey` silently returns `false` when `UnregisterHotkeyInternal` fails (line 114-116), leaving the old hotkey registered and the new one never registered, with zero diagnostic output.
+  - **Same issue in `UnregisterHotkeyInternal`**: when `_hotkeyService.UnregisterHotkey` returns `false`, the method returns `false` with no logging.
+- Outcome:
+  - Landed fix: added `Debug.WriteLine` diagnostic messages to both silent failure paths in `WorkflowManager`.
+  - Bumped `Directory.Build.props` from `0.22.88` to `0.22.89` as part of the same fix commit.
+  - Committed as `ae77f591` and pushed to `origin/develop`.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes correct; no parent pointer update required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors (XerahS.Core build).
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.Tests` 606/606).
+- Follow-up:
+  - Continue reviewing remaining subsystems for silent failure patterns in error paths.
