@@ -31,6 +31,77 @@ namespace XerahS.Tests.Helpers;
 public class IndexerTextAsyncTests
 {
     [Test]
+    public async Task IndexToFileAsync_EmptyFolder_ReportsOneFolder()
+    {
+        // Regression test: totalFoldersProcessed must count the root folder,
+        // not only subdirectories found during enumeration.
+        string rootDir = Path.Combine(Path.GetTempPath(), $"xerahs-indexer-root-{Guid.NewGuid():N}");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"xerahs-index-output-{Guid.NewGuid():N}.txt");
+
+        try
+        {
+            Directory.CreateDirectory(rootDir);
+            File.WriteAllText(Path.Combine(rootDir, "file.txt"), "hello");
+
+            IndexResult result = await IndexerAsync.IndexToFileAsync(
+                rootDir,
+                outputPath,
+                new IndexerSettings { Output = IndexerOutput.Txt });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.ErrorMessage);
+                Assert.That(result.TotalFolders, Is.EqualTo(1), "Root folder must be counted");
+                Assert.That(result.TotalFiles, Is.EqualTo(1));
+            });
+        }
+        finally
+        {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (Directory.Exists(rootDir)) Directory.Delete(rootDir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task IndexToFileAsync_NestedFolders_ReportsCorrectTotalFolders()
+    {
+        // Regression test: totalFoldersProcessed must count every visited folder,
+        // including the root and all nested subdirectories.
+        string rootDir = Path.Combine(Path.GetTempPath(), $"xerahs-indexer-nested-{Guid.NewGuid():N}");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"xerahs-index-output-{Guid.NewGuid():N}.txt");
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(rootDir, "sub1", "sub2"));
+            Directory.CreateDirectory(Path.Combine(rootDir, "sub1", "sub3"));
+            Directory.CreateDirectory(Path.Combine(rootDir, "sub4"));
+            File.WriteAllText(Path.Combine(rootDir, "file0.txt"), "root file");
+            File.WriteAllText(Path.Combine(rootDir, "sub1", "file1.txt"), "sub1 file");
+            File.WriteAllText(Path.Combine(rootDir, "sub1", "sub2", "file2.txt"), "sub2 file");
+            File.WriteAllText(Path.Combine(rootDir, "sub1", "sub3", "file3.txt"), "sub3 file");
+            File.WriteAllText(Path.Combine(rootDir, "sub4", "file4.txt"), "sub4 file");
+
+            IndexResult result = await IndexerAsync.IndexToFileAsync(
+                rootDir,
+                outputPath,
+                new IndexerSettings { Output = IndexerOutput.Txt });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.ErrorMessage);
+                // root + sub1 + sub2 + sub3 + sub4 = 5 folders
+                Assert.That(result.TotalFolders, Is.EqualTo(5), "All visited folders must be counted");
+                Assert.That(result.TotalFiles, Is.EqualTo(5));
+            });
+        }
+        finally
+        {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (Directory.Exists(rootDir)) Directory.Delete(rootDir, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task IndexToFileAsync_WithLeafOutputPath_WritesIntoCurrentDirectory()
     {
         string rootDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-indexer-input-{Guid.NewGuid():N}");

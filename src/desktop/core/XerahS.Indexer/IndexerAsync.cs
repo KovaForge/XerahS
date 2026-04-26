@@ -111,6 +111,10 @@ namespace XerahS.Indexer
 
             FolderInfo folderInfo = new FolderInfo(folderPath);
 
+            // Count every folder visited so totalFoldersProcessed reflects the actual number
+            // of directories processed, including the root folder passed to GetFolderInfoAsync.
+            totalFoldersProcessed++;
+
             if (settings.MaxDepthLevel == 0 || level < settings.MaxDepthLevel)
             {
                 try
@@ -130,10 +134,8 @@ namespace XerahS.Indexer
                         folderInfo.Folders.Add(subFolderInfo);
                         subFolderInfo.Parent = folderInfo;
 
-                        totalFoldersProcessed++;
-
-                        // Report progress every 10 folders to avoid overwhelming the UI
-                        if (totalFoldersProcessed % 10 == 0)
+                        // Note: totalFoldersProcessed is already incremented inside
+                        // GetFolderInfoAsync for the child folder; do not double-count.
                         {
                             ReportProgress($"Scanning: {directoryInfo.FullName}", totalFilesProcessed, totalFoldersProcessed);
                             await Task.Yield(); // Allow UI to breathe
