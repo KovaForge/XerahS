@@ -77,7 +77,79 @@ public class PluginIndexServiceTests
         await Task.CompletedTask;
     }
 
-    private static string CreateIndexJson(string checksum, string downloadUrl = "https://example.com/pixelfox.xsdp", bool isDraft = false)
+    [Test]
+    public void ParseIndex_RejectsDuplicatePluginIds()
+    {
+        string validChecksum = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        string json = $$"""
+        {
+          "indexVersion": "1.0",
+          "lastUpdated": "2026-04-26T00:00:00Z",
+          "plugins": [
+            {
+              "pluginId": "pixelfox",
+              "name": "Pixelfox",
+              "version": "1.0.0",
+              "author": "Pixelfox",
+              "description": "First entry.",
+              "apiVersion": "1.0",
+              "supportedCategories": ["Image"],
+              "homepageUrl": "https://pixelfox.cc",
+              "downloadUrl": "https://example.com/pixelfox.xsdp",
+              "checksum": "{{validChecksum}}",
+              "isDraft": false,
+              "minAppVersion": "1.0.0",
+              "dependencies": []
+            },
+            {
+              "pluginId": "pixelfox",
+              "name": "Pixelfox Duplicate",
+              "version": "1.0.1",
+              "author": "Pixelfox",
+              "description": "Duplicate entry with same pluginId.",
+              "apiVersion": "1.0",
+              "supportedCategories": ["Image"],
+              "homepageUrl": "https://pixelfox.cc",
+              "downloadUrl": "https://example.com/pixelfox2.xsdp",
+              "checksum": "{{validChecksum}}",
+              "isDraft": false,
+              "minAppVersion": "1.0.0",
+              "dependencies": []
+            }
+          ]
+        }
+        """;
+
+        var ex = Assert.Throws<InvalidDataException>(() => PluginIndexService.ParseIndex(json));
+
+        Assert.That(ex!.Message, Does.Contain("Duplicate pluginId"));
+    }
+
+    [Test]
+    public void ParseIndex_RejectsUnsupportedApiVersion()
+    {
+        string json = CreateIndexJson(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            apiVersion: "99.0");
+
+        var ex = Assert.Throws<InvalidDataException>(() => PluginIndexService.ParseIndex(json));
+
+        Assert.That(ex!.Message, Does.Contain("unsupported API version"));
+    }
+
+    [Test]
+    public void ParseIndex_RejectsNonXsdpPackageUrl()
+    {
+        string json = CreateIndexJson(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            downloadUrl: "https://example.com/pixelfox.zip");
+
+        var ex = Assert.Throws<InvalidDataException>(() => PluginIndexService.ParseIndex(json));
+
+        Assert.That(ex!.Message, Does.Contain(".xsdp"));
+    }
+
+    private static string CreateIndexJson(string checksum, string downloadUrl = "https://example.com/pixelfox.xsdp", bool isDraft = false, string apiVersion = "1.0")
     {
         return $$"""
         {
@@ -90,7 +162,7 @@ public class PluginIndexServiceTests
               "version": "1.0.0",
               "author": "Pixelfox",
               "description": "Pixelfox uploader plugin.",
-              "apiVersion": "1.0",
+              "apiVersion": "{{apiVersion}}",
               "supportedCategories": ["Image"],
               "homepageUrl": "https://pixelfox.cc",
               "downloadUrl": "{{downloadUrl}}",
