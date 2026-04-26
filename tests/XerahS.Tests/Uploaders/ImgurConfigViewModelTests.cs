@@ -351,6 +351,14 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void ProviderCreateAlbumImagesUrl_EscapesAlbumIdPathSegments()
+    {
+        string url = InvokeCreateAlbumImagesUrl(" album/../../account/me/images ");
+
+        Assert.That(url, Is.EqualTo("https://api.imgur.com/3/album/%20album%2F..%2F..%2Faccount%2Fme%2Fimages%20/images"));
+    }
+
+    [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
         using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });
@@ -403,6 +411,13 @@ public class ImgurConfigViewModelTests
         MethodInfo? method = typeof(ImgurProvider).GetMethod("BuildAuthInfo", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (OAuth2Info?)method!.Invoke(provider, new object[] { config });
+    }
+
+    private static string InvokeCreateAlbumImagesUrl(string albumId)
+    {
+        MethodInfo? method = typeof(ImgurProvider).GetMethod("CreateAlbumImagesUrl", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (string)method!.Invoke(null, new object[] { albumId })!;
     }
 
     private static bool InvokeTryPrepareStreamForRetry(Stream stream)

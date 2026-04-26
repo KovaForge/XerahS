@@ -328,7 +328,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
     private async Task<ExplorerPage> ListAlbumImagesAsync(string albumId, OAuth2Info authInfo, ExplorerQuery query, CancellationToken cancellation)
     {
-        string url = $"https://api.imgur.com/3/album/{albumId}/images";
+        string url = CreateAlbumImagesUrl(albumId);
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token!.access_token);
 
@@ -415,6 +415,12 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
         {
             return new ExplorerPage();
         }
+    }
+
+    private static string CreateAlbumImagesUrl(string albumId)
+    {
+        string safeAlbumId = Uri.EscapeDataString(albumId.Trim('/'));
+        return $"https://api.imgur.com/3/album/{safeAlbumId}/images";
     }
 
     private ImgurConfigModel DeserializeImgurConfig(string? settingsJson)
