@@ -3965,3 +3965,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - URLHelpers.GetFileName does not handle Windows-style backslash paths on Unix — `GetFileName("C:\\Users\\alice\\pic.png")` returns the full path on Linux. Future path-handling pass should address this.
   - Platform capture paths (Linux GnomeDbus, Wayland portal, macOS Quartz/CLI) return raw SKBitmap wrapped in CapturedBitmap — the CapturedBitmap wrapping is correct, no leak, but the raw bitmap return from PortalScreenshotFallback static helpers should be reviewed for caller discipline.
+
+### 2026-04-27 06:38 AWST
+- Area: Immich uploader plugin / config view-model state restoration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs`
+  - `src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs`
+  - `tests/XerahS.Tests/Uploaders/ImmichConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed Immich album placeholder restoration behavior during config LoadFromJson round-trips.
+  - `SetAlbumOptionsPlaceholder` always set `SelectedAlbum` to the placeholder option even when the config had only `AlbumName` and no `AlbumId`. `OnSelectedAlbumChanged` then fired for an identityless placeholder with an empty `Name`, overwriting `AlbumName` with `""` on every config load — losing the persisted album name on the next save round-trip even though the name itself was never invalid.
+  - This was a bounded Immich config state loss bug.
+- Outcome:
+  - Landed a bounded Immich config fix: `SetAlbumOptionsPlaceholder` now only assigns `SelectedAlbum` when the option has a real ID; when only `albumName` is present, `AlbumName` is set directly and `SelectedAlbum` stays null to avoid triggering `OnSelectedAlbumChanged` with an empty placeholder.
+  - Added regression coverage: name-only config preserves album name; id+name restores both; empty ids clears selection and name.
+  - Bumped `Directory.Build.props` from `0.22.93` to `0.22.94` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream had 0 pending `upstream/develop` commits, so no upstream merge or conflict resolution was needed.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, upstream/develop is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - Immich plugin project `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Full solution build was host-killed by the runner's OOM/parallel Avalonia/MSBuild PDB lock race; Immich plugin sub-tree and test file were confirmed clean by the earlier plugin-only sub-build; full solution test run was host-killed before results.
+- Follow-up:
+  - Continue inspecting Immich uploader plugin for other config view-model state restoration edge cases, especially share-slug persistence and album create/update flows.
