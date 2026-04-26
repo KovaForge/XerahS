@@ -705,12 +705,24 @@ public partial class ImmichConfigViewModel : ObservableObject, IUploaderConfigVi
         if (string.IsNullOrWhiteSpace(albumId) && string.IsNullOrWhiteSpace(albumName))
         {
             SelectedAlbum = null;
+            AlbumName = string.Empty;
             return;
         }
 
         ImmichAlbumOption option = new(albumId ?? string.Empty, albumName ?? string.Empty, null);
         Albums.Add(option);
-        SelectedAlbum = option;
+        // Only restore SelectedAlbum if it has a real ID; otherwise the placeholder
+        // has no meaningful album identity and OnSelectedAlbumChanged would overwrite
+        // AlbumName with just the name, losing the ID on the next save round-trip.
+        if (!string.IsNullOrWhiteSpace(albumId))
+        {
+            SelectedAlbum = option;
+        }
+        else
+        {
+            SelectedAlbum = null;
+            AlbumName = albumName ?? string.Empty;
+        }
     }
 
     private bool TryNormalizeServerUrl(out string normalizedServerUrl, out string? error)
