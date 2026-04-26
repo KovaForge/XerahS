@@ -160,7 +160,7 @@ public partial class ToastWindow : OverlayWindow
     {
         var point = e.GetCurrentPoint(this);
 
-        if (point.Properties.IsLeftButtonPressed)
+        if (point.Properties.IsLeftButtonPressed || point.Properties.IsMiddleButtonPressed)
         {
             _dragStart = point.Position;
             _isDragging = true;
@@ -172,28 +172,49 @@ public partial class ToastWindow : OverlayWindow
     {
         var point = e.GetCurrentPoint(this);
 
-        // Only process click if we weren't dragging significantly
-        if (_isDragging)
+        if (_isDragging && TryGetClickAction(_dragStart, point.Position, point.Properties.PointerUpdateKind, out var action))
         {
-            var distance = Math.Sqrt(
-                Math.Pow(point.Position.X - _dragStart.X, 2) +
-                Math.Pow(point.Position.Y - _dragStart.Y, 2));
-
-            if (distance < 20) // Click threshold
+            switch (action)
             {
-                if (point.Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonReleased)
-                {
+                case ToastPointerAction.LeftClick:
                     _viewModel?.ExecuteLeftClick();
-                }
-                else if (point.Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonReleased)
-                {
+                    break;
+                case ToastPointerAction.MiddleClick:
                     _viewModel?.ExecuteMiddleClick();
-                }
+                    break;
             }
         }
 
         _isDragging = false;
         _dragStartEventArgs = null;
+    }
+    internal static bool TryGetClickAction(Avalonia.Point dragStart, Avalonia.Point releasePosition, PointerUpdateKind pointerUpdateKind, out ToastPointerAction action)
+    {
+        var distance = Math.Sqrt(
+            Math.Pow(releasePosition.X - dragStart.X, 2) +
+            Math.Pow(releasePosition.Y - dragStart.Y, 2));
+
+        if (distance >= 20)
+        {
+            action = ToastPointerAction.None;
+            return false;
+        }
+
+        action = pointerUpdateKind switch
+        {
+            PointerUpdateKind.LeftButtonReleased => ToastPointerAction.LeftClick,
+            PointerUpdateKind.MiddleButtonReleased => ToastPointerAction.MiddleClick,
+            _ => ToastPointerAction.None
+        };
+
+        return action != ToastPointerAction.None;
+    }
+
+    internal enum ToastPointerAction
+    {
+        None,
+        LeftClick,
+        MiddleClick
     }
 
     private async void OnPointerMoved(object? sender, PointerEventArgs e)

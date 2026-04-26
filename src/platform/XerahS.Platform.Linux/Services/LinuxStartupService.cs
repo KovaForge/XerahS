@@ -70,7 +70,7 @@ public sealed class LinuxStartupService : IStartupService
                     Directory.CreateDirectory(directory);
                 }
 
-                File.WriteAllText(_desktopFilePath, BuildDesktopEntry(), Encoding.UTF8);
+                File.WriteAllText(_desktopFilePath, BuildDesktopEntry(_executablePath), Encoding.UTF8);
                 return true;
             }
 
@@ -88,9 +88,9 @@ public sealed class LinuxStartupService : IStartupService
         }
     }
 
-    private string BuildDesktopEntry()
+    internal static string BuildDesktopEntry(string executablePath)
     {
-        string exec = $"\"{_executablePath}\"";
+        string exec = $"\"{EscapeQuotedDesktopEntryArgument(executablePath)}\"";
         var builder = new StringBuilder();
         builder.AppendLine("[Desktop Entry]");
         builder.AppendLine("Type=Application");
@@ -103,6 +103,11 @@ public sealed class LinuxStartupService : IStartupService
         builder.AppendLine("X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2");
         builder.AppendLine($"Comment=Auto-start {AppResources.AppName}");
         return builder.ToString();
+    }
+
+    internal static string EscapeQuotedDesktopEntryArgument(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
     private static string? GetExecutablePath()

@@ -55,8 +55,45 @@ public class WorkflowManagerTests
         {
             Assert.That(clearedRegistration, Is.False);
             Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.NotConfigured));
+            Assert.That(settings.HotkeyInfo.Id, Is.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.Null);
             Assert.That(service.IsRegistered(settings.HotkeyInfo), Is.False);
             Assert.That(service.UnregisterCallCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void RegisterHotkey_WhenCleanupFails_PreservesExistingRuntimeMetadataAndMapping()
+    {
+        var service = new FakeHotkeyService { FailNextUnregister = true };
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.L, KeyModifiers.Control | KeyModifiers.Shift)
+            {
+                NativeTriggerDescription = "Ctrl+Shift+L"
+            });
+        bool triggered = false;
+
+        Assert.That(manager.RegisterHotkey(settings), Is.True);
+        settings.HotkeyInfo.NativeTriggerDescription = "Ctrl+Shift+L";
+        manager.HotkeyTriggered += (_, workflow) => triggered = ReferenceEquals(workflow, settings);
+
+        settings.HotkeyInfo.Key = Key.M;
+        settings.HotkeyInfo.Modifiers = KeyModifiers.Control | KeyModifiers.Alt;
+
+        var registrationResult = manager.RegisterHotkey(settings);
+        service.RaiseHotkeyTriggered(settings.HotkeyInfo);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(registrationResult, Is.False);
+            Assert.That(settings.HotkeyInfo.Id, Is.Not.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.Failed));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.EqualTo("Ctrl+Shift+L"));
+            Assert.That(service.UnregisterCallCount, Is.EqualTo(1));
+            Assert.That(triggered, Is.True);
+            Assert.That(manager.Workflows.Contains(settings), Is.True);
         });
     }
 
@@ -71,6 +108,63 @@ public class WorkflowManagerTests
         service.RaiseHotkeysChanged();
 
         Assert.That(callCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void UnregisterHotkey_ClearsRuntimeMetadata()
+    {
+        var service = new FakeHotkeyService();
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.K, KeyModifiers.Control)
+            {
+                NativeTriggerDescription = "Ctrl+K"
+            });
+
+        Assert.That(manager.RegisterHotkey(settings), Is.True);
+
+        bool unregistered = manager.UnregisterHotkey(settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(unregistered, Is.True);
+            Assert.That(settings.HotkeyInfo.Id, Is.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.NotConfigured));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.Null);
+            Assert.That(service.UnregisterCallCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void UnregisterHotkey_WhenServiceFails_KeepsWorkflowMappedAndMetadataIntact()
+    {
+        var service = new FakeHotkeyService { FailNextUnregister = true };
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.K, KeyModifiers.Control)
+            {
+                NativeTriggerDescription = "Ctrl+K"
+            });
+        bool triggered = false;
+
+        Assert.That(manager.RegisterHotkey(settings), Is.True);
+        settings.HotkeyInfo.NativeTriggerDescription = "Ctrl+K";
+        manager.HotkeyTriggered += (_, workflow) => triggered = ReferenceEquals(workflow, settings);
+
+        bool unregistered = manager.UnregisterHotkey(settings);
+        service.RaiseHotkeyTriggered(settings.HotkeyInfo);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(unregistered, Is.False);
+            Assert.That(settings.HotkeyInfo.Id, Is.Not.EqualTo(0));
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.Failed));
+            Assert.That(settings.HotkeyInfo.NativeTriggerDescription, Is.EqualTo("Ctrl+K"));
+            Assert.That(manager.Workflows.Contains(settings), Is.True);
+            Assert.That(triggered, Is.True);
+        });
     }
 
     [Test]
@@ -90,12 +184,9 @@ public class WorkflowManagerTests
         private ushort _nextId = 1;
 
         public int UnregisterCallCount { get; private set; }
+        public bool FailNextUnregister { get; set; }
 
-        public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered
-        {
-            add { }
-            remove { }
-        }
+        public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
 
         public event EventHandler? HotkeysChanged;
 
@@ -127,6 +218,14 @@ public class WorkflowManagerTests
             }
 
             UnregisterCallCount++;
+
+            if (FailNextUnregister)
+            {
+                FailNextUnregister = false;
+                hotkeyInfo.Status = HotkeyStatus.Failed;
+                return false;
+            }
+
             hotkeyInfo.Status = HotkeyStatus.NotConfigured;
             return _registeredIds.Remove(hotkeyInfo.Id);
         }
@@ -148,6 +247,11 @@ public class WorkflowManagerTests
         public void RaiseHotkeysChanged()
         {
             HotkeysChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void RaiseHotkeyTriggered(HotkeyInfo hotkeyInfo)
+        {
+            HotkeyTriggered?.Invoke(this, new HotkeyTriggeredEventArgs(hotkeyInfo));
         }
     }
 }

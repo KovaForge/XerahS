@@ -133,6 +133,14 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
     {
         await EnsureInitializedAsync(cancellationToken);
 
+        scrollDirection = string.IsNullOrWhiteSpace(scrollDirection) ? "down" : scrollDirection.Trim().ToLowerInvariant();
+        if (!string.Equals(scrollDirection, "down", StringComparison.Ordinal))
+        {
+            throw new NotSupportedException("capture_scrolling currently supports only scroll_direction='down'.");
+        }
+
+        maxFrames = Math.Clamp(maxFrames, 1, 1000);
+
         if (PlatformServices.ScrollingCapture == null || !PlatformServices.ScrollingCapture.IsSupported)
         {
             throw new InvalidOperationException("Scrolling capture is not supported on this platform.");
@@ -164,6 +172,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             scrollAmount: options.ScrollAmount,
             startDelayMs: options.StartDelay,
             scrollDelayMs: options.ScrollDelay,
+            maxFrames: maxFrames,
             autoScrollTop: true,
             autoIgnoreBottomEdge: options.AutoIgnoreBottomEdge,
             cancellationToken: cancellationToken);

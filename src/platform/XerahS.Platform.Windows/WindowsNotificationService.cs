@@ -37,11 +37,11 @@ public class WindowsNotificationService : INotificationService
 {
     public void ShowNotification(string title, string message, NotificationType type = NotificationType.Info)
     {
-        DebugHelper.WriteLine($"[Notification] {title}: {message}");
+        DebugHelper.WriteLine($"[Notification:{type}] {title}: {message}");
     }
 
     public void ShowNotification(string title, string message, string actionText, Action action, NotificationType type = NotificationType.Info)
     {
-        DebugHelper.WriteLine($"[Notification] {title}: {message} (Action: {actionText})");
+        DebugHelper.WriteLine($"[Notification:{type}] {title}: {message} (Action: {actionText})");
     }
 }

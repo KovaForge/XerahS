@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using XerahS.Common;
 using System.Globalization;
@@ -43,6 +44,6 @@ public class EnumToDescriptionConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }

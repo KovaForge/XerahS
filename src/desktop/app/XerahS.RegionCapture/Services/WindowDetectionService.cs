@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using System;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using XerahS.RegionCapture.Models;
@@ -185,9 +186,20 @@ public sealed class WindowDetectionService
         bool isWaylandSession = MonitorEnumerationService.IsWaylandSession();
         bool hasX11Display = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
         string? compositor = DetectLinuxWaylandCompositor();
-        PlatformWindowPointQueryCapability? directCapability = PlatformServices.Window is PlatformLogicalWindowPointQueryService logicalPointQueryService
-            ? logicalPointQueryService.GetLogicalWindowPointQueryCapability()
-            : null;
+        PlatformWindowPointQueryCapability? directCapability = null;
+
+        try
+        {
+            directCapability = PlatformServices.Window is PlatformLogicalWindowPointQueryService logicalPointQueryService
+                ? logicalPointQueryService.GetLogicalWindowPointQueryCapability()
+                : null;
+        }
+        catch (InvalidOperationException)
+        {
+            // Platform services are not always initialized in design-time/headless smoke tests.
+            // Fall back to compositor/env-based capability detection instead of crashing UI construction.
+        }
+
         return GetLinuxWindowPreselectionCapability(isWaylandSession, hasX11Display, compositor, IsLinuxCommandAvailable, directCapability);
     }
 
@@ -478,6 +490,12 @@ public sealed class WindowDetectionService
     {
         ArgumentNullException.ThrowIfNull(window);
 
+        if (window.Handle == IntPtr.Zero || IsExcludedHandle(window.Handle))
+            return null;
+
+        if (!window.IsVisible || window.IsMinimized)
+            return null;
+
         if (window.Bounds.Width <= 1 || window.Bounds.Height <= 1)
             return null;
 
@@ -597,6 +615,9 @@ public sealed class WindowDetectionService
         // Direct lookup - sorted by Z-order (topmost first)
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             if (window.SnapBounds.Contains(physicalPoint))
             {
                 return window;
@@ -613,7 +634,7 @@ public sealed class WindowDetectionService
             if (_lastDirectQueryAt != DateTime.MinValue &&
                 DateTime.UtcNow - _lastDirectQueryAt <= DirectQueryRefreshInterval)
             {
-                if (_lastDirectQueryWindow?.SnapBounds.Contains(physicalPoint) == true)
+                if (_lastDirectQueryWindow?.SnapBounds.Contains(physicalPoint) == true && !IsExcludedHandle(_lastDirectQueryWindow.Handle))
                 {
                     return new WindowPointQueryResult(Handled: true, Window: _lastDirectQueryWindow);
                 }
@@ -649,6 +670,9 @@ public sealed class WindowDetectionService
     {
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             if (window.SnapBounds.IntersectsWith(region))
             {
                 yield return window;
@@ -666,6 +690,9 @@ public sealed class WindowDetectionService
 
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             var bounds = window.SnapBounds;
 
             // Calculate distance to nearest edge
@@ -692,6 +719,9 @@ public sealed class WindowDetectionService
 
         foreach (var window in Windows)
         {
+            if (IsExcludedHandle(window.Handle))
+                continue;
+
             var bounds = window.SnapBounds;
 
             // Check left edge

@@ -219,20 +219,25 @@ public sealed class FtpUploader : FileUploader, IDisposable
 
     private SftpClient? CreateSftpClient()
     {
-        if (!string.IsNullOrEmpty(_account.Keypath))
+        string keyPath = _account.Keypath?.Trim() ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(keyPath) && File.Exists(keyPath))
         {
-            if (!File.Exists(_account.Keypath))
-            {
-                Errors.Add("SFTP key file not found: " + _account.Keypath);
-                return null;
-            }
             PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
-                ? new PrivateKeyFile(_account.Keypath)
-                : new PrivateKeyFile(_account.Keypath, _account.Passphrase);
+                ? new PrivateKeyFile(keyPath)
+                : new PrivateKeyFile(keyPath, _account.Passphrase);
             return new SftpClient(_account.Host, _account.Port, _account.Username ?? "", keyFile);
         }
-        if (!string.IsNullOrEmpty(_account.Password))
+
+        if (!string.IsNullOrWhiteSpace(_account.Password))
             return new SftpClient(_account.Host, _account.Port, _account.Username ?? "", _account.Password);
+
+        if (!string.IsNullOrWhiteSpace(keyPath))
+        {
+            Errors.Add("SFTP key file not found: " + keyPath);
+            return null;
+        }
+
         Errors.Add("SFTP requires either a key file or password.");
         return null;
     }

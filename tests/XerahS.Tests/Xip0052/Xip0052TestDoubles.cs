@@ -244,7 +244,7 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
     public AutoCaptureViewModel CreateAutoCaptureViewModel() => new(TaskManager);
     public UploadContentViewModel CreateUploadContentViewModel() => new(TaskManager);
     public TaskSettingsViewModel CreateTaskSettingsViewModel(TaskSettings settings) =>
-        CreateUninitialized<TaskSettingsViewModel>();
+        new(settings, ViewDialogService);
 
     private static T CreateUninitialized<T>() where T : class =>
         (T)RuntimeHelpers.GetUninitializedObject(typeof(T));

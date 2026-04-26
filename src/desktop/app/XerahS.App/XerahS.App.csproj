@@ -45,7 +45,8 @@
   <ItemGroup>
     <!-- Audits tool is only needed for Debug builds (development/auditing) -->
     <ProjectReference Include="..\..\tools\XerahS.Audits.Tool\XerahS.Audits.Tool.csproj" Condition="'$(Configuration)' == 'Debug'" />
-    <ProjectReference Include="..\XerahS.UI\XerahS.UI.csproj" />
+    <ProjectReference Include="..\XerahS.UI\XerahS.UI.csproj"
+                      GlobalPropertiesToRemove="SelfContained;PublishSingleFile" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
                       ReferenceOutputAssembly="false"

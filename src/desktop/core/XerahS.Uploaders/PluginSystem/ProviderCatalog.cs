@@ -69,6 +69,11 @@ public static class ProviderCatalog
                 return;
             }
 
+            if (forceReload)
+            {
+                RemoveDynamicProvidersForDirectories(pluginDirectoryList);
+            }
+
             var discovery = new PluginDiscovery();
             var allDiscovered = new List<PluginMetadata>();
 
@@ -144,6 +149,65 @@ public static class ProviderCatalog
 
             PluginFolderCleaner.ScheduleCleanup(pluginDirectoryList);
         }
+    }
+
+    private static void RemoveDynamicProvidersForDirectories(IEnumerable<string> pluginDirectories)
+    {
+        var normalizedDirectories = pluginDirectories
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(NormalizePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedDirectories.Count == 0)
+        {
+            return;
+        }
+
+        var providersToRemove = _pluginMetadata
+            .Where(kvp => IsPathWithinTrackedDirectories(kvp.Value.AssemblyPath, normalizedDirectories))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var providerId in providersToRemove)
+        {
+            _providers.Remove(providerId);
+            _pluginMetadata.Remove(providerId);
+            _pluginLoader.UnloadPlugin(providerId);
+            DebugHelper.WriteLine($"[Plugins] Removed provider during reload: {providerId}");
+        }
+
+        var customProvidersToRemove = _providers
+            .Where(kvp => kvp.Value is CustomUploaderProvider customProvider &&
+                          IsPathWithinTrackedDirectories(customProvider.FilePath, normalizedDirectories))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var providerId in customProvidersToRemove)
+        {
+            _providers.Remove(providerId);
+            _pluginMetadata.Remove(providerId);
+            DebugHelper.WriteLine($"[CustomUploader] Removed provider during reload: {providerId}");
+        }
+    }
+
+    private static bool IsPathWithinTrackedDirectories(string path, IReadOnlyCollection<string> normalizedDirectories)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        var normalizedPath = NormalizePath(path);
+        return normalizedDirectories.Any(directory =>
+            normalizedPath.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalizedPath, directory, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizePath(string path)
+    {
+        return Path.GetFullPath(path)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
 
     /// <summary>
@@ -416,11 +480,13 @@ public static class ProviderCatalog
     /// <returns>The matching provider if one is loaded; otherwise null.</returns>
     public static CustomUploaderProvider? GetCustomUploaderProviderByFilePath(string filePath)
     {
+        string normalizedFilePath = NormalizePath(filePath);
+
         lock (_lock)
         {
             return _providers.Values
                 .OfType<CustomUploaderProvider>()
-                .FirstOrDefault(provider => string.Equals(provider.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(provider => string.Equals(NormalizePath(provider.FilePath), normalizedFilePath, StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -431,21 +497,16 @@ public static class ProviderCatalog
     /// <returns>True if reload was successful</returns>
     public static bool ReloadCustomUploader(string filePath)
     {
-        var loaded = CustomUploaderRepository.ReloadFile(filePath);
-
-        if (loaded == null)
-        {
-            return false;
-        }
+        string normalizedFilePath = NormalizePath(filePath);
+        var loaded = CustomUploaderRepository.ReloadFile(normalizedFilePath);
 
         lock (_lock)
         {
-            var provider = new CustomUploaderProvider(loaded);
-
-            // Remove old provider with same file if exists
+            // Remove old provider with same file if exists, even when the reload failed,
+            // so invalid or deleted definitions do not leave stale providers selectable.
             var existingKey = _providers.Keys.FirstOrDefault(k =>
                 _providers[k] is CustomUploaderProvider cp &&
-                string.Equals(cp.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+                string.Equals(NormalizePath(cp.FilePath), normalizedFilePath, StringComparison.OrdinalIgnoreCase));
 
             if (existingKey != null)
             {
@@ -453,6 +514,13 @@ public static class ProviderCatalog
                 _pluginMetadata.Remove(existingKey);
             }
 
+            if (loaded == null)
+            {
+                DebugHelper.WriteLine($"[CustomUploader] Reload failed, removed stale provider for: {normalizedFilePath}");
+                return false;
+            }
+
+            var provider = new CustomUploaderProvider(loaded);
             _providers[provider.ProviderId] = provider;
             ApplyContext(provider);
             _pluginMetadata[provider.ProviderId] = CreateCustomUploaderMetadata(provider, loaded);

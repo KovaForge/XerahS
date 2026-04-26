@@ -44,23 +44,9 @@ internal static class NativeWindowService
 {
     private const int GWL_STYLE = -16;
     private const int GWL_EXSTYLE = -20;
-    private const uint WS_VISIBLE = 0x10000000;
-    private const uint WS_EX_TOOLWINDOW = 0x00000080;
-    private const uint WS_EX_NOACTIVATE = 0x08000000;
-    private const uint WS_EX_APPWINDOW = 0x00040000;
-    private const uint WS_EX_LAYERED = 0x00080000;
-    private const uint WS_DISABLED = 0x08000000;
 
     // Cache for our own overlay windows to exclude them
     private static readonly HashSet<nint> ExcludedHandles = [];
-    private static readonly HashSet<string> IgnoredWindowClasses = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Progman",
-        "Button",
-        "Shell_TrayWnd",
-        "Shell_SecondaryTrayWnd",
-        "Windows.UI.Core.CoreWindow"
-    };
 
     /// <summary>
     /// Registers a window handle to be excluded from enumeration (our overlay windows).
@@ -129,24 +115,14 @@ internal static class NativeWindowService
         string className,
         nint style,
         nint exStyle)
-    {
-        if (!isVisible || isMinimized || isCloaked)
-            return false;
-
-        if ((style & (nint)WS_VISIBLE) == 0 || (style & (nint)WS_DISABLED) != 0)
-            return false;
-
-        if ((exStyle & (nint)WS_EX_TOOLWINDOW) != 0)
-            return false;
-
-        if ((exStyle & (nint)WS_EX_NOACTIVATE) != 0 && (exStyle & (nint)WS_EX_APPWINDOW) == 0)
-            return false;
-
-        if (string.IsNullOrWhiteSpace(title))
-            return false;
-
-        return !IgnoredWindowClasses.Contains(className);
-    }
+        => NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
+            isVisible,
+            isMinimized,
+            isCloaked,
+            title,
+            className,
+            style,
+            exStyle);
 
     private static WindowInfo? GetWindowInfo(HWND hWnd, int zOrder)
     {

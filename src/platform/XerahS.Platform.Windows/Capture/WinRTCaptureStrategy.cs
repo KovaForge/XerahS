@@ -70,17 +70,15 @@ internal sealed class WinRTCaptureStrategy : ICaptureStrategy
 
     public BackendCapabilities GetCapabilities()
     {
-        return new BackendCapabilities
+        // The WinRT capture path is not implemented yet, so actual capture work
+        // currently falls back to GDI. Report the real runtime capabilities instead
+        // of advertising cursor/HDR/hardware support that callers cannot use.
+        var fallbackCapabilities = new GdiCaptureStrategy().GetCapabilities();
+
+        return fallbackCapabilities with
         {
-            BackendName = "WinRT Graphics Capture",
-            Version = "10.0.17134+",
-            SupportsHardwareAcceleration = true,
-            SupportsCursorCapture = true,
-            SupportsHDR = true,
-            SupportsPerMonitorDpi = true,
-            SupportsMonitorHotplug = true,
-            MaxCaptureResolution = 16384,
-            RequiresPermission = false
+            BackendName = "WinRT Graphics Capture (GDI fallback)",
+            Version = "fallback"
         };
     }
 

@@ -109,10 +109,16 @@ namespace XerahS.Platform.Windows
                                 return null;
                             }
 
+                            IntPtr oldBitmap = IntPtr.Zero;
                             try
                             {
-                                // Select bitmap into DC
-                                IntPtr oldBitmap = SelectObject(memDC, hBitmap);
+                                // Select bitmap into DC before writing into it.
+                                oldBitmap = SelectObject(memDC, hBitmap);
+                                if (oldBitmap == IntPtr.Zero)
+                                {
+                                    DebugHelper.WriteLine("WindowsScreenCaptureService: Failed to select bitmap into capture DC");
+                                    return null;
+                                }
 
                                 // BitBlt from screen to memory DC (physical pixels)
                                 bool success = BitBlt(memDC, 0, 0, width, height, screenDC, x, y, SRCCOPY);
@@ -135,13 +141,15 @@ namespace XerahS.Platform.Windows
                                 bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
                                 stream.Seek(0, SeekOrigin.Begin);
 
-                                // Restore old bitmap
-                                SelectObject(memDC, oldBitmap);
-
                                 return SKBitmap.Decode(stream);
                             }
                             finally
                             {
+                                if (oldBitmap != IntPtr.Zero)
+                                {
+                                    SelectObject(memDC, oldBitmap);
+                                }
+
                                 DeleteObject(hBitmap);
                             }
                         }

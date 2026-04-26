@@ -60,6 +60,7 @@ namespace XerahS.RegionCapture
         /// <param name="scrollAmount">Number of scroll units per iteration</param>
         /// <param name="startDelayMs">Delay before first capture (ms)</param>
         /// <param name="scrollDelayMs">Delay between scroll operations (ms)</param>
+        /// <param name="maxFrames">Maximum number of frames to capture before stopping</param>
         /// <param name="autoScrollTop">Whether to scroll to top before starting</param>
         /// <param name="autoIgnoreBottomEdge">Whether to detect non-scrolling bottom elements</param>
         /// <param name="progress">Progress reporter</param>
@@ -71,6 +72,7 @@ namespace XerahS.RegionCapture
             int scrollAmount = 2,
             int startDelayMs = 300,
             int scrollDelayMs = 300,
+            int maxFrames = 100,
             bool autoScrollTop = false,
             bool autoIgnoreBottomEdge = true,
             IProgress<ScrollingCaptureProgress>? progress = null,
@@ -106,7 +108,7 @@ namespace XerahS.RegionCapture
 
                 var stopwatch = new Stopwatch();
                 int frameIndex = 0;
-                int maxFrames = 100; // Safety limit
+                maxFrames = Math.Clamp(maxFrames, 1, 1000);
                 int lastResultHeight = 0;
                 int noProgressCount = 0;
                 const int NoProgressLimit = 3; // Stop if height unchanged for this many frames

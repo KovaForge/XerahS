@@ -75,23 +75,42 @@ public class FtpProvider : UploaderProviderBase
 
     private static FTPAccount ToFtpAccount(FtpConfigModel c)
     {
+        FTPProtocol protocol = NormalizeEnum(c.Protocol, FTPProtocol.FTP);
+        BrowserProtocol browserProtocol = NormalizeEnum(c.BrowserProtocol, BrowserProtocol.http);
+        FTPSEncryption ftpsEncryption = NormalizeEnum(c.FTPSEncryption, FTPSEncryption.Explicit);
+
         return new FTPAccount
         {
             Name = c.AccountName ?? "FTP Account",
-            Protocol = c.Protocol,
+            Protocol = protocol,
             Host = c.Host ?? "",
-            Port = c.Port,
+            Port = c.Port > 0 ? c.Port : GetDefaultPort(protocol, ftpsEncryption),
             Username = c.Username ?? "",
             Password = c.Password ?? "",
             IsActive = c.IsActive,
             SubFolderPath = c.SubFolderPath ?? "",
-            BrowserProtocol = c.BrowserProtocol,
+            BrowserProtocol = browserProtocol,
             HttpHomePath = c.HttpHomePath ?? "",
             HttpHomePathAutoAddSubFolderPath = c.HttpHomePathAutoAddSubFolderPath,
             HttpHomePathNoExtension = c.HttpHomePathNoExtension,
-            FTPSEncryption = c.FTPSEncryption,
+            FTPSEncryption = ftpsEncryption,
             Keypath = c.Keypath ?? "",
             Passphrase = c.Passphrase ?? ""
         };
+    }
+
+    private static int GetDefaultPort(FTPProtocol protocol, FTPSEncryption ftpsEncryption)
+    {
+        return protocol switch
+        {
+            FTPProtocol.SFTP => 22,
+            FTPProtocol.FTPS when ftpsEncryption == FTPSEncryption.Implicit => 990,
+            _ => 21
+        };
+    }
+
+    private static TEnum NormalizeEnum<TEnum>(TEnum value, TEnum fallback) where TEnum : struct, Enum
+    {
+        return Enum.IsDefined(typeof(TEnum), value) ? value : fallback;
     }
 }

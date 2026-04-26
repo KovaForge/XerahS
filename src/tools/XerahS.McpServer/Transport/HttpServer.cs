@@ -141,6 +141,12 @@ public class HttpServer : IDisposable
 
             var response = await _mcpServer.HandleRequestAsync(request, context.RequestAborted);
 
+            if (request.IsNotification)
+            {
+                context.Response.StatusCode = StatusCodes.Status204NoContent;
+                return;
+            }
+
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(response, _jsonOptions));
         }

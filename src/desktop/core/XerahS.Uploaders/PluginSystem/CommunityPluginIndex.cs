@@ -24,62 +24,54 @@
 #endregion License Information (GPL v3)
 
 using Newtonsoft.Json;
-using System.Text.RegularExpressions;
 
 namespace XerahS.Uploaders.PluginSystem;
 
 /// <summary>
 /// Root model for the community plugin registry index (plugins-index.json).
 /// </summary>
-public class CommunityPluginIndex
+public sealed class CommunityPluginIndex
 {
     [JsonProperty("indexVersion")]
-    public string IndexVersion { get; set; } = string.Empty;
+    public string IndexVersion { get; set; } = "1.0";
 
     [JsonProperty("lastUpdated")]
-    public string? LastUpdated { get; set; }
+    public DateTimeOffset? LastUpdated { get; set; }
 
     [JsonProperty("plugins")]
-    public List<CommunityPluginIndexEntry> Plugins { get; set; } = new();
+    public List<CommunityPluginIndexEntry> Plugins { get; set; } = [];
 
-    /// <summary>
-    /// Validates the index structure: requires indexVersion, non-null plugins list,
-    /// no duplicate pluginId values, and all entries individually valid.
-    /// </summary>
     public bool IsValid(out string? error)
     {
+        error = null;
+
         if (string.IsNullOrWhiteSpace(IndexVersion))
         {
-            error = "indexVersion is required";
+            error = "IndexVersion is required.";
             return false;
         }
 
         if (Plugins == null)
         {
-            error = "plugins list is required";
+            error = "Plugins list is required.";
             return false;
         }
 
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenPluginIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var plugin in Plugins)
         {
-            if (!seen.Add(plugin.PluginId))
+            if (!plugin.IsValid(out error))
             {
-                error = $"Duplicate pluginId: '{plugin.PluginId}'";
+                return false;
+            }
+
+            if (!seenPluginIds.Add(plugin.PluginId))
+            {
+                error = $"Duplicate pluginId '{plugin.PluginId}' in community plugin index.";
                 return false;
             }
         }
 
-        foreach (var plugin in Plugins)
-        {
-            if (!plugin.IsValid(out var entryError))
-            {
-                error = $"Invalid plugin entry '{plugin.PluginId}': {entryError}";
-                return false;
-            }
-        }
-
-        error = null;
         return true;
     }
 }
@@ -87,11 +79,8 @@ public class CommunityPluginIndex
 /// <summary>
 /// Describes one downloadable community plugin package in the registry index.
 /// </summary>
-public class CommunityPluginIndexEntry
+public sealed class CommunityPluginIndexEntry
 {
-    private static readonly Regex PluginIdPattern = new("^[A-Za-z0-9._-]+$", RegexOptions.Compiled);
-    private static readonly Regex Sha256Pattern = new("^(sha256:)?[A-Fa-f0-9]{64}$", RegexOptions.Compiled);
-
     [JsonProperty("pluginId")]
     public string PluginId { get; set; } = string.Empty;
 
@@ -99,7 +88,7 @@ public class CommunityPluginIndexEntry
     public string Name { get; set; } = string.Empty;
 
     [JsonProperty("version")]
-    public string Version { get; set; } = string.Empty;
+    public string Version { get; set; } = "1.0.0";
 
     [JsonProperty("author")]
     public string Author { get; set; } = string.Empty;
@@ -108,10 +97,10 @@ public class CommunityPluginIndexEntry
     public string Description { get; set; } = string.Empty;
 
     [JsonProperty("apiVersion")]
-    public string ApiVersion { get; set; } = string.Empty;
+    public string ApiVersion { get; set; } = "1.0";
 
     [JsonProperty("supportedCategories")]
-    public List<string> SupportedCategories { get; set; } = new();
+    public List<string> SupportedCategories { get; set; } = [];
 
     [JsonProperty("homepageUrl")]
     public string? HomepageUrl { get; set; }
@@ -122,68 +111,120 @@ public class CommunityPluginIndexEntry
     [JsonProperty("checksum")]
     public string Checksum { get; set; } = string.Empty;
 
+    [JsonProperty("isDraft")]
+    public bool IsDraft { get; set; }
+
     [JsonProperty("minAppVersion")]
     public string? MinAppVersion { get; set; }
 
     [JsonProperty("dependencies")]
-    public List<string> Dependencies { get; set; } = new();
+    public List<string> Dependencies { get; set; } = [];
 
     public string DisplayName => string.IsNullOrWhiteSpace(Version) ? Name : $"{Name} {Version}";
 
+    public string VersionAuthor => $"Version {Version} by {Author}";
+
+    public string CategorySummary => SupportedCategories.Count > 0
+        ? string.Join(", ", SupportedCategories)
+        : "Uncategorized";
+
     public bool IsValid(out string? error)
     {
+        error = null;
+
         if (string.IsNullOrWhiteSpace(PluginId))
         {
-            error = "pluginId is required";
+            error = "PluginId is required.";
             return false;
         }
 
-        if (!PluginIdPattern.IsMatch(PluginId))
+        if (!IsSafePluginId(PluginId))
         {
-            error = "pluginId may only contain letters, digits, '.', '_' and '-'";
+            error = $"PluginId '{PluginId}' contains invalid characters.";
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(Name) ||
-            string.IsNullOrWhiteSpace(Version) ||
-            string.IsNullOrWhiteSpace(Author) ||
-            string.IsNullOrWhiteSpace(ApiVersion))
+        if (string.IsNullOrWhiteSpace(Name))
         {
-            error = "name, version, author and apiVersion are required";
+            error = $"Plugin '{PluginId}' is missing a name.";
             return false;
         }
 
-        if (!IsHttpsUrl(DownloadUrl, out Uri? downloadUri) || downloadUri == null)
+        if (string.IsNullOrWhiteSpace(Version))
         {
-            error = "downloadUrl must be an HTTPS URL";
+            error = $"Plugin '{PluginId}' is missing a version.";
             return false;
         }
 
-        if (!downloadUri.AbsolutePath.EndsWith(".xsdp", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(Author))
         {
-            error = "downloadUrl must point to an .xsdp package";
+            error = $"Plugin '{PluginId}' is missing an author.";
             return false;
         }
 
-        if (!Sha256Pattern.IsMatch(Checksum))
+        if (string.IsNullOrWhiteSpace(ApiVersion))
         {
-            error = "checksum must be a SHA-256 hash";
+            error = $"Plugin '{PluginId}' is missing an API version.";
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(HomepageUrl) && !IsHttpsUrl(HomepageUrl, out _))
+        if (!new PluginManifest { ApiVersion = ApiVersion }.IsCompatibleWith(PluginDiscovery.GetCurrentApiVersion()))
         {
-            error = "homepageUrl must be an HTTPS URL";
+            error = $"Plugin '{PluginId}' targets unsupported API version '{ApiVersion}'.";
             return false;
         }
 
-        error = null;
+        if (!IsDraft)
+        {
+            if (!IsValidHttpsUri(DownloadUrl, out var downloadUri) || downloadUri == null)
+            {
+                error = $"Plugin '{PluginId}' has an invalid downloadUrl. HTTPS is required.";
+                return false;
+            }
+
+            if (!downloadUri.AbsolutePath.EndsWith(".xsdp", StringComparison.OrdinalIgnoreCase))
+            {
+                error = $"Plugin '{PluginId}' downloadUrl must point to a .xsdp package.";
+                return false;
+            }
+
+            if (!PluginIndexService.IsValidSha256Checksum(Checksum))
+            {
+                error = $"Plugin '{PluginId}' must include a sha256 checksum.";
+                return false;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(HomepageUrl) && !IsValidHttpsUri(HomepageUrl, out _))
+        {
+            error = $"Plugin '{PluginId}' has an invalid homepageUrl. HTTPS is required.";
+            return false;
+        }
+
         return true;
     }
 
-    private static bool IsHttpsUrl(string? value, out Uri? uri)
+    private static bool IsValidHttpsUri(string? value, out Uri? uri)
     {
         return Uri.TryCreate(value, UriKind.Absolute, out uri) &&
-            string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+            uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSafePluginId(string pluginId)
+    {
+        if (pluginId is "." or "..")
+        {
+            return false;
+        }
+
+        foreach (char c in pluginId)
+        {
+            if (!char.IsLetterOrDigit(c) && c is not ('.' or '_' or '-'))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

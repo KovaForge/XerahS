@@ -46,12 +46,13 @@ internal sealed class LinuxCaptureRequest
     {
         get
         {
+            bool useModernCapture = Options?.UseModernCapture ?? true;
             if (!OperatingSystem.IsLinux())
             {
-                return Options?.UseModernCapture ?? true;
+                return useModernCapture;
             }
 
-            if (Options?.LinuxForceLegacyCapturePath == true)
+            if (!useModernCapture || Options?.LinuxForceLegacyCapturePath == true)
             {
                 return false;
             }

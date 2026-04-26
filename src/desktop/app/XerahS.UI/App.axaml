@@ -31,20 +31,25 @@
                         Opened="OnHistoryItemMenuFlyoutOpened">
                 <MenuItem Header="Edit..."
                           Command="{Binding EditImageCommand}"
+                          IsVisible="{Binding Item.HasExistingFile}"
                           InputGesture="Enter"/>
                 <MenuItem Header="Edit Annotations"
                           Command="{Binding EditAnnotationsCommand}"
                           IsVisible="{Binding Item.HasEditableAnnotations}"
                           InputGesture="Ctrl+Shift+E"/>
                 <MenuItem Header="Open File"
-                          Command="{Binding OpenFileCommand}"/>
+                          Command="{Binding OpenFileCommand}"
+                          IsVisible="{Binding Item.HasExistingFile}"/>
                 <MenuItem Header="Upload"
-                          Command="{Binding UploadItemCommand}"/>
+                          Command="{Binding UploadItemCommand}"
+                          IsVisible="{Binding Item.HasExistingFile}"/>
                 <MenuItem Header="Show in Explorer"
-                          Command="{Binding OpenFolderCommand}"/>
+                          Command="{Binding OpenFolderCommand}"
+                          IsVisible="{Binding Item.HasFilePath}"/>
                 <Separator/>
                 <MenuItem Header="Copy Path"
-                          Command="{Binding CopyFilePathCommand}"/>
+                          Command="{Binding CopyFilePathCommand}"
+                          IsVisible="{Binding Item.HasFilePath}"/>
                 <MenuItem Header="Copy URL"
                           Command="{Binding CopyURLCommand}"
                           IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
@@ -52,7 +57,8 @@
                           Command="{Binding CopyMarkdownImageCommand}"
                           IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                 <MenuItem Header="Copy image to clipboard"
-                          Command="{Binding CopyImageToClipboardCommand}"/>
+                          Command="{Binding CopyImageToClipboardCommand}"
+                          IsVisible="{Binding Item.HasImageFile}"/>
                 <MenuItem Header="Copy Errors"
                           Command="{Binding CopyErrorsCommand}"
                           IsVisible="{Binding Item.HasErrors}"/>
@@ -62,6 +68,7 @@
                 <Separator/>
                 <MenuItem Header="Delete"
                           Command="{Binding DeleteItemCommand}"
+                          IsVisible="{Binding Item.HasExistingFile}"
                           InputGesture="Delete"/>
             </MenuFlyout>
         </ResourceDictionary>

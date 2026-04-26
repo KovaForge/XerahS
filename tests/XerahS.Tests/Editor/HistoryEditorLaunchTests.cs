@@ -58,7 +58,7 @@ public class HistoryEditorLaunchTests
 
         try
         {
-            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
             var item = new HistoryItem
             {
                 FilePath = imagePath
@@ -80,7 +80,7 @@ public class HistoryEditorLaunchTests
     }
 
     [Test]
-    public async Task EditImage_UsesAnnotationSidecar_WhenAvailable()
+    public async Task EditImage_IgnoresAnnotationSidecar_AndOpensPlainImageEditor()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -107,7 +107,7 @@ public class HistoryEditorLaunchTests
 
         try
         {
-            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
             var item = new HistoryItem
             {
                 FilePath = imagePath,
@@ -116,10 +116,11 @@ public class HistoryEditorLaunchTests
 
             await viewModel.EditImageCommand.ExecuteAsync(item);
 
-            Assert.That(uiService.SessionLaunchCount, Is.EqualTo(1));
+            Assert.That(uiService.EditorLaunchCount, Is.EqualTo(1));
+            Assert.That(uiService.SessionLaunchCount, Is.EqualTo(0));
             Assert.That(uiService.LastSourceFilePath, Is.EqualTo(imagePath));
-            Assert.That(uiService.LastAnnotationCount, Is.EqualTo(1));
-            Assert.That(uiService.LastRestoredAnnotations, Is.True);
+            Assert.That(uiService.LastAnnotationCount, Is.EqualTo(0));
+            Assert.That(uiService.LastRestoredAnnotations, Is.False);
         }
         finally
         {
@@ -129,7 +130,213 @@ public class HistoryEditorLaunchTests
     }
 
     [Test]
+    public async Task EditAnnotations_UsesAnnotationSidecar_WhenAvailable()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "annotated.png");
+
+        using var bitmap = new SKBitmap(8, 8);
+        bitmap.Erase(SKColors.Red);
+        SaveBitmap(imagePath, bitmap);
+
+        string? sidecarPath = await XannProjectFileService.SaveAsync(
+            imagePath,
+            bitmap,
+            new Annotation[]
+            {
+                new RectangleAnnotation
+                {
+                    StartPoint = new SKPoint(1, 1),
+                    EndPoint = new SKPoint(6, 6)
+                }
+            });
+
+        var uiService = new TrackingUiService();
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath,
+                AnnotationSidecarPath = sidecarPath
+            };
+
+            await viewModel.EditAnnotationsCommand.ExecuteAsync(item);
+
+            Assert.That(uiService.EditorLaunchCount, Is.EqualTo(0));
+            Assert.That(uiService.SessionLaunchCount, Is.EqualTo(1));
+            Assert.That(uiService.LastSourceFilePath, Is.EqualTo(imagePath));
+            Assert.That(uiService.LastAnnotationCount, Is.EqualTo(1));
+            Assert.That(uiService.LastRestoredAnnotations, Is.True);
+            Assert.That(uiService.LastSessionImageSize, Is.EqualTo(new SKSizeI(8, 8)));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task EditAnnotations_UsesCurrentFileImage_WhenAnnotationSidecarHashMismatches()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "annotated.png");
+
+        using var originalBitmap = new SKBitmap(8, 8);
+        originalBitmap.Erase(SKColors.Red);
+        SaveBitmap(imagePath, originalBitmap);
+
+        string? sidecarPath = await XannProjectFileService.SaveAsync(
+            imagePath,
+            originalBitmap,
+            new Annotation[]
+            {
+                new RectangleAnnotation
+                {
+                    StartPoint = new SKPoint(1, 1),
+                    EndPoint = new SKPoint(6, 6)
+                }
+            });
+
+        using (var updatedBitmap = new SKBitmap(16, 10))
+        {
+            updatedBitmap.Erase(SKColors.Green);
+            SaveBitmap(imagePath, updatedBitmap);
+        }
+
+        var uiService = new TrackingUiService();
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath,
+                AnnotationSidecarPath = sidecarPath
+            };
+
+            await viewModel.EditAnnotationsCommand.ExecuteAsync(item);
+
+            Assert.That(uiService.SessionLaunchCount, Is.EqualTo(1));
+            Assert.That(uiService.LastSourceFilePath, Is.EqualTo(imagePath));
+            Assert.That(uiService.LastAnnotationCount, Is.EqualTo(1));
+            Assert.That(uiService.LastRestoredAnnotations, Is.True);
+            Assert.That(uiService.LastSessionImageSize, Is.EqualTo(new SKSizeI(16, 10)));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+
+    [Test]
+    public async Task EditImage_ClosesSourceFileBeforeLaunchingEditor()
+    {
+        string imagePath = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        {
+            bitmap.Erase(SKColors.Red);
+            SaveBitmap(imagePath, bitmap);
+        }
+
+        bool editorCouldOpenExclusiveWriteHandle = false;
+        var uiService = new TrackingUiService
+        {
+            ShowEditorCallback = sourceFilePath =>
+            {
+                Assert.That(sourceFilePath, Is.EqualTo(imagePath));
+                using var stream = File.Open(sourceFilePath!, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                editorCouldOpenExclusiveWriteHandle = stream.CanWrite;
+            }
+        };
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath
+            };
+
+            await viewModel.EditImageCommand.ExecuteAsync(item);
+
+            Assert.That(editorCouldOpenExclusiveWriteHandle, Is.True);
+        }
+        finally
+        {
+            PlatformServices.Reset();
+
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Test]
     public async Task EditImage_RefreshesHistoryItem_WhenEditedFileChanges()
+    {
+        await VerifyHistoryItemRefreshesAfterEditorSessionAsync(lastWriteTimeTransform: static original => original.AddMinutes(1));
+    }
+
+    [Test]
+    public async Task EditImage_DisposesLoadedBitmap_WhenEditorReturnsSeparateRenderedImage()
+    {
+        string imagePath = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        {
+            bitmap.Erase(SKColors.Red);
+            SaveBitmap(imagePath, bitmap);
+        }
+
+        var uiService = new TrackingUiService
+        {
+            ReturnCopiedEditorImage = true
+        };
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath
+            };
+
+            await viewModel.EditImageCommand.ExecuteAsync(item);
+
+            Assert.That(uiService.LastEditorInputImage, Is.Not.Null);
+            Assert.That(uiService.LastEditorInputImage!.Handle, Is.EqualTo(IntPtr.Zero));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Test]
+    public async Task EditImage_RefreshesHistoryItem_WhenEditedFileKeepsSameTimestamp()
+    {
+        await VerifyHistoryItemRefreshesAfterEditorSessionAsync(lastWriteTimeTransform: static original => original);
+    }
+
+    private static async Task VerifyHistoryItemRefreshesAfterEditorSessionAsync(Func<DateTime, DateTime> lastWriteTimeTransform)
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -152,23 +359,26 @@ public class HistoryEditorLaunchTests
             });
 
         DateTime originalWriteTimeUtc = File.GetLastWriteTimeUtc(imagePath);
+        Action<string?> mutateEditedFile = sourceFilePath =>
+        {
+            Assert.That(sourceFilePath, Is.EqualTo(imagePath));
+
+            using var updatedBitmap = new SKBitmap(16, 16);
+            updatedBitmap.Erase(SKColors.Green);
+            SaveBitmap(imagePath, updatedBitmap);
+            File.SetLastWriteTimeUtc(imagePath, lastWriteTimeTransform(originalWriteTimeUtc));
+        };
+
         var uiService = new TrackingUiService
         {
-            ShowEditorSessionCallback = sourceFilePath =>
-            {
-                Assert.That(sourceFilePath, Is.EqualTo(imagePath));
-
-                using var updatedBitmap = new SKBitmap(8, 8);
-                updatedBitmap.Erase(SKColors.Green);
-                SaveBitmap(imagePath, updatedBitmap);
-                File.SetLastWriteTimeUtc(imagePath, originalWriteTimeUtc.AddMinutes(1));
-            }
+            ShowEditorCallback = mutateEditedFile,
+            ShowEditorSessionCallback = mutateEditedFile
         };
         PlatformServices.RegisterUIService(uiService);
 
         try
         {
-            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService());
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
             var item = new HistoryItem
             {
                 FilePath = imagePath,
@@ -196,7 +406,12 @@ public class HistoryEditorLaunchTests
         public string? LastSourceFilePath { get; private set; }
         public int LastAnnotationCount { get; private set; }
         public bool LastRestoredAnnotations { get; private set; }
+        public int EditorLaunchCount { get; private set; }
         public int SessionLaunchCount { get; private set; }
+        public SKSizeI LastSessionImageSize { get; private set; }
+        public bool ReturnCopiedEditorImage { get; init; }
+        public SKBitmap? LastEditorInputImage { get; private set; }
+        public Action<string?>? ShowEditorCallback { get; init; }
         public Action<string?>? ShowEditorSessionCallback { get; init; }
 
         public Task HideMainWindowAsync() => Task.CompletedTask;
@@ -205,8 +420,20 @@ public class HistoryEditorLaunchTests
 
         public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
         {
+            EditorLaunchCount++;
             LastSourceFilePath = sourceFilePath;
-            return Task.FromResult<SKBitmap?>(image);
+            LastAnnotationCount = 0;
+            LastRestoredAnnotations = false;
+            LastEditorInputImage = image;
+            ShowEditorCallback?.Invoke(sourceFilePath);
+
+            if (!ReturnCopiedEditorImage)
+            {
+                return Task.FromResult<SKBitmap?>(image);
+            }
+
+            SKBitmap renderedImage = image.Copy();
+            return Task.FromResult<SKBitmap?>(renderedImage);
         }
 
         public Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
@@ -220,6 +447,7 @@ public class HistoryEditorLaunchTests
             LastSourceFilePath = sourceFilePath;
             LastAnnotationCount = annotations?.Count ?? 0;
             LastRestoredAnnotations = restoredAnnotations;
+            LastSessionImageSize = new SKSizeI(image.Width, image.Height);
             ShowEditorSessionCallback?.Invoke(sourceFilePath);
             return Task.FromResult<ImageEditorSessionResult?>(new ImageEditorSessionResult(
                 image.Copy()!,

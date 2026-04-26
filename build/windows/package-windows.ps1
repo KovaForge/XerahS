@@ -1,8 +1,8 @@
 $ErrorActionPreference = "Stop"
 
 # This script builds Windows installers and requires Windows plus Inno Setup.
-# It also builds MSI packages using WiX Toolset v4 when `wix` is available in PATH.
-# Install WiX: dotnet tool install --global wix ; wix extension add --global WixToolset.UI.wixext
+# It also builds MSI packages using WiX Toolset v4+ when `wix` is available in PATH.
+# Install WiX: dotnet tool install --global wix --version 6.0.2 ; wix extension add --global WixToolset.UI.wixext/6.0.2
 
 # ---------------------------------------------------------------------------
 # Helper: generate a WiX v4 ComponentGroup fragment for all files under a
@@ -80,8 +80,8 @@ $wixCmd  = Get-Command wix -ErrorAction SilentlyContinue
 $skipMsi = $null -eq $wixCmd
 if ($skipMsi) {
     Write-Warning "WiX CLI (wix.exe) not found in PATH - MSI packages will not be built."
-    Write-Warning "Install: dotnet tool install --global wix"
-    Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext"
+    Write-Warning "Install: dotnet tool install --global wix --version 6.0.2"
+    Write-Warning "Then add extension: wix extension add --global WixToolset.UI.wixext/6.0.2"
 } else {
     Write-Host "WiX CLI: $($wixCmd.Source)"
 }
@@ -105,6 +105,70 @@ if ([string]::IsNullOrEmpty($version)) {
 }
 
 Write-Host "Building XerahS version $version for Windows..."
+
+function Invoke-VideoEditorFrontendBuild {
+    $frontendDir = Join-Path (Join-Path $root "ShareX.VideoEditor") "frontend"
+    $packageJson = Join-Path $frontendDir "package.json"
+    $distDir = Join-Path $frontendDir "dist"
+
+    if (!(Test-Path $packageJson)) {
+        throw "ShareX.VideoEditor frontend package.json not found: $packageJson"
+    }
+
+    Write-Host "Building ShareX.VideoEditor frontend..."
+    Push-Location $frontendDir
+    try {
+        npm ci
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm ci failed with exit code $LASTEXITCODE."
+        }
+
+        npm run build
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm run build failed with exit code $LASTEXITCODE."
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    if (!(Test-Path $distDir)) {
+        throw "ShareX.VideoEditor frontend dist missing after build: $distDir"
+    }
+}
+
+function Invoke-ProjectRestoreForOS {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectPath,
+        [Parameter(Mandatory = $true)]
+        [string]$OSValue
+    )
+
+    dotnet restore $ProjectPath -p:OS=$OSValue --disable-build-servers -p:nodeReuse=false -p:UseSharedCompilation=false -p:BuildInParallel=false /m:1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Restore failed with exit code $LASTEXITCODE for $ProjectPath (OS=$OSValue)."
+    }
+}
+
+function Invoke-ScopedIntermediateRestores {
+    $imageEditorProject = Join-Path (Join-Path (Join-Path (Join-Path $root "ShareX.ImageEditor") "src") "ShareX.ImageEditor") "ShareX.ImageEditor.csproj"
+    $uiProject = Join-Path (Join-Path (Join-Path (Join-Path (Join-Path $root "src") "desktop") "app") "XerahS.UI") "XerahS.UI.csproj"
+
+    if (!(Test-Path $imageEditorProject)) {
+        throw "ShareX.ImageEditor project not found: $imageEditorProject"
+    }
+    if (!(Test-Path $uiProject)) {
+        throw "XerahS.UI project not found: $uiProject"
+    }
+
+    Write-Host "Restoring scoped intermediate assets for Windows packaging..."
+    Invoke-ProjectRestoreForOS -ProjectPath $imageEditorProject -OSValue "Windows_NT"
+    Invoke-ProjectRestoreForOS -ProjectPath $uiProject -OSValue "Windows_NT"
+}
+
+Invoke-VideoEditorFrontendBuild
+Invoke-ScopedIntermediateRestores
 
 $archs = @("win-x64", "win-arm64")
 

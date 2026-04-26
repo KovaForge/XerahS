@@ -2,12 +2,16 @@
 
   <PropertyGroup>
     <RootNamespace>XerahS.Tests</RootNamespace>
-    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
     <EnableWindowsTargeting Condition="'$(OS)' != 'Windows_NT'">true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <EnableAppDrivenPluginBuild>false</EnableAppDrivenPluginBuild>
+    <SkipBundlePlugins>true</SkipBundlePlugins>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,35 +36,48 @@
     <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
+    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
+                      AdditionalProperties="EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
+    <ProjectReference Include="..\..\src\desktop\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\src\desktop\core\XerahS.Indexer\XerahS.Indexer.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\AmazonS3.Plugin\XerahS.AmazonS3.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\Dropbox.Plugin\XerahS.Dropbox.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\Ftp.Plugin\XerahS.Ftp.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\Imgur.Plugin\XerahS.Imgur.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\Nextcloud.Plugin\XerahS.Nextcloud.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\src\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" />
     <ProjectReference Include="..\..\src\platform\XerahS.Platform.Linux\XerahS.Platform.Linux.csproj" />
+    <ProjectReference Include="..\..\src\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" />
+    <ProjectReference Include="..\..\src\platform\XerahS.Platform.Mobile\XerahS.Platform.Mobile.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Uploaders\XerahS.Uploaders.csproj" />
-    <ProjectReference Include="..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS;Platform" />
+    <ProjectReference Include="..\..\src\tools\XerahS.McpServer\XerahS.McpServer.csproj" />
+    <ProjectReference Include="..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\desktop\app\XerahS.App\SendToIntegrationCoordinator.cs"
+             Link="SendTo\AppSources\SendToIntegrationCoordinator.cs" />
   </ItemGroup>
 
   <!--
-    XIP0039 Guardrail 7: EditorRotateAnnotationsTests.cs re-enabled after porting to the current
-    EditorCore API (Rotate90Clockwise / Rotate90CounterClockwise / FlipHorizontal / FlipVertical).
-
-    EditorHistoryEffectsTests.cs remains excluded: it targets a per-core effects management API
-    (_core.AddEffect, _core.Effects, _core.ToggleEffect, etc.) that does not exist in the current
-    upstream ShareX.ImageEditor EditorCore. Effects are managed at the ViewModel layer (MainViewModel).
-    To re-enable this file, the effects tracking API must first be introduced into EditorCore.
+    XIP0039 Guardrail 7: EditorRotateAnnotationsTests.cs and EditorHistoryEffectsTests.cs are both
+    aligned with the current upstream EditorCore API. The latter now exercises the live canvas
+    history contract (ApplyImageOperation + annotation restoration) instead of the removed legacy
+    per-core effects list API.
   -->
-  <ItemGroup>
-    <Compile Remove="Editor\EditorHistoryEffectsTests.cs" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-    <Compile Remove="Platform\Windows\BgraRowCopyHelperTests.cs" />
-    <Compile Remove="Platform\Windows\WindowsClipboardImageHelperTests.cs" />
-    <Compile Remove="Platform\Windows\WindowsScrollingCaptureServiceTests.cs" />
-    <Compile Remove="RegionCapture\NativeWindowServiceTests.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\BgraRowCopyHelper.cs"
+             Link="Platform\Windows\WindowsSources\BgraRowCopyHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ScrollTargetResolver.cs"
+             Link="Platform\Windows\WindowsSources\ScrollTargetResolver.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ClipboardDibCodec.cs"
+             Link="Platform\Windows\WindowsSources\ClipboardDibCodec.cs" />
+    <Compile Remove="Platform\Windows\WinRTCaptureStrategyTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

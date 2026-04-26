@@ -109,14 +109,14 @@ public class WorkflowManager : IDisposable
     /// </summary>
     public bool RegisterHotkey(WorkflowSettings settings)
     {
-        settings.HotkeyInfo.NativeTriggerDescription = null;
-
         // If this workflow had a previously registered hotkey, release it first.
         // This is required when editing a hotkey and clearing it to None.
-        if (settings.HotkeyInfo.Id != 0)
+        if (settings.HotkeyInfo.Id != 0 && !UnregisterHotkeyInternal(settings, removeFromList: false))
         {
-            UnregisterHotkeyInternal(settings, removeFromList: false); // Best effort cleanup
+            return false;
         }
+
+        settings.HotkeyInfo.NativeTriggerDescription = null;
 
         if (settings.Job == WorkflowType.None)
         {
@@ -167,18 +167,25 @@ public class WorkflowManager : IDisposable
 
     private bool UnregisterHotkeyInternal(WorkflowSettings settings, bool removeFromList)
     {
-        if (settings.HotkeyInfo.Id == 0)
+        ushort hotkeyId = settings.HotkeyInfo.Id;
+        if (hotkeyId == 0)
         {
             return false;
         }
 
         bool result = _hotkeyService.UnregisterHotkey(settings.HotkeyInfo);
-        _hotkeyMap.Remove(settings.HotkeyInfo.Id);
 
-        if (removeFromList && Workflows.Contains(settings))
+        if (result)
         {
-            Workflows.Remove(settings);
-            WorkflowsChanged?.Invoke(this, EventArgs.Empty);
+            _hotkeyMap.Remove(hotkeyId);
+            settings.HotkeyInfo.Id = 0;
+            settings.HotkeyInfo.NativeTriggerDescription = null;
+
+            if (removeFromList && Workflows.Contains(settings))
+            {
+                Workflows.Remove(settings);
+                WorkflowsChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         return result;

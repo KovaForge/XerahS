@@ -28,6 +28,7 @@ using Newtonsoft.Json.Serialization;
 using ShareX.ImageEditor.Core.ImageEffects;
 using SkiaSharp;
 using System.IO.Compression;
+using System.Reflection;
 
 namespace XerahS.Core.Helpers;
 
@@ -76,6 +77,7 @@ public static class ImageEffectPresetSerializer
             TypeNameHandling = TypeNameHandling.Auto,
             TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             SerializationBinder = new ImageEffectSerializationBinder(),
+            ContractResolver = new ImageEffectPresetContractResolver(),
             Converters = { new SkColorJsonConverter() }
         };
     }
@@ -114,6 +116,28 @@ internal sealed class XsiePreset
     public int Version { get; set; } = 1;
     public string? Name { get; set; }
     public List<ImageEffect> Effects { get; set; } = new();
+}
+
+internal sealed class ImageEffectPresetContractResolver : DefaultContractResolver
+{
+    private static readonly HashSet<string> IgnoredEffectMetadataProperties =
+    [
+        nameof(ImageEffect.HasParameters),
+        "Parameters"
+    ];
+
+    protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+    {
+        JsonProperty property = base.CreateProperty(member, memberSerialization);
+
+        if (typeof(ImageEffect).IsAssignableFrom(member.DeclaringType) &&
+            IgnoredEffectMetadataProperties.Contains(property.PropertyName ?? member.Name))
+        {
+            property.Ignored = true;
+        }
+
+        return property;
+    }
 }
 
 internal sealed class ImageEffectSerializationBinder : ISerializationBinder

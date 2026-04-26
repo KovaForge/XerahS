@@ -8,11 +8,11 @@ This repo includes a scheduled workflow at `.github/workflows/draft-blog-post-da
 
 - Runs every day at `16:00 UTC`.
 - Checks out `develop`.
-- Runs `.ai/skills/draft-blog-post/scripts/run-daily-draft.ps1 -IncludePreviousDay`.
-- Ensures draft files exist for both the current UTC+8 day and the previous UTC+8 day.
-- Commits and pushes `docs/blog/...` changes back to `develop` only when new draft files were created.
+- Does not auto-create missing dated blog drafts anymore.
+- Skips creation when the previous UTC+8 draft file does not already exist, to avoid add/add merge conflicts between local and upstream automation.
+- Commits and pushes `docs/blog/...` changes back to `develop` only if an existing draft was intentionally refreshed.
 
-This workflow only creates missing draft files. It does not populate blog content from git history.
+This workflow should not create missing draft files. It should only operate on already-existing drafts. It does not populate blog content from git history.
 
 ## Cursor Automations (recommended for the full skill)
 

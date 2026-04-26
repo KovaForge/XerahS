@@ -17,6 +17,7 @@ Sequence options:
   --assume-changelog-done     Skip interactive confirmation for step 2
   --monitor                   Monitor tag release workflow after step 3
   --monitor-interval <sec>    Poll interval in seconds (default: 120)
+  --repo <owner/name>         GitHub repository for gh commands (default: origin remote)
   --set-prerelease            Explicitly mark successful tag release as pre-release (default behavior)
   --no-prerelease             Keep successful tag release as stable (opt out)
   -h, --help                  Show this help
@@ -31,6 +32,40 @@ require_cmd() {
     echo "Error: required command not found: $1" >&2
     exit 1
   fi
+}
+
+resolve_github_repo_from_origin() {
+  local remote_url
+  remote_url="$(git remote get-url origin 2>/dev/null || true)"
+  if [[ -z "$remote_url" ]]; then
+    return 1
+  fi
+
+  case "$remote_url" in
+    https://github.com/*)
+      remote_url="${remote_url#https://github.com/}"
+      ;;
+    http://github.com/*)
+      remote_url="${remote_url#http://github.com/}"
+      ;;
+    git@github.com:*)
+      remote_url="${remote_url#git@github.com:}"
+      ;;
+    ssh://git@github.com/*)
+      remote_url="${remote_url#ssh://git@github.com/}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  remote_url="${remote_url%.git}"
+  if [[ "$remote_url" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    echo "$remote_url"
+    return 0
+  fi
+
+  return 1
 }
 
 run_maintenance_chores() {
@@ -53,6 +88,12 @@ run_maintenance_chores() {
   git pull --recurse-submodules
   echo "  - git submodule update --init --recursive"
   git submodule update --init --recursive
+}
+
+run_build_precheck() {
+  echo "Step 3 pre-check: dotnet build src/desktop/XerahS.sln -m:1"
+  require_cmd dotnet
+  dotnet build src/desktop/XerahS.sln -m:1
 }
 
 resolve_version_from_props() {
@@ -92,12 +133,14 @@ passthrough_has_flag() {
 find_tag_run_id() {
   local workflow_name="$1"
   local tag_name="$2"
+  local gh_repo="$3"
   local attempt=1
   local max_attempts=30
   local run_id=""
 
   while [[ $attempt -le $max_attempts ]]; do
     run_id="$(gh run list \
+      --repo "$gh_repo" \
       --workflow "$workflow_name" \
       --limit 50 \
       --json databaseId,headBranch \
@@ -119,6 +162,7 @@ find_tag_run_id() {
 monitor_release_run() {
   local run_id="$1"
   local interval="$2"
+  local gh_repo="$3"
   local line
   local status=""
   local conclusion=""
@@ -128,7 +172,7 @@ monitor_release_run() {
   local log_file=""
 
   while true; do
-    line="$(gh run view "$run_id" --json status,conclusion,url --jq '[.status, (.conclusion // ""), .url] | @tsv')"
+    line="$(gh run view "$run_id" --repo "$gh_repo" --json status,conclusion,url --jq '[.status, (if (.conclusion == null or .conclusion == "") then "n/a" else .conclusion end), .url] | @tsv')"
     IFS=$'\t' read -r status conclusion run_url <<< "$line"
 
     echo "Run $run_id: status=$status conclusion=${conclusion:-n/a} url=$run_url"
@@ -140,13 +184,13 @@ monitor_release_run() {
       fi
 
       echo "Release workflow failed with conclusion '$conclusion'." >&2
-      failed_job_id="$(gh run view "$run_id" --json jobs --jq '.jobs[] | select(.conclusion=="failure") | .databaseId' | head -n 1 || true)"
-      failed_job_name="$(gh run view "$run_id" --json jobs --jq '.jobs[] | select(.conclusion=="failure") | .name' | head -n 1 || true)"
+      failed_job_id="$(gh run view "$run_id" --repo "$gh_repo" --json jobs --jq '.jobs[] | select(.conclusion=="failure") | .databaseId' | head -n 1 || true)"
+      failed_job_name="$(gh run view "$run_id" --repo "$gh_repo" --json jobs --jq '.jobs[] | select(.conclusion=="failure") | .name' | head -n 1 || true)"
 
       if [[ -n "$failed_job_id" ]]; then
         log_file="release-run-${run_id}-job-${failed_job_id}.log"
         echo "First failing job: ${failed_job_name:-unknown} ($failed_job_id)"
-        gh run view "$run_id" --job "$failed_job_id" --log > "$log_file" 2>&1 || true
+        gh run view "$run_id" --repo "$gh_repo" --job "$failed_job_id" --log > "$log_file" 2>&1 || true
         echo "Saved failing job log to: $log_file"
       fi
 
@@ -159,11 +203,12 @@ monitor_release_run() {
 
 wait_for_release() {
   local tag_name="$1"
+  local gh_repo="$2"
   local attempt=1
   local max_attempts=90
 
   while [[ $attempt -le $max_attempts ]]; do
-    if gh release view "$tag_name" --json url >/dev/null 2>&1; then
+    if gh release view "$tag_name" --repo "$gh_repo" --json url >/dev/null 2>&1; then
       return 0
     fi
     echo "Waiting for release $tag_name (attempt $attempt/$max_attempts)..."
@@ -194,18 +239,19 @@ EOF
 
 ensure_standard_release_notes() {
   local tag_name="$1"
+  local gh_repo="$2"
   local existing_body=""
   local updated_body_file=""
   local release_url=""
 
   require_cmd gh
 
-  if ! wait_for_release "$tag_name"; then
+  if ! wait_for_release "$tag_name" "$gh_repo"; then
     echo "Error: release $tag_name was not found. Cannot enforce standard release notes." >&2
     exit 1
   fi
 
-  existing_body="$(gh release view "$tag_name" --json body --jq '.body // ""')"
+  existing_body="$(gh release view "$tag_name" --repo "$gh_repo" --json body --jq '.body // ""')"
   if [[ "$existing_body" == *"https://xerahs.com/changelog.html"* ]] && [[ "$existing_body" == *"### macOS Troubleshooting (\"App is damaged\")"* ]]; then
     echo "Standard release notes block already present for $tag_name."
     return 0
@@ -219,23 +265,24 @@ ensure_standard_release_notes() {
     standard_release_notes_block
   } > "$updated_body_file"
 
-  gh release edit "$tag_name" --notes-file "$updated_body_file" >/dev/null
+  gh release edit "$tag_name" --repo "$gh_repo" --notes-file "$updated_body_file" >/dev/null
   rm -f "$updated_body_file"
 
-  release_url="$(gh release view "$tag_name" --json url --jq '.url')"
+  release_url="$(gh release view "$tag_name" --repo "$gh_repo" --json url --jq '.url')"
   echo "Standard release notes block ensured: $release_url"
 }
 
 set_release_prerelease() {
   local tag_name="$1"
+  local gh_repo="$2"
   local is_prerelease=""
   local release_url=""
 
   echo "Setting release $tag_name as pre-release..."
-  gh release edit "$tag_name" --prerelease >/dev/null
+  gh release edit "$tag_name" --repo "$gh_repo" --prerelease >/dev/null
 
-  is_prerelease="$(gh release view "$tag_name" --json isPrerelease --jq '.isPrerelease')"
-  release_url="$(gh release view "$tag_name" --json url --jq '.url')"
+  is_prerelease="$(gh release view "$tag_name" --repo "$gh_repo" --json isPrerelease --jq '.isPrerelease')"
+  release_url="$(gh release view "$tag_name" --repo "$gh_repo" --json url --jq '.url')"
 
   if [[ "$is_prerelease" != "true" ]]; then
     echo "Error: release $tag_name was not marked as pre-release." >&2
@@ -251,6 +298,7 @@ MONITOR=0
 MONITOR_INTERVAL=120
 SET_PRERELEASE=1
 WORKFLOW_NAME="Release Build (All Platforms)"
+GH_TARGET_REPO=""
 
 PASSTHROUGH_ARGS=()
 while [[ $# -gt 0 ]]; do
@@ -277,6 +325,14 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       MONITOR_INTERVAL="$2"
+      shift 2
+      ;;
+    --repo)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --repo requires owner/name." >&2
+        exit 1
+      fi
+      GH_TARGET_REPO="$2"
       shift 2
       ;;
     --set-prerelease)
@@ -317,6 +373,18 @@ fi
 cd "$repo_root"
 repo_root="$(pwd -P)"
 
+if [[ -z "$GH_TARGET_REPO" ]]; then
+  GH_TARGET_REPO="$(resolve_github_repo_from_origin || true)"
+fi
+if [[ -z "$GH_TARGET_REPO" ]]; then
+  GH_TARGET_REPO="${GH_REPO:-}"
+fi
+if [[ -z "$GH_TARGET_REPO" ]]; then
+  echo "Error: could not resolve GitHub repo from origin. Pass --repo owner/name." >&2
+  exit 1
+fi
+echo "GitHub repo target: $GH_TARGET_REPO"
+
 maintenance_skill="$repo_root/.ai/skills/run-maintenance/SKILL.md"
 changelog_skill="$repo_root/.ai/skills/update-changelog/SKILL.md"
 bump_script="$repo_root/.ai/skills/publish-release/scripts/bump-version-commit-tag.sh"
@@ -351,6 +419,7 @@ if [[ $ASSUME_CHANGELOG_DONE -eq 0 ]]; then
 fi
 
 echo "Step 3: running bump/tag automation..."
+run_build_precheck
 bash "$bump_script" "${PASSTHROUGH_ARGS[@]}"
 
 if passthrough_has_flag "--dry-run"; then
@@ -377,24 +446,24 @@ if [[ $MONITOR -eq 1 ]]; then
   require_cmd gh
 
   echo "Step 4: monitoring workflow '$WORKFLOW_NAME' for tag $tag_name every ${MONITOR_INTERVAL}s..."
-  run_id="$(find_tag_run_id "$WORKFLOW_NAME" "$tag_name" || true)"
+  run_id="$(find_tag_run_id "$WORKFLOW_NAME" "$tag_name" "$GH_TARGET_REPO" || true)"
   if [[ -z "$run_id" ]]; then
     echo "Error: could not find workflow run for tag $tag_name." >&2
     exit 1
   fi
 
   echo "Found run id: $run_id"
-  if ! monitor_release_run "$run_id" "$MONITOR_INTERVAL"; then
+  if ! monitor_release_run "$run_id" "$MONITOR_INTERVAL" "$GH_TARGET_REPO"; then
     echo "Release run failed. Fix the issue, then retry with the next patch release." >&2
     exit 1
   fi
 fi
 
 echo "Step 5: ensuring standard release notes for $tag_name..."
-ensure_standard_release_notes "$tag_name"
+ensure_standard_release_notes "$tag_name" "$GH_TARGET_REPO"
 
 if [[ $SET_PRERELEASE -eq 1 ]]; then
-  set_release_prerelease "$tag_name"
+  set_release_prerelease "$tag_name" "$GH_TARGET_REPO"
 fi
 
 echo "Release sequence completed for $tag_name."

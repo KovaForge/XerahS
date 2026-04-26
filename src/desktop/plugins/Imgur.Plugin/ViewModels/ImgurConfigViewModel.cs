@@ -178,21 +178,18 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             {
                 _config = config;
                 _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
-                _uploader = BuildUploader();
 
                 ClientId = _config.ClientId ?? string.Empty;
-                AccountTypeIndex = (int)_config.AccountType;
-                ThumbnailTypeIndex = (int)_config.ThumbnailType;
+                AccountTypeIndex = NormalizeAccountTypeIndex(_config.AccountType);
+                ThumbnailTypeIndex = NormalizeThumbnailTypeIndex(_config.ThumbnailType);
                 UseDirectLink = _config.DirectLink;
                 UseGifv = _config.UseGIFV;
                 UploadToSelectedAlbum = _config.UploadToSelectedAlbum;
-                IsLoggedIn = HasToken();
+                SyncAccountSessionState();
+                _uploader = BuildUploader();
 
-                // Load selected album if exists
-                if (_config.SelectedAlbum != null)
-                {
-                    SelectedAlbum = _config.SelectedAlbum;
-                }
+                // Always refresh selected album state so reused view-model instances do not keep a stale album.
+                SelectedAlbum = _config.SelectedAlbum;
             }
         }
         catch
@@ -203,6 +200,9 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
 
     public string ToJson()
     {
+        AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
+        ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
         _config.ClientId = ClientId;
         _config.AccountType = (AccountType)AccountTypeIndex;
         _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
@@ -255,13 +255,10 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
         var authInfo = new OAuth2Info(ClientId, clientSecret);
         var tokenJson = _secrets?.GetSecret("imgur", _secretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
+        var token = TryDeserializeToken(tokenJson);
+        if (token != null)
         {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null)
-            {
-                authInfo.Token = token;
-            }
+            authInfo.Token = token;
         }
 
         return new ImgurUploader(_config, authInfo);
@@ -271,9 +268,55 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     {
         if (rebuild || _uploader == null)
         {
+            AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
+            ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
             _config.ClientId = ClientId;
+            _config.AccountType = (AccountType)AccountTypeIndex;
+            _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
+            _config.DirectLink = UseDirectLink;
+            _config.UseGIFV = UseGifv;
+            _config.UploadToSelectedAlbum = UploadToSelectedAlbum;
+            _config.SelectedAlbum = UploadToSelectedAlbum ? SelectedAlbum : null;
+            _config.SecretKey = _secretKey;
             _uploader = BuildUploader();
         }
+    }
+
+    private static int NormalizeAccountTypeIndex(AccountType accountType)
+    {
+        return Enum.IsDefined(accountType) ? (int)accountType : (int)AccountType.Anonymous;
+    }
+
+    private static int NormalizeThumbnailTypeIndex(ImgurThumbnailType thumbnailType)
+    {
+        return Enum.IsDefined(thumbnailType) ? (int)thumbnailType : (int)ImgurThumbnailType.Medium_Thumbnail;
+    }
+
+    partial void OnAccountTypeIndexChanged(int value)
+    {
+        AccountType accountType = Enum.IsDefined((AccountType)value) ? (AccountType)value : AccountType.Anonymous;
+        if (accountType != AccountType.User)
+        {
+            IsLoggedIn = false;
+            ClearAlbumSessionState();
+        }
+    }
+
+    private void SyncAccountSessionState()
+    {
+        IsLoggedIn = AccountTypeIndex == (int)AccountType.User && HasToken();
+
+        if (!IsLoggedIn)
+        {
+            ClearAlbumSessionState();
+        }
+    }
+
+    private void ClearAlbumSessionState()
+    {
+        Albums.Clear();
+        AlbumStatusMessage = null;
     }
 
     private static bool TryOpenUrl(string url)
@@ -353,12 +396,24 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
         }
 
         var tokenJson = _secrets.GetSecret("imgur", _secretKey, "oauthToken");
+        var token = TryDeserializeToken(tokenJson);
+        return token != null && !string.IsNullOrEmpty(token.access_token);
+    }
+
+    private static OAuth2Token? TryDeserializeToken(string? tokenJson)
+    {
         if (string.IsNullOrWhiteSpace(tokenJson))
         {
-            return false;
+            return null;
         }
 
-        var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-        return token != null && !string.IsNullOrEmpty(token.access_token);
+        try
+        {
+            return JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

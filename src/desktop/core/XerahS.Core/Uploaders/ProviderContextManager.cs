@@ -31,22 +31,34 @@ namespace XerahS.Core.Uploaders;
 public static class ProviderContextManager
 {
     private static IProviderContext? _context;
+    private static string? _contextSecretsPath;
     private static readonly object _lock = new();
 
     public static IProviderContext? Current => _context;
+
+    public static void ResetProviderContext()
+    {
+        lock (_lock)
+        {
+            _context = null;
+            _contextSecretsPath = null;
+        }
+    }
 
     public static IProviderContext EnsureProviderContext()
     {
         lock (_lock)
         {
-            if (_context != null)
+            var secretsPath = SettingsManager.SecretsStoreFilePath;
+
+            if (_context != null && string.Equals(_contextSecretsPath, secretsPath, StringComparison.Ordinal))
             {
                 return _context;
             }
 
-            var secretsPath = SettingsManager.SecretsStoreFilePath;
             var secretsStore = new SecretStore(secretsPath);
             _context = new CoreProviderContext(secretsStore);
+            _contextSecretsPath = secretsPath;
             ProviderCatalog.SetProviderContext(_context);
 
             InstanceManager.Instance.MigrateSecretsIfNeeded();

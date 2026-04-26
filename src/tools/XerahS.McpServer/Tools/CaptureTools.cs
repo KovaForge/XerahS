@@ -78,14 +78,14 @@ public sealed class CaptureTools(IXerahSMcpRuntime runtime)
             "properties": {
               "scroll_direction": {
                 "type": "string",
-                "enum": ["down", "up", "left", "right"],
+                "enum": ["down"],
                 "default": "down",
-                "description": "Requested scroll direction metadata for the capture run."
+                "description": "Scroll direction for the capture run. Currently only downward scrolling is supported."
               },
               "max_frames": {
                 "type": "integer",
                 "default": 50,
-                "description": "Requested frame cap metadata for the capture run."
+                "description": "Maximum number of frames to capture before stopping."
               }
             }
           }

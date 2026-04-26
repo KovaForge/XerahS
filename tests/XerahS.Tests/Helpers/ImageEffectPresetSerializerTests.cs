@@ -55,6 +55,17 @@ public class ImageEffectPresetSerializerTests
         try
         {
             ImageEffectPresetSerializer.SaveXsieFile(path, preset);
+
+            using (var archive = ZipFile.OpenRead(path))
+            using (var reader = new StreamReader(archive.GetEntry("Config.json")!.Open()))
+            {
+                var savedJson = JObject.Parse(reader.ReadToEnd());
+                var savedEffects = (JArray?)savedJson["Effects"];
+                Assert.That(savedEffects, Is.Not.Null);
+                Assert.That(savedEffects![0]?["Parameters"], Is.Null);
+                Assert.That(savedEffects[1]?["Parameters"], Is.Null);
+            }
+
             var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
 
             Assert.That(loaded, Is.Not.Null);

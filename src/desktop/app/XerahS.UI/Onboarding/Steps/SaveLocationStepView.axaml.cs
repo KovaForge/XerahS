@@ -64,7 +64,7 @@ public partial class SaveLocationStepView : UserControl
                             AllowMultiple = false,
                         });
 
-                    return folders.Count > 0 ? folders[0].Path.LocalPath : null;
+                    return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
                 };
             }
         }

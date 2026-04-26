@@ -153,6 +153,8 @@ public class InstanceManager
     {
         lock (_lock)
         {
+            NormalizeInstance(instance);
+
             if (string.IsNullOrWhiteSpace(instance.InstanceId))
             {
                 instance.CreatedAt = DateTime.UtcNow;
@@ -178,6 +180,8 @@ public class InstanceManager
     {
         lock (_lock)
         {
+            NormalizeInstance(instance);
+
             var existing = _configuration.Instances.FirstOrDefault(i => i.InstanceId == instance.InstanceId);
             if (existing == null)
             {
@@ -232,6 +236,8 @@ public class InstanceManager
                 throw new InvalidOperationException($"Instance with ID {sourceInstanceId} not found");
             }
 
+            NormalizeInstance(source);
+
             var createdAt = DateTime.UtcNow;
             var duplicate = new UploaderInstance
             {
@@ -240,6 +246,11 @@ public class InstanceManager
                 Category = source.Category,
                 DisplayName = newDisplayName ?? $"{source.DisplayName} (Copy)",
                 SettingsJson = source.SettingsJson,
+                FileTypeRouting = new FileTypeScope
+                {
+                    AllFileTypes = source.FileTypeRouting.AllFileTypes,
+                    FileExtensions = source.FileTypeRouting.FileExtensions.ToList()
+                },
                 CreatedAt = createdAt,
                 ModifiedAt = createdAt,
                 IsAvailable = source.IsAvailable
@@ -305,6 +316,7 @@ public class InstanceManager
                     string.Equals(i.InstanceId, defaultId, StringComparison.OrdinalIgnoreCase));
 
                 if (defaultInstance != null &&
+                    defaultInstance.IsAvailable &&
                     !IsAutoProvider(defaultInstance.ProviderId) &&
                     !string.Equals(defaultInstance.InstanceId, autoInstanceId, StringComparison.OrdinalIgnoreCase))
                 {
@@ -314,6 +326,7 @@ public class InstanceManager
 
             return _configuration.Instances.FirstOrDefault(i =>
                 i.Category == category &&
+                i.IsAvailable &&
                 !IsAutoProvider(i.ProviderId) &&
                 !string.Equals(i.InstanceId, autoInstanceId, StringComparison.OrdinalIgnoreCase));
         }
@@ -338,14 +351,15 @@ public class InstanceManager
 
             // 1. Try exact file extension match first
             var exactMatch = instances.FirstOrDefault(i =>
-                !i.FileTypeRouting.AllFileTypes &&
-                i.FileTypeRouting.FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
+                i.IsAvailable &&
+                !GetFileTypeRouting(i).AllFileTypes &&
+                GetFileTypeRouting(i).FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
 
             if (exactMatch != null)
                 return exactMatch;
 
             // 2. Fallback to "All File Types" instance
-            var allTypesMatch = instances.FirstOrDefault(i => i.FileTypeRouting.AllFileTypes);
+            var allTypesMatch = instances.FirstOrDefault(i => i.IsAvailable && GetFileTypeRouting(i).AllFileTypes);
 
             return allTypesMatch;
         }
@@ -368,12 +382,12 @@ public class InstanceManager
                 .Where(i => i.Category == category && i.InstanceId != excludeInstanceId);
 
             // Cannot add if any other instance has "All File Types"
-            if (otherInstances.Any(i => i.FileTypeRouting.AllFileTypes))
+            if (otherInstances.Any(i => GetFileTypeRouting(i).AllFileTypes))
                 return false;
 
             // Cannot add if file type is already handled by another instance
             return !otherInstances.Any(i =>
-                i.FileTypeRouting.FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
+                GetFileTypeRouting(i).FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
         }
     }
 
@@ -412,13 +426,15 @@ public class InstanceManager
 
             foreach (var instance in otherInstances)
             {
-                if (instance.FileTypeRouting.AllFileTypes)
+                var routing = GetFileTypeRouting(instance);
+
+                if (routing.AllFileTypes)
                 {
                     result["*"] = instance.DisplayName;
                 }
                 else
                 {
-                    foreach (var ext in instance.FileTypeRouting.FileExtensions)
+                    foreach (var ext in routing.FileExtensions)
                     {
                         result[ext] = instance.DisplayName;
                     }
@@ -440,7 +456,9 @@ public class InstanceManager
             var otherInstances = _configuration.Instances
                 .Where(i => i.Category == instance.Category && i.InstanceId != instance.InstanceId);
 
-            if (instance.FileTypeRouting.AllFileTypes)
+            var instanceRouting = GetFileTypeRouting(instance);
+
+            if (instanceRouting.AllFileTypes)
             {
                 if (otherInstances.Any())
                 {
@@ -450,17 +468,17 @@ public class InstanceManager
             else
             {
                 // Check for "All File Types" conflicts
-                var allTypesInstance = otherInstances.FirstOrDefault(i => i.FileTypeRouting.AllFileTypes);
+                var allTypesInstance = otherInstances.FirstOrDefault(i => GetFileTypeRouting(i).AllFileTypes);
                 if (allTypesInstance != null)
                 {
                     return $"Cannot add file types - '{allTypesInstance.DisplayName}' handles all file types in {instance.Category}";
                 }
 
                 // Check for specific file type conflicts
-                foreach (var ext in instance.FileTypeRouting.FileExtensions)
+                foreach (var ext in instanceRouting.FileExtensions)
                 {
                     var conflictingInstance = otherInstances.FirstOrDefault(i =>
-                        i.FileTypeRouting.FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
+                        GetFileTypeRouting(i).FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase)));
 
                     if (conflictingInstance != null)
                     {
@@ -482,7 +500,9 @@ public class InstanceManager
             if (File.Exists(_configFilePath))
             {
                 var json = File.ReadAllText(_configFilePath);
-                return JsonConvert.DeserializeObject<InstanceConfiguration>(json) ?? new InstanceConfiguration();
+                var configuration = JsonConvert.DeserializeObject<InstanceConfiguration>(json) ?? new InstanceConfiguration();
+                NormalizeConfiguration(configuration);
+                return configuration;
             }
         }
         catch
@@ -491,6 +511,44 @@ public class InstanceManager
         }
 
         return new InstanceConfiguration();
+    }
+
+    private static void NormalizeConfiguration(InstanceConfiguration configuration)
+    {
+        configuration.Instances ??= new List<UploaderInstance>();
+        configuration.DefaultInstances ??= new Dictionary<UploaderCategory, string>();
+
+        foreach (var instance in configuration.Instances)
+        {
+            NormalizeInstance(instance);
+        }
+    }
+
+    private static FileTypeScope GetFileTypeRouting(UploaderInstance instance)
+    {
+        NormalizeInstance(instance);
+        return instance.FileTypeRouting;
+    }
+
+    private static void NormalizeInstance(UploaderInstance instance)
+    {
+        instance.FileTypeRouting ??= new FileTypeScope();
+        instance.FileTypeRouting.FileExtensions = NormalizeFileExtensions(instance.FileTypeRouting.FileExtensions);
+    }
+
+    private static List<string> NormalizeFileExtensions(IEnumerable<string>? fileExtensions)
+    {
+        if (fileExtensions == null)
+        {
+            return new List<string>();
+        }
+
+        return fileExtensions
+            .Where(ext => !string.IsNullOrWhiteSpace(ext))
+            .Select(ext => ext.Trim().TrimStart('.').ToLowerInvariant())
+            .Where(ext => !string.IsNullOrWhiteSpace(ext))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void SaveConfiguration()

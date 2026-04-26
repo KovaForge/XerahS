@@ -30,6 +30,7 @@ using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Tasks;
+using System.Collections.Generic;
 
 namespace XerahS.CLI.Commands;
 
@@ -37,6 +38,53 @@ public static class UploadCommand
 {
     private static bool _jsonOutput;
     private static bool _quiet;
+
+    internal static string SanitizeUploadFileName(string? name, string fallbackFileName)
+    {
+        var leafName = Path.GetFileName(name);
+        var sanitizedName = string.IsNullOrWhiteSpace(leafName) ? string.Empty : FileHelpers.SanitizeFileName(leafName);
+
+        return string.IsNullOrWhiteSpace(sanitizedName) || sanitizedName is "." or ".."
+            ? fallbackFileName
+            : sanitizedName;
+    }
+
+    internal static string CreateTemporaryUploadFilePath(string? requestedName, string fallbackFileName)
+    {
+        var sanitizedName = SanitizeUploadFileName(requestedName, fallbackFileName);
+        var uploadDirectory = CreateTemporaryUploadDirectory();
+        return Path.Combine(uploadDirectory, sanitizedName);
+    }
+
+    internal static string CreateTemporaryUploadDirectory()
+    {
+        var uploadDirectory = Path.Combine(Path.GetTempPath(), "xerahs-upload", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(uploadDirectory);
+        return uploadDirectory;
+    }
+
+    internal static void CleanupTemporaryUploadDirectories(IEnumerable<string?> directories)
+    {
+        foreach (string directory in directories
+                     .Where(static path => !string.IsNullOrWhiteSpace(path))
+                     .Select(static path => path!)
+                     .Distinct(StringComparer.Ordinal))
+        {
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
+
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch
+            {
+                // ignore cleanup errors
+            }
+        }
+    }
 
     public static Command Create(IDesktopTaskManager taskManager)
     {
@@ -79,6 +127,7 @@ public static class UploadCommand
     private static async Task<int> UploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name)
     {
         string? tempFilePath = null;
+        var tempDirectories = new List<string>();
 
         try
         {
@@ -97,14 +146,16 @@ public static class UploadCommand
             // Handle --text input: write to temp file
             if (!string.IsNullOrEmpty(text))
             {
-                tempFilePath = Path.Combine(Path.GetTempPath(), name ?? "upload.txt");
+                tempFilePath = CreateTemporaryUploadFilePath(name, "upload.txt");
+                tempDirectories.Add(Path.GetDirectoryName(tempFilePath)!);
                 await File.WriteAllTextAsync(tempFilePath, text);
                 filePath = tempFilePath;
             }
             // Handle --pipe input: read stdin to temp file
             else if (pipe)
             {
-                tempFilePath = Path.Combine(Path.GetTempPath(), name ?? "upload.txt");
+                tempFilePath = CreateTemporaryUploadFilePath(name, "upload.txt");
+                tempDirectories.Add(Path.GetDirectoryName(tempFilePath)!);
                 using var stdin = Console.OpenStandardInput();
                 using var fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write);
                 await stdin.CopyToAsync(fs);
@@ -117,16 +168,24 @@ public static class UploadCommand
                 return 1;
             }
 
+            string displayName = Path.GetFileName(filePath);
+
             if (!string.IsNullOrEmpty(filePath))
             {
                 string? namedFilePath = null;
                 if (!string.IsNullOrEmpty(name) && File.Exists(filePath))
                 {
-                    // Copy to temp file with the requested name so uploaders see the right filename
-                    namedFilePath = Path.Combine(Path.GetTempPath(), name);
+                    // Copy to a unique temp file with the requested name so uploaders see the right filename.
+                    // Avoid reusing shared temp paths, which can clobber concurrent uploads and leave stale files behind.
+                    namedFilePath = CreateTemporaryUploadFilePath(name, Path.GetFileName(filePath));
+                    tempDirectories.Add(Path.GetDirectoryName(namedFilePath)!);
                     File.Copy(filePath, namedFilePath, overwrite: true);
                     filePath = namedFilePath;
                 }
+
+                displayName = !string.IsNullOrEmpty(name)
+                    ? SanitizeUploadFileName(name, Path.GetFileName(filePath))
+                    : Path.GetFileName(filePath);
 
                 if (!File.Exists(filePath))
                 {
@@ -134,10 +193,7 @@ public static class UploadCommand
                     return 1;
                 }
 
-                if (!_quiet) Console.WriteLine($"Uploading: {filePath}");
-
-                // Use namedFilePath for display if set, otherwise use filePath
-                string displayFilePath = !string.IsNullOrEmpty(namedFilePath) ? filePath : filePath;
+                if (!_quiet) Console.WriteLine($"Uploading: {displayName}");
             }
 
             // Configure task settings for file upload
@@ -149,23 +205,41 @@ public static class UploadCommand
             taskSettings.AfterCaptureJob = AfterCaptureTasks.UploadImageToHost;
             taskSettings.AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
 
-            string displayName = !string.IsNullOrEmpty(name) ? name : Path.GetFileName(filePath ?? throw new InvalidOperationException());
-
             var tcs = new TaskCompletionSource<bool>();
             bool handlerFired = false;
+
+            string expectedFilePath = Path.GetFullPath(filePath);
 
             EventHandler<WorkerTask>? handler = null;
             handler = (sender, task) =>
             {
+                if (task is null)
+                {
+                    return;
+                }
+
+                var taskInfo = task.Info;
+                if (taskInfo is null)
+                {
+                    return;
+                }
+
+                string? completedFilePath = taskInfo.FilePath;
+
+                if (!string.IsNullOrWhiteSpace(completedFilePath) &&
+                    !string.Equals(Path.GetFullPath(completedFilePath), expectedFilePath, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 if (handlerFired) return;
                 handlerFired = true;
                 taskManager.TaskCompleted -= handler;
 
-                bool success = task.Status == Core.TaskStatus.Completed && !string.IsNullOrEmpty(task.Info.Metadata?.UploadURL);
+                bool success = task.Status == Core.TaskStatus.Completed && !string.IsNullOrEmpty(taskInfo.Metadata?.UploadURL);
                 if (success)
                 {
-                    var url = task.Info.Metadata?.UploadURL ?? string.Empty;
-                    string displayName = !string.IsNullOrEmpty(name) ? name : Path.GetFileName(filePath);
+                    var url = taskInfo.Metadata?.UploadURL ?? string.Empty;
                     if (_jsonOutput)
                     {
                         var result = new UploadResult(url, displayName, new FileInfo(filePath).Length, GetContentType(filePath));
@@ -207,6 +281,8 @@ public static class UploadCommand
         }
         finally
         {
+            CleanupTemporaryUploadDirectories(tempDirectories);
+
             if (tempFilePath != null && File.Exists(tempFilePath))
             {
                 try { File.Delete(tempFilePath); }

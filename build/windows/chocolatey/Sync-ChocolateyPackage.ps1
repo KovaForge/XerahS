@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
     [string]$Version,
-    [string]$RepositoryOwner = 'ShareX',
-    [string]$RepositoryName = 'XerahS',
+    [string]$RepositoryOwner,
+    [string]$RepositoryName,
+    [string]$Repository,
     [switch]$Pack,
     [switch]$Push,
     [string]$OutputDirectory,
@@ -73,6 +74,53 @@ function Get-RepositoryVersion {
     }
 
     return $versionNode.InnerText.Trim()
+}
+
+function Resolve-GitHubRepository {
+    param(
+        [string]$Owner,
+        [string]$Name,
+        [string]$RepositoryFullName,
+        [Parameter(Mandatory = $true)]
+        [string]$Root
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($Owner) -and -not [string]::IsNullOrWhiteSpace($Name)) {
+        return @{
+            Owner = $Owner.Trim()
+            Name = $Name.Trim()
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($RepositoryFullName)) {
+        $RepositoryFullName = $env:GITHUB_REPOSITORY
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($RepositoryFullName) -and $RepositoryFullName -match '^(?<owner>[^/]+)/(?<name>[^/]+)$') {
+        return @{
+            Owner = $Matches.owner
+            Name = $Matches.name
+        }
+    }
+
+    $originUrl = $null
+    try {
+        $originUrl = & git -C $Root remote get-url origin 2>$null
+    } catch {
+        $originUrl = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($originUrl)) {
+        $originUrl = $originUrl.Trim()
+        if ($originUrl -match 'github\.com[:/](?<owner>[^/]+)/(?<name>[^/.]+)(?:\.git)?/?$') {
+            return @{
+                Owner = $Matches.owner
+                Name = $Matches.name
+            }
+        }
+    }
+
+    throw "Could not resolve GitHub repository. Pass -Repository owner/name or -RepositoryOwner and -RepositoryName."
 }
 
 function Get-ReleaseMetadata {
@@ -213,6 +261,10 @@ if (-not [System.IO.Path]::IsPathRooted($OutputDirectory)) {
 }
 
 $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+$resolvedRepository = Resolve-GitHubRepository -Owner $RepositoryOwner -Name $RepositoryName -RepositoryFullName $Repository -Root $repoRoot
+$RepositoryOwner = $resolvedRepository.Owner
+$RepositoryName = $resolvedRepository.Name
+Write-Host "GitHub release repository: $RepositoryOwner/$RepositoryName"
 
 $release = Get-ReleaseMetadata -Owner $RepositoryOwner -Name $RepositoryName -ReleaseVersion $Version
 $tag = "v$Version"
@@ -256,6 +308,7 @@ Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -M
 Set-NuspecMetadataValue -Document $nuspec -NamespaceManager $namespaceManager -MetadataNode $metadataNode -Name 'description' -Value 'XerahS is a cross-platform ShareX-compatible screen capture and file sharing tool built with Avalonia UI and .NET 10.'
 
 $installScriptContent = Get-Content -Path $installScriptPath -Raw
+$installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$repository\s*=\s*''[^'']*''\r?$' -Replacement ('$repository = ''{0}/{1}''' -f $RepositoryOwner, $RepositoryName)
 $installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$x64Checksum\s*=\s*''[^'']*''\r?$' -Replacement ('$x64Checksum  = ''{0}''' -f $x64Checksum)
 $installScriptContent = Replace-InstallScriptPattern -Content $installScriptContent -Pattern '^\$arm64Checksum\s*=\s*''[^'']*''\r?$' -Replacement ('$arm64Checksum = ''{0}''' -f $arm64Checksum)
 

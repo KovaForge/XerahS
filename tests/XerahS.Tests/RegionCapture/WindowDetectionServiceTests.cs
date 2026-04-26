@@ -136,6 +136,75 @@ public class WindowDetectionServiceTests
     }
 
     [Test]
+    public void WindowQueries_SkipExcludedHandlesEvenWhenWindowListWasAlreadyRefreshed()
+    {
+        IReadOnlyList<XerahS.RegionCapture.Models.WindowInfo> windows =
+        [
+            new(
+                Handle: (nint)404,
+                Title: "Overlay",
+                ClassName: "OverlayClass",
+                Bounds: new PixelRect(0, 0, 200, 200),
+                VisualBounds: new PixelRect(0, 0, 200, 200),
+                IsMinimized: false,
+                ZOrder: 0)
+        ];
+
+        var service = new WindowDetectionService(() => windows);
+        service.RefreshWindows();
+        WindowDetectionService.ExcludeHandle((nint)404);
+
+        try
+        {
+            Assert.That(service.GetWindowAtPoint(new PixelPoint(50, 50)), Is.Null);
+            Assert.That(service.GetWindowsInRegion(new PixelRect(25, 25, 50, 50)), Is.Empty);
+            Assert.That(service.GetWindowsNearPoint(new PixelPoint(50, 50), 10), Is.Empty);
+
+            SnapEdges edges = service.GetSnapEdges(new PixelPoint(0, 0), 10);
+            Assert.That(edges.HorizontalEdges, Is.Empty);
+            Assert.That(edges.VerticalEdges, Is.Empty);
+        }
+        finally
+        {
+            WindowDetectionService.RemoveExcludedHandle((nint)404);
+        }
+    }
+
+    [Test]
+    public void GetWindowAtPoint_DoesNotReturnCachedDirectWindowAfterHandleBecomesExcluded()
+    {
+        var directWindow = new XerahS.RegionCapture.Models.WindowInfo(
+            Handle: (nint)505,
+            Title: "Direct overlay",
+            ClassName: "OverlayClass",
+            Bounds: new PixelRect(0, 0, 200, 200),
+            VisualBounds: new PixelRect(0, 0, 200, 200),
+            IsMinimized: false,
+            ZOrder: 0);
+
+        int directQueryCount = 0;
+        var service = new WindowDetectionService(
+            () => [],
+            _ => directQueryCount++ == 0
+                ? new WindowPointQueryResult(Handled: true, Window: directWindow)
+                : default);
+
+        Assert.That(service.GetWindowAtPoint(new PixelPoint(50, 50))?.Handle, Is.EqualTo((nint)505));
+
+        WindowDetectionService.ExcludeHandle((nint)505);
+
+        try
+        {
+            Assert.That(service.GetWindowAtPoint(new PixelPoint(60, 60)), Is.Null);
+            Assert.That(directQueryCount, Is.EqualTo(2));
+        }
+        finally
+        {
+            WindowDetectionService.RemoveExcludedHandle((nint)505);
+        }
+    }
+
+    [Test]
     public void GetWindowAtPoint_PrefersDirectWaylandProbe_WhenHandled()
     {
         IReadOnlyList<XerahS.RegionCapture.Models.WindowInfo> windows =
@@ -288,5 +357,78 @@ public class WindowDetectionServiceTests
         Assert.That(converted!.Handle, Is.EqualTo((nint)34));
         Assert.That(converted.Bounds, Is.EqualTo(new PixelRect(15, 30, 120, 60)));
         Assert.That(converted.ClassName, Is.EqualTo("org.example.Notes"));
+    }
+
+    [Test]
+    public void ConvertLogicalPlatformWindow_FiltersHiddenAndMinimizedWindows()
+    {
+        IReadOnlyList<MonitorInfo> monitors =
+        [
+            new MonitorInfo(
+                "Display 1",
+                new PixelRect(0, 0, 200, 100),
+                new PixelRect(0, 0, 200, 100),
+                1.0,
+                true)
+        ];
+
+        var hiddenWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)91,
+            Title = "Hidden helper",
+            ClassName = "org.example.Hidden",
+            Bounds = new Rectangle(0, 0, 100, 50),
+            IsVisible = false,
+            IsMinimized = false
+        };
+
+        var minimizedWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)92,
+            Title = "Minimized app",
+            ClassName = "org.example.Minimized",
+            Bounds = new Rectangle(0, 0, 100, 50),
+            IsVisible = true,
+            IsMinimized = true
+        };
+
+        Assert.That(WindowDetectionService.ConvertLogicalPlatformWindow(hiddenWindow, monitors), Is.Null);
+        Assert.That(WindowDetectionService.ConvertLogicalPlatformWindow(minimizedWindow, monitors), Is.Null);
+    }
+
+    [Test]
+    public void ConvertLogicalPlatformWindow_FiltersExcludedHandles()
+    {
+        IReadOnlyList<MonitorInfo> monitors =
+        [
+            new MonitorInfo(
+                "Display 1",
+                new PixelRect(0, 0, 200, 100),
+                new PixelRect(0, 0, 200, 100),
+                1.0,
+                true)
+        ];
+
+        var overlayWindow = new PlatformWindowInfo
+        {
+            Handle = (nint)88,
+            Title = "Transient helper window",
+            ClassName = "XerahS.Overlay",
+            Bounds = new Rectangle(0, 0, 100, 50),
+            IsVisible = true
+        };
+
+        WindowDetectionService.ExcludeHandle((nint)88);
+
+        try
+        {
+            Assert.That(
+                WindowDetectionService.ConvertLogicalPlatformWindow(overlayWindow, monitors),
+                Is.Null);
+        }
+        finally
+        {
+            WindowDetectionService.RemoveExcludedHandle((nint)88);
+        }
     }
 }

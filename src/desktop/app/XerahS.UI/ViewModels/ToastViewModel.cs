@@ -100,6 +100,9 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand CopyErrorsCommand { get; }
     public ICommand OpenURLCommand { get; }
     public ICommand DeleteItemCommand { get; }
+    public bool CanCopyImage => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath);
+    internal string? FilePath => _config.FilePath;
+    internal bool HasExistingFile => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath);
 
     public ToastViewModel(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
@@ -437,11 +440,24 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
+    internal static string BuildMarkdownImage(string url, string? altText = null)
+    {
+        string escapedAltText = string.IsNullOrWhiteSpace(altText)
+            ? "Image"
+            : altText.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
+
+        string markdownUrl = url.IndexOfAny([' ', '(', ')']) >= 0
+            ? $"<{url}>"
+            : url;
+
+        return $"![{escapedAltText}]({markdownUrl})";
+    }
+
     private void CopyMarkdownImage()
     {
         if (string.IsNullOrEmpty(_config.URL)) return;
 
-        var markdownImage = $"[img]{_config.URL}[/img]";
+        var markdownImage = BuildMarkdownImage(_config.URL, _config.Title);
         try
         {
             PlatformServices.Clipboard.SetText(markdownImage);

@@ -76,6 +76,23 @@ public static class FileHelpers
                     path = path.Replace(token, folderPath, StringComparison.OrdinalIgnoreCase);
                 }
             }
+
+            path = Regex.Replace(path, "%([A-Za-z0-9_]+)%", match =>
+            {
+                string variableName = match.Groups[1].Value;
+                string? variableValue = Environment.GetEnvironmentVariable(variableName);
+
+                if (string.IsNullOrEmpty(variableValue))
+                {
+                    variableValue = variableName.ToUpperInvariant() switch
+                    {
+                        "TEMP" or "TMP" => Path.GetTempPath(),
+                        _ => null
+                    };
+                }
+
+                return string.IsNullOrEmpty(variableValue) ? match.Value : variableValue;
+            });
         }
         catch
         {
@@ -122,37 +139,43 @@ public static class FileHelpers
 
     public static string GetFileNameExtension(string filePath, bool includeDot = false, bool checkSecondExtension = true)
     {
-        string extension = string.Empty;
-
-        if (!string.IsNullOrEmpty(filePath))
+        if (string.IsNullOrEmpty(filePath))
         {
-            int pos = filePath.LastIndexOf('.');
+            return string.Empty;
+        }
 
-            if (pos >= 0)
+        string fileName = Path.GetFileName(filePath);
+
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return string.Empty;
+        }
+
+        string extension = Path.GetExtension(fileName);
+
+        if (string.IsNullOrEmpty(extension) || extension.Length == fileName.Length)
+        {
+            return string.Empty;
+        }
+
+        extension = includeDot ? extension : extension.TrimStart('.');
+
+        if (!checkSecondExtension)
+        {
+            return extension;
+        }
+
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        string extension2 = GetFileNameExtension(fileNameWithoutExtension, false, false);
+
+        if (!string.IsNullOrEmpty(extension2))
+        {
+            foreach (string knownExtension in new[] { "tar" })
             {
-                extension = filePath.Substring(pos + 1);
-
-                if (checkSecondExtension)
+                if (extension2.Equals(knownExtension, StringComparison.OrdinalIgnoreCase))
                 {
-                    filePath = filePath.Remove(pos);
-                    string extension2 = GetFileNameExtension(filePath, false, false);
-
-                    if (!string.IsNullOrEmpty(extension2))
-                    {
-                        foreach (string knownExtension in new[] { "tar" })
-                        {
-                            if (extension2.Equals(knownExtension, StringComparison.OrdinalIgnoreCase))
-                            {
-                                extension = extension2 + "." + extension;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (includeDot)
-                {
-                    extension = "." + extension;
+                    extension = includeDot ? $".{extension2}{extension}" : $"{extension2}.{extension}";
+                    break;
                 }
             }
         }
@@ -194,26 +217,28 @@ public static class FileHelpers
 
     public static string ChangeFileNameExtension(string fileName, string extension)
     {
-        if (!string.IsNullOrEmpty(fileName))
+        if (string.IsNullOrEmpty(fileName))
         {
-            int pos = fileName.LastIndexOf('.');
+            return fileName;
+        }
+
+        string currentExtension = GetFileNameExtension(fileName, includeDot: true, checkSecondExtension: false);
+
+        if (!string.IsNullOrEmpty(currentExtension))
+        {
+            fileName = fileName[..^currentExtension.Length];
+        }
+
+        if (!string.IsNullOrEmpty(extension))
+        {
+            int pos = extension.LastIndexOf('.');
 
             if (pos >= 0)
             {
-                fileName = fileName.Remove(pos);
+                extension = extension[(pos + 1)..];
             }
 
-            if (!string.IsNullOrEmpty(extension))
-            {
-                pos = extension.LastIndexOf('.');
-
-                if (pos >= 0)
-                {
-                    extension = extension[(pos + 1)..];
-                }
-
-                return $"{fileName}.{extension}";
-            }
+            return $"{fileName}.{extension}";
         }
 
         return fileName;
@@ -223,11 +248,11 @@ public static class FileHelpers
     {
         if (!string.IsNullOrEmpty(filePath))
         {
-            int pos = filePath.LastIndexOf('.');
+            string extension = GetFileNameExtension(filePath, includeDot: true, checkSecondExtension: false);
 
-            if (pos >= 0)
+            if (!string.IsNullOrEmpty(extension))
             {
-                return filePath[..pos] + text + filePath[pos..];
+                return filePath[..^extension.Length] + text + extension;
             }
         }
 
@@ -308,9 +333,15 @@ public static class FileHelpers
         }
 
         string folderPath = Path.GetDirectoryName(filePath) ?? string.Empty;
-        string fileName = Path.GetFileNameWithoutExtension(filePath);
-        string fileExtension = Path.GetExtension(filePath);
-        int number = 1;
+        string fileName = Path.GetFileName(filePath);
+        string fileExtension = GetFileNameExtension(fileName, includeDot: true);
+
+        if (!string.IsNullOrEmpty(fileExtension))
+        {
+            fileName = fileName[..^fileExtension.Length];
+        }
+
+        int number = 0;
 
         Match regex = Regex.Match(fileName, @"^(.+) \((\d+)\)$");
 

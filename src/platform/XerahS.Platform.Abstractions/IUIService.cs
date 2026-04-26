@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Linq;
 using XerahS.Core;
 using ShareX.ImageEditor.Hosting;
 using SkiaSharp;
@@ -63,9 +64,16 @@ namespace XerahS.Platform.Abstractions
             bool restoredAnnotations = false)
         {
             SKBitmap? renderedImage = await ShowEditorAsync(image, sourceFilePath, taskMode);
-            return renderedImage == null
-                ? null
-                : new ImageEditorSessionResult(renderedImage, null, Array.Empty<ShareX.ImageEditor.Core.Annotations.Annotation>());
+            if (renderedImage == null)
+            {
+                return null;
+            }
+
+            SKBitmap? sourceImage = image.Copy();
+            var annotationSnapshot = annotations?.Select(annotation => annotation.Clone()).ToArray()
+                ?? Array.Empty<ShareX.ImageEditor.Core.Annotations.Annotation>();
+
+            return new ImageEditorSessionResult(renderedImage, sourceImage, annotationSnapshot);
         }
 
         /// <summary>

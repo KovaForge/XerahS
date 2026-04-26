@@ -113,8 +113,12 @@ public partial class HashCheckWindow : SurfaceWindow
         {
             if (item.TryGetRaw(DataFormat.File) is IStorageFile storageFile)
             {
-                vm.FilePath = storageFile.Path.LocalPath;
-                break;
+                string? path = storageFile.TryGetLocalPath();
+                if (!string.IsNullOrEmpty(path))
+                {
+                    vm.FilePath = path;
+                    break;
+                }
             }
         }
     }

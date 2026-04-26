@@ -61,7 +61,7 @@ public partial class WatchFolderDialog : SurfaceWindow
             AllowMultiple = false
         });
 
-        return folders.Count > 0 ? folders[0].Path.LocalPath : null;
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
     private void InitializeComponent()

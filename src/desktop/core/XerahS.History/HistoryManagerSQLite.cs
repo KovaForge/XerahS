@@ -183,6 +183,54 @@ CREATE TABLE IF NOT EXISTS History (
             return await Task.Run(() => GetHistoryItems(offset, limit));
         }
 
+        public bool ContainsFilePath(string filePath, int pageSize = 500)
+        {
+            return GetLatestByFilePath(filePath, pageSize) != null;
+        }
+
+        public HistoryItem? GetLatestByFilePath(string filePath, int pageSize = 500)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            string normalized;
+            try
+            {
+                normalized = Path.GetFullPath(filePath);
+            }
+            catch
+            {
+                return null;
+            }
+
+            int offset = 0;
+            int clampedPageSize = Math.Max(1, pageSize);
+
+            while (true)
+            {
+                List<HistoryItem> items = GetHistoryItems(offset, clampedPageSize);
+                if (items.Count == 0)
+                {
+                    return null;
+                }
+
+                HistoryItem? match = items.FirstOrDefault(item => IsSamePath(item.FilePath, normalized));
+                if (match != null)
+                {
+                    return match;
+                }
+
+                if (items.Count < clampedPageSize)
+                {
+                    return null;
+                }
+
+                offset += items.Count;
+            }
+        }
+
         protected override bool Append(string dbPath, IEnumerable<HistoryItem> historyItems)
         {
             if (connection == null)
@@ -317,6 +365,30 @@ WHERE Id = @Id;";
         private SqliteConnection EnsureConnection()
         {
             return connection ?? throw new InvalidOperationException("Database connection is not initialized.");
+        }
+
+        private static bool IsSamePath(string? left, string right)
+        {
+            if (string.IsNullOrWhiteSpace(left))
+            {
+                return false;
+            }
+
+            try
+            {
+                return string.Equals(Path.GetFullPath(left), right, GetPathComparison());
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static StringComparison GetPathComparison()
+        {
+            return OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
         }
     }
 }

@@ -120,7 +120,7 @@ namespace XerahS.UI.Services
                     options.FileTypeFilter = new[] { new FilePickerFileType("Files") { Patterns = filters.ToList() } };
                 }
                 var files = await desktop.MainWindow.StorageProvider.OpenFilePickerAsync(options);
-                return files.FirstOrDefault()?.Path.LocalPath;
+                return files.FirstOrDefault()?.TryGetLocalPath();
             }
             return null;
         }
@@ -141,7 +141,7 @@ namespace XerahS.UI.Services
                     options.FileTypeChoices = new[] { new FilePickerFileType("Files") { Patterns = filters.ToList() } };
                 }
                 var file = await desktop.MainWindow.StorageProvider.SaveFilePickerAsync(options);
-                return file?.Path.LocalPath;
+                return file?.TryGetLocalPath();
             }
             return null;
         }
@@ -153,7 +153,7 @@ namespace XerahS.UI.Services
             {
                 var options = new FolderPickerOpenOptions { Title = title, AllowMultiple = false };
                 var folders = await desktop.MainWindow.StorageProvider.OpenFolderPickerAsync(options);
-                return folders.FirstOrDefault()?.Path.LocalPath;
+                return folders.FirstOrDefault()?.TryGetLocalPath();
             }
             return null;
         }

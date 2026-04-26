@@ -2,7 +2,7 @@
 Name=XerahS
 Comment=Cross-platform screen capture and sharing tool
 GenericName=Screen Capture
-Exec=/usr/bin/xerahs %U
+Exec=xerahs %U
 Icon=com.getsharex.XerahS
 Terminal=false
 Type=Application

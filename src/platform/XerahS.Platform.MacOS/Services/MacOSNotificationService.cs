@@ -36,40 +36,29 @@ public sealed class MacOSNotificationService : INotificationService
 {
     public void ShowNotification(string title, string message, NotificationType type = NotificationType.Info)
     {
-        if (!TryOsascript(title, message))
+        if (!TryOsascript(title, message, type))
         {
-            DebugHelper.WriteLine($"[Notification] {title}: {message}");
+            DebugHelper.WriteLine($"[Notification:{type}] {title}: {message}");
         }
     }
 
     public void ShowNotification(string title, string message, string actionText, Action action, NotificationType type = NotificationType.Info)
     {
-        if (!TryOsascript(title, $"{message} ({actionText})"))
+        if (!TryOsascript(title, $"{message} ({actionText})", type))
         {
-            DebugHelper.WriteLine($"[Notification] {title}: {message} (Action: {actionText})");
+            DebugHelper.WriteLine($"[Notification:{type}] {title}: {message} (Action: {actionText})");
         }
     }
 
-    private static bool TryOsascript(string title, string message)
+    private static bool TryOsascript(string title, string message, NotificationType type)
     {
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "osascript",
-                Arguments = $"-e \"display notification \\\"{Escape(message)}\\\" with title \\\"{Escape(title)}\\\"\"",
-                UseShellExecute = false,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
+            using var process = Process.Start(CreateStartInfo(title, message, type));
             if (process == null)
                 return false;
 
-            process.WaitForExit(2000);
-            return process.ExitCode == 0;
+            return WaitForSuccessfulExit(process, 2000);
         }
         catch
         {
@@ -77,5 +66,71 @@ public sealed class MacOSNotificationService : INotificationService
         }
     }
 
-    private static string Escape(string value) => value.Replace("\"", "\\\"");
+    internal static bool WaitForSuccessfulExit(Process process, int timeoutMilliseconds)
+    {
+        if (process.WaitForExit(timeoutMilliseconds))
+        {
+            return process.ExitCode == 0;
+        }
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to kill timed-out notification process");
+        }
+
+        return false;
+    }
+
+    internal static ProcessStartInfo CreateStartInfo(string title, string message, NotificationType type = NotificationType.Info)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "osascript",
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true
+        };
+
+        startInfo.ArgumentList.Add("-e");
+        startInfo.ArgumentList.Add(BuildDisplayNotificationScript(title, message, type));
+        return startInfo;
+    }
+
+    internal static string BuildDisplayNotificationScript(string title, string message, NotificationType type)
+    {
+        var script = $"display notification \"{EscapeAppleScriptString(message)}\" with title \"{EscapeAppleScriptString(title)}\"";
+        var subtitle = GetSubtitle(type);
+
+        if (!string.IsNullOrEmpty(subtitle))
+        {
+            script += $" subtitle \"{EscapeAppleScriptString(subtitle)}\"";
+        }
+
+        return script;
+    }
+
+    private static string EscapeAppleScriptString(string value)
+    {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
+    }
+
+    private static string? GetSubtitle(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Success => "Success",
+            NotificationType.Warning => "Warning",
+            NotificationType.Error => "Error",
+            _ => null
+        };
+    }
 }

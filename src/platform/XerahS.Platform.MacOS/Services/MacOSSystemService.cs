@@ -42,7 +42,7 @@ namespace XerahS.Platform.MacOS.Services
 
             try
             {
-                Process.Start(new ProcessStartInfo("open", $"-R \"{filePath}\"") { UseShellExecute = true });
+                Process.Start(CreateRevealStartInfo(NormalizeExistingPath(filePath)));
                 return true;
             }
             catch (Exception ex)
@@ -60,7 +60,7 @@ namespace XerahS.Platform.MacOS.Services
             try
             {
                 // On macOS, 'open' handles URLs nicely
-                 Process.Start(new ProcessStartInfo("open", $"\"{url}\"") { UseShellExecute = true });
+                 Process.Start(CreateOpenStartInfo(url));
                 return true;
             }
             catch (Exception ex)
@@ -76,7 +76,7 @@ namespace XerahS.Platform.MacOS.Services
 
             try
             {
-                Process.Start(new ProcessStartInfo("open", $"\"{filePath}\"") { UseShellExecute = true });
+                Process.Start(CreateOpenStartInfo(NormalizeExistingPath(filePath)));
                 return true;
             }
             catch (Exception ex)
@@ -311,29 +311,91 @@ namespace XerahS.Platform.MacOS.Services
             return count;
         }
 
+        internal static ProcessStartInfo CreateOpenStartInfo(string target)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            startInfo.ArgumentList.Add("--");
+            startInfo.ArgumentList.Add(target);
+            return startInfo;
+        }
+
+        internal static ProcessStartInfo CreateRevealStartInfo(string target)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "open",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            startInfo.ArgumentList.Add("-R");
+            startInfo.ArgumentList.Add("--");
+            startInfo.ArgumentList.Add(target);
+            return startInfo;
+        }
+
+        internal static string NormalizeExistingPath(string path)
+        {
+            return Path.GetFullPath(path);
+        }
+
         private static bool TryRunProcess(string fileName, string arguments, out string output)
+        {
+            return TryRunProcess(fileName, arguments, timeoutMs: 2000, out output);
+        }
+
+        internal static bool TryRunProcess(string fileName, string arguments, int timeoutMs, out string output)
         {
             output = string.Empty;
 
             try
             {
-                using var process = Process.Start(new ProcessStartInfo
+                using var process = new Process
                 {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                });
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = fileName,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    }
+                };
 
-                if (process == null)
+                if (!process.Start())
                 {
                     return false;
                 }
 
-                output = process.StandardOutput.ReadToEnd().Trim();
-                process.WaitForExit(2000);
+                Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+                Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+
+                if (!process.WaitForExit(timeoutMs))
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch
+                    {
+                    }
+
+                    return false;
+                }
+
+                output = stdoutTask.GetAwaiter().GetResult().Trim();
+                _ = stderrTask.GetAwaiter().GetResult();
                 return process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output);
             }
             catch (Exception ex)

@@ -9,6 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>High-performance region capture engine for Avalonia with mixed-DPI support</Description>
+    <AppendRuntimeIdentifierToOutputPath>true</AppendRuntimeIdentifierToOutputPath>
     <!-- Platform compatibility warnings - these APIs require Windows Vista+ but that's fine for modern Windows -->
     <NoWarn>$(NoWarn);CA1416;CS1591</NoWarn>
   </PropertyGroup>
@@ -39,7 +40,7 @@
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <!-- XIP-0023: ShareX.ImageEditor integration -->
     <ProjectReference Include="..\..\..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj"
-                      GlobalPropertiesToRemove="OS;Platform" />
+                      GlobalPropertiesToRemove="OS" />
   </ItemGroup>
 
 </Project>

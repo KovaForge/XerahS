@@ -58,6 +58,27 @@ public sealed class NextcloudUploader : FileUploader
             return result;
         }
 
+        if (_config.CreatePublicShare)
+        {
+            if (!_config.SupportsPublicShares)
+            {
+                Errors.Add("This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile.");
+                return result;
+            }
+
+            if (_config.AutoExpireShare && !_config.SupportsExpireDate)
+            {
+                Errors.Add("This Nextcloud server does not support share expiry. Disable auto-expire or refresh the server profile.");
+                return result;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_sharePassword) && !_config.SupportsSharePasswords)
+            {
+                Errors.Add("This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile.");
+                return result;
+            }
+        }
+
         try
         {
             string userId = !string.IsNullOrWhiteSpace(_config.UserId) ? _config.UserId : loginName;
@@ -65,7 +86,8 @@ public sealed class NextcloudUploader : FileUploader
             string relativeFilePath = NextcloudClient.CombineRelativePath(relativeFolderPath, fileName);
             string sharePath = "/" + relativeFilePath;
 
-            ProgressManager progress = new(stream.Length);
+            long streamLength = stream.CanSeek ? stream.Length : 0;
+            ProgressManager? progress = streamLength > 0 ? new ProgressManager(streamLength) : null;
             NextcloudClient client = new(_config.ServerUrl, loginName, _appPassword);
 
             client.UploadFileAsync(
@@ -77,7 +99,7 @@ public sealed class NextcloudUploader : FileUploader
                 _config.ChunkSizeMiB,
                 bytesTransferred =>
                 {
-                    if (AllowReportProgress && progress.UpdateProgress(bytesTransferred))
+                    if (progress != null && AllowReportProgress && progress.UpdateProgress(bytesTransferred))
                     {
                         OnProgressChanged(progress);
                     }

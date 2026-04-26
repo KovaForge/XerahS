@@ -39,7 +39,14 @@ public class CustomUploaderRepositoryTests
     [SetUp]
     public void Setup()
     {
+        CustomUploaderRepository.Clear();
         _sampleUploadersPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "CustomUploader", "SampleUploaders");
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        CustomUploaderRepository.Clear();
     }
 
     [Test]
@@ -297,5 +304,40 @@ public class CustomUploaderRepositoryTests
 
         // Assert
         Assert.That(loaded.IsValid, Is.True, $"Modern ShareX version should be accepted: {loaded.LoadError}");
+    }
+
+    [Test]
+    public void DiscoverUploaders_RemovesDeletedFilesFromCache()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "XerahS.Tests", "CustomUploaderCache", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            string filePath = Path.Combine(directory, "cached.sxcu");
+            var item = CustomUploaderItem.Init();
+            item.Name = "Cached uploader";
+            item.DestinationType = CustomUploaderDestinationType.FileUploader;
+            item.RequestURL = "https://example.com/upload";
+
+            Assert.That(CustomUploaderRepository.SaveToFile(item, filePath), Is.True);
+            var discovered = CustomUploaderRepository.DiscoverUploaders(directory);
+            Assert.That(discovered.Count(u => u.IsValid), Is.EqualTo(1));
+            Assert.That(CustomUploaderRepository.GetLoadedUploaders().Select(u => u.FilePath), Contains.Item(filePath));
+
+            File.Delete(filePath);
+
+            discovered = CustomUploaderRepository.DiscoverUploaders(directory);
+
+            Assert.That(discovered, Is.Empty);
+            Assert.That(CustomUploaderRepository.GetLoadedUploaders().Select(u => u.FilePath), Does.Not.Contain(filePath));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
     }
 }

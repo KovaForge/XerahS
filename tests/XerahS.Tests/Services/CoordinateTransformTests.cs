@@ -594,6 +594,25 @@ public class CoordinateTransformTests
         Assert.Throws<ArgumentException>(() => new CoordinateTransform(null!));
     }
 
+    [TestCase(0.0)]
+    [TestCase(-1.0)]
+    [TestCase(double.NaN)]
+    [TestCase(double.PositiveInfinity)]
+    public void Constructor_InvalidScaleFactor_Throws(double scaleFactor)
+    {
+        var monitor = new MonitorInfo
+        {
+            Id = "1",
+            Name = "Primary",
+            IsPrimary = true,
+            Bounds = new PhysicalRectangle(0, 0, 1920, 1080),
+            WorkingArea = new PhysicalRectangle(0, 0, 1920, 1040),
+            ScaleFactor = scaleFactor
+        };
+
+        Assert.Throws<ArgumentException>(() => new CoordinateTransform(new[] { monitor }));
+    }
+
     [Test]
     public void VirtualDesktopBounds_TripleMonitor_CalculatesCorrectly()
     {

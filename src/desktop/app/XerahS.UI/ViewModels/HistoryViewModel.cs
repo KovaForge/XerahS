@@ -142,7 +142,7 @@ namespace XerahS.UI.ViewModels
         private CancellationTokenSource? _thumbnailCancellationTokenSource;
         private readonly IDialogService _coreDialogService;
 
-        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService)
+        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService, bool autoLoadHistory = true)
         {
             _taskManager = taskManager;
             _coreDialogService = coreDialogService;
@@ -162,7 +162,10 @@ namespace XerahS.UI.ViewModels
 
             // Start loading history asynchronously WITHOUT blocking UI
             // Use fire-and-forget to let view display immediately
-            _ = BeginHistoryLoadAsync();
+            if (autoLoadHistory)
+            {
+                _ = BeginHistoryLoadAsync();
+            }
         }
 
         /// <summary>
@@ -345,7 +348,7 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task EditImage(HistoryItem? item)
         {
-            await OpenImageInEditorAsync(item, preferAnnotations: true);
+            await OpenImageInEditorAsync(item, preferAnnotations: false);
         }
 
         [RelayCommand]
@@ -361,7 +364,8 @@ namespace XerahS.UI.ViewModels
 
             try
             {
-                DateTime originalLastWriteTimeUtc = File.GetLastWriteTimeUtc(item.FilePath);
+                FileContentSnapshot originalImageSnapshot = FileContentSnapshot.Create(item.FilePath);
+                FileContentSnapshot originalSidecarSnapshot = FileContentSnapshot.Create(ResolveAnnotationSidecarPath(item));
 
                 if (preferAnnotations)
                 {
@@ -371,19 +375,36 @@ namespace XerahS.UI.ViewModels
                         try
                         {
                             var project = await XannProjectFileService.LoadAsync(sidecarPath, item.FilePath);
-                            if (!project.ImageHashMatches)
+                            SKBitmap sessionImage = project.SourceImage;
+
+                            try
                             {
-                                DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Using embedded source image.");
+                                if (!project.ImageHashMatches)
+                                {
+                                    DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Loading current file image for the editor session.");
+                                    sessionImage = DecodeImageFile(item.FilePath)
+                                        ?? throw new InvalidOperationException($"Failed to decode current image file '{item.FilePath}'.");
+                                }
+
+                                var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
+                                    sessionImage,
+                                    item.FilePath,
+                                    annotations: project.Project.Annotations,
+                                    restoredAnnotations: true);
+                                sessionResult?.RenderedImage.Dispose();
+                                sessionResult?.SourceImage?.Dispose();
+                            }
+                            finally
+                            {
+                                if (!ReferenceEquals(sessionImage, project.SourceImage))
+                                {
+                                    sessionImage.Dispose();
+                                }
+
+                                project.SourceImage.Dispose();
                             }
 
-                            var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
-                                project.SourceImage,
-                                item.FilePath,
-                                annotations: project.Project.Annotations,
-                                restoredAnnotations: true);
-                            sessionResult?.RenderedImage.Dispose();
-                            sessionResult?.SourceImage?.Dispose();
-                            await RefreshHistoryItemAfterEditorSessionAsync(item, originalLastWriteTimeUtc);
+                            await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
                             return;
                         }
                         catch (Exception ex)
@@ -394,20 +415,30 @@ namespace XerahS.UI.ViewModels
                     }
                 }
 
-                // Load the image from file directly as SKBitmap
-                using var fs = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read);
-                var skBitmap = SKBitmap.Decode(fs);
+                // Load the image from file directly as SKBitmap and close the file before launching the editor.
+                // The editor may save back to the same source path, which would fail on platforms that enforce file-share locks.
+                using var skBitmap = DecodeImageFile(item.FilePath);
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
                 var rendered = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
-                rendered?.Dispose();
-                await RefreshHistoryItemAfterEditorSessionAsync(item, originalLastWriteTimeUtc);
+                if (rendered != null && !ReferenceEquals(rendered, skBitmap))
+                {
+                    rendered.Dispose();
+                }
+
+                await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to open image in editor: {ex.Message}");
             }
+        }
+
+        private static SKBitmap? DecodeImageFile(string filePath)
+        {
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return SKBitmap.Decode(stream);
         }
 
         private static string? ResolveAnnotationSidecarPath(HistoryItem item)
@@ -421,17 +452,21 @@ namespace XerahS.UI.ViewModels
             return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
         }
 
-        private async Task RefreshHistoryItemAfterEditorSessionAsync(HistoryItem item, DateTime originalLastWriteTimeUtc)
+        private async Task RefreshHistoryItemAfterEditorSessionAsync(
+            HistoryItem item,
+            FileContentSnapshot originalImageSnapshot,
+            FileContentSnapshot originalSidecarSnapshot)
         {
             if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
             {
                 return;
             }
 
-            bool imageFileChanged = File.GetLastWriteTimeUtc(item.FilePath) > originalLastWriteTimeUtc;
+            bool imageFileChanged = !FileContentSnapshot.Create(item.FilePath).Equals(originalImageSnapshot);
             bool sidecarPathChanged = SynchronizeAnnotationSidecarPath(item);
+            bool sidecarContentChanged = !FileContentSnapshot.Create(item.AnnotationSidecarPath).Equals(originalSidecarSnapshot);
 
-            if (!imageFileChanged && !sidecarPathChanged)
+            if (!imageFileChanged && !sidecarPathChanged && !sidecarContentChanged)
             {
                 return;
             }
@@ -500,10 +535,25 @@ namespace XerahS.UI.ViewModels
                 ThumbnailURL = item.ThumbnailURL,
                 DeletionURL = item.DeletionURL,
                 ShortenedURL = item.ShortenedURL,
+                AnnotationSidecarPath = item.AnnotationSidecarPath,
                 Tags = item.Tags != null
                     ? new Dictionary<string, string?>(item.Tags, StringComparer.Ordinal)
                     : new Dictionary<string, string?>()
             };
+        }
+
+        private readonly record struct FileContentSnapshot(bool Exists, long Length, DateTime LastWriteTimeUtc)
+        {
+            public static FileContentSnapshot Create(string? path)
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    return default;
+                }
+
+                var fileInfo = new FileInfo(path);
+                return new FileContentSnapshot(true, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+            }
         }
 
         [RelayCommand]
@@ -597,7 +647,7 @@ namespace XerahS.UI.ViewModels
         {
             if (item == null || string.IsNullOrEmpty(item.URL)) return;
 
-            var markdownImage = $"[img]{item.URL}[/img]";
+            var markdownImage = ToastViewModel.BuildMarkdownImage(item.URL, item.FileName);
             try
             {
                 if (PlatformServices.IsInitialized)

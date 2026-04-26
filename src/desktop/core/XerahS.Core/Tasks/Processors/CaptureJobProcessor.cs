@@ -347,6 +347,16 @@ namespace XerahS.Core.Tasks.Processors
                     };
                     historyItem.AnnotationSidecarPath = annotationSidecarPath;
 
+                    var tags = info.GetTags();
+                    if (tags != null)
+                    {
+                        historyItem.Tags = new Dictionary<string, string?>(tags.Count);
+                        foreach (var pair in tags)
+                        {
+                            historyItem.Tags[pair.Key] = pair.Value;
+                        }
+                    }
+
                     historyManager.AppendHistoryItem(historyItem);
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
                     DebugHelper.WriteLine($"Added to history: {historyItem.FileName}");
@@ -481,15 +491,16 @@ namespace XerahS.Core.Tasks.Processors
             try
             {
                 DebugHelper.WriteLine("Starting OCR on captured image...");
+                var taskOcrOptions = info.TaskSettings.CaptureSettings.OCROptions;
                 var options = new OcrOptions
                 {
-                    Language = "en",
-                    ScaleFactor = 2f,
-                    SingleLine = false
+                    Language = string.IsNullOrWhiteSpace(taskOcrOptions.Language) ? "en" : taskOcrOptions.Language,
+                    ScaleFactor = Math.Max(taskOcrOptions.ScaleFactor, 1f),
+                    SingleLine = taskOcrOptions.SingleLine
                 };
                 var result = await ocrService.RecognizeAsync(info.Metadata.Image, options);
 
-                if (result.Success && !string.IsNullOrEmpty(result.Text))
+                if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
                 {
                     info.Metadata.OcrText = result.Text;
                     DebugHelper.WriteLine($"OCR completed. Text length: {result.Text.Length} chars.");

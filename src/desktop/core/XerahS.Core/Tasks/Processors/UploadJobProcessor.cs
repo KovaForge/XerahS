@@ -158,15 +158,7 @@ namespace XerahS.Core.Tasks.Processors
 
             if (!string.IsNullOrEmpty(targetInstanceId))
             {
-                targetInstance = instanceManager.GetInstance(targetInstanceId);
-                if (targetInstance == null)
-                {
-                    DebugHelper.WriteLine($"Configured destination instance not found: {targetInstanceId}");
-                }
-                else if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
-                {
-                    DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Continuing with configured instance.");
-                }
+                targetInstance = ResolveRequestedInstance(instanceManager, targetInstanceId, category);
             }
 
             // Check if Auto destination is selected
@@ -176,7 +168,7 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             // Not Auto - use the configured instance directly
-            targetInstance ??= instanceManager.GetDefaultInstance(category);
+            targetInstance ??= ResolveDefaultInstance(instanceManager, category);
 
             if (targetInstance == null && category == UploaderCategory.File)
             {
@@ -229,6 +221,41 @@ namespace XerahS.Core.Tasks.Processors
                 attemptedInstanceIds);
 
             return IsSuccessfulUploadResult(fallbackResult) ? fallbackResult : fallbackResult ?? primaryResult;
+        }
+
+        internal static UploaderInstance? ResolveRequestedInstance(InstanceManager instanceManager, string targetInstanceId, UploaderCategory category)
+        {
+            var targetInstance = instanceManager.GetInstance(targetInstanceId);
+            if (targetInstance == null)
+            {
+                DebugHelper.WriteLine($"Configured destination instance not found: {targetInstanceId}");
+                return null;
+            }
+
+            if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
+            {
+                DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Continuing with configured instance.");
+            }
+
+            if (!targetInstance.IsAvailable)
+            {
+                DebugHelper.WriteLine($"Configured destination instance is unavailable: {targetInstance.DisplayName} ({targetInstance.InstanceId}). Falling back to other uploaders.");
+                return null;
+            }
+
+            return targetInstance;
+        }
+
+        internal static UploaderInstance? ResolveDefaultInstance(InstanceManager instanceManager, UploaderCategory category)
+        {
+            var targetInstance = instanceManager.GetDefaultInstance(category);
+            if (targetInstance != null && !targetInstance.IsAvailable)
+            {
+                DebugHelper.WriteLine($"Default destination instance is unavailable: {targetInstance.DisplayName} ({targetInstance.InstanceId}). Falling back to other uploaders.");
+                return null;
+            }
+
+            return targetInstance;
         }
 
         private static UploaderInstance? EnsureAutoFileDestinationInstance(InstanceManager instanceManager)
@@ -401,6 +428,7 @@ namespace XerahS.Core.Tasks.Processors
         private static List<UploaderInstance> GetPrioritizedInstances(InstanceManager instanceManager, UploaderCategory category, string? excludeInstanceId, string? fileName)
         {
             var allInstances = instanceManager.GetInstancesByCategory(category)
+                .Where(i => i.IsAvailable)
                 .Where(i => !InstanceManager.IsAutoProvider(i.ProviderId))
                 .Where(i => excludeInstanceId == null || !string.Equals(i.InstanceId, excludeInstanceId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -469,12 +497,15 @@ namespace XerahS.Core.Tasks.Processors
             {
                 if (!string.IsNullOrEmpty(info.FilePath))
                 {
-                    return uploader switch
+                    var result = uploader switch
                     {
                         FileUploader fileUploader => fileUploader.UploadFile(info.FilePath),
                         GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
                         _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
                     };
+
+                    ApplyResolvedUploaderHost(info, instance, result);
+                    return result;
                 }
 
                 if (info.DataType == EDataType.Text && !string.IsNullOrEmpty(info.TextContent))
@@ -492,7 +523,9 @@ namespace XerahS.Core.Tasks.Processors
 
                         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(info.TextContent));
                         ms.Position = 0;
-                        return genericUploader.Upload(ms, fileName);
+                        var result = genericUploader.Upload(ms, fileName);
+                        ApplyResolvedUploaderHost(info, instance, result);
+                        return result;
                     }
 
                     return new UploadResult
@@ -511,9 +544,12 @@ namespace XerahS.Core.Tasks.Processors
                 {
                     if (ms == null) return new UploadResult { IsSuccess = false, Response = "Failed to create image stream." };
                     ms.Position = 0;
-                    return uploader is GenericUploader genericUploader
+                    var result = uploader is GenericUploader genericUploader
                         ? genericUploader.Upload(ms, info.FileName)
                         : new UploadResult { IsSuccess = false, Response = "Uploader type not supported for images." };
+
+                    ApplyResolvedUploaderHost(info, instance, result);
+                    return result;
                 }
             }
             catch (Exception ex)
@@ -538,6 +574,14 @@ namespace XerahS.Core.Tasks.Processors
             using FileStream stream = new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             string fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
             return uploader.Upload(stream, fileName);
+        }
+
+        internal static void ApplyResolvedUploaderHost(TaskInfo info, UploaderInstance instance, UploadResult? result)
+        {
+            if (IsSuccessfulUploadResult(result))
+            {
+                info.ResolvedUploaderHost = instance.DisplayName;
+            }
         }
 
         private static bool IsSuccessfulUploadResult(UploadResult? result)

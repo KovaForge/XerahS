@@ -147,6 +147,45 @@ public class CustomUploaderDefinitionBindingServiceTests
     }
 
     [Test]
+    public void GetBindingInfo_PrefersLiveInstanceBindings_OverStaleMetadata()
+    {
+        string filePath = CreateUniqueFilePath("live-bindings");
+        var item = CreateItem(CustomUploaderDestinationType.ImageUploader);
+
+        Assert.That(CustomUploaderRepository.SaveToFile(item, filePath), Is.True);
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.True);
+
+        var provider = CustomUploaderDefinitionBindingService.GetProviderByFilePath(filePath);
+        Assert.That(provider, Is.Not.Null);
+
+        var originalResult = CustomUploaderDefinitionBindingService.CreateMissingInstances(provider!);
+        Assert.That(originalResult.CreatedInstances.Count, Is.EqualTo(1));
+
+        string originalInstanceId = originalResult.CreatedInstances[0].InstanceId;
+        Assert.That(CustomUploaderDefinitionBindingService.SaveDefinition(provider!.Item, provider.FilePath, new[] { originalInstanceId }, originalInstanceId), Is.True);
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.True);
+
+        provider = CustomUploaderDefinitionBindingService.GetProviderByFilePath(filePath);
+        Assert.That(provider, Is.Not.Null);
+
+        InstanceManager.Instance.RemoveInstance(originalInstanceId);
+        var replacementInstance = new UploaderInstance
+        {
+            ProviderId = provider!.ProviderId,
+            Category = UploaderCategory.Image,
+            DisplayName = provider.Name,
+            SettingsJson = provider.GetDefaultSettings(UploaderCategory.Image),
+            FileTypeRouting = new FileTypeScope { AllFileTypes = true }
+        };
+        InstanceManager.Instance.AddInstance(replacementInstance);
+
+        var bindingInfo = CustomUploaderDefinitionBindingService.GetBindingInfo(provider!, replacementInstance.InstanceId);
+
+        Assert.That(bindingInfo.BoundInstanceIds, Is.EquivalentTo(new[] { replacementInstance.InstanceId }));
+        Assert.That(bindingInfo.PrimaryInstanceId, Is.EqualTo(replacementInstance.InstanceId));
+    }
+
+    [Test]
     public void ProviderCatalogViewModel_AddSelected_CanAddToAllSupportedCategories()
     {
         string filePath = CreateUniqueFilePath("catalog");
@@ -173,6 +212,107 @@ public class CustomUploaderDefinitionBindingServiceTests
         Assert.That(reloaded.IsValid, Is.True, reloaded.LoadError);
         Assert.That(reloaded.Metadata, Is.Not.Null);
         Assert.That(reloaded.Metadata!.InstanceIds.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void LoadPlugins_ForceReload_RemovesDeletedCustomUploaderProviders()
+    {
+        string filePath = CreateUniqueFilePath("force-reload-delete");
+        string directory = Path.GetDirectoryName(filePath)!;
+        var item = CreateItem(CustomUploaderDestinationType.ImageUploader);
+
+        Assert.That(CustomUploaderRepository.SaveToFile(item, filePath), Is.True);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Not.Null);
+
+        File.Delete(filePath);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Null);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviders().Any(provider =>
+            provider.FilePath.StartsWith(directory, StringComparison.OrdinalIgnoreCase)), Is.False);
+    }
+
+    [Test]
+    public void LoadPlugins_ForceReload_ReplacesExistingCustomUploaderDefinition()
+    {
+        string filePath = CreateUniqueFilePath("force-reload-update");
+        string directory = Path.GetDirectoryName(filePath)!;
+
+        var original = CreateItem(CustomUploaderDestinationType.ImageUploader);
+        original.Name = "Original uploader";
+        Assert.That(CustomUploaderRepository.SaveToFile(original, filePath), Is.True);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath)?.Name, Is.EqualTo("Original uploader"));
+
+        var updated = CreateItem(CustomUploaderDestinationType.ImageUploader | CustomUploaderDestinationType.FileUploader);
+        updated.Name = "Updated uploader";
+        Assert.That(CustomUploaderRepository.SaveToFile(updated, filePath), Is.True);
+
+        ProviderCatalog.LoadPlugins(directory, forceReload: true);
+
+        var provider = ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath);
+        Assert.That(provider, Is.Not.Null);
+        Assert.That(provider!.Name, Is.EqualTo("Updated uploader"));
+        Assert.That(provider.SupportedCategories, Is.EquivalentTo(new[] { UploaderCategory.Image, UploaderCategory.File }));
+    }
+
+    [Test]
+    public void SaveDefinition_CreatesMissingDirectory_ForNewForkedDefinition()
+    {
+        string filePath = Path.Combine(_rootPath, "missing", "nested", $"{Guid.NewGuid():N}.sxcu");
+        var item = CreateItem(CustomUploaderDestinationType.ImageUploader);
+
+        Assert.That(CustomUploaderDefinitionBindingService.SaveDefinition(item, filePath, new[] { "instance-1" }, "instance-1"), Is.True);
+        Assert.That(File.Exists(filePath), Is.True);
+
+        var loaded = CustomUploaderRepository.LoadFromFile(filePath);
+        Assert.That(loaded.IsValid, Is.True, loaded.LoadError);
+        Assert.That(loaded.Metadata, Is.Not.Null);
+        Assert.That(loaded.Metadata!.InstanceIds, Is.EquivalentTo(new[] { "instance-1" }));
+        Assert.That(loaded.Metadata.PrimaryInstanceId, Is.EqualTo("instance-1"));
+    }
+
+    [Test]
+    public void ReloadCustomUploader_InvalidUpdatedDefinition_RemovesStaleProvider()
+    {
+        string filePath = CreateUniqueFilePath("reload-invalid-update");
+
+        var original = CreateItem(CustomUploaderDestinationType.ImageUploader);
+        original.Name = "Still valid";
+        Assert.That(CustomUploaderRepository.SaveToFile(original, filePath), Is.True);
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.True);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath)?.Name, Is.EqualTo("Still valid"));
+
+        File.WriteAllText(filePath, "{\n  \"Name\": \"Broken\"\n}");
+
+        Assert.That(ProviderCatalog.ReloadCustomUploader(filePath), Is.False);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Null);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviders().Any(provider =>
+            string.Equals(provider.FilePath, filePath, StringComparison.OrdinalIgnoreCase)), Is.False);
+    }
+
+    [Test]
+    public void ReloadCustomUploader_RelativePath_RemovesStaleProvider()
+    {
+        string filePath = CreateUniqueFilePath("reload-relative-path");
+        string relativeFilePath = Path.GetRelativePath(Environment.CurrentDirectory, filePath);
+
+        var original = CreateItem(CustomUploaderDestinationType.ImageUploader);
+        original.Name = "Relative path uploader";
+        Assert.That(CustomUploaderRepository.SaveToFile(original, filePath), Is.True);
+
+        Assert.That(ProviderCatalog.ReloadCustomUploader(relativeFilePath), Is.True);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(relativeFilePath)?.Name, Is.EqualTo("Relative path uploader"));
+
+        File.WriteAllText(filePath, "{\n  \"Name\": \"Broken\"\n}");
+
+        Assert.That(ProviderCatalog.ReloadCustomUploader(relativeFilePath), Is.False);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(filePath), Is.Null);
+        Assert.That(ProviderCatalog.GetCustomUploaderProviderByFilePath(relativeFilePath), Is.Null);
     }
 
     private static CustomUploaderItem CreateItem(CustomUploaderDestinationType destinationType)

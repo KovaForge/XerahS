@@ -75,20 +75,29 @@ public class TaskInfo
     public EDataType DataType { get; set; }
     public TaskMetadata Metadata { get; set; }
 
+    internal string? ResolvedUploaderHost { get; set; }
+
     public string? UploaderHost
     {
         get
         {
             if (!IsUploadJob) return null;
 
-            var instanceId = TaskSettings.GetDestinationInstanceIdForDataType(DataType);
-            if (!string.IsNullOrEmpty(instanceId))
+            if (!string.IsNullOrWhiteSpace(ResolvedUploaderHost))
             {
-                var instance = InstanceManager.Instance.GetInstance(instanceId);
+                return ResolvedUploaderHost;
+            }
+
+            if (TryGetCategoryForDataType(DataType, out var category))
+            {
+                var instanceId = TaskSettings.GetDestinationInstanceIdForDataType(DataType);
+                var instance = !string.IsNullOrEmpty(instanceId)
+                    ? InstanceManager.Instance.GetInstance(instanceId)
+                    : InstanceManager.Instance.GetDefaultInstance(category);
+
                 if (instance != null)
                 {
-                    if (InstanceManager.IsAutoProvider(instance.ProviderId) &&
-                        TryGetCategoryForDataType(DataType, out var category))
+                    if (InstanceManager.IsAutoProvider(instance.ProviderId))
                     {
                         var resolved = InstanceManager.Instance.ResolveAutoInstance(category, instance.InstanceId);
                         if (resolved != null)
@@ -100,7 +109,10 @@ public class TaskInfo
                     return instance.DisplayName;
                 }
 
-                return instanceId;
+                if (!string.IsNullOrEmpty(instanceId))
+                {
+                    return instanceId;
+                }
             }
 
             // Legacy: URL shortener / sharing still read from deprecated enum for display
@@ -164,6 +176,11 @@ public class TaskInfo
         if (!string.IsNullOrEmpty(Metadata.ProcessName))
         {
             tags.Add("ProcessName", Metadata.ProcessName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(Metadata.OcrText))
+        {
+            tags.Add(nameof(Metadata.OcrText), Metadata.OcrText);
         }
 
         return tags.Count > 0 ? tags : null;

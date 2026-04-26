@@ -217,49 +217,7 @@ namespace XerahS.Platform.Windows
 
         internal static IntPtr ResolveScrollTarget(IntPtr windowHandle, IEnumerable<ScrollTargetCandidate> candidates)
         {
-            ArgumentNullException.ThrowIfNull(candidates);
-
-            ScrollTargetCandidate? bestNonScrollbar = null;
-            ScrollTargetCandidate? bestFallback = null;
-
-            foreach (ScrollTargetCandidate candidate in candidates)
-            {
-                if (candidate.Handle == IntPtr.Zero ||
-                    !candidate.HasVerticalScrollStyle ||
-                    !candidate.IsVisible ||
-                    candidate.ClientWidth <= 0 ||
-                    candidate.ClientHeight <= 0)
-                {
-                    continue;
-                }
-
-                if (bestFallback is null || candidate.ClientArea > bestFallback.Value.ClientArea)
-                {
-                    bestFallback = candidate;
-                }
-
-                if (candidate.IsScrollBarControl)
-                {
-                    continue;
-                }
-
-                if (bestNonScrollbar is null || candidate.ClientArea > bestNonScrollbar.Value.ClientArea)
-                {
-                    bestNonScrollbar = candidate;
-                }
-            }
-
-            if (bestNonScrollbar is { } nonScrollbar)
-            {
-                return nonScrollbar.Handle;
-            }
-
-            if (bestFallback is { } fallback)
-            {
-                return fallback.Handle;
-            }
-
-            return windowHandle;
+            return ScrollTargetResolver.Resolve(windowHandle, candidates);
         }
 
         internal static IntPtr ResolveScrollTarget(IntPtr windowHandle)
@@ -294,18 +252,5 @@ namespace XerahS.Platform.Windows
             return candidates;
         }
 
-        internal readonly record struct ScrollTargetCandidate(
-            IntPtr Handle,
-            bool HasVerticalScrollStyle,
-            bool IsVisible,
-            int ClientWidth,
-            int ClientHeight,
-            string ClassName)
-        {
-            public int ClientArea => ClientWidth * ClientHeight;
-
-            public bool IsScrollBarControl =>
-                string.Equals(ClassName, "ScrollBar", StringComparison.OrdinalIgnoreCase);
-        }
     }
 }

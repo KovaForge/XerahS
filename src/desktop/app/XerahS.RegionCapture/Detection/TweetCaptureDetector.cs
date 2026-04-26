@@ -1,109 +1,166 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace XerahS.RegionCapture.Detection;
 
 /// <summary>
-/// Detects tweet compose boxes and tweet content regions on x.com (Twitter/X web).
-/// Uses URL pattern matching + window class detection as the primary detection strategy.
+/// Detects tweet compose boxes and tweet content regions on X/Twitter web.
+/// Uses URL pattern matching plus conservative window-title heuristics.
 /// </summary>
 public interface ITweetCaptureDetector
 {
-    /// <summary>
-    /// Returns true if the current active window appears to be a tweet compose context.
-    /// </summary>
-    bool IsTweetComposeWindow(string url, string windowTitle);
-
-    /// <summary>
-    /// Returns true if the current active window appears to be viewing a tweet.
-    /// </summary>
-    bool IsTweetViewWindow(string url, string windowTitle);
-
-    /// <summary>
-    /// Returns the bounding region hint for a tweet compose box if detected.
-    /// Returns null if no tweet compose box is detected.
-    /// </summary>
-    TweetRegionHint? DetectComposeRegion(string url, string windowTitle);
+    bool IsTweetComposeWindow(string? url, string? windowTitle);
+    bool IsTweetViewWindow(string? url, string? windowTitle);
+    bool IsTimelineWindow(string? url, string? windowTitle);
+    TweetRegionHint? DetectComposeRegion(string? url, string? windowTitle);
+    TweetRegionHint? DetectTweetViewRegion(string? url, string? windowTitle);
+    IReadOnlyList<TweetRegionHint> GetSuggestedRegions(string? url, string? windowTitle);
 }
 
 public class TweetRegionHint
 {
     public string ProfileId { get; set; } = "twitter-tweet-compose";
-    public string Name { get; set; } = "Twitter Tweet Box";
-    public float Confidence { get; set; } // 0.0 – 1.0
-
-    // Relative position hints — actual bounds are determined at capture time
-    public int RelativeTop { get; set; }    // % from top of window
-    public int RelativeLeft { get; set; }   // % from left of window
-    public int RelativeWidth { get; set; }  // % of window width
-    public int RelativeHeight { get; set; } // % of window height
+    public string Name { get; set; } = "Tweet composer";
+    public float Confidence { get; set; }
+    public int RelativeTop { get; set; }
+    public int RelativeLeft { get; set; }
+    public int RelativeWidth { get; set; }
+    public int RelativeHeight { get; set; }
 }
 
 /// <summary>
 /// URL + window title pattern matching for Twitter/X web app.
-/// Relies on URL structure rather than DOM parsing (which requires headless browser).
+/// Relies on URL structure rather than DOM parsing.
 /// </summary>
 public class TweetCaptureDetector : ITweetCaptureDetector
 {
-    // Twitter/X URL patterns
     private static readonly Regex ComposeRegex = new(
-        @"https?://(www\.)?x\.com/.*/compose/.*",
+        @"https?://(www\.)?(x|twitter)\.com/.*/compose/.*",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex TweetViewRegex = new(
-        @"https?://(www\.)?x\.com/.*/status/\d+",
+        @"https?://(www\.)?(x|twitter)\.com/.*/status/\d+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex HomeTimelineRegex = new(
-        @"https?://(www\.)?x\.com/?$",
+        @"https?://(www\.)?(x|twitter)\.com/?$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Window class for Chrome-based browsers (Twitter/X runs in Chrome)
-    private const string ChromeWidgetClass = "Chrome_WidgetWin_1";
-
-    public bool IsTweetComposeWindow(string url, string windowTitle)
+    public bool IsTweetComposeWindow(string? url, string? windowTitle)
     {
-        return ComposeRegex.IsMatch(url ?? string.Empty);
+        return ComposeRegex.IsMatch(url ?? string.Empty)
+            || IsTitleMatch(windowTitle, "compose", "post", "tweet");
     }
 
-    public bool IsTweetViewWindow(string url, string windowTitle)
+    public bool IsTweetViewWindow(string? url, string? windowTitle)
     {
-        return TweetViewRegex.IsMatch(url ?? string.Empty);
+        return TweetViewRegex.IsMatch(url ?? string.Empty)
+            || IsTitleMatch(windowTitle, " on x", " on twitter");
     }
 
-    public TweetRegionHint? DetectComposeRegion(string url, string windowTitle)
+    public bool IsTimelineWindow(string? url, string? windowTitle)
+    {
+        return HomeTimelineRegex.IsMatch(url ?? string.Empty)
+            || IsTitleMatch(windowTitle, "home / x", "home / twitter");
+    }
+
+    public TweetRegionHint? DetectComposeRegion(string? url, string? windowTitle)
     {
         if (!IsTweetComposeWindow(url, windowTitle))
+        {
             return null;
+        }
 
-        // Tweet compose box is typically in the top portion of the page
-        // These values are heuristics — actual DOM element positions vary by viewport
         return new TweetRegionHint
         {
             ProfileId = "twitter-tweet-compose",
-            Name = "Twitter Tweet Box",
-            Confidence = 0.92f, // High confidence when URL matches compose pattern
-            RelativeTop = 10,    // ~10% from top
-            RelativeLeft = 25,   // Centered-ish at 25% from left
-            RelativeWidth = 50,  // 50% of window width
-            RelativeHeight = 30  // 30% of window height
+            Name = "Tweet composer",
+            Confidence = ComposeRegex.IsMatch(url ?? string.Empty) ? 0.92f : 0.76f,
+            RelativeTop = 10,
+            RelativeLeft = 25,
+            RelativeWidth = 50,
+            RelativeHeight = 30
         };
     }
 
-    /// <summary>
-    /// Returns a confidence score for any X.com URL.
-    /// Used to rank multiple detected profiles.
-    /// </summary>
-    public float GetUrlConfidence(string url)
+    public TweetRegionHint? DetectTweetViewRegion(string? url, string? windowTitle)
+    {
+        if (!IsTweetViewWindow(url, windowTitle))
+        {
+            return null;
+        }
+
+        return new TweetRegionHint
+        {
+            ProfileId = "twitter-tweet-view",
+            Name = "Tweet content",
+            Confidence = TweetViewRegex.IsMatch(url ?? string.Empty) ? 0.86f : 0.68f,
+            RelativeTop = 18,
+            RelativeLeft = 22,
+            RelativeWidth = 56,
+            RelativeHeight = 46
+        };
+    }
+
+    public IReadOnlyList<TweetRegionHint> GetSuggestedRegions(string? url, string? windowTitle)
+    {
+        List<TweetRegionHint> suggestions = [];
+
+        TweetRegionHint? composeRegion = DetectComposeRegion(url, windowTitle);
+        if (composeRegion is not null)
+        {
+            suggestions.Add(composeRegion);
+        }
+
+        TweetRegionHint? tweetViewRegion = DetectTweetViewRegion(url, windowTitle);
+        if (tweetViewRegion is not null)
+        {
+            suggestions.Add(tweetViewRegion);
+        }
+
+        if (IsTimelineWindow(url, windowTitle))
+        {
+            suggestions.Add(new TweetRegionHint
+            {
+                ProfileId = "twitter-home-timeline",
+                Name = "Timeline column",
+                Confidence = HomeTimelineRegex.IsMatch(url ?? string.Empty) ? 0.60f : 0.45f,
+                RelativeTop = 14,
+                RelativeLeft = 24,
+                RelativeWidth = 52,
+                RelativeHeight = 70
+            });
+        }
+
+        return suggestions
+            .OrderByDescending(hint => hint.Confidence)
+            .ThenBy(hint => hint.Name, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public float GetUrlConfidence(string? url)
     {
         if (string.IsNullOrEmpty(url))
+        {
             return 0f;
+        }
 
         if (ComposeRegex.IsMatch(url)) return 0.92f;
-        if (TweetViewRegex.IsMatch(url)) return 0.85f;
+        if (TweetViewRegex.IsMatch(url)) return 0.86f;
         if (HomeTimelineRegex.IsMatch(url)) return 0.60f;
 
         return 0f;
+    }
+
+    private static bool IsTitleMatch(string? windowTitle, params string[] fragments)
+    {
+        if (string.IsNullOrWhiteSpace(windowTitle))
+        {
+            return false;
+        }
+
+        return fragments.Any(fragment => windowTitle.Contains(fragment, StringComparison.OrdinalIgnoreCase));
     }
 }

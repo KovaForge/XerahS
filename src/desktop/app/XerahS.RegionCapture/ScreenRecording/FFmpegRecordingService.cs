@@ -443,10 +443,28 @@ public class FFmpegRecordingService : IRecordingService
         args.Add("-y"); // Overwrite output file
 
         // Output path
-        string outputPath = options.OutputPath ?? GetDefaultOutputPath();
+        string outputPath = ResolveOutputPath(options.OutputPath);
         args.Add($"\"{outputPath}\"");
 
         return string.Join(" ", args);
+    }
+
+    private string ResolveOutputPath(string? outputPath)
+    {
+        if (!string.IsNullOrWhiteSpace(outputPath))
+        {
+            string fullPath = Path.GetFullPath(outputPath);
+            string? outputDirectory = Path.GetDirectoryName(fullPath);
+
+            if (!string.IsNullOrEmpty(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            return fullPath;
+        }
+
+        return GetDefaultOutputPath();
     }
 
     private string GetDefaultOutputPath()

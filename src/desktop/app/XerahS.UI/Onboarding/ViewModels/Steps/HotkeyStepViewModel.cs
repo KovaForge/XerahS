@@ -93,33 +93,33 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             PrimaryHotkey));
 
         SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
-            "Region Capture",
-            "Capture a selected region of the screen",
-            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Control)));
-
-        SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
             "Window Capture",
             "Capture the active window",
-            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Alt)));
+            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Control)));
 
         SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
             "Full Screen",
             "Capture the entire screen",
-            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Shift)));
+            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Alt)));
 
-        SecondaryHotkeyItems.Add(CreateHotkeyItem(
-            WorkflowType.RectangleRegion,
-            "Region Capture",
-            SecondaryHotkeys[0].Hotkey));
+        SecondaryHotkeys.Add(new SecondaryHotkeyConfig(
+            "OCR",
+            "Capture a region and extract text",
+            new HotkeyInfo(Key.PrintScreen, KeyModifiers.Shift)));
 
         SecondaryHotkeyItems.Add(CreateHotkeyItem(
             WorkflowType.ActiveWindow,
             "Window Capture",
-            SecondaryHotkeys[1].Hotkey));
+            SecondaryHotkeys[0].Hotkey));
 
         SecondaryHotkeyItems.Add(CreateHotkeyItem(
             WorkflowType.PrintScreen,
             "Full Screen",
+            SecondaryHotkeys[1].Hotkey));
+
+        SecondaryHotkeyItems.Add(CreateHotkeyItem(
+            WorkflowType.OCR,
+            "OCR",
             SecondaryHotkeys[2].Hotkey));
     }
 
@@ -331,7 +331,7 @@ public partial class HotkeyStepViewModel : StepViewModelBase
             return null;
         }
 
-        string[] parts = value.Split(" + ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string[] parts = value.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         KeyModifiers modifiers = KeyModifiers.None;
         Key key = Key.None;
 
@@ -351,36 +351,16 @@ public partial class HotkeyStepViewModel : StepViewModelBase
                     break;
                 case "win":
                 case "windows":
+                case "cmd":
+                case "command":
+                case "meta":
                     modifiers |= KeyModifiers.Meta;
                     break;
                 default:
-                    if (string.Equals(part, "Print Screen", StringComparison.OrdinalIgnoreCase))
+                    Key? displayKey = ParseDisplayKeyName(part);
+                    if (displayKey.HasValue)
                     {
-                        key = Key.PrintScreen;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Page Up", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.PageUp;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Page Down", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.PageDown;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Num Lock", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.NumLock;
-                        break;
-                    }
-
-                    if (string.Equals(part, "Scroll Lock", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key = Key.Scroll;
+                        key = displayKey.Value;
                         break;
                     }
 
@@ -398,5 +378,38 @@ public partial class HotkeyStepViewModel : StepViewModelBase
         }
 
         return new HotkeyInfo(key, modifiers);
+    }
+
+    private static Key? ParseDisplayKeyName(string part)
+    {
+        if (string.IsNullOrWhiteSpace(part))
+        {
+            return null;
+        }
+
+        if (part.Length == 1 && part[0] is >= '0' and <= '9')
+        {
+            return Key.D0 + (part[0] - '0');
+        }
+
+        if (part.StartsWith("Numpad ", StringComparison.OrdinalIgnoreCase) &&
+            part.Length == "Numpad ".Length + 1 &&
+            part[^1] is >= '0' and <= '9')
+        {
+            return Key.NumPad0 + (part[^1] - '0');
+        }
+
+        return part switch
+        {
+            _ when string.Equals(part, "Backspace", StringComparison.OrdinalIgnoreCase) => Key.Back,
+            _ when string.Equals(part, "Caps Lock", StringComparison.OrdinalIgnoreCase) => Key.Capital,
+            _ when string.Equals(part, "Enter", StringComparison.OrdinalIgnoreCase) => Key.Return,
+            _ when string.Equals(part, "Page Down", StringComparison.OrdinalIgnoreCase) => Key.PageDown,
+            _ when string.Equals(part, "Page Up", StringComparison.OrdinalIgnoreCase) => Key.PageUp,
+            _ when string.Equals(part, "Print Screen", StringComparison.OrdinalIgnoreCase) => Key.PrintScreen,
+            _ when string.Equals(part, "Num Lock", StringComparison.OrdinalIgnoreCase) => Key.NumLock,
+            _ when string.Equals(part, "Scroll Lock", StringComparison.OrdinalIgnoreCase) => Key.Scroll,
+            _ => null,
+        };
     }
 }

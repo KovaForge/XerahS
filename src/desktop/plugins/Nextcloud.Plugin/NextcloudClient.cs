@@ -81,7 +81,7 @@ public sealed class NextcloudClient
     public static string CombineRelativePath(string? folderPath, string? name)
     {
         string safeFolderPath = NormalizeRelativePath(folderPath);
-        string safeName = name?.Trim().Trim('/') ?? string.Empty;
+        string safeName = NormalizeRelativePath(name);
 
         if (string.IsNullOrWhiteSpace(safeFolderPath))
         {
@@ -639,18 +639,43 @@ public sealed class NextcloudClient
             rawHref = Uri.UnescapeDataString(absoluteUri.AbsolutePath);
         }
 
-        if (rawHref.StartsWith(hrefPrefix, StringComparison.OrdinalIgnoreCase))
+        if (TryExtractPathAfterPrefix(rawHref, hrefPrefix, out string relativePath))
         {
-            return NormalizeRelativePath(rawHref[hrefPrefix.Length..]);
+            return NormalizeRelativePath(relativePath);
         }
 
-        string alternatePrefix = "/remote.php/dav/files/" + Uri.EscapeDataString(userId) + "/";
-        if (rawHref.StartsWith(alternatePrefix, StringComparison.OrdinalIgnoreCase))
+        string alternatePrefix = "/remote.php/dav/files/" + Uri.EscapeDataString(userId);
+        if (TryExtractPathAfterPrefix(rawHref, alternatePrefix, out relativePath))
         {
-            return NormalizeRelativePath(Uri.UnescapeDataString(rawHref[alternatePrefix.Length..]));
+            return NormalizeRelativePath(Uri.UnescapeDataString(relativePath));
         }
 
         return NormalizeRelativePath(rawHref.Trim('/'));
+    }
+
+    private static bool TryExtractPathAfterPrefix(string rawHref, string prefix, out string relativePath)
+    {
+        relativePath = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(rawHref) || string.IsNullOrWhiteSpace(prefix))
+        {
+            return false;
+        }
+
+        int prefixIndex = rawHref.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        if (prefixIndex < 0)
+        {
+            return false;
+        }
+
+        int startIndex = prefixIndex + prefix.Length;
+        if (startIndex < rawHref.Length && rawHref[startIndex] == '/')
+        {
+            startIndex++;
+        }
+
+        relativePath = startIndex <= rawHref.Length ? rawHref[startIndex..] : string.Empty;
+        return true;
     }
 
     private static JObject ParseOcsPayload(string body)

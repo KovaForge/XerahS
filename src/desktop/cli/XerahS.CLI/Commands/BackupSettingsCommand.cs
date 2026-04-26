@@ -33,7 +33,10 @@ namespace XerahS.CLI.Commands
     {
         public BackupSettingsCommand() : base("backup-settings", "Force a backup of application settings")
         {
-            this.SetAction((parseResult) => Execute());
+            this.SetAction((parseResult) =>
+            {
+                Environment.ExitCode = Execute();
+            });
         }
 
         public static Command Create()
@@ -41,21 +44,30 @@ namespace XerahS.CLI.Commands
             return new BackupSettingsCommand();
         }
 
-        private void Execute()
+        internal static int Execute(
+            Action? loadInitialSettings = null,
+            Action? saveAllSettings = null,
+            Func<string>? getBackupFolder = null)
         {
+            loadInitialSettings ??= SettingsManager.LoadInitialSettings;
+            saveAllSettings ??= SettingsManager.SaveAllSettings;
+            getBackupFolder ??= () => SettingsManager.BackupFolder;
+
             try
             {
                 Console.WriteLine("Loading settings...");
-                SettingsManager.LoadInitialSettings();
+                loadInitialSettings();
 
                 Console.WriteLine("Backing up settings...");
-                SettingsManager.SaveAllSettings();
+                saveAllSettings();
 
-                Console.WriteLine($"[SUCCESS] Settings backed up to: {SettingsManager.BackupFolder}");
+                Console.WriteLine($"[SUCCESS] Settings backed up to: {getBackupFolder()}");
+                return 0;
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"[ERROR] Failed to backup settings: {ex.Message}");
+                return 1;
             }
         }
     }

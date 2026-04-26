@@ -99,7 +99,7 @@ public static class MonitorTestToolService
                     }
                 });
 
-                return file?.Path.LocalPath;
+                return file?.TryGetLocalPath();
             }
             catch (Exception ex)
             {

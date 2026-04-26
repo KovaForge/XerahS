@@ -2,7 +2,7 @@ app-id: com.getsharex.XerahS
 runtime: org.freedesktop.Platform
 runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
-command: XerahS
+command: xerahs
 
 finish-args:
   # X11 + Wayland display
@@ -13,9 +13,6 @@ finish-args:
   - --device=dri
   # Network (uploaders, update checks)
   - --share=network
-  # Clipboard
-  - --clipboard=read
-  - --clipboard=write
   # Freedesktop notifications
   - --talk-name=org.freedesktop.Notifications
   # DBus screenshot APIs
@@ -28,7 +25,7 @@ finish-args:
   # System tray on GNOME
   - --talk-name=org.kde.StatusNotifierWatcher
   # DBus session bus
-  - --bus=session
+  - --socket=session-bus
   # Filesystem — captures saved here; config read from XDG_CONFIG_HOME
   - --filesystem=xdg-pictures
   - --filesystem=xdg-videos
@@ -50,20 +47,21 @@ modules:
     buildsystem: simple
     build-commands:
       # Install self-contained publish to /app
-      - cp -rT /self-contained /app
+      - cp -rT self-contained /app
 
-      # Symlink for xdg-desktop-portal app-ID resolution (must be on a
-      # filesystem that /proc/PID/exe can traverse from a portal subprocess).
-      - ln -s /app/XerahS /usr/bin/xerahs
+      # Flatpak application commands must be installed under /app.
+      - mkdir -p /app/bin
+      - ln -s ../XerahS /app/bin/XerahS
+      - ln -s ../XerahS /app/bin/xerahs
 
       # Install app icon
-      - install -Dm644 src/desktop/app/XerahS.UI/Assets/Logo.png /app/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
+      - install -Dm644 com.getsharex.XerahS.png /app/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
 
       # Install .desktop file (converted to use the /usr/bin symlink)
-      - install -Dm644 flatpak/com.getsharex.XerahS.desktop /app/share/applications/com.getsharex.XerahS.desktop
+      - install -Dm644 com.getsharex.XerahS.desktop /app/share/applications/com.getsharex.XerahS.desktop
 
       # Install AppStream metainfo (for software-center compliance)
-      - install -Dm644 flatpak/com.getsharex.XerahS.metainfo.xml /app/share/metainfo/com.getsharex.XerahS.metainfo.xml
+      - install -Dm644 com.getsharex.XerahS.metainfo.xml /app/share/metainfo/com.getsharex.XerahS.metainfo.xml
 
       # WebUI dist must exist (copied into publish dir by CopyWebUIDist MSBuild target)
       # Validate it was included
@@ -73,13 +71,14 @@ modules:
       - chmod 755 /app/XerahS
       - test -f /app/xerahs-watchfolder-daemon && chmod 755 /app/xerahs-watchfolder-daemon || true
 
-    build-inputs:
-      # These are NOT build deps — they are the pre-built self-contained publish
-      # produced by package-linux.sh. We source them as a build directory so
-      # flatpak-builder can copy from /self-contained.
-      self-contained: null
-
     sources:
       - type: dir
-        path: dist/xerahs-flatpak-staging
+        path: ../dist/xerahs-flatpak-staging
         dest: self-contained
+      - type: file
+        path: ../src/desktop/app/XerahS.UI/Assets/Logo.png
+        dest-filename: com.getsharex.XerahS.png
+      - type: file
+        path: com.getsharex.XerahS.desktop
+      - type: file
+        path: com.getsharex.XerahS.metainfo.xml

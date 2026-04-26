@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 #nullable disable
+using Newtonsoft.Json;
 using XerahS.Common;
 
 namespace XerahS.Uploaders.PluginSystem;
@@ -86,6 +87,14 @@ public static class PluginConfigurationVerifier
     {
         var result = new PluginVerificationResult();
 
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin provider ID is missing";
+            result.Issues.Add("A plugin provider ID is required for verification.");
+            return result;
+        }
+
         // Custom uploaders are single .sxcu files, not plugin folders - skip verification
         if (providerId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase))
         {
@@ -122,7 +131,46 @@ public static class PluginConfigurationVerifier
             }
         }
 
-        // Determine status based on file count and problematic files
+        var manifestPath = Path.Combine(pluginsPath, "plugin.json");
+        if (!File.Exists(manifestPath))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin manifest not found";
+            result.Issues.Add($"Missing required file: {manifestPath}");
+            return result;
+        }
+
+        PluginManifest manifest;
+        try
+        {
+            manifest = JsonConvert.DeserializeObject<PluginManifest>(File.ReadAllText(manifestPath));
+        }
+        catch (Exception ex)
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin manifest is unreadable";
+            result.Issues.Add($"Failed to read plugin.json: {ex.Message}");
+            return result;
+        }
+
+        string manifestError = null;
+        if (manifest == null || !manifest.IsValid(out manifestError))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin manifest is invalid";
+            result.Issues.Add($"Invalid plugin.json: {manifestError ?? "Failed to deserialize manifest."}");
+            return result;
+        }
+
+        var assemblyPath = Path.Combine(pluginsPath, manifest.GetAssemblyFileName());
+        if (!File.Exists(assemblyPath))
+        {
+            result.Status = PluginVerificationStatus.Error;
+            result.Message = "Plugin assembly not found";
+            result.Issues.Add($"Missing plugin assembly: {assemblyPath}");
+            return result;
+        }
+
         if (result.ProblematicFiles.Count > 0)
         {
             result.Status = PluginVerificationStatus.Error;
@@ -132,19 +180,12 @@ public static class PluginConfigurationVerifier
             result.Issues.Add("");
             result.Issues.Add("Fix: Delete these duplicate DLLs from the plugin folder, then restart the app.");
         }
-        else if (result.FileCount == 3)
-        {
-            result.Status = PluginVerificationStatus.Valid;
-            result.Message = $"\u2713 Plugin properly configured ({result.FileCount} files)";
-            result.Issues.Add("Plugin folder contains the expected number of files.");
-            result.Issues.Add("No duplicate framework assemblies detected.");
-        }
         else
         {
-            result.Status = PluginVerificationStatus.Warning;
-            result.Message = $"\u26A0\uFE0F Plugin folder has {result.FileCount} files (expected 3)";
-            result.Issues.Add("Plugin folder contains an unexpected number of files.");
-            result.Issues.Add("Verify that only plugin-specific dependencies are included.");
+            result.Status = PluginVerificationStatus.Valid;
+            result.Message = $"\u2713 Plugin properly configured ({result.FileCount} top-level files)";
+            result.Issues.Add("Plugin manifest and assembly were found.");
+            result.Issues.Add("No duplicate framework assemblies detected.");
         }
 
         return result;
@@ -157,6 +198,11 @@ public static class PluginConfigurationVerifier
     /// <returns>Number of files deleted</returns>
     public static int CleanDuplicateFrameworkDlls(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return 0;
+        }
+
         // Only clean user RID-scoped plugin folders; app-bundled plugins may be read-only.
         var pluginsPath = ResolvePluginDirectory(providerId);
         if (pluginsPath == null ||
@@ -220,15 +266,39 @@ public static class PluginConfigurationVerifier
 
     private static string ResolvePluginDirectory(string providerId)
     {
+        if (!IsSafeProviderDirectoryName(providerId))
+        {
+            return null;
+        }
+
         var metadata = ProviderCatalog.GetPluginMetadata(providerId);
         if (!string.IsNullOrWhiteSpace(metadata?.PluginDirectory) && Directory.Exists(metadata.PluginDirectory))
         {
-            return metadata.PluginDirectory;
+            return Path.GetFullPath(metadata.PluginDirectory);
         }
 
         return PathsManager.GetPluginDirectories()
             .Select(directory => Path.Combine(directory, providerId))
+            .Select(Path.GetFullPath)
             .FirstOrDefault(Directory.Exists);
     }
-}
 
+    private static bool IsSafeProviderDirectoryName(string providerId)
+    {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return false;
+        }
+
+        if (providerId == "." || providerId == "..")
+        {
+            return false;
+        }
+
+        return providerId.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
+            providerId.IndexOf(Path.DirectorySeparatorChar) < 0 &&
+            providerId.IndexOf(Path.AltDirectorySeparatorChar) < 0 &&
+            providerId.IndexOf('/') < 0 &&
+            providerId.IndexOf('\\') < 0;
+    }
+}

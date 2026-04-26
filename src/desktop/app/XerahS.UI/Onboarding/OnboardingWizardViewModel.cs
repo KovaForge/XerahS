@@ -275,14 +275,9 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                         workflowManager.Workflows.Add(primaryWorkflow);
                     }
 
-                    WorkflowType[] secondaryJobs =
-                    [
-                        WorkflowType.RectangleRegion,
-                        WorkflowType.ActiveWindow,
-                        WorkflowType.PrintScreen
-                    ];
+                    IReadOnlyList<WorkflowType> secondaryJobs = GetSecondaryOnboardingWorkflowJobs();
 
-                    for (int i = 0; i < Math.Min(state.AdditionalHotkeys.Count, secondaryJobs.Length); i++)
+                    for (int i = 0; i < Math.Min(state.AdditionalHotkeys.Count, secondaryJobs.Count); i++)
                     {
                         HotkeyInfo hotkey = state.AdditionalHotkeys[i];
                         WorkflowType job = secondaryJobs[i];
@@ -348,6 +343,16 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         {
             workflow.TaskSettings.SetDestinationInstanceId(workflow.Job, instance.InstanceId);
         }
+    }
+
+    internal static IReadOnlyList<WorkflowType> GetSecondaryOnboardingWorkflowJobs()
+    {
+        return
+        [
+            WorkflowType.ActiveWindow,
+            WorkflowType.PrintScreen,
+            WorkflowType.OCR
+        ];
     }
 
     private WorkflowManager? GetWorkflowManager()

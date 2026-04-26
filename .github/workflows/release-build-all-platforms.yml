@@ -77,16 +77,22 @@ jobs:
       - name: Install WiX Toolset
         shell: pwsh
         run: |
+          $wixVersion = "6.0.2"
           $toolList = dotnet tool list --global 2>&1
           if ($toolList | Select-String 'wix') {
-            dotnet tool update --global wix
+            dotnet tool update --global wix --version $wixVersion
           } else {
-            dotnet tool install --global wix
+            dotnet tool install --global wix --version $wixVersion
           }
           # Ensure dotnet tools directory is on PATH for subsequent steps.
           $dotnetTools = Join-Path $env:USERPROFILE ".dotnet\tools"
           "$dotnetTools" | Out-File -Append -FilePath $env:GITHUB_PATH
           $env:PATH = "$dotnetTools;$env:PATH"
+          wix --version
+          $extensions = wix extension list --global 2>&1
+          if (!($extensions | Select-String 'WixToolset.UI.wixext')) {
+            wix extension add --global "WixToolset.UI.wixext/$wixVersion"
+          }
 
       - name: Build Windows packages
         shell: pwsh
@@ -268,10 +274,13 @@ jobs:
       - name: Install FreeDesktop runtime (one-time)
         shell: bash
         run: |
-          flatpak remote-add --user --no-sign-verify flathub https://flathub.org/repo/flathub.flatpakrepo || true
+          set -euo pipefail
+          flatpak remote-add --user --if-not-exists --no-gpg-verify flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --or-update --noninteractive \
-            flathub org.freedesktop.Platform//24.08 \
-            flathub org.freedesktop.Sdk//24.08 || true
+            flathub \
+            org.freedesktop.Platform//24.08 \
+            org.freedesktop.Sdk//24.08
+          flatpak list --user --runtime | grep -E 'org\.freedesktop\.(Platform|Sdk).*24\.08'
 
       - name: Build Linux publish (staging for Flatpak)
         shell: bash
@@ -289,9 +298,8 @@ jobs:
           rm -rf "dist/xerahs-flatpak-staging"
           mkdir -p "dist/xerahs-flatpak-staging"
           # Extract the self-contained publish into the staging dir.
-          # The tarball root is the publish root; flatten it into staging directly.
+          # The tarball entries are already relative to the publish root.
           tar -xzf "dist/XerahS-${VERSION}-linux-x64.tar.gz" \
-            --strip-components=1 \
             -C "dist/xerahs-flatpak-staging"
 
       - name: Validate WebUI dist is present
@@ -308,8 +316,9 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p build/logs
+          mkdir -p build/logs dist/flatpak-repo
           flatpak-builder --user --force-clean --ccache \
+            --repo=dist/flatpak-repo \
             build/com.getsharex.XerahS \
             flatpak/com.getsharex.XerahS.yml 2>&1 | tee build/logs/flatpak-build.log || {
             echo "flatpak-builder failed. Logs:"
@@ -321,14 +330,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          flatpak build-info build/com.getsharex.XerahS
+          test -f build/com.getsharex.XerahS/metadata
+          test -x build/com.getsharex.XerahS/files/bin/xerahs
+          test -f build/com.getsharex.XerahS/files/share/applications/com.getsharex.XerahS.desktop
+          test -f build/com.getsharex.XerahS/files/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
+          test -f build/com.getsharex.XerahS/files/share/metainfo/com.getsharex.XerahS.metainfo.xml
+          test -f dist/flatpak-repo/config
 
       - name: Export Flatpak bundle
         shell: bash
         run: |
           set -euo pipefail
           VERSION="${{ needs.validate-version.outputs.version }}"
-          flatpak build-bundle ~/.local/share/flatpak/repo \
+          flatpak build-bundle dist/flatpak-repo \
             "dist/com.getsharex.XerahS-$VERSION-linux-x64.flatpak" \
             com.getsharex.XerahS
 
@@ -424,6 +438,7 @@ jobs:
         run: |
           .\build\windows\chocolatey\Sync-ChocolateyPackage.ps1 `
             -Version "${{ needs.validate-version.outputs.version }}" `
+            -Repository "${{ github.repository }}" `
             -Pack `
             -OutputDirectory "dist\chocolatey"
 

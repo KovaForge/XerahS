@@ -22,6 +22,7 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using XerahS.Platform.Abstractions;
@@ -54,7 +55,7 @@ public class HotkeyStatusColorConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }
 
@@ -76,6 +77,6 @@ public class BoolToFontWeightConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        return BindingOperations.DoNothing;
     }
 }

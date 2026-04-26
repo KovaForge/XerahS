@@ -35,14 +35,16 @@ namespace XerahS.Platform.Linux.Services
 
         public bool ShowFileInExplorer(string filePath)
         {
-             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
             {
                 return false;
             }
 
             try
             {
-                if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri))
+                string normalizedFilePath = NormalizeExistingPath(filePath);
+
+                if (Uri.TryCreate(normalizedFilePath, UriKind.Absolute, out var uri))
                 {
                     if (TryShowItemsViaDbus(uri.AbsoluteUri))
                     {
@@ -51,10 +53,10 @@ namespace XerahS.Platform.Linux.Services
                 }
 
                 // Linux selecting file is not standardized. Open parent dir.
-                string? folderPath = Path.GetDirectoryName(filePath);
+                string? folderPath = Path.GetDirectoryName(normalizedFilePath);
                 if (!string.IsNullOrEmpty(folderPath))
                 {
-                    Process.Start(new ProcessStartInfo("xdg-open", $"\"{folderPath}\"") { UseShellExecute = true });
+                    Process.Start(CreateOpenStartInfo(folderPath));
                     return true;
                 }
             }
@@ -66,13 +68,13 @@ namespace XerahS.Platform.Linux.Services
             return false;
         }
 
-         public bool OpenUrl(string url)
+        public bool OpenUrl(string url)
         {
             if (string.IsNullOrEmpty(url)) return false;
 
             try
             {
-                Process.Start(new ProcessStartInfo("xdg-open", $"\"{url}\"") { UseShellExecute = true });
+                Process.Start(CreateOpenStartInfo(url));
                 return true;
             }
             catch (Exception ex)
@@ -82,21 +84,22 @@ namespace XerahS.Platform.Linux.Services
             return false;
         }
 
-         public bool OpenFile(string filePath)
+        public bool OpenFile(string filePath)
         {
-             if (string.IsNullOrWhiteSpace(filePath) || (!File.Exists(filePath) && !Directory.Exists(filePath))) return false;
+            if (string.IsNullOrWhiteSpace(filePath) || (!File.Exists(filePath) && !Directory.Exists(filePath))) return false;
 
-             try
-             {
-                 Process.Start(new ProcessStartInfo("xdg-open", $"\"{filePath}\"") { UseShellExecute = true });
-                 return true;
-             }
-             catch (Exception ex)
-             {
-                 Debug.WriteLine(ex);
-             }
-             return false;
-         }
+            try
+            {
+                Process.Start(CreateOpenStartInfo(NormalizeExistingPath(filePath)));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
+
+            return false;
+        }
 
         public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
         {
@@ -113,6 +116,26 @@ namespace XerahS.Platform.Linux.Services
 
             path = null;
             return false;
+        }
+
+        internal static ProcessStartInfo CreateOpenStartInfo(string target)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "xdg-open",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            startInfo.ArgumentList.Add(target);
+            return startInfo;
+        }
+
+        internal static string NormalizeExistingPath(string path)
+        {
+            return Path.GetFullPath(path);
         }
 
         private static bool TryShowItemsViaDbus(string fileUri)

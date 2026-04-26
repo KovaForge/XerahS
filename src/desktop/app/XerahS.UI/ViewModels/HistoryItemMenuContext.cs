@@ -25,6 +25,7 @@
 
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Common;
 using XerahS.History;
 
 namespace XerahS.UI.ViewModels;
@@ -63,6 +64,9 @@ public interface IHistoryItemMenuTarget
     string? URL { get; }
     bool HasErrors { get; }
     bool HasEditableAnnotations { get; }
+    bool HasImageFile { get; }
+    bool HasFilePath { get; }
+    bool HasExistingFile { get; }
 }
 
 /// <summary>
@@ -80,6 +84,9 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
     public string? URL => _item.URL;
     public bool HasErrors => _item.HasErrors;
     public bool HasEditableAnnotations => _item.HasEditableAnnotations;
+    public bool HasImageFile => !string.IsNullOrWhiteSpace(_item.FilePath) && FileHelpers.IsImageFile(_item.FilePath);
+    public bool HasFilePath => !string.IsNullOrWhiteSpace(_item.FilePath);
+    public bool HasExistingFile => !string.IsNullOrWhiteSpace(_item.FilePath) && File.Exists(_item.FilePath);
 }
 
 /// <summary>
@@ -129,6 +136,9 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
     public string? URL => _vm.Url;
     public bool HasErrors => _vm.HasErrors;
     public bool HasEditableAnnotations => false;
+    public bool HasImageFile => _vm.CanCopyImage;
+    public bool HasFilePath => !string.IsNullOrWhiteSpace(_vm.FilePath);
+    public bool HasExistingFile => _vm.HasExistingFile;
 }
 
 
