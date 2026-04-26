@@ -243,6 +243,17 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void GetSafeRemoteFileName_RemovesDirectorySegmentsFromUploadName()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvokeGetSafeRemoteFileName(@"C:\\Users\\alice\\Pictures\\capture.png"), Is.EqualTo("capture.png"));
+            Assert.That(InvokeGetSafeRemoteFileName("../../nested/report.txt"), Is.EqualTo("report.txt"));
+            Assert.That(InvokeGetSafeRemoteFileName("../"), Is.EqualTo("upload"));
+        });
+    }
+
+    [Test]
     public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyPathIsMissing()
     {
         var uploader = new FtpUploader(new FTPAccount
@@ -299,5 +310,12 @@ public sealed class FtpConfigViewModelTests
         MethodInfo? method = typeof(FtpUploader).GetMethod("CreateSftpClient", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (SftpClient?)method!.Invoke(uploader, null);
+    }
+
+    private static string InvokeGetSafeRemoteFileName(string? fileName)
+    {
+        MethodInfo? method = typeof(FtpUploader).GetMethod("GetSafeRemoteFileName", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (string)method!.Invoke(null, new object?[] { fileName })!;
     }
 }
