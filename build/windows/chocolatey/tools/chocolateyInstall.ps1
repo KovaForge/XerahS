@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $packageName  = 'xerahs'
 $packageVersion = $env:ChocolateyPackageVersion
+$repository = 'ShareX/XerahS'
 $fileType     = 'exe'
 $silentArgs   = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /NORUN'
 $checksumType = 'sha256'
@@ -20,7 +21,7 @@ if (-not [Environment]::Is64BitOperatingSystem) {
 $isArm64 = $env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64'
 $assetSuffix = if ($isArm64) { 'win-arm64' } else { 'win-x64' }
 $checksum = if ($isArm64) { $arm64Checksum } else { $x64Checksum }
-$url = "https://github.com/ShareX/XerahS/releases/download/v$packageVersion/XerahS-$packageVersion-$assetSuffix.exe"
+$url = "https://github.com/$repository/releases/download/v$packageVersion/XerahS-$packageVersion-$assetSuffix.exe"
 
 $packageArgs = @{
     PackageName = $packageName
