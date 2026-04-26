@@ -7,21 +7,26 @@
         x:DataType="vm:PluginInstallerViewModel"
         Title="Install Plugin"
         Icon="/Assets/Logo.ico"
-        Width="620" Height="680"
+        Width="760" Height="760"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
 
     <Grid Margin="24" RowDefinitions="Auto, *, Auto">
 
         <!-- Header -->
-        <TextBlock Grid.Row="0" Text="Install Plugin" Theme="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,24"/>
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,20">
+            <TextBlock Text="Install Plugin" Theme="{StaticResource TitleTextBlockStyle}"/>
+            <TextBlock Text="Install community plugins from the registry, or import a local .xsdp package."
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       TextWrapping="Wrap"/>
+        </StackPanel>
 
         <!-- Main Content -->
         <ScrollViewer Grid.Row="1">
             <StackPanel Spacing="24">
 
                 <!-- Community Registry -->
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
                         <StackPanel Grid.Column="0" Spacing="4">
                             <TextBlock Text="Community Plugins" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
@@ -34,10 +39,26 @@
                                 AutomationProperties.Name="Refresh Community Plugins"/>
                     </Grid>
 
+                    <ProgressBar IsIndeterminate="True"
+                                 IsVisible="{Binding IsLoadingCommunityPlugins}"
+                                 Height="4"
+                                 AutomationProperties.Name="Community Plugin Refresh Progress"/>
+
+                    <Border Padding="12"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            IsVisible="{Binding IsCommunityEmptyStateVisible}">
+                        <TextBlock Text="No community plugins are available yet. Refresh checks the official registry for verified .xsdp packages."
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+
                     <ListBox ItemsSource="{Binding CommunityPlugins}"
                              SelectedItem="{Binding SelectedCommunityPlugin}"
                              MinHeight="140"
                              MaxHeight="220"
+                             IsVisible="{Binding HasCommunityPlugins}"
                              AutomationProperties.Name="Community Plugin List">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="plugins:CommunityPluginIndexEntry">
@@ -55,10 +76,48 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <Button Content="Download and Install Selected Community Plugin"
-                            Command="{Binding InstallCommunityPluginCommand}"
-                            IsEnabled="{Binding CanInstallCommunityPlugin}"
-                            AutomationProperties.Name="Install Community Plugin"/>
+                    <Border Theme="{StaticResource CardBorderTheme}"
+                            IsVisible="{Binding HasSelectedCommunityPlugin}">
+                        <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
+                                <StackPanel Grid.Column="0" Spacing="3">
+                                    <TextBlock Text="{Binding SelectedCommunityPlugin.Name}" Theme="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <TextBlock Text="{Binding SelectedCommunityPluginVersionAuthor}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding SelectedCommunityPlugin.CategorySummary}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <TextBlock Text="{Binding SelectedCommunityPlugin.Description}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+
+                            <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto, Auto" RowSpacing="4" ColumnSpacing="12">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="ID:" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedCommunityPlugin.PluginId}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Compatibility:" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedCommunityPluginCompatibility}" TextWrapping="Wrap"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Dependencies:" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedCommunityPluginDependencies}" TextWrapping="Wrap"/>
+                            </Grid>
+
+                            <TextBlock Text="{Binding SelectedCommunityPluginInstallState}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+
+                            <Button Content="Download and Install"
+                                    Command="{Binding InstallCommunityPluginCommand}"
+                                    IsEnabled="{Binding CanInstallCommunityPlugin}"
+                                    Classes="accent"
+                                    HorizontalAlignment="Left"
+                                    AutomationProperties.Name="Install Community Plugin"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <Separator/>
@@ -105,6 +164,18 @@
 
                         <TextBlock Text="{Binding ManifestCategories}"  FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                     </StackPanel>
+                </Border>
+
+                <!-- Status Message -->
+                <Border Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
+                        BorderBrush="{DynamicResource SystemFillColorSuccessBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12"
+                        IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               TextWrapping="Wrap"/>
                 </Border>
 
                 <!-- Error Message -->

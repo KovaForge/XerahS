@@ -37,6 +37,7 @@ public partial class PluginInstallerDialog : SurfaceWindow
     {
         InitializeComponent();
         DataContextChanged += (_, _) => WireCloseRequest(DataContext as PluginInstallerViewModel);
+        Opened += (_, _) => InitializeViewModel(DataContext as PluginInstallerViewModel);
     }
 
     private void InitializeComponent()
@@ -55,5 +56,15 @@ public partial class PluginInstallerDialog : SurfaceWindow
         {
             Dispatcher.UIThread.Post(() => Close(result ?? false));
         };
+    }
+
+    private static void InitializeViewModel(PluginInstallerViewModel? viewModel)
+    {
+        if (viewModel == null)
+        {
+            return;
+        }
+
+        _ = viewModel.InitializeAsync();
     }
 }

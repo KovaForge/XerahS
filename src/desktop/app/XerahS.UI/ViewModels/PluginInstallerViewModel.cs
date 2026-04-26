@@ -37,6 +37,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
 {
     private readonly IViewDialogService _dialogService;
     private readonly PluginIndexService _pluginIndexService;
+    private bool _hasLoadedCommunityPlugins;
 
     public PluginInstallerViewModel(IViewDialogService dialogService)
         : this(dialogService, new PluginIndexService())
@@ -66,13 +67,16 @@ public partial class PluginInstallerViewModel : ViewModelBase
     [ObservableProperty]
     private CommunityPluginIndexEntry? _selectedCommunityPlugin;
 
+    [ObservableProperty]
+    private string? _statusMessage;
+
     public ObservableCollection<CommunityPluginIndexEntry> CommunityPlugins { get; } = [];
 
     public Action<bool?>? RequestClose { get; set; }
 
     public bool CanInstall => Manifest != null && !IsInstalling;
 
-    public bool CanInstallCommunityPlugin => SelectedCommunityPlugin != null && !IsInstalling && !IsLoadingCommunityPlugins;
+    public bool CanInstallCommunityPlugin => SelectedCommunityPlugin is { IsDraft: false } && !IsInstalling && !IsLoadingCommunityPlugins;
 
     public bool CanRefreshCommunityPlugins => !IsInstalling && !IsLoadingCommunityPlugins;
 
@@ -83,7 +87,71 @@ public partial class PluginInstallerViewModel : ViewModelBase
         Manifest != null ? $"Categories: {string.Join(", ", Manifest.SupportedCategories)}" : string.Empty;
 
     public string CommunityPluginSummary =>
-        CommunityPlugins.Count == 1 ? "1 community plugin available" : $"{CommunityPlugins.Count} community plugins available";
+        IsLoadingCommunityPlugins
+            ? "Refreshing community plugin registry..."
+            : _hasLoadedCommunityPlugins
+                ? CommunityPlugins.Count == 1 ? "1 community plugin available" : $"{CommunityPlugins.Count} community plugins available"
+                : "Community plugins load automatically, or refresh manually.";
+
+    public bool HasCommunityPlugins => CommunityPlugins.Count > 0;
+
+    public bool IsCommunityEmptyStateVisible => _hasLoadedCommunityPlugins && !IsLoadingCommunityPlugins && CommunityPlugins.Count == 0;
+
+    public bool HasSelectedCommunityPlugin => SelectedCommunityPlugin != null;
+
+    public string SelectedCommunityPluginVersionAuthor =>
+        SelectedCommunityPlugin != null ? SelectedCommunityPlugin.VersionAuthor : string.Empty;
+
+    public string SelectedCommunityPluginCategories =>
+        SelectedCommunityPlugin != null ? $"Categories: {SelectedCommunityPlugin.CategorySummary}" : string.Empty;
+
+    public string SelectedCommunityPluginCompatibility =>
+        SelectedCommunityPlugin != null
+            ? $"Plugin API {SelectedCommunityPlugin.ApiVersion}" +
+              (string.IsNullOrWhiteSpace(SelectedCommunityPlugin.MinAppVersion) ? string.Empty : $" · Requires XerahS {SelectedCommunityPlugin.MinAppVersion}+")
+            : string.Empty;
+
+    public string SelectedCommunityPluginInstallState =>
+        SelectedCommunityPlugin == null
+            ? string.Empty
+            : SelectedCommunityPlugin.IsDraft
+                ? "Package pending: this registry entry is visible, but no installable .xsdp has been published yet."
+                : "Ready to download and install. XerahS verifies the SHA-256 checksum before installing.";
+
+    public string SelectedCommunityPluginDependencies =>
+        SelectedCommunityPlugin == null
+            ? string.Empty
+            : SelectedCommunityPlugin.Dependencies.Count > 0
+                ? $"Dependencies: {string.Join(", ", SelectedCommunityPlugin.Dependencies)}"
+                : "Dependencies: none declared";
+
+    public async Task InitializeAsync()
+    {
+        if (_hasLoadedCommunityPlugins || IsLoadingCommunityPlugins)
+        {
+            return;
+        }
+
+        await RefreshCommunityPlugins();
+    }
+
+    public async Task LoadPackageAsync(string packageFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(packageFilePath))
+        {
+            return;
+        }
+
+        PackageFilePath = packageFilePath;
+        await LoadManifestPreview();
+    }
+
+    partial void OnManifestChanged(PluginManifest? value)
+    {
+        OnPropertyChanged(nameof(CanInstall));
+        OnPropertyChanged(nameof(ManifestVersionAuthor));
+        OnPropertyChanged(nameof(ManifestCategories));
+    }
 
     partial void OnIsInstallingChanged(bool value)
     {
@@ -96,11 +164,19 @@ public partial class PluginInstallerViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(CanInstallCommunityPlugin));
         OnPropertyChanged(nameof(CanRefreshCommunityPlugins));
+        OnPropertyChanged(nameof(CommunityPluginSummary));
+        OnPropertyChanged(nameof(IsCommunityEmptyStateVisible));
     }
 
     partial void OnSelectedCommunityPluginChanged(CommunityPluginIndexEntry? value)
     {
         OnPropertyChanged(nameof(CanInstallCommunityPlugin));
+        OnPropertyChanged(nameof(HasSelectedCommunityPlugin));
+        OnPropertyChanged(nameof(SelectedCommunityPluginVersionAuthor));
+        OnPropertyChanged(nameof(SelectedCommunityPluginCategories));
+        OnPropertyChanged(nameof(SelectedCommunityPluginCompatibility));
+        OnPropertyChanged(nameof(SelectedCommunityPluginInstallState));
+        OnPropertyChanged(nameof(SelectedCommunityPluginDependencies));
     }
 
     [RelayCommand]
@@ -110,8 +186,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
 
         if (!string.IsNullOrWhiteSpace(filePath))
         {
-            PackageFilePath = filePath;
-            await LoadManifestPreview();
+            await LoadPackageAsync(filePath);
         }
     }
 
@@ -119,6 +194,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
     {
         ErrorMessage = null;
         Manifest = null;
+        StatusMessage = null;
 
         try
         {
@@ -127,13 +203,16 @@ public partial class PluginInstallerViewModel : ViewModelBase
             {
                 ErrorMessage = "Invalid package: plugin.json not found";
             }
+            else
+            {
+                StatusMessage = "Package ready to install.";
+            }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to load package: {ex.Message}";
         }
 
-        OnPropertyChanged(nameof(CanInstall));
         await Task.CompletedTask;
     }
 
@@ -148,6 +227,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
 
         IsInstalling = true;
         ErrorMessage = null;
+        StatusMessage = "Installing local plugin...";
 
         try
         {
@@ -159,6 +239,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
             if (metadata != null)
             {
                 ProviderCatalog.LoadPlugins(pluginsDir, forceReload: true);
+                StatusMessage = $"Installed {metadata.Manifest.Name}.";
                 RequestClose?.Invoke(true);
             }
         }
@@ -169,7 +250,6 @@ public partial class PluginInstallerViewModel : ViewModelBase
         finally
         {
             IsInstalling = false;
-            OnPropertyChanged(nameof(CanInstall));
         }
     }
 
@@ -178,6 +258,7 @@ public partial class PluginInstallerViewModel : ViewModelBase
     {
         IsLoadingCommunityPlugins = true;
         ErrorMessage = null;
+        StatusMessage = "Refreshing community plugin registry...";
 
         try
         {
@@ -190,6 +271,12 @@ public partial class PluginInstallerViewModel : ViewModelBase
             }
 
             SelectedCommunityPlugin = CommunityPlugins.FirstOrDefault();
+            _hasLoadedCommunityPlugins = true;
+            StatusMessage = CommunityPlugins.Count == 0
+                ? "No community plugins are currently available."
+                : "Community plugin registry is ready.";
+            OnPropertyChanged(nameof(HasCommunityPlugins));
+            OnPropertyChanged(nameof(IsCommunityEmptyStateVisible));
             OnPropertyChanged(nameof(CommunityPluginSummary));
         }
         catch (Exception ex)
@@ -213,11 +300,13 @@ public partial class PluginInstallerViewModel : ViewModelBase
 
         IsInstalling = true;
         ErrorMessage = null;
+        StatusMessage = $"Downloading {SelectedCommunityPlugin.Name}...";
         string? packagePath = null;
 
         try
         {
             packagePath = await _pluginIndexService.DownloadPackageAsync(SelectedCommunityPlugin);
+            StatusMessage = "Verifying package manifest...";
             Manifest = PluginPackager.PreviewPackage(packagePath);
 
             if (Manifest == null)
@@ -235,10 +324,12 @@ public partial class PluginInstallerViewModel : ViewModelBase
             string pluginsDir = PathsManager.PluginsArchitectureFolder;
             Directory.CreateDirectory(pluginsDir);
 
+            StatusMessage = $"Installing {SelectedCommunityPlugin.Name}...";
             var metadata = PluginPackager.InstallPackage(packagePath, pluginsDir);
             if (metadata != null)
             {
                 ProviderCatalog.LoadPlugins(pluginsDir, forceReload: true);
+                StatusMessage = $"Installed {metadata.Manifest.Name}.";
                 RequestClose?.Invoke(true);
             }
         }
@@ -261,7 +352,6 @@ public partial class PluginInstallerViewModel : ViewModelBase
             }
 
             IsInstalling = false;
-            OnPropertyChanged(nameof(CanInstall));
         }
     }
 

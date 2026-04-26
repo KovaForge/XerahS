@@ -55,6 +55,11 @@ namespace XerahS.App
 
             public List<string> Folders { get; } = [];
         }
+
+        private sealed class IncomingPluginPackageSet
+        {
+            public List<string> PackagePaths { get; } = [];
+        }
         [STAThread]
         public static void Main(string[] args)
         {
@@ -817,11 +822,24 @@ namespace XerahS.App
                 return;
             }
 
+            IncomingPluginPackageSet pluginPackages = ExtractIncomingPluginPackages(args);
+            if (pluginPackages.PackagePaths.Count > 0)
+            {
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"Plugin integration ({source}): Scheduling installer for {pluginPackages.PackagePaths.Count} package(s).");
+                OpenPluginPackageInstallers(pluginPackages.PackagePaths, source);
+            }
+
             bool isSendToInvocation = IsSendToInvocation(args);
             IncomingPathSet pathSet = ExtractIncomingPaths(args, includeDirectories: isSendToInvocation);
 
             if (pathSet.Files.Count == 0 && pathSet.Folders.Count == 0)
             {
+                if (pluginPackages.PackagePaths.Count > 0)
+                {
+                    return;
+                }
+
                 XerahS.Common.DebugHelper.WriteLine(
                     isSendToInvocation
                         ? $"Shell integration ({source}): No valid file or folder paths found in Send-to arguments."
@@ -843,6 +861,28 @@ namespace XerahS.App
             XerahS.Common.DebugHelper.WriteLine(
                 $"Shell integration ({source}): Scheduling upload for {pathSet.Files.Count} file(s).");
             _ = Task.Run(() => UploadFilesFromIntegrationAsync(pathSet.Files));
+        }
+
+        private static void OpenPluginPackageInstallers(IReadOnlyList<string> packagePaths, string source)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                try
+                {
+                    var factory = XerahS.UI.Services.UiViewModelFactoryAccessor.GetRequired();
+
+                    foreach (string packagePath in packagePaths)
+                    {
+                        var viewModel = factory.CreatePluginInstallerViewModel();
+                        await viewModel.LoadPackageAsync(packagePath).ConfigureAwait(true);
+                        await factory.ViewDialogService.ShowPluginInstallerAsync(viewModel).ConfigureAwait(true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, $"Failed to open plugin installer from {source}");
+                }
+            });
         }
 
         private static bool IsSendToInvocation(IEnumerable<string> args)
@@ -906,6 +946,11 @@ namespace XerahS.App
 
                 if (File.Exists(normalizedPath))
                 {
+                    if (IsPluginPackagePath(normalizedPath))
+                    {
+                        continue;
+                    }
+
                     if (uniquePaths.Add(normalizedPath))
                     {
                         paths.Files.Add(normalizedPath);
@@ -918,6 +963,69 @@ namespace XerahS.App
             }
 
             return paths;
+        }
+
+        private static IncomingPluginPackageSet ExtractIncomingPluginPackages(IEnumerable<string> args)
+        {
+            var comparer = OperatingSystem.IsWindows()
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal;
+            var uniquePaths = new HashSet<string>(comparer);
+            IncomingPluginPackageSet packages = new();
+            bool nextArgIsPluginPath = false;
+
+            foreach (string rawArg in args)
+            {
+                if (string.IsNullOrWhiteSpace(rawArg))
+                {
+                    continue;
+                }
+
+                string arg = rawArg.Trim();
+                if (nextArgIsPluginPath)
+                {
+                    nextArgIsPluginPath = false;
+                    AddPluginPackagePath(arg, uniquePaths, packages);
+                    continue;
+                }
+
+                if (arg.Equals(AppContracts.Cli.LegacyInstallPluginFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    nextArgIsPluginPath = true;
+                    continue;
+                }
+
+                AddPluginPackagePath(arg, uniquePaths, packages);
+            }
+
+            return packages;
+        }
+
+        private static void AddPluginPackagePath(
+            string candidate,
+            HashSet<string> uniquePaths,
+            IncomingPluginPackageSet packages)
+        {
+            if (!TryNormalizeLocalPath(candidate, out string normalizedPath))
+            {
+                return;
+            }
+
+            if (!IsPluginPackagePath(normalizedPath))
+            {
+                return;
+            }
+
+            if (uniquePaths.Add(normalizedPath))
+            {
+                packages.PackagePaths.Add(normalizedPath);
+            }
+        }
+
+        private static bool IsPluginPackagePath(string path)
+        {
+            return File.Exists(path) &&
+                Path.GetExtension(path).Equals(".xsdp", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool TryNormalizeLocalPath(string input, out string normalizedPath)

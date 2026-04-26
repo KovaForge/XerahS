@@ -50,6 +50,10 @@
                             Command="{Binding OpenPluginsFolderCommand}"
                             ToolTip.Tip="Open the plugins folder"
                             AutomationProperties.Name="Open Plugins Folder"/>
+                    <Button Content="Install Plugin"
+                            Command="{Binding OpenPluginInstallerCommand}"
+                            ToolTip.Tip="Install community plugins or import a local .xsdp package"
+                            AutomationProperties.Name="Install Plugin"/>
                     <Button Content="Add Custom Uploader"
                             Command="{Binding AddCustomUploaderCommand}"
                             ToolTip.Tip="Create a new custom uploader (.sxcu)"

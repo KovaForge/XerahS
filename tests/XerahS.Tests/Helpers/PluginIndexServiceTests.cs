@@ -9,6 +9,7 @@
 
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using NUnit.Framework;
 using XerahS.Uploaders.PluginSystem;
 
@@ -17,6 +18,14 @@ namespace XerahS.Tests.Helpers;
 [TestFixture]
 public class PluginIndexServiceTests
 {
+    [Test]
+    public void DefaultIndexUrl_UsesShareXDevelopRegistry()
+    {
+        Assert.That(
+            PluginIndexService.DefaultIndexUrl,
+            Is.EqualTo("https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json"));
+    }
+
     [Test]
     public void ParseIndex_AcceptsValidCommunityPluginIndex()
     {
@@ -56,13 +65,17 @@ public class PluginIndexServiceTests
     }
 
     [Test]
-    public void ParseIndex_AcceptsAndFiltersDraftPluginsWithoutPackageMetadata()
+    public void ParseIndex_AcceptsDraftPluginsWithoutPackageMetadata()
     {
         string json = CreateIndexJson(string.Empty, downloadUrl: string.Empty, isDraft: true);
 
         var index = PluginIndexService.ParseIndex(json);
 
-        Assert.That(index.Plugins, Is.Empty);
+        Assert.Multiple(() =>
+        {
+            Assert.That(index.Plugins, Has.Count.EqualTo(1));
+            Assert.That(index.Plugins[0].IsDraft, Is.True);
+        });
     }
 
     [Test]
@@ -149,6 +162,56 @@ public class PluginIndexServiceTests
         Assert.That(ex!.Message, Does.Contain(".xsdp"));
     }
 
+    [Test]
+    public async Task DownloadPackageAsync_WritesPackageWhenChecksumMatches()
+    {
+        byte[] packageBytes = "xsdp-package"u8.ToArray();
+        var plugin = CreatePluginEntry(CreateSha256(packageBytes));
+        using var httpClient = new HttpClient(new ByteArrayResponseHandler(packageBytes));
+        var service = new PluginIndexService(httpClient);
+
+        string packagePath = await service.DownloadPackageAsync(plugin);
+
+        try
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(File.Exists(packagePath), Is.True);
+                Assert.That(File.ReadAllBytes(packagePath), Is.EqualTo(packageBytes));
+                Assert.That(Path.GetExtension(packagePath), Is.EqualTo(".xsdp"));
+            });
+        }
+        finally
+        {
+            if (File.Exists(packagePath))
+            {
+                File.Delete(packagePath);
+            }
+        }
+    }
+
+    [Test]
+    public void DownloadPackageAsync_RemovesPackageWhenChecksumMismatches()
+    {
+        byte[] packageBytes = "xsdp-package"u8.ToArray();
+        var plugin = CreatePluginEntry("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        DeleteTempPackages(plugin.PluginId);
+        using var httpClient = new HttpClient(new ByteArrayResponseHandler(packageBytes));
+        var service = new PluginIndexService(httpClient);
+
+        var ex = Assert.ThrowsAsync<InvalidDataException>(() => service.DownloadPackageAsync(plugin));
+
+        try
+        {
+            Assert.That(ex!.Message, Does.Contain("checksum"));
+            Assert.That(Directory.GetFiles(Path.GetTempPath(), $"{plugin.PluginId}-*.xsdp"), Is.Empty);
+        }
+        finally
+        {
+            DeleteTempPackages(plugin.PluginId);
+        }
+    }
+
     private static string CreateIndexJson(string checksum, string downloadUrl = "https://example.com/pixelfox.xsdp", bool isDraft = false, string apiVersion = "1.0")
     {
         return $$"""
@@ -176,6 +239,36 @@ public class PluginIndexServiceTests
         """;
     }
 
+    private static CommunityPluginIndexEntry CreatePluginEntry(string checksum)
+    {
+        return new CommunityPluginIndexEntry
+        {
+            PluginId = "pixelfox-test",
+            Name = "Pixelfox Test",
+            Version = "1.0.0",
+            Author = "Pixelfox",
+            Description = "Pixelfox uploader plugin.",
+            ApiVersion = "1.0",
+            SupportedCategories = ["Image"],
+            HomepageUrl = "https://pixelfox.cc",
+            DownloadUrl = "https://example.com/pixelfox.xsdp",
+            Checksum = checksum
+        };
+    }
+
+    private static string CreateSha256(byte[] bytes)
+    {
+        return $"sha256:{Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()}";
+    }
+
+    private static void DeleteTempPackages(string pluginId)
+    {
+        foreach (string filePath in Directory.GetFiles(Path.GetTempPath(), $"{pluginId}-*.xsdp"))
+        {
+            File.Delete(filePath);
+        }
+    }
+
     private sealed class StaticResponseHandler(string body) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -183,6 +276,17 @@ public class PluginIndexServiceTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body)
+            });
+        }
+    }
+
+    private sealed class ByteArrayResponseHandler(byte[] body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(body)
             });
         }
     }
