@@ -75,7 +75,15 @@ public sealed class NextcloudClient
     public static string NormalizeRelativePath(string? path)
     {
         string value = path?.Trim().Replace('\\', '/') ?? string.Empty;
-        return value.Trim('/');
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return string.Join('/', value
+            .Trim('/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(segment => segment != "." && segment != ".."));
     }
 
     public static string CombineRelativePath(string? folderPath, string? name)
