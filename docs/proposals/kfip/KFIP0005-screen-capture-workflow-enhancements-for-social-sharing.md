@@ -414,6 +414,66 @@ public class ShareResult
 
 ---
 
+## Critical Review
+
+*Reviewed by Nadia (Analyst) — 2026-04-26*
+
+### Risks & Overreach
+
+**1. Scope Creep in "Social" Definition**
+The proposal ambitiously lists X/Twitter, LinkedIn, and Discord presets. Each platform updates constraints unpredictably. X's 4:5 "optimal" ratio is guidance, not API-enforced — it changes. Recommendation: Ship with X/Twitter only initially. Prove the model before platform sprawl.
+
+**2. Auto-Upload Defaults Are Dangerous**
+The "Auto-upload vs. confirm-first" toggle sounds safe, but discoverability matters. Users will enable auto-upload, forget, and accidentally share sensitive screenshots. The privacy section mentions "explicit consent" but doesn't mandate confirmation UI for first-time auto-upload enable. Add: hard requirement for a "test upload to verify destination" step before auto-upload can be enabled.
+
+**3. The 2-Second Optimization Target Is Unverified**
+> "Optimization completes in <2s for 1920×1080 source image"
+
+On what hardware? SkiaSharp resize + JPEG encode at quality 85 on a 4K source can take 3-5s on older machines. This target needs benchmarking on minimum spec hardware, not just dev machines. Risk: users abandon the flow if it feels sluggish.
+
+### Missing Edge Cases
+
+**4. Network Failure Mid-Upload**
+No mention of partial upload handling. If a 4MB image upload fails at 90%, does the user retry from scratch? Implement chunked upload or at minimum, resume-aware retry logic. Current design implies atomic upload — unacceptable for flaky connections.
+
+**5. Uploader Rate Limits**
+Imgur's free tier is 50 uploads/hour. The proposal treats uploaders as infinite-capacity black boxes. Add: per-uploader rate limit tracking and graceful degradation (queue for later, fallback uploader, or local save with notification).
+
+**6. Alt Text Storage Is Vague**
+> "Alt text stored in image metadata (EXIF/XMP)"
+
+Most social platforms strip EXIF on upload. If alt text is only in metadata, it's lost. The proposal needs explicit alt text handling per uploader — some support it in API (Imgur), others don't. Don't pretend metadata is a solution.
+
+### Build/Test Implications
+
+**7. Image Optimization Needs Visual Regression Testing**
+Resize + re-encode at quality 85 is lossy. Two SkiaSharp versions can produce different outputs. Add: perceptual hash comparison tests to ensure optimization doesn't drift unexpectedly across builds.
+
+**8. Preset Validation Requires Live Platform Testing**
+File size limits (5MB for X) aren't static. If X changes to 4MB, built-in presets become wrong. Consider: a lightweight config update mechanism or at minimum, documented manual verification cadence (monthly?).
+
+### Acceptance Criteria Tightening
+
+**9. "Notification confirms upload success" Is Insufficient**
+Current AC doesn't specify failure notification behavior. Add explicit AC: *"Failed uploads show actionable error message with: failure reason, retry button, and 'save locally instead' option."*
+
+**10. Missing Accessibility AC**
+The proposal emphasizes alt text for output images but ignores accessibility of the feature itself. Add: keyboard-only capture → upload → copy link flow must be possible (screen reader announcements at each step).
+
+### Implementation Sequencing Issues
+
+**11. Phase 2 Depends On Unfinished Work**
+`ShareToUploader` requires the plugin registry (KFIP0004) for uploader discovery. KFIP0004 is still in development. Phase 2 cannot start until KFIP0004 Phase 1 is stable. Current timeline implies parallel work — risky.
+
+**12. TweetCaptureDetector Integration Is Underestimated**
+KFIP0003's context detection suggests presets, but this creates a decision tree: user selected preset vs. auto-suggested preset vs. previous preset. The interaction model isn't specified. Recommendation: prototype the conflict resolution UI before committing to Phase 3 timeline.
+
+### Bottom Line
+
+The workflow is sound. The ambition is not. Cut platform support to X/Twitter only for v1, add hard safeguards around auto-upload, and resolve the KFIP0004 dependency before promising Phase 2 delivery. The 2-second target needs data, not hope.
+
+---
+
 ## Success Metrics
 
 - Time from capture to shareable link: target <10 seconds (vs. 60+ seconds current)
