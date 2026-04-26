@@ -109,4 +109,19 @@ public sealed class AssistantPrivacyGuardTests
         Assert.That(decision.Allowed, Is.True);
         Assert.That(decision.RequiresConfirmation, Is.True);
     }
+
+    [Test]
+    public void ConfirmationCopy_ForWindowsPathOnUnix_DoesNotExposeFullPath()
+    {
+        var decision = _guard.Evaluate(new AssistantPrivacyCheck(
+            AssistantToolNames.FileReveal,
+            AssistantPrivacyScope.LocalContent,
+            FilePath: @"C:\Users\alice\Pictures\capture.png"));
+
+        Assert.That(decision.Allowed, Is.True);
+        Assert.That(decision.RequiresConfirmation, Is.True);
+        Assert.That(decision.ConfirmationCopy, Does.Contain("`capture.png`"));
+        Assert.That(decision.ConfirmationCopy, Does.Not.Contain("alice"));
+        Assert.That(decision.ConfirmationCopy, Does.Not.Contain(@"C:\Users"));
+    }
 }

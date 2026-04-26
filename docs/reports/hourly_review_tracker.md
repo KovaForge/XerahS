@@ -33,8 +33,40 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | File/path handling | 2026-04-25 21:12 AWST | Reviewed | Fixed `GetUniqueFilePath(...)` so dot-prefixed extensionless names and known compound extensions are suffixed correctly instead of treating `.gitignore` as an extension or splitting `.tar.gz` incorrectly | High | Focused follow-up review of shared path uniqueness/extension helpers in `FileHelpers`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.57` to `0.22.58`, targeted `FileHelpersTests` passed 9/9, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and exact serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 582/582 with tests discoverable. |
 | Region capture / window enumeration | 2026-04-26 01:20 AWST | Reviewed | Fixed logical/direct window conversion so hidden or minimized platform windows cannot be returned for Wayland/direct window preselection after coordinate conversion | High | Focused follow-up review of `WindowDetectionService` logical conversion/direct Wayland probe paths and region-capture regressions; upstream `develop` had 1 pending commit, merged cleanly with no conflicts, and pushed; `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, origin matched, upstream/develop is `d285844652e7fa98c24baf7626959927a37762aa`, and no parent pointer update was required; `Directory.Build.props` was bumped from `0.22.60` to `0.22.61`; full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors after the first exact restore/build attempt was host-killed; exact full `dotnet test --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed 590/590 with tests discoverable. |
 | Tests / test discoverability | 2026-04-26 03:54 AWST | Reviewed | Fixed Nextcloud explorer folder creation so blank folder names are rejected before using cached settings or creating the current/parent folder, and added regression coverage for the edge case | High | Focused review of test project discoverability/layout plus uploader regression coverage across `XerahS.Tests.csproj`, assistant/Avalonia/composition tests, `XerahS.McpServer.Tests.csproj`, solution test entries, and Nextcloud provider regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.62` to `0.22.63`, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-restore` passed with 0 warnings/errors after an earlier filtered full-build test attempt was host-killed, and exact full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 592/592 with tests discoverable. |
+| Assistant local memory/privacy/history | 2026-04-26 13:37 AWST | Reviewed | Fixed assistant privacy confirmation copy so Windows-style paths on Unix are reduced to safe file names instead of exposing full local directory/user segments | High | Focused review of assistant local-memory, privacy guard, provider execution/history recording, command routing, and assistant regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.79` to `0.22.80`; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 597/597). |
 
 ## Review Log
+
+### 2026-04-26 13:37 AWST
+- Area: Assistant local memory/privacy/history path privacy
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Models/AssistantContracts.cs`
+  - `src/desktop/app/XerahS.Assistant/Routing/AssistantCommandRouter.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed assistant local alias/history persistence, privacy decision confirmation copy, deterministic/provider routing boundaries, and assistant regression coverage around local-memory and privacy guard behavior.
+  - `AssistantPrivacyGuard.SafeFileName(...)` used `Path.GetFileName(...)` directly for confirmation copy. On Unix/Linux, Windows-style paths such as `C:\Users\alice\Pictures\capture.png` are not split on backslashes, so confirmation prompts for local file actions could expose the full local Windows path, including user/directory names, instead of the intended safe basename.
+  - This was a bounded privacy-copy bug: the action still required confirmation, but the confirmation text leaked more path context than necessary when cross-platform path syntax was encountered.
+- Outcome:
+  - Landed a bounded privacy guard fix: file names for assistant confirmation copy are now trimmed and split on both `/` and `\` when needed, with a safe `file` fallback for unusable paths.
+  - Added regression coverage proving a Windows-style path on Unix produces confirmation copy containing only `capture.png` and not the full `C:\Users...` path/user segment.
+  - Bumped `Directory.Build.props` from `0.22.79` to `0.22.80` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream had 0 pending `upstream/develop` commits, so no upstream merge or conflict resolution was needed.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - An initial filtered assistant privacy test attempt was SIGKILLed by the host during full solution build churn before test execution.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` passed 8/8 and `XerahS.Tests` passed 597/597.
+- Follow-up:
+  - Continue inspecting assistant execution/history persistence semantics for provider/unknown intents, especially whether provider-backed responses should always be recorded through local memory even when deterministic intent classification is `Unknown`.
+
 
 ### 2026-04-26 12:24 AWST
 - Area: Settings/configuration / workflow hotkey config normalization
