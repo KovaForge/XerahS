@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Controls;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -32,6 +33,8 @@ using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
+using System.Collections.ObjectModel;
+using System.Windows.Input;
 using ShareXStepTailStyle = ShareX.ImageEditor.Core.Annotations.StepTailStyle;
 
 namespace XerahS.RegionCapture.ViewModels;
@@ -52,6 +55,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private bool _canRedo;
     private bool _hasSelectedAnnotation;
     private bool _hasAnnotations;
+    private readonly ObservableCollection<MenuItem> _recentImageMenuItems = new();
+    private readonly ObservableCollection<string> _recentImageFiles = new();
 
     public RegionCaptureAnnotationViewModel()
     {
@@ -59,11 +64,22 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         _editorCore.HistoryChanged += OnHistoryChanged;
         _editorCore.AnnotationsRestored += OnAnnotationsRestored;
         _editorCore.InvalidateRequested += OnInvalidateRequested;
+        RecentImageMenuItems = new ReadOnlyObservableCollection<MenuItem>(_recentImageMenuItems);
+        RecentImageFiles = new ReadOnlyObservableCollection<string>(_recentImageFiles);
+        OpenRecentImageCommand = new RelayCommand<string?>(_ => { });
     }
 
     public EditorCore EditorCore => _editorCore;
 
     public bool ImageEditorMode => false;
+
+    public ReadOnlyObservableCollection<MenuItem> RecentImageMenuItems { get; }
+
+    public ReadOnlyObservableCollection<string> RecentImageFiles { get; }
+
+    public bool HasRecentImageFiles => false;
+
+    public ICommand OpenRecentImageCommand { get; }
 
     public event Action? InvalidateRequested;
 

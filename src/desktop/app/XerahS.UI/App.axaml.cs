@@ -137,7 +137,7 @@ public partial class App : Application
 
             var mainViewModel = new MainViewModel(Services.ThemeService.CreateImageEditorOptions());
             mainViewModel.ApplicationName = AppResources.AppName;
-            mainViewModel.ShowTaskModeButtons = false;
+            mainViewModel.ShowTaskButtons = false;
 
             // Pre-load default image so annotation toolbar is usable before first capture
             // Load asynchronously to avoid blocking the UI thread during startup
