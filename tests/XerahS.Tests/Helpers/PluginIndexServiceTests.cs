@@ -56,6 +56,16 @@ public class PluginIndexServiceTests
     }
 
     [Test]
+    public void ParseIndex_AcceptsAndFiltersDraftPluginsWithoutPackageMetadata()
+    {
+        string json = CreateIndexJson(string.Empty, downloadUrl: string.Empty, isDraft: true);
+
+        var index = PluginIndexService.ParseIndex(json);
+
+        Assert.That(index.Plugins, Is.Empty);
+    }
+
+    [Test]
     public async Task FetchIndexAsync_RequiresHttpsIndexUrl()
     {
         using var httpClient = new HttpClient(new StaticResponseHandler("{}"));
@@ -67,7 +77,7 @@ public class PluginIndexServiceTests
         await Task.CompletedTask;
     }
 
-    private static string CreateIndexJson(string checksum, string downloadUrl = "https://example.com/pixelfox.xsdp")
+    private static string CreateIndexJson(string checksum, string downloadUrl = "https://example.com/pixelfox.xsdp", bool isDraft = false)
     {
         return $$"""
         {
@@ -85,6 +95,7 @@ public class PluginIndexServiceTests
               "homepageUrl": "https://pixelfox.cc",
               "downloadUrl": "{{downloadUrl}}",
               "checksum": "{{checksum}}",
+              "isDraft": {{isDraft.ToString().ToLowerInvariant()}},
               "minAppVersion": "1.0.0",
               "dependencies": []
             }

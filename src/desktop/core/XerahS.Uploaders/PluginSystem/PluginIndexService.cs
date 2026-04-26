@@ -70,6 +70,8 @@ public sealed class PluginIndexService
             throw new InvalidDataException($"Invalid plugin index: {error}");
         }
 
+        index.Plugins = index.Plugins.Where(plugin => !plugin.IsDraft).ToList();
+
         return index;
     }
 
@@ -77,9 +79,9 @@ public sealed class PluginIndexService
     {
         ArgumentNullException.ThrowIfNull(plugin);
 
-        if (!plugin.IsValid(out var error))
+        if (!plugin.IsValid(out var error) || plugin.IsDraft)
         {
-            throw new InvalidDataException($"Invalid plugin entry: {error}");
+            throw new InvalidDataException($"Invalid plugin entry: {error ?? "Draft plugins cannot be downloaded."}");
         }
 
         using var response = await _httpClient.GetAsync(plugin.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);

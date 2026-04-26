@@ -95,6 +95,9 @@ public sealed class CommunityPluginIndexEntry
     [JsonProperty("checksum")]
     public string Checksum { get; set; } = string.Empty;
 
+    [JsonProperty("isDraft")]
+    public bool IsDraft { get; set; }
+
     [JsonProperty("minAppVersion")]
     public string? MinAppVersion { get; set; }
 
@@ -153,22 +156,25 @@ public sealed class CommunityPluginIndexEntry
             return false;
         }
 
-        if (!IsValidHttpsUri(DownloadUrl))
+        if (!IsDraft)
         {
-            error = $"Plugin '{PluginId}' has an invalid downloadUrl. HTTPS is required.";
-            return false;
-        }
+            if (!IsValidHttpsUri(DownloadUrl))
+            {
+                error = $"Plugin '{PluginId}' has an invalid downloadUrl. HTTPS is required.";
+                return false;
+            }
 
-        if (!DownloadUrl.EndsWith(".xsdp", StringComparison.OrdinalIgnoreCase))
-        {
-            error = $"Plugin '{PluginId}' downloadUrl must point to a .xsdp package.";
-            return false;
-        }
+            if (!DownloadUrl.EndsWith(".xsdp", StringComparison.OrdinalIgnoreCase))
+            {
+                error = $"Plugin '{PluginId}' downloadUrl must point to a .xsdp package.";
+                return false;
+            }
 
-        if (!PluginIndexService.IsValidSha256Checksum(Checksum))
-        {
-            error = $"Plugin '{PluginId}' must include a sha256 checksum.";
-            return false;
+            if (!PluginIndexService.IsValidSha256Checksum(Checksum))
+            {
+                error = $"Plugin '{PluginId}' must include a sha256 checksum.";
+                return false;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(HomepageUrl) && !IsValidHttpsUri(HomepageUrl))

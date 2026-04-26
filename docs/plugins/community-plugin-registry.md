@@ -30,6 +30,7 @@ Community plugins must be downloadable `.xsdp` packages. An `.xsdp` package is t
   "homepageUrl": "https://pixelfox.cc",
   "downloadUrl": "https://github.com/example/xerahs-pixelfox/releases/download/v1.0.0/pixelfox.xsdp",
   "checksum": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "isDraft": false,
   "minAppVersion": "1.0.0",
   "dependencies": []
 }
@@ -40,6 +41,7 @@ Community plugins must be downloadable `.xsdp` packages. An `.xsdp` package is t
 - `downloadUrl` must use HTTPS.
 - `downloadUrl` must point to a `.xsdp` file.
 - `checksum` must be a SHA-256 checksum, preferably prefixed with `sha256:`.
+- Draft entries may set `isDraft` to `true` while waiting for a release package; XerahS validates but does not list draft plugins.
 - `pluginId` may only contain letters, digits, `.`, `_`, and `-`.
 - `apiVersion` must be compatible with the current plugin API major version.
 

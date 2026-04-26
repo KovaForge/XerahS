@@ -1,5 +1,21 @@
 {
   "indexVersion": "1.0",
   "lastUpdated": "2026-04-26T00:00:00Z",
-  "plugins": []
+  "plugins": [
+    {
+      "pluginId": "pixelfox",
+      "name": "Pixelfox",
+      "version": "1.0.0",
+      "author": "Pixelfox.cc",
+      "description": "Upload images to Pixelfox.cc.",
+      "apiVersion": "1.0",
+      "supportedCategories": ["Image"],
+      "homepageUrl": "https://pixelfox.cc",
+      "downloadUrl": "",
+      "checksum": "",
+      "isDraft": true,
+      "minAppVersion": "0.22.78",
+      "dependencies": []
+    }
+  ]
 }
