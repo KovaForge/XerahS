@@ -1,4 +1,4 @@
-# KFIP0003: Community Plugin Registry and Installer
+# KFIP0004: Community Plugin Registry and Installer
 
 **Status**: Proposed
 **Priority**: P1
