@@ -120,7 +120,7 @@ namespace XerahS.RegionCapture
     public enum FFmpegAudioCodec
     {
         [Description("AAC")]
-        libvoaacenc,
+        aac,
         [Description("Opus")]
         libopus,
         [Description("Vorbis")]

@@ -3865,3 +3865,66 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.Tests` 606/606).
 - Follow-up:
   - Continue reviewing remaining subsystems for silent failure patterns in error paths.
+
+### 2026-04-27 02:38 AWST
+- Area: PinToScreen subsystem / SKBitmap resource leak
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/Services/PinToScreenManager.cs`
+  - `src/desktop/app/XerahS.UI/Services/PinToScreenToolService.cs`
+  - `src/desktop/app/XerahS.UI/Services/ToolWorkflowDispatcher.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/PinnedImageViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinnedImageWindow.axaml`
+  - `src/desktop/app/XerahS.UI/Views/PinnedImageWindow.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinToScreenStartupDialog.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinToScreenStartupDialog.axaml`
+  - `src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs` (partial)
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaUIService.cs` (partial)
+  - `src/desktop/app/XerahS.UI/Services/WorkflowOrchestrator.cs` (partial)
+  - `Directory.Build.props`
+- Findings:
+  - Focused review of the PinToScreen subsystem confirmed null-check hygiene, window lifecycle management, and dispatcher dispatching are all sound.
+  - **Real bug found**: `PinToScreenManager.PinImage(...)` takes ownership of the passed `SKBitmap` and disposes it internally when the window is closed. However, every caller of `PinImage` was failing to dispose its own local `SKBitmap` after the call, causing a resource leak on every pin operation.
+  - All five call sites were affected: `PinFilesAsync` (bitmap decoded from file path), `PinToScreenAsync` (bitmap from dialog result), `PinFromScreenAsync` (bitmap from screen capture), `PinFromClipboard` (bitmap from clipboard), and `PinFromFileAsync` (bitmap loaded from file browser).
+  - `PinnedImageViewModel` and `PinToScreenStartupDialog` correctly own or produce the bitmaps they pass, matching `PinImage`'s ownership-taking semantics. The dialog result bitmap ownership is passed to the manager, so disposal after the call is correct.
+- Outcome:
+  - Landed a bounded fix: each `PinToScreenManager.PinImage` call is now wrapped in a `try/finally` block that disposes the bitmap on exit. `PinFilesAsync` uses a `try/finally` inside the file loop; the four direct callers use `try/finally` before the result/produced bitmap is passed to the manager.
+  - Bumped `Directory.Build.props` from `0.22.89` to `0.22.90` as part of the same fix commit set.
+  - Committed as `c05298e2` and pushed to `origin/develop`.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remotes added upstream to match ShareX.ImageEditor conventions; submodule is on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, remotes correct, no parent pointer update required.
+  - Exact `dotnet build --configuration Release -maxcpucount:1 --no-restore src/desktop/app/XerahS.UI/XerahS.UI.csproj` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606); note: full solution build was repeatedly host-killed by OOM during parallel Avalonia build phases — single-CPU serial build succeeded.
+- Follow-up:
+  - Future passes should inspect `CaptureRectAsync` callers beyond PinToScreen for similar `SKBitmap` resource leaks, and whether `AvaloniaUIService.PinSelectedImagesAsync` has any additional clipboard decode/dispose gaps.
+
+### 2026-04-27 03:38 AWST
+- Area: Capture pipeline / FFmpeg audio codec configuration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/FFmpegRecordingService.cs`
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/FFmpegOptions.cs`
+  - `src/desktop/app/XerahS.RegionCapture/Enums.cs`
+  - `src/desktop/core/XerahS.Core/TaskSettingsEnums.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs`
+  - `src/desktop/core/XerahS.Common/ExternalProgram.cs`
+  - `src/desktop/core/XerahS.Media/VideoThumbnailer.cs` (prior review)
+  - `src/desktop/core/XerahS.Media/ImageCombiner.cs` (prior review)
+  - `Directory.Build.props`
+- Findings:
+  - **Real bug**: `FFmpegAudioCodec.libvoaacenc` is the default enum value in both `FFmpegOptions.AudioCodec` and `TaskSettingsOptions.AudioCodec`. `libvoaacenc` is not a valid FFmpeg encoder name — modern FFmpeg builds do not ship the VO-AAC encoder. This causes FFmpeg to fail silently or emit an error when recording with the default AAC codec.
+  - Additionally, the `FFmpegOptions.Extension` property returns `".mp4"` when `AudioCodec` is `libvoaacenc` (default), but the encoder produces `".m4a"` output. This mismatch can cause incorrect file extension handling.
+  - No upstream ShareX commits pending — `develop` is current.
+  - ShareX.ImageEditor healthy: branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, remotes correct, not detached.
+- Outcome:
+  - Landed: renamed `FFmpegAudioCodec.libvoaacenc` → `FFmpegAudioCodec.aac` in two enum definitions (`Enums.cs`, `TaskSettingsEnums.cs`).
+  - Updated all default value assignments and switch-case references from `FFmpegAudioCodec.libvoaacenc` to `FFmpegAudioCodec.aac` in `FFmpegOptions.cs` and `TaskSettingsOptions.cs`.
+  - Bumped `Directory.Build.props` from `0.22.90` to `0.22.91`.
+  - `dotnet build --configuration Release --no-restore` passed for `XerahS.RegionCapture` and `XerahS.Core` (0 warnings, 0 errors); full solution build hits OOM on this host.
+  - `dotnet test --configuration Release --no-build` passed (`XerahS.McpServer.Tests` 8/8); `XerahS.Tests` (Avalonia UI) non-discoverable due to OOM on host.
+- Follow-up:
+  - FFmpegRecordingService still lacks `EnsureDirectoryExists()` call before writing to a custom `RecordingOptions.OutputPath` — potential `IOException` if parent dir is missing.
+  - `VideoThumbnailer.Finish()` — if `CombineScreenshots` returns null, orphaned temp thumbnails may leak when `Options.KeepScreenshots = false`.
+  - `VideoThumbnailer.CombineScreenshots()` inner loop accesses `images[i]` before bounds check when some thumbnails fail to load (fewer loaded than `ThumbnailCount`).
