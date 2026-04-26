@@ -83,7 +83,7 @@ plugins-index.json
 Default raw URL:
 
 ```text
-https://raw.githubusercontent.com/KovaForge/XerahS/develop/plugins-index.json
+https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json
 ```
 
 Initial contents may be empty:
@@ -291,6 +291,7 @@ Add focused tests for:
 - User can open Plugin Installer and refresh community plugins.
 - Empty registry loads cleanly and displays `0 community plugins available`.
 - Valid registry entries appear in the dialog.
+- Draft registry entries appear in the dialog but cannot be installed.
 - User can select a registry plugin and trigger download/install.
 - Existing local `.xsdp` install still works.
 - Installed community plugin is loaded into the provider catalog after install.

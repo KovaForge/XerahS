@@ -9,7 +9,7 @@ Official plugins are built into XerahS and do not need entries in this registry.
 The default registry URL is:
 
 ```text
-https://raw.githubusercontent.com/KovaForge/XerahS/develop/plugins-index.json
+https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json
 ```
 
 ## Package format
@@ -41,7 +41,7 @@ Community plugins must be downloadable `.xsdp` packages. An `.xsdp` package is t
 - `downloadUrl` must use HTTPS.
 - `downloadUrl` must point to a `.xsdp` file.
 - `checksum` must be a SHA-256 checksum, preferably prefixed with `sha256:`.
-- Draft entries may set `isDraft` to `true` while waiting for a release package; XerahS validates but does not list draft plugins.
+- Draft entries may set `isDraft` to `true` while waiting for a release package; XerahS lists draft plugins for visibility but disables installation until a package URL and checksum are published.
 - `pluginId` may only contain letters, digits, `.`, `_`, and `-`.
 - `apiVersion` must be compatible with the current plugin API major version.
 
