@@ -397,7 +397,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Core**: Group loaded libraries and show versions in About `(ab8a6034, 246a37f7)`
 - **Core**: Preserve editable annotation sidecars `(9112999a, aa577153)`
 - **Core**: Add assistant BYOK providers, OCR upload workflows, overlay local commands, safety contract, and workflow aliases `(81f25416, 8ad54b57, d5d7c3d2, 65cdf93a, 92f12d9c)`
-- **Core**: Add XIP0063 â€” XerahS CLI OpenClaw compatibility spec and upload command `(196ba194, b29c2dff)`
+- **Core**: Add XIP0063 — XerahS CLI OpenClaw compatibility spec and upload command `(196ba194, b29c2dff)`
 - **Core**: Add --name flag to CLI upload command for custom filenames `(fc5236c8)`
 - **Core**: Add onboarding debug launcher mode `(8181ac98)`
 - **Core**: IUIService: add ShowAnalyzerWindowAsync to all headless implementations `(b45fefa7)`
@@ -423,7 +423,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Core**: HasEditableAnnotations falls back to default sidecar path convention `(4d5d99c8)`
 - **Core**: Keep scrolling capture bottom detection on active scroller `(b680bcad)`
 - **Core**: Prefer the main scrolling capture scroller `(a9f0be8b)`
-- **Core**: Prevent infinite recursion in UploadJobProcessor.TryUploadWithFallback â€” Vladislava Kova `(adc18dea)`
+- **Core**: Prevent infinite recursion in UploadJobProcessor.TryUploadWithFallback — Vladislava Kova `(adc18dea)`
 - **Core**: Refresh history thumbnail after annotation re-edit `(0b9b0f8f)`
 - **Core**: Remove KDE_SESSION_VERSION false-positive in Wayland detection `(64727c45)`
 - **Core**: Repair onboarding step state flow `(b87caa39)`
@@ -440,12 +440,12 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Core**: Fix onboarding trigger race and move it to OnWindowOpened `(7921fd4b)`
 - **Core**: Fix WaylandPortalHotkeyService to implement IHotkeyService.HotkeysChanged `(f490e35a)`
 - **Core**: Fix XerahS.UI build errors in onboarding code `(9b8b79ab)`
-- **Core**: Add missing using XerahS.RegionCapture in RegionCaptureAnnotationViewModel â€” resolves StepTailStyle not found `(c48380c7)`
+- **Core**: Add missing using XerahS.RegionCapture in RegionCaptureAnnotationViewModel — resolves StepTailStyle not found `(c48380c7)`
 - **Core**: Auto uploader falls back to Text uploaders for text-based files when File uploaders fail `(6d93bba4)`
 - **Core**: Auto-build and copy plugins to CLI output directory `(dac37123)`
 - **Core**: Scrolling Capture no longer triggers tab switch on child window scroll `(6490d078)`
 - **Core**: Scrolling Capture targets window main scroll bar instead of scroll bar thumb/track `(4712e39d)`
-- **Core**: Restore XIP0060: XerahS.UI build â€” remove duplicate Onboarding folders causing AXN0002 `(5c73b9c0)`
+- **Core**: Restore XIP0060: XerahS.UI build — remove duplicate Onboarding folders causing AXN0002 `(5c73b9c0)`
 - **Fix AVLN2000**: invalid binding path syntax in OnboardingWizardWindow.axaml `(be6b7a2d)`
 
 ### Refactor
@@ -486,18 +486,18 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Core**: Refine editable annotation sidecar design `(1b53648d)`
 - **Core**: Repair maintenance sync guardrails `(39ef0ba1)`
 - **Core**: Update XIP sync skill `(1fc53d26)`
-- **Core**: XIP/IEIP proposals â€” XIP0065, XIP0066, XIP0067 Avalonia 12 upgrade docs, XIP0069, XIP0070, user research, design/review docs `(5ef03e41, b574e02d, 32f0edbc, f9f6d370, cd8ca16b)`
+- **Core**: XIP/IEIP proposals — XIP0065, XIP0066, XIP0067 Avalonia 12 upgrade docs, XIP0069, XIP0070, user research, design/review docs `(5ef03e41, b574e02d, 32f0edbc, f9f6d370, cd8ca16b)`
 - **Core**: XIP0060: State of the Art Onboarding Wizard `(4910906a)`
-- **Core**: XIP0061: KDE Plasma / Nobara â€” portal fixes, version deps, remaining open items `(460d1c65)`
+- **Core**: XIP0061: KDE Plasma / Nobara — portal fixes, version deps, remaining open items `(460d1c65)`
 - **Core**: KFIP0001 KovaForge Improvement Proposals series; KFIP0071 Part 2 privacy rules, tool specs, provider defaults, Sofia design specs `(de955b6e, b7372bb8, a0972d89)`
 
 ### Changed
-- **Core**: Smart Region Capture Profiles â€” TweetCaptureDetector + CaptureProfileService implementation, wired into after-capture workflow `(ca8949c2, 9f433081, 0740efd2, 84b5d863, ff74a0e0)`
-- **Core**: Social Media Screenshot Automation â€” Tweet & Thread Capture with styled export `(bd6174b1, 4cb8a5d0, a9d7a62b, 4fc601a1, 4f56ded8)`
-- **Core**: Smart Region Capture Profiles rename XIP0073â†’KFIP0002; consolidate duplicate XIP0074 `(88628121, 15a0e3e6, 4ee81449)`
+- **Core**: Smart Region Capture Profiles — TweetCaptureDetector + CaptureProfileService implementation, wired into after-capture workflow `(ca8949c2, 9f433081, 0740efd2, 84b5d863, ff74a0e0)`
+- **Core**: Social Media Screenshot Automation — Tweet & Thread Capture with styled export `(bd6174b1, 4cb8a5d0, a9d7a62b, 4fc601a1, 4f56ded8)`
+- **Core**: Smart Region Capture Profiles rename XIP0073→KFIP0002; consolidate duplicate XIP0074 `(88628121, 15a0e3e6, 4ee81449)`
 - **Core**: Add "Ignore empty folders" option to Index Folder `(53b86e32)`
 - **Core**: XIP0060: Onboarding state machine, ViewModels, complete UI build, design system, step views, reusable controls, converters, trigger wiring, style rewrite, wizard complete `(5d032a17, 4939680c, 16ef57dc, 42497263, bee2b008, ccaf6ce9, 68dbf543, 6bf203a8)`
-- **Core**: [MCP] Add README, usage guide, initial stdio transport skeleton, integration tests, HTTP transport + Cloudflare Worker + manifest, prompt templates â€” typed records `(e2764bce, de12d8f2, bfa6f82b, 133881d9, 10aa1d58, c1845a77)`
+- **Core**: [MCP] Add README, usage guide, initial stdio transport skeleton, integration tests, HTTP transport + Cloudflare Worker + manifest, prompt templates — typed records `(e2764bce, de12d8f2, bfa6f82b, 133881d9, 10aa1d58, c1845a77)`
 - **Core**: [MCP] Align MCP contract and prompts `(3f416b01)`
 - **Core**: [MCP] Implement XerahS MCP runtime; expose MCP settings in desktop UI; refresh usage guide `(ba6da988, f450dde8, 94a09599)`
 - **Core**: Update model IDs to MiniMax-M2.7, gemini-2.5-flash, claude-haiku-4-5 `(02729ca6)`
@@ -516,7 +516,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Overlay & capture parity**: Align Linux overlay capture with Windows; fix region selector preference on hotkey-triggered captures `(4688c133, ee254f7b)`
 - **Modals & catalog**: Centralize modal opening; dispatch opens on UI thread for Add from Catalog on Linux `(be448902, 326d1049)`
 - **Recording & video editor**: Gate unsupported pause on Wayland; harden editor launch `(2a6a0b50, 06659ec3)`
-- **Core**: Upload fallback Fileâ†’Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
+- **Core**: Upload fallback File→Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels `(3aceb524, 51dc50ae, 486c8320)`
 - **Hotkeys / Imgur**: X11 fallback when portal bind cancelled; cross-platform OAuth URL helpers `(0939672f, 656e2975)`
 - **Linux (Wayland / GNOME / KDE)**: Portal retry, transparent overlay and mixed-DPI, `UseTransparentOverlay` plumbing, DBus crash guard, selector defaults, GNOME crop workflow `(377425be, a3685245, b65e9848, e65bcc56, 08e4ed7e, c0c04c84, a72a6e6c)`
 - **Paths / UI / upload**: User-writable plugins folder; effect browser aligned with unified editor API; auto-heal stale destination instance IDs `(fb1c443b, 0ad4bfb4, f1e87b3a)`
@@ -527,8 +527,8 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **ShareX.ImageEditor**: Submodule tracking (IEIP0004 branch, develop, parity/revert/schema fixes) `(6d4a3939, 4377f217, e5acc011, 337bc8aa, f49f8cb2, 31348f9f, e06a47ed)`
 - **Tooling & quality**: Upload fallback logging/comments; default publish-release to prerelease; LF enforcement; CS8604/DBus `(9b2e33db, 4ab11c88, bd3e9c53, 90fa44b6, f5e6d2d0)`
 ### Documentation
-- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series â€” add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
-- **XIPs & proposals**: XIP0054â€“0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
+- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series — add and revise `(edd2b92f, a6d87b36, dfeaed38, c6a2df06, cfe5d8c6, 5b3ae91a, 0c4cf944, 621ba13a, 0bdf100d, d21c61a8, 760aa548)`
+- **XIPs & proposals**: XIP0054–0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs `(1aa8ed28, de12cba2, 4495a4bb, cbe8f323, 8bdf1cc0, 230bdf02, 9777ead6, dc73a7b6, 62ff53d3, eb3dcc96, 126a07f1, 7bc160ea, e39283b6, 83767f4c, 89f6d0a5, 96e99345, eb7e5d8d, 612d547c, 73ad1148, ac9e42e0)`
 - **IEIP0004 / Linux**: Lessons from catalog browser integration; INSTALL.md; GNOME Wayland portal/overlay notes; interactive fallback explanation `(c920beee, fb6ec404, 5397a7f3, 6fa792a6)`
 - **Developers**: Move `PLUGIN_SDK.md` to `developers/guidelines/` `(e4e407ea)`
 ### Changed
@@ -614,7 +614,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Linux Recording**: Harden GStreamer pipeline by correcting region crop, removing conflicting `video/x-raw` caps before `glupload`, adding GL-to-CPU fallback, making fatal errors selectable in RecordingView, and cleaning up portal session on fatal errors `(01527ef5, ef55b9e7, 78523202, eba1e9d0, ba13d971, d69bd5a1)`
 - **Core**: Validate URL before OpenURL Process.Start; SaveRequested/SaveAsRequested for embedded and standalone editor; fall back to File-category instances when no Image uploader; default white tray icon on Linux/macOS; Tools_* nav items and VideoEditor dispatch; AnnotateImage JSON deserialization; Linux portal handle format and RPM packaging; fix tray stop button behavior and hotkey recording stop flow `(d16c0179, 6595731d, 7ec997c0, 63f81ce6, ddf64eb5, e9f8594b, b4b47f53, 1172b9a5, c6e9dd21, 36410a85)`
 - **Core**: Correct DXGI capture ModeRotation mapping for DMDO_90/DMDO_270 rotations `(b484d197)`
-- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; â€”7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
+- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; —7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
 - **VideoEditor submodule**: Button theme isolation and ReactiveUI main thread scheduler fixes `(ac7a1eec, 672a1e09)`
 - **Watch Folder**: Support legacy watchfolder.service `(9d291a15)`
 - **Core**: Hide Video Editor from Tools menu in release builds `(692cb5a0)`
