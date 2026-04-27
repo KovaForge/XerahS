@@ -141,7 +141,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         return new AssistantHistoryItem(
             item.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
             item.FilePath,
-            string.IsNullOrWhiteSpace(item.FileName) ? Path.GetFileName(item.FilePath) : item.FileName,
+            string.IsNullOrWhiteSpace(item.FileName) ? GetSafeFileName(item.FilePath) : item.FileName,
             new DateTimeOffset(item.DateTime == DateTime.MinValue ? DateTime.Now : item.DateTime),
             item.Type,
             TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText"),
@@ -164,6 +164,24 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         return item.Tags != null && item.Tags.TryGetValue(tag, out string? value)
             ? value
             : null;
+    }
+
+    private static string GetSafeFileName(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return string.Empty;
+        }
+
+        string trimmed = filePath.Trim().TrimEnd('/', '\\');
+        string fileName = Path.GetFileName(trimmed);
+        if (!string.IsNullOrWhiteSpace(fileName) && !string.Equals(fileName, trimmed, StringComparison.Ordinal))
+        {
+            return fileName;
+        }
+
+        string[] segments = trimmed.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+        return segments.Length > 0 ? segments[^1] : fileName;
     }
 
 }
