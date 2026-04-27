@@ -177,13 +177,13 @@ internal sealed class HyprlandWindowPointQueryHelper : IWaylandWindowPointQueryH
         if (!enumerator.MoveNext())
             return false;
 
-        if (!enumerator.Current.TryGetInt32(out int x))
+        if (enumerator.Current.ValueKind != JsonValueKind.Number || !enumerator.Current.TryGetInt32(out int x))
             return false;
 
         if (!enumerator.MoveNext())
             return false;
 
-        if (!enumerator.Current.TryGetInt32(out int y))
+        if (enumerator.Current.ValueKind != JsonValueKind.Number || !enumerator.Current.TryGetInt32(out int y))
             return false;
 
         point = new Point(x, y);
