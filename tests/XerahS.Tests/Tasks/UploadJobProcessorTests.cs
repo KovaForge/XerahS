@@ -110,6 +110,34 @@ public class UploadJobProcessorTests
         Assert.That(info.UploaderHost, Is.EqualTo("Configured Default"));
     }
 
+    [Test]
+    public void CreateHistoryItem_PreservesAllUploaderResultUrls()
+    {
+        var info = new TaskInfo
+        {
+            Job = TaskJob.FileUpload,
+            DataType = EDataType.Image,
+            Result = new UploadResult
+            {
+                URL = "https://example.test/image.png",
+                ThumbnailURL = "https://example.test/thumb.png",
+                DeletionURL = "https://example.test/delete/image",
+                ShortenedURL = "https://ex.test/i"
+            }
+        };
+        info.FilePath = "/tmp/image.png";
+
+        var historyItem = UploadJobProcessor.CreateHistoryItem(info, info.Result.URL!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(historyItem.URL, Is.EqualTo("https://example.test/image.png"));
+            Assert.That(historyItem.ThumbnailURL, Is.EqualTo("https://example.test/thumb.png"));
+            Assert.That(historyItem.DeletionURL, Is.EqualTo("https://example.test/delete/image"));
+            Assert.That(historyItem.ShortenedURL, Is.EqualTo("https://ex.test/i"));
+        });
+    }
+
     private static UploaderInstance CreateInstance(string name, bool isAvailable = true)
     {
         return new UploaderInstance
