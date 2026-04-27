@@ -20,14 +20,7 @@ public class PluginLoaderTests
     {
         var loader = new PluginLoader();
         string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
-        var manifest = new PluginManifest
-        {
-            PluginId = "manifest-plugin-id",
-            Name = "Mismatched provider test",
-            ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
-            EntryPoint = typeof(MismatchedPluginProvider).FullName!,
-            SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
-        };
+        var manifest = CreateMismatchedProviderManifest("manifest-plugin-id");
         var metadata = new PluginMetadata(manifest, Path.GetDirectoryName(assemblyPath)!, assemblyPath);
 
         var provider = loader.LoadPlugin(metadata);
@@ -43,6 +36,40 @@ public class PluginLoaderTests
         Assert.That(loader.UnloadPlugin(MismatchedPluginProvider.ProviderIdValue), Is.True);
         Assert.That(loader.GetLoadedContexts(), Is.Empty);
     }
+
+    [Test]
+    public void LoadPlugin_DuplicateProviderId_ReplacesPreviousContextWithoutLeakingHandle()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        string pluginDirectory = Path.GetDirectoryName(assemblyPath)!;
+        var firstMetadata = new PluginMetadata(CreateMismatchedProviderManifest("first-manifest-id"), pluginDirectory, assemblyPath);
+        var secondMetadata = new PluginMetadata(CreateMismatchedProviderManifest("second-manifest-id"), pluginDirectory, assemblyPath);
+
+        Assert.That(loader.LoadPlugin(firstMetadata), Is.Not.Null);
+        var firstContext = loader.GetLoadedContexts()[MismatchedPluginProvider.ProviderIdValue];
+
+        Assert.That(loader.LoadPlugin(secondMetadata), Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loader.GetLoadedContexts(), Has.Count.EqualTo(1));
+            Assert.That(loader.GetLoadedContexts().ContainsKey(MismatchedPluginProvider.ProviderIdValue), Is.True);
+            Assert.That(loader.GetLoadedContexts()[MismatchedPluginProvider.ProviderIdValue], Is.Not.SameAs(firstContext));
+        });
+
+        Assert.That(loader.UnloadPlugin(MismatchedPluginProvider.ProviderIdValue), Is.True);
+        Assert.That(loader.GetLoadedContexts(), Is.Empty);
+    }
+
+    private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Mismatched provider test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(MismatchedPluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
 
     public sealed class MismatchedPluginProvider : IUploaderProvider
     {

@@ -99,6 +99,14 @@ public class PluginLoader
             // Store load context by the runtime provider ID. ProviderCatalog registers and unloads
             // plugins by provider.ProviderId, so using the manifest ID here can leave a
             // mismatched plugin's collectible context alive after force reload/removal.
+            // If the same provider ID is loaded again before the caller removes the old
+            // provider, unload the previous collectible context instead of overwriting the
+            // dictionary entry and losing the only handle ProviderCatalog can unload later.
+            if (_loadedContexts.TryGetValue(provider.ProviderId, out var existingContext))
+            {
+                UnloadFailedContext(existingContext);
+            }
+
             _loadedContexts[provider.ProviderId] = loadContext;
 
             metadata.Provider = provider;
