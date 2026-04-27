@@ -33,7 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj"
+                      AdditionalProperties="EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
