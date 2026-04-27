@@ -38,7 +38,7 @@
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
                       GlobalPropertiesToRemove="Platform"
-                      AdditionalProperties="BuildWebUI=false" />
+                      AdditionalProperties="BuildWebUI=true" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="'$(IsWindowsCliBuild)' == 'true'" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="'$(IsMacOSCliBuild)' == 'true'" />
