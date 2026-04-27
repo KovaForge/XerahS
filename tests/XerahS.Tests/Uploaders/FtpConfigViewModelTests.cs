@@ -138,6 +138,22 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_ReplacesOutOfRangePortWithProtocolDefault()
+    {
+        var viewModel = new FtpConfigViewModel();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Protocol = FTPProtocol.SFTP,
+            Host = "example.com",
+            Port = 70000
+        });
+
+        viewModel.LoadFromJson(json);
+
+        Assert.That(viewModel.Port, Is.EqualTo(22));
+    }
+
+    [Test]
     public void LoadFromJson_NormalizesInvalidEnumValuesToSafeDefaults()
     {
         var viewModel = new FtpConfigViewModel();
@@ -240,6 +256,24 @@ public sealed class FtpConfigViewModelTests
             Assert.That(account.FTPSEncryption, Is.EqualTo(FTPSEncryption.Explicit));
             Assert.That(account.Port, Is.EqualTo(21));
         });
+    }
+
+    [Test]
+    public void ProviderCreateInstance_ReplacesOutOfRangePortWithProtocolDefault()
+    {
+        var provider = new FtpProvider();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Protocol = FTPProtocol.FTPS,
+            FTPSEncryption = FTPSEncryption.Implicit,
+            Host = "example.com",
+            Port = 70000
+        });
+
+        var uploader = provider.CreateInstance(json);
+        FTPAccount account = GetAccount((FtpUploader)uploader);
+
+        Assert.That(account.Port, Is.EqualTo(990));
     }
 
     [Test]
