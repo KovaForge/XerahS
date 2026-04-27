@@ -841,7 +841,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
     private bool ApplyPortalShortcutSnapshot(ValueTuple<string, IDictionary<string, object>>[] shortcuts)
     {
         bool changed = false;
-        var shortcutsById = shortcuts.ToDictionary(shortcut => shortcut.Item1, shortcut => shortcut.Item2);
+        var shortcutsById = BuildShortcutSnapshotMap(shortcuts);
 
         lock (_hotkeyLock)
         {
@@ -888,6 +888,24 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         }
 
         return changed;
+    }
+
+    internal static Dictionary<string, IDictionary<string, object>> BuildShortcutSnapshotMap(
+        ValueTuple<string, IDictionary<string, object>>[] shortcuts)
+    {
+        var shortcutsById = new Dictionary<string, IDictionary<string, object>>(StringComparer.Ordinal);
+
+        foreach (var shortcut in shortcuts)
+        {
+            if (string.IsNullOrWhiteSpace(shortcut.Item1))
+            {
+                continue;
+            }
+
+            shortcutsById[shortcut.Item1] = shortcut.Item2;
+        }
+
+        return shortcutsById;
     }
 
     private static bool TryGetShortcutResults(

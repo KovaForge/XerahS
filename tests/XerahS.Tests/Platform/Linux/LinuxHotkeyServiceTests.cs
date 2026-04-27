@@ -66,6 +66,32 @@ public class LinuxHotkeyServiceTests
     }
 
     [Test]
+    public void WaylandPortalHotkeyService_BuildShortcutSnapshotMap_ToleratesDuplicatePortalIds()
+    {
+        var first = new Dictionary<string, object>
+        {
+            ["trigger_description"] = "First binding"
+        };
+        var second = new Dictionary<string, object>
+        {
+            ["trigger_description"] = "Updated binding"
+        };
+
+        var map = WaylandPortalHotkeyService.BuildShortcutSnapshotMap(
+        [
+            ValueTuple.Create("1", (IDictionary<string, object>)first),
+            ValueTuple.Create("", (IDictionary<string, object>)new Dictionary<string, object>()),
+            ValueTuple.Create("1", (IDictionary<string, object>)second)
+        ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(map, Has.Count.EqualTo(1));
+            Assert.That(map["1"], Is.SameAs(second));
+        });
+    }
+
+    [Test]
     public async Task WaylandPortalHotkeyService_DisposeWaitsForInFlightRebind()
     {
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
