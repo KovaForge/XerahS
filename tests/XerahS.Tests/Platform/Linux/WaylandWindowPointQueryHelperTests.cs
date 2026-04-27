@@ -80,6 +80,33 @@ public class WaylandWindowPointQueryHelperTests
     }
 
     [Test]
+    public void HyprlandHelper_SelectWindowFromClientsJson_IgnoresMalformedCoordinateArrays()
+    {
+        const string json = """
+            [
+              {
+                "address": "0x444",
+                "mapped": true,
+                "hidden": false,
+                "at": ["not-an-int", 10],
+                "size": [800, 600],
+                "title": "Broken metadata",
+                "class": "org.example.Broken",
+                "focusHistoryID": 0
+              }
+            ]
+            """;
+
+        WindowInfo? window = null;
+
+        Assert.DoesNotThrow(() =>
+        {
+            window = HyprlandWindowPointQueryHelper.SelectWindowFromClientsJson(json, new Point(20, 20));
+        });
+        Assert.That(window, Is.Null);
+    }
+
+    [Test]
     public void SwayHelper_SelectWindowFromTreeJson_ReturnsFocusedWindowAtPoint()
     {
         string json =
