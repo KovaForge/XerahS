@@ -171,7 +171,7 @@ namespace XerahS.CLI.Commands
                     if (!string.IsNullOrEmpty(task.Info.FilePath))
                         Console.WriteLine($"Saved: {task.Info.FilePath}");
                     
-                    if (!string.IsNullOrEmpty(task.Info.Metadata.UploadURL))
+                    if (task.Info.Metadata != null && !string.IsNullOrEmpty(task.Info.Metadata.UploadURL))
                         Console.WriteLine($"URL: {task.Info.Metadata.UploadURL}");
                         
                     // Check History
@@ -186,7 +186,9 @@ namespace XerahS.CLI.Commands
                             var latest = items[0];
                             Console.WriteLine($"[History Verification] Latest Item: {latest.FileName}");
                             Console.WriteLine($"[History Verification] URL: '{latest.URL}'");
-                            if (latest.FilePath == task.Info.FilePath && latest.URL == task.Info.Metadata.UploadURL)
+                            if (latest.FilePath == task.Info.FilePath && 
+                                task.Info.Metadata != null && 
+                                latest.URL == task.Info.Metadata.UploadURL)
                             {
                                  Console.WriteLine($"[History Verification] SUCCESS: History matches task output.");
                             }
