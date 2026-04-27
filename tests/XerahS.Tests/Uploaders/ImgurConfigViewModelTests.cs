@@ -358,6 +358,15 @@ public class ImgurConfigViewModelTests
         Assert.That(url, Is.EqualTo("https://api.imgur.com/3/album/%20album%2F..%2F..%2Faccount%2Fme%2Fimages%20/images"));
     }
 
+    [TestCase(0, 1)]
+    [TestCase(-10, 1)]
+    [TestCase(25, 25)]
+    [TestCase(250, 100)]
+    public void ProviderNormalizePageSize_ClampsInvalidExplorerPageSizes(int requestedPageSize, int expectedPageSize)
+    {
+        Assert.That(InvokeNormalizePageSize(requestedPageSize), Is.EqualTo(expectedPageSize));
+    }
+
     [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
@@ -425,6 +434,13 @@ public class ImgurConfigViewModelTests
         MethodInfo? method = typeof(ImgurUploader).GetMethod("TryPrepareStreamForRetry", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (bool)method!.Invoke(null, new object[] { stream })!;
+    }
+
+    private static int InvokeNormalizePageSize(int pageSize)
+    {
+        MethodInfo? method = typeof(ImgurProvider).GetMethod("NormalizePageSize", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (int)method!.Invoke(null, new object[] { pageSize })!;
     }
 
     private sealed class TestProviderContext : IProviderContext
