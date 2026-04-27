@@ -113,7 +113,11 @@ public sealed class XerahSMcpServer
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing params");
         }
 
-        var name = paramsNode["name"]?.GetValue<string>();
+        if (!TryGetStringProperty(paramsNode, "name", out var name, out var nameError))
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, nameError);
+        }
+
         if (string.IsNullOrWhiteSpace(name))
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing tool name");
@@ -225,7 +229,11 @@ public sealed class XerahSMcpServer
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Params must be a JSON object");
         }
 
-        var uri = paramsNode["uri"]?.GetValue<string>();
+        if (!TryGetStringProperty(paramsNode, "uri", out var uri, out var uriError))
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, uriError);
+        }
+
         if (string.IsNullOrWhiteSpace(uri))
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing resource URI");
@@ -269,7 +277,11 @@ public sealed class XerahSMcpServer
             return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Params must be a JSON object"));
         }
 
-        var name = paramsNode["name"]?.GetValue<string>();
+        if (!TryGetStringProperty(paramsNode, "name", out var name, out var nameError))
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, nameError));
+        }
+
         if (string.IsNullOrWhiteSpace(name))
         {
             return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, "Missing prompt name"));
@@ -352,6 +364,26 @@ public sealed class XerahSMcpServer
         }
 
         error = "Tool arguments must be a JSON object when provided.";
+        return false;
+    }
+
+    private static bool TryGetStringProperty(JsonObject paramsNode, string propertyName, out string? value, out string error)
+    {
+        value = null;
+        error = string.Empty;
+
+        if (!paramsNode.TryGetPropertyValue(propertyName, out var node) || node == null)
+        {
+            return true;
+        }
+
+        if (node is JsonValue jsonValue && jsonValue.TryGetValue<string>(out var stringValue))
+        {
+            value = stringValue;
+            return true;
+        }
+
+        error = $"Param '{propertyName}' must be a string when provided.";
         return false;
     }
 }

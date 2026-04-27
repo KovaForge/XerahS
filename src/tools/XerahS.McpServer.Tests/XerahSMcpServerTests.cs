@@ -124,6 +124,30 @@ public class XerahSMcpServerTests
         Assert.Contains("JSON object", response.Error.Message);
     }
 
+    [Theory]
+    [InlineData("tools/call", "name")]
+    [InlineData("resources/read", "uri")]
+    [InlineData("prompts/get", "name")]
+    public async Task RequiredStringParamMethods_RejectNonStringValuesAsInvalidParams(string method, string propertyName)
+    {
+        var server = new XerahSMcpServer(new FakeRuntime());
+
+        var response = await server.HandleRequestAsync(new JsonRpcRequest
+        {
+            JsonRpc = "2.0",
+            Id = 8,
+            Method = method,
+            Params = new JsonObject
+            {
+                [propertyName] = 123
+            }
+        });
+
+        Assert.NotNull(response.Error);
+        Assert.Equal(JsonRpcErrorCodes.InvalidParams, response.Error!.Code);
+        Assert.Contains("must be a string", response.Error.Message);
+    }
+
 
     [Theory]
     [InlineData("resources/read")]
