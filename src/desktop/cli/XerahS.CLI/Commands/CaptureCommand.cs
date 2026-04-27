@@ -307,7 +307,15 @@ namespace XerahS.CLI.Commands
                 return false;
             }
 
-            rect = new SkiaSharp.SKRect(x, y, x + width, y + height);
+            long right = (long)x + width;
+            long bottom = (long)y + height;
+            if (right > int.MaxValue || bottom > int.MaxValue)
+            {
+                error = "Region bounds are outside supported coordinate range.";
+                return false;
+            }
+
+            rect = new SkiaSharp.SKRect(x, y, (int)right, (int)bottom);
             return true;
         }
 

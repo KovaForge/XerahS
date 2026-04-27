@@ -68,6 +68,8 @@ public class CaptureCommandRegionParsingTests
     [TestCase("0,0,abc,100", "Region values must be integers in format x,y,width,height.")]
     [TestCase("0,0,0,100", "Region width and height must be greater than zero.")]
     [TestCase("0,0,100,-1", "Region width and height must be greater than zero.")]
+    [TestCase("2147483647,0,1,100", "Region bounds are outside supported coordinate range.")]
+    [TestCase("0,2147483647,100,1", "Region bounds are outside supported coordinate range.")]
     public void TryParseRegion_WhenInputInvalid_ReturnsExpectedError(string? input, string expectedError)
     {
         bool result = CaptureCommand.TryParseRegion(input, out var rect, out var error);
