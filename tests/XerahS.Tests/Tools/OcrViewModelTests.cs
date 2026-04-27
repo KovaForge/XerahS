@@ -86,6 +86,29 @@ public sealed class OcrViewModelTests
         Assert.That(viewModel.HasResult, Is.True);
     }
 
+    [Test]
+    public async Task RunOcrAsync_TrimsLanguageAndRejectsNonFiniteScale()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new RecordingOcrService(["bonjour"]);
+        PlatformServices.Ocr = ocr;
+
+        var viewModel = new OcrViewModel(bitmap)
+        {
+            SelectedLanguage = new OcrLanguage("French", " fr "),
+            ScaleFactor = double.PositiveInfinity
+        };
+
+        await viewModel.RunOcrAsync();
+
+        Assert.That(ocr.LastOptions, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(ocr.LastOptions!.Language, Is.EqualTo("fr"));
+            Assert.That(ocr.LastOptions.ScaleFactor, Is.EqualTo(1f));
+        });
+    }
+
     private sealed class RecordingOcrService : IOcrService
     {
         private readonly Queue<string> _responses;
@@ -101,9 +124,17 @@ public sealed class OcrViewModelTests
 
         public List<string> RequestedLanguages { get; } = new();
 
+        public OcrOptions? LastOptions { get; private set; }
+
         public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options)
         {
             CallCount++;
+            LastOptions = new OcrOptions
+            {
+                Language = options.Language,
+                ScaleFactor = options.ScaleFactor,
+                SingleLine = options.SingleLine
+            };
             RequestedLanguages.Add(options.Language);
             string text = _responses.Count > 0 ? _responses.Dequeue() : string.Empty;
             return Task.FromResult(new OcrResult
