@@ -14,6 +14,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AppendRuntimeIdentifierToOutputPath>true</AppendRuntimeIdentifierToOutputPath>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(BuildingSolutionFile)' == 'true'">false</VideoEditorProjectReferenceBuildWebUI>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">true</VideoEditorProjectReferenceBuildWebUI>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -43,7 +45,9 @@
     <ProjectReference Include="..\..\core\XerahS.Services.Abstractions\XerahS.Services.Abstractions.csproj" />
     <ProjectReference Include="..\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
-    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj" GlobalPropertiesToRemove="OS" />
+    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
+                      GlobalPropertiesToRemove="OS"
+                      AdditionalProperties="BuildWebUI=$(VideoEditorProjectReferenceBuildWebUI)" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />

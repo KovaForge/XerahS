@@ -74,6 +74,29 @@ public class IUIServiceDefaultSessionTests
         result.SourceImage.Dispose();
     }
 
+
+    [Test]
+    public async Task ShowEditorSessionAsync_DefaultFallback_CapturesSourceImage_BeforeEditorMutatesInput()
+    {
+        using var image = new SKBitmap(2, 1);
+        image.SetPixel(0, 0, SKColors.CadetBlue);
+        image.SetPixel(1, 0, SKColors.Goldenrod);
+
+        var implementation = new MutatingDefaultSessionFallbackUiService();
+        IUIService service = implementation;
+
+        ImageEditorSessionResult? result = await service.ShowEditorSessionAsync(image);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.SourceImage, Is.Not.Null);
+        Assert.That(result.SourceImage!.GetPixel(0, 0), Is.EqualTo(SKColors.CadetBlue));
+        Assert.That(result.SourceImage.GetPixel(1, 0), Is.EqualTo(SKColors.Goldenrod));
+        Assert.That(result.RenderedImage.GetPixel(0, 0), Is.EqualTo(SKColors.Red));
+
+        result.RenderedImage.Dispose();
+        result.SourceImage.Dispose();
+    }
+
     private sealed class DefaultSessionFallbackUiService : IUIService
     {
         public SKBitmap? RenderedImage { get; private set; }
@@ -86,6 +109,36 @@ public class IUIServiceDefaultSessionTests
         {
             RenderedImage = image.Copy();
             return Task.FromResult<SKBitmap?>(RenderedImage);
+        }
+
+        public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
+
+        public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+            SKBitmap image,
+            AfterCaptureTasks afterCapture,
+            AfterUploadTasks afterUpload) => Task.FromResult((afterCapture, afterUpload, false));
+
+        public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info) => Task.CompletedTask;
+
+        public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection) => Task.FromResult(new SendToPromptResult());
+
+        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
+
+        public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+        public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
+    }
+
+    private sealed class MutatingDefaultSessionFallbackUiService : IUIService
+    {
+        public Task HideMainWindowAsync() => Task.CompletedTask;
+
+        public Task RestoreMainWindowAsync() => Task.CompletedTask;
+
+        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
+        {
+            image.SetPixel(0, 0, SKColors.Red);
+            return Task.FromResult<SKBitmap?>(image.Copy());
         }
 
         public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
