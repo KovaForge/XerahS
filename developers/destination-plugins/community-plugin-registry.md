@@ -9,7 +9,7 @@ Official plugins are built into XerahS and do not need entries in this registry.
 The default registry URL is:
 
 ```text
-https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json
+https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins/destinations/plugins-index.json
 ```
 
 ## Package format
