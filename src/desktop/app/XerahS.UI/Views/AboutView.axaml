@@ -17,7 +17,7 @@
     <ScrollViewer>
         <StackPanel Spacing="24" Margin="24" MaxWidth="800" HorizontalAlignment="Center">
             <StackPanel Spacing="16" HorizontalAlignment="Center" Margin="0,32,0,32">
-                <Image Source="/Assets/Logo.png" Height="128" Width="128" />
+                <Image Source="/Assets/ShareX.iconset/icon_128x128.png" Height="128" Width="128" />
                 <TextBlock Text="{x:Static common:AppResources.ProductNameWithVersion}"
                            Theme="{StaticResource TitleTextBlockStyle}"
                            HorizontalAlignment="Center" />
