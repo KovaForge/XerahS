@@ -53,7 +53,7 @@ namespace XerahS.CLI.Services
         {
             Console.Error.WriteLine("[WARNING] Image editor not available in CLI mode.");
             Console.Error.WriteLine("Image dimensions: {0}x{1}", image.Width, image.Height);
-            return Task.FromResult<SKBitmap?>(image);
+            return Task.FromResult<SKBitmap?>(null);
         }
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
