@@ -56,7 +56,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
     {
         UploadResult result = new UploadResult();
 
-        if (string.IsNullOrEmpty(_account.Host))
+        if (string.IsNullOrWhiteSpace(_account.Host))
         {
             Errors.Add("FTP host is required.");
             return result;
@@ -111,6 +111,8 @@ public sealed class FtpUploader : FileUploader, IDisposable
         }
     }
 
+    private static string NormalizeHost(string? host) => host?.Trim() ?? string.Empty;
+
     private static string GetSafeRemoteFileName(string? fileName)
     {
         string normalized = (fileName ?? string.Empty).Replace('\\', '/').Trim().Trim('/');
@@ -149,7 +151,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
     {
         var client = new FtpClient
         {
-            Host = _account.Host,
+            Host = NormalizeHost(_account.Host),
             Port = _account.Port,
             Credentials = new NetworkCredential(_account.Username ?? "", _account.Password ?? "")
         };
@@ -236,11 +238,11 @@ public sealed class FtpUploader : FileUploader, IDisposable
             PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
                 ? new PrivateKeyFile(keyPath)
                 : new PrivateKeyFile(keyPath, _account.Passphrase);
-            return new SftpClient(_account.Host, _account.Port, _account.Username ?? "", keyFile);
+            return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", keyFile);
         }
 
         if (!string.IsNullOrWhiteSpace(_account.Password))
-            return new SftpClient(_account.Host, _account.Port, _account.Username ?? "", _account.Password);
+            return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", _account.Password);
 
         if (!string.IsNullOrWhiteSpace(keyPath))
         {

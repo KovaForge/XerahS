@@ -104,6 +104,33 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_TrimsHost()
+    {
+        var viewModel = new FtpConfigViewModel();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Host = "  example.com  "
+        });
+
+        viewModel.LoadFromJson(json);
+
+        Assert.That(viewModel.Host, Is.EqualTo("example.com"));
+    }
+
+    [Test]
+    public void ToJson_TrimsHost()
+    {
+        var viewModel = new FtpConfigViewModel
+        {
+            Host = "  example.com  "
+        };
+
+        var config = JsonConvert.DeserializeObject<FtpConfigModel>(viewModel.ToJson());
+
+        Assert.That(config?.Host, Is.EqualTo("example.com"));
+    }
+
+    [Test]
     public void LoadFromJson_ClearsPreviousErrorStatusAfterSuccessfulLoad()
     {
         var viewModel = new FtpConfigViewModel();
@@ -274,6 +301,37 @@ public sealed class FtpConfigViewModelTests
         FTPAccount account = GetAccount((FtpUploader)uploader);
 
         Assert.That(account.Port, Is.EqualTo(990));
+    }
+
+    [Test]
+    public void ProviderCreateInstance_TrimsHostBeforeCreatingUploader()
+    {
+        var provider = new FtpProvider();
+        string json = JsonConvert.SerializeObject(new FtpConfigModel
+        {
+            Host = "  example.com  "
+        });
+
+        var uploader = provider.CreateInstance(json);
+        FTPAccount account = GetAccount((FtpUploader)uploader);
+
+        Assert.That(account.Host, Is.EqualTo("example.com"));
+    }
+
+    [Test]
+    public void Upload_RejectsWhitespaceOnlyHostWithoutConnecting()
+    {
+        using var uploader = new FtpUploader(new FTPAccount
+        {
+            Host = "   ",
+            Port = 21,
+            Protocol = FTPProtocol.FTP
+        });
+        using var stream = new MemoryStream([1, 2, 3]);
+
+        uploader.Upload(stream, "capture.png");
+
+        Assert.That(uploader.Errors.Errors.Select(error => error.Text), Contains.Item("FTP host is required."));
     }
 
     [Test]
