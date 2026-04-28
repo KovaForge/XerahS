@@ -98,6 +98,31 @@ public class WorkflowManagerTests
     }
 
     [Test]
+    public void RegisterHotkey_WhenPreviousFailureLeftStaleId_RetriesWithoutUnregistering()
+    {
+        var service = new FakeHotkeyService { FailNextRegisterAfterAssigningId = true };
+        using var manager = new WorkflowManager(service);
+        var settings = new WorkflowSettings(
+            WorkflowType.RectangleRegion,
+            new HotkeyInfo(Key.L, KeyModifiers.Control | KeyModifiers.Shift));
+
+        bool firstRegistration = manager.RegisterHotkey(settings);
+        ushort failedId = settings.HotkeyInfo.Id;
+        bool secondRegistration = manager.RegisterHotkey(settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstRegistration, Is.False);
+            Assert.That(failedId, Is.Not.EqualTo(0));
+            Assert.That(secondRegistration, Is.True);
+            Assert.That(settings.HotkeyInfo.Status, Is.EqualTo(HotkeyStatus.Registered));
+            Assert.That(settings.HotkeyInfo.Id, Is.Not.EqualTo(failedId));
+            Assert.That(service.UnregisterCallCount, Is.EqualTo(0));
+            Assert.That(service.IsRegistered(settings.HotkeyInfo), Is.True);
+        });
+    }
+
+    [Test]
     public void WorkflowsChanged_WhenHotkeyMetadataChanges_IsRelayedFromService()
     {
         var service = new FakeHotkeyService();
@@ -184,6 +209,7 @@ public class WorkflowManagerTests
         private ushort _nextId = 1;
 
         public int UnregisterCallCount { get; private set; }
+        public bool FailNextRegisterAfterAssigningId { get; set; }
         public bool FailNextUnregister { get; set; }
 
         public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
@@ -203,6 +229,13 @@ public class WorkflowManagerTests
             if (hotkeyInfo.Id == 0)
             {
                 hotkeyInfo.Id = _nextId++;
+            }
+
+            if (FailNextRegisterAfterAssigningId)
+            {
+                FailNextRegisterAfterAssigningId = false;
+                hotkeyInfo.Status = HotkeyStatus.Failed;
+                return false;
             }
 
             hotkeyInfo.Status = HotkeyStatus.Registered;
