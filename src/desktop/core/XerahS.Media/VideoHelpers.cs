@@ -61,7 +61,7 @@ namespace XerahS.Media
         /// <param name="width">Width (default -1 to keep aspect ratio)</param>
         /// <param name="statsMode">palettegen stats_mode (default: full)</param>
         /// <param name="dither">paletteuse dither (default: sierra2_4a)</param>
-        /// <param name="bayerScale">paletteuse bayer_scale (default: 2)</param>
+        /// <param name="bayerScale">paletteuse bayer_scale (default: 2, only applies when dither=bayer)</param>
         /// <param name="paletteNew">palettegen new=1 when stats_mode=single</param>
         /// <returns>True if successful, false otherwise</returns>
         public async Task<bool> ConvertToGifAsync(
@@ -94,7 +94,7 @@ namespace XerahS.Media
                 // https://ffmpeg.org/ffmpeg-filters.html#paletteuse
                 // https://ffmpeg.org/ffmpeg-filters.html#mpdecimate
                 statsMode = string.IsNullOrWhiteSpace(statsMode) ? "full" : statsMode;
-                dither = string.IsNullOrWhiteSpace(dither) ? "bayer" : dither;
+                dither = string.IsNullOrWhiteSpace(dither) ? "sierra2_4a" : dither;
 
                 string preProcess = $"fps={fps}";
                 if (width > 0)
