@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Drawing;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using XerahS.Platform.Abstractions;
 
@@ -114,11 +115,15 @@ internal sealed class KdeKdotoolWindowPointQueryHelper : IWaylandWindowPointQuer
         if (!positionMatch.Success || !geometryMatch.Success)
             return false;
 
-        bounds = new Rectangle(
-            int.Parse(positionMatch.Groups["x"].Value),
-            int.Parse(positionMatch.Groups["y"].Value),
-            int.Parse(geometryMatch.Groups["width"].Value),
-            int.Parse(geometryMatch.Groups["height"].Value));
+        if (!TryParseInt32(positionMatch.Groups["x"].Value, out int x) ||
+            !TryParseInt32(positionMatch.Groups["y"].Value, out int y) ||
+            !TryParseInt32(geometryMatch.Groups["width"].Value, out int width) ||
+            !TryParseInt32(geometryMatch.Groups["height"].Value, out int height))
+        {
+            return false;
+        }
+
+        bounds = new Rectangle(x, y, width, height);
         return bounds.Width > 0 && bounds.Height > 0;
     }
 
@@ -135,7 +140,7 @@ internal sealed class KdeKdotoolWindowPointQueryHelper : IWaylandWindowPointQuer
 
             string key = line[..separatorIndex];
             string value = line[(separatorIndex + 1)..];
-            if (int.TryParse(value, out int numericValue))
+            if (TryParseInt32(value, out int numericValue))
             {
                 values[key] = numericValue;
             }
@@ -151,5 +156,10 @@ internal sealed class KdeKdotoolWindowPointQueryHelper : IWaylandWindowPointQuer
 
         bounds = new Rectangle(x, y, width, height);
         return bounds.Width > 0 && bounds.Height > 0;
+    }
+
+    private static bool TryParseInt32(string value, out int result)
+    {
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
     }
 }
