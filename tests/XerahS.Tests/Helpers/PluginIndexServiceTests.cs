@@ -23,7 +23,7 @@ public class PluginIndexServiceTests
     {
         Assert.That(
             PluginIndexService.DefaultIndexUrl,
-            Is.EqualTo("https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json"));
+            Is.EqualTo("https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins/destinations/plugins-index.json"));
     }
 
     [Test]

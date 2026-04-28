@@ -74,16 +74,16 @@ A plugin registry is a supply-chain surface. The registry must be intentionally 
 
 ### Registry file
 
-Add a GitHub-hosted JSON registry at the repository root:
+Add a GitHub-hosted JSON registry under the destination plugin docs folder:
 
 ```text
-plugins-index.json
+plugins/destinations/plugins-index.json
 ```
 
 Default raw URL:
 
 ```text
-https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json
+https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins/destinations/plugins-index.json
 ```
 
 Initial contents may be empty:
@@ -259,7 +259,7 @@ Add commands:
 
 Add:
 
-- root `plugins-index.json`
+- `plugins/destinations/plugins-index.json`
 - documentation under `docs/plugins/`
 
 Documentation should cover:

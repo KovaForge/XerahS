@@ -19,7 +19,7 @@ namespace XerahS.Uploaders.PluginSystem;
 /// </summary>
 public sealed class PluginIndexService
 {
-    public const string DefaultIndexUrl = "https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins-index.json";
+    public const string DefaultIndexUrl = "https://raw.githubusercontent.com/ShareX/XerahS/refs/heads/develop/plugins/destinations/plugins-index.json";
 
     private const long MaxIndexBytes = 2_000_000; // 2MB
     private const long MaxPackageBytes = 100_000_000; // Keep aligned with PluginPackager.

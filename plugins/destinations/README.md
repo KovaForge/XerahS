@@ -4,7 +4,7 @@ This directory lists community-created destination plugins available for install
 
 ## Available Plugins
 
-For the authoritative and always-up-to-date list, see the [`plugins-index.json`](plugins-index.json) file at the repo root.
+For the authoritative and always-up-to-date list, see the [`plugins-index.json`](plugins-index.json) file in this folder.
 
 ### Pixelfox
 
@@ -37,4 +37,4 @@ XerahS will download the `.xsdp` package, verify its SHA-256 checksum, and insta
 
 ## Creating a Community Plugin
 
-See the [Destination Plugin Development Guide](../developers/destination-plugins/README.md) for how to build, package, and list a plugin in the community registry.
+See the [Destination Plugin Development Guide](../../developers/destination-plugins/README.md) for how to build, package, and list a plugin in the community registry.
