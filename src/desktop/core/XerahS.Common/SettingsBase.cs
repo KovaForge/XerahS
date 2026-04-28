@@ -66,8 +66,54 @@ namespace XerahS.Common
 
         public bool IsUpgradeFrom(string version)
         {
-            // TODO: Implement Helpers.CompareVersion logic if needed
-            return IsUpgrade && String.Compare(ApplicationVersion, version, StringComparison.Ordinal) <= 0;
+            return IsUpgrade && CompareVersion(ApplicationVersion, version) <= 0;
+        }
+
+        private static int CompareVersion(string? currentVersion, string targetVersion)
+        {
+            if (string.IsNullOrWhiteSpace(currentVersion))
+            {
+                return string.IsNullOrWhiteSpace(targetVersion) ? 0 : -1;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetVersion))
+            {
+                return 1;
+            }
+
+            string[] currentParts = currentVersion.Split('.');
+            string[] targetParts = targetVersion.Split('.');
+            int count = Math.Max(currentParts.Length, targetParts.Length);
+
+            for (int i = 0; i < count; i++)
+            {
+                long currentPart = i < currentParts.Length ? ParseVersionPart(currentParts[i]) : 0;
+                long targetPart = i < targetParts.Length ? ParseVersionPart(targetParts[i]) : 0;
+
+                int result = currentPart.CompareTo(targetPart);
+                if (result != 0)
+                {
+                    return result;
+                }
+            }
+
+            return 0;
+        }
+
+        private static long ParseVersionPart(string part)
+        {
+            if (string.IsNullOrEmpty(part))
+            {
+                return 0;
+            }
+
+            int length = 0;
+            while (length < part.Length && char.IsDigit(part[length]))
+            {
+                length++;
+            }
+
+            return length > 0 && long.TryParse(part.AsSpan(0, length), out long value) ? value : 0;
         }
 
         protected virtual void OnSettingsSaved(string filePath, bool result)
@@ -83,7 +129,7 @@ namespace XerahS.Common
         public bool Save(string filePath)
         {
             FilePath = filePath;
-            // ApplicationVersion = Helpers.GetApplicationVersion(); // TODO: Implement version retrieval
+            ApplicationVersion = SystemInfo.GetApplicationVersion();
 
             bool result = SaveInternal(FilePath);
 
@@ -113,7 +159,7 @@ namespace XerahS.Common
 
         public MemoryStream SaveToMemoryStream(bool supportDPAPIEncryption = false)
         {
-            // ApplicationVersion = Helpers.GetApplicationVersion();
+            ApplicationVersion = SystemInfo.GetApplicationVersion();
 
             MemoryStream ms = new MemoryStream();
             SaveToStream(ms, supportDPAPIEncryption, true);
@@ -314,9 +360,10 @@ namespace XerahS.Common
 
             if (setting != null)
             {
+                string previousApplicationVersion = setting.ApplicationVersion ?? string.Empty;
                 setting.FilePath = filePath;
-                setting.IsFirstTimeRun = string.IsNullOrEmpty(setting.ApplicationVersion);
-                // setting.IsUpgrade = ... 
+                setting.IsFirstTimeRun = string.IsNullOrEmpty(previousApplicationVersion);
+                setting.IsUpgrade = !setting.IsFirstTimeRun && CompareVersion(previousApplicationVersion, SystemInfo.GetApplicationVersion()) < 0;
                 setting.BackupFolder = backupFolder;
             }
 

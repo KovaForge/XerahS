@@ -313,6 +313,37 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void IsUpgradeFrom_UsesNumericVersionComparison()
+    {
+        var config = new ApplicationConfig
+        {
+            ApplicationVersion = "0.10.0"
+        };
+        typeof(SettingsBase<ApplicationConfig>)
+            .GetField("<IsUpgrade>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(config, true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(config.IsUpgradeFrom("0.9.0"), Is.False,
+                "Version 0.10.0 should not be treated as older than 0.9.0 by lexicographic comparison.");
+            Assert.That(config.IsUpgradeFrom("0.10.0"), Is.True);
+            Assert.That(config.IsUpgradeFrom("0.11.0"), Is.True);
+        });
+    }
+
+    [Test]
+    public void IsUpgradeFrom_ReturnsFalseWhenNotUpgrade()
+    {
+        var config = new ApplicationConfig
+        {
+            ApplicationVersion = "0.1.0"
+        };
+
+        Assert.That(config.IsUpgradeFrom("9.0.0"), Is.False);
+    }
+
+    [Test]
     public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
     {
         SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");
