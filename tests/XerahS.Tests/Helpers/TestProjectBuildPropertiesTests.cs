@@ -27,6 +27,25 @@ public class TestProjectBuildPropertiesTests
         AssertProjectReferenceDisablesAppDrivenPluginBuild(project, "XerahS.CLI.csproj");
     }
 
+    [Test]
+    public void McpServerTests_XunitRunnerVisualStudio_IsPrivateAsset()
+    {
+        string testProjectPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "../../../../../src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj"));
+
+        XDocument project = XDocument.Load(testProjectPath);
+
+        XElement runnerReference = project.Descendants("PackageReference")
+            .Single(element => string.Equals((string?)element.Attribute("Include"), "xunit.runner.visualstudio", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((string?)runnerReference.Element("PrivateAssets"), Is.EqualTo("all"));
+            Assert.That((string?)runnerReference.Element("IncludeAssets"), Does.Contain("build"));
+            Assert.That((string?)runnerReference.Element("IncludeAssets"), Does.Contain("buildtransitive"));
+        });
+    }
+
     private static void AssertProjectReferenceDisablesAppDrivenPluginBuild(XDocument project, string projectFileName)
     {
         XElement projectReference = project.Descendants("ProjectReference")
