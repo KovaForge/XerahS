@@ -207,11 +207,10 @@ namespace XerahS.CLI.Commands
                         
                         // Wait for the worker to complete, with a reasonable timeout
                         var timedOut = await Task.WhenAny(completionResult.Task, Task.Delay(30000)) != completionResult.Task;
-                        taskManager.TaskCompleted -= handler;
-                        
                         if (timedOut)
                         {
                             Console.Error.WriteLine("Region workflow timed out");
+                            taskManager.TaskCompleted -= handler;
                             return 1;
                         }
                         
