@@ -680,6 +680,7 @@ public partial class IndexFolderViewModel : ViewModelBase
 
         string fileName = TaskHelpers.GetFileName(taskSettings, extension);
         string resolvedPath = TaskHelpers.HandleExistsFile(screenshotsFolder, fileName, taskSettings);
+        if (string.IsNullOrWhiteSpace(resolvedPath)) return string.Empty;
 
         if (!string.IsNullOrWhiteSpace(sourceOutputFilePath) && File.Exists(sourceOutputFilePath))
         {

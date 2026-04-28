@@ -55,11 +55,6 @@ internal static class LinuxRegionSelectorPreferenceSupport
     public static IReadOnlyList<LinuxInteractiveRegionSelectorPreference> GetVisiblePreferences(
         LinuxRegionSelectorDiagnostics? diagnostics)
     {
-        if (!OperatingSystem.IsLinux())
-        {
-            return System.Enum.GetValues<LinuxInteractiveRegionSelectorPreference>();
-        }
-
         if (diagnostics?.AvailablePreferences is { Count: > 0 } availablePreferences)
         {
             return BuildVisiblePreferencesWithAutomaticAndOverlay(diagnostics, availablePreferences);

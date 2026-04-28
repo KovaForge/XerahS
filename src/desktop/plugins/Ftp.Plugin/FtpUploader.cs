@@ -62,9 +62,10 @@ public sealed class FtpUploader : FileUploader, IDisposable
             return result;
         }
 
+        string remoteFileName = GetSafeRemoteFileName(fileName);
         string subFolderPath = _account.GetSubFolderPath(null, NameParserType.FilePath);
-        string remotePath = URLHelpers.CombineURL(subFolderPath, fileName);
-        string url = _account.GetUriPath(fileName, subFolderPath);
+        string remotePath = URLHelpers.CombineURL(subFolderPath, remoteFileName);
+        string url = _account.GetUriPath(remoteFileName, subFolderPath);
 
         OnEarlyURLCopyRequested(url);
 
@@ -108,6 +109,15 @@ public sealed class FtpUploader : FileUploader, IDisposable
                 DebugHelper.WriteException(ex);
             }
         }
+    }
+
+    private static string GetSafeRemoteFileName(string? fileName)
+    {
+        string normalized = (fileName ?? string.Empty).Replace('\\', '/').Trim().Trim('/');
+        string candidate = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+        candidate = candidate.Trim();
+
+        return string.IsNullOrEmpty(candidate) || candidate == "." || candidate == ".." ? "upload" : candidate;
     }
 
     private bool UploadFtp(Stream stream, string remotePath)

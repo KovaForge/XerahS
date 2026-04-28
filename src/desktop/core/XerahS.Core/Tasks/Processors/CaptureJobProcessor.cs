@@ -491,11 +491,11 @@ namespace XerahS.Core.Tasks.Processors
             try
             {
                 DebugHelper.WriteLine("Starting OCR on captured image...");
-                var taskOcrOptions = info.TaskSettings.CaptureSettings.OCROptions;
+                var taskOcrOptions = info.TaskSettings.CaptureSettings.OCROptions ?? new OCROptions();
                 var options = new OcrOptions
                 {
-                    Language = string.IsNullOrWhiteSpace(taskOcrOptions.Language) ? "en" : taskOcrOptions.Language,
-                    ScaleFactor = Math.Max(taskOcrOptions.ScaleFactor, 1f),
+                    Language = NormalizeOcrLanguage(taskOcrOptions.Language),
+                    ScaleFactor = NormalizeOcrScaleFactor(taskOcrOptions.ScaleFactor),
                     SingleLine = taskOcrOptions.SingleLine
                 };
                 var result = await ocrService.RecognizeAsync(info.Metadata.Image, options);
@@ -522,6 +522,17 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             await Task.CompletedTask;
+        }
+
+        private static string NormalizeOcrLanguage(string? language)
+        {
+            string? trimmedLanguage = language?.Trim();
+            return string.IsNullOrEmpty(trimmedLanguage) ? "en" : trimmedLanguage;
+        }
+
+        private static float NormalizeOcrScaleFactor(float scaleFactor)
+        {
+            return float.IsFinite(scaleFactor) ? Math.Max(scaleFactor, 1f) : 1f;
         }
 
         private static UploadResult? UploadWithGenericUploader(GenericUploader uploader, string filePath)

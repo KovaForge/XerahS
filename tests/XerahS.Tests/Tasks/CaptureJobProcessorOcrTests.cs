@@ -109,6 +109,64 @@ public sealed class CaptureJobProcessorOcrTests
     }
 
     [Test]
+    public async Task ProcessAsync_DoOcr_TrimsLanguageAndRejectsNonFiniteScale()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new RecordingOcrService();
+        PlatformServices.Ocr = ocr;
+
+        var taskSettings = new TaskSettings();
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR;
+        taskSettings.CaptureSettings.OCROptions.Language = " fr ";
+        taskSettings.CaptureSettings.OCROptions.ScaleFactor = float.NaN;
+
+        var info = new TaskInfo(taskSettings)
+        {
+            Metadata = new TaskMetadata(bitmap)
+        };
+
+        var processor = new CaptureJobProcessor();
+        bool shouldContinue = await processor.ProcessAsync(info, CancellationToken.None);
+
+        Assert.That(shouldContinue, Is.True);
+        Assert.That(ocr.LastOptions, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(ocr.LastOptions!.Language, Is.EqualTo("fr"));
+            Assert.That(ocr.LastOptions.ScaleFactor, Is.EqualTo(1f));
+        });
+    }
+
+    [Test]
+    public async Task ProcessAsync_DoOcr_MissingOcrOptions_UsesDefaults()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new RecordingOcrService();
+        PlatformServices.Ocr = ocr;
+
+        var taskSettings = new TaskSettings();
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR;
+        taskSettings.CaptureSettings.OCROptions = null!;
+
+        var info = new TaskInfo(taskSettings)
+        {
+            Metadata = new TaskMetadata(bitmap)
+        };
+
+        var processor = new CaptureJobProcessor();
+        bool shouldContinue = await processor.ProcessAsync(info, CancellationToken.None);
+
+        Assert.That(shouldContinue, Is.True);
+        Assert.That(ocr.LastOptions, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(ocr.LastOptions!.Language, Is.EqualTo("en"));
+            Assert.That(ocr.LastOptions.ScaleFactor, Is.EqualTo(2f));
+            Assert.That(ocr.LastOptions.SingleLine, Is.False);
+        });
+    }
+
+    [Test]
     public async Task ProcessAsync_DoOcr_WhitespaceOnlyResult_DoesNotPersistOcrText()
     {
         using var bitmap = new SKBitmap(8, 8);

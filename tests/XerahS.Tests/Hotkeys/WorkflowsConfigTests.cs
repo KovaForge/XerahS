@@ -45,4 +45,21 @@ public sealed class WorkflowsConfigTests
 
         Assert.That(workflow.TaskSettings.WorkflowId, Is.EqualTo("workflow-2"));
     }
+
+    [Test]
+    public void EnsureWorkflowIds_RemovesWorkflowWithMissingTaskSettings()
+    {
+        WorkflowSettings workflow = new(WorkflowType.FileUpload, new HotkeyInfo())
+        {
+            TaskSettings = null!
+        };
+
+        WorkflowsConfig config = new()
+        {
+            Hotkeys = new() { workflow }
+        };
+
+        Assert.DoesNotThrow(config.EnsureWorkflowIds);
+        Assert.That(config.Hotkeys, Is.Empty);
+    }
 }

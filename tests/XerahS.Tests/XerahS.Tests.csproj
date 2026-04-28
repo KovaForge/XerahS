@@ -33,7 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj"
+                      AdditionalProperties="EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
@@ -45,6 +46,7 @@
     <ProjectReference Include="..\..\src\desktop\plugins\Dropbox.Plugin\XerahS.Dropbox.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Ftp.Plugin\XerahS.Ftp.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Imgur.Plugin\XerahS.Imgur.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\Immich.Plugin\XerahS.Immich.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Nextcloud.Plugin\XerahS.Nextcloud.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />

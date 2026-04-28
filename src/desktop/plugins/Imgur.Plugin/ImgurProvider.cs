@@ -285,7 +285,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     {
         // Imgur uses integer page numbers; store page number as continuation token
         int page = int.TryParse(query.ContinuationToken, out int p) ? p : 0;
-        int perPage = query.PageSize;
+        int perPage = NormalizePageSize(query.PageSize);
 
         string url = $"https://api.imgur.com/3/account/me/albums?page={page}&perPage={perPage}";
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
@@ -328,7 +328,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
     private async Task<ExplorerPage> ListAlbumImagesAsync(string albumId, OAuth2Info authInfo, ExplorerQuery query, CancellationToken cancellation)
     {
-        string url = $"https://api.imgur.com/3/album/{albumId}/images";
+        string url = CreateAlbumImagesUrl(albumId);
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token!.access_token);
 
@@ -373,7 +373,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     private async Task<ExplorerPage> ListAccountImagesAsync(OAuth2Info authInfo, ExplorerQuery query, CancellationToken cancellation)
     {
         int page = int.TryParse(query.ContinuationToken, out int p) ? p : 0;
-        int perPage = query.PageSize;
+        int perPage = NormalizePageSize(query.PageSize);
 
         string url = $"https://api.imgur.com/3/account/me/images?page={page}&perPage={perPage}";
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
@@ -415,6 +415,17 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
         {
             return new ExplorerPage();
         }
+    }
+
+    private static string CreateAlbumImagesUrl(string albumId)
+    {
+        string safeAlbumId = Uri.EscapeDataString(albumId.Trim('/'));
+        return $"https://api.imgur.com/3/album/{safeAlbumId}/images";
+    }
+
+    private static int NormalizePageSize(int pageSize)
+    {
+        return Math.Clamp(pageSize, 1, 100);
     }
 
     private ImgurConfigModel DeserializeImgurConfig(string? settingsJson)

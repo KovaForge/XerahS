@@ -351,6 +351,23 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void ProviderCreateAlbumImagesUrl_EscapesAlbumIdPathSegments()
+    {
+        string url = InvokeCreateAlbumImagesUrl(" album/../../account/me/images ");
+
+        Assert.That(url, Is.EqualTo("https://api.imgur.com/3/album/%20album%2F..%2F..%2Faccount%2Fme%2Fimages%20/images"));
+    }
+
+    [TestCase(0, 1)]
+    [TestCase(-10, 1)]
+    [TestCase(25, 25)]
+    [TestCase(250, 100)]
+    public void ProviderNormalizePageSize_ClampsInvalidExplorerPageSizes(int requestedPageSize, int expectedPageSize)
+    {
+        Assert.That(InvokeNormalizePageSize(requestedPageSize), Is.EqualTo(expectedPageSize));
+    }
+
+    [Test]
     public void TryPrepareStreamForRetry_ResetsSeekableStreamToStart()
     {
         using MemoryStream stream = new(new byte[] { 1, 2, 3, 4 });
@@ -405,11 +422,25 @@ public class ImgurConfigViewModelTests
         return (OAuth2Info?)method!.Invoke(provider, new object[] { config });
     }
 
+    private static string InvokeCreateAlbumImagesUrl(string albumId)
+    {
+        MethodInfo? method = typeof(ImgurProvider).GetMethod("CreateAlbumImagesUrl", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (string)method!.Invoke(null, new object[] { albumId })!;
+    }
+
     private static bool InvokeTryPrepareStreamForRetry(Stream stream)
     {
         MethodInfo? method = typeof(ImgurUploader).GetMethod("TryPrepareStreamForRetry", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (bool)method!.Invoke(null, new object[] { stream })!;
+    }
+
+    private static int InvokeNormalizePageSize(int pageSize)
+    {
+        MethodInfo? method = typeof(ImgurProvider).GetMethod("NormalizePageSize", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (int)method!.Invoke(null, new object[] { pageSize })!;
     }
 
     private sealed class TestProviderContext : IProviderContext

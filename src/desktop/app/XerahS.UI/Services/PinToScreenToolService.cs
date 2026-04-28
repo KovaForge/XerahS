@@ -79,15 +79,22 @@ public static class PinToScreenToolService
 
             try
             {
-                var bitmap = SKBitmap.Decode(filePath);
+                using var bitmap = SKBitmap.Decode(filePath);
                 if (bitmap == null)
                 {
                     skippedCount++;
                     continue;
                 }
 
-                PinToScreenManager.PinImage(bitmap, null, GetOptions());
-                pinnedCount++;
+                try
+                {
+                    PinToScreenManager.PinImage(bitmap, null, GetOptions());
+                    pinnedCount++;
+                }
+                finally
+                {
+                    bitmap.Dispose();
+                }
             }
             catch (Exception ex)
             {
@@ -127,7 +134,15 @@ public static class PinToScreenToolService
 
         if (dialog.Result != null)
         {
-            PinToScreenManager.PinImage(dialog.Result.Image, dialog.Result.Location, GetOptions());
+            var bitmap = dialog.Result.Image;
+            try
+            {
+                PinToScreenManager.PinImage(bitmap, dialog.Result.Location, GetOptions());
+            }
+            finally
+            {
+                bitmap.Dispose();
+            }
         }
     }
 
@@ -145,7 +160,14 @@ public static class PinToScreenToolService
         if (bitmap == null) return;
 
         var location = new PixelPoint(rect.Left, rect.Top);
-        PinToScreenManager.PinImage(bitmap, location, GetOptions());
+        try
+        {
+            PinToScreenManager.PinImage(bitmap, location, GetOptions());
+        }
+        finally
+        {
+            bitmap.Dispose();
+        }
     }
 
     private static void PinFromClipboard()
@@ -160,7 +182,14 @@ public static class PinToScreenToolService
             return;
         }
 
-        PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        try
+        {
+            PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        }
+        finally
+        {
+            bitmap.Dispose();
+        }
     }
 
     private static async Task PinFromFileAsync(Window? owner)
@@ -168,14 +197,21 @@ public static class PinToScreenToolService
         var path = await BrowseImageFileAsync(null, owner);
         if (string.IsNullOrEmpty(path)) return;
 
-        var bitmap = SKBitmap.Decode(path);
+        using var bitmap = SKBitmap.Decode(path);
         if (bitmap == null)
         {
             ShowToast("Pin to Screen", "Failed to load image file.");
             return;
         }
 
-        PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        try
+        {
+            PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        }
+        finally
+        {
+            bitmap.Dispose();
+        }
     }
 
     internal static async Task<(SKBitmap? Bitmap, PixelPoint? Location)> SelectRegionWithLocationAsync()

@@ -35,7 +35,7 @@ namespace XerahS.RegionCapture
         public string VideoSource { get; set; } = FFmpegCaptureDevice.GDIGrab.Value;
         public string AudioSource { get; set; } = FFmpegCaptureDevice.None.Value;
         public FFmpegVideoCodec VideoCodec { get; set; } = FFmpegVideoCodec.libx264;
-        public FFmpegAudioCodec AudioCodec { get; set; } = FFmpegAudioCodec.libvoaacenc;
+        public FFmpegAudioCodec AudioCodec { get; set; } = FFmpegAudioCodec.aac;
         public string UserArgs { get; set; } = "";
         public bool UseCustomCommands { get; set; } = false;
         public string CustomCommands { get; set; } = "";
@@ -113,7 +113,7 @@ namespace XerahS.RegionCapture
                 {
                     switch (AudioCodec)
                     {
-                        case FFmpegAudioCodec.libvoaacenc:
+                        case FFmpegAudioCodec.aac:
                             return "m4a";
                         case FFmpegAudioCodec.libopus:
                             return "opus";

@@ -84,7 +84,7 @@ public class FtpProvider : UploaderProviderBase
             Name = c.AccountName ?? "FTP Account",
             Protocol = protocol,
             Host = c.Host ?? "",
-            Port = c.Port > 0 ? c.Port : GetDefaultPort(protocol, ftpsEncryption),
+            Port = IsValidPort(c.Port) ? c.Port : GetDefaultPort(protocol, ftpsEncryption),
             Username = c.Username ?? "",
             Password = c.Password ?? "",
             IsActive = c.IsActive,
@@ -108,6 +108,8 @@ public class FtpProvider : UploaderProviderBase
             _ => 21
         };
     }
+
+    private static bool IsValidPort(int port) => port is > 0 and <= 65535;
 
     private static TEnum NormalizeEnum<TEnum>(TEnum value, TEnum fallback) where TEnum : struct, Enum
     {

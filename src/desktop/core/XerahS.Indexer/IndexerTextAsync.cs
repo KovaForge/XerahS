@@ -60,6 +60,7 @@ namespace XerahS.Indexer
                     _generatingPreview = false;
                     
                     FolderInfo folderInfo = await GetFolderInfoAsync(folderPath);
+                    folderInfo.Update(); // Compute Size, TotalFileCount, TotalFolderCount for tree output
                     await BuildTreeAsync(folderInfo, true);
                     
                     if (settings.AddFooter)
@@ -116,6 +117,7 @@ namespace XerahS.Indexer
                     _generatingPreview = true;
                     
                     FolderInfo folderInfo = await GetFolderInfoAsync(folderPath);
+                    folderInfo.Update(); // Compute Size, TotalFileCount, TotalFolderCount for tree output
                     await BuildTreeAsync(folderInfo, true);
                     
                     if (settings.AddFooter)

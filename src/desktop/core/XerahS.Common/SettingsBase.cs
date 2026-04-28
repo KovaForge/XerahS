@@ -117,6 +117,7 @@ namespace XerahS.Common
 
             MemoryStream ms = new MemoryStream();
             SaveToStream(ms, supportDPAPIEncryption, true);
+            ms.Position = 0;
             return ms;
         }
 

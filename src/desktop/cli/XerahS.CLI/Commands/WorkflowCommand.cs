@@ -163,12 +163,14 @@ namespace XerahS.CLI.Commands
                 
                 if (!string.IsNullOrEmpty(region))
                 {
-                     // Region Override Mode
+                    // Region Override Mode
+                    WorkerTask? worker = null;
                     try 
                     {
                         if (!TryParseRegion(region, out var rect, out var regionError))
                         {
                             Console.Error.WriteLine(regionError);
+                            taskManager.TaskCompleted -= handler;
                             return 1;
                         }
 
@@ -178,6 +180,7 @@ namespace XerahS.CLI.Commands
                         if (image == null)
                         {
                             Console.Error.WriteLine("Region capture failed (returned null)");
+                            taskManager.TaskCompleted -= handler;
                             return 1;
                         }
                         
@@ -186,38 +189,46 @@ namespace XerahS.CLI.Commands
                         // Ensure WorkflowId is set in settings
                         workflow.TaskSettings.WorkflowId = workflowId;
                         
-                        var worker = WorkerTask.Create(workflow.TaskSettings, image);
+                        worker = WorkerTask.Create(workflow.TaskSettings, image);
                         expectedTaskId = worker.Info.CorrelationId;
                         
-                        // We must start it manually since we bypassed TaskManager.StartTask(settings)
-                        // But we want TaskManager events to fire? 
-                        // WorkerTask triggers TaskManager events via TaskManager instance usually? No, TaskManager listens to new tasks?
-                        // TaskManager.Instance doesn't automatically pick up manually created tasks unless we add them
-                        // BUT WorkerTask internally calls TaskManager events? No.
-                        // TaskManager wraps WorkerTask.
-                        
-                        // Workaround: Use TaskManager logic if possible.
-                        // TaskManager doesn't expose "StartTask(settings, image)".
-                        // So we will just run the worker and manually fire/wait.
-                        // Wait, my handler listens to TaskManager.Instance.TaskCompleted.
-                        // Does WorkerTask fire TaskManager.TaskCompleted?
-                        // WorkerTask fires its own TaskCompleted event.
-                        
-                        // Let's attach to the worker directly
-                        worker.TaskCompleted += (s, e) => 
+                        // In region override mode, we bypass TaskManager and run the worker directly.
+                        // Use a TCS with a bool result field to communicate the outcome safely.
+                        var completionResult = new TaskCompletionSource<bool>();
+                        EventHandler? workerHandler = null;
+                        workerHandler = (s, e) =>
                         {
-                             // Bridge to our handler logic if needed, or just set tcs directly
-                             bool success = worker.Status == Core.TaskStatus.Completed;
-                             tcs.TrySetResult(success);
+                            worker.TaskCompleted -= workerHandler;
+                            completionResult.TrySetResult(worker.Status == Core.TaskStatus.Completed);
                         };
+                        worker.TaskCompleted += workerHandler;
                         
                         await worker.StartAsync();
+                        
+                        // Wait for the worker to complete, with a reasonable timeout
+                        var timedOut = await Task.WhenAny(completionResult.Task, Task.Delay(30000)) != completionResult.Task;
+                        if (timedOut)
+                        {
+                            Console.Error.WriteLine("Region workflow timed out");
+                            taskManager.TaskCompleted -= handler;
+                            return 1;
+                        }
+                        
+                        bool workerSuccess = completionResult.Task.Result;
+                        if (!workerSuccess)
+                        {
+                            var errorMsg = worker.Error?.Message ?? worker.Status.ToString();
+                            Console.Error.WriteLine($"Region workflow failed: {errorMsg}");
+                        }
+                        
+                        return workerSuccess ? 0 : 1;
                     }
                     catch (Exception ex)
                     {
-                         Console.Error.WriteLine($"Region capture/execution error: {ex.Message}");
-                         DebugHelper.WriteException(ex);
-                         return 1;
+                        Console.Error.WriteLine($"Region capture/execution error: {ex.Message}");
+                        DebugHelper.WriteException(ex);
+                        taskManager.TaskCompleted -= handler;
+                        return 1;
                     }
                 }
                 else

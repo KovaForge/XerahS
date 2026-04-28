@@ -106,7 +106,7 @@ public partial class PinToScreenStartupDialog : SurfaceWindow
         var path = await BrowseFileRequested();
         if (string.IsNullOrEmpty(path)) return;
 
-        var bitmap = SKBitmap.Decode(path);
+        using var bitmap = SKBitmap.Decode(path);
         if (bitmap == null)
         {
             ShowToast("Failed to load image file.");

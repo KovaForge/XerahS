@@ -174,7 +174,15 @@ public sealed class AssistantPrivacyGuard
 
         try
         {
-            return Path.GetFileName(filePath);
+            string normalizedPath = filePath.Trim().TrimEnd('/', '\\');
+            string fileName = Path.GetFileName(normalizedPath);
+            if (string.IsNullOrWhiteSpace(fileName) || string.Equals(fileName, normalizedPath, StringComparison.Ordinal))
+            {
+                string[] segments = normalizedPath.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+                fileName = segments.Length > 0 ? segments[^1] : fileName;
+            }
+
+            return string.IsNullOrWhiteSpace(fileName) ? "file" : fileName;
         }
         catch
         {

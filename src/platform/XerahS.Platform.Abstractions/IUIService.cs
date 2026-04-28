@@ -63,13 +63,14 @@ namespace XerahS.Platform.Abstractions
             IReadOnlyList<ShareX.ImageEditor.Core.Annotations.Annotation>? annotations = null,
             bool restoredAnnotations = false)
         {
+            SKBitmap? sourceImage = image.Copy();
             SKBitmap? renderedImage = await ShowEditorAsync(image, sourceFilePath, taskMode);
             if (renderedImage == null)
             {
+                sourceImage.Dispose();
                 return null;
             }
 
-            SKBitmap? sourceImage = image.Copy();
             var annotationSnapshot = annotations?.Select(annotation => annotation.Clone()).ToArray()
                 ?? Array.Empty<ShareX.ImageEditor.Core.Annotations.Annotation>();
 

@@ -75,7 +75,15 @@ public sealed class NextcloudClient
     public static string NormalizeRelativePath(string? path)
     {
         string value = path?.Trim().Replace('\\', '/') ?? string.Empty;
-        return value.Trim('/');
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return string.Join('/', value
+            .Trim('/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(segment => segment != "." && segment != ".."));
     }
 
     public static string CombineRelativePath(string? folderPath, string? name)
@@ -596,7 +604,7 @@ public sealed class NextcloudClient
                 continue;
             }
 
-            XElement? prop = response.Descendants(dav + "prop").FirstOrDefault();
+            XElement? prop = GetSuccessfulProp(response, dav);
             if (prop == null || string.IsNullOrWhiteSpace(relativePath))
             {
                 continue;
@@ -629,6 +637,20 @@ public sealed class NextcloudClient
         }
 
         return results;
+    }
+
+    private static XElement? GetSuccessfulProp(XElement response, XNamespace dav)
+    {
+        foreach (XElement propstat in response.Elements(dav + "propstat"))
+        {
+            string status = propstat.Element(dav + "status")?.Value ?? string.Empty;
+            if (status.Contains(" 200 ", StringComparison.Ordinal))
+            {
+                return propstat.Element(dav + "prop");
+            }
+        }
+
+        return response.Descendants(dav + "prop").FirstOrDefault();
     }
 
     private static string ExtractRelativePath(string href, string hrefPrefix, string userId)

@@ -85,6 +85,11 @@ namespace XerahS.Core.Tasks
                 string fileName = TaskHelpers.GetFileName(taskSettings, "mp4", recordingMetadata);
                 Directory.CreateDirectory(recordingsFolder);
                 var resolvedPath = TaskHelpers.HandleExistsFile(recordingsFolder, fileName, taskSettings);
+                if (string.IsNullOrWhiteSpace(resolvedPath))
+                {
+                    DebugHelper.WriteLine($"[PathTrace {Info.CorrelationId}] ScreenRecorder: HandleExistsFile returned empty path (user cancelled or Ask in non-interactive context). Aborting recording.");
+                    return;
+                }
                 recordingOptions.OutputPath = resolvedPath;
                 Info.FilePath = resolvedPath;
                 Info.DataType = EDataType.File;

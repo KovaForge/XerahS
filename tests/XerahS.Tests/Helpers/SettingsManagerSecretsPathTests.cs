@@ -296,6 +296,23 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void SaveToMemoryStream_ReturnsStreamReadyForReading()
+    {
+        using MemoryStream stream = SettingsManager.Settings.SaveToMemoryStream();
+        long initialPosition = stream.Position;
+        using StreamReader reader = new(stream);
+
+        string json = reader.ReadToEnd();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(initialPosition, Is.EqualTo(0),
+                "The returned stream should be readable immediately without callers seeking first.");
+            Assert.That(json, Does.Contain(nameof(SettingsManager.Settings.ApplicationVersion)));
+        });
+    }
+
+    [Test]
     public void UploadersAndWorkflowsConfigPaths_ResolveRelativeCustomFoldersAgainstAppBaseDirectory()
     {
         SettingsManager.Settings.CustomUploadersConfigPath = Path.Combine("relative-config", "uploaders");

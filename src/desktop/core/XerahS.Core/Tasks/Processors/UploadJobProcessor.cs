@@ -633,32 +633,7 @@ namespace XerahS.Core.Tasks.Processors
                 var historyPath = SettingsManager.GetHistoryFilePath();
                 using var historyManager = new HistoryManagerSQLite(historyPath);
 
-                var historyItem = new HistoryItem
-                {
-                    FilePath = info.FilePath ?? string.Empty,
-                    FileName = TaskHelpers.GetHistoryFileName(info.FileName, info.FilePath, url),
-                    DateTime = DateTime.Now,
-                    Type = GetHistoryType(info),
-                    Host = info.UploaderHost ?? string.Empty,
-                    URL = url ?? string.Empty
-                };
-
-                var tags = info.GetTags();
-                if (tags != null)
-                {
-                    historyItem.Tags = new Dictionary<string, string?>(tags.Count);
-                    foreach (var pair in tags)
-                    {
-                        historyItem.Tags[pair.Key] = pair.Value;
-                    }
-                }
-
-                // Store upload errors if any
-                var uploadResult = info.Result;
-                if (uploadResult?.Errors?.Count > 0)
-                {
-                    historyItem.Errors = uploadResult.Errors.ToString();
-                }
+                var historyItem = CreateHistoryItem(info, url);
 
                 historyManager.AppendHistoryItem(historyItem);
                 DebugHelper.WriteLine($"Added upload to history: {historyItem.FileName} (URL: {historyItem.URL})");
@@ -667,6 +642,41 @@ namespace XerahS.Core.Tasks.Processors
             {
                 DebugHelper.WriteException(ex, "Failed to add upload history item");
             }
+        }
+
+        internal static HistoryItem CreateHistoryItem(TaskInfo info, string url)
+        {
+            var uploadResult = info.Result;
+            var historyItem = new HistoryItem
+            {
+                FilePath = info.FilePath ?? string.Empty,
+                FileName = TaskHelpers.GetHistoryFileName(info.FileName, info.FilePath, url),
+                DateTime = DateTime.Now,
+                Type = GetHistoryType(info),
+                Host = info.UploaderHost ?? string.Empty,
+                URL = url,
+                ThumbnailURL = uploadResult?.ThumbnailURL ?? string.Empty,
+                DeletionURL = uploadResult?.DeletionURL ?? string.Empty,
+                ShortenedURL = uploadResult?.ShortenedURL ?? string.Empty
+            };
+
+            var tags = info.GetTags();
+            if (tags != null)
+            {
+                historyItem.Tags = new Dictionary<string, string?>(tags.Count);
+                foreach (var pair in tags)
+                {
+                    historyItem.Tags[pair.Key] = pair.Value;
+                }
+            }
+
+            // Store upload errors if any
+            if (uploadResult?.Errors?.Count > 0)
+            {
+                historyItem.Errors = uploadResult.Errors.ToString();
+            }
+
+            return historyItem;
         }
 
         private static string GetHistoryType(TaskInfo info)

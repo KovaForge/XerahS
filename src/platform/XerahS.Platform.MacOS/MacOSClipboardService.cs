@@ -172,7 +172,7 @@ namespace XerahS.Platform.MacOS
                 }
 
                 var script = $"set the clipboard to (read (POSIX file \\\"{tempFile}\\\") as «class PNGf»)";
-                RunOsaScript(script);
+                var scriptSucceeded = RunOsaScript(script);
             }
             catch (Exception ex)
             {
@@ -204,7 +204,7 @@ namespace XerahS.Platform.MacOS
                     return null;
                 }
 
-                var lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                var lines = ParseFileDropList(output);
                 return lines.Length == 0 ? null : lines;
             }
             catch (Exception ex)
@@ -269,6 +269,19 @@ namespace XerahS.Platform.MacOS
 
             _loggedUnsupported = true;
             DebugHelper.WriteLine($"MacOSClipboardService: {member} is not implemented yet.");
+        }
+
+        internal static string[] ParseFileDropList(string? output)
+        {
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                return Array.Empty<string>();
+            }
+
+            return output
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToArray();
         }
 
         private static bool TryExportClipboardImage(out string tempFile)

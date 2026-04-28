@@ -113,6 +113,7 @@ public class WorkflowManager : IDisposable
         // This is required when editing a hotkey and clearing it to None.
         if (settings.HotkeyInfo.Id != 0 && !UnregisterHotkeyInternal(settings, removeFromList: false))
         {
+            Debug.WriteLine($"[WorkflowManager] Failed to unregister existing hotkey Id={settings.HotkeyInfo.Id} for workflow '{settings.Name}', aborting registration.");
             return false;
         }
 
@@ -186,6 +187,10 @@ public class WorkflowManager : IDisposable
                 Workflows.Remove(settings);
                 WorkflowsChanged?.Invoke(this, EventArgs.Empty);
             }
+        }
+        else
+        {
+            Debug.WriteLine($"[WorkflowManager] HotkeyService.UnregisterHotkey returned false for Id={hotkeyId}");
         }
 
         return result;

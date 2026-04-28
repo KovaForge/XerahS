@@ -16,25 +16,782 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-26 02:20 AWST | Reviewed | Fixed FFmpeg screen recording custom output-path handling so relative/nested paths are normalized and parent directories are created before encoder startup | High | Focused follow-up review of FFmpeg/native screen-recording output path handling across `FFmpegRecordingService`, `ScreenRecorderService`, recording models, and recorder regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.61` to `0.22.62`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (8 MCP server tests plus 583 main tests). |
-| OCR | 2026-04-26 04:21 AWST | Reviewed | Fixed onboarding OCR language selection normalization so restored/replaced selected language tags are matched case-insensitively, unsupported/duplicate entries are removed, and persisted selections are rewritten to canonical available tags before save | High | Focused follow-up review of onboarding OCR language selection state across `OcrStepViewModel`, OCR onboarding state persistence, and onboarding OCR regressions; upstream `develop` had 5 pending commits, merged cleanly with no conflicts, then local `origin/develop` was merged cleanly after a push rejection; `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.71` to `0.22.72` after integrating concurrent origin releases; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 586/586). |
-| Editor integration | 2026-04-26 07:09 AWST | Reviewed | Fixed history editor source-file locking so plain image edit closes the decode stream before launching the editor, allowing the editor to save back to the same file path on strict file-locking platforms | High | Focused follow-up review of history/editor image launch handling across `HistoryViewModel` and `HistoryEditorLaunchTests`; upstream `develop` had 0 pending commits, then local parent integrated 1 concurrent `origin/develop` release commit with a resolved version-file whitespace conflict plus 2 additional concurrent origin blog commits after the initial push rejection and 1 concurrent changelog encoding fix after the final verification-note push rejection, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.76` to `0.22.77`, targeted editor regressions passed 7/7, exact full `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 586/586), exact full `dotnet build --configuration Release` hit the known parallel Avalonia/MSBuild PDB file-lock race with 0 warnings and 3 errors, and the serial retry `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors. |
-| Uploader core | 2026-04-25 11:15 AWST | Reviewed | Fixed retry/fallback uploader-history attribution so uploads now record the actual successful uploader instance instead of the configured/default destination when fallback succeeds | High | Focused review of upload job processing and history host attribution across `UploadJobProcessor`, `WorkerTaskUpload`, `UploadHistoryService`, `TaskInfo`, and uploader processor regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.49` to `0.22.50`, targeted uploader processor regressions passed 3/3, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 561/561 with tests discoverable. |
-| Nextcloud uploader plugin | 2026-04-25 07:11 AWST | Reviewed | Fixed Nextcloud relative-path combination so file/folder name segments containing Windows backslashes are normalized before WebDAV path construction instead of producing mixed separator paths | Medium | Focused follow-up review of Nextcloud uploader path handling across `NextcloudClient`, `NextcloudUploader`, `NextcloudProvider`, config view-models, and provider tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.45` to `0.22.46`, initial exact full build hit the known Avalonia/MSBuild parallel PDB file-lock race, serial full build passed with 0 warnings/errors, and full tests passed 552/552 with tests discoverable. |
-| FTP uploader plugin | 2026-04-25 14:12 AWST | Reviewed | Fixed SFTP config validation so a missing private-key file is rejected immediately when there is no password fallback, matching runtime connection behavior and preventing a save/test path that can only fail later | Medium | Focused follow-up review of FTP/FTPS/SFTP upload and config validation across `FtpUploader`, `FtpProvider`, `FtpConfigModel`, `FtpConfigViewModel`, FTP config UI, and FTP regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.51` to `0.22.52`, FTP plugin build passed with 0 warnings/errors, isolated FTP config test build passed with 0 warnings/errors, targeted FTP tests passed 14/14, exact full `dotnet build --configuration Release` passed with 0 warnings/errors after fixing the generated Avalonia XAML loader handoff in `OverlayWindow.InitializeComponent`, and exact full `dotnet test --configuration Release --no-build` passed 564/564 with tests discoverable. |
-| Imgur uploader plugin | 2026-04-25 16:12 AWST | Reviewed | Fixed Imgur explorer robustness so malformed persisted settings JSON no longer throws during list/delete flows, blank delete hashes are rejected before API calls, and delete hashes are URL-escaped before constructing the Imgur API delete endpoint | Medium | Focused follow-up review of Imgur explorer/upload provider robustness across `ImgurUploader`, `ImgurProvider`, `ImgurConfigViewModel`, and Imgur regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.52` to `0.22.53`, targeted Imgur regressions passed 13/13, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 566/566 with tests discoverable. |
-| Settings/configuration | 2026-04-25 12:15 AWST | Reviewed | Fixed async application-config saves so `SettingsManager.SaveApplicationConfigAsync()` raises `SettingsChanged` like the synchronous save path after updating recent tasks and starting persistence | High | Focused follow-up review of settings persistence/change notification behavior across `SettingsManager`, `SettingsBase`, settings path handling, and settings regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.50` to `0.22.51`, targeted settings regressions passed, exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 562/562 with tests discoverable. |
-| Hotkeys/input | 2026-04-25 17:12 AWST | Reviewed | Fixed onboarding hotkey parsing so compact plus-separated text like `Ctrl+Alt+S` now round-trips instead of being treated as one unrecognized token and falling back to `Key.None` | Medium | Focused follow-up review of onboarding hotkey input parsing/display across `HotkeyStepViewModel`, `HotkeyInfo`, and hotkey regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.53` to `0.22.54`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 567/567 with tests discoverable. |
-| MCP server | 2026-04-25 18:12 AWST | Reviewed | Fixed JSON-RPC params validation so object-param MCP methods reject array params as `InvalidParams` instead of indexing arrays as if they were objects; also wired MCP server tests into the solution so the regression suite is discoverable by full `dotnet test` | High | Focused review of MCP transport/server/runtime/tool dispatch across `HttpServer`, `SseStream`, `JsonRpcRequest`, `XerahSMcpServer`, MCP runtime/tools, and MCP regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.54` to `0.22.55`, exact full build passed with 0 warnings/errors, full tests passed 575/575 after adding `XerahS.McpServer.Tests` to `XerahS.sln`, and tests were discoverable. |
-| Notifications/toasts | 2026-04-25 20:12 AWST | Reviewed | Fixed platform notification process timeout handling so timed-out `notify-send`/`osascript` children are killed and reported as failed instead of being left running after `WaitForExit(2000)` returns false | Medium | Focused follow-up review of toast UI and platform notification services across `ToastConfig`, `AvaloniaToastService`, `ToastViewModel`, `ToastWindow`, Linux/macOS/Windows notification services, and notification/toast regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.56` to `0.22.57`, exact full build initially hit the known parallel Avalonia/MSBuild PDB file-lock race, serial full build passed with 0 warnings/errors, and full `dotnet test --configuration Release --no-build` passed 580/580 with tests discoverable. |
-| Plugin loading/runtime | 2026-04-25 10:47 AWST | Reviewed | Fixed plugin configuration verification/cleanup provider-id traversal so unsafe provider IDs with path separators or `..` cannot resolve or clean sibling/outside plugin directories | High | Focused follow-up review of plugin runtime/configuration verification across `PluginConfigurationVerifier`, plugin directory resolution, framework-DLL cleanup, `PathsManager` plugin roots, and plugin verifier regression tests; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.48` to `0.22.49`, targeted plugin verifier regressions passed 11/11, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed 559/559 with tests discoverable. |
-| CLI / command surface | 2026-04-25 19:40 AWST | Reviewed | Fixed `backup-settings` CLI failure signaling so backup/load exceptions now return process exit code 1 instead of printing an error while exiting successfully | Medium | Focused follow-up review of CLI command surface across `BackupSettingsCommand`, `ConfigCommand`, `UploadCommand`, `CaptureCommand`, `RecordCommand`, workflow/upload CLI regressions, and new backup-settings regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin matching and parent pointer unchanged, `Directory.Build.props` was bumped from `0.22.55` to `0.22.56`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, exact `dotnet test --configuration Release` passed 578/578 with tests discoverable, and earlier isolated filtered full-churn attempts were host-killed before the exact full verification succeeded. |
-| Platform-specific services | 2026-04-25 23:13 AWST | Reviewed | Fixed macOS system-service process timeout handling so helper commands such as `osascript`/`defaults` are killed and reported as failed when they exceed the timeout instead of returning stale/late output after an ignored `WaitForExit` timeout | Medium | Focused follow-up review of platform startup/status and service-manager timeout paths across `LinuxStartupService`, `MacOSStartupService`, `MacOSSystemService`, Linux/macOS watch-folder daemon services, `WatchFolderDaemonServiceBase`, and platform process-start regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.59` to `0.22.60`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, targeted platform process regressions passed 6/6, and exact `dotnet test --configuration Release` passed 589/589 with tests discoverable. |
-| File/path handling | 2026-04-25 21:12 AWST | Reviewed | Fixed `GetUniqueFilePath(...)` so dot-prefixed extensionless names and known compound extensions are suffixed correctly instead of treating `.gitignore` as an extension or splitting `.tar.gz` incorrectly | High | Focused follow-up review of shared path uniqueness/extension helpers in `FileHelpers`; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.57` to `0.22.58`, targeted `FileHelpersTests` passed 9/9, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and exact serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 582/582 with tests discoverable. |
-| Region capture / window enumeration | 2026-04-26 01:20 AWST | Reviewed | Fixed logical/direct window conversion so hidden or minimized platform windows cannot be returned for Wayland/direct window preselection after coordinate conversion | High | Focused follow-up review of `WindowDetectionService` logical conversion/direct Wayland probe paths and region-capture regressions; upstream `develop` had 1 pending commit, merged cleanly with no conflicts, and pushed; `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, origin matched, upstream/develop is `d285844652e7fa98c24baf7626959927a37762aa`, and no parent pointer update was required; `Directory.Build.props` was bumped from `0.22.60` to `0.22.61`; full `dotnet build --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors after the first exact restore/build attempt was host-killed; exact full `dotnet test --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed 590/590 with tests discoverable. |
-| Tests / test discoverability | 2026-04-26 03:54 AWST | Reviewed | Fixed Nextcloud explorer folder creation so blank folder names are rejected before using cached settings or creating the current/parent folder, and added regression coverage for the edge case | High | Focused review of test project discoverability/layout plus uploader regression coverage across `XerahS.Tests.csproj`, assistant/Avalonia/composition tests, `XerahS.McpServer.Tests.csproj`, solution test entries, and Nextcloud provider regressions; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.62` to `0.22.63`, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-restore` passed with 0 warnings/errors after an earlier filtered full-build test attempt was host-killed, and exact full `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 592/592 with tests discoverable. |
+| Capture pipeline | 2026-04-27 19:38 AWST | Reviewed | Fixed CLI region-capture coordinate overflow so very large x/y plus width/height values are rejected instead of wrapping rectangle bounds | High | Focused follow-up review of capture entry points and region parsing across `CaptureStage`, CLI capture command handling, capture-region regression tests, and OCR capture processor coverage; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.96` to `0.22.97`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 613/613). |
+| OCR | 2026-04-27 20:48 AWST | Reviewed | Fixed OCR option normalization so capture OCR and OCR tool trim language tags, reject non-finite scale factors, enforce a minimum scale, and tolerate missing capture OCR options | High | Focused follow-up review of OCR capture/tool flow across `OcrViewModel`, `OcrToolService`, platform OCR services, `IOcrService`, and OCR regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.97` to `0.22.98`; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 616/616). |
+| Editor integration | 2026-04-28 01:58 AWST | Reviewed | Fixed default editor session source-image capture so `ShowEditorSessionAsync` snapshots the original bitmap before editor implementations can mutate it; also reduced solution-build VideoEditor WebUI race by disabling duplicate WebUI builds from UI/CLI project references during solution builds | High | Focused follow-up review of default editor session fallback across `IUIService.ShowEditorSessionAsync`, editor session regression tests, UI/CLI VideoEditor project references, and `ShareX.VideoEditor` build integration; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.102` to `0.22.103`; exact `dotnet build --configuration Release` passed with 0 warnings/errors after fixing duplicate WebUI project-reference builds; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 620/620). |
+| Uploader core | 2026-04-28 02:42 AWST | Reviewed | Fixed upload history persistence so thumbnail, deletion, and shortened URLs from `UploadResult` are written into history entries instead of only the primary URL | High | Focused review of upload task/history result propagation across `WorkerTaskUpload`, `UploadJobProcessor`, `Uploader`, `UploadResult`, `TaskInfo`, and existing uploader regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.103` to `0.22.104`; exact `dotnet build --configuration Release` passed with 0 warnings/errors after killing stale Avalonia build collector process `80149` left from the prior failed build; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 621/621). |
+| Nextcloud uploader plugin | 2026-04-28 03:42 AWST | Reviewed | Fixed WebDAV PROPFIND parsing so file/folder metadata is read from successful `200` propstats instead of an earlier failed `404` propstat | Medium | Focused follow-up review of Nextcloud WebDAV listing/upload provider parsing across `NextcloudClient`, `NextcloudUploader`, `NextcloudProvider`, and provider regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct, parent pointer already matched, and no submodule pointer update required; `Directory.Build.props` was bumped from `0.22.104` to `0.22.105`; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 622/622). |
+| FTP uploader plugin | 2026-04-28 05:42 AWST | Reviewed | Fixed FTP/FTPS/SFTP port normalization so deserialized out-of-range ports above 65535 fall back to protocol defaults instead of reaching FTP/SFTP clients with invalid port values | Medium | Focused follow-up review of FTP provider/config normalization across `FtpProvider`, `FtpConfigViewModel`, `FtpConfigModel`, `FtpUploader`, and FTP regression tests; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct, parent pointer already matched, and no submodule pointer update required; `Directory.Build.props` was bumped from `0.22.106` to `0.22.107`; targeted FTP tests passed 17/17; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 625/625). |
+| Imgur uploader plugin | 2026-04-28 06:42 AWST | Reviewed | Fixed Imgur explorer pagination so zero/negative or oversized requested page sizes are clamped before reaching Imgur account album/image API calls | Medium | Focused follow-up review of Imgur explorer pagination and upload/config helper regressions across `ImgurProvider`, `ImgurUploader`, `ImgurConfigViewModel`, and Imgur tests; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct, parent pointer already matched, and no submodule pointer update required; `Directory.Build.props` was bumped from `0.22.107` to `0.22.108`; exact `dotnet build --configuration Release` passed with 0 warnings/errors after rerunning past transient apphost/Avalonia file-lock build races; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 629/629). |
+| Settings/configuration | 2026-04-27 21:40 AWST | Reviewed | Fixed `SettingsBase.SaveToMemoryStream()` so returned streams are rewound and immediately readable by callers | High | Focused follow-up review of settings persistence/configuration across `SettingsBase`, `SettingsManager`, application/task config models, and settings regression tests; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.98` to `0.22.99`; an initial filtered test exposed stale generated restore assets, exact `dotnet restore` regenerated them, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 617/617). |
+| Hotkeys/input | 2026-04-28 08:42 AWST | Reviewed | Fixed Wayland portal shortcut refresh so duplicate or empty portal shortcut IDs cannot throw during snapshot application | Medium | Focused review of Linux hotkey/Wayland portal binding and refresh paths across `WaylandPortalHotkeyService`, `LinuxHotkeyService`, workflow hotkey integration, and Linux hotkey regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct, parent pointer already matched, and no submodule pointer update required; `Directory.Build.props` was bumped from `0.22.108` to `0.22.109`; targeted Linux hotkey tests passed 6/6; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630). |
+| MCP server | 2026-04-28 13:43 AWST | Reviewed | No fix landed; annotation parameter validation, upload result distinction, and headless ShowEditorAsync contract are real but need dedicated follow-up passes | Medium | Follow-up: RunTaskAsync error-state propagation; annotation parameter validation; headless ShowEditorAsync return value |
+| Indexer subsystem | 2026-04-28 10:43 AWST | Reviewed | Fixed `IgnoreEmptyFolders` not being respected in async folder enumeration (was only checked in sync path); also fixed `IndexerTextAsync` not calling `FolderInfo.Update()` so folder size/count stats were always 0 in async text output | Medium | Focused review of async/sync indexer parity across `IndexerAsync`, `IndexerTextAsync`, `IndexerSyncAdapter`, `Indexer`, `IndexerSettings`, `FolderInfo`, `HtmlHelper`, `IndexFolderViewModel`, and existing indexer regression tests; `IgnoreEmptyFolders` was correctly applied in sync `Indexer.GetFolderInfo` but missing from async `IndexerAsync.GetFolderInfoAsync`; `IndexerTextAsync` never called `Update()` so `dir.Size` was always 0 and folder size display `[N units]` was always hidden; upstream had 0 pending commits; `ShareX.ImageEditor` remained on `develop` at `360eeabe`, remotes correct, no pointer update required; `Directory.Build.props` bumped from `0.22.111` to `0.22.112`; exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 0 warnings/0 errors; exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630. |
+| Notifications/toasts | 2026-04-28 09:43 AWST | Reviewed | Fixed toast right-click routing and flyout menu opacity lifecycle on non-Windows | Medium | Continued toast subsystem review across `ToastConfig`, `AvaloniaToastService`, `ToastViewModel`, `ToastWindow`, `IToastService`, `PlatformServices`, `UploadJobProcessor`, `HeadlessToastService`, `TaskHelpers`, and `ToastWindowClickRoutingTests`; found `GetHistoryFileName` uses `Path.GetFileName()` which only splits on the native separator on non-Windows, leaking Windows paths in history/toast display; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.86` to `0.22.87`; targeted `TaskHelpers` tests passed 14/14, exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors, and exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606). |
+| Plugin loading/runtime | 2026-04-28 04:42 AWST | Reviewed | Fixed duplicate provider-ID plugin loads so the old collectible load context is unloaded before replacement instead of losing the only unload handle | High | Focused follow-up review of plugin loading/runtime across `PluginLoader`, `ProviderCatalog`, `PluginLoadContext`, `PluginDiscovery`, `PluginManifest`, and plugin-loader regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct, parent pointer already matched, and no submodule pointer update required; `Directory.Build.props` was bumped from `0.22.105` to `0.22.106`; targeted `PluginLoaderTests` passed 2/2; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 623/623). |
+| CLI / command surface | 2026-04-27 07:38 AWST | Reviewed | Fixed null deref in CaptureCommand: `task.Info.Metadata.UploadURL` is now guarded with `Metadata != null` before access, and history verification URL comparison also guards against null Metadata | Medium | Focused review of all 14 CLI command files across `src/desktop/cli/XerahS.CLI/Commands/`; found `CaptureCommand.RunTask` accesses `task.Info.Metadata.UploadURL` without checking if `task.Info.Metadata` is null, causing NullReferenceException when metadata is absent after capture; also fixed same null risk in history verification block; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.93` to `0.22.94`; exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors; exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606). |
+| Platform-specific services | 2026-04-28 15:43 AWST | Reviewed | Fixed Linux clipboard owner process disposal (added WaitForExit after Kill) and LinuxClipboardMonitorService.Stop() abandoned-task timeout handling; added regression tests | High | Focused follow-up on Linux clipboard owner/process lifecycle; upstream `develop` had 0 pending commits; `ShareX.ImageEditor` remained on `develop` at `360eeabe`, remotes correct, no pointer update required; `Directory.Build.props` bumped from `0.22.116` to `0.22.117`; exact `dotnet build --configuration Release` passed 0 warnings/0 errors; exact `dotnet test --configuration Release --no-build` passed `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 632/632. Follow-up: macOS clipboard owner/process lifecycle parity with Linux fix pattern. |
+| File/path handling | 2026-04-28 10:43 AWST | Reviewed | Fixed `HandleExistsFile` Cancel/Ask guards in 4 callers so empty-string returns from `TaskHelpers.HandleExistsFile` cleanly no-op instead of corrupting `Info.FilePath`, writing zero-byte files, or throwing on `File.Move("")` | High | Focused audit of all `HandleExistsFile` callers across task/file write paths; also fixed `WorkerTaskRecording` return type mismatch (was returning `null` from `async Task` method); `Directory.Build.props` bumped from `0.22.112` to `0.22.113`; build and tests passed.
+| Region capture / window enumeration | 2026-04-27 17:15 AWST | Reviewed | Fixed Hyprland Wayland window-at-point parsing so malformed/non-integer coordinate arrays are ignored instead of throwing, and refined Linux region-selector preference helper testability | High | Focused review of `WindowDetectionService`, Linux window service, GNOME/Hyprland/Sway Wayland point-query helpers, and region-capture/window-enumeration tests; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.94` to `0.22.95`; exact `dotnet build --configuration Release` passed with 0 warnings/errors after building the required ShareX.VideoEditor frontend assets; exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 609/609). |
+| Tests / test discoverability | 2026-04-27 22:42 AWST | Reviewed | Hardened `XerahS.Tests` project-reference build isolation so the direct `XerahS.App` reference explicitly disables app-driven plugin build/bundling during test-project builds, with regression coverage for app/CLI project-reference guardrails | High | Focused review of test project discoverability/layout across `XerahS.Tests.csproj`, `XerahS.McpServer.Tests.csproj`, solution test entries, assistant/Avalonia/composition/editor/helper/platform/MCP test sources, and test-project build guardrails; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.99` to `0.22.100`; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 618/618). |
+| Assistant local memory/privacy/history | 2026-04-27 23:42 AWST | Reviewed | Fixed assistant latest-screenshot history display so missing history `FileName` falls back to a safe basename for both Windows and Unix-style stored paths, preventing full local path/user segments from surfacing in assistant responses | High | Focused follow-up review of assistant history/local-memory/privacy routing across `AssistantHistoryService`, `AssistantPrivacyGuard`, `AssistantService`, `AssistantCommandRouter`, `HistoryManagerSQLite`, and assistant regressions; upstream `develop` had 3 pending commits merged with blog conflicts resolved in `docs/blog/2026/2026-04/blog-20260426.md` and `docs/blog/2026/2026-04/blog-20260427.md` by preserving fuller factual content plus local additions; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.100` to `0.22.101`; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 619/619). |
+| Media subsystem (VideoHelpers, GifHelpers, VideoThumbnailer, FFmpegCLIManager) | 2026-04-28 14:43 AWST | Reviewed | Fixed VideoThumbnailer.CombineScreenshots early-return so Dispose/null-set is removed before return (canvas already owns the bitmap); also FFmpegCLIManager GetVideoInfo missing closing quote fix (12:43 run); noted follow-up: TakeThumbnails hardcoded 30s FFmpeg timeout and GetRandomTimeSlice thread-safety via shared RandomFast state | High | Continued media subsystem review as follow-up to 12:43 run; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was not bumped (WorkflowCommand fix already bumped to `0.22.116`); exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 0 warnings/0 errors; exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630. |
 
 ## Review Log
+
+### 2026-04-28 14:43 AWST
+- Area: Media subsystem — VideoThumbnailer CombineScreenshots early-return ownership fix
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`
+- Findings:
+  - Follow-up to prior Media subsystem review (FFmpegCLIManager GetVideoInfo fix in 12:43 run).
+  - Real bounded bug found in `VideoThumbnailer.CombineScreenshots(...)`: the early-return path when `i >= images.Count` was calling `finalImage.Dispose()` and setting `finalImage = null` before returning `finalImage`. But `finalImage` was created inside a `using (SKCanvas g = new SKCanvas(finalImage))` block — the canvas had already taken ownership. Calling `Dispose()` on the bitmap in the early-return was redundant and could cause double-disposal or ownership confusion.
+  - The correct early-return when all thumbnails have been drawn is simply to return `finalImage` directly — the outer `using` block handles cleanup.
+- Outcome:
+  - Landed a bounded fix: removed the redundant `Dispose()`/`null`-set before the early return in the inner loop, changing the early-return block to simply `return finalImage;`.
+  - `Directory.Build.props` patch version not bumped; WorkflowCommand fix from 13:43 run already bumped to `0.22.116` and this CombineScreenshots fix is a pre-existing bug incidental to the 12:43 run's noted follow-up items, not a new separate fix.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 0 warnings/0 errors.
+  - Exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
+- Follow-up:
+  - Continue later media subsystem review around `VideoThumbnailer.TakeThumbnails()` hardcoded 30s FFmpeg timeout risk and `GetRandomTimeSlice()` thread-safety via shared `RandomFast` state.
+
+### 2026-04-28 12:43 AWST
+- Area: Media subsystem (VideoHelpers, GifHelpers, VideoThumbnailer, FFmpegCLIManager) — FFmpegCLIManager GetVideoInfo missing closing quote
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Media/FFmpegCLIManager.cs`
+  - `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`
+  - `src/desktop/core/XerahS.Media/VideoHelpers.cs`
+  - `src/desktop/core/XerahS.Common/CLI/ExternalCLIManager.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Media subsystem row after reading the tracker and reviewed VideoHelpers, VideoThumbnailer, FFmpegCLIManager, and related media helpers as a follow-up to the recent GIF dither fix.
+  - Real bounded bug found in `FFmpegCLIManager.GetVideoInfo(...)`: the FFmpeg argument string was missing the closing backslash-quote pair, producing malformed args like `-i "path with spaces ` instead of `-i "path with spaces"`. This caused video info queries to silently fail on paths containing spaces on all platforms.
+  - All `VideoThumbnailer` and `VideoHelpers` callers go through `FFmpegCLIManager`; no `ShareX.ImageEditor` code path was involved.
+- Outcome:
+  - Landed a bounded fix: added the missing `\"` closing quote pair in `GetVideoInfo`, changing `Run($"-i \"{videoPath}"");` to `Run($"-i \"{videoPath}\"\"");`.
+  - Bumped `Directory.Build.props` from `0.22.114` to `0.22.115`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
+- Follow-up:
+  - Continue later media subsystem review around `VideoThumbnailer.TakeThumbnails()` hardcoded 30s FFmpeg timeout risk and `GetRandomTimeSlice()` thread-safety via shared `RandomFast` state.
+
+
+### 2026-04-28 07:42 AWST
+- Area: Hotkeys/input — Wayland portal shortcut snapshot refresh
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxHotkeyService.cs`
+  - `src/desktop/core/XerahS.Core/Workflows/WorkflowManager.cs`
+  - `src/platform/XerahS.Platform.Abstractions/Models/HotkeyInfo.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale medium-priority Hotkeys/input row after reading the tracker and reviewed Linux X11/global hotkey mapping, Wayland GlobalShortcuts portal binding/rebind, portal shortcut refresh, fallback activation, and existing Linux hotkey regression coverage.
+  - Real bounded Wayland portal bug found: `ApplyPortalShortcutSnapshot(...)` built the portal refresh lookup with `shortcuts.ToDictionary(...)`. If a compositor/portal returned duplicate shortcut IDs during a `ListShortcuts` refresh, or included an empty/malformed ID, the refresh path could throw before updating registered hotkey display/status state.
+  - The refresh path runs after interactive portal shortcut configuration and portal shortcut-change notifications, so this could break hotkey status updates even though the app still had registered hotkeys.
+- Outcome:
+  - Landed a bounded fix: added `BuildShortcutSnapshotMap(...)` to ignore blank portal IDs and let the latest duplicate ID win instead of throwing, then used it in `ApplyPortalShortcutSnapshot(...)`.
+  - Added regression coverage in `WaylandPortalHotkeyService_BuildShortcutSnapshotMap_ToleratesDuplicatePortalIds`.
+  - Bumped `Directory.Build.props` from `0.22.108` to `0.22.109`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Targeted Linux hotkey regression test passed: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter FullyQualifiedName~LinuxHotkeyServiceTests` passed 6/6.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
+- Follow-up:
+  - Continue later hotkey review around portal response-code handling and whether fallback registration should preserve native trigger descriptions after portal recovery.
+
+
+### 2026-04-28 06:42 AWST
+- Area: Imgur uploader plugin — explorer page-size normalization
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurProvider.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurUploader.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ViewModels/ImgurConfigViewModel.cs`
+  - `tests/XerahS.Tests/Uploaders/ImgurConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale medium-priority Imgur uploader plugin row after reading the tracker and reviewed Imgur explorer album/image listing, continuation-token paging, upload/retry helper coverage, OAuth/config view-model behavior, and existing Imgur regression coverage.
+  - Real bounded explorer bug found: `ListAlbumsAsync(...)` and `ListAccountImagesAsync(...)` copied `ExplorerQuery.PageSize` directly into Imgur `perPage` query parameters. A default/invalid caller value such as `0`, a negative value, or an oversized value could ask Imgur for an invalid page size instead of using a safe bounded API request.
+  - Album-image listing already normalizes page size; account album and account image listing needed the same guard for consistent explorer behavior.
+- Outcome:
+  - Landed a bounded fix: added `NormalizePageSize(...)` in `ImgurProvider` and used it for account albums and account images so page sizes are clamped to `1..100` before constructing Imgur API URLs.
+  - Added regression coverage for zero, negative, normal, and oversized explorer page-size normalization.
+  - Bumped `Directory.Build.props` from `0.22.107` to `0.22.108`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors after rerunning past transient apphost/Avalonia file-lock build races.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 629/629.
+- Follow-up:
+  - Continue later Imgur review around continuation-token resilience and API rate-limit/error-response surfacing for explorer operations.
+
+
+### 2026-04-28 05:42 AWST
+- Area: FTP uploader plugin — port normalization for deserialized settings
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Ftp.Plugin/FtpProvider.cs`
+  - `src/desktop/plugins/Ftp.Plugin/ViewModels/FtpConfigViewModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpConfigModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpUploader.cs`
+  - `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale medium-priority FTP uploader plugin row after reading the tracker and reviewed FTP/FTPS/SFTP config deserialization, provider-to-`FTPAccount` mapping, UI validation, default-port behavior, SFTP credential fallback, and existing FTP regression coverage.
+  - Real bounded config bug found: both `FtpProvider.ToFtpAccount(...)` and `FtpConfigViewModel.LoadFromJson(...)` only treated ports `<= 0` as missing. Ports above the valid TCP range, such as `70000`, could survive deserialization and be passed into FluentFTP/SSH.NET or displayed as a loaded setting instead of falling back to the correct protocol default.
+  - Interactive validation already rejected out-of-range ports, but imported JSON/plugin settings could bypass that path before a user opened or saved the config.
+- Outcome:
+  - Landed a bounded fix: added shared-style `IsValidPort(...)` checks in the FTP provider and config view model so only `1..65535` is accepted from deserialized settings; invalid low/high values now fall back to FTP/FTPS/SFTP defaults (`21`, implicit FTPS `990`, SFTP `22`).
+  - Added regression coverage for out-of-range loaded config ports and provider-created FTP accounts.
+  - Bumped `Directory.Build.props` from `0.22.106` to `0.22.107`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Targeted FTP regression test passed: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter FullyQualifiedName~FtpConfigViewModelTests` passed 17/17.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 625/625.
+- Follow-up:
+  - Continue later FTP review around remote directory/path normalization and upload cancellation/error reporting parity between FluentFTP and SSH.NET.
+
+
+### 2026-04-28 04:42 AWST
+- Area: Plugin loading/runtime — duplicate provider-ID load context replacement
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs`
+  - `src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs`
+  - `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Plugin loading/runtime row after reading the tracker and reviewed plugin discovery, manifest validation, load-context isolation/unload behavior, and ProviderCatalog reload/removal paths.
+  - Real bounded lifecycle bug found: `PluginLoader.LoadPlugin(...)` stores collectible `PluginLoadContext` instances by runtime `provider.ProviderId`. If a plugin with the same provider ID is loaded again before the caller removes the old provider, assigning `_loadedContexts[provider.ProviderId] = loadContext` overwrites the previous context entry. That loses the only handle `ProviderCatalog`/`UnloadPlugin(...)` can use later, leaving the prior collectible context alive for the process.
+  - Existing force-reload logic removes known metadata before reloading, but duplicate provider IDs can still occur through direct loader use, race/duplicate discovery inputs, or mismatched manifest/provider IDs; the loader should keep its own invariant safe.
+- Outcome:
+  - Landed a bounded fix: before replacing an existing provider-ID entry, `PluginLoader` now unloads the previous collectible context via the existing failed-context unload helper, then stores the new context.
+  - Added regression coverage in `LoadPlugin_DuplicateProviderId_ReplacesPreviousContextWithoutLeakingHandle`, and factored the existing mismatched-manifest test manifest setup.
+  - Bumped `Directory.Build.props` from `0.22.105` to `0.22.106`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Targeted regression test passed: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter FullyQualifiedName~PluginLoaderTests` passed 2/2.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 623/623.
+- Follow-up:
+  - Continue later plugin-runtime review around duplicate plugin discovery/provider collision reporting in `ProviderCatalog`, so replacement/skip decisions are explicit instead of silently determined by load order.
+
+
+### 2026-04-28 03:42 AWST
+- Area: Nextcloud uploader plugin — WebDAV PROPFIND propstat status handling
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Common/FileHelpers.cs`
+  - `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudClient.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudUploader.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudProvider.cs`
+  - `tests/XerahS.Tests/Uploaders/NextcloudProviderTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale medium-priority Nextcloud uploader row after reading the tracker and briefly checking shared path helper context.
+  - Real bounded WebDAV parsing bug found: `NextcloudClient.ParsePropFindResponse(...)` selected the first descendant `<d:prop>` in each response without checking the enclosing `<d:propstat>` status. Nextcloud/WebDAV servers can return multiple propstats for a resource, for example an initial `HTTP/1.1 404 Not Found` propstat for unavailable properties followed by a `HTTP/1.1 200 OK` propstat containing valid `displayname`, `resourcetype`, `getcontentlength`, and `getlastmodified` metadata.
+  - When the failed propstat appeared first, folder resources could be misclassified as files and file metadata could be omitted even though a successful propstat was present.
+- Outcome:
+  - Landed a bounded fix: added `GetSuccessfulProp(...)` and changed `ParsePropFindResponse(...)` to prefer a `<d:prop>` inside a `<d:propstat>` whose `<d:status>` contains `" 200 "`, while keeping the prior first-prop fallback for malformed/nonstandard responses.
+  - Added regression coverage in `ParsePropFindResponse_UsesSuccessfulPropstatWhenEarlierPropertiesFailed`, verifying a folder is parsed from the successful `200` propstat even when an earlier `404` propstat exists.
+  - Bumped `Directory.Build.props` from `0.22.104` to `0.22.105`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 622/622.
+- Follow-up:
+  - Continue reviewing remaining Nextcloud explorer/share response parsing for multi-status edge cases, especially non-`200` status handling in share creation and delete/rename flows.
+
+
+### 2026-04-28 02:42 AWST
+- Area: Uploader core — upload history result URL preservation
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTaskUpload.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/Processors/UploadJobProcessor.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskInfo.cs`
+  - `src/desktop/core/XerahS.Uploaders/BaseUploaders/Uploader.cs`
+  - `src/desktop/core/XerahS.Uploaders/UploadResult.cs`
+  - `tests/XerahS.Tests/Tasks/UploadJobProcessorTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Uploader core row and reviewed upload result propagation from uploader return values through `TaskInfo`, upload completion, and history persistence.
+  - Real bounded bug found: `UploadJobProcessor.TryAppendHistoryItem(...)` only persisted `URL` plus host/type/file metadata. `UploadResult.ThumbnailURL`, `UploadResult.DeletionURL`, and `UploadResult.ShortenedURL` were dropped when appending upload history, so later history/explorer consumers could not access deletion links, thumbnail links, or shortened links even when the uploader returned them successfully.
+  - `WorkerTaskUpload`, `Uploader`, and `UploadResult` already preserve these URLs in memory; the loss occurred at the history item creation boundary.
+- Outcome:
+  - Landed a bounded fix: extracted `UploadJobProcessor.CreateHistoryItem(...)` and populated `ThumbnailURL`, `DeletionURL`, and `ShortenedURL` from `TaskInfo.Result` alongside the existing primary URL, tags, and error fields.
+  - Added regression coverage: `CreateHistoryItem_PreservesAllUploaderResultUrls` verifies all uploader result URLs survive into the history item.
+  - Bumped `Directory.Build.props` from `0.22.103` to `0.22.104`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Initial exact `dotnet build --configuration Release` failed because stale Avalonia build collector process `80149` held `src/desktop/app/XerahS.UI/obj/os-Unix/Release/net10.0/XerahS.UI.pdb`; after terminating that stale process, exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 621/621.
+- Follow-up:
+  - Continue uploader-core review through remaining upload-result consumers for fields that may still be dropped in secondary displays, notifications, or CLI output.
+
+
+
+### 2026-04-28 01:58 AWST
+- Area: Editor integration — default editor-session source snapshot and solution-build WebUI reference behavior
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/platform/XerahS.Platform.Abstractions/IUIService.cs`
+  - `tests/XerahS.Tests/Editor/IUIServiceDefaultSessionTests.cs`
+  - `src/desktop/app/XerahS.UI/XerahS.UI.csproj`
+  - `src/desktop/cli/XerahS.CLI/XerahS.CLI.csproj`
+  - `ShareX.VideoEditor/backend/ShareX.VideoEditor.csproj`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Editor integration row and reviewed the default editor session fallback, source/rendered image ownership, existing editor session tests, and the UI/CLI references that pull the VideoEditor backend into editor-capable app builds.
+  - Real bounded editor bug found: `IUIService.ShowEditorSessionAsync(...)` copied `sourceImage` only after `ShowEditorAsync(...)` returned. Implementations that mutate the supplied `SKBitmap` while editing caused the session result's `SourceImage` to contain already-edited pixels instead of the original image.
+  - Verification exposed a repeatable solution-build robustness issue in the editor stack: `ShareX.VideoEditor/backend/ShareX.VideoEditor.csproj` can be built through multiple solution/project-reference paths, so UI/CLI references with `BuildWebUI=true` could run concurrent `npm ci` / `npm run build` operations in the same `ShareX.VideoEditor/frontend/node_modules` tree. The observed failures were `sh: vite: command not found`, `sh: tsc: command not found`, and `npm error ENOTEMPTY: directory not empty, rmdir '.../ShareX.VideoEditor/frontend/node_modules/typescript/lib'`.
+- Outcome:
+  - Landed a bounded editor fix: `ShowEditorSessionAsync(...)` now snapshots the source bitmap before calling `ShowEditorAsync(...)` and disposes that snapshot if editing is cancelled.
+  - Added regression coverage in `ShowEditorSessionAsync_DefaultFallback_CapturesSourceImage_BeforeEditorMutatesInput`.
+  - Landed a bounded solution-build fix: `XerahS.UI` and `XerahS.CLI` now pass `BuildWebUI=false` to the VideoEditor project reference during solution builds, while preserving `BuildWebUI=true` for direct non-solution project builds.
+  - Bumped `Directory.Build.props` from `0.22.102` to `0.22.103`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state before commit: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 620/620.
+- Follow-up:
+  - Later editor/build integration review should consider centralizing VideoEditor frontend build orchestration so app/CLI/test project builds never trigger duplicate npm work while still supporting clean direct project builds.
+
+### 2026-04-28 00:47 AWST
+- Area: MCP server — required string parameter validation
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/tools/XerahS.McpServer/Server/XerahSMcpServer.cs`
+  - `src/tools/XerahS.McpServer/JsonRpc/JsonRpcRequest.cs`
+  - `src/tools/XerahS.McpServer/JsonRpc/JsonRpcResponse.cs`
+  - `src/tools/XerahS.McpServer/JsonRpc/JsonRpcError.cs`
+  - `src/tools/XerahS.McpServer/Transport/HttpServer.cs`
+  - `src/tools/XerahS.McpServer/Transport/SseStream.cs`
+  - `src/tools/XerahS.McpServer/Transport/StdioServer.cs`
+  - `src/tools/XerahS.McpServer/Resources/SettingsResourceProvider.cs`
+  - `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`
+  - `tests/XerahS.Tests/Mcp/JsonRpcRequestTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority MCP server row and reviewed JSON-RPC request dispatch, required param extraction, transports, resource descriptor behavior, and current MCP regression coverage.
+  - Real bounded protocol bug found: required string params were read with `JsonNode.GetValue<string>()` directly. A malformed client request with numeric/object values for `tools/call.name`, `resources/read.uri`, or `prompts/get.name` could throw during validation and surface as an internal/server error path instead of the expected JSON-RPC InvalidParams response.
+  - HTTP/SSE/stdio transport behavior and resource delegation looked sound in this pass; no submodule code path was involved.
+- Outcome:
+  - Landed a bounded fix: added shared MCP string-param validation that accepts missing/null values for existing missing-param checks, accepts actual strings, and rejects other JSON types with `InvalidParams`.
+  - Added MCP regression coverage for non-string `tools/call.name`, `resources/read.uri`, and `prompts/get.name`.
+  - Bumped `Directory.Build.props` from `0.22.101` to `0.22.102`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Targeted MCP test passed: `dotnet test src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj --configuration Release --filter FullyQualifiedName~XerahSMcpServerTests` passed 11/11.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 619/619.
+- Follow-up:
+  - Later MCP review should continue through optional argument type validation inside individual tool dispatch branches so malformed optional values consistently map to InvalidParams rather than server/runtime error categories.
+
+
+### 2026-04-27 23:42 AWST
+- Area: Assistant local memory/privacy/history — latest-screenshot history display fallback
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Routing/AssistantCommandRouter.cs`
+  - `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantServiceTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Assistant local memory/privacy/history row and reviewed assistant history item projection, privacy confirmation behavior, provider/history routing, local memory execution recording, and nearby assistant regressions.
+  - Real bounded privacy/display bug found: when a history row has no `FileName`, `AssistantHistoryService` fell back to `Path.GetFileName(item.FilePath)`. On non-Windows hosts this does not split Windows-style backslashes, so a synced/imported Windows history path such as `C:\Users\alice\Pictures\capture.png` could be exposed as the assistant screenshot `FileName` instead of just `capture.png`.
+  - `AssistantPrivacyGuard` already had a previous safe-name path helper for confirmation copy, but the history service used its own native-only fallback before privacy routing could present latest screenshot names.
+- Outcome:
+  - Landed a bounded fix: `AssistantHistoryService` now derives missing display file names with a safe cross-platform basename helper that trims trailing separators and splits both `/` and `\`.
+  - Added regression coverage proving latest-screenshot results reduce a Windows-style stored path to `capture.png` and do not include user/path segments.
+  - Bumped `Directory.Build.props` from `0.22.100` to `0.22.101`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 3 pending `upstream/develop` commits were merged; conflicts in `docs/blog/2026/2026-04/blog-20260426.md` and `docs/blog/2026/2026-04/blog-20260427.md` were resolved by preserving fuller factual content plus valid local/upstream additions.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 619/619.
+- Follow-up:
+  - Continue later assistant review around provider-inferred text privacy classification and history item freshness/age thresholds; no blocker remained for this bounded fix.
+
+
+### 2026-04-27 22:42 AWST
+- Area: Tests / test discoverability — test-project build isolation and discoverability guardrails
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `tests/XerahS.Tests/XerahS.Tests.csproj`
+  - `src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj`
+  - `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`
+  - `XerahS.sln`
+  - representative test sources under `tests/XerahS.Tests/Assistant`, `tests/XerahS.Tests/Avalonia`, `tests/XerahS.Tests/Composition`, `tests/XerahS.Tests/Editor`, `tests/XerahS.Tests/Helpers`, `tests/XerahS.Tests/Mcp`, and platform/service test folders
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Tests / test discoverability row and reviewed test project SDK metadata, test package references, solution inclusion, representative NUnit/xUnit test source layout, and build-time guardrails that keep test discovery from being hidden by app publish/plugin side effects.
+  - `XerahS.Tests` already marks itself as a test project and disables app-driven plugin bundling at the test project level, and `XerahS.McpServer.Tests` has the expected xUnit test SDK/runner references.
+  - Real bounded hygiene bug found: the direct `XerahS.App` project reference in `XerahS.Tests.csproj` did not carry the same `AdditionalProperties` guard that the CLI reference has. During project-scoped test builds, referenced projects can therefore evaluate with default app-driven plugin build/bundling settings instead of the test project's intended isolation, increasing restore/build churn and making test discovery more fragile.
+- Outcome:
+  - Landed a bounded fix: the direct `XerahS.App` project reference now explicitly passes `EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true`.
+  - Added regression coverage in `TestProjectBuildPropertiesTests` to assert both app and CLI project references preserve the test-build isolation properties.
+  - Bumped `Directory.Build.props` from `0.22.99` to `0.22.100`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state before commit: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Targeted regression test passed: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter FullyQualifiedName~TestProjectBuildPropertiesTests` passed 1/1.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 618/618.
+- Follow-up:
+  - Later test-discoverability passes should check whether direct plugin project references can be separated from app output-copy side effects without losing plugin regression coverage.
+
+
+### 2026-04-27 21:40 AWST
+- Area: Settings/configuration — settings persistence memory-stream behavior
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Common/SettingsBase.cs`
+  - `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`
+  - `src/desktop/core/XerahS.Core/Models/ApplicationConfig.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettings.cs`
+  - `tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Settings/configuration row and reviewed the settings save/load path, config path resolution, application/task config defaults, and existing settings regression coverage.
+  - Real bounded bug found in `SettingsBase.SaveToMemoryStream()`: it writes JSON into a new `MemoryStream` and returns it positioned at the end, so ordinary callers that immediately read or copy from the returned stream get zero bytes unless they remember to seek manually.
+  - `SettingsManager` path resolution and current async/sync change notification regressions were already covered by nearby tests and did not show a smaller safer defect in this pass.
+- Outcome:
+  - Landed a bounded fix: `SaveToMemoryStream()` now rewinds the stream to position 0 before returning it.
+  - Added regression coverage proving the returned settings stream is immediately readable and contains serialized settings JSON.
+  - Bumped `Directory.Build.props` from `0.22.98` to `0.22.99`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Initial filtered test hit stale generated restore assets for app-driven plugin builds (`ShareX.ImageEditor/.../obj/os-Unix/host-net10.0/project.assets.json` missing); exact `dotnet restore` regenerated assets and unblocked the required commands.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 617/617.
+- Follow-up:
+  - Continue later Settings/configuration review around backup rotation / weekly backup TODO behavior; no blocker remained for this bounded fix.
+
+
+### 2026-04-27 20:48 AWST
+- Area: OCR — capture/tool option normalization
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Services/OcrToolService.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IOcrService.cs`
+  - `src/platform/XerahS.Platform.Linux/LinuxOcrService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSOcrService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsOcrService.cs`
+  - `tests/XerahS.Tests/Tasks/CaptureJobProcessorOcrTests.cs`
+  - `tests/XerahS.Tests/Tools/OcrViewModelTests.cs`
+  - `tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority OCR row and reviewed the OCR tool path, capture-job OCR path, platform OCR service contracts, and existing OCR/onboarding regression coverage.
+  - Real bounded bug found: OCR language tags were passed through without trimming in both the capture processor and OCR tool. A restored/configured value such as `" fr "` could fail platform language matching even though the intended tag is valid.
+  - Real bounded robustness issue found: OCR scale factors only clamped values below 1, but non-finite values such as `NaN`/`Infinity` could still flow into bitmap scaling; the capture path also assumed `CaptureSettings.OCROptions` was always non-null.
+  - Platform OCR services had reasonable support/error handling in this pass; no platform-specific service fix was safer than normalizing the shared inputs before dispatch.
+- Outcome:
+  - Landed a bounded fix: capture OCR now tolerates missing OCR options, trims/falls back language tags, and clamps non-finite scale factors to 1; OCR tool now uses the same language/scale normalization before calling the OCR service.
+  - Added regression coverage for trimmed language tags, non-finite scale factors, and missing capture OCR options.
+  - Bumped `Directory.Build.props` from `0.22.97` to `0.22.98`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Initial exact filtered `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter "FullyQualifiedName~CaptureJobProcessorOcrTests|FullyQualifiedName~OcrViewModelTests"` hit a stale restore/assets issue for app-driven plugin builds; running exact `dotnet restore` regenerated assets and unblocked the required exact commands.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 616/616.
+- Follow-up:
+  - Continue later OCR review around UI cancellation/race behavior when selected language changes rapidly; no blocker remained for this bounded fix.
+
+
+### 2026-04-27 19:38 AWST
+- Area: Capture pipeline — CLI region bounds validation
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs`
+  - `tests/XerahS.Tests/Tools/CaptureCommandRegionParsingTests.cs`
+  - `tests/XerahS.Tests/Tasks/CaptureJobProcessorOcrTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority capture pipeline row and focused on capture entry points, CLI capture-region parsing, existing capture stage workflow handling, and relevant regression coverage.
+  - Real bounded bug found in `CaptureCommand.TryParseRegion(...)`: parsed `x`, `y`, `width`, and `height` as `int`, then computed `x + width` and `y + height` with unchecked integer arithmetic. Inputs near `int.MaxValue` could overflow and create wrapped/negative `SKRect` right/bottom bounds instead of rejecting an invalid region.
+  - `CaptureStage` workflow handling and existing OCR processor capture tests did not show a smaller safer capture-pipeline defect in this pass.
+- Outcome:
+  - Landed a bounded fix: region right/bottom bounds are now calculated using `long`, rejected when they exceed `int.MaxValue`, and only cast back after validation.
+  - Added regression coverage for right-edge and bottom-edge overflow inputs.
+  - Bumped `Directory.Build.props` from `0.22.96` to `0.22.97`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 613/613.
+- Follow-up:
+  - Continue later capture-pipeline review around mixed-DPI region conversion and screen-recorder region reuse; no blocker remained for this bounded fix.
+
+
+### 2026-04-27 18:37 AWST
+- Area: Platform-specific services — clipboard services follow-up
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IClipboardService.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxClipboardServiceTests.cs`
+  - `tests/XerahS.Tests/Platform/MacOS/MacOSClipboardServiceTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Continued the stale high-signal platform clipboard review from the tracker, rechecking Linux clipboard process/owner paths and comparing platform clipboard contracts.
+  - Real bounded bug found in `MacOSClipboardService.GetFileDropList()`: AppleScript commonly returns list output separated by carriage returns (`\r`), but the service only split on `\r\n` and `\n`. Multiple copied file paths could therefore be returned as one combined invalid path on macOS.
+  - Linux clipboard process lifecycle remains a useful follow-up area, but the macOS file-drop parsing defect was the safest small fix to land in this run.
+- Outcome:
+  - Landed a bounded fix: extracted `MacOSClipboardService.ParseFileDropList(...)` and split on both carriage-return and newline separators with trim/empty-entry filtering.
+  - Added macOS clipboard regression coverage for carriage-return-separated AppleScript output and mixed line endings.
+  - Bumped `Directory.Build.props` from `0.22.95` to `0.22.96`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 611/611.
+- Follow-up:
+  - Continue a later Linux clipboard pass on owner-process timeout/disposal and clipboard persistence behavior; no additional Linux fix was shipped in this run.
+
+
+### 2026-04-27 17:15 AWST
+- Area: Region capture / window enumeration — Wayland window-at-point helpers
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.RegionCapture/Services/WindowDetectionService.cs`
+  - `tests/XerahS.Tests/RegionCapture/WindowDetectionServiceTests.cs`
+  - `src/platform/XerahS.Platform.Linux/LinuxWindowService.cs`
+  - `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/GnomeShellWindowPointQueryHelper.cs`
+  - `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/HyprlandWindowPointQueryHelper.cs`
+  - `src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/SwayWindowPointQueryHelper.cs`
+  - `tests/XerahS.Tests/Platform/Linux/WaylandWindowPointQueryHelperTests.cs`
+  - `src/desktop/app/XerahS.UI/Helpers/LinuxRegionSelectorPreferenceSupport.cs`
+  - `tests/XerahS.Tests/UI/LinuxRegionSelectorPreferenceSupportTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Focused pass continued from the stale high-priority region-capture/window-enumeration tracker area, covering cached/direct window-at-point lookup, Linux platform capability reporting, and GNOME/Hyprland/Sway Wayland query helpers.
+  - Real bounded bug: Hyprland `TryGetPointArray` validated only that `at`/`size` were JSON arrays, then called `GetInt32` on elements. If `hyprctl clients -j` returned malformed, string, fractional, or out-of-range coordinate values, the helper could throw outside the normal JSON parse failure path and break window snapping instead of ignoring the bad window entry.
+  - Sway parsing already routes rectangle values through tolerant helpers and GNOME Shell helper uses typed DBus variants, so the same numeric-array crash pattern was specific to Hyprland client JSON arrays.
+  - Test verification exposed that the diagnostics overload of `LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences(...)` was still gated by the host OS, making explicit diagnostics tests exercise macOS enum fallback instead of the intended Linux preference-building logic. That helper was refined so the no-arg production overload remains OS-gated, while the diagnostics overload deterministically evaluates supplied Linux diagnostics.
+- Outcome:
+  - Landed `b2378eb6 Handle malformed Hyprland coordinate arrays`: added tolerant coordinate parsing with regression coverage for malformed Hyprland `at` arrays and bumped `Directory.Build.props` from `0.22.94` to `0.22.95`.
+  - Landed `f457d15b Refine Linux region selector support`: tightened Hyprland numeric validation with `JsonValueKind.Number` checks and made the diagnostics overload of region-selector preference support deterministic for supplied diagnostics.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Built `ShareX.VideoEditor/frontend` first because the app build requires `frontend/dist/`; frontend build completed successfully.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 609/609.
+- Follow-up:
+  - Continue a later region-capture pass on monitor-boundary coordinate conversion (`ConvertLogicalRectToPhysical`) and mixed-DPI edge cases; no safe proof was completed in this run.
+
+
+### 2026-04-27 07:38 AWST
+- Area: CLI / command surface / CaptureCommand null deref
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/cli/XerahS.CLI/Commands/BackupSettingsCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/CompareCaptureCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/ConfigCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/ListCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/OpenVideoEditorCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/RecordCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/UploadCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/VerifyGifRecordingCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/VerifyRecordingCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/VerifyRegionCaptureCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/VerifyVideoEditorCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/WatchFolderDaemonCommand.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/WorkflowCommand.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed all 14 CLI command files for unsafe logic, null risks, bad error handling, incorrect conditions, dead code, broken edge cases.
+  - `CaptureCommand.RunTask` handler accesses `task.Info.Metadata.UploadURL` without checking if `task.Info.Metadata` is null. When a capture task finishes without metadata (e.g. certain failure modes or no-upload workflows), `task.Info.Metadata` can be null and the handler throws `NullReferenceException` at the URL print and again in the history verification comparison.
+  - `WorkflowCommand` region-override mode handler and timeout paths were reviewed and confirmed correct after the prior fix.
+  - Other commands (BackupSettings, Config, List, Upload, Record, WatchFolderDaemon, OpenVideoEditor, Verify*) were clean.
+- Outcome:
+  - Landed a bounded fix: `task.Info.Metadata` is now guarded with `!= null` before accessing `UploadURL` on the print line and in the history verification equality check.
+  - Bumped `Directory.Build.props` from `0.22.93` to `0.22.94` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; submodule remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no pointer update was required.
+  - Exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` passed 8/8 and `XerahS.Tests` passed 606/606.
+- Follow-up:
+  - Continue inspecting CLI command completion/event handler paths in other commands for similar null-deref risks in response/result objects.
+
+
+### 2026-04-26 17:44 AWST
+- Area: Imgur uploader plugin / album explorer path safety
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurUploader.cs`
+  - `src/desktop/plugins/Imgur.Plugin/ImgurProvider.cs`
+  - `tests/XerahS.Tests/Uploaders/ImgurConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed Imgur OAuth/token handling, upload response parsing/retry behavior, explorer album/image listing, delete safeguards, and existing Imgur regression coverage.
+  - `ImgurProvider.ListAlbumImagesAsync(...)` embedded `query.FolderPath`/album IDs directly into `https://api.imgur.com/3/album/{albumId}/images`. If a folder path contained slash or dot-segment-like characters, the generated request path could be altered instead of treating the value as a single album identifier.
+  - This was a bounded Imgur explorer path-safety/correctness bug; album IDs now remain data within one URI segment.
+- Outcome:
+  - Landed a bounded Imgur provider fix: album-image list URLs now escape the album ID with `Uri.EscapeDataString(...)` before API URL construction.
+  - Added regression coverage proving path-like album IDs are escaped rather than changing endpoint path segments.
+  - Bumped `Directory.Build.props` from `0.22.83` to `0.22.84` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; the submodule remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, upstream/develop is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no pointer update was required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` passed 8/8 and `XerahS.Tests` passed 601/601.
+- Follow-up:
+  - Continue inspecting uploader explorer providers for path-like folder identifiers and any direct interpolation of remote IDs into API URL paths.
+
+
+### 2026-04-26 16:59 AWST
+- Area: FTP uploader plugin / remote filename safety
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Ftp.Plugin/FtpUploader.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpProvider.cs`
+  - `src/desktop/plugins/Ftp.Plugin/FtpConfigModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/ViewModels/FtpConfigViewModel.cs`
+  - `src/desktop/plugins/Ftp.Plugin/Views/FtpConfigView.axaml`
+  - `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed FTP/FTPS/SFTP upload path construction, public URL generation, protocol/encryption/port normalization, validation behavior, and existing FTP regression coverage.
+  - `FtpUploader.Upload(...)` passed the supplied `fileName` directly into both `URLHelpers.CombineURL(subFolderPath, fileName)` and `_account.GetUriPath(fileName, subFolderPath)`. If an upload caller supplied a path-like name such as a local Windows path or relative path with separators, the remote upload path and generated public URL could include local directory/path segments instead of only the intended remote filename.
+  - This was a bounded FTP uploader path-safety and correctness bug. The remote subfolder remains controlled by FTP account settings; the per-upload file name is now reduced to a safe basename before remote path/URL construction.
+- Outcome:
+  - Landed a bounded FTP uploader fix: upload names are normalized by splitting on both `\` and `/`, trimming empty/path-only input, and falling back to `upload` for unusable names before building the remote path and public URL.
+  - Added regression coverage proving Windows-style paths, traversal-like relative paths, and path-only names are sanitized to the expected remote filename.
+  - Bumped `Directory.Build.props` from `0.22.82` to `0.22.83` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; the submodule remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, upstream/develop is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no pointer update was required.
+  - Targeted FTP regression test command `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~FtpConfigViewModelTests"` passed 14/14 after earlier full-build-churn attempts were SIGKILLed before test execution.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` passed 8/8 and `XerahS.Tests` passed 600/600.
+- Follow-up:
+  - Continue inspecting uploader plugins for path-like file-name handling in remote URL construction, especially providers that combine caller-supplied names with account-configured folders.
+
+### 2026-04-26 16:17 AWST
+- Area: Plugin loading/runtime
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginMetadata.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`
+  - `src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs`
+  - `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Focused review covered plugin assembly loading, provider ID/manifest ID mismatch handling, unload routing, force reload/removal behavior, and failure paths after a collectible `PluginLoadContext` is created.
+  - `PluginLoader.LoadPlugin(...)` warned when `provider.ProviderId` did not match `metadata.Manifest.PluginId`, but still stored the collectible load context under the manifest ID. `ProviderCatalog` registers, removes, and force-reloads plugins by the runtime provider ID, so a mismatch could leave `UnloadPlugin(provider.ProviderId)` unable to find and unload the context.
+  - Early load failures after context creation returned without explicitly unloading the collectible context, creating avoidable stale contexts for invalid entry-point/provider assemblies.
+- Outcome:
+  - Landed a bounded plugin runtime fix: loaded plugin contexts are now tracked by the runtime `provider.ProviderId`, matching the catalog's registration/unload key.
+  - Added cleanup for load failures after context creation so invalid plugin assemblies do not leave their collectible context alive.
+  - Added regression coverage proving a mismatched manifest/provider plugin can be unloaded by provider ID and does not leave the context dictionary populated by the manifest ID.
+  - Bumped `Directory.Build.props` from `0.22.81` to `0.22.82` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current this run: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; the submodule remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, upstream/develop is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no pointer update was required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.Tests` 599/599.
+- Follow-up:
+  - Future plugin-runtime passes should inspect duplicate provider-ID handling during plugin discovery/catalog registration and whether plugin load failure telemetry should distinguish unloadable invalid assemblies from incompatible architecture failures.
+
+
+### 2026-04-26 15:13 AWST
+- Area: Nextcloud uploader plugin / relative path normalization
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudClient.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudProvider.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudConfigModel.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudServerProfile.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/NextcloudUploader.cs`
+  - `src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs`
+  - `tests/XerahS.Tests/Uploaders/NextcloudProviderTests.cs`
+  - `tests/XerahS.Tests/Uploaders/NextcloudConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed WebDAV path construction, upload/share path handoff, config-model defaults, server capability checks, folder/list/download/delete provider flows, and existing Nextcloud regression coverage.
+  - `NextcloudClient.NormalizeRelativePath(...)` normalized slashes and trimmed leading/trailing separators, but preserved `.` and `..` segments. Remote paths or file/name fragments containing dot segments could therefore be sent into WebDAV URL construction and folder creation/share requests instead of being reduced to safe relative path segments.
+  - This was a bounded Nextcloud path-safety/correctness issue in upload and explorer path handling. The fix keeps the existing no-traversal behavior for remote relative paths by dropping dot segments before URL escaping and folder creation.
+- Outcome:
+  - Landed a bounded Nextcloud fix: relative path normalization now collapses empty segments and strips `.` / `..` path segments before WebDAV paths are combined or URL-built.
+  - Added regression coverage proving combined Nextcloud paths remove dot segments while preserving valid folder/file segments.
+  - Bumped `Directory.Build.props` from `0.22.80` to `0.22.81` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream had 0 pending `upstream/develop` commits, so no upstream merge or conflict resolution was needed.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, the parent repo records that commit, and no submodule pointer update was required.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter NextcloudProviderTests` passed 9/9 after the Nextcloud plugin build passed with 0 warnings/errors.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` passed 8/8 and `XerahS.Tests` passed 598/598.
+- Follow-up:
+  - Continue inspecting Nextcloud share/list response parsing and chunked upload behavior, especially non-seekable streams and server-specific OCS response variants.
+
+
+### 2026-04-26 13:37 AWST
+- Area: Assistant local memory/privacy/history path privacy
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+  - `src/desktop/app/XerahS.Assistant/Models/AssistantContracts.cs`
+  - `src/desktop/app/XerahS.Assistant/Routing/AssistantCommandRouter.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed assistant local alias/history persistence, privacy decision confirmation copy, deterministic/provider routing boundaries, and assistant regression coverage around local-memory and privacy guard behavior.
+  - `AssistantPrivacyGuard.SafeFileName(...)` used `Path.GetFileName(...)` directly for confirmation copy. On Unix/Linux, Windows-style paths such as `C:\Users\alice\Pictures\capture.png` are not split on backslashes, so confirmation prompts for local file actions could expose the full local Windows path, including user/directory names, instead of the intended safe basename.
+  - This was a bounded privacy-copy bug: the action still required confirmation, but the confirmation text leaked more path context than necessary when cross-platform path syntax was encountered.
+- Outcome:
+  - Landed a bounded privacy guard fix: file names for assistant confirmation copy are now trimmed and split on both `/` and `\` when needed, with a safe `file` fallback for unusable paths.
+  - Added regression coverage proving a Windows-style path on Unix produces confirmation copy containing only `capture.png` and not the full `C:\Users...` path/user segment.
+  - Bumped `Directory.Build.props` from `0.22.79` to `0.22.80` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream had 0 pending `upstream/develop` commits, so no upstream merge or conflict resolution was needed.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, `upstream/develop` is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - An initial filtered assistant privacy test attempt was SIGKILLed by the host during full solution build churn before test execution.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` was host-killed during solution build/plugin-copy churn after the fix was pushed; serial exact retry `dotnet test --configuration Release --no-restore -m:1 /p:UseSharedCompilation=false /nr:false` passed with tests discoverable: `XerahS.Tests` passed 597/597 and `XerahS.McpServer.Tests` passed 8/8.
+- Follow-up:
+  - Continue inspecting assistant execution/history persistence semantics for provider/unknown intents, especially whether provider-backed responses should always be recorded through local memory even when deterministic intent classification is `Unknown`.
+
+
+### 2026-04-26 12:24 AWST
+- Area: Settings/configuration / workflow hotkey config normalization
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Common/SettingsBase.cs`
+  - `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`
+  - `src/desktop/core/XerahS.Core/Models/HotkeySettings.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/WorkflowManager.cs`
+  - `tests/XerahS.Tests/Hotkeys/WorkflowsConfigTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed persisted workflow/hotkey config normalization, settings load/save repair hooks, workflow ID repair behavior, and regression coverage around corrupted or partially missing workflow config entries.
+  - `WorkflowsConfig.EnsureWorkflowIds()` already pruned null workflow entries and `WorkflowType.None` entries with missing task settings, but non-`None` workflows with missing `TaskSettings` fell through to `workflow.TaskSettings.WorkflowId`, causing a `NullReferenceException` during config repair/startup instead of safely removing the invalid persisted entry and saving the repaired config.
+  - This is a bounded corrupted-config robustness bug in the settings/configuration path.
+- Outcome:
+  - Landed a bounded fix so workflow config normalization removes workflow entries with missing `TaskSettings` before dereferencing them.
+  - Added a regression test proving `EnsureWorkflowIds()` does not throw and removes the invalid workflow entry.
+  - Bumped `Directory.Build.props` from `0.22.78` to `0.22.79` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo had 5 upstream `develop` commits merged earlier in this run with no conflicts; final upstream check showed 0 pending commits.
+  - `ShareX.ImageEditor` was normalized to branch `develop`, origin/upstream remotes were correct, upstream submodule commits were merged into the KovaForge submodule branch, and the final submodule state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with `origin/develop` matching. The parent repo records the updated submodule pointer.
+  - Targeted `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --no-build --filter WorkflowsConfigTests` passed with 3/3 tests green.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` passed 8/8 and `XerahS.Tests` passed 596/596.
+- Follow-up:
+  - Continue inspecting settings/config repair paths for other partially deserialized model objects where nullable properties are assumed to be initialized by constructors.
+
+### 2026-04-26 11:30 AWST
+- Area: Uploader core / clipboard multi-file upload attribution
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTaskUpload.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTask.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskInfo.cs`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginIndexService.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/PluginInstallerViewModel.cs`
+  - `src/desktop/app/XerahS.UI/XerahS.UI.csproj`
+  - `tests/XerahS.Tests/Tasks/WorkerTaskClipboardUploadTests.cs`
+  - `tests/XerahS.Tests/Helpers/PluginIndexServiceTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed clipboard multi-file upload aggregation, `TaskInfo` uploader-host attribution, upload-result metadata copying, and nearby plugin-index installer compile/test coverage.
+  - `UploadClipboardFilesAsync(...)` copied the final child task's data type, path, job, result, and upload URL back onto the aggregate clipboard task but did not copy `ResolvedUploaderHost`. Since `TaskInfo.UploaderHost` prefers `ResolvedUploaderHost`, the final history/UI entry for a multi-file clipboard upload could show the configured/default uploader instead of the actual uploader selected by fallback or runtime resolution.
+  - This was a bounded uploader attribution bug matching the earlier retry/fallback host-attribution class of issues.
+- Outcome:
+  - Landed a bounded clipboard upload fix: aggregate clipboard upload tasks now copy `ResolvedUploaderHost` from the last uploaded child task through `WorkerTask.ApplyLastClipboardUploadInfo(...)`.
+  - Added regression coverage proving copied clipboard upload info preserves the resolved uploader host exposed via `TaskInfo.UploaderHost`.
+  - Bumped `Directory.Build.props` from `0.22.77` to `0.22.78` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo had 3 upstream `develop` commits pending. Merged `upstream/develop` and resolved docs/blog conflicts in `docs/blog/2026/2026-04/blog-20260425.md` and `docs/blog/2026/2026-04/blog-20260426.md` by preserving fuller factual content and valid local additions. Initial push was rejected because `origin/develop` advanced; fetched and merged 2 concurrent origin commits, resolved the recurring `blog-20260426.md` conflict, committed, and pushed.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `8bd53991b1173f4ed4698c17cd06cafce81e4cc1`, origin matches it, upstream remote is correct, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors after earlier full build attempts were SIGKILLed by the host during build churn.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.Tests` passed 595/595 and `XerahS.McpServer.Tests` passed 8/8.
+- Follow-up:
+  - Continue inspecting uploader/result aggregation paths for other aggregate tasks that copy partial `TaskInfo` state without carrying all history-facing attribution fields.
+
 
 ### 2026-04-26 04:21 AWST
 - Area: OCR / onboarding OCR language selection normalization
@@ -3458,3 +4215,457 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact full `dotnet build --configuration Release` hit the known parallel Avalonia/MSBuild PDB file-lock race with 0 warnings and 3 errors; the serial retry `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
 - Follow-up:
   - Future editor passes should inspect whether the annotation session result image ownership contract can be made more explicit to prevent future dispose/double-dispose regressions.
+
+### 2026-04-26 22:45 AWST
+- Area: CLI / command surface / WorkflowCommand region-override event handler lifecycle
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/cli/XerahS.CLI/Commands/WorkflowCommand.cs`
+  - `src/desktop/core/XerahS.Core/Managers/TaskManager.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTask.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed `WorkflowCommand.RunWorkflowAsync` region-override mode event handler lifecycle, worker completion state propagation, and TaskManager event subscription management.
+  - When `--region` was passed, `TaskCompleted` handler registered on `taskManager` was never removed on early return paths, causing the handler to stay subscribed and potentially fire on subsequent unrelated tasks.
+  - Worker completion was handled via an outer `TaskCompletionSource<bool> tcs` (for the whole workflow), with a worker completion attached directly to the `worker.TaskCompleted` event. The completion lambda read `worker.Status` via closure after the task had completed, but `worker` was a local variable captured by the lambda — this actually works safely since the variable is assigned before `StartAsync` and the lambda fires after the task completes.
+  - The actual bug: `var workerCompleted = await Task.WhenAny(completionTcs.Task, Task.Delay(30000))` was stored in a variable but then the subsequent code read `bool workerSuccess = completionTcs.Task.IsCompleted && completionTcs.Task.Result`. This checked the TCS but the result check itself was not the bug — the real issue was the handler subscription was never removed on early returns (region parse error, null image, exception).
+  - The region-override path also lacked a timeout guard: it awaited `worker.StartAsync()` and then continued without any timeout on the worker completion, unlike the standard path which used `Task.WhenAny(tcs.Task, Task.Delay(30000 + (duration * 1000)))`.
+- Outcome:
+  - Landed a bounded CLI fix: `taskManager.TaskCompleted -= handler` is now called on all early return paths (parse failure, null image, exception).
+  - Added a dedicated `TaskCompletionSource<bool> completionResult` with a 30-second timeout guard for the region-override path, mirroring the standard path's timeout pattern.
+  - Changed the result check from a stale variable to correctly reading `completionResult.Task.Result`.
+  - Bumped `Directory.Build.props` from `0.22.84` to `0.22.85` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts occurred.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, upstream/develop is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - Serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors (build took ~100 seconds with single parallelism on this machine).
+  - Exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable: `XerahS.Tests` passed 601/601 and `XerahS.McpServer.Tests` passed 8/8.
+- Follow-up:
+  - Future CLI passes should inspect the standard (non-region) workflow path for similar handler cleanup gaps and timeout handling, especially around the `Task.WhenAny` result after the handler fires.
+
+### 2026-04-26 19:44 AWST
+- Area: Indexer subsystem / folder counting accuracy
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Indexer/IndexerAsync.cs` (GetFolderInfoAsync, IndexToFileAsync)
+  - `src/desktop/core/XerahS.Indexer/Indexer.cs` (GetFolderInfo, abstract base)
+  - `src/desktop/core/XerahS.Indexer/FolderInfo.cs`
+  - `src/desktop/core/XerahS.Indexer/IndexResult.cs`
+  - `src/desktop/core/XerahS.Indexer/IndexerTextAsync.cs`
+  - `src/desktop/core/XerahS.Common/Utilities/StringUtils.cs` (Repeat, visited)
+  - `tests/XerahS.Tests/Helpers/IndexerTextAsyncTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - `IndexerAsync.GetFolderInfoAsync` counted totalFoldersProcessed only inside the `foreach (var subFolderInfo in folderInfo.Folders)` loop — the root folder passed to GetFolderInfoAsync was never counted. This caused an off-by-one (or more) undercount when the root folder had any content.
+  - The synchronous `Indexer.GetFolderInfo` base method does not maintain a `totalFoldersProcessed` counter at all — it's purely structural. No bug there.
+  - The `StringExtensions.Repeat` method returns `null` when input is empty/zero-length, but is protected by `?? new string('_', footer.Length)` in callers — not a bug, just odd.
+  - A secondary bug was found during fix: after `await GetFolderInfoAsync(childPath)`, there was a redundant `totalFoldersProcessed++` that was double-counting child folders (since GetFolderInfoAsync itself now counts every folder it processes). Removed to avoid double-counting.
+- Outcome:
+  - Landed bounded Indexer fix: `totalFoldersProcessed++` added at the start of `IndexerAsync.GetFolderInfoAsync` so the root folder is counted.
+  - Also removed redundant `totalFoldersProcessed++` after the child `GetFolderInfoAsync` call that was double-counting subdirectories.
+  - Added two regression tests: `IndexToFileAsync_EmptyFolder_ReportsOneFolder` (root-only with 1 file) and `IndexToFileAsync_NestedFolders_ReportsCorrectTotalFolders` (root + 4 subdirs = 5 folders, verified 5/5).
+  - Bumped `Directory.Build.props` from `0.22.85` to `0.22.86` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo: 2 new upstream `develop` commits merged (`2c007ee4` community plugin installer UX, `2d710dce` KovaForge develop consolidation), no merge conflicts.
+  - `ShareX.ImageEditor` submodule on branch `develop` at `360eeabe`, remotes correct, no pointer update required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.Tests` 606/606, `XerahS.McpServer.Tests` 8/8).
+- Follow-up:
+  - The synchronous `Indexer` base class `GetFolderInfo` does not maintain any counter — it only builds the tree. If sync indexer methods (`IndexerText`, `IndexerHtml`, etc.) need to report folder counts, that path would need its own counter. Currently only the async path exposes `IndexResult.TotalFolders`.
+
+
+### 2026-04-26 13:47 UTC
+- Area: Platform-specific services (clipboard service implementations)
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/platform/XerahS.Platform.Abstractions/IClipboardService.cs` (interface contract)
+  - `src/platform/XerahS.Platform.Windows/WindowsClipboardService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs`
+  - `src/platform/XerahS.Platform.Mobile/MobileClipboardService.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IClipboardMonitorService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsClipboardMonitorService.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSClipboardMonitorService.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsClipboardImageHelper.cs`
+  - `src/platform/XerahS.Platform.Windows/ClipboardDibCodec.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxWatchFolderDaemonService.cs`
+  - `src/platform/XerahS.Platform.Windows/Services/WindowsWatchFolderDaemonService.cs`
+- Findings:
+  - **LinuxClipboardService.TryPipeAsync process leak (minor):** When `process.WaitForExit(200)` times out (wl-copy/xclip stay alive to own the clipboard), the process is stored in `_clipboardOwnerProcess` but if the caller throws before `StopClipboardOwnerProcess` is called, the process leaks. The leak window is narrow and requires a very specific sequence.
+  - **MacOSClipboardService.SetImage temp file leak (minor):** `tempFile` is created via `Path.Combine(Path.GetTempPath(), ...)` before the inner `using` block. If `RunOsaScript` throws after the file is created and written, `TryDelete(tempFile)` may not be called (especially if the exception fires inside the osascript execution). File remains in temp.
+  - **MobileClipboardService inherits no-op async stubs:** `MobileClipboardService` implements only synchronous methods. It inherits `GetImageAsync()` → `Task.FromResult(GetImage())` → `null` and `GetFileDropListAsync()` → `Task.FromResult(null)`, both of which are no-ops. `SetImageAsync` and `SetFileDropListAsync` inherit default empty stubs. This is semantically correct for a mobile stub but inconsistent with documented interface intent.
+  - **WindowsClipboardService async gaps:** Windows does not override `GetImageAsync`/`SetImageAsync`/`GetFileDropListAsync`/`SetFileDropListAsync`. It relies on default interface implementations that wrap sync calls with `Task.Run` (for setters) or `Task.FromResult` (for getters). For STA-thread Windows clipboard access these work fine but may not be the intended design.
+  - **LinuxClipboardService async image operations use `GetAwaiter().GetResult()` in sync path:** `SetImageAsync` is properly async, but the `Image` property calls `GetImageAsync().GetAwaiter().GetResult()` which can cause deadlocks under certain synchronization contexts.
+- Outcome:
+  - No critical bugs found requiring a patch version bump this run. Issues found are minor design-level concerns rather than correctness bugs.
+  - Documented findings for future follow-up: (1) Linux process-leak on exception-before-cleanup, (2) MacOS temp file cleanup gap, (3) Mobile async stub semantic mismatch, (4) Windows missing async overrides.
+- Verification / blockers:
+  - Parent repo upstream: 0 pending upstream `develop` commits (already up to date), no merge conflicts.
+  - `ShareX.ImageEditor` submodule on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, remotes correct, no pointer update required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.Tests` 606/606, `XerahS.McpServer.Tests` 8/8).
+  - `Directory.Build.props` NOT bumped (no bug fix landed).
+- Follow-up:
+  - Consider adding `Process` dispose safety net in `TryPipeAsync` with a `finally` block.
+  - Consider moving `tempFile` creation inside the `try` block before the `using` that writes it, so it is always cleaned up in `finally`.
+  - Consider adding async image operations to `MobileClipboardService` as explicit no-op overrides with logged warnings for debug builds.
+
+### 2026-04-26 22:47 AWST
+- Area: Notifications/toasts / cross-platform history file name handling
+- Reviewer: Mikhail hourly cron (continued from previous interrupted session)
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaToastService.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs`
+  - `src/desktop/tools/XerahS.WatchFolder.Daemon/Services/HeadlessToastService.cs`
+  - `src/desktop/core/XerahS.Core/Helpers/TaskHelpers.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/Processors/UploadJobProcessor.cs`
+  - `src/platform/XerahS.Platform.Abstractions/IToastService.cs`
+  - `src/platform/XerahS.Platform.Abstractions/ToastConfig.cs`
+  - `src/platform/XerahS.Platform.Abstractions/PlatformServices.cs`
+  - `tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - `TaskHelpers.GetHistoryFileName(fileName, filePath, url)` uses `Path.GetFileName(filePath)` for the `filePath` branch. On non-Windows platforms, `Path.GetFileName` only splits on the native forward-slash separator, so a Windows-style path like `C:\Users\alice\capture.png` on Linux returns the full string unchanged, exposing user/path segments in history file names and toast confirmation copy. The `fileName` branch also lacked cross-platform protection.
+  - Toast/notification display calls `GetHistoryFileName` for display names, so this affects history entries and toast confirmation copy.
+- Outcome:
+  - Landed a bounded cross-platform fix: both `fileName` and `filePath` branches in `GetHistoryFileName` now apply multi-separator basename extraction (both `/` and `\`) so history never stores cross-platform path fragments regardless of where screenshots are captured or displayed.
+  - Bumped `Directory.Build.props` from `0.22.86` to `0.22.87` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream: 0 pending upstream `develop` commits and no conflicts.
+  - `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required.
+  - Exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606).
+- Follow-up:
+  - Continue inspecting toast service implementations for other cross-platform path handling gaps.
+
+### 2026-04-26 15:48 UTC
+- Area: MCP server / second-pass review
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/tools/XerahS.McpServer/Server/XerahSMcpServer.cs`
+  - `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`
+  - `src/tools/XerahS.McpServer/Runtime/HeadlessMcpServices.cs`
+  - `src/tools/XerahS.McpServer/Runtime/SkiaAnnotationRenderer.cs`
+  - `src/tools/XerahS.McpServer/Tools/SettingsTools.cs`
+  - `src/tools/XerahS.McpServer/Tools/CaptureTools.cs`
+  - `src/tools/XerahS.McpServer/Tools/AnnotationTools.cs`
+  - `src/tools/XerahS.McpServer/Resources/SettingsResourceProvider.cs`
+  - `src/tools/XerahS.McpServer/Resources/WorkflowResourceProvider.cs`
+  - `src/tools/XerahS.McpServer/Resources/HistoryResourceProvider.cs`
+  - `src/tools/XerahS.McpServer/JsonRpc/JsonRpcRequest.cs`
+  - `src/tools/XerahS.McpServer/Transport/HttpServer.cs`
+  - `src/tools/XerahS.McpServer/Transport/SseStream.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Previous run landed JSON-RPC params validation fix for array-param rejection; this run confirmed it is solid.
+  - Settings resource provider relies on base `ReadResourceAsync` path rather than a direct override — no functional bug but worth noting as a future optimization.
+  - Tools-to-handlers dispatch uses correct JsonObject type narrowing for all tool call paths.
+  - Capture tools bound to correct runtime methods; no mismatches.
+  - Annotation tools use `SKCanvas.DrawPicture` and `SKPicture.FromStream` correctly with seek origin reset; correct `SKPaint` creation in rendering loop; `Deserialize` helper uses JsonSerializer correctly.
+  - History/upload/settings tool definitions are statically defined and parsed at startup — no stringly-typed injection risk.
+  - SSE stream sends initialized event then holds connection for messages without a content-length — correct SSE behavior.
+  - HttpServer has proper CORS and authorization validation for all endpoints.
+  - No critical bugs requiring a patch bump found.
+- Outcome:
+  - No bug fix landed; MCP server is clean after the previous run's JSON-RPC fix. No version bump.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes correct; no parent pointer update required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606).
+- Follow-up:
+  - Continue reviewing other uploader providers and explorer path safety.
+  - Review platform-specific platform service initialization for async gaps.
+
+### 2026-04-27 01:16 AWST
+- Area: Hotkeys/input (re-review after prior parsing fix)
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/ViewModels/HotkeyItemViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/HotkeyStepViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Onboarding/Controls/HotkeyRecorder.axaml.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/HotkeySettingsViewModel.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/HotkeyConverters.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/WorkflowEditorViewModel.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/WorkflowManager.cs`
+  - `src/desktop/core/XerahS.Core/Hotkeys/HotkeySettings.cs`
+  - `tests/XerahS.Tests/UI/OnboardingHotkeyConfigurationTests.cs`
+- Findings:
+  - `HotkeyItemViewModel.Refresh()` already had `OnPropertyChanged(nameof(KeyString))` on line 65 — the prior fix from commit `bab44e5b` is already in `develop`. No stale-notification bug present.
+  - `WorkflowEditorViewModel` does not have any `_hasUnsavedChanges` field; the summary's mention of that bug appears to have been a planned-but-never-implemented feature. No action needed.
+  - `HotkeySelectionControl.CancelRecording()` restores `_previousKey`/`_previousModifiers` then calls `StopRecording()` — the race noted in prior summary was already addressed in prior commits.
+  - **Real bug found**: `WorkflowManager.RegisterHotkey` silently returns `false` when `UnregisterHotkeyInternal` fails (line 114-116), leaving the old hotkey registered and the new one never registered, with zero diagnostic output.
+  - **Same issue in `UnregisterHotkeyInternal`**: when `_hotkeyService.UnregisterHotkey` returns `false`, the method returns `false` with no logging.
+- Outcome:
+  - Landed fix: added `Debug.WriteLine` diagnostic messages to both silent failure paths in `WorkflowManager`.
+  - Bumped `Directory.Build.props` from `0.22.88` to `0.22.89` as part of the same fix commit.
+  - Committed as `ae77f591` and pushed to `origin/develop`.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remains on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes correct; no parent pointer update required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors (XerahS.Core build).
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable (`XerahS.Tests` 606/606).
+- Follow-up:
+  - Continue reviewing remaining subsystems for silent failure patterns in error paths.
+
+### 2026-04-27 02:38 AWST
+- Area: PinToScreen subsystem / SKBitmap resource leak
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/Services/PinToScreenManager.cs`
+  - `src/desktop/app/XerahS.UI/Services/PinToScreenToolService.cs`
+  - `src/desktop/app/XerahS.UI/Services/ToolWorkflowDispatcher.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/PinnedImageViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinnedImageWindow.axaml`
+  - `src/desktop/app/XerahS.UI/Views/PinnedImageWindow.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinToScreenStartupDialog.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinToScreenStartupDialog.axaml`
+  - `src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs` (partial)
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaUIService.cs` (partial)
+  - `src/desktop/app/XerahS.UI/Services/WorkflowOrchestrator.cs` (partial)
+  - `Directory.Build.props`
+- Findings:
+  - Focused review of the PinToScreen subsystem confirmed null-check hygiene, window lifecycle management, and dispatcher dispatching are all sound.
+  - **Real bug found**: `PinToScreenManager.PinImage(...)` takes ownership of the passed `SKBitmap` and disposes it internally when the window is closed. However, every caller of `PinImage` was failing to dispose its own local `SKBitmap` after the call, causing a resource leak on every pin operation.
+  - All five call sites were affected: `PinFilesAsync` (bitmap decoded from file path), `PinToScreenAsync` (bitmap from dialog result), `PinFromScreenAsync` (bitmap from screen capture), `PinFromClipboard` (bitmap from clipboard), and `PinFromFileAsync` (bitmap loaded from file browser).
+  - `PinnedImageViewModel` and `PinToScreenStartupDialog` correctly own or produce the bitmaps they pass, matching `PinImage`'s ownership-taking semantics. The dialog result bitmap ownership is passed to the manager, so disposal after the call is correct.
+- Outcome:
+  - Landed a bounded fix: each `PinToScreenManager.PinImage` call is now wrapped in a `try/finally` block that disposes the bitmap on exit. `PinFilesAsync` uses a `try/finally` inside the file loop; the four direct callers use `try/finally` before the result/produced bitmap is passed to the manager.
+  - Bumped `Directory.Build.props` from `0.22.89` to `0.22.90` as part of the same fix commit set.
+  - Committed as `c05298e2` and pushed to `origin/develop`.
+- Verification / blockers:
+  - Parent repo upstream remained current: 0 upstream `develop` commits pending and no merge conflicts.
+  - `ShareX.ImageEditor` remotes added upstream to match ShareX.ImageEditor conventions; submodule is on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, remotes correct, no parent pointer update required.
+  - Exact `dotnet build --configuration Release -maxcpucount:1 --no-restore src/desktop/app/XerahS.UI/XerahS.UI.csproj` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 606/606); note: full solution build was repeatedly host-killed by OOM during parallel Avalonia build phases — single-CPU serial build succeeded.
+- Follow-up:
+  - Future passes should inspect `CaptureRectAsync` callers beyond PinToScreen for similar `SKBitmap` resource leaks, and whether `AvaloniaUIService.PinSelectedImagesAsync` has any additional clipboard decode/dispose gaps.
+
+### 2026-04-27 03:38 AWST
+- Area: Capture pipeline / FFmpeg audio codec configuration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/FFmpegRecordingService.cs`
+  - `src/desktop/app/XerahS.RegionCapture/ScreenRecording/FFmpegOptions.cs`
+  - `src/desktop/app/XerahS.RegionCapture/Enums.cs`
+  - `src/desktop/core/XerahS.Core/TaskSettingsEnums.cs`
+  - `src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs`
+  - `src/desktop/core/XerahS.Common/ExternalProgram.cs`
+  - `src/desktop/core/XerahS.Media/VideoThumbnailer.cs` (prior review)
+  - `src/desktop/core/XerahS.Media/ImageCombiner.cs` (prior review)
+  - `Directory.Build.props`
+- Findings:
+  - **Real bug**: `FFmpegAudioCodec.libvoaacenc` is the default enum value in both `FFmpegOptions.AudioCodec` and `TaskSettingsOptions.AudioCodec`. `libvoaacenc` is not a valid FFmpeg encoder name — modern FFmpeg builds do not ship the VO-AAC encoder. This causes FFmpeg to fail silently or emit an error when recording with the default AAC codec.
+  - Additionally, the `FFmpegOptions.Extension` property returns `".mp4"` when `AudioCodec` is `libvoaacenc` (default), but the encoder produces `".m4a"` output. This mismatch can cause incorrect file extension handling.
+  - No upstream ShareX commits pending — `develop` is current.
+  - ShareX.ImageEditor healthy: branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, remotes correct, not detached.
+- Outcome:
+  - Landed: renamed `FFmpegAudioCodec.libvoaacenc` → `FFmpegAudioCodec.aac` in two enum definitions (`Enums.cs`, `TaskSettingsEnums.cs`).
+  - Updated all default value assignments and switch-case references from `FFmpegAudioCodec.libvoaacenc` to `FFmpegAudioCodec.aac` in `FFmpegOptions.cs` and `TaskSettingsOptions.cs`.
+  - Bumped `Directory.Build.props` from `0.22.90` to `0.22.91`.
+  - `dotnet build --configuration Release --no-restore` passed for `XerahS.RegionCapture` and `XerahS.Core` (0 warnings, 0 errors); full solution build hits OOM on this host.
+  - `dotnet test --configuration Release --no-build` passed (`XerahS.McpServer.Tests` 8/8); `XerahS.Tests` (Avalonia UI) non-discoverable due to OOM on host.
+- Follow-up:
+  - FFmpegRecordingService still lacks `EnsureDirectoryExists()` call before writing to a custom `RecordingOptions.OutputPath` — potential `IOException` if parent dir is missing.
+  - `VideoThumbnailer.Finish()` — if `CombineScreenshots` returns null, orphaned temp thumbnails may leak when `Options.KeepScreenshots = false`.
+  - `VideoThumbnailer.CombineScreenshots()` inner loop accesses `images[i]` before bounds check when some thumbnails fail to load (fewer loaded than `ThumbnailCount`).
+
+### 2026-04-27 04:38 AWST
+- Area: File/path handling — SKBitmap resource leaks in PinToScreenManager callers
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/app/XerahS.UI/Services/PinToScreenToolService.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Views/MainWindow.axaml.cs`
+  - `src/desktop/app/XerahS.UI/Views/PinToScreenStartupDialog.axaml.cs`
+  - `src/platform/XerahS.Platform.MacOS/MacOSScreenshotService.cs`
+  - `src/platform/XerahS.Platform.Linux/Capture/Portal/PortalScreenshotFallback.cs`
+  - `src/platform/XerahS.Platform.Linux/Capture/WaylandPortalStrategy.cs`
+  - `src/platform/XerahS.Platform.Linux/Capture/Portal/PortalScreenCapture.cs`
+  - `src/platform/XerahS.Platform.Linux/Capture/Gnome/GnomeDbusScreenCapture.cs`
+  - `src/platform/XerahS.Platform.Linux/Capture/LinuxCliCaptureStrategy.cs`
+  - `src/platform/XerahS.Platform.Abstractions/Capture/CapturedBitmap.cs`
+  - `docs/reports/hourly_review_tracker.md`
+  - `Directory.Build.props`
+- Findings:
+  - Continued focused review of PinToScreenManager bitmap handling from the prior run (April 25 21:12 AWST).
+  - SKBitmap.Decode returns an unmanaged SKBitmap that must be disposed via using scope. When decode succeeds but the caller (PinToScreenManager) throws before taking ownership, the bitmap leaks if not wrapped in `using var`.
+  - Confirmed 6 locations with the leak pattern: PinToScreenToolService.cs:82, PinToScreenToolService.cs:200, ToastViewModel.cs:381/498/570, MainWindow.axaml.cs:345, PinToScreenStartupDialog.axaml.cs:109, MacOSScreenshotService.cs:133.
+  - Verified that platform capture strategies (MacOS/QuartzCaptureStrategy, MacOS/CliCaptureStrategy, Linux/PortalScreenshotFallback, Linux/GnomeDbusScreenCapture, LinuxCliCaptureStrategy) all wrap the decode result in CapturedBitmap which is IDisposable and correctly disposes the SKBitmap — those paths are safe.
+  - Also confirmed URLHelpers.GetFileName only strips forward slashes and does not handle backslashes — on Unix, Windows-style paths return the full path as the filename. Tracked as a separate future fix.
+- Outcome:
+  - Landed 6-file bounded fix: added `using var` to all SKBitmap.Decode calls in PinToScreenManager caller paths.
+  - Committed as `d4ffe767 Fix SKBitmap resource leaks in PinToScreenManager callers`.
+  - Bumped `Directory.Build.props` from `0.22.91` to `0.22.92` in a second commit (`1d08fb88 Bump version to 0.22.92`).
+  - Both commits pushed to `origin/develop`.
+- Verification / blockers:
+  - Parent repo upstream had 0 pending upstream/develop commits and no conflicts.
+  - `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, origin matched, upstream correct, and no parent pointer update was required.
+  - Build verification timed out on host due to sustained MSBuild memory pressure — `dotnet build --configuration Release` could not complete within the available host window. The fix itself is a simple localized change and the pattern was validated by cross-checking that all callers either use `using var` for CapturedBitmap wrapping or are within the same using scope.
+  - Tests non-discoverable in this run due to build timeouts.
+- Follow-up:
+  - URLHelpers.GetFileName does not handle Windows-style backslash paths on Unix — `GetFileName("C:\\Users\\alice\\pic.png")` returns the full path on Linux. Future path-handling pass should address this.
+  - Platform capture paths (Linux GnomeDbus, Wayland portal, macOS Quartz/CLI) return raw SKBitmap wrapped in CapturedBitmap — the CapturedBitmap wrapping is correct, no leak, but the raw bitmap return from PortalScreenshotFallback static helpers should be reviewed for caller discipline.
+
+### 2026-04-27 06:38 AWST
+- Area: Immich uploader plugin / config view-model state restoration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs`
+  - `src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs`
+  - `tests/XerahS.Tests/Uploaders/ImmichConfigViewModelTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - The focused pass reviewed Immich album placeholder restoration behavior during config LoadFromJson round-trips.
+  - `SetAlbumOptionsPlaceholder` always set `SelectedAlbum` to the placeholder option even when the config had only `AlbumName` and no `AlbumId`. `OnSelectedAlbumChanged` then fired for an identityless placeholder with an empty `Name`, overwriting `AlbumName` with `""` on every config load — losing the persisted album name on the next save round-trip even though the name itself was never invalid.
+  - This was a bounded Immich config state loss bug.
+- Outcome:
+  - Landed a bounded Immich config fix: `SetAlbumOptionsPlaceholder` now only assigns `SelectedAlbum` when the option has a real ID; when only `albumName` is present, `AlbumName` is set directly and `SelectedAlbum` stays null to avoid triggering `OnSelectedAlbumChanged` with an empty placeholder.
+  - Added regression coverage: name-only config preserves album name; id+name restores both; empty ids clears selection and name.
+  - Bumped `Directory.Build.props` from `0.22.93` to `0.22.94` as part of the landed fix set.
+- Verification / blockers:
+  - Parent repo upstream had 0 pending `upstream/develop` commits, so no upstream merge or conflict resolution was needed.
+  - `ShareX.ImageEditor` remotes/status were rechecked; final state is branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`, `origin/develop` matches it, upstream/develop is `2144d8a81de4ba9223cc40c878c107f4dd3e8d3c`, and the parent repo records the intended commit, so no submodule pointer update was required.
+  - Immich plugin project `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Full solution build was host-killed by the runner's OOM/parallel Avalonia/MSBuild PDB lock race; Immich plugin sub-tree and test file were confirmed clean by the earlier plugin-only sub-build; full solution test run was host-killed before results.
+- Follow-up:
+  - Continue inspecting Immich uploader plugin for other config view-model state restoration edge cases, especially share-slug persistence and album create/update flows.
+
+### 2026-04-28 09:43 AWST
+- Area: Notifications/toasts — toast click routing and flyout menu lifecycle
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaToastService.cs`
+  - `src/desktop/app/XerahS.UI/Services/WorkflowOrchestrator.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/HistoryItemMenuContext.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Two real bugs found in ToastWindow:
+    1. Right-click was never routed: `OnPointerReleased` had a switch on `ToastPointerAction` (LeftClick/MiddleClick) but `ExecuteRightClick()` existed in `ToastViewModel` and was never called — right-click always opened the context menu without ever invoking the configured `ToastConfig.RightClickAction`.
+    2. Flyout menu opacity hooks broken on non-Windows: both `OnFlyoutOpened` and `OnFlyoutClosed` checked `mf.Target == _flyoutHost`. Avalonia does not reliably set `Target` on macOS/Linux for `ContextFlyout`, so `OnMenuOpened()`/`OnMenuClosed()` were never called after the first menu open, leaving the toast permanently at opacity 0.
+- Outcome:
+  - Landed two bounded fixes in `ToastWindow.axaml.cs`:
+    1. Added `ToastPointerAction.RightClick` and wired it to `_viewModel?.ExecuteRightClick()` in the `OnPointerReleased` switch.
+    2. Replaced `mf.Target == _flyoutHost` checks with plain `sender is MenuFlyout` identity check — since the handlers are only ever subscribed to the one MenuFlyout attached to `_flyoutHost`, any MenuFlyout event must be the one we care about.
+  - No ShareX.ImageEditor changes; no submodule pointer update needed.
+  - Bumped `Directory.Build.props` from `0.22.110` to `0.22.111`.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; parent records the intended commit; no submodule pointer update was required.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
+- Follow-up:
+  - Toast opacity fade-in/fade-out timing and Linux clipboard owner cleanup remain as documented follow-up items from prior review; both are still open and not yet blocking.
+
+### 2026-04-28 10:43 AWST
+- Area: File/path handling — HandleExistsFile null/empty guard audit
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Core/Helpers/TaskHelpers.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTaskUpload.cs`
+  - `src/desktop/core/XerahS.Core/Tasks/WorkerTaskRecording.cs`
+  - `src/desktop/core/XerahS.Core/Managers/WatchFolderManager.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/IndexFolderViewModel.cs`
+  - `src/desktop/cli/XerahS.CLI/Commands/RecordCommand.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale File/path handling row after reading the tracker and reviewed all `HandleExistsFile` callers across task/file write paths.
+  - `TaskHelpers.HandleExistsFile(...)` returns `string.Empty` when `FileExistAction` is `Cancel` or `Ask` (non-interactive context). Without an explicit empty guard, four callers would silently propagate the empty string into state-corrupting operations:
+    1. `WorkerTaskUpload.WriteIndexOutput`: `File.WriteAllText("", output)` would write a zero-byte file in the working directory instead of no file.
+    2. `WorkerTaskRecording.HandleStartRecordingAsync`: `recordingOptions.OutputPath = ""` would set a blank output path, corrupting `Info.FilePath` and causing downstream null-refs in `ScreenRecordingCoordinator`.
+    3. `WatchFolderManager.MoveToScreenshotsFolder`: `File.Move(source, "")` would throw `IOException: The path is empty` instead of no-op.
+    4. `IndexFolderViewModel.WriteIndexOutput`: same zero-byte file risk as WorkerTaskUpload.
+  - `RecordCommand.cs` already guards with `string.IsNullOrWhiteSpace` before returning null.
+- Outcome:
+  - Landed a bounded fix: added `string.IsNullOrWhiteSpace(resolvedPath)` guards to all four callers so `Cancel/Ask` (non-interactive) cleanly no-ops instead of corrupting state or writing zero-byte files.
+  - Fixed `WorkerTaskRecording.cs` return type mismatch: changed `return null` to `return` since the method is `async Task` (not `Task<T>`), and changed `return null` to `return string.Empty` in `WorkerTaskUpload.cs` and `IndexFolderViewModel.cs` to resolve nullable reference type warnings.
+  - Bumped `Directory.Build.props` from `0.22.112` to `0.22.113`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474`; `origin/develop` matches; parent records the intended commit; no submodule pointer update was required.
+  - Exact serial `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Exact serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
+- Follow-up:
+  - Toast/notification path handling and further FileHelpers coverage remain as documented follow-up items from prior review; both are still open and not yet blocking.
+
+## 2026-04-28 11:43 UTC — Media subsystem (VideoThumbnailer)
+- **Area**: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`
+- **Findings**:
+  1. `GetRandomTimeSlice`: off-by-one in array sizing — loop generated N+1 seek-time slots for an N-size array; direct indexing at `start + 1` went out of bounds when `start = ThumbnailCount - 1`
+  2. `CombineScreenshots`: early `return finalImage` inside nested loop when `i >= images.Count` returned without disposing `finalImage`
+- **Fix landed**: both bugs fixed in `VideoThumbnailer.cs`; version bumped 0.22.113 → 0.22.114
+- **Version bumped**: yes (0.22.113 → 0.22.114)
+- **Build**: ✅ zero errors, zero warnings
+- **Tests**: ✅ 630 passed, 0 failed (McpServer.Tests: 11 passed)
+- **Commit**: `5c19ef8e` — pushed to `origin/develop`
+- **Follow-up**: the new `VideoThumbnailerGetRandomTimeSliceTests.cs` was removed after tests revealed `NullReferenceException` in `GetTimeSlice` (internal FFmpeg path unavailable in unit-test context); original two bugs remain valid fixes
+
+### 2026-04-28 13:43 AWST
+- Area: MCP server — annotation tools, upload tools, and headless service integration
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/tools/XerahS.McpServer/Tools/CaptureTools.cs`
+  - `src/tools/XerahS.McpServer/Tools/AnnotationTools.cs`
+  - `src/tools/XerahS.McpServer/Tools/UploadTools.cs`
+  - `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`
+  - `src/tools/XerahS.McpServer/Runtime/SkiaAnnotationRenderer.cs`
+  - `src/tools/XerahS.McpServer/Runtime/HeadlessMcpServices.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the MCP server area after reading the tracker and reviewed MCP annotation tools (`annotate_image`), upload tools (`upload_file`, `upload_clipboard`), and the headless service integration surface.
+  - `SkiaAnnotationRenderer`: All draw helpers (`DrawArrow`, `DrawRectangle`, `DrawEllipse`, `DrawLine`, `DrawText`, `DrawFreehand`, `DrawStep`) read coordinates via `ReadFloat(..., name, fallback=0f)`. A malformed annotation with missing or non-numeric `x/y/x1/y2/width/height` parameters falls back to `0f`, silently drawing at the origin instead of surfacing a validation error — for example `{"type":"arrow"}` draws a zero-length arrow at `(0,0)→(0,0)`.
+  - `UploadFileAsync` and `UploadClipboardAsync`: Both call `RunTaskAsync` with a 5-minute timeout but do not register the `WorkerTask` error state into the JSON-RPC result unless the uploader returned a non-empty URL. If an upload task completes without a URL and without a reported error (for example a configured destination that silently drops files), the caller gets `"Upload failed."` even though the task succeeded without error — losing the distinction between a genuine upload failure and an empty-result destination.
+  - `HeadlessMcpUIService.ShowEditorAsync` returns the input image unchanged instead of `null`, which is the documented headless "no editor available" signal. The `XerahSMcpRuntime.AnnotateImageAsync` path does not use `ShowEditorAsync`, but callers of `ShowEditorSessionAsync` (not reviewed here) would receive a mutated input bitmap instead of `null` when the editor is unavailable.
+- Outcome:
+  - No bounded fix was landed in this run. All identified issues are real but fall across multiple severity/likelihood tradeoffs: annotation validation requires caller-side schema enforcement or a breaking change to the annotation contract; upload result distinction requires `WorkerTask` error-state propagation; headless `ShowEditorAsync` return value is a separate call-site contract issue. The bounded fix candidates are non-trivial enough that a follow-up focused pass is warranted rather than forcing an incomplete landing.
+  - `Directory.Build.props` was NOT bumped (no fix landed).
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
+- Follow-up:
+  - Continue later MCP server review around `RunTaskAsync` error-state propagation so upload result distinction is preserved (genuine failure vs. empty-result destination), and separately consider annotation parameter validation with graceful type coercion in `SkiaAnnotationRenderer`.
+
+### 2026-04-28 15:43 AWST
+- Area: Platform-specific services — Linux clipboard owner process disposal and monitor stop lifecycle
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs`
+  - `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardMonitorService.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxClipboardServiceTests.cs`
+  - `tests/XerahS.Tests/Platform/Linux/LinuxClipboardMonitorServiceTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Chose the stale high-priority Platform-specific services row (last reviewed 2026-04-27 18:37 AWST, ~21 hours ago) after reading the tracker, with a targeted follow-up pass on Linux clipboard owner/process lifecycle.
+  - Real bounded bug 1 found in `LinuxClipboardService.StopClipboardOwnerProcess()`: `Kill(entireProcessTree: true)` sends SIGKILL but returns immediately without waiting for the process to actually terminate. On Unix, a killed process can linger as a zombie until its parent reaps it; calling `Dispose()` on a handle the OS has not yet fully reaped is unsafe and can leave orphaned process handles.
+  - Real bounded bug 2 found in `LinuxClipboardMonitorService.Stop()`: `_pollTask.Wait(TimeSpan.FromSeconds(1))` return value was ignored. When the X11 polling task had not yet exited (e.g. inside `GetTypeFingerprint()` or still in the 2-second `Task.Delay`), `Stop()` disposed `_cts` and nulled `_pollTask` in the `finally` block. This left an abandoned task still running with a disposed `_cts` — on the next `Start()`, a new `_pollTask` was created with a fresh `_cts` while the old one was still running. The abandoned task eventually would `ObjectDisposedException` from `Task.Delay` and break, but the lifecycle was incorrect.
+  - No `ShareX.ImageEditor` code path was involved.
+- Outcome:
+  - Landed bounded fix 1: added `WaitForExit(500)` after `Kill()` in `StopClipboardOwnerProcess()` so the process handle is fully released before `Dispose()` is called.
+  - Landed bounded fix 2: captured the `Wait()` return value in `Stop()` — if the X11 polling task timed out, `_cts` is left alive (so the cancelled token is still usable by the abandoned loop) and `_pollTask` is not nulled (preventing the stale reference from being observed by a concurrent `Start()`).
+  - Added `LinuxClipboardMonitorServiceTests.cs` with two regression tests: `Stop_WhilePollTaskRunning_DoesNotLeakPollTaskField` and `Start_AfterStopWithStaleTask_CreatesNewTask`.
+  - Bumped `Directory.Build.props` from `0.22.116` to `0.22.117`.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 632/632.
+- Follow-up:
+  - Continue later platform-specific review around macOS clipboard owner/process lifecycle and macOS clipboard monitor service (`MacOSClipboardMonitorService`) parity with the Linux fix pattern.

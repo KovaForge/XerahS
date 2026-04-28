@@ -182,6 +182,9 @@ public partial class ToastWindow : OverlayWindow
                 case ToastPointerAction.MiddleClick:
                     _viewModel?.ExecuteMiddleClick();
                     break;
+                case ToastPointerAction.RightClick:
+                    _viewModel?.ExecuteRightClick();
+                    break;
             }
         }
 
@@ -204,6 +207,7 @@ public partial class ToastWindow : OverlayWindow
         {
             PointerUpdateKind.LeftButtonReleased => ToastPointerAction.LeftClick,
             PointerUpdateKind.MiddleButtonReleased => ToastPointerAction.MiddleClick,
+            PointerUpdateKind.RightButtonReleased => ToastPointerAction.RightClick,
             _ => ToastPointerAction.None
         };
 
@@ -214,7 +218,8 @@ public partial class ToastWindow : OverlayWindow
     {
         None,
         LeftClick,
-        MiddleClick
+        MiddleClick,
+        RightClick
     }
 
     private async void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -279,7 +284,7 @@ public partial class ToastWindow : OverlayWindow
 
     private void OnFlyoutOpened(object? sender, EventArgs e)
     {
-        if (sender is MenuFlyout mf && mf.Target == _flyoutHost)
+        if (sender is MenuFlyout)
         {
             _viewModel?.OnMenuOpened();
         }
@@ -287,7 +292,7 @@ public partial class ToastWindow : OverlayWindow
 
     private void OnFlyoutClosed(object? sender, EventArgs e)
     {
-        if (sender is MenuFlyout mf && mf.Target == _flyoutHost)
+        if (sender is MenuFlyout)
         {
             _viewModel?.OnMenuClosed();
         }

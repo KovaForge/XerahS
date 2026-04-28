@@ -123,8 +123,8 @@ public partial class OcrViewModel : ViewModelBase
         {
             var options = new OcrOptions
             {
-                Language = SelectedLanguage.LanguageTag,
-                ScaleFactor = (float)ScaleFactor,
+                Language = NormalizeOcrLanguage(SelectedLanguage.LanguageTag),
+                ScaleFactor = NormalizeOcrScaleFactor(ScaleFactor),
                 SingleLine = SingleLine
             };
 
@@ -223,5 +223,16 @@ public partial class OcrViewModel : ViewModelBase
         {
             _ = RunOcrAsync();
         }
+    }
+
+    private static string NormalizeOcrLanguage(string? language)
+    {
+        string? trimmedLanguage = language?.Trim();
+        return string.IsNullOrEmpty(trimmedLanguage) ? "en" : trimmedLanguage;
+    }
+
+    private static float NormalizeOcrScaleFactor(double scaleFactor)
+    {
+        return double.IsFinite(scaleFactor) ? Math.Max((float)scaleFactor, 1f) : 1f;
     }
 }

@@ -139,7 +139,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
                 HttpHomePathAutoAddSubFolderPath = config.HttpHomePathAutoAddSubFolderPath;
                 HttpHomePathNoExtension = config.HttpHomePathNoExtension;
                 FtpsEncryptionMode = ftpsEncryptionMode;
-                Port = config.Port > 0 ? config.Port : GetDefaultPort(protocol, ftpsEncryptionMode);
+                Port = IsValidPort(config.Port) ? config.Port : GetDefaultPort(protocol, ftpsEncryptionMode);
                 Keypath = config.Keypath ?? string.Empty;
                 Passphrase = config.Passphrase ?? string.Empty;
                 StatusMessage = null;
@@ -182,7 +182,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             return false;
         }
 
-        if (Port is <= 0 or > 65535)
+        if (!IsValidPort(Port))
         {
             StatusMessage = "Port must be between 1 and 65535.";
             return false;
@@ -219,6 +219,8 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             _ => 21
         };
     }
+
+    private static bool IsValidPort(int port) => port is > 0 and <= 65535;
 
     private static TEnum NormalizeEnum<TEnum>(TEnum value, TEnum fallback) where TEnum : struct, Enum
     {

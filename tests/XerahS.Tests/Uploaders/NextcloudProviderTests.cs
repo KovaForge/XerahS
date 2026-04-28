@@ -80,6 +80,14 @@ public class NextcloudProviderTests
     }
 
     [Test]
+    public void CombineRelativePath_StripsDotSegmentsBeforeBuildingWebDavPath()
+    {
+        string relativePath = NextcloudClient.CombineRelativePath("ShareX/../2026", @"./April/../cat.png");
+
+        Assert.That(relativePath, Is.EqualTo("ShareX/2026/April/cat.png"));
+    }
+
+    [Test]
     public void ExtractRelativePath_StripsServerBasePathFromAbsoluteHref()
     {
         string relativePath = InvokeExtractRelativePath(
@@ -99,6 +107,45 @@ public class NextcloudProviderTests
             "john/doe");
 
         Assert.That(relativePath, Is.EqualTo("Screenshots"));
+    }
+
+    [Test]
+    public void ParsePropFindResponse_UsesSuccessfulPropstatWhenEarlierPropertiesFailed()
+    {
+        string xml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <d:multistatus xmlns:d="DAV:">
+              <d:response>
+                <d:href>/remote.php/dav/files/alice/Photos/</d:href>
+                <d:propstat>
+                  <d:prop>
+                    <d:getcontentlength />
+                  </d:prop>
+                  <d:status>HTTP/1.1 404 Not Found</d:status>
+                </d:propstat>
+                <d:propstat>
+                  <d:prop>
+                    <d:displayname>Photos</d:displayname>
+                    <d:resourcetype><d:collection /></d:resourcetype>
+                    <d:getlastmodified>Mon, 27 Apr 2026 12:00:00 GMT</d:getlastmodified>
+                  </d:prop>
+                  <d:status>HTTP/1.1 200 OK</d:status>
+                </d:propstat>
+              </d:response>
+            </d:multistatus>
+            """;
+
+        IReadOnlyList<NextcloudFileEntry> entries = InvokeParsePropFindResponse(xml, "alice", string.Empty);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(entries, Has.Count.EqualTo(1));
+            Assert.That(entries[0].Name, Is.EqualTo("Photos"));
+            Assert.That(entries[0].RelativePath, Is.EqualTo("Photos"));
+            Assert.That(entries[0].IsFolder, Is.True);
+            Assert.That(entries[0].SizeBytes, Is.Zero);
+            Assert.That(entries[0].ModifiedAt, Is.Not.Null);
+        });
     }
 
     [Test]
@@ -214,6 +261,16 @@ public class NextcloudProviderTests
         object? result = method!.Invoke(null, new object[] { href, hrefPrefix, userId });
         Assert.That(result, Is.TypeOf<string>());
         return (string)result!;
+    }
+
+    private static IReadOnlyList<NextcloudFileEntry> InvokeParsePropFindResponse(string xml, string userId, string requestedPath)
+    {
+        MethodInfo? method = typeof(NextcloudClient).GetMethod("ParsePropFindResponse", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(method, Is.Not.Null);
+
+        object? result = method!.Invoke(null, new object[] { xml, userId, requestedPath });
+        Assert.That(result, Is.InstanceOf<IReadOnlyList<NextcloudFileEntry>>());
+        return (IReadOnlyList<NextcloudFileEntry>)result!;
     }
 
     private sealed class NonSeekableReadStream : Stream

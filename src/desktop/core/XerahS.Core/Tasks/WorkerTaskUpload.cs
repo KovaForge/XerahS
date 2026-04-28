@@ -113,12 +113,18 @@ namespace XerahS.Core.Tasks
 
             if (lastInfo != null)
             {
-                Info.DataType = lastInfo.DataType;
-                Info.FilePath = lastInfo.FilePath;
-                Info.Job = lastInfo.Job;
-                Info.Result = lastInfo.Result;
-                Info.Metadata.UploadURL = lastInfo.Metadata.UploadURL;
+                ApplyLastClipboardUploadInfo(Info, lastInfo);
             }
+        }
+
+        internal static void ApplyLastClipboardUploadInfo(TaskInfo destination, TaskInfo lastInfo)
+        {
+            destination.DataType = lastInfo.DataType;
+            destination.FilePath = lastInfo.FilePath;
+            destination.Job = lastInfo.Job;
+            destination.Result = lastInfo.Result;
+            destination.Metadata.UploadURL = lastInfo.Metadata.UploadURL;
+            destination.ResolvedUploaderHost = lastInfo.ResolvedUploaderHost;
         }
 
         internal bool TryIndexFolder(TaskSettings taskSettings, out string? outputPath)
@@ -161,6 +167,7 @@ namespace XerahS.Core.Tasks
 
             string fileName = TaskHelpers.GetFileName(taskSettings, extension);
             string resolvedPath = TaskHelpers.HandleExistsFile(screenshotsFolder, fileName, taskSettings);
+            if (string.IsNullOrWhiteSpace(resolvedPath)) return string.Empty;
             File.WriteAllText(resolvedPath, output);
             return resolvedPath;
         }
