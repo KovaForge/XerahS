@@ -197,6 +197,17 @@ public class XerahSMcpServerTests
         Assert.Contains("imgur", text);
     }
 
+    [Fact]
+    public async Task HeadlessMcpUIService_ShowEditorAsync_ReturnsNullWhenEditorUnavailable()
+    {
+        var service = new HeadlessMcpUIService();
+        using var image = new SkiaSharp.SKBitmap(4, 4);
+
+        var result = await service.ShowEditorAsync(image, taskMode: true);
+
+        Assert.Null(result);
+    }
+
     private sealed class FakeRuntime : IXerahSMcpRuntime
     {
         public string ServerVersion => "9.9.9-test";
