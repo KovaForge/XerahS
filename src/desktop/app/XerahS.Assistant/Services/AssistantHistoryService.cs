@@ -62,9 +62,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             string historyPath = SettingsManager.GetHistoryFilePath();
             using var manager = new HistoryManagerSQLite(historyPath);
 
-            return manager.GetHistoryItems(0, 250)
-                .Where(IsScreenshotHistoryItem)
-                .Take(clampedLimit)
+            return GetLatestScreenshotHistoryItems(manager, clampedLimit)
                 .Select(ToAssistantHistoryItem)
                 .ToList();
         }, cancellationToken);
@@ -134,6 +132,43 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         string historyPath = SettingsManager.GetHistoryFilePath();
         using var manager = new HistoryManagerSQLite(historyPath);
         return manager.ContainsFilePath(normalized);
+    }
+
+    private static IReadOnlyList<HistoryItem> GetLatestScreenshotHistoryItems(HistoryManagerSQLite manager, int limit)
+    {
+        const int PageSize = 250;
+        List<HistoryItem> screenshots = new(limit);
+        int offset = 0;
+
+        while (screenshots.Count < limit)
+        {
+            List<HistoryItem> items = manager.GetHistoryItems(offset, PageSize);
+            if (items.Count == 0)
+            {
+                break;
+            }
+
+            foreach (HistoryItem item in items)
+            {
+                if (IsScreenshotHistoryItem(item))
+                {
+                    screenshots.Add(item);
+                    if (screenshots.Count == limit)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (items.Count < PageSize)
+            {
+                break;
+            }
+
+            offset += items.Count;
+        }
+
+        return screenshots;
     }
 
     private static AssistantHistoryItem ToAssistantHistoryItem(HistoryItem item)

@@ -65,32 +65,8 @@ public sealed class AssistantHistoryServiceTests
         {
             connection.Open();
 
-            using var create = connection.CreateCommand();
-            create.CommandText = """
-                CREATE TABLE IF NOT EXISTS History(
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    FileName TEXT,
-                    FilePath TEXT,
-                    DateTime TEXT,
-                    Type TEXT,
-                    Host TEXT,
-                    URL TEXT,
-                    ThumbnailURL TEXT,
-                    DeletionURL TEXT,
-                    ShortenedURL TEXT,
-                    Tags TEXT
-                );
-                """;
-            create.ExecuteNonQuery();
-
-            using var insert = connection.CreateCommand();
-            insert.CommandText = """
-                INSERT INTO History(FileName, FilePath, DateTime, Type, Host, URL, ThumbnailURL, DeletionURL, ShortenedURL, Tags)
-                VALUES('', $filePath, $dateTime, 'Image', '', '', '', '', '', '{}');
-                """;
-            insert.Parameters.AddWithValue("$filePath", windowsStylePath);
-            insert.Parameters.AddWithValue("$dateTime", new DateTime(2026, 4, 27, 15, 0, 0, DateTimeKind.Utc).ToString("O"));
-            insert.ExecuteNonQuery();
+            CreateHistoryTable(connection);
+            InsertHistoryItem(connection, windowsStylePath, new DateTime(2026, 4, 27, 15, 0, 0, DateTimeKind.Utc));
         }
 
         var service = new AssistantHistoryService();
@@ -105,4 +81,65 @@ public sealed class AssistantHistoryServiceTests
             Assert.That(items[0].FileName, Does.Not.Contain(@"C:\Users"));
         });
     }
+
+    [Test]
+    public async Task GetLatestScreenshotsAsync_WhenFirstHistoryPageContainsNoImages_ContinuesPaging()
+    {
+        string historyPath = SettingsManager.GetHistoryFilePath();
+
+        using (var connection = new SqliteConnection($"Data Source={historyPath}"))
+        {
+            connection.Open();
+            CreateHistoryTable(connection);
+
+            DateTime newest = new(2026, 4, 28, 12, 0, 0, DateTimeKind.Utc);
+            for (int i = 0; i < 260; i++)
+            {
+                InsertHistoryItem(connection, $"/tmp/document-{i}.txt", newest.AddMinutes(-i));
+            }
+
+            InsertHistoryItem(connection, "/tmp/older-capture.png", newest.AddMinutes(-261));
+        }
+
+        var service = new AssistantHistoryService();
+
+        IReadOnlyList<AssistantHistoryItem> items = await service.GetLatestScreenshotsAsync(1, CancellationToken.None);
+
+        Assert.That(items, Has.Count.EqualTo(1));
+        Assert.That(items[0].FileName, Is.EqualTo("older-capture.png"));
+    }
+
+    private static void CreateHistoryTable(SqliteConnection connection)
+    {
+        using var create = connection.CreateCommand();
+        create.CommandText = """
+            CREATE TABLE IF NOT EXISTS History(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                FileName TEXT,
+                FilePath TEXT,
+                DateTime TEXT,
+                Type TEXT,
+                Host TEXT,
+                URL TEXT,
+                ThumbnailURL TEXT,
+                DeletionURL TEXT,
+                ShortenedURL TEXT,
+                Tags TEXT
+            );
+            """;
+        create.ExecuteNonQuery();
+    }
+
+    private static void InsertHistoryItem(SqliteConnection connection, string filePath, DateTime dateTime)
+    {
+        using var insert = connection.CreateCommand();
+        insert.CommandText = """
+            INSERT INTO History(FileName, FilePath, DateTime, Type, Host, URL, ThumbnailURL, DeletionURL, ShortenedURL, Tags)
+            VALUES('', $filePath, $dateTime, 'Image', '', '', '', '', '', '{}');
+            """;
+        insert.Parameters.AddWithValue("$filePath", filePath);
+        insert.Parameters.AddWithValue("$dateTime", dateTime.ToString("O"));
+        insert.ExecuteNonQuery();
+    }
+
 }
