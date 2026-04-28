@@ -525,10 +525,23 @@ public sealed class AssistantService : IAssistantService
 
         return new OcrOptions
         {
-            Language = string.IsNullOrWhiteSpace(configuredOptions?.Language) ? "en" : configuredOptions.Language,
-            ScaleFactor = configuredOptions?.ScaleFactor >= 1f ? configuredOptions.ScaleFactor : 1f,
+            Language = NormalizeOcrLanguage(configuredOptions?.Language),
+            ScaleFactor = NormalizeOcrScaleFactor(configuredOptions?.ScaleFactor),
             SingleLine = configuredOptions?.SingleLine ?? false
         };
+    }
+
+    private static string NormalizeOcrLanguage(string? language)
+    {
+        string? trimmedLanguage = language?.Trim();
+        return string.IsNullOrEmpty(trimmedLanguage) ? "en" : trimmedLanguage;
+    }
+
+    private static float NormalizeOcrScaleFactor(float? scaleFactor)
+    {
+        return scaleFactor.HasValue && float.IsFinite(scaleFactor.Value)
+            ? Math.Max(scaleFactor.Value, 1f)
+            : 1f;
     }
 
     private static async Task<AssistantResponse> CopyTextToClipboardOrErrorAsync(string text, string successMessage)
