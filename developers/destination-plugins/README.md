@@ -2,13 +2,7 @@
 
 This is the consolidated reference for creating new destination plugins in XerahS.
 
-It merges the practical parts of:
-- `developers/plugins-destinations/README.md`
-- `developers/plugins-destinations/exporter.md`
-- `developers/plugins-destinations/implementation_plan.md`
-- `developers/plugins-destinations/packaging_system.md`
-
-and aligns them with the current code contracts under `src/XerahS.Uploaders/PluginSystem`.
+It aligns with the current code contracts under `src/XerahS.Uploaders/PluginSystem`.
 
 ## 1. What Makes "Browse Files" Work
 
@@ -250,18 +244,48 @@ Quick validation checklist:
   - `ListAsync` returns items.
   - image thumbnails appear from `GetThumbnailAsync`.
 
-## 8. Packaging Notes
+## 8. Packaging for Distribution
 
-Packaging support exists via:
-- `src/XerahS.Uploaders/PluginSystem/PluginPackager.cs`
-- `src/XerahS.PluginExporter/Program.cs`
+### Creating an `.xsdp` Package
 
-Current behavior in code:
-- Packages are ZIP-based.
+The `.xsdp` (XerahS Data/Distribution Package) is a ZIP archive containing your plugin's `plugin.json`, DLL, and supporting files. Use the PluginExporter CLI to create one:
+
+```bash
+dotnet run --project src/desktop/tools/XerahS.PluginExporter -- <pluginDirectory> [outputPath]
+```
+
+Examples:
+
+```bash
+# Output to current directory (plugin-name.xsdp)
+dotnet run --project src/desktop/tools/XerahS.PluginExporter -- "C:\Path\To\MyPlugin"
+
+# Specify exact output path
+dotnet run --project src/desktop/tools/XerahS.PluginExporter -- "C:\Path\To\MyPlugin" -o "C:\Output\MyPlugin.xsdp"
+
+# Output to directory (creates plugin-name.xsdp inside)
+dotnet run --project src/desktop/tools/XerahS.PluginExporter -- "C:\Path\To\MyPlugin" -o "C:\Output"
+```
+
+CLI behavior:
+
+- `plugin.json` is required; packaging fails if missing or invalid.
 - Max package size is 100 MB.
-- CLI currently resolves `.xsdp` output by default.
+- Output extension is always `.xsdp`.
 
-Installer UI currently filters for `.xsdp` files. Ensure your packaging workflow uses this extension.
+### Distributing via the Community Registry
+
+Plugins published to the [Community Plugin Registry](community-plugin-registry.md) must:
+
+- Use HTTPS for `downloadUrl`
+- Include a SHA-256 `checksum` (prefix with `sha256:`)
+- Target `minAppVersion` and compatible `apiVersion`
+
+See [community-plugin-registry.md](community-plugin-registry.md) for the full entry schema and security requirements.
+
+### Alternative: Local Install Only
+
+If you do not distribute via the community registry, manually copy your `.xsdp` to `<AppOutput>/Plugins/<pluginId>/` and extract it, or use the in-app Install Plugin dialog (Settings → Uploaders → Install Plugin...). The installer UI filters for `.xsdp` files.
 
 ## 9. Reference Implementations
 
