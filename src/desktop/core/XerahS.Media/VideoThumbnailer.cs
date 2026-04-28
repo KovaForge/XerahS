@@ -315,12 +315,6 @@ namespace XerahS.Media
 
                                     if (i >= images.Count)
                                     {
-                                        if (finalImage != null)
-                                        {
-                                            finalImage.Dispose();
-                                            finalImage = null;
-                                        }
-
                                         return finalImage;
                                     }
 
