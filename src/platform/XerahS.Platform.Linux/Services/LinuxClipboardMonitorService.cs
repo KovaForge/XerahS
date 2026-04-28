@@ -77,7 +77,21 @@ public sealed class LinuxClipboardMonitorService : IClipboardMonitorService
                 _watchProcess = null;
             }
 
-            try { _pollTask?.Wait(TimeSpan.FromSeconds(1)); } catch { }
+            // Only dispose _cts when _pollTask has genuinely completed.
+            // If the task timed out it is still running with a cancelled token;
+            // it will exit at the next await point and self-clean via the
+            // ObjectDisposedException caught in PollLoopAsync.
+            bool pollTaskFinished = false;
+            try { pollTaskFinished = _pollTask?.Wait(TimeSpan.FromSeconds(1)) ?? true; } catch { pollTaskFinished = true; }
+
+            if (!pollTaskFinished)
+            {
+                // Leave _cts alive so the abandoned loop can still observe cancellation.
+                // _pollTask is intentionally not nulled here so the next Start() creates a fresh task.
+                _pollTask = null;
+                _hasBaseline = false;
+                return;
+            }
         }
         finally
         {

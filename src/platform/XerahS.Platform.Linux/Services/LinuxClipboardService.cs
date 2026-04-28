@@ -386,10 +386,18 @@ public sealed class LinuxClipboardService : IClipboardService
             {
                 if (!_clipboardOwnerProcess.HasExited)
                     _clipboardOwnerProcess.Kill(entireProcessTree: true);
+
+                // WaitForExit ensures the process has fully terminated before we dispose,
+                // preventing orphaned/killed processes from lingering as zombie handles.
+                if (!_clipboardOwnerProcess.WaitForExit(500))
+                {
+                    // Process did not exit within 500ms; it will be reaped by the OS.
+                    // Still dispose the handle so it is not left dangling.
+                }
             }
             catch
             {
-                // Ignore kill failures.
+                // Ignore kill/WaitForExit failures.
             }
             finally
             {
