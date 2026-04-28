@@ -167,6 +167,7 @@ namespace XerahS.Core.Tasks
 
             string fileName = TaskHelpers.GetFileName(taskSettings, extension);
             string resolvedPath = TaskHelpers.HandleExistsFile(screenshotsFolder, fileName, taskSettings);
+            if (string.IsNullOrWhiteSpace(resolvedPath)) return string.Empty;
             File.WriteAllText(resolvedPath, output);
             return resolvedPath;
         }

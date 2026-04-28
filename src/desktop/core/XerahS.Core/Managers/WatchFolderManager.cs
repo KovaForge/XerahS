@@ -223,6 +223,10 @@ namespace XerahS.Core.Managers
                 string fileName = Path.GetFileName(sourcePath);
                 string targetPath = Path.Combine(screenshotsFolder, fileName);
                 targetPath = TaskHelpers.HandleExistsFile(targetPath, taskSettings);
+                if (string.IsNullOrWhiteSpace(targetPath))
+                {
+                    return sourcePath; // Cancel/Ask in non-interactive context — leave file in place
+                }
 
                 File.Move(sourcePath, targetPath);
                 return targetPath;
