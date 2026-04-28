@@ -93,6 +93,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     [RelayCommand]
     private void OpenLoginUrl()
     {
+        ClientId = NormalizeClientId(ClientId);
+
         if (string.IsNullOrWhiteSpace(ClientId) || string.Equals(ClientId, LegacyPlaceholderClientId, StringComparison.Ordinal))
         {
             StatusMessage = "Enter your own Imgur Client ID from https://api.imgur.com/oauth2/addclient before logging in.";
@@ -179,7 +181,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
                 _config = config;
                 _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
 
-                ClientId = _config.ClientId ?? string.Empty;
+                ClientId = NormalizeClientId(_config.ClientId);
+                _config.ClientId = ClientId;
                 AccountTypeIndex = NormalizeAccountTypeIndex(_config.AccountType);
                 ThumbnailTypeIndex = NormalizeThumbnailTypeIndex(_config.ThumbnailType);
                 UseDirectLink = _config.DirectLink;
@@ -202,6 +205,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     {
         AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
         ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
+        ClientId = NormalizeClientId(ClientId);
 
         _config.ClientId = ClientId;
         _config.AccountType = (AccountType)AccountTypeIndex;
@@ -227,6 +232,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
 
     public bool Validate()
     {
+        ClientId = NormalizeClientId(ClientId);
+
         if (string.IsNullOrWhiteSpace(ClientId))
         {
             StatusMessage = "Client ID is required";
@@ -271,6 +278,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
             ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
 
+            ClientId = NormalizeClientId(ClientId);
+
             _config.ClientId = ClientId;
             _config.AccountType = (AccountType)AccountTypeIndex;
             _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
@@ -281,6 +290,11 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             _config.SecretKey = _secretKey;
             _uploader = BuildUploader();
         }
+    }
+
+    private static string NormalizeClientId(string? clientId)
+    {
+        return clientId?.Trim() ?? string.Empty;
     }
 
     private static int NormalizeAccountTypeIndex(AccountType accountType)

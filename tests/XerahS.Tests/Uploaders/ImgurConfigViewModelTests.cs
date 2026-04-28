@@ -109,6 +109,48 @@ public class ImgurConfigViewModelTests
     }
 
     [Test]
+    public void LoadFromJson_TrimsClientIdBeforeBuildingUploader()
+    {
+        ImgurConfigViewModel viewModel = new();
+        viewModel.SetContext(new TestProviderContext(new InMemorySecretStore()));
+
+        viewModel.LoadFromJson(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            ClientId = "  client-trimmed  ",
+            AccountType = AccountType.Anonymous
+        }));
+
+        string json = viewModel.ToJson();
+        ImgurUploader uploader = GetUploader(viewModel);
+        ImgurConfigModel saved = JsonConvert.DeserializeObject<ImgurConfigModel>(json)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.ClientId, Is.EqualTo("client-trimmed"));
+            Assert.That(saved.ClientId, Is.EqualTo("client-trimmed"));
+            Assert.That(uploader.AuthInfo.Client_ID, Is.EqualTo("client-trimmed"));
+        });
+    }
+
+    [Test]
+    public void ProviderCreateInstance_TrimsClientIdBeforeBuildingUploader()
+    {
+        const string secretKey = "imgur-provider-secret";
+        InMemorySecretStore secrets = new();
+        ImgurProvider provider = new();
+        provider.SetContext(new TestProviderContext(secrets));
+
+        ImgurUploader uploader = (ImgurUploader)provider.CreateInstance(JsonConvert.SerializeObject(new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "  provider-client  ",
+            AccountType = AccountType.Anonymous
+        }));
+
+        Assert.That(uploader.AuthInfo.Client_ID, Is.EqualTo("provider-client"));
+    }
+
+    [Test]
     public void LoadFromJson_NormalizesInvalidEnumSelectionsToSafeDefaults()
     {
         ImgurConfigViewModel viewModel = new();
@@ -427,6 +469,25 @@ public class ImgurConfigViewModelTests
         MethodInfo? method = typeof(ImgurProvider).GetMethod("CreateAlbumImagesUrl", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (string)method!.Invoke(null, new object[] { albumId })!;
+    }
+
+    [Test]
+    public void ProviderBuildAuthInfo_TrimsClientIdForExplorerFlows()
+    {
+        const string secretKey = "imgur-provider-secret";
+        InMemorySecretStore secrets = new();
+
+        ImgurProvider provider = new();
+        provider.SetContext(new TestProviderContext(secrets));
+
+        OAuth2Info? authInfo = InvokeBuildAuthInfo(provider, new ImgurConfigModel
+        {
+            SecretKey = secretKey,
+            ClientId = "  explorer-client  ",
+            AccountType = AccountType.User
+        });
+
+        Assert.That(authInfo!.Client_ID, Is.EqualTo("explorer-client"));
     }
 
     private static bool InvokeTryPrepareStreamForRetry(Stream stream)
