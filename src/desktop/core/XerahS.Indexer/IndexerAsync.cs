@@ -131,6 +131,14 @@ namespace XerahS.Indexer
                         }
 
                         FolderInfo subFolderInfo = await GetFolderInfoAsync(directoryInfo.FullName, level + 1);
+
+                        // Skip empty folders if the setting is enabled — matches sync Indexer.GetFolderInfo
+                        // behavior where empty subfolders are never added to the parent's Folders list.
+                        if (settings.IgnoreEmptyFolders && subFolderInfo.Files.Count == 0 && subFolderInfo.Folders.Count == 0)
+                        {
+                            continue;
+                        }
+
                         folderInfo.Folders.Add(subFolderInfo);
                         subFolderInfo.Parent = folderInfo;
 
