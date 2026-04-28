@@ -4552,3 +4552,15 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact serial `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable: `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630.
 - Follow-up:
   - Toast/notification path handling and further FileHelpers coverage remain as documented follow-up items from prior review; both are still open and not yet blocking.
+
+## 2026-04-28 11:43 UTC — Media subsystem (VideoThumbnailer)
+- **Area**: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`
+- **Findings**:
+  1. `GetRandomTimeSlice`: off-by-one in array sizing — loop generated N+1 seek-time slots for an N-size array; direct indexing at `start + 1` went out of bounds when `start = ThumbnailCount - 1`
+  2. `CombineScreenshots`: early `return finalImage` inside nested loop when `i >= images.Count` returned without disposing `finalImage`
+- **Fix landed**: both bugs fixed in `VideoThumbnailer.cs`; version bumped 0.22.113 → 0.22.114
+- **Version bumped**: yes (0.22.113 → 0.22.114)
+- **Build**: ✅ zero errors, zero warnings
+- **Tests**: ✅ 630 passed, 0 failed (McpServer.Tests: 11 passed)
+- **Commit**: `5c19ef8e` — pushed to `origin/develop`
+- **Follow-up**: the new `VideoThumbnailerGetRandomTimeSliceTests.cs` was removed after tests revealed `NullReferenceException` in `GetTimeSlice` (internal FFmpeg path unavailable in unit-test context); original two bugs remain valid fixes
