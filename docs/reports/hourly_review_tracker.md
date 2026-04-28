@@ -16,7 +16,7 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 
 | Area | Last Reviewed | Status | Last Outcome | Priority | Notes |
 |---|---|---|---|---|---|
-| Capture pipeline | 2026-04-27 19:38 AWST | Reviewed | Fixed CLI region-capture coordinate overflow so very large x/y plus width/height values are rejected instead of wrapping rectangle bounds | High | Focused follow-up review of capture entry points and region parsing across `CaptureStage`, CLI capture command handling, capture-region regression tests, and OCR capture processor coverage; upstream `develop` had 0 pending commits and no conflicts, `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required, `Directory.Build.props` was bumped from `0.22.96` to `0.22.97`, exact `dotnet build --configuration Release` passed with 0 warnings/errors, and exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 613/613). |
+| Capture pipeline | 2026-04-28 19:44 AWST | Reviewed | Fixed configured custom/last-region capture rectangle validation so overflowing configured right/bottom edges are rejected instead of wrapping through `System.Drawing.Rectangle.Right/Bottom` | High | Focused follow-up review of configured capture region handling across `CaptureStage`, Windows capture service/backend/strategy code, screen sampler helpers, MCP capture tools, and capture-region regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct, parent pointer already matched, and no submodule pointer update required; `Directory.Build.props` was bumped from `0.22.120` to `0.22.121`; targeted capture-stage tests passed 3/3; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 12/12 and `XerahS.Tests` 645/645). |
 | OCR | 2026-04-27 20:48 AWST | Reviewed | Fixed OCR option normalization so capture OCR and OCR tool trim language tags, reject non-finite scale factors, enforce a minimum scale, and tolerate missing capture OCR options | High | Focused follow-up review of OCR capture/tool flow across `OcrViewModel`, `OcrToolService`, platform OCR services, `IOcrService`, and OCR regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.97` to `0.22.98`; exact `dotnet build --configuration Release` passed with 0 warnings/errors; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 8/8 and `XerahS.Tests` 616/616). |
 | Editor integration | 2026-04-28 01:58 AWST | Reviewed | Fixed default editor session source-image capture so `ShowEditorSessionAsync` snapshots the original bitmap before editor implementations can mutate it; also reduced solution-build VideoEditor WebUI race by disabling duplicate WebUI builds from UI/CLI project references during solution builds | High | Focused follow-up review of default editor session fallback across `IUIService.ShowEditorSessionAsync`, editor session regression tests, UI/CLI VideoEditor project references, and `ShareX.VideoEditor` build integration; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.102` to `0.22.103`; exact `dotnet build --configuration Release` passed with 0 warnings/errors after fixing duplicate WebUI project-reference builds; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 620/620). |
 | Uploader core | 2026-04-28 02:42 AWST | Reviewed | Fixed upload history persistence so thumbnail, deletion, and shortened URLs from `UploadResult` are written into history entries instead of only the primary URL | High | Focused review of upload task/history result propagation across `WorkerTaskUpload`, `UploadJobProcessor`, `Uploader`, `UploadResult`, `TaskInfo`, and existing uploader regressions; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was bumped from `0.22.103` to `0.22.104`; exact `dotnet build --configuration Release` passed with 0 warnings/errors after killing stale Avalonia build collector process `80149` left from the prior failed build; exact `dotnet test --configuration Release` passed with tests discoverable (`XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 621/621). |
@@ -38,6 +38,40 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 | Media subsystem (VideoHelpers, GifHelpers, VideoThumbnailer, FFmpegCLIManager) | 2026-04-28 14:43 AWST | Reviewed | Fixed VideoThumbnailer.CombineScreenshots early-return so Dispose/null-set is removed before return (canvas already owns the bitmap); also FFmpegCLIManager GetVideoInfo missing closing quote fix (12:43 run); noted follow-up: TakeThumbnails hardcoded 30s FFmpeg timeout and GetRandomTimeSlice thread-safety via shared RandomFast state | High | Continued media subsystem review as follow-up to 12:43 run; upstream `develop` had 0 pending commits and no conflicts; `ShareX.ImageEditor` remained on branch `develop` at `360eeabe1cb0c1990f693a9171cf938295683474` with origin/upstream remotes correct and no parent pointer update required; `Directory.Build.props` was not bumped (WorkflowCommand fix already bumped to `0.22.116`); exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed 0 warnings/0 errors; exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed `XerahS.McpServer.Tests` 11/11 and `XerahS.Tests` 630/630. |
 
 ## Review Log
+
+
+### 2026-04-28 19:44 AWST
+- Area: Capture pipeline — configured custom/last-region rectangle validation
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs`
+  - `src/tools/XerahS.McpServer/Tools/CaptureTools.cs`
+  - `src/platform/XerahS.Platform.Windows/Capture/WindowsRegionCaptureBackend.cs`
+  - `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`
+  - `src/platform/XerahS.Platform.Windows/Capture/WinRTCaptureStrategy.cs`
+  - `src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs`
+  - `src/platform/XerahS.Platform.Windows/WindowsScreenSampler.cs`
+  - `tests/XerahS.Tests/Tasks/CaptureStageConfiguredRegionTests.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Revisited the high-priority capture pipeline row after reading the tracker, focusing on configured custom-region and last-region capture paths rather than repeating the previous CLI parser fix.
+  - Real bounded bug found in `CaptureStage`: workflow custom-region and last-region capture built `SKRect` from `System.Drawing.Rectangle.Right`/`Bottom`. Those properties add `X + Width` / `Y + Height` as `int`; extremely large persisted configured coordinates can overflow before reaching the capture backend, potentially wrapping the requested capture bounds.
+  - The CLI capture path already had overflow protection from the previous capture pass, but persisted task settings did not share that guard.
+- Outcome:
+  - Landed a bounded fix: added `CaptureStage.TryCreateConfiguredCaptureRect(...)` to reject empty, non-positive, or overflowing configured rectangles using `long` edge calculation before creating the `SKRect`.
+  - Updated both custom-region and last-region workflow capture paths to use the helper.
+  - Added regression coverage for valid regions, non-positive dimensions, and overflowing right/bottom edges.
+  - Bumped `Directory.Build.props` from `0.22.120` to `0.22.121`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`.
+  - Targeted capture-stage regression test passed: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter FullyQualifiedName~CaptureStageConfiguredRegionTests -m:1 /p:UseSharedCompilation=false /nr:false` passed 3/3.
+  - Exact `dotnet build --configuration Release` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 12/12 and `XerahS.Tests` 645/645.
+- Follow-up:
+  - Continue later capture review around platform-specific rectangle clipping behavior and negative-origin multi-monitor captures across DXGI/WinRT/GDI backends.
 
 
 ### 2026-04-28 18:43 AWST
