@@ -100,6 +100,8 @@ public static class PluginPackager
 
         var manifest = LoadAndValidateManifestJson(manifestJson);
 
+        Directory.CreateDirectory(pluginsDirectory);
+
         string targetDir = Path.Combine(pluginsDirectory, manifest.PluginId);
         if (Directory.Exists(targetDir))
         {
