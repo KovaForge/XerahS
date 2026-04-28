@@ -8,14 +8,16 @@ For the authoritative and always-up-to-date list, see the [`plugins-index.json`]
 
 ### Pixelfox
 
-**pluginId:** `pixelfox`
-**Version:** 1.0.0
-**Author:** Pixelfox.cc
-**Category:** Image
-**Description:** Upload images to Pixelfox.cc.
-**Homepage:** https://pixelfox.cc
-**Minimum app version:** 0.22.78
-**Status:** Draft (not yet available for installation)
+| Field | Value |
+|---|---|---|
+| pluginId | `pixelfox` |
+| Version | 1.0.0 |
+| Author | Pixelfox.cc |
+| Category | Image |
+| Description | Upload images to Pixelfox.cc. |
+| Homepage | https://pixelfox.cc |
+| Min app version | 0.22.78 |
+| Status | Draft (not yet available for installation) |
 
 ---
 
