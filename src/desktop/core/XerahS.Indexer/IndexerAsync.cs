@@ -115,7 +115,7 @@ namespace XerahS.Indexer
             // of directories processed, including the root folder passed to GetFolderInfoAsync.
             totalFoldersProcessed++;
 
-            if (settings.MaxDepthLevel == 0 || level < settings.MaxDepthLevel)
+            if (settings.ShouldRecurseIntoLevel(level))
             {
                 try
                 {

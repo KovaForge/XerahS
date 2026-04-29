@@ -61,7 +61,7 @@ namespace XerahS.Indexer
         {
             FolderInfo folderInfo = new FolderInfo(folderPath);
 
-            if (settings.MaxDepthLevel == 0 || level < settings.MaxDepthLevel)
+            if (settings.ShouldRecurseIntoLevel(level))
             {
                 try
                 {

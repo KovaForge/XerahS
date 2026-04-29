@@ -220,4 +220,78 @@ public class IndexerTextAsyncTests
             if (Directory.Exists(rootDirectory)) Directory.Delete(rootDirectory, recursive: true);
         }
     }
+
+    [Test]
+    public async Task IndexToFileAsync_NegativeMaxDepthTreatsAsUnlimited()
+    {
+        string rootDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-indexer-depth-async-{Guid.NewGuid():N}");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"xerahs-index-output-{Guid.NewGuid():N}.txt");
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(rootDirectory, "subfolder"));
+            File.WriteAllText(Path.Combine(rootDirectory, "root.txt"), "root");
+            File.WriteAllText(Path.Combine(rootDirectory, "subfolder", "nested.txt"), "nested");
+
+            IndexResult result = await IndexerAsync.IndexToFileAsync(
+                rootDirectory,
+                outputPath,
+                new IndexerSettings
+                {
+                    Output = IndexerOutput.Txt,
+                    MaxDepthLevel = -1
+                });
+
+            string output = await File.ReadAllTextAsync(outputPath);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.ErrorMessage);
+                Assert.That(result.TotalFiles, Is.EqualTo(2));
+                Assert.That(result.TotalFolders, Is.EqualTo(2));
+                Assert.That(output, Does.Contain("root.txt"));
+                Assert.That(output, Does.Contain("nested.txt"));
+            });
+        }
+        finally
+        {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (Directory.Exists(rootDirectory)) Directory.Delete(rootDirectory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Index_SyncText_NegativeMaxDepthTreatsAsUnlimited()
+    {
+        string rootDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-indexer-depth-sync-{Guid.NewGuid():N}");
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(rootDirectory, "subfolder"));
+            File.WriteAllText(Path.Combine(rootDirectory, "root.txt"), "root");
+            File.WriteAllText(Path.Combine(rootDirectory, "subfolder", "nested.txt"), "nested");
+
+            string output = global::XerahS.Indexer.Indexer.Index(
+                rootDirectory,
+                new IndexerSettings
+                {
+                    Output = IndexerOutput.Txt,
+                    MaxDepthLevel = -1
+                });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(output, Does.Contain("root.txt"));
+                Assert.That(output, Does.Contain("nested.txt"));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(rootDirectory))
+            {
+                Directory.Delete(rootDirectory, recursive: true);
+            }
+        }
+    }
+
 }

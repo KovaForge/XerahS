@@ -126,5 +126,10 @@ namespace XerahS.Indexer
         {
             return extension.Trim().TrimStart('.');
         }
+
+        internal bool ShouldRecurseIntoLevel(int level)
+        {
+            return MaxDepthLevel <= 0 || level < MaxDepthLevel;
+        }
     }
 }
