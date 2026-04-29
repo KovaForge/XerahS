@@ -340,12 +340,15 @@ public class InstanceManager
     /// </summary>
     /// <param name="category">Upload category</param>
     /// <param name="fileExtension">File extension (with or without leading dot, case-insensitive)</param>
-    public UploaderInstance? GetDestinationForFile(UploaderCategory category, string fileExtension)
+    public UploaderInstance? GetDestinationForFile(UploaderCategory category, string? fileExtension)
     {
         lock (_lock)
         {
-            // Normalize extension (remove leading dot, lowercase)
-            var ext = fileExtension.TrimStart('.').ToLowerInvariant();
+            var ext = NormalizeFileExtension(fileExtension);
+            if (ext == null)
+            {
+                return null;
+            }
 
             var instances = GetInstancesByCategory(category);
 
@@ -372,11 +375,15 @@ public class InstanceManager
     /// <param name="category">Upload category</param>
     /// <param name="excludeInstanceId">Instance ID to exclude from check (when editing existing instance)</param>
     /// <param name="fileExtension">File extension to check</param>
-    public bool CanAddFileType(UploaderCategory category, string excludeInstanceId, string fileExtension)
+    public bool CanAddFileType(UploaderCategory category, string excludeInstanceId, string? fileExtension)
     {
         lock (_lock)
         {
-            var ext = fileExtension.TrimStart('.').ToLowerInvariant();
+            var ext = NormalizeFileExtension(fileExtension);
+            if (ext == null)
+            {
+                return false;
+            }
 
             var otherInstances = _configuration.Instances
                 .Where(i => i.Category == category && i.InstanceId != excludeInstanceId);
@@ -544,11 +551,22 @@ public class InstanceManager
         }
 
         return fileExtensions
-            .Where(ext => !string.IsNullOrWhiteSpace(ext))
-            .Select(ext => ext.Trim().TrimStart('.').ToLowerInvariant())
-            .Where(ext => !string.IsNullOrWhiteSpace(ext))
+            .Select(NormalizeFileExtension)
+            .Where(ext => ext != null)
+            .Select(ext => ext!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static string? NormalizeFileExtension(string? fileExtension)
+    {
+        if (string.IsNullOrWhiteSpace(fileExtension))
+        {
+            return null;
+        }
+
+        var normalized = fileExtension.Trim().TrimStart('.').ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 
     private void SaveConfiguration()

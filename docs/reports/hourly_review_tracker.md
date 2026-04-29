@@ -5500,3 +5500,30 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact test command passed: `XerahS.Tests` 692/692 and `XerahS.McpServer.Tests` 14/14: `/tmp/xerahs-hourly-sweep/test-20260430-003038.log`.
 - Follow-up:
   - Continue assistant review around history DB path casing/symlink equivalence and OCR cache invalidation when capture files are moved or deleted; rotate to another stale tracker area next run if assistant remains quiet.
+
+### 2026-04-30 01:20 AWST
+- Area: Uploader plugin routing — file-extension input normalization
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `Directory.Build.props`
+  - `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`
+  - `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`
+- Findings:
+  - Read the tracker first and rotated from the previous assistant/history pass into uploader routing because plugin/instance routing was a bounded recently active area with direct regression coverage.
+  - Found a real routing mismatch: persisted uploader extension lists were normalized, but caller-provided extensions passed to `GetDestinationForFile` and `CanAddFileType` only stripped leading dots. Whitespace-padded inputs such as `" .PNG "` could miss the configured PNG destination or allow a duplicate route check to pass incorrectly; blank/null malformed UI inputs could also throw or behave inconsistently.
+- Outcome:
+  - Centralized single-extension normalization in `InstanceManager`, trimming whitespace, stripping leading dots, lowercasing invariantly, and returning `null` for blank/malformed values.
+  - Reused that normalization for persisted extension lists, destination lookup, and add-file-type conflict checks.
+  - Destination lookup now returns no route for blank/null extension inputs, and add-file-type validation rejects them instead of treating them as usable extensions.
+  - Added regression tests for whitespace-padded uppercase lookup/conflict checks plus blank/null handling.
+  - Bumped `Directory.Build.props` from `0.22.143` to `0.22.144`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 new `upstream/develop` commits this run; local `develop` was already up to date with upstream and origin.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`; no submodule pointer update was required.
+  - Targeted uploader instance tests passed: `InstanceManagerTests` 9/9 (`/tmp/xerahs-hourly-sweep/targeted-instance-manager-20260430-011202.log`).
+  - Exact build command passed with 0 warnings and 0 errors: `/tmp/xerahs-hourly-sweep/build-20260430-011652.log`.
+  - Exact test command passed: `XerahS.Tests` 694/694 and `XerahS.McpServer.Tests` 14/14: `/tmp/xerahs-hourly-sweep/test-20260430-012004.log`.
+- Follow-up:
+  - Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups; rotate again if another tracker area is staler.
