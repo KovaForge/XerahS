@@ -71,6 +71,32 @@ public class ToastWindowClickRoutingTests
     }
 
     [Test]
+    public void ToastConfig_IsValid_AllowsStickyToastWithZeroTimers_WhenAutoHideDisabled()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = false,
+            Duration = 0,
+            FadeDuration = 0
+        };
+
+        Assert.That(config.IsValid, Is.True);
+    }
+
+    [Test]
+    public void ToastConfig_IsValid_RejectsAutoHideToastWithZeroTimers()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 0,
+            FadeDuration = 0
+        };
+
+        Assert.That(config.IsValid, Is.False);
+    }
+
+    [Test]
     public void BuildMarkdownImage_UsesMarkdownImageSyntax_WithEscapedAltText()
     {
         var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/capture.png", "Latest [Capture]");

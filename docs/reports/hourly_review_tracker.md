@@ -5195,3 +5195,34 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact `dotnet test --configuration Release` passed with tests discoverable: `XerahS.McpServer.Tests` 12/12 and `XerahS.Tests` 668/668.
 - Follow-up:
   - Continue later Imgur review around token refresh/error surface behavior and legacy migration edge cases; rotate to other stale areas next run unless a fresh Imgur regression appears.
+
+### 2026-04-29 10:24 AWST
+- Area: Toast notifications / notification UX — sticky toast validation
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `Directory.Build.props`
+  - `src/platform/XerahS.Platform.Abstractions/ToastConfig.cs`
+  - `src/desktop/app/XerahS.UI/Services/AvaloniaToastService.cs`
+  - `src/desktop/app/XerahS.UI/Views/ToastWindow.axaml`
+  - `src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs`
+  - `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`
+  - `tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs`
+- Findings:
+  - Chose the toast/notification UX area after reading the tracker because recent runs had rotated through uploader/plugin/assistant areas and toast click/menu behavior had nearby test coverage for a bounded validation follow-up.
+  - Found a bounded sticky-toast bug in `ToastConfig.IsValid`: zero-duration/zero-fade configurations were rejected unconditionally, even when `AutoHide = false`. That made intentionally persistent toasts invalid and caused `AvaloniaToastService.ShowToast(...)` to silently skip them before the user could interact with the toast/flyout.
+  - Auto-hiding toasts still need at least one positive timer value; otherwise they would have no visible lifetime/fade path.
+- Outcome:
+  - Landed a safe fix: `ToastConfig.IsValid` now allows zero duration and zero fade only when `AutoHide` is disabled, preserving rejection for auto-hide toasts with no timing.
+  - Added regression coverage for both sticky zero-timer validity and auto-hide zero-timer rejection.
+  - Bumped `Directory.Build.props` from `0.22.133` to `0.22.134`.
+  - Preserved pre-existing uncommitted CLI work in a stash before syncing/fixing; it will be restored after committing this run's isolated changes.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: fast-forwarded and pushed 2 commits from `upstream/develop` to `origin/develop`: `9a538b90` (`[Plugin] Publish Pixelfox registry package`) and `fca5a53e` (`[Packaging] Refresh macOS release assets`).
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`; no submodule pointer update was required.
+  - Targeted toast regression tests passed: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --configuration Release --filter FullyQualifiedName~ToastWindowClickRoutingTests -m:1 /p:UseSharedCompilation=false /nr:false` passed 9/9.
+  - Exact `dotnet build --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors.
+  - Exact `dotnet test --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed with tests discoverable: `XerahS.Tests` 671/671 and `XerahS.McpServer.Tests` 12/12.
+- Follow-up:
+  - Continue later toast/notification review around flyout/menu command availability for missing files/URLs and whether action handlers should keep the toast open when an operation is skipped.
