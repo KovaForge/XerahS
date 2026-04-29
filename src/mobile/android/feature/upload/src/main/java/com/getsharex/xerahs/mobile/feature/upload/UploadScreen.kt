@@ -39,8 +39,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -48,6 +53,7 @@ import com.getsharex.xerahs.mobile.core.data.SettingsRepository
 import com.getsharex.xerahs.mobile.core.data.UploadQueueWorker
 import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 import com.getsharex.xerahs.mobile.core.domain.activeDestinationDisplayName
+import java.io.File
 
 @Composable
 fun UploadScreen(
@@ -56,6 +62,7 @@ fun UploadScreen(
     onOpenSettings: () -> Unit,
     onPickFiles: (() -> Unit)? = null,
     onCopyToClipboard: (String) -> Unit = {},
+    onAutoShareUploadFinished: (List<UploadResultItem>) -> Unit = {},
     initialPaths: Array<String>? = null,
     settingsRepository: SettingsRepository? = null,
     viewModel: UploadViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -66,9 +73,30 @@ fun UploadScreen(
         }
     )
 ) {
+    var pendingAutoShareUploads by remember { mutableIntStateOf(0) }
+    var autoShareResults by remember { mutableStateOf<List<UploadResultItem>>(emptyList()) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.completedResult.collect { result ->
+            if (pendingAutoShareUploads > 0) {
+                pendingAutoShareUploads -= 1
+                autoShareResults = autoShareResults + result
+                if (pendingAutoShareUploads == 0) {
+                    onAutoShareUploadFinished(autoShareResults)
+                    autoShareResults = emptyList()
+                }
+            }
+        }
+    }
+
     if (!initialPaths.isNullOrEmpty()) {
-        androidx.compose.runtime.LaunchedEffect(initialPaths) {
-            viewModel.processFiles(initialPaths)
+        LaunchedEffect(initialPaths) {
+            val expected = initialPaths.count { File(it).exists() }
+            if (expected > 0) pendingAutoShareUploads += expected
+            val added = viewModel.processFiles(initialPaths)
+            if (added < expected) {
+                pendingAutoShareUploads -= expected - added
+            }
         }
     }
     val statusText by viewModel.statusText.collectAsState()
