@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Text.RegularExpressions;
 using XerahS.Uploaders;
 
 namespace ShareX.Paste2.Plugin;
@@ -61,8 +62,53 @@ public sealed class Paste2Uploader : TextUploader
         if (LastResponseInfo != null)
         {
             result.URL = LastResponseInfo.ResponseURL;
+
+            string? deletionUrl = TryExtractDeletionUrl(LastResponseInfo);
+            if (!string.IsNullOrWhiteSpace(deletionUrl))
+            {
+                result.DeletionURL = deletionUrl;
+                result.Metadata["Deletion.Provider"] = "Paste2";
+                result.Metadata["Deletion.Method"] = "URL";
+            }
+            else
+            {
+                result.Metadata["Deletion.Provider"] = "Paste2";
+                result.Metadata["Deletion.Available"] = "false";
+                result.Metadata["Deletion.Reason"] = "Paste2 does not document a public delete API or return a detectable deletion URL.";
+            }
         }
 
         return result;
+    }
+
+    private static string? TryExtractDeletionUrl(ResponseInfo responseInfo)
+    {
+        if (string.IsNullOrWhiteSpace(responseInfo.ResponseText))
+        {
+            return null;
+        }
+
+        foreach (Match match in Regex.Matches(responseInfo.ResponseText, "href\\s*=\\s*[\\\"'](?<url>[^\\\"']+)[\\\"']", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            string candidate = match.Groups["url"].Value;
+            if (!candidate.Contains("delete", StringComparison.OrdinalIgnoreCase) &&
+                !candidate.Contains("remove", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute))
+            {
+                return absolute.ToString();
+            }
+
+            if (Uri.TryCreate("https://paste2.org/", UriKind.Absolute, out var baseUri) &&
+                Uri.TryCreate(baseUri, candidate, out var relative))
+            {
+                return relative.ToString();
+            }
+        }
+
+        return null;
     }
 }

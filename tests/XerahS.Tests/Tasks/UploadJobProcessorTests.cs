@@ -142,6 +142,36 @@ public class UploadJobProcessorTests
     }
 
     [Test]
+    public void CreateHistoryItem_PreservesUploaderResultMetadataAsTags()
+    {
+        var result = new UploadResult
+        {
+            URL = "https://pastebin.com/abc123",
+            DeletionURL = "https://pastebin.com/api/api_post.php"
+        };
+        result.Metadata["Deletion.Provider"] = "Pastebin";
+        result.Metadata["Deletion.PasteKey"] = "abc123";
+        result.Metadata["Deletion.ApiOption"] = "delete";
+
+        var info = new TaskInfo
+        {
+            Job = TaskJob.FileUpload,
+            DataType = EDataType.Text,
+            Result = result
+        };
+
+        var historyItem = UploadJobProcessor.CreateHistoryItem(info, result.URL!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(historyItem.DeletionURL, Is.EqualTo("https://pastebin.com/api/api_post.php"));
+            Assert.That(historyItem.Tags["UploadResult.Deletion.Provider"], Is.EqualTo("Pastebin"));
+            Assert.That(historyItem.Tags["UploadResult.Deletion.PasteKey"], Is.EqualTo("abc123"));
+            Assert.That(historyItem.Tags["UploadResult.Deletion.ApiOption"], Is.EqualTo("delete"));
+        });
+    }
+
+    [Test]
     public async Task ProcessAsync_FileUploadFallsBackWhenDefaultUploaderFails()
     {
         var defaultInstance = CreateFileInstance("Default Fails", "fail:primary unavailable");
