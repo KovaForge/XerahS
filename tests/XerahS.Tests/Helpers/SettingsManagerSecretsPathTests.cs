@@ -297,6 +297,26 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void SaveUploadersConfig_RaisesSettingsChanged()
+    {
+        int raisedCount = 0;
+        EventHandler handler = (_, _) => raisedCount++;
+
+        SettingsManager.SettingsChanged += handler;
+        try
+        {
+            SettingsManager.SaveUploadersConfig();
+        }
+        finally
+        {
+            SettingsManager.SettingsChanged -= handler;
+        }
+
+        Assert.That(raisedCount, Is.EqualTo(1),
+            "Uploader destination changes should notify settings observers just like application and workflow saves.");
+    }
+
+    [Test]
     public void SaveToMemoryStream_ReturnsStreamReadyForReading()
     {
         using MemoryStream stream = SettingsManager.Settings.SaveToMemoryStream();

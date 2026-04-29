@@ -13,11 +13,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
-- Settings/configuration
 - Tests / test discoverability
 - Editor integration
 - Plugin loading/runtime
 - Media subsystem
+- Hotkeys/input
 
 ## Current Coverage
 
@@ -25,7 +25,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 |---|---|---|---|---|
 | Capture pipeline | 2026-04-30 05:41 AWST | High | Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity. |
 | OCR | 2026-04-30 06:41 AWST | High | Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh. | Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases. |
-| Settings/configuration | 2026-04-28 22:21 AWST | High | Fixed settings upgrade detection/version stamping so saved settings persist the current app version, loads mark real upgrades, and IsUpgradeFrom uses numeric version comparison instead of lexicographic string ordering. |  |
+| Settings/configuration | 2026-04-30 07:41 AWST | High | Fixed uploader config saves so SettingsChanged observers are notified for destination/provider changes; added regression coverage. | Continue settings review around async save completion semantics and custom config backup paths. |
 | Assistant local memory/privacy/history | 2026-04-30 00:34 AWST | High | Fixed OCR cache history path normalization so whitespace-padded caller paths hit canonical history rows. | Continue assistant review around history DB path casing/symlink equivalence and OCR cache invalidation when capture files are moved or deleted. |
 | Tests / test discoverability | 2026-04-29 00:10 AWST | High | Hardened XerahS.McpServer.Tests test adapter metadata so xunit.runner.visualstudio stays a private/build-only test asset instead of flowing as a normal transitive package asset. |  |
 | Editor integration | 2026-04-29 01:10 AWST | High | Fixed CLI/watch-folder headless editor fallback so unavailable editors return null instead of falsely returning the original bitmap as an edited result. |  |
@@ -44,6 +44,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
 
 ## Recent Runs
+
+### 2026-04-30 07:41 AWST - Settings/configuration
+- Topic: uploader config save notifications
+- Outcome: Raised SettingsChanged after uploader config saves so destination/provider changes notify settings observers; added regression coverage; bumped version to 0.22.150.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-073743.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-074103.log`
 
 ### 2026-04-30 06:41 AWST - OCR
 - Topic: Onboarding OCR language refresh handlers
