@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using ShareX.Avalonia.Platform.Abstractions.Capture;
+using ShareX.Avalonia.Platform.macOS.Capture;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.MacOS;
 
@@ -27,6 +29,33 @@ public class MacOSRegionSelectorPreferenceTests
         });
 
         Assert.That(arguments, Does.Contain("-x"));
+    }
+
+    [Test]
+    public void CliRegionFallbackArguments_DefaultToCaptureSound()
+    {
+        string arguments = CliCaptureStrategy.BuildCaptureArguments(1, 2, 3, 4, "/tmp/capture.png", new RegionCaptureOptions());
+
+        Assert.That(arguments, Does.Contain("-R1,2,3,4"));
+        Assert.That(arguments, Does.Not.Contain("-x"));
+    }
+
+    [Test]
+    public void CliRegionFallbackArguments_SuppressSound_WhenMacOSCaptureSoundIsDisabled()
+    {
+        string arguments = CliCaptureStrategy.BuildCaptureArguments(
+            1,
+            2,
+            3,
+            4,
+            "/tmp/capture.png",
+            new RegionCaptureOptions
+            {
+                MacOSPlayCaptureSound = false
+            });
+
+        Assert.That(arguments, Does.Contain("-x"));
+        Assert.That(arguments, Does.Contain("-R1,2,3,4"));
     }
 
     [TestCase(MacOSInteractiveRegionSelectorPreference.Automatic)]

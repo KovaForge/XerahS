@@ -78,7 +78,7 @@ internal sealed class CliCaptureStrategy : ICaptureStrategy
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "/usr/sbin/screencapture",
-                    Arguments = $"-x -R{logicalX},{logicalY},{logicalWidth},{logicalHeight} \"{tempFile}\"",
+                    Arguments = BuildCaptureArguments(logicalX, logicalY, logicalWidth, logicalHeight, tempFile, options),
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardError = true
@@ -132,6 +132,18 @@ internal sealed class CliCaptureStrategy : ICaptureStrategy
             MaxCaptureResolution = 16384,
             RequiresPermission = true
         };
+    }
+
+    internal static string BuildCaptureArguments(
+        int logicalX,
+        int logicalY,
+        int logicalWidth,
+        int logicalHeight,
+        string outputPath,
+        RegionCaptureOptions? options)
+    {
+        var soundArgument = options?.MacOSPlayCaptureSound == false ? "-x " : string.Empty;
+        return $"{soundArgument}-R{logicalX},{logicalY},{logicalWidth},{logicalHeight} \"{outputPath}\"";
     }
 
     public void Dispose()
