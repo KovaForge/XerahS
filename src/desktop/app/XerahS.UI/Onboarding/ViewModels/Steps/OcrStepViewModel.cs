@@ -113,6 +113,16 @@ public partial class OcrStepViewModel : StepViewModelBase
         AvailableLanguages.Add(option);
     }
 
+    private void ClearAvailableLanguages()
+    {
+        foreach (OcrLanguageOption option in AvailableLanguages)
+        {
+            option.PropertyChanged -= OnLanguageOptionPropertyChanged;
+        }
+
+        AvailableLanguages.Clear();
+    }
+
     public void SetDefaultLanguage(string languageCode)
     {
         OcrLanguageOption? match = AvailableLanguages.FirstOrDefault(language =>
@@ -145,7 +155,7 @@ public partial class OcrStepViewModel : StepViewModelBase
         {
             IEnumerable<OcrLanguage> platformLanguages = ocrService.GetAvailableLanguages();
 
-            AvailableLanguages.Clear();
+            ClearAvailableLanguages();
             foreach (OcrLanguage language in platformLanguages)
             {
                 RegisterLanguage(new OcrLanguageOption(
