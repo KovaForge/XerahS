@@ -114,8 +114,19 @@ struct XerahSGlassCard<Content: View>: View {
                 content()
                     .frame(maxWidth: .infinity, alignment: alignment)
                     .padding(padding)
-                    .background(Color.white.opacity(0.001), in: shape)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.08, green: 0.14, blue: 0.24).opacity(0.76),
+                                Color(red: 0.11, green: 0.22, blue: 0.31).opacity(0.68)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: shape
+                    )
                     .glassEffect(.regular, in: shape)
+                    .overlay(shape.stroke(.white.opacity(0.22), lineWidth: 1))
             } else {
                 content()
                     .frame(maxWidth: .infinity, alignment: alignment)

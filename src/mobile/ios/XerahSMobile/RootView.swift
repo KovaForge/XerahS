@@ -166,6 +166,10 @@ struct RootView: View {
             navigate(to: newValue)
             appState.pendingNavigation = nil
         }
+        .onChange(of: appState.pendingSharedPaths) { _, newValue in
+            guard !newValue.isEmpty else { return }
+            navPath = []
+        }
     }
 
     private var mainNav: some View {
@@ -186,14 +190,13 @@ struct RootView: View {
             onOpenSettings: { navPath.append(.settings) },
             onCopyToClipboard: copyToClipboard,
             onAutoShareUploadFinished: handleAutoShareUploadFinished,
+            onInitialPathsConsumed: { appState.pendingSharedPaths = [] },
             initialPaths: pending.isEmpty ? nil : pending,
             activeDestinationLabel: activeLabel
         )
         .id(settingsRevision)
         .onAppear {
-            if !pending.isEmpty {
-                appState.pendingSharedPaths = []
-            } else {
+            if pending.isEmpty {
                 // If app was opened by Share Extension, paths may be in app group before onOpenURL runs (e.g. cold start)
                 let fromGroup = ShareGroup.consumePendingPaths()
                 if !fromGroup.isEmpty {
