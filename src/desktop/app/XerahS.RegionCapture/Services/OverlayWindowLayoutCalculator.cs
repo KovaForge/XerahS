@@ -44,6 +44,14 @@ internal static class OverlayWindowLayoutCalculator
                 Height: monitor.PhysicalToLogical(monitor.PhysicalBounds.Height));
         }
 
+        if (!isLinux)
+        {
+            return new OverlayWindowLayout(
+                Position: monitor.PhysicalBounds.TopLeft,
+                Width: monitor.PhysicalToLogical(monitor.PhysicalBounds.Width),
+                Height: monitor.PhysicalToLogical(monitor.PhysicalBounds.Height));
+        }
+
         bool usePhysicalPosition = isLinux && !isAvaloniaWayland;
         var position = usePhysicalPosition
             ? monitor.PhysicalBounds.TopLeft

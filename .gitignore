@@ -83,6 +83,11 @@ src/XerahS.Mobile.iOS.ShareExtension/ShareExtension.BundleId.plist
 *.class
 .gradle/
 **/build/
+!src/mobile/ios/build/
+src/mobile/ios/build/*
+!src/mobile/ios/build/AppStoreScreenshots/
+!src/mobile/ios/build/AppStoreScreenshots/**
+src/mobile/ios/build/AppStoreScreenshots/.DS_Store
 !build/
 !build/windows/
 !build/windows/chocolatey/

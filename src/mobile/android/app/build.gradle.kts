@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.getsharex.xerahs.mobile"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.getsharex.xerahs.mobile"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.16.0"
+        targetSdk = 35
+        versionCode = 22133
+        versionName = "0.22.133"
     }
 
     buildTypes {
