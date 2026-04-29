@@ -143,6 +143,7 @@ namespace XerahS.CLI
             rootCommand.Add(UploadCommand.Create(taskManager));
             rootCommand.Add(DoctorCommand.Create());
             rootCommand.Add(BootstrapCommand.Create());
+            rootCommand.Add(OpenClawCommand.Create());
 
             rootCommand.SetAction(async parseResult =>
             {
