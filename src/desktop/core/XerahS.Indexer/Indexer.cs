@@ -98,9 +98,7 @@ namespace XerahS.Indexer
                             // Apply include filter: only include specified extensions
                             if (settings.IncludedFileExtensions != null && settings.IncludedFileExtensions.Count > 0)
                             {
-                                string ext = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                                bool isIncluded = settings.IncludedFileExtensions.Any(inc =>
-                                    inc.TrimStart('.').Equals(ext, StringComparison.OrdinalIgnoreCase));
+                                bool isIncluded = IndexerSettings.ExtensionMatchesFilter(fileInfo.Extension, settings.IncludedFileExtensions);
                                 if (!isIncluded)
                                 {
                                     continue;
@@ -110,9 +108,7 @@ namespace XerahS.Indexer
                             // Apply exclude filter: skip specified extensions
                             if (settings.ExcludedFileExtensions != null && settings.ExcludedFileExtensions.Count > 0)
                             {
-                                string ext = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                                bool isExcluded = settings.ExcludedFileExtensions.Any(exc =>
-                                    exc.TrimStart('.').Equals(ext, StringComparison.OrdinalIgnoreCase));
+                                bool isExcluded = IndexerSettings.ExtensionMatchesFilter(fileInfo.Extension, settings.ExcludedFileExtensions);
                                 if (isExcluded)
                                 {
                                     continue;

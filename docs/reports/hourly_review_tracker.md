@@ -5354,3 +5354,31 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
 - Follow-up:
   - Continue MCP review around `RunTaskAsync` upload result distinction and consider centralizing full annotation schema validation/coercion before rendering.
 
+
+### 2026-04-29 17:29 AWST
+- Area: Indexer — extension filter normalization and malformed persisted settings hardening
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `Directory.Build.props`
+  - `src/desktop/core/XerahS.Indexer/IndexerSettings.cs`
+  - `src/desktop/core/XerahS.Indexer/Indexer.cs`
+  - `src/desktop/core/XerahS.Indexer/IndexerAsync.cs`
+  - `src/desktop/core/XerahS.Indexer/IndexerTextAsync.cs`
+  - `tests/XerahS.Tests/Helpers/IndexerTextAsyncTests.cs`
+- Findings:
+  - Chose Indexer after reading the tracker because it was the stalest pending/least-recently-reviewed visible area with recent async/sync parity follow-ups.
+  - Found a bounded persisted-settings bug: sync and async file extension filtering trimmed only leading dots from configured filters. Whitespace-padded entries (for example from hand-edited JSON or older persisted settings) failed to match extensions, and null/blank malformed entries could make indexing throw instead of safely ignoring those entries.
+- Outcome:
+  - Added shared extension-filter normalization in `IndexerSettings`, trimming whitespace and leading dots, comparing case-insensitively, and ignoring blank/null malformed filter entries.
+  - Updated both sync and async indexer paths to use the shared filter matcher so behavior stays aligned.
+  - Added regression coverage for sync text indexing and async text indexing with whitespace-padded uppercase include filters, whitespace-padded exclude filters, and a malformed null include entry.
+  - Bumped `Directory.Build.props` from `0.22.138` to `0.22.139`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: merged 2 commits from `upstream/develop` into local `develop`: `f4f5536e` (`Create Apple_Developer_Program_License_Agreement_854R8GJUBL.pdf`) and `b2e070db` (`[v0.22.133] [Core] Align macOS capture sound fallback`).
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`; no submodule pointer update was required.
+  - Exact build command passed with 0 warnings and 0 errors: `/tmp/xerahs-hourly-sweep/build-20260429-172445.log`.
+  - Exact test command passed: `XerahS.Tests` 683/683 and `XerahS.McpServer.Tests` 14/14: `/tmp/xerahs-hourly-sweep/test-20260429-172726.log`.
+- Follow-up:
+  - Continue Indexer review around HTML/XML/JSON parity for streaming vs sync output and inaccessible-directory reporting; rotate if another tracker area becomes staler.
