@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
+  "last_updated": "2026-04-30 05:00 AWST",
+  "selection_rules": [
+    "Read this JSON first, then the short current tracker only if human context is needed.",
+    "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
+    "After a run, update the matching area, prepend one compact last_runs item, and archive detailed evidence by log path only.",
+    "Do not paste full build/test output into hot state or the current tracker."
+  ],
+  "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
+  "current_tracker": "docs/reports/hourly_review_tracker.md",
+  "next_candidates": [
+    "Capture pipeline",
+    "OCR",
+    "Settings/configuration",
+    "Tests / test discoverability",
+    "Editor integration"
+  ],
+  "areas": [
+    {
+      "area": "Capture pipeline",
+      "last_reviewed": "2026-04-28 19:44 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed configured custom/last-region capture rectangle validation so overflowing configured right/bottom edges are rejected instead of wrapping through System.Drawing.Rectangle.Right/Bottom.",
+      "follow_up": null
+    },
+    {
+      "area": "OCR",
+      "last_reviewed": "2026-04-28 21:09 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed assistant Run OCR option normalization so trimmed language tags and finite/minimum scale factor rules match the main OCR capture/tool paths.",
+      "follow_up": null
+    },
+    {
+      "area": "Settings/configuration",
+      "last_reviewed": "2026-04-28 22:21 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed settings upgrade detection/version stamping so saved settings persist the current app version, loads mark real upgrades, and IsUpgradeFrom uses numeric version comparison instead of lexicographic string ordering.",
+      "follow_up": null
+    },
+    {
+      "area": "Assistant local memory/privacy/history",
+      "last_reviewed": "2026-04-30 00:34 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed OCR cache history path normalization so whitespace-padded caller paths hit canonical history rows.",
+      "follow_up": "Continue assistant review around history DB path casing/symlink equivalence and OCR cache invalidation when capture files are moved or deleted."
+    },
+    {
+      "area": "Tests / test discoverability",
+      "last_reviewed": "2026-04-29 00:10 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Hardened XerahS.McpServer.Tests test adapter metadata so xunit.runner.visualstudio stays a private/build-only test asset instead of flowing as a normal transitive package asset.",
+      "follow_up": null
+    },
+    {
+      "area": "Editor integration",
+      "last_reviewed": "2026-04-29 01:10 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed CLI/watch-folder headless editor fallback so unavailable editors return null instead of falsely returning the original bitmap as an edited result.",
+      "follow_up": null
+    },
+    {
+      "area": "Uploader core / plugin routing",
+      "last_reviewed": "2026-04-30 01:20 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed file-extension input normalization for uploader destination lookup and add-file-type conflict checks.",
+      "follow_up": "Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups."
+    },
+    {
+      "area": "Plugin loading/runtime",
+      "last_reviewed": "2026-04-29 04:11 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed plugin package installation so a missing plugins root is created before installing a .xsdp package instead of failing with DirectoryNotFoundException.",
+      "follow_up": null
+    },
+    {
+      "area": "FTP uploader plugin",
+      "last_reviewed": "2026-04-30 02:18 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths.",
+      "follow_up": "Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens."
+    },
+    {
+      "area": "Hotkeys/input",
+      "last_reviewed": "2026-04-29 06:20 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed workflow hotkey retry after a failed registration leaves a stale assigned ID.",
+      "follow_up": null
+    },
+    {
+      "area": "Imgur uploader plugin",
+      "last_reviewed": "2026-04-29 07:11 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup.",
+      "follow_up": null
+    },
+    {
+      "area": "Media subsystem",
+      "last_reviewed": "2026-04-29 08:31 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed VideoThumbnailer combined-grid generation so invalid/non-positive column counts are clamped instead of crashing with divide-by-zero.",
+      "follow_up": "Continue media review around TakeThumbnails hardcoded 30s FFmpeg timeout and GetRandomTimeSlice shared RandomFast state."
+    },
+    {
+      "area": "MCP server",
+      "last_reviewed": "2026-04-29 11:15 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely.",
+      "follow_up": "Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation."
+    },
+    {
+      "area": "CLI / command surface",
+      "last_reviewed": "2026-04-29 14:05 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed CLI upload to use the direct upload processor/bootstrap readiness path and added uploader doctor/bootstrap commands.",
+      "follow_up": "Continue CLI review around uploader bootstrap provider choices and JSON doctor output contract."
+    },
+    {
+      "area": "Notifications/toasts",
+      "last_reviewed": "2026-04-30 03:15 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely.",
+      "follow_up": "Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next."
+    },
+    {
+      "area": "File/path handling",
+      "last_reviewed": "2026-04-30 04:36 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives.",
+      "follow_up": "Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next."
+    },
+    {
+      "area": "Indexer subsystem",
+      "last_reviewed": "2026-04-29 18:17 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders.",
+      "follow_up": "Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling."
+    },
+    {
+      "area": "Platform-specific services",
+      "last_reviewed": "2026-04-29 19:24 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed macOS file-drop clipboard path handling so relative/whitespace-padded paths are normalized before AppleScript POSIX file specifiers.",
+      "follow_up": "Continue platform-specific review around macOS clipboard helper process timeouts and AppleScript argument robustness."
+    },
+    {
+      "area": "Region capture / window enumeration",
+      "last_reviewed": "2026-04-29 20:17 AWST",
+      "status": "reviewed",
+      "priority": "High",
+      "last_outcome": "Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely.",
+      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling."
+    }
+  ],
+  "last_runs": [
+    {
+      "timestamp": "2026-04-30 04:36 AWST",
+      "area": "File/path handling",
+      "topic": "SettingsBase backup scheduling flags",
+      "outcome": "Allowed weekly-only backup zip creation and added focused coverage.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-043410.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-043553.log"
+    },
+    {
+      "timestamp": "2026-04-30 03:15 AWST",
+      "area": "Notifications/toasts",
+      "topic": "zero-duration auto-hide fade startup",
+      "outcome": "Started fade immediately for valid zero-duration auto-hide toasts and added focused coverage.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-031132.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-031439.log"
+    },
+    {
+      "timestamp": "2026-04-30 02:18 AWST",
+      "area": "FTP uploader plugin",
+      "topic": "remote upload directory retry path handling",
+      "outcome": "Created missing retry directories from the parent remote path instead of bare filenames.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-021245.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-021556.log"
+    },
+    {
+      "timestamp": "2026-04-30 01:20 AWST",
+      "area": "Uploader core / plugin routing",
+      "topic": "file-extension input normalization",
+      "outcome": "Normalized caller-provided extensions for destination lookup and duplicate route checks.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-011652.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-012004.log"
+    },
+    {
+      "timestamp": "2026-04-30 00:34 AWST",
+      "area": "Assistant local memory/privacy/history",
+      "topic": "OCR cache history path normalization",
+      "outcome": "Normalized OCR cache get/set paths against canonical history rows.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-002728.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-003038.log"
+    }
+  ]
+}
