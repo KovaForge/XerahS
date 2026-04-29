@@ -40,6 +40,7 @@
 		D1000005 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D1000000 /* ShareExtension.appex */; };
 		F1000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000002 /* PrivacyInfo.xcprivacy */; };
 		F1000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000004 /* PrivacyInfo.xcprivacy */; };
+		F1000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +106,7 @@
 		D1000008 /* XerahSMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = XerahSMobile.entitlements; sourceTree = "<group>"; };
 		F1000002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F1000004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F1000006 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -207,6 +209,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000A2 /* SettingsRepository.swift */,
+				F1000006 /* KeychainStore.swift */,
 				B10000A4 /* QueueRepository.swift */,
 				B10000A6 /* HistoryRepository.swift */,
 				B10000B4 /* UploadQueueWorker.swift */,
@@ -391,6 +394,7 @@
 				B1000007 /* UploadResultItem.swift in Sources */,
 				B1000009 /* Paths.swift in Sources */,
 				B10000A1 /* SettingsRepository.swift in Sources */,
+				F1000005 /* KeychainStore.swift in Sources */,
 				B10000A3 /* QueueRepository.swift in Sources */,
 				B10000A5 /* HistoryRepository.swift in Sources */,
 				B10000A7 /* UploadOutcome.swift in Sources */,
