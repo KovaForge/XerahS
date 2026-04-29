@@ -149,21 +149,35 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            if (OperatingSystem.IsMacOS())
+            {
+                var requestedPreference = options?.MacOSRegionSelectorPreference ??
+                    MacOSInteractiveRegionSelectorPreference.Automatic;
+                DebugHelper.WriteLine($"[RegionCapture] macOS selector preference received: {requestedPreference}.");
+            }
+
             if (ShouldUseMacOSNativeRegionCapture(options))
             {
                 DebugHelper.WriteLine("[RegionCapture] macOS native crosshair selected; using platform region capture without XerahS overlay.");
                 try
                 {
-                    return await _platformImpl.CaptureRegionAsync(options);
+                    var nativeBitmap = await _platformImpl.CaptureRegionAsync(options);
+                    DebugHelper.WriteLine(nativeBitmap == null
+                        ? "[RegionCapture] macOS native region capture returned null."
+                        : $"[RegionCapture] macOS native region capture returned {nativeBitmap.Width}x{nativeBitmap.Height}.");
+                    DebugHelper.Flush();
+                    return nativeBitmap;
                 }
                 catch (OperationCanceledException)
                 {
                     DebugHelper.WriteLine("[RegionCapture] macOS native region capture cancelled by user.");
+                    DebugHelper.Flush();
                     return null;
                 }
                 catch (Exception ex)
                 {
                     DebugHelper.WriteLine($"[RegionCapture] macOS native region capture failed ({ex.Message}).");
+                    DebugHelper.Flush();
                     return null;
                 }
             }
