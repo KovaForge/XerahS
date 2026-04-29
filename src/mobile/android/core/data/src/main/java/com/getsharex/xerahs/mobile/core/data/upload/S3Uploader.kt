@@ -25,6 +25,7 @@ import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.S3ClientOptions
 import com.amazonaws.services.s3.model.CannedAccessControlList
 import com.amazonaws.services.s3.model.PutObjectRequest
 import com.getsharex.xerahs.mobile.core.domain.S3Config
@@ -46,9 +47,21 @@ class S3Uploader {
             } catch (e: Exception) {
                 return UploadOutcome.Failure("Invalid region: ${config.region}")
             }
-            val s3 = AmazonS3Client(credentials, region)
             val uploadName = UploadFileNameGenerator.uploadFileName(filePath)
             val key = "uploads/$uploadName"
+            val bucketContainsDots = config.bucketName.contains(".")
+            val usePathStyle = config.usePathStyle || bucketContainsDots
+            val s3 = AmazonS3Client(credentials, region).apply {
+                if (config.customEndpoint.isNotBlank()) {
+                    setEndpoint(normalizedEndpoint(config.customEndpoint))
+                }
+                setS3ClientOptions(
+                    S3ClientOptions.builder()
+                        .setPathStyleAccess(usePathStyle)
+                        .setPayloadSigningEnabled(config.signedPayload)
+                        .build()
+                )
+            }
             val request = PutObjectRequest(config.bucketName, key, file).apply {
                 if (config.setPublicAcl) withCannedAcl(CannedAccessControlList.PublicRead)
             }
@@ -56,8 +69,21 @@ class S3Uploader {
             val url = when {
                 config.useCustomDomain && config.customDomain.isNotBlank() ->
                     "${config.customDomain.trim().trimEnd('/')}/$key"
-                config.customEndpoint.isNotBlank() ->
-                    "${config.customEndpoint.trim().trimEnd('/')}/$key"
+                config.customEndpoint.isNotBlank() && usePathStyle ->
+                    "${normalizedEndpoint(config.customEndpoint).trimEnd('/')}/${config.bucketName}/$key"
+                config.customEndpoint.isNotBlank() -> {
+                    val endpoint = normalizedEndpoint(config.customEndpoint)
+                    val schemeEnd = endpoint.indexOf("://")
+                    if (schemeEnd > 0) {
+                        val scheme = endpoint.substring(0, schemeEnd)
+                        val hostAndPath = endpoint.substring(schemeEnd + 3)
+                        "$scheme://${config.bucketName}.$hostAndPath/$key"
+                    } else {
+                        "https://${config.bucketName}.$endpoint/$key"
+                    }
+                }
+                usePathStyle ->
+                    "https://s3.${config.region}.amazonaws.com/${config.bucketName}/$key"
                 else ->
                     "https://${config.bucketName}.s3.${config.region}.amazonaws.com/$key"
             }
@@ -65,5 +91,10 @@ class S3Uploader {
         } catch (e: Exception) {
             UploadOutcome.Failure(e.message ?: "S3 upload failed")
         }
+    }
+
+    private fun normalizedEndpoint(endpoint: String): String {
+        val trimmed = endpoint.trim().trimEnd('/')
+        return if (trimmed.contains("://")) trimmed else "https://$trimmed"
     }
 }

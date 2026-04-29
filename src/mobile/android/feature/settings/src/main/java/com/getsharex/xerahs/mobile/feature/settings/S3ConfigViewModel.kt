@@ -64,6 +64,8 @@ class S3ConfigViewModel(
     val regionIndex: StateFlow<Int> = _regionIndex.asStateFlow()
     private val _customEndpoint = MutableStateFlow("")
     val customEndpoint: StateFlow<String> = _customEndpoint.asStateFlow()
+    private val _usePathStyle = MutableStateFlow(false)
+    val usePathStyle: StateFlow<Boolean> = _usePathStyle.asStateFlow()
     private val _useCustomDomain = MutableStateFlow(false)
     val useCustomDomain: StateFlow<Boolean> = _useCustomDomain.asStateFlow()
     private val _customDomain = MutableStateFlow("")
@@ -84,6 +86,7 @@ class S3ConfigViewModel(
             _secretAccessKey.value = config.secretAccessKey
             _bucketName.value = config.bucketName
             _customEndpoint.value = config.customEndpoint
+            _usePathStyle.value = config.usePathStyle
             _useCustomDomain.value = config.useCustomDomain
             _customDomain.value = config.customDomain
             _signedPayload.value = config.signedPayload
@@ -98,6 +101,7 @@ class S3ConfigViewModel(
     fun setBucketName(value: String) { _bucketName.value = value }
     fun setRegionIndex(index: Int) { _regionIndex.value = index.coerceIn(0, REGIONS.lastIndex) }
     fun setCustomEndpoint(value: String) { _customEndpoint.value = value }
+    fun setUsePathStyle(value: Boolean) { _usePathStyle.value = value }
     fun setUseCustomDomain(value: Boolean) { _useCustomDomain.value = value }
     fun setCustomDomain(value: String) { _customDomain.value = value }
     fun setSignedPayload(value: Boolean) { _signedPayload.value = value }
@@ -121,6 +125,7 @@ class S3ConfigViewModel(
             bucketName = bucket,
             region = region,
             customEndpoint = _customEndpoint.value.trim(),
+            usePathStyle = _usePathStyle.value,
             useCustomDomain = _useCustomDomain.value,
             customDomain = _customDomain.value.trim(),
             signedPayload = _signedPayload.value,

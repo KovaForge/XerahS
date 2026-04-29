@@ -77,6 +77,7 @@ fun S3ConfigScreen(
     val bucket by viewModel.bucketName.collectAsState()
     val regionIndex by viewModel.regionIndex.collectAsState()
     val customEndpoint by viewModel.customEndpoint.collectAsState()
+    val usePathStyle by viewModel.usePathStyle.collectAsState()
     val useCustomDomain by viewModel.useCustomDomain.collectAsState()
     val customDomain by viewModel.customDomain.collectAsState()
     val signedPayload by viewModel.signedPayload.collectAsState()
@@ -168,6 +169,22 @@ fun S3ConfigScreen(
             label = { Text("Custom Endpoint (optional)") },
             supportingText = { Text("Override S3 API endpoint for MinIO or other S3-compatible storage. Leave blank for AWS.") },
             singleLine = true
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = usePathStyle,
+                onCheckedChange = { viewModel.setUsePathStyle(it) }
+            )
+            Text("Use path-style endpoint URLs")
+        }
+        Text(
+            text = "Recommended for dotted bucket names and S3-compatible endpoints where TLS fails with virtual-host style URLs.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(
