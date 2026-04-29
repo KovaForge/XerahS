@@ -5567,3 +5567,18 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Tests: passed, 712 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260430-031439.log).
 - Follow-up:
   - Continue rotating through older tracker items; toast opacity/fade behavior now has explicit zero-duration coverage.
+
+### 2026-04-30 04:36 AWST
+- Area: File/path handling — SettingsBase backup scheduling flags
+- Files reviewed: src/desktop/core/XerahS.Common/SettingsBase.cs; tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs; Directory.Build.props
+- Findings:
+  - Tracker rotation through settings/file persistence found `CreateWeeklyBackup` did not create backup archives unless the separate daily `CreateBackup` flag was also enabled, leaving weekly-only backup configurations silently unprotected.
+- Fix landed or blocker:
+  - Allowed backup zip creation when either daily or weekly backup is enabled, added focused weekly-only coverage, and bumped version 0.22.146 -> 0.22.147.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending upstream/develop commits; no merge conflicts.
+  - ShareX.ImageEditor checked out on develop at 360eeab, remotes normalized, upstream current; parent pointer unchanged.
+  - Build: passed with 0 warnings/0 errors (/tmp/xerahs-hourly-sweep/build-20260430-043410.log).
+  - Tests: passed, 713 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260430-043553.log).
+- Follow-up:
+  - Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next.
