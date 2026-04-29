@@ -5552,3 +5552,18 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 709/709. Log: `/tmp/xerahs-hourly-sweep/test-20260430-021556.log`.
 - Follow-up:
   - Next FTP pass can inspect URL generation for `HttpHomePathAutoAddSubFolderPath` with absolute SFTP subfolders and name-parser tokens.
+
+### 2026-04-30 03:15 AWST
+- Area: Toast notifications / notification UX — zero-duration auto-hide fade startup
+- Files reviewed: src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs; src/platform/XerahS.Platform.Abstractions/ToastConfig.cs; tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs
+- Findings:
+  - Tracker-guided follow-up on toast fade timing found that `ToastConfig.IsValid` allowed `AutoHide=true`, `Duration=0`, `FadeDuration>0`, but `ToastViewModel` only started the duration timer when duration was positive; these valid toasts could remain visible indefinitely instead of fading immediately.
+- Fix landed or blocker:
+  - Fixed auto-hide startup selection so zero-duration auto-hide toasts start fade immediately, added focused unit coverage, and bumped version 0.22.145 -> 0.22.146.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending upstream/develop commits; no merge conflicts.
+  - ShareX.ImageEditor checked out on develop at 360eeab, remotes normalized, upstream current; parent pointer unchanged.
+  - Build: passed with 0 warnings/0 errors (/tmp/xerahs-hourly-sweep/build-20260430-031132.log).
+  - Tests: passed, 712 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260430-031439.log).
+- Follow-up:
+  - Continue rotating through older tracker items; toast opacity/fade behavior now has explicit zero-duration coverage.

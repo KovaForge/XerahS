@@ -101,6 +101,45 @@ public class ToastWindowClickRoutingTests
     }
 
     [Test]
+    public void ToastViewModel_GetAutoHideStartMode_StartsFadeImmediately_WhenDurationIsZero()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 0,
+            FadeDuration = 1
+        };
+
+        Assert.That(ToastViewModel.GetAutoHideStartMode(config), Is.EqualTo(ToastViewModel.ToastAutoHideStartMode.StartFade));
+    }
+
+    [Test]
+    public void ToastViewModel_GetAutoHideStartMode_WaitsForDuration_WhenDurationIsPositive()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 1,
+            FadeDuration = 0
+        };
+
+        Assert.That(ToastViewModel.GetAutoHideStartMode(config), Is.EqualTo(ToastViewModel.ToastAutoHideStartMode.WaitForDuration));
+    }
+
+    [Test]
+    public void ToastViewModel_GetAutoHideStartMode_DoesNotAutoHide_WhenDisabled()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = false,
+            Duration = 0,
+            FadeDuration = 1
+        };
+
+        Assert.That(ToastViewModel.GetAutoHideStartMode(config), Is.EqualTo(ToastViewModel.ToastAutoHideStartMode.None));
+    }
+
+    [Test]
     public void BuildMarkdownImage_UsesMarkdownImageSyntax_WithEscapedAltText()
     {
         var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/capture.png", "Latest [Capture]");
