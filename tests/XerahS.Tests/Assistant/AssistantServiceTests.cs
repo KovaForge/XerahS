@@ -450,6 +450,54 @@ public sealed class AssistantServiceTests
     }
 
     [Test]
+    public async Task ExecuteActionAsync_RunOcr_NormalizesConfiguredTaskOcrOptions()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "ocr-normalized.png");
+
+        using (var bitmap = new SKBitmap(8, 8))
+        using (var image = SKImage.FromBitmap(bitmap))
+        using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+        using (var stream = File.OpenWrite(imagePath))
+        {
+            data.SaveTo(stream);
+        }
+
+        var ocr = new RecordingOcrService();
+        PlatformServices.Ocr = ocr;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = " fr ";
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.ScaleFactor = float.PositiveInfinity;
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            new FakeHistoryService([CreateHistoryItem(imagePath, Path.GetFileName(imagePath))]),
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ExecuteActionAsync(
+                new AssistantAction(AssistantActionKind.RunOcr, "Run OCR", FilePath: imagePath),
+                confirmed: true,
+                CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Information));
+            Assert.That(ocr.LastOptions, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ocr.LastOptions!.Language, Is.EqualTo("fr"));
+                Assert.That(ocr.LastOptions.ScaleFactor, Is.EqualTo(1f));
+            });
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            PlatformServices.Reset();
+        }
+    }
+
+    [Test]
     public async Task ExecuteActionAsync_RunOcr_CachesRecognizedTextForHistoryFile()
     {
         string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));

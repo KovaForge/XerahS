@@ -215,4 +215,23 @@ public class WaylandWindowPointQueryHelperTests
             Assert.That(bounds, Is.EqualTo(new Rectangle(200, 100, 1200, 800)));
         });
     }
+
+    [Test]
+    public void KdeKdotoolHelper_TryParseWindowGeometry_RejectsOverflowingNumbers()
+    {
+        const string geometryOutput = """
+            Window {12345678-90ab-cdef-1234-567890abcdef}
+              Position: 200,999999999999999999999999999999 (screen: 0)
+              Geometry: 1200x800
+            """;
+
+        Rectangle bounds = Rectangle.Empty;
+
+        Assert.DoesNotThrow(() =>
+        {
+            bool parsedGeometry = KdeKdotoolWindowPointQueryHelper.TryParseWindowGeometry(geometryOutput, out bounds);
+            Assert.That(parsedGeometry, Is.False);
+        });
+        Assert.That(bounds, Is.EqualTo(Rectangle.Empty));
+    }
 }

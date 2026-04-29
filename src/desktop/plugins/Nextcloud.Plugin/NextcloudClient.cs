@@ -69,6 +69,11 @@ public sealed class NextcloudClient
             value = "https://" + value;
         }
 
+        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? uri))
+        {
+            value = uri.GetLeftPart(UriPartial.Path);
+        }
+
         return value.TrimEnd('/');
     }
 

@@ -83,7 +83,7 @@ public class FtpProvider : UploaderProviderBase
         {
             Name = c.AccountName ?? "FTP Account",
             Protocol = protocol,
-            Host = c.Host ?? "",
+            Host = NormalizeHost(c.Host),
             Port = IsValidPort(c.Port) ? c.Port : GetDefaultPort(protocol, ftpsEncryption),
             Username = c.Username ?? "",
             Password = c.Password ?? "",
@@ -98,6 +98,8 @@ public class FtpProvider : UploaderProviderBase
             Passphrase = c.Passphrase ?? ""
         };
     }
+
+    private static string NormalizeHost(string? host) => host?.Trim() ?? string.Empty;
 
     private static int GetDefaultPort(FTPProtocol protocol, FTPSEncryption ftpsEncryption)
     {

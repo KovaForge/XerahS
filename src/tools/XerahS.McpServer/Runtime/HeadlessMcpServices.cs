@@ -11,7 +11,7 @@ internal sealed class HeadlessMcpUIService : IUIService
     public Task RestoreMainWindowAsync() => Task.CompletedTask;
 
     public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false) =>
-        Task.FromResult<SKBitmap?>(image);
+        Task.FromResult<SKBitmap?>(null);
 
     public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) =>
         Task.FromResult<string?>(null);

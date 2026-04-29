@@ -95,6 +95,29 @@ public class PluginManifestSecurityTests
         Assert.That(Directory.Exists(Path.Combine(_tempRoot, "outside")), Is.False);
     }
 
+    [Test]
+    public void InstallPackage_CreatesMissingPluginsDirectory()
+    {
+        string packagePath = Path.Combine(_tempRoot, "sample.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "MissingPlugins");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+        }
+
+        var metadata = PluginPackager.InstallPackage(packagePath, pluginsRoot);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata, Is.Not.Null);
+            Assert.That(Directory.Exists(pluginsRoot), Is.True);
+            Assert.That(File.Exists(Path.Combine(pluginsRoot, "sample-plugin", "plugin.json")), Is.True);
+            Assert.That(File.Exists(Path.Combine(pluginsRoot, "sample-plugin", "sample-plugin.dll")), Is.True);
+        });
+    }
+
     private static PluginManifest CreateValidManifest()
     {
         return new PluginManifest

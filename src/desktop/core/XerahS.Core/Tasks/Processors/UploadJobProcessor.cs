@@ -198,14 +198,14 @@ namespace XerahS.Core.Tasks.Processors
 
             var primaryResult = TryUploadWithInstance(targetInstance, info);
 
-            if (IsSuccessfulUploadResult(primaryResult) || category != UploaderCategory.Image)
+            if (IsSuccessfulUploadResult(primaryResult))
             {
                 return primaryResult;
             }
 
             var primaryError = primaryResult?.Errors?.ToString() ?? primaryResult?.Response ?? "Unknown error";
             DebugHelper.WriteLine(
-                $"Primary image uploader '{targetInstance.DisplayName}' failed ({primaryError}). " +
+                $"Primary {category} uploader '{targetInstance.DisplayName}' failed ({primaryError}). " +
                 "Trying fallback uploaders.");
 
             var attemptedInstanceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

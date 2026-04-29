@@ -129,7 +129,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
 
                 AccountName = config.AccountName ?? "FTP Account";
                 Protocol = protocol;
-                Host = config.Host ?? string.Empty;
+                Host = NormalizeHost(config.Host);
                 Username = config.Username ?? string.Empty;
                 Password = config.Password ?? string.Empty;
                 IsActive = config.IsActive;
@@ -157,7 +157,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
         {
             AccountName = AccountName ?? "FTP Account",
             Protocol = Protocol,
-            Host = Host ?? string.Empty,
+            Host = NormalizeHost(Host),
             Port = Port,
             Username = Username ?? string.Empty,
             Password = Password ?? string.Empty,
@@ -209,6 +209,8 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
         StatusMessage = null;
         return true;
     }
+
+    private static string NormalizeHost(string? host) => host?.Trim() ?? string.Empty;
 
     private static int GetDefaultPort(FTPProtocol protocol, FTPSEncryption ftpsEncryptionMode)
     {

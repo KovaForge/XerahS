@@ -364,11 +364,9 @@ namespace XerahS.Core.Tasks.Pipeline
                         return PipelineStageResult.Stop;
                     }
                     var customRect = taskSettings!.CaptureSettings.CaptureCustomRegion;
-                    if (!customRect.IsEmpty)
+                    if (TryCreateConfiguredCaptureRect(customRect, out var customCaptureRect))
                     {
-                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(
-                            new SKRect(customRect.X, customRect.Y, customRect.Right, customRect.Bottom),
-                            captureOptions);
+                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(customCaptureRect, captureOptions);
                     }
                     break;
 
@@ -378,12 +376,9 @@ namespace XerahS.Core.Tasks.Pipeline
                         return PipelineStageResult.Stop;
                     }
                     var lastRegionRect = taskSettings!.CaptureSettings.CaptureCustomRegion;
-                    if (!lastRegionRect.IsEmpty)
+                    if (TryCreateConfiguredCaptureRect(lastRegionRect, out var lastRegionCaptureRect))
                     {
-                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(
-                            new SKRect(lastRegionRect.X, lastRegionRect.Y,
-                                lastRegionRect.Right, lastRegionRect.Bottom),
-                            captureOptions);
+                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(lastRegionCaptureRect, captureOptions);
                     }
                     break;
 
@@ -624,6 +619,27 @@ namespace XerahS.Core.Tasks.Pipeline
                 return;
 
             await _workerTask.HandleStartRecordingAsync(CaptureMode.Region, region: recordingRegion);
+        }
+
+        internal static bool TryCreateConfiguredCaptureRect(Rectangle configuredRegion, out SKRect captureRect)
+        {
+            captureRect = default;
+
+            if (configuredRegion.IsEmpty || configuredRegion.Width <= 0 || configuredRegion.Height <= 0)
+            {
+                return false;
+            }
+
+            long right = (long)configuredRegion.X + configuredRegion.Width;
+            long bottom = (long)configuredRegion.Y + configuredRegion.Height;
+
+            if (right > int.MaxValue || bottom > int.MaxValue)
+            {
+                return false;
+            }
+
+            captureRect = new SKRect(configuredRegion.X, configuredRegion.Y, right, bottom);
+            return true;
         }
 
         private static LinuxInteractiveRegionSelectorPreference ResolveLinuxRegionSelectorPreference(TaskSettingsCapture captureSettings)

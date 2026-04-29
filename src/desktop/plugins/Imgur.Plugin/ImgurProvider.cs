@@ -147,6 +147,8 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
             throw new InvalidOperationException("Imgur secret key is missing");
         }
 
+        config.ClientId = NormalizeClientId(config.ClientId);
+
         string clientSecret = Secrets.GetSecret(ProviderId, config.SecretKey, "clientSecret")
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
 
@@ -448,10 +450,15 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         string clientSecret = Secrets.GetSecret(ProviderId, config.SecretKey, "clientSecret")
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
-        var authInfo = new OAuth2Info(config.ClientId, clientSecret);
+        var authInfo = new OAuth2Info(NormalizeClientId(config.ClientId), clientSecret);
         TryHydrateToken(authInfo, Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken"));
 
         return authInfo;
+    }
+
+    private static string NormalizeClientId(string? clientId)
+    {
+        return clientId?.Trim() ?? string.Empty;
     }
 
     private static void TryHydrateToken(OAuth2Info authInfo, string? tokenJson)

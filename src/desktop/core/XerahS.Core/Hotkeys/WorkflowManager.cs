@@ -111,10 +111,23 @@ public class WorkflowManager : IDisposable
     {
         // If this workflow had a previously registered hotkey, release it first.
         // This is required when editing a hotkey and clearing it to None.
-        if (settings.HotkeyInfo.Id != 0 && !UnregisterHotkeyInternal(settings, removeFromList: false))
+        if (settings.HotkeyInfo.Id != 0)
         {
-            Debug.WriteLine($"[WorkflowManager] Failed to unregister existing hotkey Id={settings.HotkeyInfo.Id} for workflow '{settings.Name}', aborting registration.");
-            return false;
+            bool hasKnownRuntimeRegistration = _hotkeyMap.ContainsKey(settings.HotkeyInfo.Id) || _hotkeyService.IsRegistered(settings.HotkeyInfo);
+
+            if (hasKnownRuntimeRegistration)
+            {
+                if (!UnregisterHotkeyInternal(settings, removeFromList: false))
+                {
+                    Debug.WriteLine($"[WorkflowManager] Failed to unregister existing hotkey Id={settings.HotkeyInfo.Id} for workflow '{settings.Name}', aborting registration.");
+                    return false;
+                }
+            }
+            else
+            {
+                settings.HotkeyInfo.Id = 0;
+                settings.HotkeyInfo.NativeTriggerDescription = null;
+            }
         }
 
         settings.HotkeyInfo.NativeTriggerDescription = null;

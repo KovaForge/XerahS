@@ -11,10 +11,13 @@ namespace XerahS.Tests.Tasks;
 [NonParallelizable]
 public class UploadJobProcessorTests
 {
+    private const string FallbackProviderId = "xerahs-tests-upload-fallback-provider";
+
     [SetUp]
     public void SetUp()
     {
         ClearInstances();
+        RegisterFallbackProvider();
     }
 
     [TearDown]
@@ -138,6 +141,47 @@ public class UploadJobProcessorTests
         });
     }
 
+    [Test]
+    public async Task ProcessAsync_FileUploadFallsBackWhenDefaultUploaderFails()
+    {
+        var defaultInstance = CreateFileInstance("Default Fails", "fail:primary unavailable");
+        var fallbackInstance = CreateFileInstance("Fallback Succeeds", "success:https://example.test/fallback.bin");
+        InstanceManager.Instance.AddInstance(defaultInstance);
+        InstanceManager.Instance.AddInstance(fallbackInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, defaultInstance.InstanceId);
+
+        var tempFile = Path.GetTempFileName();
+        await File.WriteAllTextAsync(tempFile, "fallback payload");
+
+        try
+        {
+            var info = new TaskInfo(new TaskSettings
+            {
+                Job = WorkflowType.PrintScreen,
+                AfterUploadJob = AfterUploadTasks.None
+            })
+            {
+                Job = TaskJob.FileUpload,
+                DataType = EDataType.File
+            };
+            info.FilePath = tempFile;
+
+            var processed = await new UploadJobProcessor().ProcessAsync(info, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(processed, Is.True);
+                Assert.That(info.Result.URL, Is.EqualTo("https://example.test/fallback.bin"));
+                Assert.That(info.Metadata.UploadURL, Is.EqualTo("https://example.test/fallback.bin"));
+                Assert.That(info.UploaderHost, Is.EqualTo("Fallback Succeeds"));
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
     private static UploaderInstance CreateInstance(string name, bool isAvailable = true)
     {
         return new UploaderInstance
@@ -149,11 +193,72 @@ public class UploadJobProcessorTests
         };
     }
 
+    private static UploaderInstance CreateFileInstance(string name, string settingsJson)
+    {
+        return new UploaderInstance
+        {
+            ProviderId = FallbackProviderId,
+            Category = UploaderCategory.File,
+            DisplayName = name,
+            SettingsJson = settingsJson,
+            IsAvailable = true
+        };
+    }
+
+    private static void RegisterFallbackProvider()
+    {
+        if (ProviderCatalog.GetProvider(FallbackProviderId) == null)
+        {
+            ProviderCatalog.RegisterProvider(new FallbackTestProvider());
+        }
+    }
+
     private static void ClearInstances()
     {
         foreach (var instance in InstanceManager.Instance.GetInstances().ToList())
         {
             InstanceManager.Instance.RemoveInstance(instance.InstanceId);
+        }
+    }
+
+    private sealed class FallbackTestProvider : UploaderProviderBase
+    {
+        public override string ProviderId => FallbackProviderId;
+        public override string Name => "Fallback Test Provider";
+        public override string Description => "Test-only provider for upload fallback behavior.";
+        public override Version Version { get; } = new(1, 0, 0);
+        public override UploaderCategory[] SupportedCategories { get; } = [UploaderCategory.File];
+        public override Type ConfigModelType => typeof(object);
+
+        public override Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new()
+        {
+            [UploaderCategory.File] = ["*"]
+        };
+
+        public override Uploader CreateInstance(string settingsJson) => new FallbackTestUploader(settingsJson);
+    }
+
+    private sealed class FallbackTestUploader(string outcome) : FileUploader
+    {
+        public override UploadResult Upload(Stream stream, string fileName)
+        {
+            const string successPrefix = "success:";
+            if (outcome.StartsWith(successPrefix, StringComparison.Ordinal))
+            {
+                return new UploadResult
+                {
+                    IsSuccess = true,
+                    URL = outcome[successPrefix.Length..]
+                };
+            }
+
+            return new UploadResult
+            {
+                IsSuccess = false,
+                Response = outcome.StartsWith("fail:", StringComparison.Ordinal)
+                    ? outcome["fail:".Length..]
+                    : "Upload failed"
+            };
         }
     }
 }
