@@ -5473,3 +5473,30 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact test command passed: `XerahS.Tests` 683/683 and `XerahS.McpServer.Tests` 14/14: `/tmp/xerahs-hourly-sweep/test-20260429-172726.log`.
 - Follow-up:
   - Continue Indexer review around HTML/XML/JSON parity for streaming vs sync output and inaccessible-directory reporting; rotate if another tracker area becomes staler.
+
+### 2026-04-30 00:34 AWST
+- Area: Assistant history service — OCR cache history path normalization
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `docs/reports/hourly_review_tracker.md`
+  - `Directory.Build.props`
+  - `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`
+  - `tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`
+- Findings:
+  - Read the tracker first and picked the assistant/history path because assistant history OCR cache handling was a bounded follow-up area and had direct test coverage.
+  - Found a real cache miss bug: `GetCachedOcrTextAsync` and `CacheOcrTextAsync` queried the history database with the caller-provided path verbatim, while `IsKnownHistoryFile` canonicalized first. Whitespace-padded paths from command text/UI plumbing could fail OCR cache lookup/update even though the same file was present in history.
+  - The same entry points also benefited from safely ignoring blank or malformed paths before opening history state.
+- Outcome:
+  - Added shared assistant history path normalization that trims caller input, canonicalizes it with `Path.GetFullPath`, and returns `null` for blank/invalid paths.
+  - Updated OCR cache get/set and known-file checks to use the same normalized path behavior.
+  - Added regression coverage for whitespace-padded OCR cache lookup against the canonical history path.
+  - Bumped `Directory.Build.props` from `0.22.142` to `0.22.143`.
+  - No `ShareX.ImageEditor` code changes or parent submodule pointer update were needed.
+- Verification / blockers:
+  - Parent upstream sync: 0 new `upstream/develop` commits this run; local `develop` was already up to date with upstream after prior unpushed sync commits.
+  - `ShareX.ImageEditor` final state: branch `develop`, not detached, at `360eeabe1cb0c1990f693a9171cf938295683474`; remotes are `origin=https://github.com/KovaForge/ShareX.ImageEditor.git` and `upstream=https://github.com/ShareX/ShareX.ImageEditor.git`; parent records `360eeabe1cb0c1990f693a9171cf938295683474`; no submodule pointer update was required.
+  - Targeted assistant history tests passed: `AssistantHistoryServiceTests` 3/3 (`/tmp/xerahs-hourly-sweep/targeted-assistant-20260430-002240.log`).
+  - Exact build command passed with 0 warnings and 0 errors: `/tmp/xerahs-hourly-sweep/build-20260430-002728.log`.
+  - Exact test command passed: `XerahS.Tests` 692/692 and `XerahS.McpServer.Tests` 14/14: `/tmp/xerahs-hourly-sweep/test-20260430-003038.log`.
+- Follow-up:
+  - Continue assistant review around history DB path casing/symlink equivalence and OCR cache invalidation when capture files are moved or deleted; rotate to another stale tracker area next run if assistant remains quiet.
