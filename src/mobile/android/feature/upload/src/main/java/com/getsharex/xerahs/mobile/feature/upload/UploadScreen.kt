@@ -134,7 +134,7 @@ fun UploadScreen(
                 ResultCard(
                     item = item,
                     onCopyUrl = if (item.hasUrl && itemUrl != null) ({ onCopyToClipboard(itemUrl) }) else null,
-                    onCopyError = if (!item.success && itemError != null) ({ onCopyToClipboard(itemError) }) else null
+                    onCopyError = if (!item.success && itemError != null) ({ onCopyToClipboard(item.errorClipboardText ?: itemError) }) else null
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }

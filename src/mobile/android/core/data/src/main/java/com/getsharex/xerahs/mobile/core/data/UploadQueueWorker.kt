@@ -109,7 +109,7 @@ class UploadQueueWorker(
                 val outcome = s3Uploader.uploadFile(pathToUpload, config.s3Config)
                 return when (outcome) {
                     is UploadOutcome.Success -> UploadResultItem(fileName, true, outcome.url, null)
-                    is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error)
+                    is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error, outcome.details)
                 }
             }
             config.customUploaders.isNotEmpty() -> {
@@ -117,7 +117,7 @@ class UploadQueueWorker(
                 val outcome = customUploader.uploadFile(pathToUpload, entry)
                 return when (outcome) {
                     is UploadOutcome.Success -> UploadResultItem(fileName, true, outcome.url, null)
-                    is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error)
+                    is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error, outcome.details)
                 }
             }
             else -> return UploadResultItem(fileName, false, null, "No upload destination configured. Configure S3 or a custom uploader in Settings.")
