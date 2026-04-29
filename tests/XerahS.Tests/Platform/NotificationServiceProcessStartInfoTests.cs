@@ -49,7 +49,6 @@ public class NotificationServiceProcessStartInfoTests
     }
 
     [Test]
-    [Platform(Include = "Linux")]
     public void LinuxNotificationService_WaitForSuccessfulExit_KillsTimedOutProcess()
     {
         using var process = Process.Start(new ProcessStartInfo
@@ -62,6 +61,27 @@ public class NotificationServiceProcessStartInfoTests
         Assert.That(process, Is.Not.Null);
 
         var result = LinuxNotificationService.WaitForSuccessfulExit(process!, 50);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.False);
+            Assert.That(process!.HasExited, Is.True);
+        });
+    }
+
+    [Test]
+    public void MacOSNotificationService_WaitForSuccessfulExit_KillsTimedOutProcess()
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "/bin/sh",
+            UseShellExecute = false,
+            ArgumentList = { "-c", "sleep 5" }
+        });
+
+        Assert.That(process, Is.Not.Null);
+
+        var result = MacOSNotificationService.WaitForSuccessfulExit(process!, 50);
 
         Assert.Multiple(() =>
         {

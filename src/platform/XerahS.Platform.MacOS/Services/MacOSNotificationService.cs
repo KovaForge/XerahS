@@ -76,6 +76,7 @@ public sealed class MacOSNotificationService : INotificationService
         try
         {
             process.Kill(entireProcessTree: true);
+            process.WaitForExit(500);
         }
         catch (Exception ex)
         {
