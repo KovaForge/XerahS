@@ -57,6 +57,12 @@ Upload a file and parse the URL:
 xerahs upload ./artifact.png --json
 ```
 
+Force a text-like file, such as an HTML report, through the file uploader category instead of the text uploader:
+
+```bash
+xerahs upload ./report.html --as-file --json
+```
+
 Upload generated text:
 
 ```bash
@@ -91,6 +97,7 @@ xerahs doctor uploaders --json
 xerahs doctor uploaders --fix
 xerahs bootstrap uploaders
 xerahs upload <file> --json
+xerahs upload <file> --as-file --json
 xerahs upload --text <content> --name <name> --json
 xerahs upload --pipe --name <name> --json
 ```

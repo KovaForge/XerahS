@@ -184,10 +184,10 @@ public class UploadCommandPathSanitizationTests
         }
     }
 
-    private static async Task<int> InvokeUploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name)
+    private static async Task<int> InvokeUploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name, bool asFile = false)
     {
         MethodInfo method = typeof(UploadCommand).GetMethod("UploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
-        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name])!;
+        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name, asFile])!;
         return await task;
     }
 

@@ -36,6 +36,7 @@ public static class OpenClawCommand
                     new OpenClawManifestCommand("doctor uploaders --fix", "Repair safe local uploader defaults", false, true),
                     new OpenClawManifestCommand("bootstrap uploaders", "Idempotently initialize first-use uploader defaults", false, true),
                     new OpenClawManifestCommand("upload <file> --json", "Upload a file and return JSON containing url, filename, size, and type", true, true),
+                    new OpenClawManifestCommand("upload <file> --as-file --json", "Force text-like artifacts such as HTML through the file uploader category", true, true),
                     new OpenClawManifestCommand("upload --text <text> --name <name> --json", "Upload generated text content", true, true),
                     new OpenClawManifestCommand("upload --pipe --name <name> --json", "Upload stdin content", true, true),
                     new OpenClawManifestCommand("config path", "Show XerahS settings paths", false, false),

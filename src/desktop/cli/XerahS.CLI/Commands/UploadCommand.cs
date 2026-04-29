@@ -108,6 +108,7 @@ public static class UploadCommand
         var nameOption = new Option<string?>("--name") { Description = "Name of the file (inferred from path if not specified)" };
         var jsonOption = new Option<bool>("--json") { Description = "Output JSON result to stdout" };
         var quietOption = new Option<bool>("--quiet") { Description = "Suppress console output except for the URL or errors" };
+        var asFileOption = new Option<bool>("--as-file") { Description = "Force file uploader routing even for text-like files such as .html, .md, or .txt" };
 
         uploadCommand.Add(filePathArgument);
         uploadCommand.Add(textOption);
@@ -115,6 +116,7 @@ public static class UploadCommand
         uploadCommand.Add(nameOption);
         uploadCommand.Add(jsonOption);
         uploadCommand.Add(quietOption);
+        uploadCommand.Add(asFileOption);
 
         uploadCommand.SetAction(parseResult =>
         {
@@ -125,14 +127,15 @@ public static class UploadCommand
             var text = parseResult.GetValue(textOption);
             var pipe = parseResult.GetValue(pipeOption);
             var name = parseResult.GetValue(nameOption);
+            var asFile = parseResult.GetValue(asFileOption);
 
-            Environment.ExitCode = UploadAsync(taskManager, filePath, text, pipe, name).GetAwaiter().GetResult();
+            Environment.ExitCode = UploadAsync(taskManager, filePath, text, pipe, name, asFile).GetAwaiter().GetResult();
         });
 
         return uploadCommand;
     }
 
-    private static async Task<int> UploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name)
+    private static async Task<int> UploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name, bool asFile)
     {
         string? tempFilePath = null;
         var tempDirectories = new List<string>();
@@ -204,7 +207,7 @@ public static class UploadCommand
                 if (!_quiet && !_jsonOutput) Console.WriteLine($"Uploading: {displayName}");
             }
 
-            bool uploadAsText = !string.IsNullOrEmpty(text) || pipe || FileHelpers.IsTextFile(filePath);
+            bool uploadAsText = !asFile && (!string.IsNullOrEmpty(text) || pipe || FileHelpers.IsTextFile(filePath));
             var readiness = _checkUploadReadiness(filePath, uploadAsText);
             if (!readiness.IsReady)
             {
