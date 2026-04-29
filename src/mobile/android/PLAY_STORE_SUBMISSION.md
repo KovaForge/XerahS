@@ -7,7 +7,7 @@ Last reviewed: 2026-04-29.
 - [x] Target Android 15 / API 35 or higher for Google Play submissions.
 - [x] Build with Android Gradle Plugin 8.6.1 and Gradle 8.7, which support API 35.
 - [x] Align Android `versionName` with the root XerahS version, currently `0.22.133`.
-- [ ] Produce a release Android App Bundle with `./gradlew bundleRelease`.
+- [x] Produce a release Android App Bundle with `./gradlew bundleRelease`.
 - [ ] Sign the release bundle with the Play upload key before upload.
 - [ ] Enroll the app in Play App Signing or use the existing Play App Signing setup.
 - [ ] Keep `versionCode` monotonically increasing for every Play upload.
@@ -43,8 +43,8 @@ Last reviewed: 2026-04-29.
 
 ## Validation Before Upload
 
-- [ ] `JAVA_HOME=/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/usr/local/share/android-commandlinetools ./gradlew assembleDebug`
-- [ ] `JAVA_HOME=/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/usr/local/share/android-commandlinetools ./gradlew bundleRelease`
+- [x] `JAVA_HOME=/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/usr/local/share/android-commandlinetools ./gradlew assembleDebug`
+- [x] `JAVA_HOME=/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/usr/local/share/android-commandlinetools ./gradlew bundleRelease`
 - [ ] Install and smoke-test the debug APK on a physical device or emulator.
 - [ ] Test Android share sheet flows for image, video, text, PDF, and multiple files.
 - [ ] Test S3 upload success and failure states.

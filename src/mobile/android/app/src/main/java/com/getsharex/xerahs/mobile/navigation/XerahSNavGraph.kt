@@ -49,6 +49,7 @@ import com.getsharex.xerahs.mobile.feature.history.HistoryScreen
 import com.getsharex.xerahs.mobile.feature.settings.SettingsHubScreen
 import com.getsharex.xerahs.mobile.feature.settings.S3ConfigScreen
 import com.getsharex.xerahs.mobile.feature.settings.CustomUploaderConfigScreen
+import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 
 @Composable
 fun XerahSNavGraph(
@@ -64,6 +65,26 @@ fun XerahSNavGraph(
         scope.launch {
             snackbarHostState.showSnackbar(
                 message = "Copied to clipboard",
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+    val onAutoShareUploadFinished: (List<UploadResultItem>) -> Unit = { results ->
+        val successes = results.filter { it.success }
+        val failures = results.filterNot { it.success }
+        val urls = successes.mapNotNull { it.url }.filter { it.isNotBlank() }
+        if (urls.isNotEmpty()) {
+            clipboardManager?.setPrimaryClip(ClipData.newPlainText("urls", urls.joinToString("\n")))
+        }
+        val message = when {
+            failures.isEmpty() && urls.size == 1 -> "Upload complete. Link copied to clipboard."
+            failures.isEmpty() && urls.size > 1 -> "Uploads complete. ${urls.size} links copied to clipboard."
+            successes.isEmpty() -> "Upload failed. Open XerahS to review the error details."
+            else -> "Upload finished with errors. ${successes.size} completed, ${failures.size} failed."
+        }
+        scope.launch {
+            snackbarHostState.showSnackbar(
+                message = message,
                 duration = SnackbarDuration.Short
             )
         }
@@ -99,6 +120,7 @@ fun XerahSNavGraph(
                     onOpenSettings = { navController.navigate(Screen.Settings.route) },
                     onPickFiles = null,
                     onCopyToClipboard = onCopyToClipboard,
+                    onAutoShareUploadFinished = onAutoShareUploadFinished,
                     initialPaths = pending,
                     settingsRepository = app.settingsRepository
                 )

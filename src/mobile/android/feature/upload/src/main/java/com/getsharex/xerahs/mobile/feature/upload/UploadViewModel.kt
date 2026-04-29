@@ -25,8 +25,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.getsharex.xerahs.mobile.core.data.UploadQueueWorker
 import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -45,6 +48,9 @@ class UploadViewModel(
     private val _results = MutableStateFlow<List<UploadResultItem>>(emptyList())
     val results: StateFlow<List<UploadResultItem>> = _results.asStateFlow()
 
+    private val _completedResult = MutableSharedFlow<UploadResultItem>()
+    val completedResult: SharedFlow<UploadResultItem> = _completedResult.asSharedFlow()
+
     init {
         worker.state.onEach { state ->
             _isUploading.value = state.processing
@@ -57,6 +63,7 @@ class UploadViewModel(
         worker.itemCompleted.onEach { item ->
             item?.let { result ->
                 _results.value = _results.value + result
+                _completedResult.emit(result)
             }
         }.launchIn(viewModelScope)
         viewModelScope.launch {
@@ -64,17 +71,18 @@ class UploadViewModel(
         }
     }
 
-    fun processFiles(paths: Array<String>) {
+    fun processFiles(paths: Array<String>): Int {
         if (paths.isEmpty()) {
             _statusText.value = "No files received."
-            return
+            return 0
         }
         val added = worker.enqueueFiles(paths.toList())
         if (added == 0) {
             _statusText.value = "No valid files to upload."
-            return
+            return 0
         }
         _statusText.value = "Queued $added file(s) for upload."
+        return added
     }
 
     fun addResult(fileName: String, success: Boolean, url: String?, error: String?) {

@@ -25,7 +25,14 @@ data class UploadResultItem(
     val fileName: String,
     val success: Boolean,
     val url: String?,
-    val error: String?
+    val error: String?,
+    val errorDetails: String? = null
 ) {
     val hasUrl: Boolean get() = !url.isNullOrBlank()
+    val errorClipboardText: String?
+        get() = when {
+            error.isNullOrBlank() -> null
+            errorDetails.isNullOrBlank() || errorDetails == error -> error
+            else -> "$error\n\n$errorDetails"
+        }
 }

@@ -8,6 +8,7 @@
         Topmost="True"
         ShowInTaskbar="False"
         CanResize="False"
+        WindowStartupLocation="Manual"
         ExtendClientAreaToDecorationsHint="True">
 
     <Grid x:Name="OverlayRoot">

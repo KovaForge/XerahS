@@ -70,6 +70,10 @@ public partial class OverlayWindow : Window
     private readonly RegionCaptureAnnotationViewModel _viewModel;
     private readonly SKBitmap? _backgroundBitmap;
     private Canvas? _annotationCanvas;
+    private AvPixelPoint _targetPosition;
+    private double _targetWidth;
+    private double _targetHeight;
+    private bool _hasTargetWindowLayout;
 
     // Annotation drawing state - delegates to EditorCore for lifecycle
     private Control? _currentShape;
@@ -153,10 +157,12 @@ public partial class OverlayWindow : Window
         var windowLayout = OverlayWindowLayoutCalculator.Calculate(monitor, isWindows, isLinux, isAvaloniaWayland);
 
         // Window origin and size do not share one coordinate space on every backend:
-        // Windows and X11 use physical origin with logical size, while native Wayland/macOS use logical coordinates throughout.
-        Position = new AvPixelPoint((int)windowLayout.Position.X, (int)windowLayout.Position.Y);
-        Width = windowLayout.Width;
-        Height = windowLayout.Height;
+        // Windows, X11, and macOS use physical origin with logical size; native Wayland uses logical coordinates throughout.
+        _targetPosition = new AvPixelPoint((int)windowLayout.Position.X, (int)windowLayout.Position.Y);
+        _targetWidth = windowLayout.Width;
+        _targetHeight = windowLayout.Height;
+        _hasTargetWindowLayout = true;
+        ApplyTargetWindowLayout("constructor");
 
         DebugHelper.WriteLine($"[OverlayWindow] {monitor.DeviceName}: isWindows={isWindows} isAvaloniaWayland={isAvaloniaWayland} Position=({(int)windowLayout.Position.X},{(int)windowLayout.Position.Y}) Width={windowLayout.Width:F1} Height={windowLayout.Height:F1} PhysicalBounds=({monitor.PhysicalBounds.X:F1},{monitor.PhysicalBounds.Y:F1},{monitor.PhysicalBounds.Width:F1},{monitor.PhysicalBounds.Height:F1}) OverlayBounds=({monitor.OverlayBounds.X:F1},{monitor.OverlayBounds.Y:F1},{monitor.OverlayBounds.Width:F1},{monitor.OverlayBounds.Height:F1})");
 
@@ -203,12 +209,43 @@ public partial class OverlayWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+
+        if (OperatingSystem.IsMacOS())
+        {
+            ApplyTargetWindowLayout("OnOpened");
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_windowClosed)
+                    return;
+
+                ApplyTargetWindowLayout("OnOpened.Post");
+                LogActualWindowGeometry("OnOpened.Post");
+            }, DispatcherPriority.Send);
+        }
+
         // Focus the capture control so it receives keyboard and pointer events
         this.Focus();
         _captureControl.Focus();
         // On Linux/Wayland the compositor often grants focus with delay; retry focus a few times so pointer events (crosshair) start sooner
         ScheduleDelayedFocusRetries();
 
+        LogActualWindowGeometry("OnOpened");
+    }
+
+    private void ApplyTargetWindowLayout(string source)
+    {
+        if (!_hasTargetWindowLayout)
+            return;
+
+        Position = _targetPosition;
+        Width = _targetWidth;
+        Height = _targetHeight;
+
+        DebugHelper.WriteLine($"[OverlayWindow.{source}] {_monitor.DeviceName}: Applied target Position={Position} Width={Width:F1} Height={Height:F1}");
+    }
+
+    private void LogActualWindowGeometry(string source)
+    {
         // Diagnostic: log actual window geometry after opening to verify physical pixel sizing
         try
         {
@@ -223,12 +260,12 @@ public partial class OverlayWindow : Window
                 ? $"ScreenAt={screenAtWindow.Bounds.Width}x{screenAtWindow.Bounds.Height} Scale={screenAtWindow.Scaling:F4} IsPrimary={screenAtWindow.IsPrimary}"
                 : "ScreenAt=null";
 
-            DebugHelper.WriteLine($"[OverlayWindow.OnOpened] {_monitor.DeviceName}: Logical=({Width:F1}x{Height:F1}) Position={Position} PhysicalTopLeft=({topLeftPhysical.X},{topLeftPhysical.Y}) PhysicalSize=({physicalWindowW}x{physicalWindowH}) MonitorPhysical=({_monitor.PhysicalBounds.Width:F0}x{_monitor.PhysicalBounds.Height:F0}) {screenInfo}");
-            DebugHelper.WriteLine($"[OverlayWindow.OnOpened] {_monitor.DeviceName}: FillsMonitor={physicalWindowW >= (int)_monitor.PhysicalBounds.Width && physicalWindowH >= (int)_monitor.PhysicalBounds.Height} (physW={physicalWindowW} >= monW={(int)_monitor.PhysicalBounds.Width}, physH={physicalWindowH} >= monH={(int)_monitor.PhysicalBounds.Height})");
+            DebugHelper.WriteLine($"[OverlayWindow.{source}] {_monitor.DeviceName}: Logical=({Width:F1}x{Height:F1}) Position={Position} PhysicalTopLeft=({topLeftPhysical.X},{topLeftPhysical.Y}) PhysicalSize=({physicalWindowW}x{physicalWindowH}) MonitorPhysical=({_monitor.PhysicalBounds.Width:F0}x{_monitor.PhysicalBounds.Height:F0}) {screenInfo}");
+            DebugHelper.WriteLine($"[OverlayWindow.{source}] {_monitor.DeviceName}: FillsMonitor={physicalWindowW >= (int)_monitor.PhysicalBounds.Width && physicalWindowH >= (int)_monitor.PhysicalBounds.Height} (physW={physicalWindowW} >= monW={(int)_monitor.PhysicalBounds.Width}, physH={physicalWindowH} >= monH={(int)_monitor.PhysicalBounds.Height})");
         }
         catch (Exception ex)
         {
-            DebugHelper.WriteLine($"[OverlayWindow.OnOpened] {_monitor.DeviceName}: Diagnostic failed: {ex.Message}");
+            DebugHelper.WriteLine($"[OverlayWindow.{source}] {_monitor.DeviceName}: Diagnostic failed: {ex.Message}");
         }
     }
 
