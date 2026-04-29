@@ -341,21 +341,21 @@ public static class FileHelpers
             fileName = fileName[..^fileExtension.Length];
         }
 
-        int number = 0;
+        long number = 0;
 
         Match regex = Regex.Match(fileName, @"^(.+) \((\d+)\)$");
 
-        if (regex.Success)
+        if (regex.Success && long.TryParse(regex.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out long parsedNumber))
         {
             fileName = regex.Groups[1].Value;
-            number = int.Parse(regex.Groups[2].Value, CultureInfo.InvariantCulture);
+            number = parsedNumber;
         }
 
         string newFilePath;
         do
         {
             number++;
-            string newFileName = $"{fileName} ({number}){fileExtension}";
+            string newFileName = $"{fileName} ({number.ToString(CultureInfo.InvariantCulture)}){fileExtension}";
             newFilePath = Path.Combine(folderPath, newFileName);
         }
         while (File.Exists(newFilePath));
