@@ -245,7 +245,7 @@ namespace XerahS.Media
 
                     if (images.Count == 0) return null;
 
-                    int columnCount = Options.ColumnCount;
+                    int columnCount = Math.Max(1, Options.ColumnCount);
 
                     int thumbWidth = images[0].Width;
 
