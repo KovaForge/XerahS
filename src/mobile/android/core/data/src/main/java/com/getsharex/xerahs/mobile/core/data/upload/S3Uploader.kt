@@ -46,7 +46,7 @@ class S3Uploader {
             } catch (e: Exception) {
                 return UploadOutcome.Failure("Invalid region: ${config.region}")
             }
-            val s3 = AmazonS3Client(credentials).apply { setRegion(region) }
+            val s3 = AmazonS3Client(credentials, region)
             val uploadName = UploadFileNameGenerator.uploadFileName(filePath)
             val key = "uploads/$uploadName"
             val request = PutObjectRequest(config.bucketName, key, file).apply {

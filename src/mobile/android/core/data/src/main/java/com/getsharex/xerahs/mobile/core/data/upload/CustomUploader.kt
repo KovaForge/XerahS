@@ -69,7 +69,7 @@ class CustomUploader(
         if (entry.body.isNotBlank()) multipart.addFormDataPart("body", entry.body)
         val body = multipart.build()
         val builder = Request.Builder().url(entry.requestUrl).post(body)
-        entry.headers.forEach { (k, v) -> if (v != null) builder.addHeader(k, v) }
+        entry.headers.forEach { (k, v) -> builder.addHeader(k, v) }
         return builder.build()
     }
 

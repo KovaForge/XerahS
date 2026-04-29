@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.getsharex.xerahs.mobile.feature.upload"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26
