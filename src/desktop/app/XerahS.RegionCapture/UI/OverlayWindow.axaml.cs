@@ -158,6 +158,7 @@ public partial class OverlayWindow : Window
 
         // Window origin and size do not share one coordinate space on every backend:
         // Windows, X11, and macOS use physical origin with logical size; native Wayland uses logical coordinates throughout.
+        // Keep the calculated target layout so macOS can reapply it after the native NSWindow is created.
         _targetPosition = new AvPixelPoint((int)windowLayout.Position.X, (int)windowLayout.Position.Y);
         _targetWidth = windowLayout.Width;
         _targetHeight = windowLayout.Height;
@@ -212,6 +213,9 @@ public partial class OverlayWindow : Window
 
         if (OperatingSystem.IsMacOS())
         {
+            // Regression guard: Avalonia/macOS can clamp a borderless overlay to Screen.WorkingArea after Show(),
+            // even when the constructor requested full Screen.Bounds. Reapply the target bounds after the
+            // NSWindow exists so the frozen desktop bitmap, pointer coordinates, and final crop stay aligned.
             ApplyTargetWindowLayout("OnOpened");
             Dispatcher.UIThread.Post(() =>
             {
