@@ -201,7 +201,7 @@ public static class UploadCommand
                     return 1;
                 }
 
-                if (!_quiet) Console.WriteLine($"Uploading: {displayName}");
+                if (!_quiet && !_jsonOutput) Console.WriteLine($"Uploading: {displayName}");
             }
 
             bool uploadAsText = !string.IsNullOrEmpty(text) || pipe || FileHelpers.IsTextFile(filePath);
