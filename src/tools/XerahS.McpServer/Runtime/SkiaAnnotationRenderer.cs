@@ -23,7 +23,7 @@ internal static class SkiaAnnotationRenderer
                 continue;
             }
 
-            var type = annotation["type"]?.GetValue<string>()?.Trim().ToLowerInvariant();
+            var type = ReadString(annotation, "type")?.Trim().ToLowerInvariant();
             var parameters = annotation["params"] as JsonObject ?? [];
             if (string.IsNullOrWhiteSpace(type))
             {
@@ -148,10 +148,10 @@ internal static class SkiaAnnotationRenderer
     {
         var x = ReadFloat(parameters, "x");
         var y = ReadFloat(parameters, "y");
-        var text = parameters["text"]?.GetValue<string>() ?? string.Empty;
+        var text = ReadString(parameters, "text") ?? string.Empty;
         var color = ReadColor(parameters, "color", SKColors.Red);
         var fontSize = ReadFloat(parameters, "font_size", 18f);
-        var fontFamily = parameters["font_family"]?.GetValue<string>();
+        var fontFamily = ReadString(parameters, "font_family");
         using var typeface = string.IsNullOrWhiteSpace(fontFamily) ? SKTypeface.Default : SKTypeface.FromFamilyName(fontFamily);
         using var font = new SKFont(typeface, fontSize);
 
@@ -275,7 +275,7 @@ internal static class SkiaAnnotationRenderer
     {
         var x = ReadFloat(parameters, "x");
         var y = ReadFloat(parameters, "y");
-        var number = parameters["number"]?.GetValue<int?>() ?? 1;
+        var number = ReadInt(parameters, "number", 1);
         var color = ReadColor(parameters, "color", SKColors.Red);
         var radius = ReadFloat(parameters, "radius", 16f);
         using var font = new SKFont(SKTypeface.Default, radius);
@@ -332,10 +332,77 @@ internal static class SkiaAnnotationRenderer
 
     private static SKColor ReadColor(JsonObject parameters, string name, SKColor fallback)
     {
-        var value = parameters[name]?.GetValue<string>();
+        var value = ReadString(parameters, name);
         return !string.IsNullOrWhiteSpace(value) && SKColor.TryParse(value, out var color)
             ? color
             : fallback;
+    }
+
+    private static string? ReadString(JsonObject parameters, string name)
+    {
+        if (parameters[name] is JsonValue value)
+        {
+            if (value.TryGetValue<string>(out var stringValue))
+            {
+                return stringValue;
+            }
+
+            if (value.TryGetValue<int>(out var intValue))
+            {
+                return intValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (value.TryGetValue<long>(out var longValue))
+            {
+                return longValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (value.TryGetValue<float>(out var floatValue))
+            {
+                return floatValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (value.TryGetValue<double>(out var doubleValue))
+            {
+                return doubleValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (value.TryGetValue<bool>(out var boolValue))
+            {
+                return boolValue.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        return null;
+    }
+
+    private static int ReadInt(JsonObject parameters, string name, int fallback = 0)
+    {
+        if (parameters[name] is JsonValue value)
+        {
+            if (value.TryGetValue<int>(out var intValue))
+            {
+                return intValue;
+            }
+
+            if (value.TryGetValue<long>(out var longValue) && longValue >= int.MinValue && longValue <= int.MaxValue)
+            {
+                return (int)longValue;
+            }
+
+            if (value.TryGetValue<double>(out var doubleValue) && doubleValue >= int.MinValue && doubleValue <= int.MaxValue)
+            {
+                return (int)doubleValue;
+            }
+
+            if (value.TryGetValue<string>(out var stringValue) &&
+                int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+        }
+
+        return fallback;
     }
 
     private static float ReadFloat(JsonObject parameters, string name, float fallback = 0f)
