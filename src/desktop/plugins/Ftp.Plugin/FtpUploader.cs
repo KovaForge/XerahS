@@ -136,7 +136,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
             }
             catch (FtpCommandException ex) when (ex.CompletionCode == "550" || ex.CompletionCode == "553")
             {
-                CreateMultiDirectoryFtp(URLHelpers.GetDirectoryPath(remotePath));
+                CreateMultiDirectoryFtp(GetRemoteDirectoryPath(remotePath));
                 return UploadFtpInternal(stream, remotePath);
             }
         }
@@ -191,6 +191,12 @@ public sealed class FtpUploader : FileUploader, IDisposable
         return _ftpClient.GetReply().Success;
     }
 
+    private static string GetRemoteDirectoryPath(string remotePath)
+    {
+        int lastSlash = remotePath.LastIndexOf('/');
+        return lastSlash > 0 ? remotePath.Substring(0, lastSlash) : string.Empty;
+    }
+
     private void CreateMultiDirectoryFtp(string remotePath)
     {
         if (_ftpClient == null || string.IsNullOrEmpty(remotePath)) return;
@@ -218,7 +224,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
             }
             catch (SftpPathNotFoundException)
             {
-                CreateMultiDirectorySftp(URLHelpers.GetDirectoryPath(remotePath));
+                CreateMultiDirectorySftp(GetRemoteDirectoryPath(remotePath));
                 return UploadSftpInternal(stream, remotePath);
             }
         }

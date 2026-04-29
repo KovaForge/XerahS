@@ -346,6 +346,18 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void GetRemoteDirectoryPath_ReturnsOnlyParentDirectory()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvokeGetRemoteDirectoryPath("capture.png"), Is.EqualTo(string.Empty));
+            Assert.That(InvokeGetRemoteDirectoryPath("screenshots/capture.png"), Is.EqualTo("screenshots"));
+            Assert.That(InvokeGetRemoteDirectoryPath("/var/www/capture.png"), Is.EqualTo("/var/www"));
+            Assert.That(InvokeGetRemoteDirectoryPath("/capture.png"), Is.EqualTo(string.Empty));
+        });
+    }
+
+    [Test]
     public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyPathIsMissing()
     {
         var uploader = new FtpUploader(new FTPAccount
@@ -402,6 +414,13 @@ public sealed class FtpConfigViewModelTests
         MethodInfo? method = typeof(FtpUploader).GetMethod("CreateSftpClient", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (SftpClient?)method!.Invoke(uploader, null);
+    }
+
+    private static string InvokeGetRemoteDirectoryPath(string remotePath)
+    {
+        MethodInfo? method = typeof(FtpUploader).GetMethod("GetRemoteDirectoryPath", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (string)method!.Invoke(null, [remotePath])!;
     }
 
     private static string InvokeGetSafeRemoteFileName(string? fileName)

@@ -5527,3 +5527,28 @@ Use this file to avoid re-reviewing the same subsystem blindly, track findings, 
   - Exact test command passed: `XerahS.Tests` 694/694 and `XerahS.McpServer.Tests` 14/14: `/tmp/xerahs-hourly-sweep/test-20260430-012004.log`.
 - Follow-up:
   - Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups; rotate again if another tracker area is staler.
+
+### 2026-04-30 02:18 AWST
+- Area: FTP uploader plugin — remote upload directory retry path handling
+- Reviewer: Mikhail hourly cron
+- Files inspected:
+  - `src/desktop/plugins/Ftp.Plugin/FtpUploader.cs`
+  - `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`
+  - `src/desktop/core/XerahS.Common/Helpers/URLHelpers.cs`
+  - `src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs`
+  - `Directory.Build.props`
+- Findings:
+  - Followed up the FTP/SFTP remote path normalization item from the prior FTP pass.
+  - Missing-directory retry used `URLHelpers.GetDirectoryPath(remotePath)`; for a bare filename with no slash, that helper returns the filename itself, so a 550/553 or SFTP path-not-found retry could attempt to create a directory named after the upload file before retrying.
+  - Absolute and nested paths still need to preserve their actual parent directories when creating missing folders.
+- Fix landed or blocker:
+  - Landed a bounded FTP/SFTP retry fix: upload retry directory creation now uses an uploader-local parent-directory helper that returns empty for root/bare filenames, `screenshots` for `screenshots/file`, and `/var/www` for `/var/www/file`.
+  - Added regression coverage for bare, nested, absolute, and root-file remote paths.
+  - Bumped `Directory.Build.props` from `0.22.144` to `0.22.145`.
+- Verification / blockers:
+  - Parent upstream sync: 0 pending `upstream/develop` commits; no merge conflicts.
+  - `ShareX.ImageEditor` is on branch `develop` at `360eeabe`; origin/upstream fetched, no submodule merge or parent pointer update required.
+  - `dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings and 0 errors. Log: `/tmp/xerahs-hourly-sweep/build-20260430-021245.log`.
+  - `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 709/709. Log: `/tmp/xerahs-hourly-sweep/test-20260430-021556.log`.
+- Follow-up:
+  - Next FTP pass can inspect URL generation for `HttpHomePathAutoAddSubFolderPath` with absolute SFTP subfolders and name-parser tokens.
