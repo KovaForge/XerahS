@@ -283,6 +283,9 @@ public class TaskSettingsCapture
     public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =
         MacOSInteractiveRegionSelectorPreference.Automatic;
 
+    [Category("Capture"), DefaultValue(true), Description("Play the native macOS capture sound when using screencapture.")]
+    public bool MacOSPlayCaptureSound { get; set; } = true;
+
     [Category("Capture"), DefaultValue(null), Description("Preferred Linux screen recording backend.")]
     public LinuxRecordingBackendPreference? LinuxRecordingBackendPreference { get; set; } = null;
 

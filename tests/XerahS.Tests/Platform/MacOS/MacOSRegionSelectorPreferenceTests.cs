@@ -8,12 +8,25 @@ namespace XerahS.Tests.Platform.MacOS;
 public class MacOSRegionSelectorPreferenceTests
 {
     [Test]
-    public void NativeRegionCaptureArguments_ForceSelectionOnlyInteractiveCapture()
+    public void NativeRegionCaptureArguments_DefaultToSelectionOnlyInteractiveCaptureWithSound()
     {
-        Assert.That(MacOSScreenshotService.NativeRegionCaptureArguments, Does.Contain("-i"));
-        Assert.That(MacOSScreenshotService.NativeRegionCaptureArguments, Does.Contain("-s"));
-        Assert.That(MacOSScreenshotService.NativeRegionCaptureArguments, Does.Contain("-x"));
-        Assert.That(MacOSScreenshotService.NativeRegionCaptureArguments, Does.Contain("-t png"));
+        string arguments = MacOSScreenshotService.BuildNativeRegionCaptureArguments(new CaptureOptions());
+
+        Assert.That(arguments, Does.Contain("-i"));
+        Assert.That(arguments, Does.Contain("-s"));
+        Assert.That(arguments, Does.Not.Contain("-x"));
+        Assert.That(arguments, Does.Contain("-t png"));
+    }
+
+    [Test]
+    public void NativeRegionCaptureArguments_SuppressSound_WhenMacOSCaptureSoundIsDisabled()
+    {
+        string arguments = MacOSScreenshotService.BuildNativeRegionCaptureArguments(new CaptureOptions
+        {
+            MacOSPlayCaptureSound = false
+        });
+
+        Assert.That(arguments, Does.Contain("-x"));
     }
 
     [TestCase(MacOSInteractiveRegionSelectorPreference.Automatic)]

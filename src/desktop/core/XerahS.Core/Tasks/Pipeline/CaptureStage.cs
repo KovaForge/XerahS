@@ -130,6 +130,7 @@ namespace XerahS.Core.Tasks.Pipeline
                 UseModernCapture = captureSettings.UseModernCapture,
                 LinuxRegionSelectorPreference = linuxRegionSelectorPreference,
                 MacOSRegionSelectorPreference = macOSRegionSelectorPreference,
+                MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
                 ShowCursor = captureSettings.ShowCursor,
                 UseTransparentOverlay = useTransparentOverlay,
                 CaptureShadow = captureSettings.CaptureShadow,

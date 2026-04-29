@@ -723,6 +723,9 @@
                                                FontSize="12"
                                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                TextWrapping="Wrap"/>
+                                    <CheckBox IsChecked="{Binding MacOSPlayCaptureSound}"
+                                              Content="Play native macOS capture sound"
+                                              AutomationProperties.Name="Play Native macOS Capture Sound"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
