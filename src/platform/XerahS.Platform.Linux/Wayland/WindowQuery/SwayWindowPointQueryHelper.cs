@@ -194,10 +194,18 @@ internal sealed class SwayWindowPointQueryHelper : IWaylandWindowPointQueryHelpe
         if (!node.TryGetProperty(propertyName, out JsonElement property) || property.ValueKind != JsonValueKind.Object)
             return false;
 
-        int x = GetInt32(property, "x");
-        int y = GetInt32(property, "y");
-        int width = GetInt32(property, "width");
-        int height = GetInt32(property, "height");
+        if (!TryGetInt32(property, "x", out int x) ||
+            !TryGetInt32(property, "y", out int y) ||
+            !TryGetInt32(property, "width", out int width) ||
+            !TryGetInt32(property, "height", out int height) ||
+            width <= 0 ||
+            height <= 0 ||
+            (long)x + width > int.MaxValue ||
+            (long)y + height > int.MaxValue)
+        {
+            return false;
+        }
+
         rect = new Rectangle(x, y, width, height);
         return true;
     }
@@ -222,11 +230,10 @@ internal sealed class SwayWindowPointQueryHelper : IWaylandWindowPointQueryHelpe
         };
     }
 
-    private static int GetInt32(JsonElement element, string propertyName)
+    private static bool TryGetInt32(JsonElement element, string propertyName, out int value)
     {
-        return element.TryGetProperty(propertyName, out JsonElement property) && property.TryGetInt32(out int value)
-            ? value
-            : 0;
+        value = 0;
+        return element.TryGetProperty(propertyName, out JsonElement property) && property.TryGetInt32(out value);
     }
 
     private static long GetInt64(JsonElement element, string propertyName)
