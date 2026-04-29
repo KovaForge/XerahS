@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-04-30 05:00 AWST",
+  "last_updated": "2026-04-30 05:41 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,20 +11,20 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Capture pipeline",
     "OCR",
     "Settings/configuration",
     "Tests / test discoverability",
-    "Editor integration"
+    "Editor integration",
+    "Plugin loading/runtime"
   ],
   "areas": [
     {
       "area": "Capture pipeline",
-      "last_reviewed": "2026-04-28 19:44 AWST",
+      "last_reviewed": "2026-04-30 05:41 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed configured custom/last-region capture rectangle validation so overflowing configured right/bottom edges are rejected instead of wrapping through System.Drawing.Rectangle.Right/Bottom.",
-      "follow_up": null
+      "last_outcome": "Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts.",
+      "follow_up": "Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity."
     },
     {
       "area": "OCR",
@@ -173,6 +173,14 @@
   ],
   "last_runs": [
     {
+      "timestamp": "2026-04-30 05:41 AWST",
+      "area": "Capture pipeline",
+      "topic": "DXGI crop rectangle coordinate conversion",
+      "outcome": "Preserved fractional capture bounds outward and avoided invalid/overflow-prone casts before clamping.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-054007.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-054110.log"
+    },
+    {
       "timestamp": "2026-04-30 04:36 AWST",
       "area": "File/path handling",
       "topic": "SettingsBase backup scheduling flags",
@@ -203,14 +211,6 @@
       "outcome": "Normalized caller-provided extensions for destination lookup and duplicate route checks.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-011652.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-012004.log"
-    },
-    {
-      "timestamp": "2026-04-30 00:34 AWST",
-      "area": "Assistant local memory/privacy/history",
-      "topic": "OCR cache history path normalization",
-      "outcome": "Normalized OCR cache get/set paths against canonical history rows.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-002728.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-003038.log"
     }
   ]
 }

@@ -13,17 +13,17 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
-- Capture pipeline
 - OCR
 - Settings/configuration
 - Tests / test discoverability
 - Editor integration
+- Plugin loading/runtime
 
 ## Current Coverage
 
 | Area | Last Reviewed | Priority | Last Outcome | Follow-up |
 |---|---|---|---|---|
-| Capture pipeline | 2026-04-28 19:44 AWST | High | Fixed configured custom/last-region capture rectangle validation so overflowing configured right/bottom edges are rejected instead of wrapping through System.Drawing.Rectangle.Right/Bottom. |  |
+| Capture pipeline | 2026-04-30 05:41 AWST | High | Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity. |
 | OCR | 2026-04-28 21:09 AWST | High | Fixed assistant Run OCR option normalization so trimmed language tags and finite/minimum scale factor rules match the main OCR capture/tool paths. |  |
 | Settings/configuration | 2026-04-28 22:21 AWST | High | Fixed settings upgrade detection/version stamping so saved settings persist the current app version, loads mark real upgrades, and IsUpgradeFrom uses numeric version comparison instead of lexicographic string ordering. |  |
 | Assistant local memory/privacy/history | 2026-04-30 00:34 AWST | High | Fixed OCR cache history path normalization so whitespace-padded caller paths hit canonical history rows. | Continue assistant review around history DB path casing/symlink equivalence and OCR cache invalidation when capture files are moved or deleted. |
@@ -44,6 +44,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
 
 ## Recent Runs
+
+### 2026-04-30 05:41 AWST - Capture pipeline
+- Topic: DXGI crop rectangle coordinate conversion
+- Outcome: Preserved fractional capture bounds outward and avoided invalid/overflow-prone casts before clamping.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-054007.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-054110.log`
 
 ### 2026-04-30 04:36 AWST - File/path handling
 - Topic: SettingsBase backup scheduling flags
