@@ -1,6 +1,6 @@
 {
   "indexVersion": "1.0",
-  "lastUpdated": "2026-04-26T00:00:00Z",
+  "lastUpdated": "2026-04-29T00:00:00Z",
   "plugins": [
     {
       "pluginId": "pixelfox",
@@ -11,9 +11,9 @@
       "apiVersion": "1.0",
       "supportedCategories": ["Image"],
       "homepageUrl": "https://pixelfox.cc",
-      "downloadUrl": "",
-      "checksum": "",
-      "isDraft": true,
+      "downloadUrl": "https://github.com/ManuelReschke/xerahs-pixelfox-plugin/releases/download/v1.0.0/XerahS.Pixelfox.Plugin-1.0.0.xsdp",
+      "checksum": "fdfb488a6f44c8d056e621332d2492253517694b10630bdd2d0a332e11a994c8",
+      "isDraft": false,
       "minAppVersion": "0.22.78",
       "dependencies": []
     }
