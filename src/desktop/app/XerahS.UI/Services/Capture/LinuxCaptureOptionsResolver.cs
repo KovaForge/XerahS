@@ -166,6 +166,8 @@ namespace XerahS.UI.Services.Capture
                 LinuxRegionSelectorPreference =
                     linuxRegionSelectorPreference ?? options?.LinuxRegionSelectorPreference ??
                     LinuxInteractiveRegionSelectorPreference.Automatic,
+                MacOSRegionSelectorPreference = options?.MacOSRegionSelectorPreference ??
+                    MacOSInteractiveRegionSelectorPreference.Automatic,
                 LinuxForceLegacyCapturePath = linuxForceLegacyCapturePath ?? options?.LinuxForceLegacyCapturePath ?? false,
                 LinuxDisallowPortalAfterOverlaySelection = options?.LinuxDisallowPortalAfterOverlaySelection ?? false,
                 ShowCursor = options?.ShowCursor ?? true,

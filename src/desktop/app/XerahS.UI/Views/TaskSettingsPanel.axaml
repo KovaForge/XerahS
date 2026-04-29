@@ -51,6 +51,24 @@
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
+                                    <StackPanel Spacing="10" IsVisible="{Binding IsMacOSPlatform}">
+                                        <TextBlock Text="Preferred macOS region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox ItemsSource="{Binding MacOSRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding MacOSRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Preferred macOS Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="x:Object">
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Automatic follows Application Settings. Choose XerahS overlay or macOS native crosshair here to override this workflow only."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
                                     <CheckBox IsChecked="{Binding ShowCursor}" Content="Show cursor in screenshots"/>
                                     
                                     <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, Auto, Auto">

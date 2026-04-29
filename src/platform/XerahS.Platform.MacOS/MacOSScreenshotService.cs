@@ -44,6 +44,12 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            if (options?.MacOSRegionSelectorPreference != MacOSInteractiveRegionSelectorPreference.NativeCrosshair)
+            {
+                DebugHelper.WriteLine("[MacOSCapture] macOS native crosshair was not requested; native screencapture -i is skipped.");
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             return CaptureWithArgumentsAsync("-i -t png");
         }
 

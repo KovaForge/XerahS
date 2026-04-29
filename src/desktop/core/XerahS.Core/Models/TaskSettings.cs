@@ -279,6 +279,10 @@ public class TaskSettingsCapture
     public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
         LinuxInteractiveRegionSelectorPreference.Automatic;
 
+    [Category("Capture"), DefaultValue(MacOSInteractiveRegionSelectorPreference.Automatic), Description("Preferred macOS interactive region selector.")]
+    public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =
+        MacOSInteractiveRegionSelectorPreference.Automatic;
+
     [Category("Capture"), DefaultValue(null), Description("Preferred Linux screen recording backend.")]
     public LinuxRecordingBackendPreference? LinuxRecordingBackendPreference { get; set; } = null;
 
