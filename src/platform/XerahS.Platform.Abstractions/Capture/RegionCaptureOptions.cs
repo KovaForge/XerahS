@@ -44,6 +44,12 @@ public sealed record RegionCaptureOptions
     public bool IncludeCursor { get; init; } = false;
 
     /// <summary>
+    /// Whether to play the native macOS capture sound for CLI fallback captures.
+    /// Default: true.
+    /// </summary>
+    public bool MacOSPlayCaptureSound { get; init; } = true;
+
+    /// <summary>
     /// Preferred color type for the captured bitmap.
     /// Default: Bgra8888 (32-bit with alpha).
     /// </summary>
