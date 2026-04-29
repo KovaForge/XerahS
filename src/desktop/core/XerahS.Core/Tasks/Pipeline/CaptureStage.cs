@@ -123,11 +123,13 @@ namespace XerahS.Core.Tasks.Pipeline
 
             var useTransparentOverlay = ShouldUseTransparentOverlay(taskSettings.Job);
             var linuxRegionSelectorPreference = ResolveLinuxRegionSelectorPreference(captureSettings);
+            var macOSRegionSelectorPreference = ResolveMacOSRegionSelectorPreference(captureSettings);
 
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
                 LinuxRegionSelectorPreference = linuxRegionSelectorPreference,
+                MacOSRegionSelectorPreference = macOSRegionSelectorPreference,
                 ShowCursor = captureSettings.ShowCursor,
                 UseTransparentOverlay = useTransparentOverlay,
                 CaptureShadow = captureSettings.CaptureShadow,
@@ -657,6 +659,32 @@ namespace XerahS.Core.Tasks.Pipeline
                 $"CaptureStage: Linux selector preference source={(shouldUseDefaultPreference ? "default task settings" : "task settings")} (task={taskPreference}, default={defaultPreference}).");
 
             return shouldUseDefaultPreference ? defaultPreference : taskPreference;
+        }
+
+        private static MacOSInteractiveRegionSelectorPreference ResolveMacOSRegionSelectorPreference(TaskSettingsCapture captureSettings)
+        {
+            var taskPreference = captureSettings.MacOSRegionSelectorPreference;
+            var defaultPreference = SettingsManager.DefaultTaskSettings.CaptureSettings?.MacOSRegionSelectorPreference ??
+                MacOSInteractiveRegionSelectorPreference.Automatic;
+
+            if (!OperatingSystem.IsMacOS())
+            {
+                return taskPreference;
+            }
+
+            var effectivePreference = taskPreference == MacOSInteractiveRegionSelectorPreference.Automatic
+                ? defaultPreference
+                : taskPreference;
+
+            if (effectivePreference == MacOSInteractiveRegionSelectorPreference.Automatic)
+            {
+                effectivePreference = MacOSInteractiveRegionSelectorPreference.XerahSOverlay;
+            }
+
+            DebugHelper.WriteLine(
+                $"CaptureStage: macOS selector preference source={(taskPreference == MacOSInteractiveRegionSelectorPreference.Automatic ? "default task settings" : "task settings")} (task={taskPreference}, default={defaultPreference}, effective={effectivePreference}).");
+
+            return effectivePreference;
         }
 
         private static bool ShouldUseTransparentOverlay(WorkflowType workflowType)

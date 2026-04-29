@@ -103,6 +103,7 @@ public partial class OverlayWindow : Window
         Title = PlatformWindowTitles.RegionCaptureOverlay;
         InitializeThemeScope();
         DataContext = _viewModel;
+        ApplySelectionCursorPolicy();
     }
 
     public OverlayWindow(
@@ -183,6 +184,7 @@ public partial class OverlayWindow : Window
 
         // Ensure window can receive keyboard input
         Focusable = true;
+        ApplySelectionCursorPolicy();
 
         WireUpToolbarEvents();
     }
@@ -288,6 +290,37 @@ public partial class OverlayWindow : Window
         RequestedThemeVariant = ThemeManager.GetCurrentTheme();
         ThemeManager.ThemeChanged -= OnThemeChanged;
         ThemeManager.ThemeChanged += OnThemeChanged;
+    }
+
+    private void ApplySelectionCursorPolicy()
+    {
+        var hiddenCursor = new Cursor(StandardCursorType.None);
+        Cursor = hiddenCursor;
+        _captureControl.Cursor = hiddenCursor;
+
+        var root = this.FindControl<Grid>("OverlayRoot");
+        if (root != null)
+        {
+            root.Cursor = hiddenCursor;
+        }
+
+        var panel = this.FindControl<Panel>("RootPanel");
+        if (panel != null)
+        {
+            panel.Cursor = hiddenCursor;
+        }
+
+        var annotationCanvas = _annotationCanvas ?? this.FindControl<Canvas>("AnnotationCanvas");
+        if (annotationCanvas != null)
+        {
+            annotationCanvas.Cursor = hiddenCursor;
+        }
+
+        var toolbar = this.FindControl<Control>("AnnotationToolbarControl");
+        if (toolbar != null)
+        {
+            toolbar.Cursor = new Cursor(StandardCursorType.Arrow);
+        }
     }
 
     private void OnThemeChanged(object? sender, Avalonia.Styling.ThemeVariant theme)

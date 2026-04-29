@@ -14,8 +14,8 @@
    - **SkiaSharp**: keep it aligned with the centrally managed version in root `Directory.Packages.props` (currently **3.119.3-preview.1.1**). Do not reintroduce the legacy `2.88.9` pin.
 
 2. **Build Timeouts**
-   - Never wait more than **5 minutes** for a single build.
-   - If a build stalls, stop it, clear locks, prefer `-m:1`, kill stale `dotnet` processes, then retry.
+   - Do not enforce a fixed single-build time limit; packaging and release builds can legitimately take longer on slower PCs.
+   - If a build appears stalled rather than merely slow, stop it, clear locks, prefer `-m:1`, kill stale `dotnet` processes, then retry.
    - See [Building Android](.ai/skills/build-android/SKILL.md) for Android-specific lock handling and single-node builds.
 
 3. **Shell Best Practices**

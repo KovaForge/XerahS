@@ -31,6 +31,7 @@ struct UploadScreen: View {
     var onOpenSettings: () -> Void
     var onCopyToClipboard: (String) -> Void
     var onAutoShareUploadFinished: ([UploadResultItem]) -> Void
+    var onInitialPathsConsumed: () -> Void
     var initialPaths: [String]?
     /// Human-readable label for the active upload destination (e.g. "Amazon S3"). Shown so user knows where files will go.
     var activeDestinationLabel: String? = nil
@@ -141,6 +142,7 @@ struct UploadScreen: View {
     private func enqueueInitialPathsIfNeeded(_ paths: [String]?) {
         guard let paths, !paths.isEmpty else { return }
         let added = worker.enqueueFiles(paths)
+        onInitialPathsConsumed()
         if added > 0 {
             pendingAutoShareUploads += added
         }

@@ -58,6 +58,11 @@ namespace XerahS.UI.Services
 
         public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
+            if (ShouldUseMacOSNativeRegionCapture(options))
+            {
+                DebugHelper.WriteLine("[RegionSelection] macOS native crosshair returns a bitmap, not coordinates; using XerahS overlay for rectangle selection.");
+            }
+
             LinuxRegionCaptureCapability? linuxCapability =
                 OperatingSystem.IsLinux() ? _linuxResolver.GetCapability(_platformImpl, options) : null;
             var effectiveLinuxPreference = _linuxResolver.ResolveEffectivePreference(options, linuxCapability, _platformImpl);
@@ -144,6 +149,39 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            if (OperatingSystem.IsMacOS())
+            {
+                var requestedPreference = options?.MacOSRegionSelectorPreference ??
+                    MacOSInteractiveRegionSelectorPreference.Automatic;
+                DebugHelper.WriteLine($"[RegionCapture] macOS selector preference received: {requestedPreference}.");
+            }
+
+            if (ShouldUseMacOSNativeRegionCapture(options))
+            {
+                DebugHelper.WriteLine("[RegionCapture] macOS native crosshair selected; using platform region capture without XerahS overlay.");
+                try
+                {
+                    var nativeBitmap = await _platformImpl.CaptureRegionAsync(options);
+                    DebugHelper.WriteLine(nativeBitmap == null
+                        ? "[RegionCapture] macOS native region capture returned null."
+                        : $"[RegionCapture] macOS native region capture returned {nativeBitmap.Width}x{nativeBitmap.Height}.");
+                    DebugHelper.Flush();
+                    return nativeBitmap;
+                }
+                catch (OperationCanceledException)
+                {
+                    DebugHelper.WriteLine("[RegionCapture] macOS native region capture cancelled by user.");
+                    DebugHelper.Flush();
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"[RegionCapture] macOS native region capture failed ({ex.Message}).");
+                    DebugHelper.Flush();
+                    return null;
+                }
+            }
+
             LinuxRegionCaptureCapability? linuxCapability =
                 OperatingSystem.IsLinux() ? _linuxResolver.GetCapability(_platformImpl, options) : null;
             var effectiveLinuxPreference = _linuxResolver.ResolveEffectivePreference(options, linuxCapability, _platformImpl);
@@ -244,7 +282,9 @@ namespace XerahS.UI.Services
                         ShowCursor = false,
                         UseModernCapture = effectiveOptions?.UseModernCapture ?? true,
                         LinuxRegionSelectorPreference = effectiveOptions?.LinuxRegionSelectorPreference ??
-                            LinuxInteractiveRegionSelectorPreference.Automatic
+                            LinuxInteractiveRegionSelectorPreference.Automatic,
+                        MacOSRegionSelectorPreference = effectiveOptions?.MacOSRegionSelectorPreference ??
+                            MacOSInteractiveRegionSelectorPreference.Automatic
                     });
                     if (fullScreenBitmap != null)
                     {
@@ -328,6 +368,8 @@ namespace XerahS.UI.Services
                 UseModernCapture = effectiveOptions?.UseModernCapture ?? true,
                 LinuxRegionSelectorPreference = effectiveOptions?.LinuxRegionSelectorPreference ??
                     LinuxInteractiveRegionSelectorPreference.Automatic,
+                MacOSRegionSelectorPreference = effectiveOptions?.MacOSRegionSelectorPreference ??
+                    MacOSInteractiveRegionSelectorPreference.Automatic,
                 LinuxDisallowPortalAfterOverlaySelection = OperatingSystem.IsLinux(),
                 UseTransparentOverlay = effectiveOptions?.UseTransparentOverlay ?? false,
                 WorkflowId = effectiveOptions?.WorkflowId,
@@ -571,6 +613,12 @@ namespace XerahS.UI.Services
                 (int)Math.Round(right),
                 (int)Math.Round(bottom));
             DebugHelper.WriteLine($"[RegionCapture] Virtual bounds (physical, PhysicalBounds union): L={left:F0}, T={top:F0}, R={right:F0}, B={bottom:F0}, Size={right - left:F0}x{bottom - top:F0}");
+        }
+
+        private static bool ShouldUseMacOSNativeRegionCapture(CaptureOptions? options)
+        {
+            return OperatingSystem.IsMacOS() &&
+                options?.MacOSRegionSelectorPreference == MacOSInteractiveRegionSelectorPreference.NativeCrosshair;
         }
     }
 }

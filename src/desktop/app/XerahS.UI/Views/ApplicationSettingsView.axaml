@@ -695,6 +695,38 @@
                             </Border>
                         </StackPanel>
 
+                        <StackPanel Spacing="8" IsVisible="{Binding IsMacOSPlatform}">
+                            <TextBlock Text="macOS Region Selector" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Choose one selector for macOS interactive region capture so the native crosshair and XerahS overlay are not shown in the same workflow."
+                                               TextWrapping="Wrap"/>
+                                    <Grid ColumnDefinitions="120, 16, *">
+                                        <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  ItemsSource="{Binding MacOSRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding MacOSRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="macOS Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="x:Object">
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <TextBlock Text="This is the default for macOS workflows and capture tools. Workflows set to Automatic follow this value."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
                             <TextBlock Text="Linux Region Selector" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"

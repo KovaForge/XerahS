@@ -623,6 +623,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         {
             UseModernCapture = settings.CaptureSettings.UseModernCapture,
             LinuxRegionSelectorPreference = settings.CaptureSettings.LinuxRegionSelectorPreference,
+            MacOSRegionSelectorPreference = settings.CaptureSettings.MacOSRegionSelectorPreference,
             ShowCursor = settings.CaptureSettings.ShowCursor,
             CaptureTransparent = settings.CaptureSettings.CaptureTransparent,
             CaptureShadow = settings.CaptureSettings.CaptureShadow,

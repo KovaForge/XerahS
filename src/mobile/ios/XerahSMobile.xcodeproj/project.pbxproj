@@ -38,6 +38,9 @@
 		E1000001 /* UploadFileNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* UploadFileNameGenerator.swift */; };
 		D1000003 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* ShareViewController.swift */; };
 		D1000005 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D1000000 /* ShareExtension.appex */; };
+		F1000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000002 /* PrivacyInfo.xcprivacy */; };
+		F1000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000004 /* PrivacyInfo.xcprivacy */; };
+		F1000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +104,9 @@
 		D1000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D1000007 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		D1000008 /* XerahSMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = XerahSMobile.entitlements; sourceTree = "<group>"; };
+		F1000002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F1000004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F1000006 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +158,7 @@
 				B0FFFFF0 /* Core */,
 				A1000006 /* Assets.xcassets */,
 				A1000007 /* Info.plist */,
+				F1000002 /* PrivacyInfo.xcprivacy */,
 				D1000008 /* XerahSMobile.entitlements */,
 			);
 			path = XerahSMobile;
@@ -202,6 +209,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000A2 /* SettingsRepository.swift */,
+				F1000006 /* KeychainStore.swift */,
 				B10000A4 /* QueueRepository.swift */,
 				B10000A6 /* HistoryRepository.swift */,
 				B10000B4 /* UploadQueueWorker.swift */,
@@ -279,6 +287,7 @@
 			children = (
 				D1000004 /* ShareViewController.swift */,
 				D1000006 /* Info.plist */,
+				F1000004 /* PrivacyInfo.xcprivacy */,
 				D1000007 /* ShareExtension.entitlements */,
 			);
 			path = ShareExtension;
@@ -358,6 +367,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000005 /* Assets.xcassets in Resources */,
+				F1000001 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -365,6 +375,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1000003 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,6 +394,7 @@
 				B1000007 /* UploadResultItem.swift in Sources */,
 				B1000009 /* Paths.swift in Sources */,
 				B10000A1 /* SettingsRepository.swift in Sources */,
+				F1000005 /* KeychainStore.swift in Sources */,
 				B10000A3 /* QueueRepository.swift in Sources */,
 				B10000A5 /* HistoryRepository.swift in Sources */,
 				B10000A7 /* UploadOutcome.swift in Sources */,
@@ -534,7 +546,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = XerahSMobile/XerahSMobile.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5299HQVVA5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = XerahSMobile/Info.plist;
@@ -546,7 +558,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.22.2;
+				MARKETING_VERSION = 0.22.133;
 				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -562,7 +574,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = XerahSMobile/XerahSMobile.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5299HQVVA5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = XerahSMobile/Info.plist;
@@ -574,7 +586,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.22.2;
+				MARKETING_VERSION = 0.22.133;
 				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -588,7 +600,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5299HQVVA5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
@@ -598,7 +610,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.22.2;
+				MARKETING_VERSION = 0.22.133;
 				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -613,7 +625,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5299HQVVA5;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
@@ -623,7 +635,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.22.2;
+				MARKETING_VERSION = 0.22.133;
 				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

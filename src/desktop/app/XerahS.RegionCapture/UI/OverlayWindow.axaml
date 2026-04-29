@@ -10,7 +10,7 @@
         CanResize="False"
         ExtendClientAreaToDecorationsHint="True">
 
-    <Grid>
+    <Grid x:Name="OverlayRoot">
         <!-- Region Capture Control Layer -->
         <Panel x:Name="RootPanel" IsHitTestVisible="True">
             <!-- Custom rendering control added in code-behind -->
@@ -32,4 +32,3 @@
                                     IsVisible="True"/>
     </Grid>
 </Window>
-

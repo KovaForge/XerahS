@@ -36,6 +36,9 @@ namespace XerahS.Platform.MacOS
     /// </summary>
     public class MacOSScreenshotService : IScreenCaptureService
     {
+        internal const string NativeRegionCaptureArguments = "-i -s -x -t png";
+        private const string ScreencapturePath = "/usr/sbin/screencapture";
+
         public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
             // This method should only be called from the UI layer wrapper
@@ -44,7 +47,13 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
-            return CaptureWithArgumentsAsync("-i -t png");
+            if (options?.MacOSRegionSelectorPreference != MacOSInteractiveRegionSelectorPreference.NativeCrosshair)
+            {
+                DebugHelper.WriteLine("[MacOSCapture] macOS native crosshair was not requested; native screencapture -i is skipped.");
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
+            return CaptureWithArgumentsAsync(NativeRegionCaptureArguments);
         }
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
@@ -95,10 +104,11 @@ namespace XerahS.Platform.MacOS
                     DebugHelper.WriteLine($"[MacOSCapture] Starting screencapture: args={arguments}");
                     var startInfo = new ProcessStartInfo
                     {
-                        FileName = "screencapture",
+                        FileName = File.Exists(ScreencapturePath) ? ScreencapturePath : "screencapture",
                         Arguments = $"{arguments} \"{tempFile}\"",
                         CreateNoWindow = true,
-                        UseShellExecute = false
+                        UseShellExecute = false,
+                        RedirectStandardError = true
                     };
 
                     var startStopwatch = Stopwatch.StartNew();
@@ -110,15 +120,22 @@ namespace XerahS.Platform.MacOS
                     }
 
                     process.WaitForExit();
+                    string standardError = process.StandardError.ReadToEnd();
                     startStopwatch.Stop();
 
                     if (process.ExitCode != 0 || !File.Exists(tempFile))
                     {
-                        DebugHelper.WriteLine($"[MacOSCapture] screencapture failed: ExitCode={process.ExitCode}, FileExists={File.Exists(tempFile)}");
+                        DebugHelper.WriteLine($"[MacOSCapture] screencapture failed: ExitCode={process.ExitCode}, FileExists={File.Exists(tempFile)}, Stderr={standardError.Trim()}");
                         return null;
                     }
 
                     var fileInfo = new FileInfo(tempFile);
+                    if (fileInfo.Length == 0)
+                    {
+                        DebugHelper.WriteLine("[MacOSCapture] screencapture returned an empty file.");
+                        return null;
+                    }
+
                     DebugHelper.WriteLine($"[MacOSCapture] screencapture completed in {startStopwatch.ElapsedMilliseconds}ms, size={fileInfo.Length} bytes");
 
                     var decodeStopwatch = Stopwatch.StartNew();
