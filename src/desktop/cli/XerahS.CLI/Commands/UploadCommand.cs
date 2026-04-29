@@ -30,6 +30,8 @@ using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Tasks;
+using XerahS.Core.Tasks.Processors;
+using XerahS.CLI.Services;
 using System.Collections.Generic;
 
 namespace XerahS.CLI.Commands;
@@ -38,6 +40,12 @@ public static class UploadCommand
 {
     private static bool _jsonOutput;
     private static bool _quiet;
+    private static Func<string, bool, UploadReadiness> _checkUploadReadiness = CliUploaderBootstrapper.CheckUploadReadiness;
+    private static Func<TaskInfo, CancellationToken, Task> _processUploadAsync = static (taskInfo, cancellationToken) =>
+    {
+        var uploadProcessor = new UploadJobProcessor();
+        return uploadProcessor.ProcessAsync(taskInfo, cancellationToken);
+    };
 
     internal static string SanitizeUploadFileName(string? name, string fallbackFileName)
     {
@@ -196,7 +204,14 @@ public static class UploadCommand
                 if (!_quiet) Console.WriteLine($"Uploading: {displayName}");
             }
 
-            // Configure task settings for file upload
+            bool uploadAsText = !string.IsNullOrEmpty(text) || pipe || FileHelpers.IsTextFile(filePath);
+            var readiness = _checkUploadReadiness(filePath, uploadAsText);
+            if (!readiness.IsReady)
+            {
+                PrintError(readiness.ErrorMessage ?? "No usable uploader is configured.");
+                return 1;
+            }
+
             // Use the first FileUpload workflow's settings so user-configured options
             // like FileUploadUseNamePattern are respected. Fall back to default.
             var workflow = SettingsManager.GetFirstWorkflowOrDefault(WorkflowType.FileUpload);
@@ -205,73 +220,45 @@ public static class UploadCommand
             taskSettings.AfterCaptureJob = AfterCaptureTasks.UploadImageToHost;
             taskSettings.AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
 
-            var tcs = new TaskCompletionSource<bool>();
-            bool handlerFired = false;
-
-            string expectedFilePath = Path.GetFullPath(filePath);
-
-            EventHandler<WorkerTask>? handler = null;
-            handler = (sender, task) =>
+            var taskInfo = new TaskInfo(taskSettings)
             {
-                if (task is null)
-                {
-                    return;
-                }
-
-                var taskInfo = task.Info;
-                if (taskInfo is null)
-                {
-                    return;
-                }
-
-                string? completedFilePath = taskInfo.FilePath;
-
-                if (!string.IsNullOrWhiteSpace(completedFilePath) &&
-                    !string.Equals(Path.GetFullPath(completedFilePath), expectedFilePath, StringComparison.Ordinal))
-                {
-                    return;
-                }
-
-                if (handlerFired) return;
-                handlerFired = true;
-                taskManager.TaskCompleted -= handler;
-
-                bool success = task.Status == Core.TaskStatus.Completed && !string.IsNullOrEmpty(taskInfo.Metadata?.UploadURL);
-                if (success)
-                {
-                    var url = taskInfo.Metadata?.UploadURL ?? string.Empty;
-                    if (_jsonOutput)
-                    {
-                        var result = new UploadResult(url, displayName, new FileInfo(filePath).Length, GetContentType(filePath));
-                        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
-                    }
-                    else
-                    {
-                        Console.WriteLine(url);
-                    }
-                }
-                else
-                {
-                    var errorMsg = task.Error?.Message ?? "Upload failed";
-                    PrintError(errorMsg);
-                }
-                tcs.SetResult(success);
+                DataType = uploadAsText ? EDataType.Text : EDataType.File,
+                Job = uploadAsText ? TaskJob.TextUpload : TaskJob.FileUpload
             };
 
-            taskManager.TaskCompleted += handler;
-            await taskManager.StartFileTask(taskSettings, filePath);
+            if (uploadAsText)
+            {
+                taskSettings.DestinationInstanceId = null;
+                taskInfo.TextContent = await File.ReadAllTextAsync(filePath);
+                taskInfo.SetFileName(displayName);
+            }
+            else
+            {
+                taskInfo.FilePath = filePath;
+            }
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            var completed = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
+            await _processUploadAsync(taskInfo, cts.Token);
 
-            if (completed != tcs.Task)
+            bool success = taskInfo.Result?.IsSuccess == true || !string.IsNullOrEmpty(taskInfo.Result?.URL);
+            if (!success)
             {
-                PrintError("Upload timed out after 5 minutes");
-                taskManager.TaskCompleted -= handler;
+                PrintError(taskInfo.Result?.Response ?? "Upload failed");
                 return 1;
             }
 
-            return await tcs.Task ? 0 : 1;
+            var url = taskInfo.Result!.URL ?? string.Empty;
+            if (_jsonOutput)
+            {
+                var result = new UploadResult(url, displayName, new FileInfo(filePath).Length, GetContentType(filePath));
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
+            }
+            else
+            {
+                Console.WriteLine(url);
+            }
+
+            return 0;
         }
         catch (Exception ex)
         {
