@@ -119,7 +119,7 @@ namespace XerahS.Platform.MacOS
                 return _fallbackService.CaptureRectAsync(rect, options);
             }
 
-            return Task.Run(() => CaptureRectNative(rect));
+            return Task.Run(() => CaptureRectNative(rect, options));
         }
 
         public Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
@@ -134,7 +134,7 @@ namespace XerahS.Platform.MacOS
                 return _fallbackService.CaptureFullScreenAsync(options);
             }
 
-            return Task.Run(CaptureFullscreenNative);
+            return Task.Run(() => CaptureFullscreenNative(options));
         }
 
         public Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
@@ -159,7 +159,7 @@ namespace XerahS.Platform.MacOS
             return Task.FromResult<CursorInfo?>(null);
         }
 
-        private SKBitmap? CaptureFullscreenNative()
+        private SKBitmap? CaptureFullscreenNative(CaptureOptions? options)
         {
             var stopwatch = Stopwatch.StartNew();
             IntPtr dataPtr = IntPtr.Zero;
@@ -178,7 +178,7 @@ namespace XerahS.Platform.MacOS
                     if (result == ScreenCaptureKitInterop.ERROR_PERMISSION_DENIED)
                     {
                         DebugHelper.WriteLine("[ScreenCaptureKit] Falling back to CLI due to permission issue");
-                        return _fallbackService.CaptureFullScreenAsync().GetAwaiter().GetResult();
+                        return _fallbackService.CaptureFullScreenAsync(options).GetAwaiter().GetResult();
                     }
 
                     return null;
@@ -204,7 +204,7 @@ namespace XerahS.Platform.MacOS
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "ScreenCaptureKit fullscreen capture failed");
-                return _fallbackService.CaptureFullScreenAsync().GetAwaiter().GetResult();
+                return _fallbackService.CaptureFullScreenAsync(options).GetAwaiter().GetResult();
             }
             finally
             {
@@ -215,7 +215,7 @@ namespace XerahS.Platform.MacOS
             }
         }
 
-        private SKBitmap? CaptureRectNative(SKRect rect)
+        private SKBitmap? CaptureRectNative(SKRect rect, CaptureOptions? options)
         {
             var stopwatch = Stopwatch.StartNew();
             IntPtr dataPtr = IntPtr.Zero;
@@ -231,7 +231,7 @@ namespace XerahS.Platform.MacOS
                 if (result != ScreenCaptureKitInterop.SUCCESS)
                 {
                     DebugHelper.WriteLine($"[ScreenCaptureKit] Capture failed: {ScreenCaptureKitInterop.GetErrorMessage(result)}");
-                    return _fallbackService.CaptureRectAsync(rect).GetAwaiter().GetResult();
+                    return _fallbackService.CaptureRectAsync(rect, options).GetAwaiter().GetResult();
                 }
 
                 if (dataPtr == IntPtr.Zero || length <= 0)
@@ -254,7 +254,7 @@ namespace XerahS.Platform.MacOS
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "ScreenCaptureKit rect capture failed");
-                return _fallbackService.CaptureRectAsync(rect).GetAwaiter().GetResult();
+                return _fallbackService.CaptureRectAsync(rect, options).GetAwaiter().GetResult();
             }
             finally
             {

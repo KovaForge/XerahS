@@ -26,7 +26,7 @@ import Foundation
 import Security
 
 enum KeychainStore {
-    private static let service = "com.getsharex.xerahs.mobile.settings"
+    private static let service = "com.xerahs.xerahs.mobile.settings"
 
     static func readString(account: String) -> String? {
         var query = baseQuery(account: account)

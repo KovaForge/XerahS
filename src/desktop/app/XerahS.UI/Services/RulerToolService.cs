@@ -57,6 +57,7 @@ public static class RulerToolService
         {
             UseModernCapture = captureSettings.UseModernCapture,
             MacOSRegionSelectorPreference = captureSettings.MacOSRegionSelectorPreference,
+            MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
             ShowCursor = false,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,

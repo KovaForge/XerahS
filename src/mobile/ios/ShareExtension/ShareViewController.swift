@@ -25,7 +25,7 @@
 import UIKit
 import UniformTypeIdentifiers
 
-private let appGroupId = "group.com.getsharex.xerahs"
+private let appGroupId = "group.com.xerahs.xerahs"
 private let pendingPathsKey = "PendingSharedPaths"
 private let pendingSxcuImportsKey = "PendingSxcuImports"
 private let openAppURLString = "xerahs://share"

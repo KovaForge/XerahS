@@ -1,12 +1,13 @@
 # XerahS iOS App Store Submission
 
-Validated on 2026-04-29 for bundle ID `com.getsharex.xerahs.mobile`.
+Validated on 2026-04-29 for bundle ID `com.xerahs.xerahs.mobile`.
 
 ## Repository-Ready Items
 
 - Release simulator build passes with `CODE_SIGNING_ALLOWED=NO`.
 - Unsigned generic iOS device build passes with `CODE_SIGNING_ALLOWED=NO`.
 - App and share extension include privacy manifests for App Group `UserDefaults` access using required reason `1C8F.1`.
+- App and share extension share files through App Group `group.com.xerahs.xerahs`.
 - App `Info.plist` declares `ITSAppUsesNonExemptEncryption` as `false`.
 - App and share extension use marketing version `0.22.133` and build number `2`.
 - Uploader secrets are migrated out of the JSON settings file and into Keychain.
@@ -25,7 +26,7 @@ Validated on 2026-04-29 for bundle ID `com.getsharex.xerahs.mobile`.
 
 ## Archive and Upload
 
-Run these commands from this directory after confirming the Apple account has signing access for team `5299HQVVA5`.
+Run these commands from this directory after confirming the Apple account has signing access for team `7C5AS6VPUH`.
 
 ```sh
 xcodebuild archive \

@@ -35,6 +35,7 @@ namespace XerahS.Platform.Abstractions
             LinuxInteractiveRegionSelectorPreference.Automatic;
         public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =
             MacOSInteractiveRegionSelectorPreference.Automatic;
+        public bool MacOSPlayCaptureSound { get; set; } = true;
         public bool LinuxForceLegacyCapturePath { get; set; } = false;
         /// <summary>
         /// Linux-only guard used by the XerahS overlay flow after the user has already chosen a region.

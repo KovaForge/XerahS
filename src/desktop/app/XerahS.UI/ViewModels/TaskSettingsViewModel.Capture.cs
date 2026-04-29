@@ -83,6 +83,19 @@ namespace XerahS.UI.ViewModels
         public MacOSInteractiveRegionSelectorPreference[] MacOSRegionSelectorPreferences =>
             Enum.GetValues<MacOSInteractiveRegionSelectorPreference>();
 
+        public bool MacOSPlayCaptureSound
+        {
+            get => _settings.CaptureSettings.MacOSPlayCaptureSound;
+            set
+            {
+                if (_settings.CaptureSettings.MacOSPlayCaptureSound != value)
+                {
+                    _settings.CaptureSettings.MacOSPlayCaptureSound = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public LinuxRecordingBackendPreference LinuxRecordingBackendPreference
         {
             get => ResolveLinuxRecordingBackendPreference(_settings.CaptureSettings);

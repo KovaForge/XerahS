@@ -284,7 +284,8 @@ namespace XerahS.UI.Services
                         LinuxRegionSelectorPreference = effectiveOptions?.LinuxRegionSelectorPreference ??
                             LinuxInteractiveRegionSelectorPreference.Automatic,
                         MacOSRegionSelectorPreference = effectiveOptions?.MacOSRegionSelectorPreference ??
-                            MacOSInteractiveRegionSelectorPreference.Automatic
+                            MacOSInteractiveRegionSelectorPreference.Automatic,
+                        MacOSPlayCaptureSound = false
                     });
                     if (fullScreenBitmap != null)
                     {
@@ -370,6 +371,7 @@ namespace XerahS.UI.Services
                     LinuxInteractiveRegionSelectorPreference.Automatic,
                 MacOSRegionSelectorPreference = effectiveOptions?.MacOSRegionSelectorPreference ??
                     MacOSInteractiveRegionSelectorPreference.Automatic,
+                MacOSPlayCaptureSound = effectiveOptions?.MacOSPlayCaptureSound ?? true,
                 LinuxDisallowPortalAfterOverlaySelection = OperatingSystem.IsLinux(),
                 UseTransparentOverlay = effectiveOptions?.UseTransparentOverlay ?? false,
                 WorkflowId = effectiveOptions?.WorkflowId,

@@ -30,6 +30,7 @@ namespace XerahS.UI.ViewModels
     public partial class SettingsViewModel
     {
         private MacOSInteractiveRegionSelectorPreference _macOSRegionSelectorPreference;
+        private bool _macOSPlayCaptureSound = true;
 
         public bool IsMacOSPlatform => OperatingSystem.IsMacOS();
 
@@ -41,5 +42,11 @@ namespace XerahS.UI.ViewModels
 
         public MacOSInteractiveRegionSelectorPreference[] MacOSRegionSelectorPreferences =>
             Enum.GetValues<MacOSInteractiveRegionSelectorPreference>();
+
+        public bool MacOSPlayCaptureSound
+        {
+            get => _macOSPlayCaptureSound;
+            set => SetProperty(ref _macOSPlayCaptureSound, value);
+        }
     }
 }

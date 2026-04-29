@@ -36,8 +36,18 @@ namespace XerahS.Platform.MacOS
     /// </summary>
     public class MacOSScreenshotService : IScreenCaptureService
     {
-        internal const string NativeRegionCaptureArguments = "-i -s -x -t png";
         private const string ScreencapturePath = "/usr/sbin/screencapture";
+
+        internal static string BuildNativeRegionCaptureArguments(CaptureOptions? options)
+        {
+            return BuildCaptureArguments("-i -s", options);
+        }
+
+        internal static string BuildCaptureArguments(string baseArguments, CaptureOptions? options)
+        {
+            string soundArgument = options?.MacOSPlayCaptureSound == false ? " -x" : string.Empty;
+            return $"{baseArguments}{soundArgument} -t png".Trim();
+        }
 
         public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
@@ -53,7 +63,7 @@ namespace XerahS.Platform.MacOS
                 return Task.FromResult<SKBitmap?>(null);
             }
 
-            return CaptureWithArgumentsAsync(NativeRegionCaptureArguments);
+            return CaptureWithArgumentsAsync(BuildNativeRegionCaptureArguments(options));
         }
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
@@ -63,18 +73,18 @@ namespace XerahS.Platform.MacOS
                 return Task.FromResult<SKBitmap?>(null);
             }
 
-            var args = $"-R{rect.Left},{rect.Top},{rect.Width},{rect.Height} -x -t png";
+            var args = BuildCaptureArguments($"-R{rect.Left},{rect.Top},{rect.Width},{rect.Height}", options);
             return CaptureWithArgumentsAsync(args);
         }
 
         public Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
-            return CaptureWithArgumentsAsync("-x -t png");
+            return CaptureWithArgumentsAsync(BuildCaptureArguments(string.Empty, options));
         }
 
         public Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
-            return CaptureWithArgumentsAsync("-w -t png");
+            return CaptureWithArgumentsAsync(BuildCaptureArguments("-w", options));
         }
 
         public Task<SKBitmap?> CaptureWindowAsync(IntPtr windowHandle, IWindowService windowService, CaptureOptions? options = null)

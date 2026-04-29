@@ -26,7 +26,7 @@ import Foundation
 
 /// App Group used by the Share Extension to pass file paths to the main app.
 enum ShareGroup {
-    static let appGroupId = "group.com.getsharex.xerahs"
+    static let appGroupId = "group.com.xerahs.xerahs"
     static let pendingPathsKey = "PendingSharedPaths"
     static let pendingSxcuImportsKey = "PendingSxcuImports"
 

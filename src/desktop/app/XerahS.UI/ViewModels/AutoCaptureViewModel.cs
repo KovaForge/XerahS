@@ -283,6 +283,7 @@ public partial class AutoCaptureViewModel : ViewModelBase, IDisposable
                 UseModernCapture = captureSettings.UseModernCapture,
                 LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
                 MacOSRegionSelectorPreference = captureSettings.MacOSRegionSelectorPreference,
+                MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
                 ShowCursor = captureSettings.ShowCursor,
             };
 
