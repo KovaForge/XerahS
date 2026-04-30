@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-04-30 16:50 AWST",
+  "last_updated": "2026-04-30 21:45 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -107,11 +107,11 @@
     },
     {
       "area": "Media subsystem",
-      "last_reviewed": "2026-04-30 11:46 AWST",
+      "last_reviewed": "2026-04-30 21:45 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed random video thumbnail seek selection so each thumbnail uses its own bounded time segment and short videos return zero instead of risking an out-of-range slot.",
-      "follow_up": "Continue media review around TakeThumbnails FFmpeg timeout handling and combined-thumbnail timestamp/image alignment when some source thumbnails fail to load."
+      "last_outcome": "Fixed combined video thumbnail generation so loaded bitmap images retain their own timestamps after unreadable thumbnail files are skipped, preventing timestamp/image misalignment.",
+      "follow_up": "Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout."
     },
     {
       "area": "MCP server",
@@ -171,6 +171,18 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-04-30 21:45 AWST",
+      "area": "Media subsystem",
+      "files": [
+        "src/desktop/core/XerahS.Media/VideoThumbnailer.cs",
+        "tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs",
+        "Directory.Build.props"
+      ],
+      "outcome": "Fixed combined thumbnail timestamp alignment after skipped unreadable source images; bumped version 0.22.163 -> 0.22.164.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-213821.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-214203.log"
+    },
     {
       "timestamp": "2026-04-30 16:50 AWST",
       "area": "Uploader core / plugin routing",
@@ -250,46 +262,6 @@
       "outcome": "Unsubscribed removed onboarding OCR language options during platform language refresh and added regression coverage.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-063524.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-063846.log"
-    },
-    {
-      "timestamp": "2026-04-30 05:41 AWST",
-      "area": "Capture pipeline",
-      "topic": "DXGI crop rectangle coordinate conversion",
-      "outcome": "Preserved fractional capture bounds outward and avoided invalid/overflow-prone casts before clamping.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-054007.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-054110.log"
-    },
-    {
-      "timestamp": "2026-04-30 04:36 AWST",
-      "area": "File/path handling",
-      "topic": "SettingsBase backup scheduling flags",
-      "outcome": "Allowed weekly-only backup zip creation and added focused coverage.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-043410.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-043553.log"
-    },
-    {
-      "timestamp": "2026-04-30 03:15 AWST",
-      "area": "Notifications/toasts",
-      "topic": "zero-duration auto-hide fade startup",
-      "outcome": "Started fade immediately for valid zero-duration auto-hide toasts and added focused coverage.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-031132.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-031439.log"
-    },
-    {
-      "timestamp": "2026-04-30 02:18 AWST",
-      "area": "FTP uploader plugin",
-      "topic": "remote upload directory retry path handling",
-      "outcome": "Created missing retry directories from the parent remote path instead of bare filenames.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-021245.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-021556.log"
-    },
-    {
-      "timestamp": "2026-04-30 01:20 AWST",
-      "area": "Uploader core / plugin routing",
-      "topic": "file-extension input normalization",
-      "outcome": "Normalized caller-provided extensions for destination lookup and duplicate route checks.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-011652.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-012004.log"
     }
   ]
 }

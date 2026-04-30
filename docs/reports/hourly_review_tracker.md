@@ -34,7 +34,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | FTP uploader plugin | 2026-04-30 02:18 AWST | Medium | Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths. | Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens. |
 | Hotkeys/input | 2026-04-30 15:46 AWST | Medium | Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage. | Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization. |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
-| Media subsystem | 2026-04-30 11:46 AWST | High | Fixed random video thumbnail seek selection so each thumbnail uses its own bounded time segment and short videos return zero instead of risking an out-of-range slot. | Continue media review around TakeThumbnails FFmpeg timeout handling and combined-thumbnail timestamp/image alignment when some source thumbnails fail to load. |
+| Media subsystem | 2026-04-30 21:45 AWST | High | Fixed combined video thumbnail generation so skipped unreadable source images no longer shift timestamps onto later loaded images. | Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout. |
 | MCP server | 2026-04-29 11:15 AWST | Medium | Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely. | Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation. |
 | CLI / command surface | 2026-04-29 14:05 AWST | Medium | Fixed CLI upload to use the direct upload processor/bootstrap readiness path and added uploader doctor/bootstrap commands. | Continue CLI review around uploader bootstrap provider choices and JSON doctor output contract. |
 | Notifications/toasts | 2026-04-30 03:15 AWST | Medium | Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely. | Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next. |
@@ -182,3 +182,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed stale OCR result state by clearing `HasResult` immediately when a new recognition pass starts, so copy/service-link UI cannot remain enabled for old text while processing; added async regression coverage; bumped version 0.22.162 -> 0.22.163.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-203937.log` (0 warnings/errors); test `/tmp/xerahs-hourly-sweep/test-20260430-204312.log` (754 passed total).
 - Follow-up: Continue OCR/settings review around cancellation/rerun races and platform-specific OCR service error messaging.
+### 2026-04-30 21:45 AWST - Media subsystem
+- Area: Media subsystem (combined video thumbnail timestamp alignment); files: `VideoThumbnailer.cs`, `VideoThumbnailerTests.cs`, `Directory.Build.props`.
+- Finding: combined thumbnail rendering skipped unreadable source images but still read timestamps by compacted image index, so later frames could display earlier/skipped timestamps.
+- Status: Fixed loaded thumbnails to carry their originating timestamp through resize/render; added regression coverage; bumped version `0.22.163` -> `0.22.164`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260430-213821.log`).
+- Tests: pass, 755 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260430-214203.log`).
+- Follow-up: Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout.
+
