@@ -382,6 +382,40 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyFileCannotBeLoaded()
+    {
+        string keyPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"invalid-sftp-key-{Guid.NewGuid():N}.key");
+        File.WriteAllText(keyPath, "not a private key");
+
+        try
+        {
+            var uploader = new FtpUploader(new FTPAccount
+            {
+                Host = "example.com",
+                Port = 22,
+                Protocol = FTPProtocol.SFTP,
+                Username = "alice",
+                Password = "secret",
+                Keypath = keyPath
+            });
+
+            SftpClient? client = InvokeCreateSftpClient(uploader);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(client, Is.Not.Null);
+                Assert.That(uploader.Errors.Errors, Is.Empty);
+            });
+
+            client?.Dispose();
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
+    }
+
+    [Test]
     public void CreateSftpClient_ReportsMissingKeyFile_WhenNoPasswordFallbackExists()
     {
         var uploader = new FtpUploader(new FTPAccount

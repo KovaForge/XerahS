@@ -117,3 +117,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version: bumped patch 0.22.154 -> 0.22.155.
 - Validation: Release build 0 warnings/errors; tests passed 728 total.
 - Follow-up: continue plugin runtime review around package entry canonicalization edge cases and load-context unload diagnostics.
+
+### 2026-04-30 13:45 AWST - FTP uploader plugin
+- Area: FTP uploader plugin (SFTP key/password authentication fallback)
+- Files: src/desktop/plugins/Ftp.Plugin/FtpUploader.cs; tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs; Directory.Build.props
+- Status: Fixed SFTP client creation so an unreadable configured private key falls back to password auth when a password is available instead of failing before connection; added regression coverage for invalid-key/password fallback.
+- Version bump: 0.22.155 -> 0.22.156.
+- Validation: Release build 0 warnings/0 errors; Release tests passed 729 total.
+- Logs: /tmp/xerahs-hourly-sweep/build-20260430-133655.log; /tmp/xerahs-hourly-sweep/test-20260430-134120.log
+- Follow-up: continue FTP uploader review around remote path normalization, URL generation, and cancellation behavior during FTP/SFTP transfers.
