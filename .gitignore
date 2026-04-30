@@ -41,6 +41,10 @@ debug/
 # Local tooling
 .dotnet/
 .tmp/
+.env
+*.env
+secrets.json
+credentials.*
 
 # Local build logs
 *.log
