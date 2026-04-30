@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 using NUnit.Framework;
 using SkiaSharp;
@@ -62,6 +63,61 @@ public sealed class VideoThumbnailerTests
         }
     }
 
+
+    [Test]
+    public void LoadThumbnailImages_SkipsUnreadableFilesWithoutShiftingTimestamps()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), "XerahS-VideoThumbnailerTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string missingPath = Path.Combine(tempDirectory, "missing.png");
+            string loadedPath = Path.Combine(tempDirectory, "loaded.png");
+            WriteTestBitmap(loadedPath, SKColors.MediumSeaGreen);
+
+            var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+            {
+                MaxThumbnailWidth = 0
+            });
+
+            IList loadedThumbnails = InvokeLoadThumbnailImages(thumbnailer, new List<VideoThumbnailInfo>
+            {
+                new VideoThumbnailInfo(missingPath)
+                {
+                    Timestamp = TimeSpan.FromSeconds(5)
+                },
+                new VideoThumbnailInfo(loadedPath)
+                {
+                    Timestamp = TimeSpan.FromSeconds(42)
+                }
+            });
+
+            try
+            {
+                Assert.That(loadedThumbnails, Has.Count.EqualTo(1));
+                object loadedThumbnail = loadedThumbnails[0]!;
+                PropertyInfo? timestampProperty = loadedThumbnail.GetType().GetProperty("Timestamp");
+                Assert.That(timestampProperty, Is.Not.Null);
+                Assert.That(timestampProperty!.GetValue(loadedThumbnail), Is.EqualTo(TimeSpan.FromSeconds(42)));
+            }
+            finally
+            {
+                foreach (object loadedThumbnail in loadedThumbnails)
+                {
+                    (loadedThumbnail as IDisposable)?.Dispose();
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
     [Test]
     public void GetRandomTimeSlice_UsesThumbnailIndexSegment()
     {
@@ -101,11 +157,28 @@ public sealed class VideoThumbnailerTests
         Assert.That(InvokeGetRandomTimeSlice(thumbnailer, 9), Is.EqualTo(0));
     }
 
+    private static void WriteTestBitmap(string path, SKColor color)
+    {
+        using var bitmap = new SKBitmap(8, 6);
+        bitmap.Erase(color);
+        using SKImage image = SKImage.FromBitmap(bitmap);
+        using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using FileStream stream = File.Create(path);
+        data.SaveTo(stream);
+    }
+
     private static SKBitmap? InvokeCombineScreenshots(VideoThumbnailer thumbnailer, List<VideoThumbnailInfo> thumbnails)
     {
         MethodInfo? method = typeof(VideoThumbnailer).GetMethod("CombineScreenshots", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (SKBitmap?)method!.Invoke(thumbnailer, new object[] { thumbnails });
+    }
+
+    private static IList InvokeLoadThumbnailImages(VideoThumbnailer thumbnailer, List<VideoThumbnailInfo> thumbnails)
+    {
+        MethodInfo? method = typeof(VideoThumbnailer).GetMethod("LoadThumbnailImages", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (IList)method!.Invoke(thumbnailer, new object[] { thumbnails })!;
     }
 
     private static int InvokeGetRandomTimeSlice(VideoThumbnailer thumbnailer, int thumbnailIndex)
