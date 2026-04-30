@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-04-30 15:46 AWST",
+  "last_updated": "2026-04-30 16:50 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -13,7 +13,6 @@
   "next_candidates": [
     "MCP server",
     "CLI / command surface",
-    "Uploader core / plugin routing",
     "Platform-specific services",
     "Region capture / window enumeration"
   ],
@@ -68,11 +67,11 @@
     },
     {
       "area": "Uploader core / plugin routing",
-      "last_reviewed": "2026-04-30 01:20 AWST",
+      "last_reviewed": "2026-04-30 16:50 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed file-extension input normalization for uploader destination lookup and add-file-type conflict checks.",
-      "follow_up": "Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups."
+      "last_outcome": "Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage.",
+      "follow_up": "Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity."
     },
     {
       "area": "Plugin loading/runtime",
@@ -172,6 +171,14 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-04-30 16:50 AWST",
+      "area": "Uploader core / plugin routing",
+      "topic": "Encrypted S3 mobile destination config export",
+      "outcome": "Amazon S3 .xsdc export now fails fast when BucketName is blank, preventing mobile import from saving an unusable S3 destination; full Release validation passed.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-164323.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-164438.log"
+    },
     {
       "timestamp": "2026-04-30 15:46 AWST",
       "area": "Hotkeys/input",

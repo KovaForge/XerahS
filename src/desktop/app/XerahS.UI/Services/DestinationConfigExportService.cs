@@ -107,6 +107,12 @@ internal static class DestinationConfigExportService
             throw new InvalidOperationException("AWS SSO destinations cannot be exported to mobile yet. Export an access-key S3 destination instead.");
         }
 
+        string bucketName = settings.Value<string>("BucketName") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(bucketName))
+        {
+            throw new InvalidOperationException("Amazon S3 bucket name is required before exporting to mobile.");
+        }
+
         string secretKey = settings.Value<string>("SecretKey") ?? string.Empty;
         if (string.IsNullOrWhiteSpace(secretKey))
         {
@@ -146,7 +152,7 @@ internal static class DestinationConfigExportService
                         ["AuthMode"] = "AccessKeys",
                         ["AccessKeyId"] = accessKeyId,
                         ["SecretAccessKey"] = secretAccessKey,
-                        ["BucketName"] = settings.Value<string>("BucketName") ?? string.Empty,
+                        ["BucketName"] = bucketName,
                         ["Region"] = string.IsNullOrWhiteSpace(region) ? "us-east-1" : region,
                         ["Endpoint"] = mobileEndpoint,
                         ["UsePathStyle"] = settings.Value<bool?>("UsePathStyleUrl") ?? false,

@@ -29,7 +29,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Assistant local memory/privacy/history | 2026-04-30 14:54 AWST | High | Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes. | Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted. |
 | Tests / test discoverability | 2026-04-30 08:41 AWST | High | Marked main NUnit test discovery packages as private test/build assets so Microsoft.NET.Test.Sdk and NUnit3TestAdapter do not flow as normal transitive assets; added guardrail coverage. | Continue tests review around discovery package asset metadata for Avalonia.Headless.NUnit/coverage collectors and cross-target test host behavior. |
 | Editor integration | 2026-04-30 09:43 AWST | High | Fixed editor window direct-close handling so ShowEditorSessionAsync completes with null instead of leaving callers awaiting forever; added regression coverage. | Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing. |
-| Uploader core / plugin routing | 2026-04-30 01:20 AWST | High | Fixed file-extension input normalization for uploader destination lookup and add-file-type conflict checks. | Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups. |
+| Uploader core / plugin routing | 2026-04-30 16:50 AWST | High | Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage. | Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity. |
 | Plugin loading/runtime | 2026-04-29 04:11 AWST | High | Fixed plugin package installation so a missing plugins root is created before installing a .xsdp package instead of failing with DirectoryNotFoundException. |  |
 | FTP uploader plugin | 2026-04-30 02:18 AWST | Medium | Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths. | Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens. |
 | Hotkeys/input | 2026-04-30 15:46 AWST | Medium | Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage. | Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization. |
@@ -44,6 +44,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
 
 ## Recent Runs
+
+### 2026-04-30 16:50 AWST - Uploader core / plugin routing
+
+- Area: Uploader core / plugin routing (encrypted S3 mobile destination config export)
+- Files: `src/desktop/app/XerahS.UI/Services/DestinationConfigExportService.cs`, `tests/XerahS.Tests/Services/DestinationConfigExportServiceTests.cs`, `Directory.Build.props`
+- Status: Fixed .xsdc export so Amazon S3 destinations must have a configured bucket before encrypted mobile export, preventing imported mobile configs with unusable blank buckets; added regression coverage.
+- Version bump: 0.22.158 -> 0.22.159
+- Validation: Release build/test passed (724 app tests, 14 MCP tests). Logs: /tmp/xerahs-hourly-sweep/build-20260430-164323.log, /tmp/xerahs-hourly-sweep/test-20260430-164438.log.
+- Follow-up: Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity.
 
 ### 2026-04-30 15:46 AWST - Hotkeys/input
 
