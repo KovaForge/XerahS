@@ -44,6 +44,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCustomUploaderInstance))]
+    [NotifyPropertyChangedFor(nameof(CanExportDestinationConfig))]
     private string _providerId = string.Empty;
 
     [ObservableProperty]
@@ -131,6 +132,8 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         SupportsExplorer && (ProviderCatalog.GetProvider(ProviderId)?.ValidateSettings(SettingsJson) == true);
 
     public bool IsCustomUploaderInstance => ProviderId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase);
+
+    public bool CanExportDestinationConfig => string.Equals(ProviderId, "amazons3", StringComparison.OrdinalIgnoreCase);
 
     public bool CanManageDefinition => HasDefinitionBinding && ConfigViewModel is CustomUploaderEditorViewModel;
 

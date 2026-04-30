@@ -250,7 +250,20 @@
 
                             <!-- Custom Config -->
                             <StackPanel Spacing="8" IsVisible="{Binding SelectedCategory.SelectedInstance.ConfigView, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                <TextBlock Text="Provider Settings" FontWeight="SemiBold" FontSize="16"/>
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="Provider Settings"
+                                               FontWeight="SemiBold"
+                                               FontSize="16"
+                                               VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1"
+                                            Content="Export .xsdc"
+                                            Command="{Binding ExportDestinationConfigCommand}"
+                                            CommandParameter="{Binding SelectedCategory.SelectedInstance}"
+                                            IsEnabled="{Binding SelectedCategory.SelectedInstance.CanExportDestinationConfig}"
+                                            ToolTip.Tip="Export this destination config for mobile import"
+                                            AutomationProperties.Name="Export Destination Config"/>
+                                </Grid>
                                 <ContentControl Content="{Binding SelectedCategory.SelectedInstance.ConfigView}"/>
                             </StackPanel>
 
