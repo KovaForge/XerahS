@@ -211,6 +211,8 @@ public static class PluginPackager
             destinationRoot += Path.DirectorySeparatorChar;
         }
 
+        var extractedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var entry in archive.Entries)
         {
             if (string.IsNullOrWhiteSpace(entry.FullName))
@@ -222,6 +224,11 @@ public static class PluginPackager
             if (!targetPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Package contains an invalid entry path.");
+            }
+
+            if (!extractedPaths.Add(targetPath))
+            {
+                throw new InvalidDataException("Package contains a duplicate entry path.");
             }
 
             if (string.IsNullOrEmpty(entry.Name))

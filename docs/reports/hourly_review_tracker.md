@@ -89,3 +89,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Topic: file-extension input normalization
 - Outcome: Normalized caller-provided extensions for destination lookup and duplicate route checks.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-011652.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-012004.log`
+
+### 2026-04-30 10:42 AWST - Plugin loading/runtime
+- Area: Plugin loading/runtime (.xsdp package install/extraction)
+- Files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`
+- Finding: duplicate zip entries in a plugin package could be extracted with overwrite semantics after the manifest was preview-validated, allowing a later duplicate `plugin.json` or assembly entry to replace earlier content in the temp install tree.
+- Fix: reject duplicate normalized archive entry paths during safe extraction and cover duplicate `plugin.json` packages with a regression test.
+- Version: bumped `0.22.152` -> `0.22.153`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260430-103803.log`).
+- Tests: pass, 724 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260430-104119.log`).
+- Follow-up: continue plugin runtime review around package entry canonicalization, duplicate directory/file collisions, and load-context unload diagnostics.
