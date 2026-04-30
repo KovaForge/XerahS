@@ -63,11 +63,11 @@ internal sealed class CliCaptureStrategy : ICaptureStrategy
         if (monitor == null)
             throw new InvalidOperationException($"Region {physicalRegion} does not intersect any monitor");
 
-        // Convert to logical coordinates for screencapture command
-        var logicalX = (int)(physicalRegion.X / monitor.ScaleFactor);
-        var logicalY = (int)(physicalRegion.Y / monitor.ScaleFactor);
-        var logicalWidth = (int)(physicalRegion.Width / monitor.ScaleFactor);
-        var logicalHeight = (int)(physicalRegion.Height / monitor.ScaleFactor);
+        // Convert to logical coordinates for screencapture command, preserving the
+        // full physical region when scaled bounds land between logical pixels.
+        var (logicalX, logicalY, logicalWidth, logicalHeight) = ConvertToLogicalCaptureRegion(
+            physicalRegion,
+            monitor.ScaleFactor);
 
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_capture_{Guid.NewGuid():N}.png");
 
@@ -132,6 +132,21 @@ internal sealed class CliCaptureStrategy : ICaptureStrategy
             MaxCaptureResolution = 16384,
             RequiresPermission = true
         };
+    }
+
+    internal static (int X, int Y, int Width, int Height) ConvertToLogicalCaptureRegion(
+        PhysicalRectangle physicalRegion,
+        double scaleFactor)
+    {
+        if (scaleFactor <= 0 || double.IsNaN(scaleFactor) || double.IsInfinity(scaleFactor))
+            throw new ArgumentOutOfRangeException(nameof(scaleFactor), scaleFactor, "Scale factor must be a positive finite value.");
+
+        var left = (int)Math.Floor(physicalRegion.X / scaleFactor);
+        var top = (int)Math.Floor(physicalRegion.Y / scaleFactor);
+        var right = (int)Math.Ceiling((physicalRegion.X + physicalRegion.Width) / scaleFactor);
+        var bottom = (int)Math.Ceiling((physicalRegion.Y + physicalRegion.Height) / scaleFactor);
+
+        return (left, top, Math.Max(1, right - left), Math.Max(1, bottom - top));
     }
 
     internal static string BuildCaptureArguments(

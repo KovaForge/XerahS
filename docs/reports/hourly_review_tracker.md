@@ -152,3 +152,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Validation: targeted history tests passed (6); Release build 0 warnings/0 errors; Release tests passed 729 total.
 - Logs: `/tmp/xerahs-hourly-sweep/build-20260430-144539.log`; `/tmp/xerahs-hourly-sweep/test-20260430-144922.log`
 - Follow-up: Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted.
+
+### 2026-04-30 17:45 AWST - Capture pipeline
+- Area: macOS CLI region capture fallback; files: `CliCaptureStrategy.cs`, `MacOSRegionSelectorPreferenceTests.cs`, `Directory.Build.props`.
+- Upstream: merged upstream/develop `87e57083` (native SwiftUI iOS shell) into develop; ShareX.ImageEditor healthy on `develop` (`360eeab`, origin current, no upstream incoming).
+- Status: Fixed scaled macOS `screencapture -R` conversion to floor top-left and ceil bottom-right so fractional Retina bounds are not shrunk; added regression coverage.
+- Version: bumped patch `0.22.159` -> `0.22.160`.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-173738.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-174057.log`.
+- Follow-up: Continue capture review around multi-monitor logical origins and macOS permission/error fallback messages.
