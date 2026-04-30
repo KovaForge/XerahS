@@ -84,6 +84,22 @@
 				<string>com.xerahs.xerahs.sxcu</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>XerahS Destination Config</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>xsdc</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.xerahs.xerahs.xsdc</string>
+			</array>
+		</dict>
 	</array>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
@@ -108,6 +124,32 @@
 				<array>
 					<string>application/json</string>
 					<string>application/x-sxcu+json</string>
+					<string>application/octet-stream</string>
+					<string>text/plain</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.xerahs.xerahs.xsdc</string>
+			<key>UTTypeDescription</key>
+			<string>XerahS Destination Config</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.content</string>
+				<string>public.json</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>xsdc</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/json</string>
+					<string>application/x-xsdc+json</string>
 					<string>application/octet-stream</string>
 					<string>text/plain</string>
 				</array>

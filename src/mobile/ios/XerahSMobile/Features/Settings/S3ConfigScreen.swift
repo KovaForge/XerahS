@@ -54,12 +54,6 @@ struct S3ConfigScreen: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    HStack {
-                        Button("Back", action: onBack)
-                            .xerahSGlassButton()
-                        Spacer()
-                    }
-
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Amazon S3")
                             .font(.system(size: 33, weight: .bold, design: .rounded))

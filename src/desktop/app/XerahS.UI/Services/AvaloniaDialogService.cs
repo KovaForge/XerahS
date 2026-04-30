@@ -146,6 +146,59 @@ namespace XerahS.UI.Services
             return null;
         }
 
+        public async Task<string?> ShowSecretInputAsync(string title, string label)
+        {
+            if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
+                GetDialogOwner(desktop) is not { } owner)
+            {
+                return null;
+            }
+
+            string? result = null;
+            var dialog = new SurfaceWindow
+            {
+                Title = title,
+                Width = 420,
+                Height = 190,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                CanResize = false
+            };
+            var textBox = new TextBox
+            {
+                PasswordChar = '*',
+                PlaceholderText = label
+            };
+            var panel = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 14
+            };
+            panel.Children.Add(new TextBlock { Text = label, FontSize = 14 });
+            panel.Children.Add(textBox);
+
+            var buttonRow = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                Spacing = 8
+            };
+            var cancelButton = new Button { Content = "Cancel", Padding = new Thickness(20, 8) };
+            var okButton = new Button { Content = "OK", Padding = new Thickness(20, 8), IsDefault = true };
+            cancelButton.Click += (_, _) => dialog.Close();
+            okButton.Click += (_, _) =>
+            {
+                result = textBox.Text;
+                dialog.Close();
+            };
+            buttonRow.Children.Add(cancelButton);
+            buttonRow.Children.Add(okButton);
+            panel.Children.Add(buttonRow);
+            dialog.Content = panel;
+
+            await dialog.ShowDialog(owner);
+            return result;
+        }
+
         public async Task<string?> ShowFolderPickerAsync(string title)
         {
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&

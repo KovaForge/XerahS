@@ -143,6 +143,17 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: transientToast)
+        .sheet(item: $appState.pendingDestinationConfigImport) { pending in
+            DestinationConfigPassphraseSheet(
+                sourceLabel: pending.sourceLabel,
+                onImport: { passphrase in
+                    appState.importPendingDestinationConfig(passphrase: passphrase)
+                },
+                onCancel: {
+                    appState.cancelPendingDestinationConfigImport()
+                }
+            )
+        }
         .onReceive(NotificationCenter.default.publisher(for: .xerahSSettingsDidChange)) { _ in
             settingsRevision += 1
         }
@@ -224,7 +235,8 @@ struct RootView: View {
                 settingsRepository: appState.settingsRepository,
                 onBack: { _ = navPath.popLast() },
                 onNavigateToS3: { navPath.append(.s3Config) },
-                onNavigateToCustomUploader: { navPath.append(.customUploaderConfig) }
+                onNavigateToCustomUploader: { navPath.append(.customUploaderConfig) },
+                onNavigateToAbout: { navPath.append(.about) }
             )
         case .s3Config:
             S3ConfigScreen(
@@ -236,6 +248,41 @@ struct RootView: View {
                 viewModel: CustomUploaderConfigViewModel(settingsRepository: appState.settingsRepository),
                 onBack: { _ = navPath.popLast() }
             )
+        case .about:
+            AboutScreen()
+        }
+    }
+}
+
+private struct DestinationConfigPassphraseSheet: View {
+    let sourceLabel: String
+    let onImport: (String) -> Void
+    let onCancel: () -> Void
+
+    @State private var passphrase: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(sourceLabel)
+                        .font(.subheadline)
+                    SecureField("Passphrase", text: $passphrase)
+                        .textContentType(.password)
+                }
+            }
+            .navigationTitle("Import .xsdc")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Import") {
+                        onImport(passphrase)
+                    }
+                    .disabled(passphrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
         }
     }
 }

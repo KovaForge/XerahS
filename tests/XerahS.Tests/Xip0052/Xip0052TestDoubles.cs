@@ -207,6 +207,7 @@ internal sealed class FakeViewDialogService : IViewDialogService
     public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel) => Task.CompletedTask;
     public Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null) => Task.FromResult<string?>(null);
     public Task<string?> ShowSaveFilePickerAsync(string title, string suggestedFileName, string defaultExtension, IEnumerable<string>? filters = null) => Task.FromResult<string?>(null);
+    public Task<string?> ShowSecretInputAsync(string title, string label) => Task.FromResult<string?>(null);
     public Task<string?> ShowFolderPickerAsync(string title) => Task.FromResult<string?>(null);
     public object? GetMainWindow() => null;
     public IEnumerable<object> GetOpenWindows() => Array.Empty<object>();

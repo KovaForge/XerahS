@@ -29,6 +29,7 @@ import UserNotifications
 private let appGroupId = "group.com.xerahs.xerahs"
 private let pendingPathsKey = "PendingSharedPaths"
 private let pendingSxcuImportsKey = "PendingSxcuImports"
+private let pendingXsdcImportsKey = "PendingXsdcImports"
 private let openAppURLString = "xerahs://share"
 
 final class ShareViewController: UIViewController {
@@ -151,10 +152,18 @@ final class ShareViewController: UIViewController {
             return
         }
         let sxcuPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "sxcu" }
-        let uploadPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() != "sxcu" }
+        let xsdcPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "xsdc" }
+        let uploadPaths = savedPaths.filter {
+            let ext = ($0 as NSString).pathExtension.lowercased()
+            return ext != "sxcu" && ext != "xsdc"
+        }
 
         if !sxcuPaths.isEmpty {
             enqueueForMainApp(paths: sxcuPaths, key: pendingSxcuImportsKey)
+        }
+
+        if !xsdcPaths.isEmpty {
+            enqueueForMainApp(paths: xsdcPaths, key: pendingXsdcImportsKey)
         }
 
         if uploadPaths.isEmpty {
@@ -167,7 +176,7 @@ final class ShareViewController: UIViewController {
             guard let self else { return }
             let results = self.uploadService.uploadFiles(uploadPaths)
             DispatchQueue.main.async {
-                self.finishUploadShare(uploadResults: results, hasPendingImport: !sxcuPaths.isEmpty)
+                self.finishUploadShare(uploadResults: results, hasPendingImport: !sxcuPaths.isEmpty || !xsdcPaths.isEmpty)
             }
         }
     }

@@ -302,6 +302,60 @@ public partial class DestinationSettingsViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    private async Task ExportDestinationConfig(UploaderInstanceViewModel? instance)
+    {
+        if (instance == null)
+        {
+            await ShowMessageDialogAsync("Export Failed", "Select a destination instance to export.");
+            return;
+        }
+
+        try
+        {
+            string? passphrase = await _dialogService.ShowSecretInputAsync(
+                "Export Destination Config",
+                "Enter a passphrase for this .xsdc file:");
+            if (string.IsNullOrWhiteSpace(passphrase))
+            {
+                return;
+            }
+
+            string? confirmation = await _dialogService.ShowSecretInputAsync(
+                "Confirm Passphrase",
+                "Re-enter the passphrase:");
+            if (!string.Equals(passphrase, confirmation, StringComparison.Ordinal))
+            {
+                await ShowMessageDialogAsync("Export Failed", "Passphrases do not match.");
+                return;
+            }
+
+            string fileName = MakeSafeFileName(instance.DisplayName);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = "DestinationConfig";
+            }
+
+            string? filePath = await _dialogService.ShowSaveFilePickerAsync(
+                "Export XerahS Destination Config",
+                fileName,
+                "xsdc",
+                new[] { "*.xsdc" });
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            string exportJson = DestinationConfigExportService.BuildEncryptedExport(instance.Instance, passphrase);
+            await File.WriteAllTextAsync(filePath, exportJson, Encoding.UTF8);
+            await ShowMessageDialogAsync("Destination Config Exported", $"Saved encrypted destination config:{Environment.NewLine}{filePath}");
+        }
+        catch (Exception ex)
+        {
+            await ShowMessageDialogAsync("Export Failed", ex.Message);
+        }
+    }
+
     private CustomUploaderInstanceCreationResult EnsureCustomUploaderInstances(string filePath)
     {
         if (!ProviderCatalog.ReloadCustomUploader(filePath))
