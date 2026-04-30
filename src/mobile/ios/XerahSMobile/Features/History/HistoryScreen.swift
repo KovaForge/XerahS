@@ -36,8 +36,6 @@ struct HistoryScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack {
-                        Button("Back", action: onBack)
-                            .xerahSGlassButton()
                         Spacer()
                         Button("Refresh") { viewModel.refresh() }
                             .xerahSGlassButton()

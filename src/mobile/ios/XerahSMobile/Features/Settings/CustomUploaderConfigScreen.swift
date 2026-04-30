@@ -36,8 +36,6 @@ struct CustomUploaderConfigScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack {
-                        Button("Back", action: onBack)
-                            .xerahSGlassButton()
                         Spacer()
                         Button("Import Clipboard") { viewModel.importFromClipboard() }
                             .xerahSGlassButton(prominent: true)

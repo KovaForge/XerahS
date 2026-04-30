@@ -29,6 +29,7 @@ struct SettingsHubScreen: View {
     var onBack: () -> Void
     var onNavigateToS3: () -> Void
     var onNavigateToCustomUploader: () -> Void
+    var onNavigateToAbout: () -> Void
 
     @State private var config: ApplicationConfig = ApplicationConfig()
     @State private var convertHeicToPng: Bool = true
@@ -40,12 +41,6 @@ struct SettingsHubScreen: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    HStack {
-                        Button("Back", action: onBack)
-                            .xerahSGlassButton()
-                        Spacer()
-                    }
-
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Settings")
                             .font(.system(size: 33, weight: .bold, design: .rounded))
@@ -109,6 +104,16 @@ struct SettingsHubScreen: View {
                                 subtitle: config.customUploaders.isEmpty
                                     ? "Not configured. Tap to add or import."
                                     : "\(config.customUploaders.count) uploader(s) available."
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        XerahSSectionIntro(title: "Application")
+
+                        Button(action: onNavigateToAbout) {
+                            SettingsNavigationCard(
+                                title: "About XerahS",
+                                subtitle: "Version, build, links, and project information."
                             )
                         }
                         .buttonStyle(.plain)

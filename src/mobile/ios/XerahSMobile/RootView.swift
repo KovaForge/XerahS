@@ -224,7 +224,8 @@ struct RootView: View {
                 settingsRepository: appState.settingsRepository,
                 onBack: { _ = navPath.popLast() },
                 onNavigateToS3: { navPath.append(.s3Config) },
-                onNavigateToCustomUploader: { navPath.append(.customUploaderConfig) }
+                onNavigateToCustomUploader: { navPath.append(.customUploaderConfig) },
+                onNavigateToAbout: { navPath.append(.about) }
             )
         case .s3Config:
             S3ConfigScreen(
@@ -236,6 +237,8 @@ struct RootView: View {
                 viewModel: CustomUploaderConfigViewModel(settingsRepository: appState.settingsRepository),
                 onBack: { _ = navPath.popLast() }
             )
+        case .about:
+            AboutScreen()
         }
     }
 }

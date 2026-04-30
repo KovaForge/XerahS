@@ -31,4 +31,5 @@ enum Screen: Hashable {
     case settings
     case s3Config
     case customUploaderConfig
+    case about
 }
