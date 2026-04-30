@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-04-30 10:42 AWST",
+  "last_updated": "2026-04-30 11:46 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,11 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Media subsystem",
     "Hotkeys/input",
     "MCP server",
     "CLI / command surface",
-    "Assistant local memory/privacy/history"
+    "Assistant local memory/privacy/history",
+    "Uploader core / plugin routing"
   ],
   "areas": [
     {
@@ -108,11 +108,11 @@
     },
     {
       "area": "Media subsystem",
-      "last_reviewed": "2026-04-29 08:31 AWST",
+      "last_reviewed": "2026-04-30 11:46 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed VideoThumbnailer combined-grid generation so invalid/non-positive column counts are clamped instead of crashing with divide-by-zero.",
-      "follow_up": "Continue media review around TakeThumbnails hardcoded 30s FFmpeg timeout and GetRandomTimeSlice shared RandomFast state."
+      "last_outcome": "Fixed random video thumbnail seek selection so each thumbnail uses its own bounded time segment and short videos return zero instead of risking an out-of-range slot.",
+      "follow_up": "Continue media review around TakeThumbnails FFmpeg timeout handling and combined-thumbnail timestamp/image alignment when some source thumbnails fail to load."
     },
     {
       "area": "MCP server",
@@ -172,6 +172,16 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-04-30 11:46 AWST",
+      "area": "Media subsystem",
+      "topic": "random video thumbnail seek slots",
+      "outcome": "Bounded random thumbnail seeks to the current thumbnail index segment, avoiding duplicate/out-of-range random slots on the shared RandomFast path; added regression coverage; bumped version to 0.22.154.",
+      "evidence": {
+        "build": "/tmp/xerahs-hourly-sweep/build-20260430-113716.log",
+        "test": "/tmp/xerahs-hourly-sweep/test-20260430-114228.log"
+      }
+    },
     {
       "timestamp": "2026-04-30 10:42 AWST",
       "area": "Plugin loading/runtime",

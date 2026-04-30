@@ -62,10 +62,66 @@ public sealed class VideoThumbnailerTests
         }
     }
 
+    [Test]
+    public void GetRandomTimeSlice_UsesThumbnailIndexSegment()
+    {
+        var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+        {
+            ThumbnailCount = 4
+        });
+
+        SetVideoInfo(thumbnailer, TimeSpan.FromSeconds(120));
+
+        Assert.Multiple(() =>
+        {
+            for (int thumbnailIndex = 0; thumbnailIndex < 4; thumbnailIndex++)
+            {
+                int start = 20 * (thumbnailIndex + 1);
+                int end = 20 * (thumbnailIndex + 2) - 1;
+
+                for (int attempt = 0; attempt < 20; attempt++)
+                {
+                    int timeSlice = InvokeGetRandomTimeSlice(thumbnailer, thumbnailIndex);
+                    Assert.That(timeSlice, Is.InRange(start, end));
+                }
+            }
+        });
+    }
+
+    [Test]
+    public void GetRandomTimeSlice_WithShortVideo_ReturnsZeroInsteadOfOverflowingSlot()
+    {
+        var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+        {
+            ThumbnailCount = 10
+        });
+
+        SetVideoInfo(thumbnailer, TimeSpan.FromSeconds(5));
+
+        Assert.That(InvokeGetRandomTimeSlice(thumbnailer, 9), Is.EqualTo(0));
+    }
+
     private static SKBitmap? InvokeCombineScreenshots(VideoThumbnailer thumbnailer, List<VideoThumbnailInfo> thumbnails)
     {
         MethodInfo? method = typeof(VideoThumbnailer).GetMethod("CombineScreenshots", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (SKBitmap?)method!.Invoke(thumbnailer, new object[] { thumbnails });
+    }
+
+    private static int InvokeGetRandomTimeSlice(VideoThumbnailer thumbnailer, int thumbnailIndex)
+    {
+        MethodInfo? method = typeof(VideoThumbnailer).GetMethod("GetRandomTimeSlice", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (int)method!.Invoke(thumbnailer, new object[] { thumbnailIndex })!;
+    }
+
+    private static void SetVideoInfo(VideoThumbnailer thumbnailer, TimeSpan duration)
+    {
+        PropertyInfo? property = typeof(VideoThumbnailer).GetProperty(nameof(VideoThumbnailer.VideoInfo));
+        Assert.That(property, Is.Not.Null);
+        property!.SetValue(thumbnailer, new VideoInfo
+        {
+            Duration = duration
+        });
     }
 }

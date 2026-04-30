@@ -188,20 +188,20 @@ namespace XerahS.Media
 
         private int GetRandomTimeSlice(int thumbnailIndex)
         {
-            int totalSlots = Options.ThumbnailCount + 2;
+            int thumbnailCount = Math.Max(1, Options.ThumbnailCount);
+            int totalSlots = thumbnailCount + 2;
             int timeSlice = GetTimeSlice(totalSlots);
-            List<int> mediaSeekTimes = new List<int>(totalSlots);
 
-            for (int i = 1; i < totalSlots; i++)
+            if (timeSlice <= 0)
             {
-                mediaSeekTimes.Add(timeSlice * i);
+                return 0;
             }
 
-            int slot = RandomFast.Next(mediaSeekTimes.Count - 1);
-            int start = mediaSeekTimes[slot];
-            int end = mediaSeekTimes[slot + 1];
+            int slot = Math.Clamp(thumbnailIndex, 0, thumbnailCount - 1);
+            int start = timeSlice * (slot + 1);
+            int end = timeSlice * (slot + 2) - 1;
 
-            return (int)(RandomFast.NextDouble() * (end - start)) + start;
+            return RandomFast.Next(start, Math.Max(start, end));
         }
 
         private SKBitmap? CombineScreenshots(List<VideoThumbnailInfo> thumbnails)

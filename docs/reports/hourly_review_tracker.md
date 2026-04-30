@@ -13,11 +13,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
-- Plugin loading/runtime
-- Media subsystem
 - Hotkeys/input
 - MCP server
 - CLI / command surface
+- Assistant local memory/privacy/history
+- Uploader core / plugin routing
 
 ## Current Coverage
 
@@ -34,7 +34,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | FTP uploader plugin | 2026-04-30 02:18 AWST | Medium | Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths. | Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens. |
 | Hotkeys/input | 2026-04-29 06:20 AWST | Medium | Fixed workflow hotkey retry after a failed registration leaves a stale assigned ID. |  |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
-| Media subsystem | 2026-04-29 08:31 AWST | High | Fixed VideoThumbnailer combined-grid generation so invalid/non-positive column counts are clamped instead of crashing with divide-by-zero. | Continue media review around TakeThumbnails hardcoded 30s FFmpeg timeout and GetRandomTimeSlice shared RandomFast state. |
+| Media subsystem | 2026-04-30 11:46 AWST | High | Fixed random video thumbnail seek selection so each thumbnail uses its own bounded time segment and short videos return zero instead of risking an out-of-range slot. | Continue media review around TakeThumbnails FFmpeg timeout handling and combined-thumbnail timestamp/image alignment when some source thumbnails fail to load. |
 | MCP server | 2026-04-29 11:15 AWST | Medium | Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely. | Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation. |
 | CLI / command surface | 2026-04-29 14:05 AWST | Medium | Fixed CLI upload to use the direct upload processor/bootstrap readiness path and added uploader doctor/bootstrap commands. | Continue CLI review around uploader bootstrap provider choices and JSON doctor output contract. |
 | Notifications/toasts | 2026-04-30 03:15 AWST | Medium | Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely. | Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next. |
@@ -44,6 +44,16 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
 
 ## Recent Runs
+
+### 2026-04-30 11:46 AWST - Media subsystem
+- Area: Media subsystem (VideoThumbnailer random seek slots)
+- Files: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`, `tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs`, `Directory.Build.props`
+- Finding: random thumbnail seeks rebuilt a slot list per thumbnail but chose a random inclusive slot index, which could ignore the current thumbnail segment, duplicate seek ranges, or select `slot + 1` past the list end.
+- Fix: clamp the thumbnail index into its own segment, return 0 for too-short videos, and cover indexed/random short-video behavior with regression tests.
+- Version: bumped `0.22.153` -> `0.22.154`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260430-113716.log`).
+- Tests: pass, 726 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260430-114228.log`).
+- Follow-up: continue media review around TakeThumbnails FFmpeg timeout handling and combined-thumbnail timestamp/image alignment when some source thumbnails fail to load.
 
 ### 2026-04-30 09:43 AWST - Editor integration
 - Topic: editor window direct-close completion
