@@ -214,15 +214,17 @@ public partial class OverlayWindow : Window
         if (OperatingSystem.IsMacOS())
         {
             // Regression guard: Avalonia/macOS can clamp a borderless overlay to Screen.WorkingArea after Show(),
-            // even when the constructor requested full Screen.Bounds. Reapply the target bounds after the
-            // NSWindow exists so the frozen desktop bitmap, pointer coordinates, and final crop stay aligned.
+            // even when the constructor requested full Screen.Bounds. Reapply the target bounds, then sync
+            // coordinate mapping to the actual NSWindow viewport if macOS still refuses the requested origin.
             ApplyTargetWindowLayout("OnOpened");
+            SyncCaptureControlViewportToActualWindow("OnOpened");
             Dispatcher.UIThread.Post(() =>
             {
                 if (_windowClosed)
                     return;
 
                 ApplyTargetWindowLayout("OnOpened.Post");
+                SyncCaptureControlViewportToActualWindow("OnOpened.Post");
                 LogActualWindowGeometry("OnOpened.Post");
             }, DispatcherPriority.Send);
         }
@@ -246,6 +248,26 @@ public partial class OverlayWindow : Window
         Height = _targetHeight;
 
         DebugHelper.WriteLine($"[OverlayWindow.{source}] {_monitor.DeviceName}: Applied target Position={Position} Width={Width:F1} Height={Height:F1}");
+    }
+
+    private void SyncCaptureControlViewportToActualWindow(string source)
+    {
+        try
+        {
+            var topLeftPhysical = this.PointToScreen(new Avalonia.Point(0, 0));
+            var bottomRightPhysical = this.PointToScreen(new Avalonia.Point(Width, Height));
+            var viewport = new PixelRect(
+                topLeftPhysical.X,
+                topLeftPhysical.Y,
+                Math.Max(1, bottomRightPhysical.X - topLeftPhysical.X),
+                Math.Max(1, bottomRightPhysical.Y - topLeftPhysical.Y));
+
+            _captureControl.SetPhysicalViewport(viewport, source);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"[OverlayWindow.{source}] {_monitor.DeviceName}: Viewport sync failed: {ex.Message}");
+        }
     }
 
     private void LogActualWindowGeometry(string source)

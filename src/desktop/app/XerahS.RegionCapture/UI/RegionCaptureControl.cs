@@ -52,6 +52,7 @@ public sealed class RegionCaptureControl : UserControl
     private readonly MagnifierControl _magnifier;
     private readonly bool _enableKeyboardNudge;
     private readonly RegionCaptureMode _mode;
+    private PixelRect _physicalViewportBounds;
 
     // Rendering configuration
     private readonly double _dimOpacity;
@@ -122,6 +123,7 @@ public sealed class RegionCaptureControl : UserControl
         options ??= new RegionCaptureOptions();
 
         _monitor = monitor;
+        _physicalViewportBounds = monitor.PhysicalBounds;
         _ghostCursor = ghostCursor;
         _coordinateService = new CoordinateTranslationService();
         _windowService = new WindowDetectionService();
@@ -249,6 +251,16 @@ public sealed class RegionCaptureControl : UserControl
 
     public RegionCaptureControl(MonitorInfo monitor) : this(monitor, null, null)
     {
+    }
+
+    public void SetPhysicalViewport(PixelRect physicalViewportBounds, string source)
+    {
+        if (physicalViewportBounds.IsEmpty)
+            return;
+
+        _physicalViewportBounds = physicalViewportBounds;
+        XerahS.Common.DebugHelper.WriteLine($"[RegionCaptureControl.{source}] {_monitor.DeviceName}: PhysicalViewport=({_physicalViewportBounds.X:F0},{_physicalViewportBounds.Y:F0},{_physicalViewportBounds.Width:F0}x{_physicalViewportBounds.Height:F0}) MonitorPhysical=({_monitor.PhysicalBounds.X:F0},{_monitor.PhysicalBounds.Y:F0},{_monitor.PhysicalBounds.Width:F0}x{_monitor.PhysicalBounds.Height:F0})");
+        InvalidateVisual();
     }
 
     private void OnSelectionConfirmed(RegionSelectionResult result)
@@ -450,18 +462,21 @@ public sealed class RegionCaptureControl : UserControl
 
     private PixelPoint LocalToPhysical(Point local)
     {
-        // Convert from control-local logical coordinates to physical screen coordinates
+        // Convert from control-local logical coordinates to physical screen coordinates.
+        // macOS can force a borderless overlay to start at the menu-bar working-area origin
+        // even when the monitor starts at y=0, so use the actual window viewport origin here.
         return new PixelPoint(
-            local.X * _monitor.ScaleFactor + _monitor.PhysicalBounds.X,
-            local.Y * _monitor.ScaleFactor + _monitor.PhysicalBounds.Y);
+            local.X * _monitor.ScaleFactor + _physicalViewportBounds.X,
+            local.Y * _monitor.ScaleFactor + _physicalViewportBounds.Y);
     }
 
     private Point PhysicalToLocal(PixelPoint physical)
     {
-        // Convert from physical screen coordinates to control-local logical coordinates
+        // Convert from physical screen coordinates to control-local logical coordinates.
+        // See LocalToPhysical: this must use the same actual viewport origin.
         return new Point(
-            (physical.X - _monitor.PhysicalBounds.X) / _monitor.ScaleFactor,
-            (physical.Y - _monitor.PhysicalBounds.Y) / _monitor.ScaleFactor);
+            (physical.X - _physicalViewportBounds.X) / _monitor.ScaleFactor,
+            (physical.Y - _physicalViewportBounds.Y) / _monitor.ScaleFactor);
     }
 
     private Rect PhysicalRectToLocal(PixelRect rect)
@@ -612,22 +627,33 @@ public sealed class RegionCaptureControl : UserControl
     {
         if (_backgroundAvBitmap == null) return;
 
-        // Calculate the portion of the background bitmap that corresponds to this monitor
+        // Calculate the portion of the background bitmap that corresponds to the actual
+        // overlay viewport. On macOS this can differ from the monitor origin after NSWindow
+        // creation, and drawing from monitor origin would visibly shift the frozen desktop.
         var virtualBounds = _coordinateService.GetVirtualScreenBounds();
+        var visibleViewport = _physicalViewportBounds.Intersect(_monitor.PhysicalBounds);
+        if (visibleViewport.IsEmpty)
+        {
+            visibleViewport = _physicalViewportBounds;
+        }
 
-        // Monitor's position relative to virtual screen origin
-        var srcX = _monitor.PhysicalBounds.X - virtualBounds.X;
-        var srcY = _monitor.PhysicalBounds.Y - virtualBounds.Y;
+        var srcX = visibleViewport.X - virtualBounds.X;
+        var srcY = visibleViewport.Y - virtualBounds.Y;
 
         // Source rect in the full screenshot (physical pixels)
         var sourceRect = new Rect(
             srcX,
             srcY,
-            _monitor.PhysicalBounds.Width,
-            _monitor.PhysicalBounds.Height);
+            visibleViewport.Width,
+            visibleViewport.Height);
 
-        // Destination rect is the full control bounds (logical coordinates)
-        context.DrawImage(_backgroundAvBitmap, sourceRect, bounds);
+        var destinationRect = new Rect(
+            (visibleViewport.X - _physicalViewportBounds.X) / _monitor.ScaleFactor,
+            (visibleViewport.Y - _physicalViewportBounds.Y) / _monitor.ScaleFactor,
+            visibleViewport.Width / _monitor.ScaleFactor,
+            visibleViewport.Height / _monitor.ScaleFactor);
+
+        context.DrawImage(_backgroundAvBitmap, sourceRect, destinationRect);
     }
 
     private void DrawResizeHandles(DrawingContext context, Rect rect)
