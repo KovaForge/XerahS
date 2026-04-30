@@ -213,3 +213,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-033751.log`).
 - Tests: pass, 758 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-034114.log`).
 - Follow-up: continue media review around FFmpeg exit-code/error surfacing, partial thumbnail cleanup, and mixed-dimension combined thumbnail layout.
+
+### 2026-05-01 05:43 AWST - Media subsystem
+- Area: Media subsystem (combined video thumbnail mixed-size layout); files: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`, `tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs`, `Directory.Build.props`.
+- Finding: combined thumbnail sheets sized every grid cell from the first loaded image, so later larger thumbnails could overdraw/crop into adjacent cells or beyond the final bitmap.
+- Fix: size combined grid cells from the largest loaded thumbnail dimensions while drawing each thumbnail's own border/shadow bounds; added regression coverage; bumped version `0.22.167` -> `0.22.168`.
+- Upstream: parent and `ShareX.ImageEditor` were already up to date; no new upstream commits merged this run.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-053740.log`).
+- Tests: pass, 759 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-054102.log`).
+- Follow-up: continue media review around FFmpeg exit-code/error surfacing and partial thumbnail cleanup.

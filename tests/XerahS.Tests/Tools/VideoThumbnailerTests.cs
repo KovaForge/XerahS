@@ -65,6 +65,55 @@ public sealed class VideoThumbnailerTests
     }
 
 
+
+
+    [Test]
+    public void CombineScreenshots_WithMixedThumbnailSizes_UsesLargestCellSize()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), "XerahS-VideoThumbnailerTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string smallPath = Path.Combine(tempDirectory, "small.png");
+            string largePath = Path.Combine(tempDirectory, "large.png");
+            WriteTestBitmap(smallPath, SKColors.CornflowerBlue, width: 8, height: 6);
+            WriteTestBitmap(largePath, SKColors.MediumSeaGreen, width: 12, height: 10);
+
+            var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+            {
+                ColumnCount = 2,
+                Padding = 1,
+                Spacing = 3,
+                AddVideoInfo = false,
+                AddTimestamp = false,
+                DrawBorder = false,
+                DrawShadow = false,
+                MaxThumbnailWidth = 0
+            });
+
+            using SKBitmap? combined = InvokeCombineScreenshots(thumbnailer, new List<VideoThumbnailInfo>
+            {
+                new VideoThumbnailInfo(smallPath),
+                new VideoThumbnailInfo(largePath)
+            });
+
+            Assert.That(combined, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(combined!.Width, Is.EqualTo(29));
+                Assert.That(combined.Height, Is.EqualTo(13));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
     [Test]
     public void LoadThumbnailImages_SkipsUnreadableFilesWithoutShiftingTimestamps()
     {
@@ -193,9 +242,9 @@ public sealed class VideoThumbnailerTests
         };
     }
 
-    private static void WriteTestBitmap(string path, SKColor color)
+    private static void WriteTestBitmap(string path, SKColor color, int width = 8, int height = 6)
     {
-        using var bitmap = new SKBitmap(8, 6);
+        using var bitmap = new SKBitmap(width, height);
         bitmap.Erase(color);
         using SKImage image = SKImage.FromBitmap(bitmap);
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);

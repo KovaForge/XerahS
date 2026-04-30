@@ -294,7 +294,7 @@ namespace XerahS.Media
 
                     int columnCount = Math.Max(1, Options.ColumnCount);
 
-                    int thumbWidth = images[0].Image.Width;
+                    int thumbWidth = images.Max(x => x.Image.Width);
 
                     int width = (Options.Padding * 2) +
                                 (thumbWidth * columnCount) +
@@ -302,7 +302,7 @@ namespace XerahS.Media
 
                     int rowCount = (int)Math.Ceiling(images.Count / (float)columnCount);
 
-                    int thumbHeight = images[0].Image.Height;
+                    int thumbHeight = images.Max(x => x.Image.Height);
 
                     int height = (Options.Padding * 3) +
                                  infoStringHeight +
@@ -337,19 +337,19 @@ namespace XerahS.Media
 
                                 for (int x = 0; x < columnCount; x++)
                                 {
+                                    LoadedThumbnail thumbnail = images[i];
+
                                     if (Options.DrawShadow)
                                     {
                                         int shadowOffset = 3;
-                                        g.DrawRect(offsetX + shadowOffset, offsetY + shadowOffset, thumbWidth, thumbHeight, shadowPaint);
+                                        g.DrawRect(offsetX + shadowOffset, offsetY + shadowOffset, thumbnail.Image.Width, thumbnail.Image.Height, shadowPaint);
                                     }
-
-                                    LoadedThumbnail thumbnail = images[i];
 
                                     g.DrawBitmap(thumbnail.Image, offsetX, offsetY);
 
                                     if (Options.DrawBorder)
                                     {
-                                        g.DrawRect(offsetX, offsetY, thumbWidth - 1, thumbHeight - 1, borderPaint);
+                                        g.DrawRect(offsetX, offsetY, thumbnail.Image.Width - 1, thumbnail.Image.Height - 1, borderPaint);
                                     }
 
                                     if (Options.AddTimestamp)
