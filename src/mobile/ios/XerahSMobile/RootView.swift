@@ -31,8 +31,7 @@ private enum AppPhase {
 }
 
 private enum AppTab: Hashable {
-    case upload
-    case history
+    case home
     case settings
 }
 
@@ -45,7 +44,7 @@ private struct TransientToast: Equatable {
 struct RootView: View {
     @EnvironmentObject var appState: AppState
     @State private var phase: AppPhase = .loading
-    @State private var selectedTab: AppTab = .upload
+    @State private var selectedTab: AppTab = .home
     @State private var settingsPath: [Screen] = []
     @State private var transientToast: TransientToast?
     @State private var settingsRevision: Int = 0
@@ -87,7 +86,7 @@ struct RootView: View {
             return
         }
 
-        selectedTab = .upload
+        selectedTab = .home
 
         if successes.isEmpty {
             showToast(TransientToast(
@@ -107,9 +106,7 @@ struct RootView: View {
     private func navigate(to screen: Screen) {
         switch screen {
         case .loading, .upload:
-            selectedTab = .upload
-        case .history:
-            selectedTab = .history
+            selectedTab = .home
         case .settings:
             selectedTab = .settings
             settingsPath = []
@@ -173,7 +170,7 @@ struct RootView: View {
         }
         .onChange(of: appState.pendingSharedPaths) { _, newValue in
             guard !newValue.isEmpty else { return }
-            selectedTab = .upload
+            selectedTab = .home
         }
     }
 
@@ -183,20 +180,9 @@ struct RootView: View {
                 uploadRoot
             }
             .tabItem {
-                Label("Upload", systemImage: "square.and.arrow.up")
+                Label("Home", systemImage: "house")
             }
-            .tag(AppTab.upload)
-
-            NavigationStack {
-                HistoryScreen(
-                    viewModel: HistoryViewModel(historyRepository: appState.historyRepository),
-                    onCopyToClipboard: copyToClipboard
-                )
-            }
-            .tabItem {
-                Label("History", systemImage: "clock")
-            }
-            .tag(AppTab.history)
+            .tag(AppTab.home)
 
             NavigationStack(path: $settingsPath) {
                 SettingsHubScreen(settingsRepository: appState.settingsRepository)
@@ -253,6 +239,7 @@ struct RootView: View {
         let activeLabel = appState.settingsRepository.load().activeDestinationDisplayName()
         return UploadScreen(
             worker: appState.uploadQueueWorker,
+            historyRepository: appState.historyRepository,
             onCopyToClipboard: copyToClipboard,
             onAutoShareUploadFinished: handleAutoShareUploadFinished,
             onInitialPathsConsumed: { appState.pendingSharedPaths = [] },

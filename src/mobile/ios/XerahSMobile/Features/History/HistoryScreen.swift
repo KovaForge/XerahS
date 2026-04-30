@@ -24,53 +24,7 @@
 
 import SwiftUI
 
-struct HistoryScreen: View {
-    @ObservedObject var viewModel: HistoryViewModel
-    var onCopyToClipboard: (String) -> Void
-
-    var body: some View {
-        List {
-            if viewModel.filteredEntries.isEmpty {
-                ContentUnavailableView(
-                    viewModel.searchQuery.isEmpty ? "No History" : "No Results",
-                    systemImage: "clock",
-                    description: Text(viewModel.searchQuery.isEmpty
-                                      ? "Successful uploads will appear here."
-                                      : "Try a different filename, URL, or host.")
-                )
-            } else {
-                ForEach(viewModel.filteredEntries) { entry in
-                    HistoryEntryRow(
-                        entry: entry,
-                        onCopyUrl: { onCopyToClipboard(entry.url) },
-                        onDelete: { viewModel.deleteEntry(entry.id) }
-                    )
-                }
-            }
-        }
-        .navigationTitle("History")
-        .searchable(text: $viewModel.searchQuery, prompt: "Search history")
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    viewModel.refresh()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-
-                Button(role: .destructive) {
-                    _ = viewModel.clearAll()
-                } label: {
-                    Label("Clear", systemImage: "trash")
-                }
-                .disabled(viewModel.filteredEntries.isEmpty && viewModel.searchQuery.isEmpty)
-            }
-        }
-        .onAppear { viewModel.refresh() }
-    }
-}
-
-private struct HistoryEntryRow: View {
+struct HistoryEntryRow: View {
     let entry: HistoryEntry
     var onCopyUrl: () -> Void
     var onDelete: () -> Void

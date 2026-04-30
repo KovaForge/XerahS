@@ -27,6 +27,7 @@ import Combine
 
 struct UploadScreen: View {
     @ObservedObject var worker: UploadQueueWorker
+    @StateObject private var historyViewModel: HistoryViewModel
     var onCopyToClipboard: (String) -> Void
     var onAutoShareUploadFinished: ([UploadResultItem]) -> Void
     var onInitialPathsConsumed: () -> Void
@@ -39,6 +40,24 @@ struct UploadScreen: View {
     @State private var results: [UploadResultItem] = []
     @State private var pendingAutoShareUploads = 0
     @State private var autoShareResults: [UploadResultItem] = []
+
+    init(
+        worker: UploadQueueWorker,
+        historyRepository: HistoryRepository,
+        onCopyToClipboard: @escaping (String) -> Void,
+        onAutoShareUploadFinished: @escaping ([UploadResultItem]) -> Void,
+        onInitialPathsConsumed: @escaping () -> Void,
+        initialPaths: [String]?,
+        activeDestinationLabel: String? = nil
+    ) {
+        self.worker = worker
+        _historyViewModel = StateObject(wrappedValue: HistoryViewModel(historyRepository: historyRepository))
+        self.onCopyToClipboard = onCopyToClipboard
+        self.onAutoShareUploadFinished = onAutoShareUploadFinished
+        self.onInitialPathsConsumed = onInitialPathsConsumed
+        self.initialPaths = initialPaths
+        self.activeDestinationLabel = activeDestinationLabel
+    }
 
     var body: some View {
         List {
@@ -61,7 +80,7 @@ struct UploadScreen: View {
                     }
                 }
             } footer: {
-                Text("Share photos, files, or `.sxcu` definitions to XerahS from the iOS share sheet.")
+                Text("Share photos, files, or `.sxcu` definitions to XerahS from the iOS share sheet. Recent uploads appear below.")
             }
 
             if !results.isEmpty {
@@ -71,13 +90,49 @@ struct UploadScreen: View {
                     }
                 }
             }
+
+            Section {
+                if historyViewModel.filteredEntries.isEmpty {
+                    ContentUnavailableView(
+                        historyViewModel.searchQuery.isEmpty ? "No History" : "No Results",
+                        systemImage: "clock",
+                        description: Text(historyViewModel.searchQuery.isEmpty
+                                          ? "Successful uploads will appear here."
+                                          : "Try a different filename, URL, or host.")
+                    )
+                } else {
+                    ForEach(historyViewModel.filteredEntries) { entry in
+                        HistoryEntryRow(
+                            entry: entry,
+                            onCopyUrl: { onCopyToClipboard(entry.url) },
+                            onDelete: { _ = historyViewModel.deleteEntry(entry.id) }
+                        )
+                    }
+                }
+            } header: {
+                Text("History")
+            }
         }
-        .navigationTitle("XerahS")
+        .navigationTitle("Home")
+        .searchable(text: $historyViewModel.searchQuery, prompt: "Search history")
         .toolbar {
-            if isUploading {
-                ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if isUploading {
                     ProgressView()
                 }
+
+                Button {
+                    historyViewModel.refresh()
+                } label: {
+                    Label("Refresh History", systemImage: "arrow.clockwise")
+                }
+
+                Button(role: .destructive) {
+                    _ = historyViewModel.clearAll()
+                } label: {
+                    Label("Clear History", systemImage: "trash")
+                }
+                .disabled(historyViewModel.filteredEntries.isEmpty && historyViewModel.searchQuery.isEmpty)
             }
         }
         .onReceive(worker.state.receive(on: DispatchQueue.main)) { state in
@@ -90,6 +145,7 @@ struct UploadScreen: View {
         }
         .onReceive(worker.itemCompleted.receive(on: DispatchQueue.main).compactMap { $0 }) { result in
             results.append(result)
+            historyViewModel.refresh()
             if pendingAutoShareUploads > 0 {
                 pendingAutoShareUploads -= 1
                 autoShareResults.append(result)
@@ -102,6 +158,7 @@ struct UploadScreen: View {
         }
         .onAppear {
             worker.updateState()
+            historyViewModel.refresh()
             enqueueInitialPathsIfNeeded(initialPaths)
         }
         .onChange(of: initialPaths) { _, newValue in
