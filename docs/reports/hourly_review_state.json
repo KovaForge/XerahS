@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-04-30 07:41 AWST",
+  "last_updated": "2026-04-30 08:41 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,11 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Tests / test discoverability",
     "Editor integration",
     "Plugin loading/runtime",
     "Media subsystem",
-    "Hotkeys/input"
+    "Hotkeys/input",
+    "Tests / test discoverability"
   ],
   "areas": [
     {
@@ -52,11 +52,11 @@
     },
     {
       "area": "Tests / test discoverability",
-      "last_reviewed": "2026-04-29 00:10 AWST",
+      "last_reviewed": "2026-04-30 08:41 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Hardened XerahS.McpServer.Tests test adapter metadata so xunit.runner.visualstudio stays a private/build-only test asset instead of flowing as a normal transitive package asset.",
-      "follow_up": null
+      "last_outcome": "Marked main NUnit test discovery packages as private test/build assets so Microsoft.NET.Test.Sdk and NUnit3TestAdapter do not flow as normal transitive assets; added guardrail coverage.",
+      "follow_up": "Continue tests review around discovery package asset metadata for Avalonia.Headless.NUnit/coverage collectors and cross-target test host behavior."
     },
     {
       "area": "Editor integration",
@@ -172,6 +172,16 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-04-30 08:41 AWST",
+      "area": "Tests / test discoverability",
+      "topic": "NUnit test discovery package asset metadata",
+      "outcome": "Added PrivateAssets/all and explicit IncludeAssets for Microsoft.NET.Test.Sdk and NUnit3TestAdapter in XerahS.Tests; added regression guard; bumped version to 0.22.151.",
+      "evidence": {
+        "build": "/tmp/xerahs-hourly-sweep/build-20260430-083931.log",
+        "test": "/tmp/xerahs-hourly-sweep/test-20260430-084035.log"
+      }
+    },
     {
       "timestamp": "2026-04-30 07:41 AWST",
       "area": "Settings/configuration",
