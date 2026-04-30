@@ -193,8 +193,9 @@ namespace XerahS.UI.Services
                 // Handle window closing to capture result
                 editorWindow.Closing += (s, e) =>
                 {
-                    if (!editorWindow.IsCloseRequestedByViewModel)
+                    if (ShouldReturnNullForEditorClose(taskMode, editorWindow.IsCloseRequestedByViewModel, editorViewModel.TaskResult))
                     {
+                        tcs.TrySetResult(null);
                         return;
                     }
 
@@ -202,15 +203,7 @@ namespace XerahS.UI.Services
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
 
-                        bool continueWithoutSave = editorViewModel.TaskResult == MainViewModel.EditorTaskResult.ContinueNoSave
-                            || (editorWindow.IsCloseRequestedByViewModel &&
-                                editorViewModel.TaskResult == MainViewModel.EditorTaskResult.Cancel);
-
-                        if (taskMode && continueWithoutSave)
-                        {
-                            tcs.TrySetResult(null);
-                        }
-                        else if (editorView != null)
+                        if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
                             if (snapshot == null)
@@ -241,6 +234,22 @@ namespace XerahS.UI.Services
             });
 
             return await tcs.Task;
+        }
+
+        internal static bool ShouldReturnNullForEditorClose(
+            bool taskMode,
+            bool closeRequestedByViewModel,
+            MainViewModel.EditorTaskResult taskResult)
+        {
+            if (!closeRequestedByViewModel)
+            {
+                return true;
+            }
+
+            bool continueWithoutSave = taskResult == MainViewModel.EditorTaskResult.ContinueNoSave
+                || taskResult == MainViewModel.EditorTaskResult.Cancel;
+
+            return taskMode && continueWithoutSave;
         }
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
