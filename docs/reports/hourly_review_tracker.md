@@ -190,3 +190,9 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Tests: pass, 755 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260430-214203.log`).
 - Follow-up: Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout.
 
+
+### 2026-04-30 23:45 AWST - Settings/configuration backups
+- Area: Settings/configuration (daily + weekly settings backup retention); files: `SettingsBase.cs`, `SettingsManagerSecretsPathTests.cs`, `Directory.Build.props`.
+- Status: Fixed settings saves so enabling both daily and weekly backup flags writes both backup zip variants instead of weekly suppressing the daily retention file; added regression coverage; bumped version `0.22.164` -> `0.22.165`.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-233736.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-234128.log`.
+- Follow-up: Continue settings/configuration review around backup archive cleanup, custom backup folder validation, and save failure recovery after partial temp-file moves.

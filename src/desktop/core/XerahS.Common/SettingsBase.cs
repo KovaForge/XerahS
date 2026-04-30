@@ -260,21 +260,6 @@ namespace XerahS.Common
                 // Get machine name for machine-specific backups
                 string machineName = Environment.MachineName;
 
-                string zipFileName;
-
-                if (CreateWeeklyBackup)
-                {
-                    // Create zip file with year, week number, and machine name: yyyy-Www-MACHINENAME format
-                    zipFileName = $"backup-{DateTime.Now.Year}-W{FileHelpers.WeekOfYear(DateTime.Now):00}-{machineName}.zip";
-                }
-                else
-                {
-                    // Create zip file with date stamp and machine name: yyyy-MM-dd-MACHINENAME format
-                    zipFileName = $"backup-{DateTime.Now:yyyy-MM-dd}-{machineName}.zip";
-                }
-
-                string zipFilePath = Path.Combine(monthFolder, zipFileName);
-
                 // Get the directory containing the settings file
                 string? settingsDirectory = Path.GetDirectoryName(filePath);
                 if (string.IsNullOrEmpty(settingsDirectory))
@@ -282,32 +267,51 @@ namespace XerahS.Common
                     return;
                 }
 
-                // Create or update zip file containing ALL JSON files in the settings directory
-                using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Update))
-                {
-                    // Find all JSON files in the settings directory
-                    var jsonFiles = Directory.GetFiles(settingsDirectory, "*.json");
-                    foreach (var jsonFile in jsonFiles)
-                    {
-                        string entryName = Path.GetFileName(jsonFile);
-                        
-                        // Remove existing entry if it exists (we're updating with latest)
-                        var existingEntry = archive.GetEntry(entryName);
-                        existingEntry?.Delete();
+                List<string> zipFileNames = new List<string>();
 
-                        // Add the file to the archive
-                        using (var fileStream = File.OpenRead(jsonFile))
+                if (CreateBackup)
+                {
+                    // Create zip file with date stamp and machine name: yyyy-MM-dd-MACHINENAME format
+                    zipFileNames.Add($"backup-{DateTime.Now:yyyy-MM-dd}-{machineName}.zip");
+                }
+
+                if (CreateWeeklyBackup)
+                {
+                    // Create zip file with year, week number, and machine name: yyyy-Www-MACHINENAME format
+                    zipFileNames.Add($"backup-{DateTime.Now.Year}-W{FileHelpers.WeekOfYear(DateTime.Now):00}-{machineName}.zip");
+                }
+
+                foreach (string zipFileName in zipFileNames.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    string zipFilePath = Path.Combine(monthFolder, zipFileName);
+
+                    // Create or update zip file containing ALL JSON files in the settings directory
+                    using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Update))
+                    {
+                        // Find all JSON files in the settings directory
+                        var jsonFiles = Directory.GetFiles(settingsDirectory, "*.json");
+                        foreach (var jsonFile in jsonFiles)
                         {
-                            var entry = archive.CreateEntry(entryName);
-                            using (var entryStream = entry.Open())
+                            string entryName = Path.GetFileName(jsonFile);
+
+                            // Remove existing entry if it exists (we're updating with latest)
+                            var existingEntry = archive.GetEntry(entryName);
+                            existingEntry?.Delete();
+
+                            // Add the file to the archive
+                            using (var fileStream = File.OpenRead(jsonFile))
                             {
-                                fileStream.CopyTo(entryStream);
+                                var entry = archive.CreateEntry(entryName);
+                                using (var entryStream = entry.Open())
+                                {
+                                    fileStream.CopyTo(entryStream);
+                                }
                             }
                         }
                     }
-                }
 
-                System.Diagnostics.Debug.WriteLine($"Backup created: {zipFilePath} with all JSON files");
+                    System.Diagnostics.Debug.WriteLine($"Backup created: {zipFilePath} with all JSON files");
+                }
             }
             catch (Exception e)
             {
