@@ -40,10 +40,18 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Notifications/toasts | 2026-04-30 03:15 AWST | Medium | Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely. | Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next. |
 | File/path handling | 2026-04-30 04:36 AWST | High | Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives. | Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next. |
 | Indexer subsystem | 2026-04-29 18:17 AWST | Medium | Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders. | Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling. |
-| Platform-specific services | 2026-04-29 19:24 AWST | High | Fixed macOS file-drop clipboard path handling so relative/whitespace-padded paths are normalized before AppleScript POSIX file specifiers. | Continue platform-specific review around macOS clipboard helper process timeouts and AppleScript argument robustness. |
+| Platform-specific services | 2026-05-01 01:45 AWST | High | Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version `0.22.165` -> `0.22.166`. | Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity. |
 | Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
 
 ## Recent Runs
+
+### 2026-05-01 01:45 AWST - Platform-specific services
+
+- Area: Platform-specific services (macOS clipboard osascript helper launch/timeout); files: `MacOSClipboardService.cs`, `MacOSClipboardServiceTests.cs`, `Directory.Build.props`.
+- Findings: `osascript` scripts were embedded in one quoted argument string and only stdout was read before waiting, leaving embedded quotes brittle and stderr-heavy failures able to hang clipboard operations.
+- Status: Fixed helper launch to use `ArgumentList`, drain both streams, and kill timed-out helper processes; added regression coverage; bumped version `0.22.165` -> `0.22.166`.
+- Build/Test: Release build and tests passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260501-013752.log`, `/tmp/xerahs-hourly-sweep/test-20260501-014133.log`.
+- Follow-up: Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity.
 
 ### 2026-04-30 16:50 AWST - Uploader core / plugin routing
 

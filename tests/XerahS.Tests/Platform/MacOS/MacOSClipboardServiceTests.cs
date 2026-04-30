@@ -41,4 +41,24 @@ public class MacOSClipboardServiceTests
 
         Assert.That(specifiers, Is.Empty);
     }
+
+    [Test]
+    public void CreateOsaScriptStartInfo_PassesScriptAsSingleArgument()
+    {
+        const string script = "set the clipboard to \"quoted value\"";
+
+        var startInfo = MacOSClipboardService.CreateOsaScriptStartInfo(script);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(startInfo.FileName, Is.EqualTo("osascript"));
+            Assert.That(startInfo.UseShellExecute, Is.False);
+            Assert.That(startInfo.RedirectStandardOutput, Is.True);
+            Assert.That(startInfo.RedirectStandardError, Is.True);
+            Assert.That(startInfo.Arguments, Is.Empty);
+            Assert.That(startInfo.ArgumentList, Has.Count.EqualTo(2));
+            Assert.That(startInfo.ArgumentList[0], Is.EqualTo("-e"));
+            Assert.That(startInfo.ArgumentList[1], Is.EqualTo(script));
+        });
+    }
 }
