@@ -126,7 +126,7 @@ public sealed class LinuxHotkeyService : IHotkeyService
                     continue;
                 }
 
-                if ((keyEvent.state & registration.BaseModifierMask) == registration.BaseModifierMask)
+                if (IsModifierMatch(keyEvent.state, registration.BaseModifierMask))
                 {
                     triggered = registration.Info;
                     break;
@@ -298,6 +298,14 @@ public sealed class LinuxHotkeyService : IHotkeyService
             NativeMethods.XSetErrorHandlerPtr(previousHandler);
         }
     }
+
+    internal static bool IsModifierMatch(uint state, uint baseModifierMask)
+    {
+        const uint ignoredModifierMask = NativeMethods.LockMask | NativeMethods.Mod2Mask;
+        return (state & ~ignoredModifierMask) == baseModifierMask;
+    }
+
+    internal static uint GetModifierMaskForTesting(KeyModifiers modifiers) => GetModifierMask(modifiers);
 
     private static uint GetModifierMask(KeyModifiers modifiers)
     {

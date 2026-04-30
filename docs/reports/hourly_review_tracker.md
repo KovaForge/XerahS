@@ -13,11 +13,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
-- Hotkeys/input
 - MCP server
 - CLI / command surface
-- Assistant local memory/privacy/history
 - Uploader core / plugin routing
+- Platform-specific services
+- Region capture / window enumeration
 
 ## Current Coverage
 
@@ -32,7 +32,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Uploader core / plugin routing | 2026-04-30 01:20 AWST | High | Fixed file-extension input normalization for uploader destination lookup and add-file-type conflict checks. | Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups. |
 | Plugin loading/runtime | 2026-04-29 04:11 AWST | High | Fixed plugin package installation so a missing plugins root is created before installing a .xsdp package instead of failing with DirectoryNotFoundException. |  |
 | FTP uploader plugin | 2026-04-30 02:18 AWST | Medium | Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths. | Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens. |
-| Hotkeys/input | 2026-04-29 06:20 AWST | Medium | Fixed workflow hotkey retry after a failed registration leaves a stale assigned ID. |  |
+| Hotkeys/input | 2026-04-30 15:46 AWST | Medium | Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage. | Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization. |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
 | Media subsystem | 2026-04-30 11:46 AWST | High | Fixed random video thumbnail seek selection so each thumbnail uses its own bounded time segment and short videos return zero instead of risking an out-of-range slot. | Continue media review around TakeThumbnails FFmpeg timeout handling and combined-thumbnail timestamp/image alignment when some source thumbnails fail to load. |
 | MCP server | 2026-04-29 11:15 AWST | Medium | Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely. | Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation. |
@@ -44,6 +44,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
 
 ## Recent Runs
+
+### 2026-04-30 15:46 AWST - Hotkeys/input
+
+- Area: Hotkeys/input (Linux X11 modifier matching)
+- Status: Fixed X11 hotkey dispatch so lock modifiers are ignored but extra modifiers no longer trigger narrower shortcuts; added regression coverage.
+- Version bump: 0.22.157 -> 0.22.158
+- Validation: Release build/test passed (717 app tests, 14 MCP tests). Logs: /tmp/xerahs-hourly-sweep/build-20260430-153842.log, /tmp/xerahs-hourly-sweep/test-20260430-154533.log.
+- Follow-up: Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization.
 
 ### 2026-04-30 11:46 AWST - Media subsystem
 - Area: Media subsystem (VideoThumbnailer random seek slots)
