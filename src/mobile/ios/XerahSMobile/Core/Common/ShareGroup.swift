@@ -29,6 +29,7 @@ enum ShareGroup {
     static let appGroupId = "group.com.xerahs.xerahs"
     static let pendingPathsKey = "PendingSharedPaths"
     static let pendingSxcuImportsKey = "PendingSxcuImports"
+    static let pendingXsdcImportsKey = "PendingXsdcImports"
 
     /// Reads and clears pending shared file paths from the Share Extension. Call on launch and when opened via xerahs://share.
     static func consumePendingPaths() -> [String] {
@@ -43,6 +44,14 @@ enum ShareGroup {
         guard let defaults = UserDefaults(suiteName: appGroupId) else { return [] }
         let paths = (defaults.array(forKey: pendingSxcuImportsKey) as? [String]) ?? []
         defaults.removeObject(forKey: pendingSxcuImportsKey)
+        defaults.synchronize()
+        return paths
+    }
+
+    static func consumePendingXsdcImports() -> [String] {
+        guard let defaults = UserDefaults(suiteName: appGroupId) else { return [] }
+        let paths = (defaults.array(forKey: pendingXsdcImportsKey) as? [String]) ?? []
+        defaults.removeObject(forKey: pendingXsdcImportsKey)
         defaults.synchronize()
         return paths
     }

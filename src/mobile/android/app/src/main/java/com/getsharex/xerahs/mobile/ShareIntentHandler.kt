@@ -35,16 +35,22 @@ object ShareIntentHandler {
     fun handleIntent(activity: MainActivity, intent: Intent?): Array<String>? {
         if (intent == null) return null
         val action = intent.action
-        if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE) return null
+        if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE && action != Intent.ACTION_VIEW) return null
         // Allow type to be null; many share senders (e.g. Photos) set data in ClipData only
         val type = intent.type
-        if (type.isNullOrEmpty() && intent.clipData == null) return null
+        if (type.isNullOrEmpty() && intent.clipData == null && intent.data == null) return null
 
         val app = activity.application as? XerahSApplication ?: return null
         val cacheDir = app.cacheDir ?: return null
         val localPaths = mutableListOf<String>()
 
         when (action) {
+            Intent.ACTION_VIEW -> {
+                intent.data?.let { uri ->
+                    copyUriToCache(activity, uri, cacheDir, type)?.let { localPaths.add(it) }
+                        ?: Log.w(TAG, "copyUriToCache failed for $uri")
+                }
+            }
             Intent.ACTION_SEND -> {
                 @Suppress("DEPRECATION")
                 var uri: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM)

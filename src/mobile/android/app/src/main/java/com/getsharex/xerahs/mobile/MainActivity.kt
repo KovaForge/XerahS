@@ -21,8 +21,12 @@
 
 package com.getsharex.xerahs.mobile
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,6 +37,8 @@ import androidx.navigation.compose.rememberNavController
 import com.getsharex.xerahs.mobile.navigation.Screen
 import com.getsharex.xerahs.mobile.ui.theme.XerahSTheme
 import com.getsharex.xerahs.mobile.navigation.XerahSNavGraph
+import com.getsharex.xerahs.mobile.core.data.DestinationConfigImporter
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,12 +67,51 @@ class MainActivity : ComponentActivity() {
     private fun handleShareIntent(intent: Intent?) {
         val paths = ShareIntentHandler.handleIntent(this, intent) ?: return
         val app = application as? XerahSApplication ?: return
+        val xsdcPaths = paths.filter { it.substringAfterLast('.', "").equals("xsdc", ignoreCase = true) }
+        val uploadPaths = paths.filterNot { it.substringAfterLast('.', "").equals("xsdc", ignoreCase = true) }
+
+        xsdcPaths.firstOrNull()?.let { path ->
+            promptForDestinationConfigPassphrase(app, path)
+        }
+
+        if (uploadPaths.isEmpty()) {
+            return
+        }
+
         synchronized(app.pendingSharedPaths) {
-            app.pendingSharedPaths.add(paths)
+            app.pendingSharedPaths.add(uploadPaths.toTypedArray())
         }
         app.navController?.navigate(Screen.Upload.route) {
             popUpTo(Screen.Upload.route) { inclusive = true }
             launchSingleTop = true
         }
+    }
+
+    private fun promptForDestinationConfigPassphrase(app: XerahSApplication, path: String) {
+        val input = EditText(this).apply {
+            hint = "Passphrase"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Import .xsdc")
+            .setMessage(File(path).name)
+            .setView(input)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Import") { _, _ ->
+                try {
+                    val displayName = DestinationConfigImporter(app.settingsRepository).import(
+                        File(path).readBytes(),
+                        input.text?.toString().orEmpty()
+                    )
+                    Toast.makeText(this, "Imported destination config: $displayName", Toast.LENGTH_LONG).show()
+                    app.navController?.navigate(Screen.S3Config.route) {
+                        launchSingleTop = true
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this, e.message ?: "Failed to import .xsdc", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 }
