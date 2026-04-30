@@ -17,6 +17,7 @@ namespace XerahS.UI.Services
         Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel);
         Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null);
         Task<string?> ShowSaveFilePickerAsync(string title, string suggestedFileName, string defaultExtension, IEnumerable<string>? filters = null);
+        Task<string?> ShowSecretInputAsync(string title, string label);
         Task<string?> ShowFolderPickerAsync(string title);
         object? GetMainWindow();
         IEnumerable<object> GetOpenWindows();

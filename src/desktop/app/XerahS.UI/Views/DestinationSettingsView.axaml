@@ -107,6 +107,9 @@
                                                 <MenuItem Header="Duplicate" 
                                                           Command="{Binding $parent[ListBox].DataContext.SelectedCategory.DuplicateInstanceCommand}"
                                                           CommandParameter="{Binding}"/>
+                                                <MenuItem Header="Export .xsdc"
+                                                          Command="{Binding $parent[ListBox].DataContext.ExportDestinationConfigCommand}"
+                                                          CommandParameter="{Binding}"/>
                                                 <Separator/>
                                                 <MenuItem Header="Remove" 
                                                           Command="{Binding $parent[ListBox].DataContext.SelectedCategory.RemoveInstanceCommand}"
