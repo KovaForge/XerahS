@@ -26,105 +26,71 @@ import SwiftUI
 
 struct SettingsHubScreen: View {
     let settingsRepository: SettingsRepository
-    var onBack: () -> Void
-    var onNavigateToS3: () -> Void
-    var onNavigateToCustomUploader: () -> Void
-    var onNavigateToAbout: () -> Void
 
     @State private var config: ApplicationConfig = ApplicationConfig()
     @State private var convertHeicToPng: Bool = true
     @State private var selectedDestinationId: String? = nil
 
     var body: some View {
-        ZStack {
-            XerahSPageBackground()
+        Form {
+            Section {
+                activeDestinationSection
+            } header: {
+                Text("Active Upload Destination")
+            } footer: {
+                Text("The selected destination is used by share uploads.")
+            }
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Settings")
-                            .font(.system(size: 33, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                        Text("Adjust the mobile uploader without guessing which labels are interactive.")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.72))
+            Section("Upload Options") {
+                Toggle(isOn: Binding(
+                    get: { convertHeicToPng },
+                    set: { newValue in
+                        convertHeicToPng = newValue
+                        settingsRepository.setConvertHeicToPng(newValue)
                     }
-
-                    XerahSGlassGroup {
-                        XerahSSectionIntro(
-                            title: "Active Upload Destination",
-                            detail: "This heading is informational only. Tap a glass row below to choose the destination used by share uploads."
-                        )
-
-                        activeDestinationSection
-
-                        XerahSSectionIntro(
-                            title: "Upload Options",
-                            detail: "Image conversion applies before the upload request is built."
-                        )
-
-                        XerahSGlassCard {
-                            Toggle(isOn: Binding(
-                                get: { convertHeicToPng },
-                                set: { newValue in
-                                    convertHeicToPng = newValue
-                                    settingsRepository.setConvertHeicToPng(newValue)
-                                }
-                            )) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Convert HEIC/HEIF to PNG before upload")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                    Text("Use PNG so images open directly in browsers instead of downloading as HEIC.")
-                                        .font(.footnote)
-                                        .foregroundStyle(.white.opacity(0.68))
-                                }
-                            }
-                            .tint(Color(red: 0.33, green: 0.83, blue: 0.90))
-                        }
-
-                        XerahSSectionIntro(
-                            title: "Destinations",
-                            detail: "These rows are interactive. Tap one to configure or import destination settings."
-                        )
-
-                        Button(action: onNavigateToS3) {
-                            SettingsNavigationCard(
-                                title: "Amazon S3",
-                                subtitle: config.s3Config.isConfigured
-                                    ? "Bucket: \(config.s3Config.bucketName)"
-                                    : "Not configured. Tap to set up."
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        Button(action: onNavigateToCustomUploader) {
-                            SettingsNavigationCard(
-                                title: "Custom Uploader",
-                                subtitle: config.customUploaders.isEmpty
-                                    ? "Not configured. Tap to add or import."
-                                    : "\(config.customUploaders.count) uploader(s) available."
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        XerahSSectionIntro(title: "Application")
-
-                        Button(action: onNavigateToAbout) {
-                            SettingsNavigationCard(
-                                title: "About XerahS",
-                                subtitle: "Version, build, links, and project information."
-                            )
-                        }
-                        .buttonStyle(.plain)
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Convert HEIC/HEIF to PNG")
+                        Text("Use PNG so images open directly in browsers.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
             }
-            .scrollIndicators(.hidden)
+
+            Section("Destinations") {
+                NavigationLink(value: Screen.s3Config) {
+                    SettingsNavigationRow(
+                        title: "Amazon S3",
+                        subtitle: config.s3Config.isConfigured
+                            ? "Bucket: \(config.s3Config.bucketName)"
+                            : "Not configured",
+                        systemImage: "shippingbox"
+                    )
+                }
+
+                NavigationLink(value: Screen.customUploaderConfig) {
+                    SettingsNavigationRow(
+                        title: "Custom Uploader",
+                        subtitle: config.customUploaders.isEmpty
+                            ? "Not configured"
+                            : "\(config.customUploaders.count) uploader(s)",
+                        systemImage: "curlybraces"
+                    )
+                }
+            }
+
+            Section("Application") {
+                NavigationLink(value: Screen.about) {
+                    SettingsNavigationRow(
+                        title: "About XerahS",
+                        subtitle: "Version, build, and project links",
+                        systemImage: "info.circle"
+                    )
+                }
+            }
         }
+        .navigationTitle("Settings")
         .onAppear(perform: reloadFromDisk)
         .onReceive(NotificationCenter.default.publisher(for: .xerahSSettingsDidChange)) { _ in
             reloadFromDisk()
@@ -137,11 +103,8 @@ struct SettingsHubScreen: View {
 
         return Group {
             if options.isEmpty {
-                XerahSGlassCard {
-                    Text("No destination configured yet. Set up Amazon S3 or import a custom uploader below.")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.76))
-                }
+                Text("No destination configured yet. Set up Amazon S3 or import a custom uploader below.")
+                    .foregroundStyle(.secondary)
             } else {
                 ForEach(Array(options.enumerated()), id: \.offset) { _, pair in
                     let isSelected = effectiveId == pair.instanceId
@@ -149,22 +112,18 @@ struct SettingsHubScreen: View {
                         selectedDestinationId = pair.instanceId
                         settingsRepository.setDefaultDestinationInstanceId(pair.instanceId)
                     } label: {
-                        XerahSGlassCard {
-                            HStack(spacing: 14) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(pair.displayName)
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                    Text(isSelected ? "Active destination" : "Tap to make this the active destination")
-                                        .font(.footnote)
-                                        .foregroundStyle(.white.opacity(0.66))
-                                }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(pair.displayName)
+                                Text(isSelected ? "Active destination" : "Tap to make active")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
-                                Spacer(minLength: 12)
-
+                            Spacer()
+                            if isSelected {
                                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                    .font(.title3)
-                                    .foregroundStyle(isSelected ? Color(red: 0.52, green: 0.95, blue: 0.72) : .white.opacity(0.62))
+                                    .foregroundStyle(.green)
                             }
                         }
                     }
@@ -182,28 +141,22 @@ struct SettingsHubScreen: View {
     }
 }
 
-private struct SettingsNavigationCard: View {
+private struct SettingsNavigationRow: View {
     let title: String
     let subtitle: String
+    let systemImage: String
 
     var body: some View {
-        XerahSGlassCard {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(subtitle)
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.68))
-                }
-
-                Spacer(minLength: 12)
-
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.65))
+        Label {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(.blue)
         }
     }
 }

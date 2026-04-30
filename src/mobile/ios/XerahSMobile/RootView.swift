@@ -30,6 +30,12 @@ private enum AppPhase {
     case main
 }
 
+private enum AppTab: Hashable {
+    case upload
+    case history
+    case settings
+}
+
 private struct TransientToast: Equatable {
     let title: String?
     let message: String
@@ -39,7 +45,8 @@ private struct TransientToast: Equatable {
 struct RootView: View {
     @EnvironmentObject var appState: AppState
     @State private var phase: AppPhase = .loading
-    @State private var navPath: [Screen] = []
+    @State private var selectedTab: AppTab = .upload
+    @State private var settingsPath: [Screen] = []
     @State private var transientToast: TransientToast?
     @State private var settingsRevision: Int = 0
 
@@ -80,7 +87,7 @@ struct RootView: View {
             return
         }
 
-        navPath = []
+        selectedTab = .upload
 
         if successes.isEmpty {
             showToast(TransientToast(
@@ -99,17 +106,22 @@ struct RootView: View {
 
     private func navigate(to screen: Screen) {
         switch screen {
+        case .loading, .upload:
+            selectedTab = .upload
+        case .history:
+            selectedTab = .history
+        case .settings:
+            selectedTab = .settings
+            settingsPath = []
         case .customUploaderConfig:
-            if !navPath.contains(.settings) {
-                navPath.append(.settings)
-            }
-            if navPath.last != .customUploaderConfig {
-                navPath.append(.customUploaderConfig)
-            }
-        default:
-            if navPath.last != screen {
-                navPath.append(screen)
-            }
+            selectedTab = .settings
+            settingsPath = [.customUploaderConfig]
+        case .s3Config:
+            selectedTab = .settings
+            settingsPath = [.s3Config]
+        case .about:
+            selectedTab = .settings
+            settingsPath = [.about]
         }
     }
 
@@ -121,26 +133,8 @@ struct RootView: View {
                 mainNav
             }
         }
-        .overlay(alignment: .bottom) {
-            if let toast = transientToast {
-                XerahSGlassCard(padding: 0) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let title = toast.title, !title.isEmpty {
-                            Text(title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white)
-                        }
-                        Text(toast.message)
-                            .font(.footnote)
-                            .foregroundStyle(toast.isError ? Color(red: 1.0, green: 0.82, blue: 0.82) : .white.opacity(0.88))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                }
-                .frame(maxWidth: 340)
-                .padding(.bottom, 32)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            toastInset
         }
         .animation(.easeInOut(duration: 0.25), value: transientToast)
         .sheet(item: $appState.pendingDestinationConfigImport) { pending in
@@ -179,16 +173,78 @@ struct RootView: View {
         }
         .onChange(of: appState.pendingSharedPaths) { _, newValue in
             guard !newValue.isEmpty else { return }
-            navPath = []
+            selectedTab = .upload
         }
     }
 
     private var mainNav: some View {
-        NavigationStack(path: $navPath) {
-            uploadRoot
-                .navigationDestination(for: Screen.self) { screen in
-                    destination(for: screen)
+        TabView(selection: $selectedTab) {
+            NavigationStack {
+                uploadRoot
+            }
+            .tabItem {
+                Label("Upload", systemImage: "square.and.arrow.up")
+            }
+            .tag(AppTab.upload)
+
+            NavigationStack {
+                HistoryScreen(
+                    viewModel: HistoryViewModel(historyRepository: appState.historyRepository),
+                    onCopyToClipboard: copyToClipboard
+                )
+            }
+            .tabItem {
+                Label("History", systemImage: "clock")
+            }
+            .tag(AppTab.history)
+
+            NavigationStack(path: $settingsPath) {
+                SettingsHubScreen(settingsRepository: appState.settingsRepository)
+                    .navigationDestination(for: Screen.self) { screen in
+                        settingsDestination(for: screen)
+                    }
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .tag(AppTab.settings)
+        }
+    }
+
+    @ViewBuilder
+    private var toastInset: some View {
+        if let toast = transientToast {
+            VStack(alignment: .leading, spacing: 4) {
+                if let title = toast.title, !title.isEmpty {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
                 }
+                Text(toast.message)
+                    .font(.footnote)
+                    .foregroundStyle(toast.isError ? .red : .secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: 340, alignment: .leading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(radius: 18, y: 8)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 10)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder
+    private func settingsDestination(for screen: Screen) -> some View {
+        switch screen {
+        case .s3Config:
+            S3ConfigScreen(viewModel: S3ConfigViewModel(settingsRepository: appState.settingsRepository))
+        case .customUploaderConfig:
+            CustomUploaderConfigScreen(viewModel: CustomUploaderConfigViewModel(settingsRepository: appState.settingsRepository))
+        case .about:
+            AboutScreen()
+        default:
+            EmptyView()
         }
     }
 
@@ -197,8 +253,6 @@ struct RootView: View {
         let activeLabel = appState.settingsRepository.load().activeDestinationDisplayName()
         return UploadScreen(
             worker: appState.uploadQueueWorker,
-            onOpenHistory: { navPath.append(.history) },
-            onOpenSettings: { navPath.append(.settings) },
             onCopyToClipboard: copyToClipboard,
             onAutoShareUploadFinished: handleAutoShareUploadFinished,
             onInitialPathsConsumed: { appState.pendingSharedPaths = [] },
@@ -214,42 +268,6 @@ struct RootView: View {
                     appState.pendingSharedPaths = fromGroup
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func destination(for screen: Screen) -> some View {
-        switch screen {
-        case .loading:
-            EmptyView()
-        case .upload:
-            uploadRoot
-        case .history:
-            HistoryScreen(
-                viewModel: HistoryViewModel(historyRepository: appState.historyRepository),
-                onBack: { _ = navPath.popLast() },
-                onCopyToClipboard: copyToClipboard
-            )
-        case .settings:
-            SettingsHubScreen(
-                settingsRepository: appState.settingsRepository,
-                onBack: { _ = navPath.popLast() },
-                onNavigateToS3: { navPath.append(.s3Config) },
-                onNavigateToCustomUploader: { navPath.append(.customUploaderConfig) },
-                onNavigateToAbout: { navPath.append(.about) }
-            )
-        case .s3Config:
-            S3ConfigScreen(
-                viewModel: S3ConfigViewModel(settingsRepository: appState.settingsRepository),
-                onBack: { _ = navPath.popLast() }
-            )
-        case .customUploaderConfig:
-            CustomUploaderConfigScreen(
-                viewModel: CustomUploaderConfigViewModel(settingsRepository: appState.settingsRepository),
-                onBack: { _ = navPath.popLast() }
-            )
-        case .about:
-            AboutScreen()
         }
     }
 }
