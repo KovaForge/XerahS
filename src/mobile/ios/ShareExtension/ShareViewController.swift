@@ -24,6 +24,7 @@
 
 import UIKit
 import UniformTypeIdentifiers
+import UserNotifications
 
 private let appGroupId = "group.com.xerahs.xerahs"
 private let pendingPathsKey = "PendingSharedPaths"
@@ -31,6 +32,7 @@ private let pendingSxcuImportsKey = "PendingSxcuImports"
 private let openAppURLString = "xerahs://share"
 
 final class ShareViewController: UIViewController {
+    private let uploadService = ShareExtensionUploadService()
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -46,6 +48,11 @@ final class ShareViewController: UIViewController {
             finishWithError()
             return
         }
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? groupContainer.appendingPathComponent("Caches", isDirectory: true)
+        Paths.configure(applicationSupport: groupContainer, caches: caches, appGroupContainer: groupContainer)
+        Paths.ensureDirectoriesExist()
+
         let inbox = groupContainer.appendingPathComponent("ShareInbox", isDirectory: true)
         try? FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
 
@@ -143,27 +150,127 @@ final class ShareViewController: UIViewController {
             finishWithError()
             return
         }
-        let defaults = UserDefaults(suiteName: appGroupId)
         let sxcuPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "sxcu" }
         let uploadPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() != "sxcu" }
 
-        if !uploadPaths.isEmpty {
-            var pending = (defaults?.array(forKey: pendingPathsKey) as? [String]) ?? []
-            pending.append(contentsOf: uploadPaths)
-            defaults?.set(pending, forKey: pendingPathsKey)
-        }
-
         if !sxcuPaths.isEmpty {
-            var pendingImports = (defaults?.array(forKey: pendingSxcuImportsKey) as? [String]) ?? []
-            pendingImports.append(contentsOf: sxcuPaths)
-            defaults?.set(pendingImports, forKey: pendingSxcuImportsKey)
+            enqueueForMainApp(paths: sxcuPaths, key: pendingSxcuImportsKey)
         }
 
+        if uploadPaths.isEmpty {
+            openContainingApp()
+            extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let results = self.uploadService.uploadFiles(uploadPaths)
+            DispatchQueue.main.async {
+                self.finishUploadShare(uploadResults: results, hasPendingImport: !sxcuPaths.isEmpty)
+            }
+        }
+    }
+
+    private func finishUploadShare(uploadResults: [ShareExtensionUploadResult], hasPendingImport: Bool) {
+        let uploadedUrls = uploadResults.compactMap(\.url)
+        let failedPaths = uploadResults.filter { !$0.succeeded }.map(\.filePath)
+
+        if !uploadedUrls.isEmpty {
+            UIPasteboard.general.string = uploadedUrls.joined(separator: "\n")
+            removeUploadedInboxFiles(uploadResults)
+        }
+
+        if !failedPaths.isEmpty {
+            enqueueForMainApp(paths: failedPaths, key: pendingPathsKey)
+        }
+
+        if hasPendingImport || !failedPaths.isEmpty {
+            openContainingApp()
+        }
+
+        let notificationTitle: String
+        let notificationBody: String
+        if uploadedUrls.count == uploadResults.count {
+            notificationTitle = "XerahS upload complete"
+            notificationBody = uploadedUrls.count == 1
+                ? "Link copied to Clipboard."
+                : "\(uploadedUrls.count) links copied to Clipboard."
+        } else if !uploadedUrls.isEmpty {
+            notificationTitle = "XerahS upload partially complete"
+            notificationBody = "\(uploadedUrls.count) link(s) copied. \(failedPaths.count) file(s) queued for XerahS."
+        } else {
+            notificationTitle = "XerahS upload queued"
+            let firstError = uploadResults.compactMap(\.error).first ?? "Open XerahS to finish uploading."
+            notificationBody = firstError
+        }
+
+        scheduleNotification(title: notificationTitle, body: notificationBody) { [weak self] in
+            DispatchQueue.main.async {
+                self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+            }
+        }
+    }
+
+    private func enqueueForMainApp(paths: [String], key: String) {
+        guard !paths.isEmpty else { return }
+        let defaults = UserDefaults(suiteName: appGroupId)
+        var pending = (defaults?.array(forKey: key) as? [String]) ?? []
+        pending.append(contentsOf: paths)
+        defaults?.set(pending, forKey: key)
         defaults?.synchronize()
+    }
+
+    private func removeUploadedInboxFiles(_ results: [ShareExtensionUploadResult]) {
+        for result in results where result.succeeded {
+            try? FileManager.default.removeItem(atPath: result.filePath)
+        }
+    }
+
+    private func openContainingApp() {
         if let url = URL(string: openAppURLString) {
             extensionContext?.open(url, completionHandler: nil)
         }
-        extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+    }
+
+    private func scheduleNotification(title: String, body: String, completion: @escaping () -> Void) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral:
+                self.addNotification(center: center, title: title, body: body, completion: completion)
+            case .notDetermined:
+                center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                    if granted {
+                        self.addNotification(center: center, title: title, body: body, completion: completion)
+                    } else {
+                        completion()
+                    }
+                }
+            case .denied:
+                completion()
+            @unknown default:
+                completion()
+            }
+        }
+    }
+
+    private func addNotification(
+        center: UNUserNotificationCenter,
+        title: String,
+        body: String,
+        completion: @escaping () -> Void
+    ) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "xerahs-share-upload-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        center.add(request) { _ in completion() }
     }
 
     private func finishWithError() {

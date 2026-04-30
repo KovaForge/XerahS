@@ -189,6 +189,7 @@ namespace XerahS.UI.Services
                 DebugHelper.WriteLine("[RegionCapture] macOS native crosshair selected; using platform region capture without XerahS overlay.");
                 try
                 {
+                    await WaitForMacOSNativeSelectorReadinessAsync();
                     var nativeBitmap = await _platformImpl.CaptureRegionAsync(options);
                     DebugHelper.WriteLine(nativeBitmap == null
                         ? "[RegionCapture] macOS native region capture returned null."
@@ -650,6 +651,14 @@ namespace XerahS.UI.Services
         {
             return OperatingSystem.IsMacOS() &&
                 options?.MacOSRegionSelectorPreference == MacOSInteractiveRegionSelectorPreference.NativeCrosshair;
+        }
+
+        private static async Task WaitForMacOSNativeSelectorReadinessAsync()
+        {
+            // The native screencapture selector is very sensitive to being launched while
+            // the hotkey event tap is still unwinding. Give the macOS hotkey service time
+            // to stop SharpHook after suspension before starting /usr/sbin/screencapture.
+            await Task.Delay(300);
         }
 
         private static bool TryBeginMacOSInteractiveRegionCapture(string operation, out IDisposable? captureScope)

@@ -192,7 +192,43 @@ namespace XerahS.Platform.MacOS.Services
         public bool IsSuspended
         {
             get => _isSuspended;
-            set => _isSuspended = value;
+            set
+            {
+                if (_isSuspended == value)
+                {
+                    return;
+                }
+
+                _isSuspended = value;
+
+                if (value)
+                {
+                    lock (_lock)
+                    {
+                        _pressedKeys.Clear();
+                    }
+
+                    // Native macOS screencapture is itself an interactive global input session.
+                    // Stop SharpHook while suspended so the native selector does not race another
+                    // global hook-backed selector and fail with "cannot run two interactive screen captures".
+                    StopHookIfIdle(force: true);
+                    DebugHelper.WriteLine("MacOSHotkeyService: SharpHook suspended.");
+                    return;
+                }
+
+                bool hasRegisteredHotkeys;
+                lock (_lock)
+                {
+                    hasRegisteredHotkeys = _registeredHotkeys.Count > 0;
+                }
+
+                if (hasRegisteredHotkeys)
+                {
+                    EnsureHookRunning();
+                }
+
+                DebugHelper.WriteLine("MacOSHotkeyService: SharpHook resumed.");
+            }
         }
 
         public void Dispose()
