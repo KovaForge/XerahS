@@ -96,7 +96,7 @@ namespace XerahS.Media
 
                     process.StartInfo = psi;
                     process.Start();
-                    process.WaitForExit(1000 * 30);
+                    WaitForExitOrKill(process, TimeSpan.FromSeconds(30));
                 }
 
                 if (File.Exists(tempThumbnailPath))
@@ -202,6 +202,27 @@ namespace XerahS.Media
             int end = timeSlice * (slot + 2) - 1;
 
             return RandomFast.Next(start, Math.Max(start, end));
+        }
+
+        private static void WaitForExitOrKill(Process process, TimeSpan timeout)
+        {
+            if (process.WaitForExit(timeout))
+            {
+                return;
+            }
+
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            process.WaitForExit();
         }
 
         private sealed class LoadedThumbnail : IDisposable

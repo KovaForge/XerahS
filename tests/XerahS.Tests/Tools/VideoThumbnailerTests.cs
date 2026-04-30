@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using NUnit.Framework;
 using SkiaSharp;
@@ -157,6 +158,41 @@ public sealed class VideoThumbnailerTests
         Assert.That(InvokeGetRandomTimeSlice(thumbnailer, 9), Is.EqualTo(0));
     }
 
+    [Test]
+    public void WaitForExitOrKill_WhenProcessTimesOut_TerminatesProcessTree()
+    {
+        using Process process = CreateSleepingProcess();
+        process.Start();
+
+        InvokeWaitForExitOrKill(process, TimeSpan.FromMilliseconds(100));
+
+        Assert.That(process.HasExited, Is.True);
+    }
+
+    private static Process CreateSleepingProcess()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return new Process
+            {
+                StartInfo = new ProcessStartInfo("cmd.exe", "/c timeout /t 5 /nobreak > nul")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+        }
+
+        return new Process
+        {
+            StartInfo = new ProcessStartInfo("/bin/sh", "-c 'sleep 5'")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+    }
+
     private static void WriteTestBitmap(string path, SKColor color)
     {
         using var bitmap = new SKBitmap(8, 6);
@@ -186,6 +222,13 @@ public sealed class VideoThumbnailerTests
         MethodInfo? method = typeof(VideoThumbnailer).GetMethod("GetRandomTimeSlice", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (int)method!.Invoke(thumbnailer, new object[] { thumbnailIndex })!;
+    }
+
+    private static void InvokeWaitForExitOrKill(Process process, TimeSpan timeout)
+    {
+        MethodInfo? method = typeof(VideoThumbnailer).GetMethod("WaitForExitOrKill", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        method!.Invoke(null, new object[] { process, timeout });
     }
 
     private static void SetVideoInfo(VideoThumbnailer thumbnailer, TimeSpan duration)

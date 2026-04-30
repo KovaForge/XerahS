@@ -204,3 +204,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed settings saves so enabling both daily and weekly backup flags writes both backup zip variants instead of weekly suppressing the daily retention file; added regression coverage; bumped version `0.22.164` -> `0.22.165`.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-233736.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-234128.log`.
 - Follow-up: Continue settings/configuration review around backup archive cleanup, custom backup folder validation, and save failure recovery after partial temp-file moves.
+
+### 2026-05-01 03:35 AWST - Media subsystem
+- Area: Media subsystem (VideoThumbnailer FFmpeg thumbnail timeout cleanup); files: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`, `tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs`, `Directory.Build.props`.
+- Finding: timed-out FFmpeg thumbnail extraction only waited 30s and then disposed the `Process`, which could leave a stuck FFmpeg process/tree running after the thumbnail attempt timed out.
+- Fix: added timeout helper that kills the entire process tree and waits for exit; added regression coverage; bumped version `0.22.166` -> `0.22.167`.
+- Upstream: merged `8f074e3e` (`[v0.22.153] [UI] Surface destination config export in provider settings`) into `develop`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-033751.log`).
+- Tests: pass, 758 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-034114.log`).
+- Follow-up: continue media review around FFmpeg exit-code/error surfacing, partial thumbnail cleanup, and mixed-dimension combined thumbnail layout.
