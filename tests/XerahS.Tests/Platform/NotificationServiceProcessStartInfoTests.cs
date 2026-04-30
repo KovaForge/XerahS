@@ -19,6 +19,8 @@ public class NotificationServiceProcessStartInfoTests
         Assert.Multiple(() =>
         {
             Assert.That(startInfo.FileName, Is.EqualTo("notify-send"));
+            Assert.That(startInfo.RedirectStandardOutput, Is.False);
+            Assert.That(startInfo.RedirectStandardError, Is.False);
             Assert.That(startInfo.ArgumentList, Is.EqualTo(new[] { "-u", "critical", title, message }));
         });
     }
@@ -34,6 +36,8 @@ public class NotificationServiceProcessStartInfoTests
         Assert.Multiple(() =>
         {
             Assert.That(startInfo.FileName, Is.EqualTo("osascript"));
+            Assert.That(startInfo.RedirectStandardOutput, Is.False);
+            Assert.That(startInfo.RedirectStandardError, Is.False);
             Assert.That(startInfo.ArgumentList.Count, Is.EqualTo(2));
             Assert.That(startInfo.ArgumentList[0], Is.EqualTo("-e"));
             Assert.That(startInfo.ArgumentList[1], Is.EqualTo("display notification \"Saved to C:\\\\Shots\\\\latest\\nReady for upload\" with title \"Capture \\\"done\\\"\" subtitle \"Warning\""));

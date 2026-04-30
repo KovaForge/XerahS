@@ -92,8 +92,8 @@ public sealed class MacOSNotificationService : INotificationService
         {
             FileName = "osascript",
             UseShellExecute = false,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
+            RedirectStandardError = false,
+            RedirectStandardOutput = false,
             CreateNoWindow = true
         };
 

@@ -160,3 +160,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version: bumped patch `0.22.159` -> `0.22.160`.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-173738.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-174057.log`.
 - Follow-up: Continue capture review around multi-monitor logical origins and macOS permission/error fallback messages.
+
+### 2026-04-30 18:45 AWST - Notifications/toasts
+- Area: Native notification process launch; files: `LinuxNotificationService.cs`, `MacOSNotificationService.cs`, `NotificationServiceProcessStartInfoTests.cs`, `Directory.Build.props`.
+- Findings: Linux/macOS notification helpers redirected stdout/stderr but never drained them, so noisy helpers could block and be killed as false timeouts.
+- Status: Fixed native notification start info to avoid unread redirected pipes; added regression assertions; bumped version 0.22.160 -> 0.22.161.
+- Upstream/submodules: parent and ShareX.ImageEditor develop were already up to date after fetch/merge; ShareX.ImageEditor stayed on `develop` at `360eeabe` with origin/upstream remotes verified.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-183728.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-184045.log`.
+- Follow-up: Continue notification review around native action callback parity and OS helper availability/fallback messaging.
