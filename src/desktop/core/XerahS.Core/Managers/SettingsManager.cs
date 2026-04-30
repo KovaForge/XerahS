@@ -392,12 +392,14 @@ namespace XerahS.Core
         {
             UploadersConfig?.SyncPolymorphicSettingsFromLegacy();
             UploadersConfig?.Save(UploadersConfigFilePath);
+            RaiseSettingsChanged();
         }
 
         public static void SaveUploadersConfigAsync()
         {
             UploadersConfig?.SyncPolymorphicSettingsFromLegacy();
             UploadersConfig?.SaveAsync(UploadersConfigFilePath);
+            RaiseSettingsChanged();
         }
 
         /// <summary>

@@ -40,8 +40,7 @@ public sealed class AssistantHistoryServiceTests
     public void SetUp()
     {
         _originalPersonalFolder = SettingsManager.PersonalFolder;
-        SettingsManager.PersonalFolder = Path.Combine(TestContext.CurrentContext.WorkDirectory, "assistant-history-tests", Guid.NewGuid().ToString("N"));
-        SettingsManager.LoadAllSettings();
+        SettingsManager.PersonalFolder = Path.Combine(Path.GetTempPath(), "xerahs-assistant-history-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(SettingsManager.HistoryFolder);
     }
 
@@ -51,7 +50,6 @@ public sealed class AssistantHistoryServiceTests
         if (!string.IsNullOrEmpty(_originalPersonalFolder))
         {
             SettingsManager.PersonalFolder = _originalPersonalFolder;
-            SettingsManager.LoadAllSettings();
         }
     }
 
@@ -109,6 +107,26 @@ public sealed class AssistantHistoryServiceTests
         Assert.That(items[0].FileName, Is.EqualTo("older-capture.png"));
     }
 
+    [Test]
+    public async Task GetCachedOcrTextAsync_WhenPathHasWhitespace_UsesTrimmedCanonicalHistoryPath()
+    {
+        string historyPath = SettingsManager.GetHistoryFilePath();
+        string filePath = Path.Combine(SettingsManager.HistoryFolder, "capture.png");
+
+        using (var connection = new SqliteConnection($"Data Source={historyPath}"))
+        {
+            connection.Open();
+            CreateHistoryTable(connection);
+            InsertHistoryItem(connection, filePath, new DateTime(2026, 4, 29, 13, 0, 0, DateTimeKind.Utc), "{\"OcrText\":\"cached text\"}");
+        }
+
+        var service = new AssistantHistoryService();
+
+        string? ocrText = await service.GetCachedOcrTextAsync($"  {filePath}  ", CancellationToken.None);
+
+        Assert.That(ocrText, Is.EqualTo("cached text"));
+    }
+
     private static void CreateHistoryTable(SqliteConnection connection)
     {
         using var create = connection.CreateCommand();
@@ -130,15 +148,16 @@ public sealed class AssistantHistoryServiceTests
         create.ExecuteNonQuery();
     }
 
-    private static void InsertHistoryItem(SqliteConnection connection, string filePath, DateTime dateTime)
+    private static void InsertHistoryItem(SqliteConnection connection, string filePath, DateTime dateTime, string tags = "{}")
     {
         using var insert = connection.CreateCommand();
         insert.CommandText = """
             INSERT INTO History(FileName, FilePath, DateTime, Type, Host, URL, ThumbnailURL, DeletionURL, ShortenedURL, Tags)
-            VALUES('', $filePath, $dateTime, 'Image', '', '', '', '', '', '{}');
+            VALUES('', $filePath, $dateTime, 'Image', '', '', '', '', '', $tags);
             """;
         insert.Parameters.AddWithValue("$filePath", filePath);
         insert.Parameters.AddWithValue("$dateTime", dateTime.ToString("O"));
+        insert.Parameters.AddWithValue("$tags", tags);
         insert.ExecuteNonQuery();
     }
 

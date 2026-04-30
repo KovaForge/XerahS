@@ -155,4 +155,24 @@ public class FileHelpersTests
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    [Test]
+    public void GetUniqueFilePath_NumberedSuffixBeyondIntRange_DoesNotThrow()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string filePath = Path.Combine(directory, "capture (2147483648).png");
+        File.WriteAllText(filePath, "existing");
+
+        try
+        {
+            string uniquePath = FileHelpers.GetUniqueFilePath(filePath);
+
+            Assert.That(uniquePath, Is.EqualTo(Path.Combine(directory, "capture (2147483649).png")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

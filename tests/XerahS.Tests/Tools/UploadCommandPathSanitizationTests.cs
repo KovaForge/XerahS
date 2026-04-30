@@ -28,8 +28,10 @@ using SkiaSharp;
 using System.Reflection;
 using XerahS.Bootstrap;
 using XerahS.CLI.Commands;
+using XerahS.CLI.Services;
 using XerahS.Core;
 using XerahS.Core.Tasks;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Tests.Tools;
 
@@ -41,6 +43,15 @@ public class UploadCommandPathSanitizationTests
     {
         typeof(UploadCommand).GetField("_jsonOutput", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, false);
         typeof(UploadCommand).GetField("_quiet", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, true);
+        typeof(UploadCommand).GetField("_checkUploadReadiness", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<string, bool, UploadReadiness>)((_, uploadAsText) =>
+                UploadReadiness.Ready(new BootstrapReport(), uploadAsText ? UploaderCategory.Text : UploaderCategory.File)));
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
     }
 
     [TestCase(null)]
@@ -104,24 +115,68 @@ public class UploadCommandPathSanitizationTests
     }
 
     [Test]
-    public async Task UploadAsync_WhenAnotherTaskCompletesFirst_IgnoresUnrelatedTaskAndWaitsForStartedFileTask()
+    public async Task UploadAsync_TextContentWithExtensionlessName_RequiresTextUploader()
+    {
+        bool? checkedAsText = null;
+        TaskInfo? processedTaskInfo = null;
+        typeof(UploadCommand).GetField("_checkUploadReadiness", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<string, bool, UploadReadiness>)((_, uploadAsText) =>
+            {
+                checkedAsText = uploadAsText;
+                return UploadReadiness.Ready(new BootstrapReport(), uploadAsText ? UploaderCategory.Text : UploaderCategory.File);
+            }));
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                processedTaskInfo = taskInfo;
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
+
+        int exitCode = await InvokeUploadAsync(new SequencedDesktopTaskManager((_, _) => { }), filePath: null, text: "payload", pipe: false, name: "note");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(checkedAsText, Is.True);
+            Assert.That(processedTaskInfo, Is.Not.Null);
+            Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.TextUpload));
+            Assert.That(processedTaskInfo.FileName, Is.EqualTo("note"));
+        });
+    }
+
+    [Test]
+    public async Task UploadAsync_UsesDirectUploadProcessorAndDoesNotWaitOnUnrelatedTaskEvents()
     {
         string tempFile = Path.GetTempFileName();
+        TaskInfo? processedTaskInfo = null;
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                processedTaskInfo = taskInfo;
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
 
         try
         {
             await File.WriteAllTextAsync(tempFile, "payload");
 
-            var taskManager = new SequencedDesktopTaskManager((startedFilePath, raiseCompleted) =>
+            var taskManager = new SequencedDesktopTaskManager((_, raiseCompleted) =>
             {
                 raiseCompleted(CreateCompletedTask(Path.Combine(Path.GetTempPath(), "other-file.txt"), url: null, status: XerahS.Core.TaskStatus.Failed, errorMessage: "Unrelated failure"));
-                raiseCompleted(CreateCompletedTask(startedFilePath, url: "https://example.invalid/uploaded.txt"));
             });
 
             int exitCode = await InvokeUploadAsync(taskManager, tempFile, text: null, pipe: false, name: null);
 
-            Assert.That(exitCode, Is.EqualTo(0));
-            Assert.That(taskManager.StartedFilePaths, Is.EqualTo(new[] { tempFile }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+                Assert.That(taskManager.StartedFilePaths, Is.Empty);
+                Assert.That(processedTaskInfo, Is.Not.Null);
+                Assert.That(processedTaskInfo!.FilePath, Is.EqualTo(tempFile));
+                Assert.That(processedTaskInfo.Job, Is.EqualTo(TaskJob.FileUpload));
+            });
         }
         finally
         {
@@ -129,10 +184,10 @@ public class UploadCommandPathSanitizationTests
         }
     }
 
-    private static async Task<int> InvokeUploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name)
+    private static async Task<int> InvokeUploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name, bool asFile = false)
     {
         MethodInfo method = typeof(UploadCommand).GetMethod("UploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
-        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name])!;
+        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name, asFile])!;
         return await task;
     }
 

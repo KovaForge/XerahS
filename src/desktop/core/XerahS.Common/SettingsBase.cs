@@ -197,7 +197,7 @@ namespace XerahS.Common
 
                         if (File.Exists(filePath))
                         {
-                            if (CreateBackup && !string.IsNullOrEmpty(BackupFolder))
+                            if ((CreateBackup || CreateWeeklyBackup) && !string.IsNullOrEmpty(BackupFolder))
                             {
                                 CreateBackupZip(filePath);
                             }
@@ -222,8 +222,6 @@ namespace XerahS.Common
                         {
                             File.Move(tempFilePath, filePath);
                         }
-
-                        // TODO: Weekly backup logic
 
                         isSuccess = true;
                     }

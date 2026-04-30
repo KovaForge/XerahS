@@ -40,12 +40,13 @@ namespace XerahS.CLI
             try
             {
                 bool isAssistantMode = TryGetAssistantPrompt(args, out _);
+                bool needsRecording = CommandNeedsRecording(args);
 
                 // Initialize in headless mode
                 var bootstrapOptions = new BootstrapOptions
                 {
                     EnableLogging = !isAssistantMode,
-                    InitializeRecording = !isAssistantMode,
+                    InitializeRecording = needsRecording,
                     UIService = new HeadlessUIService(),
                     ToastService = new HeadlessToastService()
                 };
@@ -83,6 +84,12 @@ namespace XerahS.CLI
                 DebugHelper.WriteException(ex);
                 return 1;
             }
+        }
+
+        private static bool CommandNeedsRecording(string[] args)
+        {
+            string? command = args.FirstOrDefault(arg => !arg.StartsWith("-", StringComparison.Ordinal));
+            return command is "record" or "verify-recording" or "verify-gif-recording";
         }
 
         private static bool TryGetAssistantPrompt(string[] args, out string? prompt)
@@ -134,6 +141,9 @@ namespace XerahS.CLI
             rootCommand.Add(OpenVideoEditorCommand.Create());
             rootCommand.Add(WatchFolderDaemonCommand.Create());
             rootCommand.Add(UploadCommand.Create(taskManager));
+            rootCommand.Add(DoctorCommand.Create());
+            rootCommand.Add(BootstrapCommand.Create());
+            rootCommand.Add(OpenClawCommand.Create());
 
             rootCommand.SetAction(async parseResult =>
             {

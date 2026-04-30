@@ -35,14 +35,31 @@ public class TestProjectBuildPropertiesTests
 
         XDocument project = XDocument.Load(testProjectPath);
 
-        XElement runnerReference = project.Descendants("PackageReference")
-            .Single(element => string.Equals((string?)element.Attribute("Include"), "xunit.runner.visualstudio", StringComparison.OrdinalIgnoreCase));
+        AssertPackageReferenceIsPrivateBuildAsset(project, "xunit.runner.visualstudio");
+    }
+
+    [Test]
+    public void XerahSTests_DiscoveryPackages_ArePrivateBuildAssets()
+    {
+        string testProjectPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "../../../../../tests/XerahS.Tests/XerahS.Tests.csproj"));
+
+        XDocument project = XDocument.Load(testProjectPath);
+
+        AssertPackageReferenceIsPrivateBuildAsset(project, "Microsoft.NET.Test.Sdk");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "NUnit3TestAdapter");
+    }
+
+    private static void AssertPackageReferenceIsPrivateBuildAsset(XDocument project, string packageName)
+    {
+        XElement packageReference = project.Descendants("PackageReference")
+            .Single(element => string.Equals((string?)element.Attribute("Include"), packageName, StringComparison.OrdinalIgnoreCase));
 
         Assert.Multiple(() =>
         {
-            Assert.That((string?)runnerReference.Element("PrivateAssets"), Is.EqualTo("all"));
-            Assert.That((string?)runnerReference.Element("IncludeAssets"), Does.Contain("build"));
-            Assert.That((string?)runnerReference.Element("IncludeAssets"), Does.Contain("buildtransitive"));
+            Assert.That((string?)packageReference.Element("PrivateAssets"), Is.EqualTo("all"));
+            Assert.That((string?)packageReference.Element("IncludeAssets"), Does.Contain("build"));
+            Assert.That((string?)packageReference.Element("IncludeAssets"), Does.Contain("buildtransitive"));
         });
     }
 

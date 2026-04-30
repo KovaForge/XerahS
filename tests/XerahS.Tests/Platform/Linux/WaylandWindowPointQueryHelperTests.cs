@@ -174,6 +174,66 @@ public class WaylandWindowPointQueryHelperTests
     }
 
     [Test]
+    public void SwayHelper_SelectWindowFromTreeJson_IgnoresMalformedRectInsteadOfDefaultingToOrigin()
+    {
+        const string json = """
+            {
+              "id": 1,
+              "type": "root",
+              "nodes": [
+                {
+                  "id": 2,
+                  "type": "con",
+                  "name": "Malformed",
+                  "app_id": "org.example.Malformed",
+                  "visible": true,
+                  "rect": { "width": 500, "height": 400 },
+                  "nodes": [],
+                  "floating_nodes": []
+                }
+              ],
+              "floating_nodes": []
+            }
+            """;
+
+        var window = SwayWindowPointQueryHelper.SelectWindowFromTreeJson(json, new Point(10, 10));
+
+        Assert.That(window, Is.Null);
+    }
+
+    [Test]
+    public void SwayHelper_SelectWindowFromTreeJson_IgnoresOverflowingRectInsteadOfWrappingRightEdge()
+    {
+        const string json = """
+            {
+              "id": 1,
+              "type": "root",
+              "nodes": [
+                {
+                  "id": 2,
+                  "type": "con",
+                  "name": "Overflow",
+                  "app_id": "org.example.Overflow",
+                  "visible": true,
+                  "rect": { "x": 2147483640, "y": 10, "width": 100, "height": 100 },
+                  "nodes": [],
+                  "floating_nodes": []
+                }
+              ],
+              "floating_nodes": []
+            }
+            """;
+
+        WindowInfo? window = null;
+
+        Assert.DoesNotThrow(() =>
+        {
+            window = SwayWindowPointQueryHelper.SelectWindowFromTreeJson(json, new Point(2147483641, 20));
+        });
+        Assert.That(window, Is.Null);
+    }
+
+    [Test]
     public void GnomeHelper_ParseEvalResult_ProjectsWindowMetadata()
     {
         const string json = """

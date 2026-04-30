@@ -79,15 +79,18 @@ public sealed class PastebinUploader : TextUploader
                 (uri.Scheme == "http" || uri.Scheme == "https");
             if (isValidUrl)
             {
+                string pasteKey = GetUrlLastSegment(response);
+
                 if (_config.RawURL)
                 {
-                    string id = GetUrlLastSegment(response);
-                    result.URL = "https://pastebin.com/raw/" + id;
+                    result.URL = "https://pastebin.com/raw/" + pasteKey;
                 }
                 else
                 {
                     result.URL = response;
                 }
+
+                AddDeletionMetadata(result, pasteKey);
             }
             else
             {
@@ -100,6 +103,32 @@ public sealed class PastebinUploader : TextUploader
         }
 
         return result;
+    }
+
+    private void AddDeletionMetadata(UploadResult result, string pasteKey)
+    {
+        if (string.IsNullOrWhiteSpace(pasteKey))
+        {
+            return;
+        }
+
+        result.Metadata["Deletion.Provider"] = "Pastebin";
+        result.Metadata["Deletion.PasteKey"] = pasteKey;
+
+        if (!string.IsNullOrWhiteSpace(_config.UserKey))
+        {
+            // Pastebin does not return a one-click delete URL. Deletion is a POST to this endpoint
+            // with api_option=delete, api_paste_key, api_dev_key, and api_user_key from the configured account.
+            result.DeletionURL = "https://pastebin.com/api/api_post.php";
+            result.Metadata["Deletion.Method"] = "POST";
+            result.Metadata["Deletion.ApiOption"] = "delete";
+            result.Metadata["Deletion.RequiresConfiguredAccount"] = "true";
+        }
+        else
+        {
+            result.Metadata["Deletion.Available"] = "false";
+            result.Metadata["Deletion.Reason"] = "Pastebin guest pastes do not expose API deletion; create pastes with an api_user_key to enable deletion.";
+        }
     }
 
     private static string GetPrivacy(PastebinPrivacy privacy)

@@ -344,7 +344,7 @@ namespace XerahS.Platform.MacOS
             return process.ExitCode == 0 ? output : null;
         }
 
-        private static IEnumerable<string> BuildPosixFileList(IEnumerable<string> files)
+        internal static IEnumerable<string> BuildPosixFileList(IEnumerable<string> files)
         {
             foreach (var file in files)
             {
@@ -353,7 +353,17 @@ namespace XerahS.Platform.MacOS
                     continue;
                 }
 
-                var escaped = file.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                string fullPath;
+                try
+                {
+                    fullPath = Path.GetFullPath(file.Trim());
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var escaped = fullPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
                 yield return $"POSIX file \\\"{escaped}\\\"";
             }
         }

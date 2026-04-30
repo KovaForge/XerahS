@@ -59,15 +59,84 @@ public class ToastWindowClickRoutingTests
     }
 
     [Test]
-    public void ToastConfig_IsValid_RejectsNegativeToastTimings()
+    public void ToastConfig_IsValid_RejectsInvalidToastTimings()
     {
         Assert.Multiple(() =>
         {
             Assert.That(new ToastConfig { Duration = -1, FadeDuration = 1 }.IsValid, Is.False);
             Assert.That(new ToastConfig { Duration = 1, FadeDuration = -1 }.IsValid, Is.False);
+            Assert.That(new ToastConfig { Duration = float.PositiveInfinity, FadeDuration = 1 }.IsValid, Is.False);
+            Assert.That(new ToastConfig { Duration = 1, FadeDuration = float.PositiveInfinity }.IsValid, Is.False);
+            Assert.That(new ToastConfig { Duration = float.NaN, FadeDuration = 1 }.IsValid, Is.False);
+            Assert.That(new ToastConfig { Duration = 1, FadeDuration = float.NaN }.IsValid, Is.False);
             Assert.That(new ToastConfig { Duration = 0, FadeDuration = 1 }.IsValid, Is.True);
             Assert.That(new ToastConfig { Duration = 1, FadeDuration = 0 }.IsValid, Is.True);
         });
+    }
+
+    [Test]
+    public void ToastConfig_IsValid_AllowsStickyToastWithZeroTimers_WhenAutoHideDisabled()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = false,
+            Duration = 0,
+            FadeDuration = 0
+        };
+
+        Assert.That(config.IsValid, Is.True);
+    }
+
+    [Test]
+    public void ToastConfig_IsValid_RejectsAutoHideToastWithZeroTimers()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 0,
+            FadeDuration = 0
+        };
+
+        Assert.That(config.IsValid, Is.False);
+    }
+
+    [Test]
+    public void ToastViewModel_GetAutoHideStartMode_StartsFadeImmediately_WhenDurationIsZero()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 0,
+            FadeDuration = 1
+        };
+
+        Assert.That(ToastViewModel.GetAutoHideStartMode(config), Is.EqualTo(ToastViewModel.ToastAutoHideStartMode.StartFade));
+    }
+
+    [Test]
+    public void ToastViewModel_GetAutoHideStartMode_WaitsForDuration_WhenDurationIsPositive()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 1,
+            FadeDuration = 0
+        };
+
+        Assert.That(ToastViewModel.GetAutoHideStartMode(config), Is.EqualTo(ToastViewModel.ToastAutoHideStartMode.WaitForDuration));
+    }
+
+    [Test]
+    public void ToastViewModel_GetAutoHideStartMode_DoesNotAutoHide_WhenDisabled()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = false,
+            Duration = 0,
+            FadeDuration = 1
+        };
+
+        Assert.That(ToastViewModel.GetAutoHideStartMode(config), Is.EqualTo(ToastViewModel.ToastAutoHideStartMode.None));
     }
 
     [Test]

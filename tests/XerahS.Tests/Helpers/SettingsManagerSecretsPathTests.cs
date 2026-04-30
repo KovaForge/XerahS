@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.IO.Compression;
 using System.Reflection;
 using NUnit.Framework;
 using XerahS.Common;
@@ -296,6 +297,26 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void SaveUploadersConfig_RaisesSettingsChanged()
+    {
+        int raisedCount = 0;
+        EventHandler handler = (_, _) => raisedCount++;
+
+        SettingsManager.SettingsChanged += handler;
+        try
+        {
+            SettingsManager.SaveUploadersConfig();
+        }
+        finally
+        {
+            SettingsManager.SettingsChanged -= handler;
+        }
+
+        Assert.That(raisedCount, Is.EqualTo(1),
+            "Uploader destination changes should notify settings observers just like application and workflow saves.");
+    }
+
+    [Test]
     public void SaveToMemoryStream_ReturnsStreamReadyForReading()
     {
         using MemoryStream stream = SettingsManager.Settings.SaveToMemoryStream();
@@ -310,6 +331,33 @@ public class SettingsManagerSecretsPathTests
                 "The returned stream should be readable immediately without callers seeking first.");
             Assert.That(json, Does.Contain(nameof(SettingsManager.Settings.ApplicationVersion)));
         });
+    }
+
+    [Test]
+    public void Save_CreatesWeeklyBackup_WhenWeeklyBackupEnabledWithoutDailyBackup()
+    {
+        string directory = Path.Combine(TestContext.CurrentContext.WorkDirectory, "settings-backup-tests", Guid.NewGuid().ToString("N"));
+        string backupDirectory = Path.Combine(directory, "Backup");
+        string configPath = Path.Combine(directory, "ApplicationConfig.json");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(configPath, "{\"ApplicationVersion\":\"0.0.1\"}");
+
+        var config = new ApplicationConfig
+        {
+            BackupFolder = backupDirectory,
+            CreateBackup = false,
+            CreateWeeklyBackup = true
+        };
+
+        Assert.That(config.Save(configPath), Is.True);
+
+        string[] backupFiles = Directory.GetFiles(backupDirectory, "backup-*-W*.zip", SearchOption.AllDirectories);
+
+        Assert.That(backupFiles, Has.Length.EqualTo(1),
+            "Weekly backups should not depend on the separate daily-backup flag being enabled.");
+
+        using ZipArchive archive = ZipFile.OpenRead(backupFiles[0]);
+        Assert.That(archive.GetEntry(Path.GetFileName(configPath)), Is.Not.Null);
     }
 
     [Test]

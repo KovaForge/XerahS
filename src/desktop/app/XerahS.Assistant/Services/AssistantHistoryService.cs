@@ -70,20 +70,27 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
 
     public Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken)
     {
+        string? normalizedFilePath = NormalizeHistoryFilePath(filePath);
+        if (normalizedFilePath == null)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
         return Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             string historyPath = SettingsManager.GetHistoryFilePath();
             using var manager = new HistoryManagerSQLite(historyPath);
-            HistoryItem? item = manager.GetLatestByFilePath(filePath);
+            HistoryItem? item = manager.GetLatestByFilePath(normalizedFilePath);
             return item == null ? null : TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText");
         }, cancellationToken);
     }
 
     public Task CacheOcrTextAsync(string filePath, string ocrText, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(ocrText))
+        string? normalizedFilePath = NormalizeHistoryFilePath(filePath);
+        if (normalizedFilePath == null || string.IsNullOrWhiteSpace(ocrText))
         {
             return Task.CompletedTask;
         }
@@ -94,7 +101,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
 
             string historyPath = SettingsManager.GetHistoryFilePath();
             using var manager = new HistoryManagerSQLite(historyPath);
-            HistoryItem? item = manager.GetLatestByFilePath(filePath);
+            HistoryItem? item = manager.GetLatestByFilePath(normalizedFilePath);
             if (item == null)
             {
                 return;
@@ -114,17 +121,8 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
 
     public bool IsKnownHistoryFile(string filePath)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            return false;
-        }
-
-        string normalized;
-        try
-        {
-            normalized = Path.GetFullPath(filePath);
-        }
-        catch
+        string? normalized = NormalizeHistoryFilePath(filePath);
+        if (normalized == null)
         {
             return false;
         }
@@ -199,6 +197,23 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         return item.Tags != null && item.Tags.TryGetValue(tag, out string? value)
             ? value
             : null;
+    }
+
+    private static string? NormalizeHistoryFilePath(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Path.GetFullPath(filePath.Trim());
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string GetSafeFileName(string? filePath)

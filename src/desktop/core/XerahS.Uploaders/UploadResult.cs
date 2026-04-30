@@ -34,6 +34,7 @@ namespace XerahS.Uploaders
         public string? ThumbnailURL { get; set; }
         public string? DeletionURL { get; set; }
         public string? ShortenedURL { get; set; }
+        public Dictionary<string, string?> Metadata { get; set; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         private bool isSuccess;
 

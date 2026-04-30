@@ -19,9 +19,15 @@
     <PackageReference Include="Avalonia.Headless.NUnit" />
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="NUnit" />
-    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="NUnit3TestAdapter">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="NUnit.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -75,6 +81,8 @@
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\BgraRowCopyHelper.cs"
              Link="Platform\Windows\WindowsSources\BgraRowCopyHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiCropRectHelper.cs"
+             Link="Platform\Windows\WindowsSources\DxgiCropRectHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ScrollTargetResolver.cs"
              Link="Platform\Windows\WindowsSources\ScrollTargetResolver.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ClipboardDibCodec.cs"

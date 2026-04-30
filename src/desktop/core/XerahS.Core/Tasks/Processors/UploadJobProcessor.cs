@@ -670,6 +670,17 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
+            if (uploadResult?.Metadata?.Count > 0)
+            {
+                foreach (var pair in uploadResult.Metadata)
+                {
+                    if (!string.IsNullOrWhiteSpace(pair.Key))
+                    {
+                        historyItem.Tags[$"UploadResult.{pair.Key}"] = pair.Value;
+                    }
+                }
+            }
+
             // Store upload errors if any
             if (uploadResult?.Errors?.Count > 0)
             {

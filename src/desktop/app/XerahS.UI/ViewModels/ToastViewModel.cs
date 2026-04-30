@@ -166,11 +166,37 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         };
         _fadeTimer.Tick += OnFadeTick;
 
-        // Start duration timer if auto-hide is enabled
-        if (config.AutoHide && config.Duration > 0)
+        // Start duration timer if auto-hide is enabled. A zero display duration means the
+        // toast should begin fading immediately instead of staying visible forever.
+        switch (GetAutoHideStartMode(config))
         {
-            _durationTimer.Start();
+            case ToastAutoHideStartMode.WaitForDuration:
+                _durationTimer.Start();
+                break;
+            case ToastAutoHideStartMode.StartFade:
+                _isDurationEnd = true;
+                CheckFade();
+                break;
         }
+    }
+
+    internal static ToastAutoHideStartMode GetAutoHideStartMode(ToastConfig config)
+    {
+        if (!config.AutoHide)
+        {
+            return ToastAutoHideStartMode.None;
+        }
+
+        return config.Duration > 0
+            ? ToastAutoHideStartMode.WaitForDuration
+            : ToastAutoHideStartMode.StartFade;
+    }
+
+    internal enum ToastAutoHideStartMode
+    {
+        None,
+        WaitForDuration,
+        StartFade
     }
 
     public void OnMenuOpened()

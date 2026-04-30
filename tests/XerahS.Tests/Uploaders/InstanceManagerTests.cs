@@ -172,6 +172,53 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void GetDestinationForFile_NormalizesCallerProvidedExtension()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "PNG Handler",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+
+        Assert.That(InstanceManager.Instance.GetDestinationForFile(UploaderCategory.Image, " .PNG ")?.InstanceId, Is.EqualTo(instance.InstanceId));
+        Assert.That(InstanceManager.Instance.GetDestinationForFile(UploaderCategory.Image, "   "), Is.Null);
+        Assert.That(InstanceManager.Instance.GetDestinationForFile(UploaderCategory.Image, null), Is.Null);
+    }
+
+    [Test]
+    public void CanAddFileType_NormalizesCallerProvidedExtension()
+    {
+        var existing = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "PNG Handler",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(existing);
+
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, "candidate", " .PNG "), Is.False);
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, "candidate", " jpg "), Is.True);
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, "candidate", "   "), Is.False);
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, "candidate", null), Is.False);
+    }
+
+    [Test]
     public void GetDestinationForFile_SkipsUnavailableExtensionSpecificInstanceAndFallsBackToAvailableAllTypes()
     {
         var unavailablePng = new UploaderInstance

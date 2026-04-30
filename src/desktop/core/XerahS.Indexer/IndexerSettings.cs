@@ -107,5 +107,29 @@ namespace XerahS.Indexer
             BinaryUnits = true;
             IgnoreEmptyFolders = false;
         }
+
+        internal static bool ExtensionMatchesFilter(string fileExtension, List<string>? extensionFilter)
+        {
+            if (extensionFilter == null || extensionFilter.Count == 0)
+            {
+                return false;
+            }
+
+            string normalizedFileExtension = NormalizeExtension(fileExtension);
+
+            return extensionFilter.Any(filterExtension =>
+                !string.IsNullOrWhiteSpace(filterExtension) &&
+                NormalizeExtension(filterExtension).Equals(normalizedFileExtension, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string NormalizeExtension(string extension)
+        {
+            return extension.Trim().TrimStart('.');
+        }
+
+        internal bool ShouldRecurseIntoLevel(int level)
+        {
+            return MaxDepthLevel <= 0 || level < MaxDepthLevel;
+        }
     }
 }
