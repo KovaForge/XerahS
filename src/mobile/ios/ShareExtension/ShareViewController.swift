@@ -24,7 +24,6 @@
 
 import UIKit
 import UniformTypeIdentifiers
-import UserNotifications
 
 private let appGroupId = "group.com.xerahs.xerahs"
 private let pendingPathsKey = "PendingSharedPaths"
@@ -34,10 +33,59 @@ private let openAppURLString = "xerahs://share"
 
 final class ShareViewController: UIViewController {
     private let uploadService = ShareExtensionUploadService()
+    private let statusLabel = UILabel()
+    private let spinner = UIActivityIndicatorView(style: .medium)
+    private var didStartHandlingItems = false
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureStatusView()
+    }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        guard !didStartHandlingItems else { return }
+        didStartHandlingItems = true
         handleSharedItems()
+    }
+
+    private func configureStatusView() {
+        view.backgroundColor = .systemBackground
+
+        let titleLabel = UILabel()
+        titleLabel.text = "XerahS"
+        titleLabel.font = .preferredFont(forTextStyle: .title2)
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.textAlignment = .center
+
+        statusLabel.text = "Preparing shared item..."
+        statusLabel.font = .preferredFont(forTextStyle: .body)
+        statusLabel.adjustsFontForContentSizeCategory = true
+        statusLabel.textColor = .secondaryLabel
+        statusLabel.textAlignment = .center
+        statusLabel.numberOfLines = 0
+
+        spinner.startAnimating()
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, spinner, statusLabel])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24)
+        ])
+    }
+
+    private func updateStatus(_ text: String) {
+        DispatchQueue.main.async {
+            self.statusLabel.text = text
+        }
     }
 
     private func handleSharedItems() {
@@ -87,23 +135,16 @@ final class ShareViewController: UIViewController {
         let group = DispatchGroup()
         let lock = NSLock()
 
+        updateStatus("Preparing shared item...")
+
         for item in extensionItems {
             guard let attachments = item.attachments else { continue }
             for provider in attachments {
                 for typeId in supportedTypes {
                     if provider.hasItemConformingToTypeIdentifier(typeId) {
                         group.enter()
-                        provider.loadItem(forTypeIdentifier: typeId, options: nil) { data, _ in
+                        loadProviderItem(provider, typeId: typeId, inbox: inbox) { path in
                             defer { group.leave() }
-                            guard let data = data else { return }
-                            var path: String?
-                            if let url = data as? URL {
-                                path = self.copyToInbox(url: url, inbox: inbox)
-                            } else if let image = data as? UIImage, let d = image.jpegData(compressionQuality: 0.9) {
-                                path = self.writeData(d, to: inbox, ext: "jpg")
-                            } else if let d = data as? Data {
-                                path = self.writeData(d, to: inbox, ext: "bin")
-                            }
                             if let p = path {
                                 lock.lock()
                                 savedPaths.append(p)
@@ -121,14 +162,84 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func copyToInbox(url: URL, inbox: URL) -> String? {
+    private func loadProviderItem(
+        _ provider: NSItemProvider,
+        typeId: String,
+        inbox: URL,
+        completion: @escaping (String?) -> Void
+    ) {
+        if shouldPreferFileRepresentation(typeId) {
+            provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, _ in
+                guard let self else {
+                    completion(nil)
+                    return
+                }
+                if let url, let path = self.copyToInbox(url: url, inbox: inbox, preferredExtension: self.preferredExtension(for: typeId)) {
+                    completion(path)
+                    return
+                }
+                self.loadInMemoryItem(provider, typeId: typeId, inbox: inbox, completion: completion)
+            }
+            return
+        }
+
+        loadInMemoryItem(provider, typeId: typeId, inbox: inbox, completion: completion)
+    }
+
+    private func loadInMemoryItem(
+        _ provider: NSItemProvider,
+        typeId: String,
+        inbox: URL,
+        completion: @escaping (String?) -> Void
+    ) {
+        provider.loadItem(forTypeIdentifier: typeId, options: nil) { [weak self] data, _ in
+            guard let self, let data else {
+                completion(nil)
+                return
+            }
+
+            if let url = data as? URL {
+                completion(self.copyToInbox(url: url, inbox: inbox, preferredExtension: self.preferredExtension(for: typeId)))
+            } else if let image = data as? UIImage, let d = image.jpegData(compressionQuality: 0.9) {
+                completion(self.writeData(d, to: inbox, ext: "jpg"))
+            } else if let d = data as? Data {
+                completion(self.writeData(d, to: inbox, ext: self.preferredExtension(for: typeId) ?? "bin"))
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+    private func shouldPreferFileRepresentation(_ typeId: String) -> Bool {
+        guard typeId != "public.url" else { return false }
+        return true
+    }
+
+    private func preferredExtension(for typeId: String) -> String? {
+        if typeId == UTType.jpeg.identifier || typeId == UTType.image.identifier {
+            return "jpg"
+        }
+        return UTType(typeId)?.preferredFilenameExtension
+    }
+
+    private func copyToInbox(url: URL, inbox: URL, preferredExtension: String? = nil) -> String? {
         let isSecurityScoped = url.startAccessingSecurityScopedResource()
         defer { if isSecurityScoped { url.stopAccessingSecurityScopedResource() } }
-        let name = url.lastPathComponent.isEmpty ? "shared_\(UUID().uuidString.prefix(8))" : url.lastPathComponent
-        let dest = inbox.appendingPathComponent(name)
+
+        let rawName = url.deletingPathExtension().lastPathComponent
+        let baseName = rawName.isEmpty ? "shared" : rawName
+        let ext = url.pathExtension.isEmpty ? preferredExtension : url.pathExtension
+        let uniqueName = "\(baseName)_\(UUID().uuidString.prefix(8))"
+        let fileName = ext.map { "\(uniqueName).\($0)" } ?? uniqueName
+        let dest = inbox.appendingPathComponent(fileName)
+
         do {
             if FileManager.default.fileExists(atPath: dest.path) { try FileManager.default.removeItem(at: dest) }
-            try FileManager.default.copyItem(at: url, to: dest)
+            if url.isFileURL {
+                try FileManager.default.copyItem(at: url, to: dest)
+            } else {
+                try Data(contentsOf: url).write(to: dest)
+            }
             return dest.path
         } catch {
             return nil
@@ -151,6 +262,9 @@ final class ShareViewController: UIViewController {
             finishWithError()
             return
         }
+
+        updateStatus("Uploading...")
+
         let sxcuPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "sxcu" }
         let xsdcPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "xsdc" }
         let uploadPaths = savedPaths.filter {
@@ -198,26 +312,20 @@ final class ShareViewController: UIViewController {
             openContainingApp()
         }
 
-        let notificationTitle: String
-        let notificationBody: String
         if uploadedUrls.count == uploadResults.count {
-            notificationTitle = "XerahS upload complete"
-            notificationBody = uploadedUrls.count == 1
+            let status = uploadedUrls.count == 1
                 ? "Link copied to Clipboard."
                 : "\(uploadedUrls.count) links copied to Clipboard."
+            updateStatus(status)
         } else if !uploadedUrls.isEmpty {
-            notificationTitle = "XerahS upload partially complete"
-            notificationBody = "\(uploadedUrls.count) link(s) copied. \(failedPaths.count) file(s) queued for XerahS."
+            updateStatus("\(uploadedUrls.count) link(s) copied. \(failedPaths.count) file(s) queued for XerahS.")
         } else {
-            notificationTitle = "XerahS upload queued"
             let firstError = uploadResults.compactMap(\.error).first ?? "Open XerahS to finish uploading."
-            notificationBody = firstError
+            updateStatus(firstError)
         }
 
-        scheduleNotification(title: notificationTitle, body: notificationBody) { [weak self] in
-            DispatchQueue.main.async {
-                self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
         }
     }
 
@@ -242,47 +350,8 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func scheduleNotification(title: String, body: String, completion: @escaping () -> Void) {
-        let center = UNUserNotificationCenter.current()
-        center.getNotificationSettings { settings in
-            switch settings.authorizationStatus {
-            case .authorized, .provisional, .ephemeral:
-                self.addNotification(center: center, title: title, body: body, completion: completion)
-            case .notDetermined:
-                center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                    if granted {
-                        self.addNotification(center: center, title: title, body: body, completion: completion)
-                    } else {
-                        completion()
-                    }
-                }
-            case .denied:
-                completion()
-            @unknown default:
-                completion()
-            }
-        }
-    }
-
-    private func addNotification(
-        center: UNUserNotificationCenter,
-        title: String,
-        body: String,
-        completion: @escaping () -> Void
-    ) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        let request = UNNotificationRequest(
-            identifier: "xerahs-share-upload-\(UUID().uuidString)",
-            content: content,
-            trigger: nil
-        )
-        center.add(request) { _ in completion() }
-    }
-
     private func finishWithError() {
+        updateStatus("No supported item was shared.")
         extensionContext?.cancelRequest(withError: NSError(domain: "XerahS.Share", code: -1, userInfo: [NSLocalizedDescriptionKey: "No supported items to share."]))
     }
 }
