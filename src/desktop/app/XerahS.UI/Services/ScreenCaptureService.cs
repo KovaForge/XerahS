@@ -35,6 +35,7 @@ using System;
 using System.Drawing;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using XerahS.UI.Services.Capture;
 
 namespace XerahS.UI.Services
@@ -42,6 +43,7 @@ namespace XerahS.UI.Services
     public class ScreenCaptureService : IScreenCaptureService, ILinuxRegionCaptureCapabilityProvider, ILinuxRegionSelectorDiagnosticsProvider
     {
         private const string LinuxOverlayProviderId = "xerahs-overlay";
+        private static readonly SemaphoreSlim MacOSInteractiveRegionCaptureGate = new(1, 1);
         private readonly IScreenCaptureService _platformImpl;
         private readonly LinuxRegionSelectorResolver _linuxResolver;
 
@@ -57,6 +59,19 @@ namespace XerahS.UI.Services
         }
 
         public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
+        {
+            if (!TryBeginMacOSInteractiveRegionCapture(nameof(SelectRegionAsync), out var macOSCaptureScope))
+            {
+                return SKRectI.Empty;
+            }
+
+            using (macOSCaptureScope)
+            {
+                return await SelectRegionCoreAsync(options);
+            }
+        }
+
+        private async Task<SKRectI> SelectRegionCoreAsync(CaptureOptions? options)
         {
             if (ShouldUseMacOSNativeRegionCapture(options))
             {
@@ -149,6 +164,19 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            if (!TryBeginMacOSInteractiveRegionCapture(nameof(CaptureRegionAsync), out var macOSCaptureScope))
+            {
+                return null;
+            }
+
+            using (macOSCaptureScope)
+            {
+                return await CaptureRegionCoreAsync(options);
+            }
+        }
+
+        private async Task<SKBitmap?> CaptureRegionCoreAsync(CaptureOptions? options)
+        {
             if (OperatingSystem.IsMacOS())
             {
                 var requestedPreference = options?.MacOSRegionSelectorPreference ??
@@ -165,6 +193,7 @@ namespace XerahS.UI.Services
                     DebugHelper.WriteLine(nativeBitmap == null
                         ? "[RegionCapture] macOS native region capture returned null."
                         : $"[RegionCapture] macOS native region capture returned {nativeBitmap.Width}x{nativeBitmap.Height}.");
+                    DebugHelper.WriteLine("[RegionCapture] macOS native crosshair path completed; XerahS overlay fallback is intentionally not run for an explicit native request.");
                     DebugHelper.Flush();
                     return nativeBitmap;
                 }
@@ -621,6 +650,85 @@ namespace XerahS.UI.Services
         {
             return OperatingSystem.IsMacOS() &&
                 options?.MacOSRegionSelectorPreference == MacOSInteractiveRegionSelectorPreference.NativeCrosshair;
+        }
+
+        private static bool TryBeginMacOSInteractiveRegionCapture(string operation, out IDisposable? captureScope)
+        {
+            captureScope = null;
+
+            if (!OperatingSystem.IsMacOS())
+            {
+                return true;
+            }
+
+            if (!MacOSInteractiveRegionCaptureGate.Wait(0))
+            {
+                DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{operation}' ignored because another selector is already active.");
+                DebugHelper.Flush();
+                return false;
+            }
+
+            captureScope = new MacOSInteractiveRegionCaptureScope(operation);
+            return true;
+        }
+
+        private sealed class MacOSInteractiveRegionCaptureScope : IDisposable
+        {
+            private readonly string _operation;
+            private bool _restoreHotkeys;
+            private bool _previousHotkeySuspended;
+            private bool _disposed;
+
+            public MacOSInteractiveRegionCaptureScope(string operation)
+            {
+                _operation = operation;
+
+                try
+                {
+                    if (PlatformServices.IsInitialized)
+                    {
+                        // macOS has two mutually exclusive interactive selectors: /usr/sbin/screencapture
+                        // and the XerahS overlay. Keep global hotkeys suspended while either selector is
+                        // active so the initiating shortcut cannot start a second selector underneath it.
+                        var hotkeyService = PlatformServices.Hotkey;
+                        _previousHotkeySuspended = hotkeyService.IsSuspended;
+                        hotkeyService.IsSuspended = true;
+                        _restoreHotkeys = true;
+                        DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' suspended global hotkeys (previous={_previousHotkeySuspended}).");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' could not suspend hotkeys: {ex.Message}");
+                }
+            }
+
+            public void Dispose()
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+
+                try
+                {
+                    if (_restoreHotkeys && PlatformServices.IsInitialized)
+                    {
+                        PlatformServices.Hotkey.IsSuspended = _previousHotkeySuspended;
+                        DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' restored global hotkeys (suspended={_previousHotkeySuspended}).");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' could not restore hotkeys: {ex.Message}");
+                }
+                finally
+                {
+                    MacOSInteractiveRegionCaptureGate.Release();
+                }
+            }
         }
     }
 }

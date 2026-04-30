@@ -161,7 +161,19 @@ namespace XerahS.Platform.MacOS.Services
                 _pressedKeys.Clear();
             }
 
-            StopHookIfIdle(force: true);
+            if (_disposed)
+            {
+                StopHookIfIdle(force: true);
+            }
+            else
+            {
+                // Workflow edits call UnregisterAll followed immediately by RegisterHotkey for every
+                // workflow. SharpHook stops asynchronously on macOS, so stopping here can race the
+                // immediate re-register and make RunAsync throw "global hook is already running".
+                // Keep the hook alive during reconfiguration; the cleared dictionaries prevent
+                // stale hotkeys from firing, and Dispose still stops the hook for app shutdown.
+                DebugHelper.WriteLine("MacOSHotkeyService: Cleared hotkey registrations; keeping SharpHook running during reconfiguration.");
+            }
         }
 
         public bool IsRegistered(HotkeyInfo hotkeyInfo)
@@ -224,6 +236,14 @@ namespace XerahS.Platform.MacOS.Services
             }
             catch (Exception ex)
             {
+                if (ex is InvalidOperationException invalidOperationException &&
+                    invalidOperationException.Message.Contains("already running", StringComparison.OrdinalIgnoreCase))
+                {
+                    _hookRunning = true;
+                    DebugHelper.WriteLine("MacOSHotkeyService: SharpHook was already running; continuing with existing hook.");
+                    return;
+                }
+
                 DebugHelper.WriteException(ex, "MacOSHotkeyService: Failed to start SharpHook.");
                 lock (_lock)
                 {
