@@ -32,6 +32,15 @@ public class MacOSRegionSelectorPreferenceTests
     }
 
     [Test]
+    public void IsInteractiveCaptureBusyError_DetectsNativeScreencaptureConcurrencyFailure()
+    {
+        bool isBusy = MacOSScreenshotService.IsInteractiveCaptureBusyError(
+            "screencapture: cannot run two interactive screen captures at a time");
+
+        Assert.That(isBusy, Is.True);
+    }
+
+    [Test]
     public void CliRegionFallbackArguments_DefaultToCaptureSound()
     {
         string arguments = CliCaptureStrategy.BuildCaptureArguments(1, 2, 3, 4, "/tmp/capture.png", new RegionCaptureOptions());
