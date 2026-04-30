@@ -168,3 +168,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Upstream/submodules: parent and ShareX.ImageEditor develop were already up to date after fetch/merge; ShareX.ImageEditor stayed on `develop` at `360eeabe` with origin/upstream remotes verified.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-183728.log`; test `/tmp/xerahs-hourly-sweep/test-20260430-184045.log`.
 - Follow-up: Continue notification review around native action callback parity and OS helper availability/fallback messaging.
+
+### 2026-04-30 19:41 AWST - FTP uploader URL generation
+- Area: FTP uploader plugin (HTTP home path protocol-prefix normalization); files: `FTPAccount.cs`, `FtpConfigViewModelTests.cs`, `Directory.Build.props`.
+- Upstream: merged upstream/develop `e43c28d2` into develop (merge `fabef0ea`); ShareX.ImageEditor checked out develop, origin `360eeab`, upstream `2144d8a`, no pointer change.
+- Status: Fixed FTP/SFTP public URL generation so pasted full HttpHomePath values strip protocol prefixes before UriBuilder parsing, avoiding malformed hosts like `https:`; added regression coverage; bumped version 0.22.161 -> 0.22.162.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-193740.log` (0 warnings/errors); test `/tmp/xerahs-hourly-sweep/test-20260430-194116.log` (740 passed).
+- Follow-up: Continue FTP uploader review around query-template URL generation and cancellation behavior during FTP/SFTP transfers.

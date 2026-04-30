@@ -358,6 +358,22 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void GetUriPath_RemovesProtocolPrefixFromHttpHomePath()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "https://cdn.example.com/base",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture 1.png");
+
+        Assert.That(url, Is.EqualTo("https://cdn.example.com/base/shots/capture%201.png"));
+    }
+
+    [Test]
     public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyPathIsMissing()
     {
         var uploader = new FtpUploader(new FTPAccount

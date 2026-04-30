@@ -127,7 +127,7 @@ namespace XerahS.Uploaders.FileUploaders
 
         public string GetHttpHomePath()
         {
-            string homePath = HttpHomePath.Replace("%host", Host, StringComparison.OrdinalIgnoreCase);
+            string homePath = URLHelpers.RemovePrefixes(HttpHomePath).Replace("%host", Host, StringComparison.OrdinalIgnoreCase);
 
             ShareXCustomUploaderSyntaxParser parser = new ShareXCustomUploaderSyntaxParser
             {
