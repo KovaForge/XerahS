@@ -86,6 +86,25 @@ JSON upload output is intentionally clean stdout:
 }
 ```
 
+## ReClip integration
+
+Configure the local ReClip handoff folder:
+
+```bash
+xerahs reclip use-default-watch-folder
+# equivalent explicit form:
+xerahs reclip set-watch-folder /Users/mike/Library/CloudStorage/OneDrive-Personal/Videos/ReClip
+```
+
+Inspect the current ReClip config:
+
+```bash
+xerahs reclip status
+xerahs reclip status --json
+```
+
+The setting is stored at `ReClipConfig.json` under the normal XerahS settings folder shown by `xerahs config path`.
+
 ## Useful commands for agents
 
 ```bash
@@ -96,6 +115,8 @@ xerahs list workflows
 xerahs doctor uploaders --json
 xerahs doctor uploaders --fix
 xerahs bootstrap uploaders
+xerahs reclip status --json
+xerahs reclip use-default-watch-folder --json
 xerahs upload <file> --json
 xerahs upload <file> --as-file --json
 xerahs upload --text <content> --name <name> --json

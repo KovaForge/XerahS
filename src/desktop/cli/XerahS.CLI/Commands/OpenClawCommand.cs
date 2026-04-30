@@ -39,6 +39,8 @@ public static class OpenClawCommand
                     new OpenClawManifestCommand("upload <file> --as-file --json", "Force text-like artifacts such as HTML through the file uploader category", true, true),
                     new OpenClawManifestCommand("upload --text <text> --name <name> --json", "Upload generated text content", true, true),
                     new OpenClawManifestCommand("upload --pipe --name <name> --json", "Upload stdin content", true, true),
+                    new OpenClawManifestCommand("reclip status --json", "Inspect ReClip integration settings", true, false),
+                    new OpenClawManifestCommand("reclip use-default-watch-folder --json", "Configure ReClip to use the local OneDrive ReClip watch folder", true, false),
                     new OpenClawManifestCommand("config path", "Show XerahS settings paths", false, false),
                     new OpenClawManifestCommand("list workflows", "List configured workflows", false, false),
                     new OpenClawManifestCommand("capture", "Run capture workflows", false, true),
