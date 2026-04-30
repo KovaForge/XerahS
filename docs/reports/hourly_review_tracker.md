@@ -26,7 +26,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Capture pipeline | 2026-04-30 05:41 AWST | High | Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity. |
 | OCR | 2026-04-30 06:41 AWST | High | Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh. | Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases. |
 | Settings/configuration | 2026-04-30 07:41 AWST | High | Fixed uploader config saves so SettingsChanged observers are notified for destination/provider changes; added regression coverage. | Continue settings review around async save completion semantics and custom config backup paths. |
-| Assistant local memory/privacy/history | 2026-04-30 00:34 AWST | High | Fixed OCR cache history path normalization so whitespace-padded caller paths hit canonical history rows. | Continue assistant review around history DB path casing/symlink equivalence and OCR cache invalidation when capture files are moved or deleted. |
+| Assistant local memory/privacy/history | 2026-04-30 14:54 AWST | High | Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes. | Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted. |
 | Tests / test discoverability | 2026-04-30 08:41 AWST | High | Marked main NUnit test discovery packages as private test/build assets so Microsoft.NET.Test.Sdk and NUnit3TestAdapter do not flow as normal transitive assets; added guardrail coverage. | Continue tests review around discovery package asset metadata for Avalonia.Headless.NUnit/coverage collectors and cross-target test host behavior. |
 | Editor integration | 2026-04-30 09:43 AWST | High | Fixed editor window direct-close handling so ShowEditorSessionAsync completes with null instead of leaving callers awaiting forever; added regression coverage. | Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing. |
 | Uploader core / plugin routing | 2026-04-30 01:20 AWST | High | Fixed file-extension input normalization for uploader destination lookup and add-file-type conflict checks. | Continue uploader routing review around stale default-instance IDs and case-insensitive instance/category lookups. |
@@ -126,3 +126,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Validation: Release build 0 warnings/0 errors; Release tests passed 729 total.
 - Logs: /tmp/xerahs-hourly-sweep/build-20260430-133655.log; /tmp/xerahs-hourly-sweep/test-20260430-134120.log
 - Follow-up: continue FTP uploader review around remote path normalization, URL generation, and cancellation behavior during FTP/SFTP transfers.
+
+### 2026-04-30 14:54 AWST - Assistant local memory/privacy/history
+- Area: Assistant local memory/privacy/history (history path casing semantics)
+- Files: `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`, `tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs`, `Directory.Build.props`
+- Finding: history file-path lookups used case-sensitive comparison on all non-Windows hosts, which misses existing rows on default case-insensitive macOS volumes when callers vary path casing.
+- Fix: use case-insensitive comparison on macOS as well as Windows and update regression expectations; bumped patch version 0.22.156 -> 0.22.157.
+- Validation: targeted history tests passed (6); Release build 0 warnings/0 errors; Release tests passed 729 total.
+- Logs: `/tmp/xerahs-hourly-sweep/build-20260430-144539.log`; `/tmp/xerahs-hourly-sweep/test-20260430-144922.log`
+- Follow-up: Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted.

@@ -68,7 +68,7 @@ public sealed class HistoryManagerSQLiteTests
     }
 
     [Test]
-    public void ContainsFilePath_DoesNotCollapseDifferentCasePathsOnCaseSensitivePlatforms()
+    public void ContainsFilePath_UsesHostPathCasingSemantics()
     {
         string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDirectory);
@@ -92,7 +92,7 @@ public sealed class HistoryManagerSQLiteTests
 
                 bool exists = manager.ContainsFilePath(differentCasePath);
 
-                if (OperatingSystem.IsWindows())
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
                 {
                     Assert.That(exists, Is.True);
                 }
