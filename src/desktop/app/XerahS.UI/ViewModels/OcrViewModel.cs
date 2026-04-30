@@ -118,6 +118,7 @@ public partial class OcrViewModel : ViewModelBase
         IsProcessing = true;
         StatusText = "Processing...";
         ResultText = string.Empty;
+        HasResult = false;
 
         try
         {

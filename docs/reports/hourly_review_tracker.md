@@ -175,3 +175,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed FTP/SFTP public URL generation so pasted full HttpHomePath values strip protocol prefixes before UriBuilder parsing, avoiding malformed hosts like `https:`; added regression coverage; bumped version 0.22.161 -> 0.22.162.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-193740.log` (0 warnings/errors); test `/tmp/xerahs-hourly-sweep/test-20260430-194116.log` (740 passed).
 - Follow-up: Continue FTP uploader review around query-template URL generation and cancellation behavior during FTP/SFTP transfers.
+
+### 2026-04-30 20:45 AWST - OCR tools result state
+- Area: OCR tool/view-model result lifecycle; files: `OcrViewModel.cs`, `OcrViewModelTests.cs`, `Directory.Build.props`.
+- Upstream: merged upstream/develop `d1dc65d5` into develop (merge `f84f564d`); ShareX.ImageEditor checked out `develop` at `360eeabe` with origin/upstream remotes verified and no pointer change.
+- Status: Fixed stale OCR result state by clearing `HasResult` immediately when a new recognition pass starts, so copy/service-link UI cannot remain enabled for old text while processing; added async regression coverage; bumped version 0.22.162 -> 0.22.163.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260430-203937.log` (0 warnings/errors); test `/tmp/xerahs-hourly-sweep/test-20260430-204312.log` (754 passed total).
+- Follow-up: Continue OCR/settings review around cancellation/rerun races and platform-specific OCR service error messaging.
