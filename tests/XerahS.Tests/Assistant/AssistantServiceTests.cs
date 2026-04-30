@@ -40,6 +40,36 @@ namespace XerahS.Tests.Assistant;
 public sealed class AssistantServiceTests
 {
     [Test]
+    public async Task ProcessPromptAsync_BuiltInCopyLastFivePathsAlias_CopiesPathsToClipboard()
+    {
+        var clipboard = new FakeClipboardService();
+        PlatformServices.Clipboard = clipboard;
+
+        var service = new AssistantService(
+            new AssistantCommandRouter(),
+            new FakeHistoryService(
+            [
+                CreateHistoryItem(@"C:\Shots\1.png", "1.png"),
+                CreateHistoryItem(@"C:\Shots\2.png", "2.png")
+            ]),
+            new AssistantPrivacyGuard(),
+            memoryStore: CreateMemoryStore());
+
+        try
+        {
+            AssistantResponse response = await service.ProcessPromptAsync("copy last five paths", CancellationToken.None);
+
+            Assert.That(response.Kind, Is.EqualTo(AssistantResponseKind.Results));
+            Assert.That(response.Message, Is.EqualTo("Copied 2 path(s) to clipboard."));
+            Assert.That(clipboard.Text, Is.EqualTo($"C:\\Shots\\1.png{Environment.NewLine}C:\\Shots\\2.png"));
+        }
+        finally
+        {
+            PlatformServices.Reset();
+        }
+    }
+
+    [Test]
     public async Task ProcessPromptAsync_UsesProviderPlannedSeparator_ForLatestScreenshotPaths()
     {
         var clipboard = new FakeClipboardService();

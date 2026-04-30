@@ -41,7 +41,7 @@ public sealed class AssistantLocalMemoryStore
 
     private static readonly IReadOnlyDictionary<string, string> BuiltInAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
-        ["copy last five paths"] = "Give me the local file path of my last 5 screenshots",
+        ["copy last five paths"] = "Copy the local file paths of my last 5 screenshots",
         ["bug report shot"] = "Upload the latest screenshot"
     };
 

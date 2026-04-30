@@ -222,3 +222,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-053740.log`).
 - Tests: pass, 759 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-054102.log`).
 - Follow-up: continue media review around FFmpeg exit-code/error surfacing and partial thumbnail cleanup.
+
+### 2026-05-01 07:42 AWST - Assistant local memory aliases
+- Area: Assistant local memory/privacy/history (built-in alias execution path).
+- Files: src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs; tests/XerahS.Tests/Assistant/AssistantServiceTests.cs; Directory.Build.props.
+- Finding/fix: fixed the built-in `copy last five paths` alias so it actually requests clipboard copy instead of resolving to a non-copy lookup; added service coverage for clipboard behavior.
+- Version: 0.22.168 -> 0.22.169.
+- Validation: Release build 0 warnings/0 errors; full Release tests passed (746 XerahS.Tests + 14 XerahS.McpServer.Tests).
+- Follow-up: continue rotating stale assistant memory/privacy/history prompts, especially alias phrases that imply side effects.
