@@ -37,8 +37,7 @@ private let aboutLinks: [AboutLink] = [
     AboutLink(title: "Issues", url: URL(string: "https://github.com/ShareX/XerahS/issues/")!),
     AboutLink(title: "Contributors", url: URL(string: "https://github.com/ShareX/XerahS/graphs/contributors")!),
     AboutLink(title: "Changelog", url: URL(string: "https://xerahs.com/changelog.html")!),
-    AboutLink(title: "Privacy Policy", url: URL(string: "https://getsharex.com/privacy-policy")!),
-    AboutLink(title: "Donate", url: URL(string: "https://getsharex.com/donate")!)
+    AboutLink(title: "Privacy Policy", url: URL(string: "https://getsharex.com/privacy-policy")!)
 ]
 
 private let socialLinks: [AboutLink] = [
