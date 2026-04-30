@@ -212,6 +212,8 @@ public static class PluginPackager
         }
 
         var extractedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var entry in archive.Entries)
         {
@@ -220,10 +222,19 @@ public static class PluginPackager
                 continue;
             }
 
-            string targetPath = Path.GetFullPath(Path.Combine(destinationDirectory, entry.FullName));
+            string targetPath = NormalizeExtractedPath(Path.GetFullPath(Path.Combine(destinationDirectory, entry.FullName)));
             if (!targetPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Package contains an invalid entry path.");
+            }
+
+            bool isDirectory = string.IsNullOrEmpty(entry.Name);
+            bool collidesWithDifferentEntryType = isDirectory
+                ? extractedFiles.Contains(targetPath)
+                : extractedDirectories.Contains(targetPath);
+            if (collidesWithDifferentEntryType)
+            {
+                throw new InvalidDataException("Package contains a file/directory path collision.");
             }
 
             if (!extractedPaths.Add(targetPath))
@@ -231,10 +242,21 @@ public static class PluginPackager
                 throw new InvalidDataException("Package contains a duplicate entry path.");
             }
 
-            if (string.IsNullOrEmpty(entry.Name))
+            if (isDirectory)
             {
+                if (HasParentFilePath(extractedFiles, targetPath, destinationRoot))
+                {
+                    throw new InvalidDataException("Package contains a file/directory path collision.");
+                }
+
                 Directory.CreateDirectory(targetPath);
+                extractedDirectories.Add(targetPath);
                 continue;
+            }
+
+            if (HasParentFilePath(extractedFiles, targetPath, destinationRoot))
+            {
+                throw new InvalidDataException("Package contains a file/directory path collision.");
             }
 
             string? directoryPath = Path.GetDirectoryName(targetPath);
@@ -243,7 +265,32 @@ public static class PluginPackager
                 Directory.CreateDirectory(directoryPath);
             }
 
-            entry.ExtractToFile(targetPath, true);
+            entry.ExtractToFile(targetPath, false);
+            extractedFiles.Add(targetPath);
         }
+    }
+
+    private static string NormalizeExtractedPath(string path)
+    {
+        return Path.TrimEndingDirectorySeparator(path);
+    }
+
+    private static bool HasParentFilePath(ISet<string> extractedFiles, string targetPath, string destinationRoot)
+    {
+        string? currentPath = Path.GetDirectoryName(targetPath);
+        string normalizedRoot = NormalizeExtractedPath(destinationRoot);
+
+        while (!string.IsNullOrEmpty(currentPath) &&
+            !string.Equals(currentPath, normalizedRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            if (extractedFiles.Contains(currentPath))
+            {
+                return true;
+            }
+
+            currentPath = Path.GetDirectoryName(currentPath);
+        }
+
+        return false;
     }
 }

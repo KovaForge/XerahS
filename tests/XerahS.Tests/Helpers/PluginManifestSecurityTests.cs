@@ -120,6 +120,54 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void InstallPackage_RejectsFileThenNestedDirectoryCollision()
+    {
+        string packagePath = Path.Combine(_tempRoot, "file-directory-collision.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        Directory.CreateDirectory(pluginsRoot);
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+            AddTextEntry(archive, "assets", "file that blocks nested assets directory");
+            AddTextEntry(archive, "assets/icon.png", "icon");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("file/directory path collision"));
+            Assert.That(Directory.Exists(Path.Combine(pluginsRoot, "sample-plugin")), Is.False);
+        });
+    }
+
+    [Test]
+    public void InstallPackage_RejectsDirectoryThenFileCollision()
+    {
+        string packagePath = Path.Combine(_tempRoot, "directory-file-collision.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        Directory.CreateDirectory(pluginsRoot);
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+            archive.CreateEntry("assets/");
+            AddTextEntry(archive, "assets", "file that collides with assets directory");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("file/directory path collision"));
+            Assert.That(Directory.Exists(Path.Combine(pluginsRoot, "sample-plugin")), Is.False);
+        });
+    }
+
+    [Test]
     public void InstallPackage_CreatesMissingPluginsDirectory()
     {
         string packagePath = Path.Combine(_tempRoot, "sample.xsdp");

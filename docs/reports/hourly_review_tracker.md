@@ -109,3 +109,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260430-103803.log`).
 - Tests: pass, 724 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260430-104119.log`).
 - Follow-up: continue plugin runtime review around package entry canonicalization, duplicate directory/file collisions, and load-context unload diagnostics.
+
+### 2026-04-30 12:45 AWST - Plugin loading/runtime
+- Area: Plugin loading/runtime (.xsdp package install/extraction)
+- Status: Fixed package extraction collision handling so archives cannot mix files and directories at the same canonical path or under a file parent; added regression coverage for file-then-nested-directory and directory-then-file collisions.
+- Files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`
+- Version: bumped patch 0.22.154 -> 0.22.155.
+- Validation: Release build 0 warnings/errors; tests passed 728 total.
+- Follow-up: continue plugin runtime review around package entry canonicalization edge cases and load-context unload diagnostics.
