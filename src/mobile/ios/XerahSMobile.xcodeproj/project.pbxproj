@@ -38,6 +38,15 @@
 		E1000001 /* UploadFileNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* UploadFileNameGenerator.swift */; };
 		D1000003 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* ShareViewController.swift */; };
 		D1000005 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D1000000 /* ShareExtension.appex */; };
+		D2000001 /* ShareExtensionUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000002 /* ShareExtensionUploadService.swift */; };
+		D2000003 /* ApplicationConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* ApplicationConfig.swift */; };
+		D2000004 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000A0 /* Paths.swift */; };
+		D2000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
+		D2000006 /* UploadOutcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000A8 /* UploadOutcome.swift */; };
+		D2000007 /* CustomUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B0 /* CustomUploader.swift */; };
+		D2000008 /* S3Uploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B2 /* S3Uploader.swift */; };
+		D2000009 /* HeicToPngConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B8 /* HeicToPngConverter.swift */; };
+		D200000A /* UploadFileNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* UploadFileNameGenerator.swift */; };
 		F1000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000002 /* PrivacyInfo.xcprivacy */; };
 		F1000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000004 /* PrivacyInfo.xcprivacy */; };
 		F1000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
@@ -101,6 +110,7 @@
 		D1000002 /* ShareGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareGroup.swift; sourceTree = "<group>"; };
 		E1000002 /* UploadFileNameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFileNameGenerator.swift; sourceTree = "<group>"; };
 		D1000004 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		D2000002 /* ShareExtensionUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareExtensionUploadService.swift; sourceTree = "<group>"; };
 		D1000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D1000007 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		D1000008 /* XerahSMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = XerahSMobile.entitlements; sourceTree = "<group>"; };
@@ -286,6 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				D1000004 /* ShareViewController.swift */,
+				D2000002 /* ShareExtensionUploadService.swift */,
 				D1000006 /* Info.plist */,
 				F1000004 /* PrivacyInfo.xcprivacy */,
 				D1000007 /* ShareExtension.entitlements */,
@@ -432,6 +443,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				D1000003 /* ShareViewController.swift in Sources */,
+				D2000001 /* ShareExtensionUploadService.swift in Sources */,
+				D2000003 /* ApplicationConfig.swift in Sources */,
+				D2000004 /* Paths.swift in Sources */,
+				D2000005 /* KeychainStore.swift in Sources */,
+				D2000006 /* UploadOutcome.swift in Sources */,
+				D2000007 /* CustomUploader.swift in Sources */,
+				D2000008 /* S3Uploader.swift in Sources */,
+				D2000009 /* HeicToPngConverter.swift in Sources */,
+				D200000A /* UploadFileNameGenerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
