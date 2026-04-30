@@ -28,28 +28,33 @@ struct LoadingScreen: View {
     var onInitComplete: () -> Void
 
     var body: some View {
-        ZStack {
-            XerahSPageBackground()
+        VStack(spacing: 18) {
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 92, height: 92)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-            XerahSGlassCard(alignment: .center) {
-                VStack(spacing: 18) {
-                    Text("XerahS")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+            Text("XerahS")
+                .font(.largeTitle.weight(.semibold))
 
-                    ProgressView()
-                        .scaleEffect(1.35)
-                        .tint(.white)
+            ProgressView()
 
-                    Text("Initializing uploads, history, and settings…")
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.white.opacity(0.76))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+            Text("Initializing uploads, history, and settings...")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            if #available(iOS 17.0, *) {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+            } else {
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
             }
-            .padding(.horizontal, 24)
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {

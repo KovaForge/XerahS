@@ -48,8 +48,6 @@ private let socialLinks: [AboutLink] = [
 ]
 
 struct AboutScreen: View {
-    @Environment(\.openURL) private var openURL
-
     private var appName: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
             ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
@@ -69,75 +67,52 @@ struct AboutScreen: View {
     }
 
     var body: some View {
-        ZStack {
-            XerahSPageBackground()
+        Form {
+            Section {
+                VStack(spacing: 12) {
+                    Image("Logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 96, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    XerahSGlassCard(alignment: .center) {
-                        VStack(spacing: 14) {
-                            Image("Logo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 112, height: 112)
-                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    Text(appName)
+                        .font(.title2.weight(.semibold))
 
-                            VStack(spacing: 6) {
-                                Text("\(appName) \(appVersion)")
-                                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white)
-                                    .multilineTextAlignment(.center)
+                    Text("Version \(appVersion)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                                Text("Copyright (c) 2007-2026 ShareX Team")
-                                    .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.68))
-                                    .multilineTextAlignment(.center)
-                            }
-                        }
-                    }
-
-                    XerahSGlassGroup {
-                        XerahSSectionIntro(
-                            title: "Version",
-                            detail: "Build information from the installed iOS bundle."
-                        )
-
-                        XerahSGlassCard {
-                            VStack(spacing: 12) {
-                                AboutInfoRow(title: "Version", value: appVersion)
-                                AboutInfoRow(title: "Build", value: buildNumber)
-                                AboutInfoRow(title: "Bundle ID", value: bundleIdentifier)
-                                AboutInfoRow(title: "iOS", value: UIDevice.current.systemVersion)
-                            }
-                        }
-
-                        XerahSSectionIntro(title: "Links")
-                        ForEach(aboutLinks) { link in
-                            Button {
-                                openURL(link.url)
-                            } label: {
-                                AboutLinkRow(title: link.title, url: link.url)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        XerahSSectionIntro(title: "Social")
-                        ForEach(socialLinks) { link in
-                            Button {
-                                openURL(link.url)
-                            } label: {
-                                AboutLinkRow(title: link.title, url: link.url)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    Text("Copyright (c) 2007-2026 ShareX Team")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
             }
-            .scrollIndicators(.hidden)
+
+            Section("Version") {
+                AboutInfoRow(title: "Version", value: appVersion)
+                AboutInfoRow(title: "Build", value: buildNumber)
+                AboutInfoRow(title: "Bundle ID", value: bundleIdentifier)
+                AboutInfoRow(title: "iOS", value: UIDevice.current.systemVersion)
+            }
+
+            Section("Links") {
+                ForEach(aboutLinks) { link in
+                    AboutLinkRow(title: link.title, url: link.url)
+                }
+            }
+
+            Section("Social") {
+                ForEach(socialLinks) { link in
+                    AboutLinkRow(title: link.title, url: link.url)
+                }
+            }
         }
+        .navigationTitle("About")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -149,13 +124,12 @@ private struct AboutInfoRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(.secondary)
 
             Spacer(minLength: 12)
 
             Text(value)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
                 .multilineTextAlignment(.trailing)
                 .textSelection(.enabled)
         }
@@ -167,25 +141,18 @@ private struct AboutLinkRow: View {
     let url: URL
 
     var body: some View {
-        XerahSGlassCard {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-
-                    Text(url.absoluteString)
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.68))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
-
-                Spacer(minLength: 12)
-
+        Link(destination: url) {
+            HStack(spacing: 12) {
                 Image(systemName: "arrow.up.forward.square")
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.blue)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                    Text(url.absoluteString)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
     }

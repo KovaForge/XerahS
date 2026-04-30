@@ -24,7 +24,6 @@
 		B10000B3 /* UploadQueueWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B4 /* UploadQueueWorker.swift */; };
 		B10000B5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000B6 /* libsqlite3.tbd */; };
 		B10000B7 /* HeicToPngConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B8 /* HeicToPngConverter.swift */; };
-		B10000B9 /* GlassUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000BA /* GlassUI.swift */; };
 		C1000001 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000002 /* AppState.swift */; };
 		C1000003 /* Screen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000004 /* Screen.swift */; };
 		C1000005 /* LoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000006 /* LoadingScreen.swift */; };
@@ -97,7 +96,6 @@
 		B10000B4 /* UploadQueueWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadQueueWorker.swift; sourceTree = "<group>"; };
 		B10000B6 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		B10000B8 /* HeicToPngConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeicToPngConverter.swift; sourceTree = "<group>"; };
-		B10000BA /* GlassUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassUI.swift; sourceTree = "<group>"; };
 		C1000002 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		C1000004 /* Screen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Screen.swift; sourceTree = "<group>"; };
 		C1000006 /* LoadingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingScreen.swift; sourceTree = "<group>"; };
@@ -210,7 +208,6 @@
 			isa = PBXGroup;
 			children = (
 				B10000A0 /* Paths.swift */,
-				B10000BA /* GlassUI.swift */,
 				D1000002 /* ShareGroup.swift */,
 				E1000002 /* UploadFileNameGenerator.swift */,
 			);
@@ -426,7 +423,6 @@
 				B10000B1 /* S3Uploader.swift in Sources */,
 				B10000B3 /* UploadQueueWorker.swift in Sources */,
 				B10000B7 /* HeicToPngConverter.swift in Sources */,
-				B10000B9 /* GlassUI.swift in Sources */,
 				C1000001 /* AppState.swift in Sources */,
 				C1000003 /* Screen.swift in Sources */,
 				C1000005 /* LoadingScreen.swift in Sources */,

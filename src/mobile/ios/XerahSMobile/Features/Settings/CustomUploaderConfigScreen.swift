@@ -27,102 +27,68 @@ import UIKit
 
 struct CustomUploaderConfigScreen: View {
     @ObservedObject var viewModel: CustomUploaderConfigViewModel
-    var onBack: () -> Void
 
     var body: some View {
-        ZStack {
-            XerahSPageBackground()
+        List {
+            if let status = viewModel.statusMessage, !status.isEmpty {
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: viewModel.isStatusError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                            .foregroundStyle(viewModel.isStatusError ? .red : .green)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack {
+                        Text(status)
+                            .foregroundStyle(viewModel.isStatusError ? .red : .primary)
+
                         Spacer()
-                        Button("Import Clipboard") { viewModel.importFromClipboard() }
-                            .xerahSGlassButton(prominent: true)
-                    }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Custom Uploader")
-                            .font(.system(size: 33, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                        Text("Import and edit `.sxcu` definitions using the same request, body, and response shape as desktop.")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
-
-                    XerahSGlassGroup {
-                        XerahSSectionIntro(
-                            title: "Library",
-                            detail: "Import from clipboard, edit the request definition, or export the current uploader back to `.sxcu`."
-                        )
-
-                        if let status = viewModel.statusMessage, !status.isEmpty {
-                            XerahSGlassCard {
-                                HStack(alignment: .center, spacing: 12) {
-                                    Text(status)
-                                        .font(.subheadline)
-                                        .foregroundStyle(viewModel.isStatusError ? Color(red: 1.0, green: 0.82, blue: 0.82) : .white.opacity(0.78))
-                                    Spacer()
-                                    if viewModel.isStatusError, viewModel.importErrorDetails != nil {
-                                        Button("Copy Error") { viewModel.copyImportErrorToClipboard() }
-                                            .xerahSGlassButton()
-                                    }
-                                }
+                        if viewModel.isStatusError, viewModel.importErrorDetails != nil {
+                            Button {
+                                viewModel.copyImportErrorToClipboard()
+                            } label: {
+                                Label("Copy Error", systemImage: "doc.on.doc")
                             }
+                            .labelStyle(.iconOnly)
                         }
-
-                        if viewModel.uploaders.isEmpty {
-                            XerahSGlassCard {
-                                Text("No custom uploaders yet. Import a `.sxcu` from the clipboard or create one manually.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.white.opacity(0.76))
-                            }
-                        } else {
-                            ForEach(viewModel.uploaders) { entry in
-                                XerahSGlassCard {
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        HStack(alignment: .top) {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(entry.displayName)
-                                                    .font(.headline)
-                                                    .foregroundStyle(.white)
-                                                Text(entry.requestUrl.isEmpty ? "No URL configured" : entry.requestUrl)
-                                                    .font(.caption)
-                                                    .foregroundStyle(.white.opacity(0.72))
-                                                    .lineLimit(3)
-                                                Text("\(entry.requestMethod.rawValue) • \(entry.bodyType.rawValue) • \(entry.destinationType)")
-                                                    .font(.caption2.weight(.semibold))
-                                                    .foregroundStyle(.white.opacity(0.58))
-                                            }
-                                            Spacer()
-                                        }
-
-                                        HStack {
-                                            Button("Edit") { viewModel.edit(entry) }
-                                                .xerahSGlassButton()
-                                            Button("Copy .sxcu") { viewModel.copySxcuToClipboard(entry) }
-                                                .xerahSGlassButton()
-                                            Button("Delete", role: .destructive) { viewModel.delete(entry) }
-                                                .xerahSGlassButton()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Button {
-                            viewModel.addNew()
-                        } label: {
-                            Label("New Custom Uploader", systemImage: "plus.circle.fill")
-                        }
-                        .xerahSGlassButton(prominent: true)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
             }
-            .scrollIndicators(.hidden)
+
+            Section {
+                if viewModel.uploaders.isEmpty {
+                    ContentUnavailableView(
+                        "No Custom Uploaders",
+                        systemImage: "curlybraces",
+                        description: Text("Import a `.sxcu` from the clipboard or create one manually.")
+                    )
+                } else {
+                    ForEach(viewModel.uploaders) { entry in
+                        CustomUploaderRow(
+                            entry: entry,
+                            onEdit: { viewModel.edit(entry) },
+                            onCopy: { viewModel.copySxcuToClipboard(entry) },
+                            onDelete: { viewModel.delete(entry) }
+                        )
+                    }
+                }
+            } footer: {
+                Text("Custom uploaders use the same request, body, and response shape as desktop.")
+            }
+        }
+        .navigationTitle("Custom Uploader")
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    viewModel.importFromClipboard()
+                } label: {
+                    Label("Import Clipboard", systemImage: "doc.on.clipboard")
+                }
+
+                Button {
+                    viewModel.addNew()
+                } label: {
+                    Label("New Custom Uploader", systemImage: "plus")
+                }
+            }
         }
         .onAppear { viewModel.refresh() }
         .sheet(item: $viewModel.editingEntry) { entry in
@@ -131,6 +97,49 @@ struct CustomUploaderConfigScreen: View {
                 onDismiss: { viewModel.cancelEdit() },
                 onSave: { viewModel.saveEdit($0) }
             )
+        }
+    }
+}
+
+private struct CustomUploaderRow: View {
+    let entry: CustomUploaderEntry
+    var onEdit: () -> Void
+    var onCopy: () -> Void
+    var onDelete: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "curlybraces")
+                .foregroundStyle(.blue)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.displayName)
+                    .font(.headline)
+                Text(entry.requestUrl.isEmpty ? "No URL configured" : entry.requestUrl)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                Text("\(entry.requestMethod.rawValue) - \(entry.bodyType.rawValue) - \(entry.destinationType)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Menu {
+                Button(action: onEdit) {
+                    Label("Edit", systemImage: "pencil")
+                }
+                Button(action: onCopy) {
+                    Label("Copy .sxcu", systemImage: "doc.on.doc")
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                }
+            } label: {
+                Label("Actions", systemImage: "ellipsis.circle")
+                    .labelStyle(.iconOnly)
+            }
         }
     }
 }

@@ -45,161 +45,82 @@ private let s3Regions: [S3RegionOption] = [
 ]
 
 struct S3ConfigScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: S3ConfigViewModel
-    var onBack: () -> Void
 
     var body: some View {
-        ZStack {
-            XerahSPageBackground()
+        Form {
+            if let err = viewModel.validationError {
+                Section {
+                    Label(err, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Amazon S3")
-                            .font(.system(size: 33, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                        Text("Match the same bucket, endpoint, and signing behavior as desktop.")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
+            Section {
+                TextField("Access Key ID", text: $viewModel.accessKeyId)
+                    .textInputAutocapitalization(.never)
+                    .onChange(of: viewModel.accessKeyId) { _, _ in viewModel.clearValidationError() }
 
-                    XerahSGlassGroup {
-                        if let err = viewModel.validationError {
-                            XerahSGlassCard {
-                                Text(err)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(Color(red: 1.0, green: 0.82, blue: 0.82))
-                            }
-                        }
+                SecureField("Secret Access Key", text: $viewModel.secretAccessKey)
+                    .onChange(of: viewModel.secretAccessKey) { _, _ in viewModel.clearValidationError() }
 
-                        XerahSSectionIntro(
-                            title: "Credentials",
-                            detail: "These fields are required before the mobile app can sign S3 requests."
-                        )
+                TextField("Bucket Name", text: $viewModel.bucketName)
+                    .textInputAutocapitalization(.never)
+                    .onChange(of: viewModel.bucketName) { _, _ in viewModel.clearValidationError() }
+            } header: {
+                Text("Credentials")
+            } footer: {
+                Text("These fields are required before the mobile app can sign S3 requests.")
+            }
 
-                        XerahSGlassCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                S3InputField(title: "Access Key ID") {
-                                    TextField("Access Key ID", text: $viewModel.accessKeyId)
-                                        .textInputAutocapitalization(.never)
-                                        .xerahSInputChrome()
-                                        .foregroundStyle(.white)
-                                        .onChange(of: viewModel.accessKeyId) { _, _ in viewModel.clearValidationError() }
-                                }
-
-                                S3InputField(title: "Secret Access Key") {
-                                    SecureField("Secret Access Key", text: $viewModel.secretAccessKey)
-                                        .xerahSInputChrome()
-                                        .foregroundStyle(.white)
-                                        .onChange(of: viewModel.secretAccessKey) { _, _ in viewModel.clearValidationError() }
-                                }
-
-                                S3InputField(title: "Bucket Name") {
-                                    TextField("Bucket Name", text: $viewModel.bucketName)
-                                        .textInputAutocapitalization(.never)
-                                        .xerahSInputChrome()
-                                        .foregroundStyle(.white)
-                                        .onChange(of: viewModel.bucketName) { _, _ in viewModel.clearValidationError() }
-                                }
-                            }
-                        }
-
-                        XerahSSectionIntro(
-                            title: "Endpoint",
-                            detail: "Configure AWS region, custom S3-compatible endpoints, and URL style."
-                        )
-
-                        XerahSGlassCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                S3InputField(title: "Region") {
-                                    Picker("Region", selection: $viewModel.regionIndex) {
-                                        ForEach(Array(s3Regions.enumerated()), id: \.offset) { index, option in
-                                            Text(option.displayName).tag(index)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-                                    .tint(.white)
-                                    .xerahSInputChrome()
-                                }
-
-                                S3InputField(title: "Custom Endpoint") {
-                                    TextField("https://minio.example.com", text: $viewModel.customEndpoint)
-                                        .textInputAutocapitalization(.never)
-                                        .keyboardType(.URL)
-                                        .xerahSInputChrome()
-                                        .foregroundStyle(.white)
-                                }
-
-                                Toggle("Use path-style endpoint URLs", isOn: $viewModel.usePathStyle)
-                                    .tint(Color(red: 0.33, green: 0.83, blue: 0.90))
-                                    .foregroundStyle(.white)
-
-                                Text("Recommended for dotted bucket names and S3-compatible endpoints where TLS fails with virtual-host style URLs.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.68))
-                            }
-                        }
-
-                        XerahSSectionIntro(
-                            title: "Delivery",
-                            detail: "Choose how uploaded file URLs are exposed after the request succeeds."
-                        )
-
-                        XerahSGlassCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Toggle("Use Custom Domain (CDN)", isOn: $viewModel.useCustomDomain)
-                                    .tint(Color(red: 0.98, green: 0.63, blue: 0.34))
-                                    .foregroundStyle(.white)
-
-                                if viewModel.useCustomDomain {
-                                    TextField("https://cdn.example.com", text: $viewModel.customDomain)
-                                        .textInputAutocapitalization(.never)
-                                        .keyboardType(.URL)
-                                        .xerahSInputChrome()
-                                        .foregroundStyle(.white)
-                                }
-
-                                Toggle("Signed payload", isOn: $viewModel.signedPayload)
-                                    .tint(Color(red: 0.33, green: 0.83, blue: 0.90))
-                                    .foregroundStyle(.white)
-
-                                Text("Recommended. Signing the payload avoids 403 responses on stricter bucket policies.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.68))
-
-                                Toggle("Make uploads public (public-read ACL)", isOn: $viewModel.setPublicAcl)
-                                    .tint(Color(red: 0.98, green: 0.63, blue: 0.34))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-
-                        Button("Save") {
-                            if viewModel.save() { onBack() }
-                        }
-                        .xerahSGlassButton(prominent: true)
+            Section {
+                Picker("Region", selection: $viewModel.regionIndex) {
+                    ForEach(Array(s3Regions.enumerated()), id: \.offset) { index, option in
+                        Text(option.displayName).tag(index)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
+
+                TextField("Custom Endpoint", text: $viewModel.customEndpoint, prompt: Text("https://minio.example.com"))
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+
+                Toggle("Use path-style endpoint URLs", isOn: $viewModel.usePathStyle)
+            } header: {
+                Text("Endpoint")
+            } footer: {
+                Text("Path-style URLs are recommended for dotted bucket names and S3-compatible endpoints where TLS fails with virtual-host style URLs.")
             }
-            .scrollIndicators(.hidden)
+
+            Section {
+                Toggle("Use Custom Domain (CDN)", isOn: $viewModel.useCustomDomain)
+
+                if viewModel.useCustomDomain {
+                    TextField("Custom Domain", text: $viewModel.customDomain, prompt: Text("https://cdn.example.com"))
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
+                }
+
+                Toggle("Signed payload", isOn: $viewModel.signedPayload)
+                Toggle("Make uploads public (public-read ACL)", isOn: $viewModel.setPublicAcl)
+            } header: {
+                Text("Delivery")
+            } footer: {
+                Text("Signed payloads avoid 403 responses on stricter bucket policies.")
+            }
+        }
+        .navigationTitle("Amazon S3")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.save() {
+                        dismiss()
+                    }
+                }
+            }
         }
         .onAppear { viewModel.load() }
-    }
-}
-
-private struct S3InputField<Content: View>: View {
-    let title: String
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.72))
-            content()
-        }
     }
 }
 
