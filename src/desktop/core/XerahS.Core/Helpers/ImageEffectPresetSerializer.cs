@@ -98,6 +98,12 @@ public static class ImageEffectPresetSerializer
 
     private static void WriteZip(string filePath, string configJson)
     {
+        string? directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         if (File.Exists(filePath))
         {
             File.Delete(filePath);

@@ -91,6 +91,36 @@ public class ImageEffectPresetSerializerTests
     }
 
     [Test]
+    public void SaveXsieFile_CreatesMissingParentDirectory()
+    {
+        var preset = new ImageEffectPreset
+        {
+            Name = "NestedPreset",
+            Effects = { new BrightnessImageEffect { Amount = 10 } }
+        };
+
+        var root = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}");
+        var path = Path.Combine(root, "missing", "nested.xsie");
+
+        try
+        {
+            ImageEffectPresetSerializer.SaveXsieFile(path, preset);
+
+            Assert.That(File.Exists(path), Is.True);
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+            Assert.That(loaded, Is.Not.Null);
+            Assert.That(loaded!.Name, Is.EqualTo("NestedPreset"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Test]
     public void ExportSxie_WritesLegacyConfig()
     {
         var effects = new object[]
