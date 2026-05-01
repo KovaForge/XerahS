@@ -327,7 +327,7 @@ public static class FileHelpers
 
     public static string GetUniqueFilePath(string filePath)
     {
-        if (!File.Exists(filePath))
+        if (!Path.Exists(filePath))
         {
             return filePath;
         }
@@ -358,7 +358,7 @@ public static class FileHelpers
             string newFileName = $"{fileName} ({number.ToString(CultureInfo.InvariantCulture)}){fileExtension}";
             newFilePath = Path.Combine(folderPath, newFileName);
         }
-        while (File.Exists(newFilePath));
+        while (Path.Exists(newFilePath));
 
         return newFilePath;
     }

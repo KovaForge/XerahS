@@ -86,6 +86,51 @@ JSON upload output is intentionally clean stdout:
 }
 ```
 
+## Directory index examples
+
+Generate an HTML directory index:
+
+```bash
+xerahs index ./folder --format html --output ./folder-index.html
+```
+
+For automation, add `--json` to print machine-readable metadata including `outputFilePath`, totals, duration, and format.
+
+When `--format` is omitted, the CLI writes HTML. When `--output` is omitted, it writes `<folder-name>.html` in the current directory.
+
+Other supported file formats:
+
+```bash
+xerahs index ./folder --format txt --output ./folder-index.txt
+xerahs index ./folder --format xml --output ./folder-index.xml
+xerahs index ./folder --format json --output ./folder-index.json
+```
+
+Useful filters:
+
+```bash
+xerahs index ./folder --include .cs,.md --exclude .bin,.obj --max-depth 2 --json
+```
+
+## ReClip integration
+
+Configure the local ReClip handoff folder:
+
+```bash
+xerahs reclip use-default-watch-folder
+# equivalent explicit form:
+xerahs reclip set-watch-folder /Users/mike/Library/CloudStorage/OneDrive-Personal/Videos/ReClip
+```
+
+Inspect the current ReClip config:
+
+```bash
+xerahs reclip status
+xerahs reclip status --json
+```
+
+The setting is stored at `ReClipConfig.json` under the normal XerahS settings folder shown by `xerahs config path`.
+
 ## Useful commands for agents
 
 ```bash
@@ -96,6 +141,9 @@ xerahs list workflows
 xerahs doctor uploaders --json
 xerahs doctor uploaders --fix
 xerahs bootstrap uploaders
+xerahs reclip status --json
+xerahs reclip use-default-watch-folder --json
+xerahs index <folder> --format html --output <file> --json
 xerahs upload <file> --json
 xerahs upload <file> --as-file --json
 xerahs upload --text <content> --name <name> --json

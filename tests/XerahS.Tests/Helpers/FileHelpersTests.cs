@@ -96,6 +96,48 @@ public class FileHelpersTests
         }
     }
 
+
+    [Test]
+    public void GetUniqueFilePath_WhenDirectoryUsesRequestedFileName_AddsSuffix()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string directoryCollisionPath = Path.Combine(directory, "capture.png");
+        Directory.CreateDirectory(directoryCollisionPath);
+
+        try
+        {
+            string uniquePath = FileHelpers.GetUniqueFilePath(directoryCollisionPath);
+
+            Assert.That(uniquePath, Is.EqualTo(Path.Combine(directory, "capture (1).png")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void GetUniqueFilePath_WhenNextNumberedCandidateIsDirectory_SkipsIt()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string filePath = Path.Combine(directory, "capture.png");
+        File.WriteAllText(filePath, "existing");
+        Directory.CreateDirectory(Path.Combine(directory, "capture (1).png"));
+
+        try
+        {
+            string uniquePath = FileHelpers.GetUniqueFilePath(filePath);
+
+            Assert.That(uniquePath, Is.EqualTo(Path.Combine(directory, "capture (2).png")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Test]
     public void GetUniqueFilePath_ExistingNumberedFile_IncrementsFromCurrentSuffix()
     {

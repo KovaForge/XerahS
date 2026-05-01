@@ -238,26 +238,40 @@ public sealed class FtpUploader : FileUploader, IDisposable
     private SftpClient? CreateSftpClient()
     {
         string keyPath = _account.Keypath?.Trim() ?? string.Empty;
+        bool hasPassword = !string.IsNullOrWhiteSpace(_account.Password);
 
         if (!string.IsNullOrWhiteSpace(keyPath) && File.Exists(keyPath))
         {
-            PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
-                ? new PrivateKeyFile(keyPath)
-                : new PrivateKeyFile(keyPath, _account.Passphrase);
-            return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", keyFile);
+            try
+            {
+                PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
+                    ? new PrivateKeyFile(keyPath)
+                    : new PrivateKeyFile(keyPath, _account.Passphrase);
+                return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", keyFile);
+            }
+            catch (Exception ex) when (hasPassword)
+            {
+                DebugHelper.WriteException(ex);
+                return CreatePasswordSftpClient();
+            }
         }
 
-        if (!string.IsNullOrWhiteSpace(_account.Password))
-            return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", _account.Password);
+        if (hasPassword)
+            return CreatePasswordSftpClient();
 
         if (!string.IsNullOrWhiteSpace(keyPath))
         {
-            Errors.Add("SFTP key file not found: " + keyPath);
+            Errors.Add(File.Exists(keyPath) ? "SFTP key file could not be loaded: " + keyPath : "SFTP key file not found: " + keyPath);
             return null;
         }
 
         Errors.Add("SFTP requires either a key file or password.");
         return null;
+    }
+
+    private SftpClient CreatePasswordSftpClient()
+    {
+        return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", _account.Password);
     }
 
     private bool ConnectSftp()

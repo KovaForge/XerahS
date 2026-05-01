@@ -142,6 +142,8 @@ namespace XerahS.CLI
             rootCommand.Add(OpenVideoEditorCommand.Create());
             rootCommand.Add(WatchFolderDaemonCommand.Create());
             rootCommand.Add(UploadCommand.Create(taskManager));
+            rootCommand.Add(IndexCommand.Create());
+            rootCommand.Add(ReClipCommand.Create());
             rootCommand.Add(DoctorCommand.Create());
             rootCommand.Add(BootstrapCommand.Create());
             rootCommand.Add(OpenClawCommand.Create());

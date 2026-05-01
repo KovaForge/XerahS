@@ -360,6 +360,36 @@ public class SettingsManagerSecretsPathTests
         Assert.That(archive.GetEntry(Path.GetFileName(configPath)), Is.Not.Null);
     }
 
+
+    [Test]
+    public void Save_CreatesDailyAndWeeklyBackups_WhenBothBackupModesEnabled()
+    {
+        string directory = Path.Combine(TestContext.CurrentContext.WorkDirectory, "settings-backup-tests", Guid.NewGuid().ToString("N"));
+        string backupDirectory = Path.Combine(directory, "Backup");
+        string configPath = Path.Combine(directory, "ApplicationConfig.json");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(configPath, "{\"ApplicationVersion\":\"0.0.1\"}");
+
+        var config = new ApplicationConfig
+        {
+            BackupFolder = backupDirectory,
+            CreateBackup = true,
+            CreateWeeklyBackup = true
+        };
+
+        Assert.That(config.Save(configPath), Is.True);
+
+        string[] dailyBackupFiles = Directory.GetFiles(backupDirectory, "backup-*-W*.zip", SearchOption.AllDirectories);
+        string[] allBackupFiles = Directory.GetFiles(backupDirectory, "backup-*.zip", SearchOption.AllDirectories);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dailyBackupFiles, Has.Length.EqualTo(1));
+            Assert.That(allBackupFiles, Has.Length.EqualTo(2),
+                "Daily and weekly settings backups are independent retention modes and should both be written when both flags are enabled.");
+        });
+    }
+
     [Test]
     public void IsUpgradeFrom_UsesNumericVersionComparison()
     {

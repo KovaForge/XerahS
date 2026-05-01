@@ -37,6 +37,7 @@
                       SkipGetTargetFrameworkProperties="true"
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\core\XerahS.Indexer\XerahS.Indexer.csproj" />
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
                       GlobalPropertiesToRemove="Platform"

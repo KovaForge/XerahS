@@ -386,7 +386,7 @@ WHERE Id = @Id;";
 
         private static StringComparison GetPathComparison()
         {
-            return OperatingSystem.IsWindows()
+            return OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
                 ? StringComparison.OrdinalIgnoreCase
                 : StringComparison.Ordinal;
         }

@@ -27,6 +27,7 @@ using Avalonia.Input;
 using NUnit.Framework;
 using System.Threading;
 using System.Threading.Tasks;
+using XerahS.Platform.Linux;
 using XerahS.Platform.Linux.Services;
 
 namespace XerahS.Tests.Platform.Linux;
@@ -63,6 +64,21 @@ public class LinuxHotkeyServiceTests
         var names = LinuxHotkeyService.GetCandidateKeysymNames(Key.A);
 
         Assert.That(names, Is.EqualTo(new[] { "A" }));
+    }
+
+    [Test]
+    public void ModifierMatch_IgnoresCapsAndNumLockButRejectsExtraModifiers()
+    {
+        uint controlShift = LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Control | KeyModifiers.Shift);
+        uint alt = LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Alt);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift, controlShift), Is.True);
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift | NativeMethods.LockMask | NativeMethods.Mod2Mask, controlShift), Is.True);
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift | alt, controlShift), Is.False);
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift & ~LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Shift), controlShift), Is.False);
+        });
     }
 
     [Test]

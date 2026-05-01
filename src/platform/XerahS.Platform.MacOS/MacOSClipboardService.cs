@@ -36,6 +36,7 @@ namespace XerahS.Platform.MacOS
     /// </summary>
     public class MacOSClipboardService : IClipboardService
     {
+        private const int OsaScriptTimeoutMs = 5000;
         private static bool _loggedUnsupported;
 
         public void Clear()
@@ -172,7 +173,7 @@ namespace XerahS.Platform.MacOS
                 }
 
                 var script = $"set the clipboard to (read (POSIX file \\\"{tempFile}\\\") as «class PNGf»)";
-                var scriptSucceeded = RunOsaScript(script);
+                RunOsaScript(script);
             }
             catch (Exception ex)
             {
@@ -301,47 +302,66 @@ namespace XerahS.Platform.MacOS
 
         private static bool RunOsaScript(string script)
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "osascript",
-                Arguments = $"-e \"{script}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                return false;
-            }
-
-            process.WaitForExit();
-            return process.ExitCode == 0;
+            var result = RunOsaScriptCore(script);
+            return result.ExitCode == 0;
         }
 
         private static string? RunOsaScriptWithOutput(string script)
         {
+            var result = RunOsaScriptCore(script);
+            return result.ExitCode == 0 ? result.Output : null;
+        }
+
+        internal static ProcessStartInfo CreateOsaScriptStartInfo(string script)
+        {
             var startInfo = new ProcessStartInfo
             {
                 FileName = "osascript",
-                Arguments = $"-e \"{script}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(startInfo);
+            startInfo.ArgumentList.Add("-e");
+            startInfo.ArgumentList.Add(script);
+            return startInfo;
+        }
+
+        private static (int? ExitCode, string? Output) RunOsaScriptCore(string script)
+        {
+            using var process = Process.Start(CreateOsaScriptStartInfo(script));
             if (process == null)
             {
-                return null;
+                return (null, null);
             }
 
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return process.ExitCode == 0 ? output : null;
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(OsaScriptTimeoutMs))
+            {
+                TryKill(process);
+                DebugHelper.WriteLine($"MacOSClipboardService: osascript timed out after {OsaScriptTimeoutMs} ms.");
+                return (null, null);
+            }
+
+            _ = errorTask.GetAwaiter().GetResult();
+            return (process.ExitCode, outputTask.GetAwaiter().GetResult());
+        }
+
+        private static void TryKill(Process process)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "MacOSClipboardService failed to kill timed-out osascript process");
+            }
         }
 
         internal static IEnumerable<string> BuildPosixFileList(IEnumerable<string> files)

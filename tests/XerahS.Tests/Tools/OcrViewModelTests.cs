@@ -109,6 +109,69 @@ public sealed class OcrViewModelTests
         });
     }
 
+
+    [Test]
+    public async Task RunOcrAsync_ClearsPreviousResultStateWhileProcessing()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new WaitingOcrService();
+        PlatformServices.Ocr = ocr;
+
+        var viewModel = new OcrViewModel(bitmap)
+        {
+            ResultText = "previous text",
+            HasResult = true
+        };
+
+        Task runTask = viewModel.RunOcrAsync();
+        await ocr.WaitForCallAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.IsProcessing, Is.True);
+            Assert.That(viewModel.ResultText, Is.Empty);
+            Assert.That(viewModel.HasResult, Is.False,
+                "Starting a new OCR pass should immediately clear stale result state while recognition is still running.");
+        });
+
+        ocr.Complete("new text");
+        await runTask;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.ResultText, Is.EqualTo("new text"));
+            Assert.That(viewModel.HasResult, Is.True);
+        });
+    }
+
+    private sealed class WaitingOcrService : IOcrService
+    {
+        private readonly TaskCompletionSource _callStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<string> _resultText = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool IsSupported => true;
+
+        public Task WaitForCallAsync() => _callStarted.Task;
+
+        public void Complete(string text) => _resultText.SetResult(text);
+
+        public async Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options)
+        {
+            _callStarted.SetResult();
+            string text = await _resultText.Task;
+            return new OcrResult
+            {
+                Success = true,
+                Text = text
+            };
+        }
+
+        public OcrLanguage[] GetAvailableLanguages() =>
+        [
+            new("English", "en")
+        ];
+    }
+
     private sealed class RecordingOcrService : IOcrService
     {
         private readonly Queue<string> _responses;

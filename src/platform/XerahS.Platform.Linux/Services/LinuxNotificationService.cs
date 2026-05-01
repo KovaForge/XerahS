@@ -93,8 +93,8 @@ public sealed class LinuxNotificationService : INotificationService
             FileName = "notify-send",
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true
+            RedirectStandardError = false,
+            RedirectStandardOutput = false
         };
 
         startInfo.ArgumentList.Add("-u");

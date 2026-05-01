@@ -67,6 +67,22 @@ public class MacOSRegionSelectorPreferenceTests
         Assert.That(arguments, Does.Contain("-R1,2,3,4"));
     }
 
+    [Test]
+    public void CliRegionFallbackLogicalConversion_ExpandsScaledBoundsOutward()
+    {
+        var region = CliCaptureStrategy.ConvertToLogicalCaptureRegion(
+            new PhysicalRectangle(3, 5, 10, 12),
+            2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(region.X, Is.EqualTo(1));
+            Assert.That(region.Y, Is.EqualTo(2));
+            Assert.That(region.Width, Is.EqualTo(6));
+            Assert.That(region.Height, Is.EqualTo(7));
+        });
+    }
+
     [TestCase(MacOSInteractiveRegionSelectorPreference.Automatic)]
     [TestCase(MacOSInteractiveRegionSelectorPreference.XerahSOverlay)]
     public async Task CaptureRegionAsync_SkipsNativeCrosshair_WhenNativeCrosshairIsNotRequested(

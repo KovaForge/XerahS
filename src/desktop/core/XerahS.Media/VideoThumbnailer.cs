@@ -96,7 +96,7 @@ namespace XerahS.Media
 
                     process.StartInfo = psi;
                     process.Start();
-                    process.WaitForExit(1000 * 30);
+                    WaitForExitOrKill(process, TimeSpan.FromSeconds(30));
                 }
 
                 if (File.Exists(tempThumbnailPath))
@@ -188,25 +188,88 @@ namespace XerahS.Media
 
         private int GetRandomTimeSlice(int thumbnailIndex)
         {
-            int totalSlots = Options.ThumbnailCount + 2;
+            int thumbnailCount = Math.Max(1, Options.ThumbnailCount);
+            int totalSlots = thumbnailCount + 2;
             int timeSlice = GetTimeSlice(totalSlots);
-            List<int> mediaSeekTimes = new List<int>(totalSlots);
 
-            for (int i = 1; i < totalSlots; i++)
+            if (timeSlice <= 0)
             {
-                mediaSeekTimes.Add(timeSlice * i);
+                return 0;
             }
 
-            int slot = RandomFast.Next(mediaSeekTimes.Count - 1);
-            int start = mediaSeekTimes[slot];
-            int end = mediaSeekTimes[slot + 1];
+            int slot = Math.Clamp(thumbnailIndex, 0, thumbnailCount - 1);
+            int start = timeSlice * (slot + 1);
+            int end = timeSlice * (slot + 2) - 1;
 
-            return (int)(RandomFast.NextDouble() * (end - start)) + start;
+            return RandomFast.Next(start, Math.Max(start, end));
+        }
+
+        private static void WaitForExitOrKill(Process process, TimeSpan timeout)
+        {
+            if (process.WaitForExit(timeout))
+            {
+                return;
+            }
+
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            process.WaitForExit();
+        }
+
+        private sealed class LoadedThumbnail : IDisposable
+        {
+            public LoadedThumbnail(SKBitmap image, TimeSpan timestamp)
+            {
+                Image = image;
+                Timestamp = timestamp;
+            }
+
+            public SKBitmap Image { get; }
+            public TimeSpan Timestamp { get; }
+
+            public void Dispose()
+            {
+                Image.Dispose();
+            }
+        }
+
+        private List<LoadedThumbnail> LoadThumbnailImages(List<VideoThumbnailInfo> thumbnails)
+        {
+            List<LoadedThumbnail> images = new List<LoadedThumbnail>();
+
+            foreach (VideoThumbnailInfo thumbnail in thumbnails)
+            {
+                SKBitmap? bmp = ImageHelpers.LoadBitmap(thumbnail.FilePath);
+
+                if (bmp != null)
+                {
+                    if (Options.MaxThumbnailWidth > 0 && bmp.Width > Options.MaxThumbnailWidth)
+                    {
+                        int maxThumbnailHeight = (int)((float)Options.MaxThumbnailWidth / bmp.Width * bmp.Height);
+                        SKBitmap resized = ImageHelpers.ResizeImage(bmp, Options.MaxThumbnailWidth, maxThumbnailHeight);
+                        bmp.Dispose();
+                        bmp = resized;
+                    }
+
+                    images.Add(new LoadedThumbnail(bmp, thumbnail.Timestamp));
+                }
+            }
+
+            return images;
         }
 
         private SKBitmap? CombineScreenshots(List<VideoThumbnailInfo> thumbnails)
         {
-            List<SKBitmap> images = new List<SKBitmap>();
+            List<LoadedThumbnail> images = new List<LoadedThumbnail>();
             SKBitmap? finalImage = null;
 
             try
@@ -225,29 +288,13 @@ namespace XerahS.Media
                         infoStringHeight = (int)Math.Ceiling(infoMetrics.Descent - infoMetrics.Ascent) + 5;
                     }
 
-                    foreach (VideoThumbnailInfo thumbnail in thumbnails)
-                    {
-                        SKBitmap? bmp = ImageHelpers.LoadBitmap(thumbnail.FilePath);
-
-                        if (bmp != null)
-                        {
-                            if (Options.MaxThumbnailWidth > 0 && bmp.Width > Options.MaxThumbnailWidth)
-                            {
-                                int maxThumbnailHeight = (int)((float)Options.MaxThumbnailWidth / bmp.Width * bmp.Height);
-                                SKBitmap resized = ImageHelpers.ResizeImage(bmp, Options.MaxThumbnailWidth, maxThumbnailHeight);
-                                bmp.Dispose();
-                                bmp = resized;
-                            }
-
-                            images.Add(bmp);
-                        }
-                    }
+                    images = LoadThumbnailImages(thumbnails);
 
                     if (images.Count == 0) return null;
 
                     int columnCount = Math.Max(1, Options.ColumnCount);
 
-                    int thumbWidth = images[0].Width;
+                    int thumbWidth = images.Max(x => x.Image.Width);
 
                     int width = (Options.Padding * 2) +
                                 (thumbWidth * columnCount) +
@@ -255,7 +302,7 @@ namespace XerahS.Media
 
                     int rowCount = (int)Math.Ceiling(images.Count / (float)columnCount);
 
-                    int thumbHeight = images[0].Height;
+                    int thumbHeight = images.Max(x => x.Image.Height);
 
                     int height = (Options.Padding * 3) +
                                  infoStringHeight +
@@ -290,23 +337,25 @@ namespace XerahS.Media
 
                                 for (int x = 0; x < columnCount; x++)
                                 {
+                                    LoadedThumbnail thumbnail = images[i];
+
                                     if (Options.DrawShadow)
                                     {
                                         int shadowOffset = 3;
-                                        g.DrawRect(offsetX + shadowOffset, offsetY + shadowOffset, thumbWidth, thumbHeight, shadowPaint);
+                                        g.DrawRect(offsetX + shadowOffset, offsetY + shadowOffset, thumbnail.Image.Width, thumbnail.Image.Height, shadowPaint);
                                     }
 
-                                    g.DrawBitmap(images[i], offsetX, offsetY);
+                                    g.DrawBitmap(thumbnail.Image, offsetX, offsetY);
 
                                     if (Options.DrawBorder)
                                     {
-                                        g.DrawRect(offsetX, offsetY, thumbWidth - 1, thumbHeight - 1, borderPaint);
+                                        g.DrawRect(offsetX, offsetY, thumbnail.Image.Width - 1, thumbnail.Image.Height - 1, borderPaint);
                                     }
 
                                     if (Options.AddTimestamp)
                                     {
                                         int timestampOffset = 10;
-                                        string timestampText = thumbnails[i].Timestamp.ToString();
+                                        string timestampText = thumbnail.Timestamp.ToString();
                                         float timestampBaseline = offsetY + timestampOffset - timestampMetrics.Ascent;
                                         g.DrawText(timestampText, offsetX + timestampOffset, timestampBaseline, SKTextAlign.Left, timestampFont, timestampPaint);
                                     }
@@ -340,7 +389,7 @@ namespace XerahS.Media
             }
             finally
             {
-                foreach (SKBitmap image in images)
+                foreach (LoadedThumbnail image in images)
                 {
                     if (image != null)
                     {

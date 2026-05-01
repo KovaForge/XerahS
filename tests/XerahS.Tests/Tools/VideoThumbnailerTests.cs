@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using NUnit.Framework;
 using SkiaSharp;
@@ -62,10 +64,229 @@ public sealed class VideoThumbnailerTests
         }
     }
 
+
+
+
+    [Test]
+    public void CombineScreenshots_WithMixedThumbnailSizes_UsesLargestCellSize()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), "XerahS-VideoThumbnailerTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string smallPath = Path.Combine(tempDirectory, "small.png");
+            string largePath = Path.Combine(tempDirectory, "large.png");
+            WriteTestBitmap(smallPath, SKColors.CornflowerBlue, width: 8, height: 6);
+            WriteTestBitmap(largePath, SKColors.MediumSeaGreen, width: 12, height: 10);
+
+            var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+            {
+                ColumnCount = 2,
+                Padding = 1,
+                Spacing = 3,
+                AddVideoInfo = false,
+                AddTimestamp = false,
+                DrawBorder = false,
+                DrawShadow = false,
+                MaxThumbnailWidth = 0
+            });
+
+            using SKBitmap? combined = InvokeCombineScreenshots(thumbnailer, new List<VideoThumbnailInfo>
+            {
+                new VideoThumbnailInfo(smallPath),
+                new VideoThumbnailInfo(largePath)
+            });
+
+            Assert.That(combined, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(combined!.Width, Is.EqualTo(29));
+                Assert.That(combined.Height, Is.EqualTo(13));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadThumbnailImages_SkipsUnreadableFilesWithoutShiftingTimestamps()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), "XerahS-VideoThumbnailerTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string missingPath = Path.Combine(tempDirectory, "missing.png");
+            string loadedPath = Path.Combine(tempDirectory, "loaded.png");
+            WriteTestBitmap(loadedPath, SKColors.MediumSeaGreen);
+
+            var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+            {
+                MaxThumbnailWidth = 0
+            });
+
+            IList loadedThumbnails = InvokeLoadThumbnailImages(thumbnailer, new List<VideoThumbnailInfo>
+            {
+                new VideoThumbnailInfo(missingPath)
+                {
+                    Timestamp = TimeSpan.FromSeconds(5)
+                },
+                new VideoThumbnailInfo(loadedPath)
+                {
+                    Timestamp = TimeSpan.FromSeconds(42)
+                }
+            });
+
+            try
+            {
+                Assert.That(loadedThumbnails, Has.Count.EqualTo(1));
+                object loadedThumbnail = loadedThumbnails[0]!;
+                PropertyInfo? timestampProperty = loadedThumbnail.GetType().GetProperty("Timestamp");
+                Assert.That(timestampProperty, Is.Not.Null);
+                Assert.That(timestampProperty!.GetValue(loadedThumbnail), Is.EqualTo(TimeSpan.FromSeconds(42)));
+            }
+            finally
+            {
+                foreach (object loadedThumbnail in loadedThumbnails)
+                {
+                    (loadedThumbnail as IDisposable)?.Dispose();
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
+    public void GetRandomTimeSlice_UsesThumbnailIndexSegment()
+    {
+        var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+        {
+            ThumbnailCount = 4
+        });
+
+        SetVideoInfo(thumbnailer, TimeSpan.FromSeconds(120));
+
+        Assert.Multiple(() =>
+        {
+            for (int thumbnailIndex = 0; thumbnailIndex < 4; thumbnailIndex++)
+            {
+                int start = 20 * (thumbnailIndex + 1);
+                int end = 20 * (thumbnailIndex + 2) - 1;
+
+                for (int attempt = 0; attempt < 20; attempt++)
+                {
+                    int timeSlice = InvokeGetRandomTimeSlice(thumbnailer, thumbnailIndex);
+                    Assert.That(timeSlice, Is.InRange(start, end));
+                }
+            }
+        });
+    }
+
+    [Test]
+    public void GetRandomTimeSlice_WithShortVideo_ReturnsZeroInsteadOfOverflowingSlot()
+    {
+        var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+        {
+            ThumbnailCount = 10
+        });
+
+        SetVideoInfo(thumbnailer, TimeSpan.FromSeconds(5));
+
+        Assert.That(InvokeGetRandomTimeSlice(thumbnailer, 9), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void WaitForExitOrKill_WhenProcessTimesOut_TerminatesProcessTree()
+    {
+        using Process process = CreateSleepingProcess();
+        process.Start();
+
+        InvokeWaitForExitOrKill(process, TimeSpan.FromMilliseconds(100));
+
+        Assert.That(process.HasExited, Is.True);
+    }
+
+    private static Process CreateSleepingProcess()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return new Process
+            {
+                StartInfo = new ProcessStartInfo("cmd.exe", "/c timeout /t 5 /nobreak > nul")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+        }
+
+        return new Process
+        {
+            StartInfo = new ProcessStartInfo("/bin/sh", "-c 'sleep 5'")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+    }
+
+    private static void WriteTestBitmap(string path, SKColor color, int width = 8, int height = 6)
+    {
+        using var bitmap = new SKBitmap(width, height);
+        bitmap.Erase(color);
+        using SKImage image = SKImage.FromBitmap(bitmap);
+        using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using FileStream stream = File.Create(path);
+        data.SaveTo(stream);
+    }
+
     private static SKBitmap? InvokeCombineScreenshots(VideoThumbnailer thumbnailer, List<VideoThumbnailInfo> thumbnails)
     {
         MethodInfo? method = typeof(VideoThumbnailer).GetMethod("CombineScreenshots", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
         return (SKBitmap?)method!.Invoke(thumbnailer, new object[] { thumbnails });
+    }
+
+    private static IList InvokeLoadThumbnailImages(VideoThumbnailer thumbnailer, List<VideoThumbnailInfo> thumbnails)
+    {
+        MethodInfo? method = typeof(VideoThumbnailer).GetMethod("LoadThumbnailImages", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (IList)method!.Invoke(thumbnailer, new object[] { thumbnails })!;
+    }
+
+    private static int InvokeGetRandomTimeSlice(VideoThumbnailer thumbnailer, int thumbnailIndex)
+    {
+        MethodInfo? method = typeof(VideoThumbnailer).GetMethod("GetRandomTimeSlice", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        return (int)method!.Invoke(thumbnailer, new object[] { thumbnailIndex })!;
+    }
+
+    private static void InvokeWaitForExitOrKill(Process process, TimeSpan timeout)
+    {
+        MethodInfo? method = typeof(VideoThumbnailer).GetMethod("WaitForExitOrKill", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        method!.Invoke(null, new object[] { process, timeout });
+    }
+
+    private static void SetVideoInfo(VideoThumbnailer thumbnailer, TimeSpan duration)
+    {
+        PropertyInfo? property = typeof(VideoThumbnailer).GetProperty(nameof(VideoThumbnailer.VideoInfo));
+        Assert.That(property, Is.Not.Null);
+        property!.SetValue(thumbnailer, new VideoInfo
+        {
+            Duration = duration
+        });
     }
 }
