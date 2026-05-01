@@ -39,6 +39,10 @@ namespace XerahS.Platform.MacOS.Services
         private readonly Dictionary<ushort, HotkeyInfo> _registeredHotkeys = new();
         private readonly Dictionary<(Key Key, KeyModifiers Modifiers), HotkeyInfo> _hotkeysByCombo = new();
         private readonly HashSet<KeyCode> _pressedKeys = new();
+        private readonly HashSet<KeyCode> _suppressedKeys = new();
+        // macOS native screencapture is also an interactive global shortcut consumer. Keep
+        // SimpleGlobalHook and set SuppressEvent in the synchronous key handler so a XerahS
+        // capture hotkey cannot leak to macOS and start a second /usr/sbin/screencapture.
         private readonly SimpleGlobalHook _hook;
         private ushort _nextId = 1;
         private bool _isSuspended;
@@ -159,6 +163,7 @@ namespace XerahS.Platform.MacOS.Services
                 _registeredHotkeys.Clear();
                 _hotkeysByCombo.Clear();
                 _pressedKeys.Clear();
+                _suppressedKeys.Clear();
             }
 
             if (_disposed)
@@ -206,6 +211,7 @@ namespace XerahS.Platform.MacOS.Services
                     lock (_lock)
                     {
                         _pressedKeys.Clear();
+                        _suppressedKeys.Clear();
                     }
 
                     // Native macOS screencapture is itself an interactive global input session.
@@ -331,6 +337,7 @@ namespace XerahS.Platform.MacOS.Services
             lock (_lock)
             {
                 _pressedKeys.Clear();
+                _suppressedKeys.Clear();
             }
         }
 
@@ -349,6 +356,11 @@ namespace XerahS.Platform.MacOS.Services
             {
                 if (!_pressedKeys.Add(keyCode))
                 {
+                    if (_suppressedKeys.Contains(keyCode))
+                    {
+                        e.SuppressEvent = true;
+                    }
+
                     return;
                 }
 
@@ -361,6 +373,10 @@ namespace XerahS.Platform.MacOS.Services
                 }
 
                 _hotkeysByCombo.TryGetValue((key, modifiers), out hotkeyInfo);
+                if (hotkeyInfo != null)
+                {
+                    _suppressedKeys.Add(keyCode);
+                }
             }
 
             if (hotkeyInfo == null)
@@ -372,7 +388,13 @@ namespace XerahS.Platform.MacOS.Services
                 return;
             }
 
-            DebugHelper.WriteLine($"Hotkey triggered: {hotkeyInfo}");
+            // Suppress before posting the workflow asynchronously. If this hotkey reaches
+            // macOS as well as XerahS, the system can start its own native selector first;
+            // XerahS then gets "cannot run two interactive screen captures at a time" and
+            // the native crosshair path returns null.
+            e.SuppressEvent = true;
+
+            DebugHelper.WriteLine($"Hotkey triggered: {hotkeyInfo} (suppressed native propagation)");
             Dispatcher.UIThread.Post(() =>
             {
                 HotkeyTriggered?.Invoke(this, new HotkeyTriggeredEventArgs(hotkeyInfo));
@@ -382,9 +404,16 @@ namespace XerahS.Platform.MacOS.Services
         private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
         {
             var keyCode = e.Data.KeyCode;
+            bool suppressRelease;
             lock (_lock)
             {
                 _pressedKeys.Remove(keyCode);
+                suppressRelease = _suppressedKeys.Remove(keyCode);
+            }
+
+            if (suppressRelease)
+            {
+                e.SuppressEvent = true;
             }
         }
 
