@@ -230,3 +230,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version: 0.22.168 -> 0.22.169.
 - Validation: Release build 0 warnings/0 errors; full Release tests passed (746 XerahS.Tests + 14 XerahS.McpServer.Tests).
 - Follow-up: continue rotating stale assistant memory/privacy/history prompts, especially alias phrases that imply side effects.
+
+### 2026-05-01 09:41 AWST - File/path handling
+- Area: File/path handling (unique file-name collision handling); files: `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`, `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`, `Directory.Build.props`.
+- Findings: `GetUniqueFilePath` only treated existing files as collisions, so an existing directory named like the requested output path could be returned unchanged or reused as a numbered candidate.
+- Status: Fixed unique-name generation to use `Path.Exists` for initial and numbered candidates; added regression coverage for directory collisions; bumped version `0.22.169` -> `0.22.170`.
+- Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-093718.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-094044.log`.
+- Follow-up: Continue file/path review around copy/backup overwrite semantics, backup archive path validation, and file-lock behavior on missing paths.
