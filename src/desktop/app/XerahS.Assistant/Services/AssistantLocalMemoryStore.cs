@@ -87,11 +87,6 @@ public sealed class AssistantLocalMemoryStore
             return false;
         }
 
-        if (BuiltInAliases.TryGetValue(alias, out command!))
-        {
-            return true;
-        }
-
         EnsureInitialized();
         using var connection = OpenConnection();
         using var select = connection.CreateCommand();
@@ -99,7 +94,18 @@ public sealed class AssistantLocalMemoryStore
         select.Parameters.AddWithValue("$alias", alias);
         object? value = select.ExecuteScalar();
         command = value as string ?? string.Empty;
-        return !string.IsNullOrWhiteSpace(command);
+        if (!string.IsNullOrWhiteSpace(command))
+        {
+            return true;
+        }
+
+        if (BuiltInAliases.TryGetValue(alias, out command!))
+        {
+            return true;
+        }
+
+        command = string.Empty;
+        return false;
     }
 
     public void SaveAlias(AssistantAliasDefinition definition)

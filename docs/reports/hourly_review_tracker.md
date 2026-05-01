@@ -305,3 +305,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version: bumped patch to 0.22.179.
 - Validation: Release build 0 warnings/0 errors; tests passed 777 total.
 - Follow-up: continue rotating stale uploader/configuration surfaces for persistence/import edge cases.
+
+### 2026-05-02 05:50 AWST - Assistant local memory aliases
+- Area/files: assistant local alias persistence and built-in alias resolution; files: `src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs`, `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`, `Directory.Build.props`.
+- Findings: saved aliases using the same phrase as a built-in alias were shadowed forever by the built-in dictionary, so users could not override commands with side-effect wording such as "copy last five paths".
+- Fix: resolve persisted aliases before falling back to built-ins and added regression coverage for user overrides; bumped version `0.22.179` -> `0.22.180`.
+- Validation: Release build 0 warnings/0 errors; tests passed 778 total.
+- Follow-up: continue assistant memory review around alias deletion/import semantics and symlink-equivalent history paths.
