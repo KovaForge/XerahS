@@ -202,6 +202,55 @@ public class ImageEffectPresetSerializerTests
         }
     }
 
+    [Test]
+    public void LoadXsie_MalformedArchive_ReturnsNull()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}.xsie");
+
+        try
+        {
+            File.WriteAllText(path, "not a zip archive");
+
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+
+            Assert.That(loaded, Is.Null);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadXsie_InvalidConfigJson_ReturnsNull()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}.xsie");
+
+        try
+        {
+            using (var archive = ZipFile.Open(path, ZipArchiveMode.Create))
+            {
+                var entry = archive.CreateEntry("Config.json");
+                using var writer = new StreamWriter(entry.Open());
+                writer.Write("{");
+            }
+
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+
+            Assert.That(loaded, Is.Null);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     private static void WriteConfigArchive(string filePath, JObject config)
     {
         using var archive = ZipFile.Open(filePath, ZipArchiveMode.Create);

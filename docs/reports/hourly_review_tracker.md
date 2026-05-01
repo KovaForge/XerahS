@@ -283,3 +283,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-213832.log`).
 - Tests: pass, 771 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-214327.log`).
 - Follow-up: Continue editor integration review around malformed preset archives, sidecar save error reporting, and video editor ffmpeg/ffprobe fallback diagnostics.
+
+### 2026-05-01 23:50 AWST - Editor integration / malformed image effect presets
+- Area: Editor integration / `.xsie` malformed preset load handling; files: `src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs`, `tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs`, `Directory.Build.props`.
+- Findings: `LoadXsieFile` returned `null` for missing config but could still throw on corrupt zip payloads or invalid `Config.json`, allowing a bad preset file to break import/load flows.
+- Status: Fixed preset loading to log and return `null` for malformed archives, invalid JSON, and IO/access failures; added regression coverage for corrupt archive and invalid config JSON; bumped version `0.22.176` -> `0.22.177`.
+- Build/test: Release build succeeded with 0 warnings/errors; Release tests passed (`759` XerahS, `14` MCP) with logs under `/tmp/xerahs-hourly-sweep`.
+- Follow-up: Continue editor integration review around sidecar save error reporting, unknown effect type UX, and video editor ffmpeg/ffprobe fallback diagnostics.
