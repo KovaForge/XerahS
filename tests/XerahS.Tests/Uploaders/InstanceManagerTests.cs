@@ -41,6 +41,90 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void GetAndUpdateInstance_MatchesInstanceIdCaseInsensitively()
+    {
+        var instance = new UploaderInstance
+        {
+            InstanceId = "ABC123",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Original",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+
+        var fetched = InstanceManager.Instance.GetInstance("abc123");
+        Assert.That(fetched, Is.Not.Null);
+        Assert.That(fetched!.DisplayName, Is.EqualTo("Original"));
+
+        instance.InstanceId = "abc123";
+        instance.DisplayName = "Updated";
+        InstanceManager.Instance.UpdateInstance(instance);
+
+        Assert.That(InstanceManager.Instance.GetInstance("ABC123")?.DisplayName, Is.EqualTo("Updated"));
+    }
+
+    [Test]
+    public void RoutingExclusion_MatchesInstanceIdCaseInsensitively()
+    {
+        var existing = new UploaderInstance
+        {
+            InstanceId = "ROUTE123",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "PNG Handler",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(existing);
+
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, "route123", "png"), Is.True);
+        Assert.That(InstanceManager.Instance.GetBlockedFileTypes(UploaderCategory.Image, "route123"), Is.Empty);
+        Assert.That(InstanceManager.Instance.ValidateFileTypeConfiguration(new UploaderInstance
+        {
+            InstanceId = "route123",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "PNG Handler",
+            SettingsJson = "{}",
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        }), Is.Null);
+    }
+
+    [Test]
+    public void DuplicateAndDefaultLookup_MatchesInstanceIdCaseInsensitively()
+    {
+        var instance = new UploaderInstance
+        {
+            InstanceId = "DEF123",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "Default",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, "def123");
+
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.File)?.InstanceId, Is.EqualTo("DEF123"));
+        Assert.That(InstanceManager.Instance.DuplicateInstance("def123").DisplayName, Is.EqualTo("Default (Copy)"));
+
+        InstanceManager.Instance.RemoveInstance("def123");
+
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.File), Is.Null);
+    }
+
+    [Test]
     public void DuplicateInstance_PreservesFileTypeRouting()
     {
         var source = new UploaderInstance

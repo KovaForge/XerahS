@@ -297,3 +297,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-014822.log`).
 - Tests: pass, 774 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260502-014931.log`).
 - Follow-up: Continue media review around partial thumbnail cleanup surfacing/logging and video editor ffmpeg/ffprobe fallback diagnostics.
+
+### 2026-05-02 03:52 AWST - Uploader instance identity matching
+- Area/files: `InstanceManager` lifecycle/default/routing ID lookups plus uploaders tests.
+- Findings: uploader instance IDs are generated lowercase but external/config callers can provide equivalent mixed-case IDs; several lifecycle and routing exclusion paths compared IDs case-sensitively, causing missed updates/defaults/removals or false routing conflicts.
+- Fix: normalized all instance ID equality checks through ordinal-ignore-case comparison and added regression coverage for get/update, default/duplicate/remove, and routing exclusion validation.
+- Version: bumped patch to 0.22.179.
+- Validation: Release build 0 warnings/0 errors; tests passed 777 total.
+- Follow-up: continue rotating stale uploader/configuration surfaces for persistence/import edge cases.
