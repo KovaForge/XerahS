@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-01 13:35 AWST",
+  "last_updated": "2026-05-01 15:35 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -84,11 +84,11 @@
     },
     {
       "area": "FTP uploader plugin",
-      "last_reviewed": "2026-04-30 02:18 AWST",
+      "last_reviewed": "2026-05-01 15:35 AWST",
       "status": "reviewed",
       "priority": "Medium",
-      "last_outcome": "Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths.",
-      "follow_up": "Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens."
+      "last_outcome": "Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values (including name-parser-encoded brackets), preserving IPv6 hosts and optional ports; added regression coverage; bumped version 0.22.172 -> 0.22.173.",
+      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
     },
     {
       "area": "Hotkeys/input",
@@ -172,6 +172,22 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-01 15:35 AWST",
+      "area": "FTP uploader plugin / legacy FTP URL generation",
+      "files": [
+        "src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs",
+        "tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs",
+        "Directory.Build.props"
+      ],
+      "finding": "Bracketed IPv6 HttpHomePath values were split by the generic colon-as-port parser (or by encoded brackets from name parsing), so generated public URLs could lose the IPv6 host shape or fail URI construction.",
+      "fix": "Parse bracketed IPv6 hosts separately, preserve optional ports, and return bracketed IPv6 URLs without relying on UriBuilder host serialization; added regression coverage.",
+      "upstream": "Parent and ShareX.ImageEditor already ahead of upstream; no upstream commits merged.",
+      "version": "0.22.172 -> 0.22.173",
+      "build": "pass, 0 warnings/0 errors (/tmp/xerahs-hourly-sweep/build-20260501-155129.log)",
+      "tests": "pass, 767 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260501-155226.log)",
+      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
+    },
     {
       "timestamp": "2026-05-01 13:35 AWST",
       "area": "Region capture / window enumeration",

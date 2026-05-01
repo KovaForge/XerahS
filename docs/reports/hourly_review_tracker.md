@@ -31,7 +31,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Editor integration | 2026-04-30 09:43 AWST | High | Fixed editor window direct-close handling so ShowEditorSessionAsync completes with null instead of leaving callers awaiting forever; added regression coverage. | Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing. |
 | Uploader core / plugin routing | 2026-04-30 16:50 AWST | High | Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage. | Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity. |
 | Plugin loading/runtime | 2026-04-29 04:11 AWST | High | Fixed plugin package installation so a missing plugins root is created before installing a .xsdp package instead of failing with DirectoryNotFoundException. |  |
-| FTP uploader plugin | 2026-04-30 02:18 AWST | Medium | Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths. | Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens. |
+| FTP uploader plugin | 2026-05-01 15:35 AWST | Medium | Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values, preserving IPv6 hosts and optional ports; added regression coverage; bumped version `0.22.172` -> `0.22.173`. | Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior. |
 | Hotkeys/input | 2026-04-30 15:46 AWST | Medium | Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage. | Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization. |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
 | Media subsystem | 2026-04-30 21:45 AWST | High | Fixed combined video thumbnail generation so skipped unreadable source images no longer shift timestamps onto later loaded images. | Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout. |
@@ -44,6 +44,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-05-01 13:35 AWST | High | Fixed Linux X11 frame extent expansion to ignore invalid `_NET_FRAME_EXTENTS` values that would overflow outer window bounds; added regression coverage; bumped version `0.22.171` -> `0.22.172`. | Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics. |
 
 ## Recent Runs
+
+### 2026-05-01 15:35 AWST - FTP uploader URL generation
+
+- Area: FTP uploader plugin / legacy FTP URL generation (bracketed IPv6 `HttpHomePath`); files: `src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs`, `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`, `Directory.Build.props`.
+- Findings: bracketed IPv6 home paths could be misread by colon-as-port parsing, and name-parser URL encoding could turn brackets into `%5B/%5D`, causing generated public URLs to fail URI construction or lose host shape.
+- Status: Fixed IPv6 host/port parsing and bracketed IPv6 URL rendering; added regression coverage; bumped version `0.22.172` -> `0.22.173`.
+- Upstream: parent and `ShareX.ImageEditor` were already ahead/up to date with their upstream develop refs; no new upstream commits merged this run.
+- Build/test: Release build 0 warnings/0 errors; tests passed 767 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260501-155129.log`, `/tmp/xerahs-hourly-sweep/test-20260501-155226.log`.
+- Follow-up: Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior.
 
 ### 2026-05-01 13:35 AWST - Region capture / window enumeration
 

@@ -395,6 +395,39 @@ public sealed class FtpConfigViewModelTests
         });
     }
 
+
+    [Test]
+    public void GetUriPath_BracketedIpv6HttpHomePathWithoutPort_PreservesHost()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "[2001:db8::1]/base",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture.png");
+
+        Assert.That(url, Is.EqualTo("https://[2001:db8::1]/base/shots/capture.png"));
+    }
+
+    [Test]
+    public void GetUriPath_BracketedIpv6HttpHomePathWithPort_PreservesPort()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "[2001:db8::1]:8443/base",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture.png");
+
+        Assert.That(url, Is.EqualTo("https://[2001:db8::1]:8443/base/shots/capture.png"));
+    }
+
     [Test]
     public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyPathIsMissing()
     {
