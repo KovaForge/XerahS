@@ -27,6 +27,7 @@ using Avalonia.Input;
 using NUnit.Framework;
 using System.Threading;
 using System.Threading.Tasks;
+using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux;
 using XerahS.Platform.Linux.Services;
 
@@ -78,6 +79,26 @@ public class LinuxHotkeyServiceTests
             Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift | NativeMethods.LockMask | NativeMethods.Mod2Mask, controlShift), Is.True);
             Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift | alt, controlShift), Is.False);
             Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift & ~LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Shift), controlShift), Is.False);
+        });
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_BuildPreferredTrigger_UsesGtkKeypadNames()
+    {
+        var hotkey = new HotkeyInfo(Key.NumPad5, KeyModifiers.Control | KeyModifiers.Alt);
+
+        string trigger = WaylandPortalHotkeyService.BuildPreferredTrigger(hotkey);
+
+        Assert.That(trigger, Is.EqualTo("<Primary><Alt>KP_5"));
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_MapKeyName_KeypadDigitsUseGdkNames()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.NumPad0), Is.EqualTo("KP_0"));
+            Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.NumPad9), Is.EqualTo("KP_9"));
         });
     }
 

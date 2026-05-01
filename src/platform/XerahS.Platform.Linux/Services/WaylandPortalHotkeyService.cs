@@ -731,7 +731,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         }
     }
 
-    private static string BuildPreferredTrigger(HotkeyInfo hotkeyInfo)
+    internal static string BuildPreferredTrigger(HotkeyInfo hotkeyInfo)
     {
         // XDG GlobalShortcuts portal uses GLib/GTK accelerator format:
         // modifiers are <Primary>, <Alt>, <Shift>, <Super> with no separator,
@@ -934,7 +934,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private static string MapKeyName(Key key)
+    internal static string MapKeyName(Key key)
     {
         if (ShortcutKeyNames.TryGetValue(key, out var name))
         {
@@ -953,7 +953,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
 
         if (key >= Key.NumPad0 && key <= Key.NumPad9)
         {
-            return "Numpad " + (int)(key - Key.NumPad0);
+            return "KP_" + (int)(key - Key.NumPad0);
         }
 
         if (key >= Key.F1 && key <= Key.F24)

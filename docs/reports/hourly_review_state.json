@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-01 17:45 AWST",
+  "last_updated": "2026-05-02 07:52 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -92,11 +92,11 @@
     },
     {
       "area": "Hotkeys/input",
-      "last_reviewed": "2026-04-30 15:46 AWST",
+      "last_reviewed": "2026-05-02 07:52 AWST",
       "status": "reviewed",
       "priority": "Medium",
-      "last_outcome": "Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage.",
-      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization."
+      "last_outcome": "Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (KP_0..KP_9) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`.",
+      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization."
     },
     {
       "area": "Imgur uploader plugin",
@@ -307,6 +307,23 @@
       "evidence": {
         "build": "/tmp/xerahs-hourly-sweep/build-20260430-083931.log",
         "test": "/tmp/xerahs-hourly-sweep/test-20260430-084035.log"
+      }
+    },
+    {
+      "timestamp": "2026-05-02 07:52 AWST",
+      "area": "Hotkeys/input",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "findings": "Wayland portal preferred triggers used human-facing Numpad labels for keypad digits, which are not GTK/GDK accelerator key names and could prevent compositor binding of keypad shortcuts.",
+      "fix": "Map keypad digits to KP_0..KP_9 in portal accelerator generation and add regression coverage for direct mapping and preferred trigger output.",
+      "version": "0.22.181",
+      "validation": "Release build 0 warnings/0 errors; tests passed 780 total.",
+      "logs": {
+        "build": "/tmp/xerahs-hourly-sweep/build-20260502-074515.log",
+        "test": "/tmp/xerahs-hourly-sweep/test-20260502-074902.log"
       }
     }
   ]
