@@ -276,3 +276,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed reset backup creation to choose a suffixed unique folder on timestamp collision; added regression coverage; bumped version `0.22.174` -> `0.22.175`.
 - Validation: Release build and full Release no-build test suite passed (0 warnings/errors; 770 tests). Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-194134.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-194459.log`.
 - Follow-up: Continue settings/configuration review around archived backup restore/fallback behavior and non-JSON companion-file coverage.
+
+### 2026-05-01 21:35 AWST - Editor integration / image effect presets
+- Area: Editor integration / `.xsie` image effect preset save path handling; files: `src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs`, `tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs`, `Directory.Build.props`.
+- Status: Fixed preset saving to create missing parent folders before writing `Config.json` zip archives; added regression coverage; bumped version `0.22.175` -> `0.22.176`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-213832.log`).
+- Tests: pass, 771 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-214327.log`).
+- Follow-up: Continue editor integration review around malformed preset archives, sidecar save error reporting, and video editor ffmpeg/ffprobe fallback diagnostics.
