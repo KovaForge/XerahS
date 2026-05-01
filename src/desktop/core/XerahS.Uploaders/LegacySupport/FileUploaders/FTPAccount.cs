@@ -127,7 +127,21 @@ namespace XerahS.Uploaders.FileUploaders
 
         public string GetHttpHomePath()
         {
-            string homePath = URLHelpers.RemovePrefixes(HttpHomePath).Replace("%host", Host, StringComparison.OrdinalIgnoreCase);
+            return GetHttpHomePath(out _);
+        }
+
+        private string GetHttpHomePath(out bool autoAddSubFolderPath)
+        {
+            autoAddSubFolderPath = HttpHomePathAutoAddSubFolderPath;
+
+            string homePath = HttpHomePath;
+            if (!string.IsNullOrEmpty(homePath) && homePath.StartsWith("@", StringComparison.Ordinal))
+            {
+                autoAddSubFolderPath = false;
+                homePath = homePath.Substring(1);
+            }
+
+            homePath = URLHelpers.RemovePrefixes(homePath).Replace("%host", Host, StringComparison.OrdinalIgnoreCase);
 
             ShareXCustomUploaderSyntaxParser parser = new ShareXCustomUploaderSyntaxParser
             {
@@ -164,7 +178,7 @@ namespace XerahS.Uploaders.FileUploaders
 
             UriBuilder httpHomeUri;
 
-            string httpHomePath = GetHttpHomePath();
+            string httpHomePath = GetHttpHomePath(out bool httpHomePathAutoAddSubFolderPath);
 
             if (string.IsNullOrEmpty(httpHomePath))
             {
@@ -175,7 +189,7 @@ namespace XerahS.Uploaders.FileUploaders
                     url = url.Substring(4);
                 }
 
-                if (HttpHomePathAutoAddSubFolderPath)
+                if (httpHomePathAutoAddSubFolderPath)
                 {
                     url = URLHelpers.CombineURL(url, subFolderPath);
                 }
@@ -220,13 +234,13 @@ namespace XerahS.Uploaders.FileUploaders
                 if (httpHomeUri.Query.EndsWith("=", StringComparison.Ordinal))
                 {
                     string query = httpHomeUri.Query.TrimStart('?');
-                    httpHomeUri.Query = HttpHomePathAutoAddSubFolderPath
+                    httpHomeUri.Query = httpHomePathAutoAddSubFolderPath
                         ? URLHelpers.CombineURL(query, subFolderPath, fileName)
                         : query + fileName;
                 }
                 else
                 {
-                    if (HttpHomePathAutoAddSubFolderPath)
+                    if (httpHomePathAutoAddSubFolderPath)
                     {
                         httpHomeUri.Path = URLHelpers.CombineURL(httpHomeUri.Path, subFolderPath);
                     }
