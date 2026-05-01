@@ -8,7 +8,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.getsharex.xerahs.mobile"
+        applicationId = "com.xerahs.xerahs.mobile"
         minSdk = 26
         targetSdk = 35
         versionCode = 22133
