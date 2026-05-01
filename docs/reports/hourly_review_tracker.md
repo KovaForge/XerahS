@@ -269,3 +269,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed `FTPAccount.GetUriPath` to strip the marker, disable subfolder auto-append for that URL calculation without mutating config, and preserve protocol-prefix cleanup; added regression coverage; bumped version `0.22.170` -> `0.22.171`.
 - Validation: Release build and full Release no-build test suite passed (0 warnings/errors; 763 tests). Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-113828.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-114242.log`.
 - Follow-up: Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior.
+
+### 2026-05-01 19:35 AWST - Settings/configuration backups
+- Area: Settings reset backup collision handling; files: `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`, `tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs`, `Directory.Build.props`.
+- Findings: Two settings resets in the same second reused the same `Reset_yyyy-MM-dd_HH-mm-ss` backup folder, allowing the newer reset backup to overwrite files from the earlier reset.
+- Status: Fixed reset backup creation to choose a suffixed unique folder on timestamp collision; added regression coverage; bumped version `0.22.174` -> `0.22.175`.
+- Validation: Release build and full Release no-build test suite passed (0 warnings/errors; 770 tests). Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-194134.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-194459.log`.
+- Follow-up: Continue settings/configuration review around archived backup restore/fallback behavior and non-JSON companion-file coverage.

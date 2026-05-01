@@ -586,9 +586,11 @@ namespace XerahS.Core
                 string secretsStoreFilePath = SecretsStoreFilePath;
                 string secretsKeyPath = Path.Combine(Path.GetDirectoryName(secretsStoreFilePath) ?? SettingsFolder, "SecretsStore.key");
 
-                // Create timestamped backup folder
+                // Create timestamped backup folder. Multiple reset requests can occur in the
+                // same second, so never reuse an existing reset backup directory and risk
+                // overwriting the previous backup's files.
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                var backupFolder = Path.Combine(BackupFolder, $"Reset_{timestamp}");
+                var backupFolder = GetUniqueResetBackupFolder(timestamp);
                 Directory.CreateDirectory(backupFolder);
 
                 BackupAndDeleteFile(applicationConfigFilePath, backupFolder, ApplicationConfigFileName);
@@ -612,6 +614,26 @@ namespace XerahS.Core
                 DebugHelper.WriteException(ex, "Failed to reset settings");
                 return false;
             }
+        }
+
+        private static string GetUniqueResetBackupFolder(string timestamp)
+        {
+            string backupFolder = Path.Combine(BackupFolder, $"Reset_{timestamp}");
+
+            if (!Directory.Exists(backupFolder))
+            {
+                return backupFolder;
+            }
+
+            int suffix = 1;
+            string uniqueBackupFolder;
+            do
+            {
+                uniqueBackupFolder = $"{backupFolder} ({suffix++})";
+            }
+            while (Directory.Exists(uniqueBackupFolder));
+
+            return uniqueBackupFolder;
         }
 
         private static void BackupAndDeleteFile(string filePath, string backupFolder, string backupFileName)
