@@ -46,6 +46,7 @@ import com.getsharex.xerahs.mobile.ui.screens.PlaceholderSettingsScreen
 import com.getsharex.xerahs.mobile.feature.upload.UploadScreen
 import com.getsharex.xerahs.mobile.ui.screens.PlaceholderUploadScreen
 import com.getsharex.xerahs.mobile.feature.history.HistoryScreen
+import com.getsharex.xerahs.mobile.feature.settings.AboutScreen
 import com.getsharex.xerahs.mobile.feature.settings.SettingsHubScreen
 import com.getsharex.xerahs.mobile.feature.settings.S3ConfigScreen
 import com.getsharex.xerahs.mobile.feature.settings.CustomUploaderConfigScreen
@@ -151,6 +152,7 @@ fun XerahSNavGraph(
                     onBack = { navController.popBackStack() },
                     onNavigateToS3 = { navController.navigate(Screen.S3Config.route) },
                     onNavigateToCustomUploader = { navController.navigate(Screen.CustomUploaderConfig.route) },
+                    onNavigateToAbout = { navController.navigate(Screen.About.route) },
                     onRefresh = { }
                 )
             } else {
@@ -168,6 +170,9 @@ fun XerahSNavGraph(
                 settingsRepository = app?.settingsRepository,
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable(Screen.About.route) {
+            AboutScreen(onBack = { navController.popBackStack() })
         }
     }
     }
