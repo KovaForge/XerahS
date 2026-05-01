@@ -213,9 +213,28 @@ public sealed class VideoThumbnailerTests
         using Process process = CreateSleepingProcess();
         process.Start();
 
-        InvokeWaitForExitOrKill(process, TimeSpan.FromMilliseconds(100));
+        bool exitedCleanly = InvokeWaitForExitOrKill(process, TimeSpan.FromMilliseconds(100));
 
-        Assert.That(process.HasExited, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitedCleanly, Is.False);
+            Assert.That(process.HasExited, Is.True);
+        });
+    }
+
+    [Test]
+    public void WaitForExitOrKill_WhenProcessExitsBeforeTimeout_ReturnsTrue()
+    {
+        using Process process = CreateExitingProcess();
+        process.Start();
+
+        bool exitedCleanly = InvokeWaitForExitOrKill(process, TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitedCleanly, Is.True);
+            Assert.That(process.HasExited, Is.True);
+        });
     }
 
     private static Process CreateSleepingProcess()
@@ -232,14 +251,44 @@ public sealed class VideoThumbnailerTests
             };
         }
 
-        return new Process
+        var process = new Process
         {
-            StartInfo = new ProcessStartInfo("/bin/sh", "-c 'sleep 5'")
+            StartInfo = new ProcessStartInfo("/bin/sh")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
         };
+        process.StartInfo.ArgumentList.Add("-c");
+        process.StartInfo.ArgumentList.Add("sleep 5");
+        return process;
+    }
+
+    private static Process CreateExitingProcess()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return new Process
+            {
+                StartInfo = new ProcessStartInfo("cmd.exe", "/c exit 0")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+        }
+
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo("/bin/sh")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        process.StartInfo.ArgumentList.Add("-c");
+        process.StartInfo.ArgumentList.Add("exit 0");
+        return process;
     }
 
     private static void WriteTestBitmap(string path, SKColor color, int width = 8, int height = 6)
@@ -273,11 +322,11 @@ public sealed class VideoThumbnailerTests
         return (int)method!.Invoke(thumbnailer, new object[] { thumbnailIndex })!;
     }
 
-    private static void InvokeWaitForExitOrKill(Process process, TimeSpan timeout)
+    private static bool InvokeWaitForExitOrKill(Process process, TimeSpan timeout)
     {
         MethodInfo? method = typeof(VideoThumbnailer).GetMethod("WaitForExitOrKill", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.That(method, Is.Not.Null);
-        method!.Invoke(null, new object[] { process, timeout });
+        return (bool)method!.Invoke(null, new object[] { process, timeout })!;
     }
 
     private static void SetVideoInfo(VideoThumbnailer thumbnailer, TimeSpan duration)

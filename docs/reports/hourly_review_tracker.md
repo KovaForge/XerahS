@@ -290,3 +290,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed preset loading to log and return `null` for malformed archives, invalid JSON, and IO/access failures; added regression coverage for corrupt archive and invalid config JSON; bumped version `0.22.176` -> `0.22.177`.
 - Build/test: Release build succeeded with 0 warnings/errors; Release tests passed (`759` XerahS, `14` MCP) with logs under `/tmp/xerahs-hourly-sweep`.
 - Follow-up: Continue editor integration review around sidecar save error reporting, unknown effect type UX, and video editor ffmpeg/ffprobe fallback diagnostics.
+
+### 2026-05-02 01:50 AWST - Media subsystem / FFmpeg thumbnail failure handling
+- Area: Media subsystem (VideoThumbnailer FFmpeg exit/timeout handling); files: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`, `tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs`, `Directory.Build.props`.
+- Status: Fixed thumbnail capture to delete stale deterministic output files before each FFmpeg run, only accept thumbnails from clean zero-exit FFmpeg runs, and clean partial files after failures/timeouts; added regression coverage for timeout return semantics; bumped version `0.22.177` -> `0.22.178`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-014822.log`).
+- Tests: pass, 774 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260502-014931.log`).
+- Follow-up: Continue media review around partial thumbnail cleanup surfacing/logging and video editor ffmpeg/ffprobe fallback diagnostics.
