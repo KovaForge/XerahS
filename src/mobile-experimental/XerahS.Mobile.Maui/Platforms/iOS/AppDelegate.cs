@@ -65,7 +65,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 
     private static List<string> ProcessPasteboardSharedFiles()
     {
-        var sharedPasteboardName = $"{NSBundle.MainBundle.BundleIdentifier ?? "com.getsharex.xerahs"}.shared";
+        var sharedPasteboardName = $"{NSBundle.MainBundle.BundleIdentifier ?? "com.xerahs.xerahs.mobile"}.shared";
         var pasteboard = UIPasteboard.FromName(sharedPasteboardName, create: false) ?? UIPasteboard.General;
         var parsedItems = SharedPayloadService.Parse(pasteboard.String);
 
@@ -102,7 +102,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 
     private static List<string> ProcessAppGroupSharedFiles()
     {
-        var sharedContainer = NSFileManager.DefaultManager.GetContainerUrl("group.com.getsharex.xerahs");
+        var sharedContainer = NSFileManager.DefaultManager.GetContainerUrl("group.com.xerahs.xerahs");
         if (sharedContainer == null)
         {
             return [];

@@ -13,9 +13,9 @@
 
     <!-- App identifiers -->
     <ApplicationTitle>XerahS</ApplicationTitle>
-    <ApplicationId>com.getsharex.xerahs</ApplicationId>
-    <ApplicationDisplayVersion>0.16.0</ApplicationDisplayVersion>
-    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationId>com.xerahs.xerahs.mobile</ApplicationId>
+    <ApplicationDisplayVersion>0.22.170</ApplicationDisplayVersion>
+    <ApplicationVersion>22170</ApplicationVersion>
 
     <!-- Platform minimum versions -->
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
