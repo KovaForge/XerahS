@@ -23,24 +23,32 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Mobile.Maui.Views;
+using System.Reflection;
 
-namespace XerahS.Mobile.Maui;
+namespace Ava.ViewModels;
 
-public partial class AppShell : Shell
+public class MobileAboutViewModel
 {
-    public AppShell()
-    {
-        InitializeComponent();
+    public string Version { get; } = GetCleanVersion();
 
-        // Register navigation routes
-        Routing.RegisterRoute("Settings", typeof(MobileSettingsPage));
-        Routing.RegisterRoute("History", typeof(MobileHistoryPage));
-        Routing.RegisterRoute("AmazonS3", typeof(MobileAmazonS3ConfigPage));
-        Routing.RegisterRoute("CustomUploader", typeof(MobileCustomUploaderConfigPage));
-        Routing.RegisterRoute("About", typeof(MobileAboutPage));
-        Routing.RegisterRoute("Settings/AmazonS3", typeof(MobileAmazonS3ConfigPage));
-        Routing.RegisterRoute("Settings/CustomUploader", typeof(MobileCustomUploaderConfigPage));
-        Routing.RegisterRoute("Settings/About", typeof(MobileAboutPage));
+    public string Build { get; } = GetMetadata<AssemblyFileVersionAttribute>()?.Version ?? "Unknown";
+
+    public string VersionText => $"Version {Version}";
+
+    public string PackageId => MobileApp.RuntimePackageId;
+
+    public string PlatformLabel => OperatingSystem.IsIOS() ? "iOS" : OperatingSystem.IsAndroid() ? "Android" : "Platform";
+
+    public string PlatformVersion => Environment.OSVersion.VersionString;
+
+    private static T? GetMetadata<T>() where T : Attribute
+        => typeof(MobileAboutViewModel).Assembly.GetCustomAttribute<T>();
+
+    private static string GetCleanVersion()
+    {
+        var version = GetMetadata<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? GetMetadata<AssemblyFileVersionAttribute>()?.Version;
+
+        return string.IsNullOrWhiteSpace(version) ? "Unknown" : version.Split('+')[0];
     }
 }

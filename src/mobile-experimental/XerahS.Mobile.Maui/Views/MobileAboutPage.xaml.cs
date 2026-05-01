@@ -23,24 +23,15 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Mobile.Maui.Views;
+using XerahS.Mobile.Maui.ViewModels;
 
-namespace XerahS.Mobile.Maui;
+namespace XerahS.Mobile.Maui.Views;
 
-public partial class AppShell : Shell
+public partial class MobileAboutPage : ContentPage
 {
-    public AppShell()
+    public MobileAboutPage()
     {
         InitializeComponent();
-
-        // Register navigation routes
-        Routing.RegisterRoute("Settings", typeof(MobileSettingsPage));
-        Routing.RegisterRoute("History", typeof(MobileHistoryPage));
-        Routing.RegisterRoute("AmazonS3", typeof(MobileAmazonS3ConfigPage));
-        Routing.RegisterRoute("CustomUploader", typeof(MobileCustomUploaderConfigPage));
-        Routing.RegisterRoute("About", typeof(MobileAboutPage));
-        Routing.RegisterRoute("Settings/AmazonS3", typeof(MobileAmazonS3ConfigPage));
-        Routing.RegisterRoute("Settings/CustomUploader", typeof(MobileCustomUploaderConfigPage));
-        Routing.RegisterRoute("Settings/About", typeof(MobileAboutPage));
+        BindingContext = new MobileAboutViewModel();
     }
 }

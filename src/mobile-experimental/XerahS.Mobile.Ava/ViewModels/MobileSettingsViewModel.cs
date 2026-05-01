@@ -91,6 +91,7 @@ public class MobileSettingsViewModel : INotifyPropertyChanged
     {
         "MobileAmazonS3ConfigView" => "Amazon S3",
         "MobileCustomUploaderConfigView" => "Custom Uploader",
+        "MobileAboutView" => "About",
         _ => "Settings"
     };
 
@@ -148,6 +149,15 @@ public class MobileSettingsViewModel : INotifyPropertyChanged
                     IconPath = customVm.IconPath,
                     IsConfigured = customVm.IsConfigured,
                     CreateView = () => new MobileCustomUploaderConfigView()
+                });
+
+                items.Add(new SettingsItem
+                {
+                    Title = "About XerahS",
+                    Description = "Version, package ID, links, and project information",
+                    IconPath = "Info",
+                    IsConfigured = true,
+                    CreateView = () => new MobileAboutView()
                 });
             }
             catch (Exception ex)

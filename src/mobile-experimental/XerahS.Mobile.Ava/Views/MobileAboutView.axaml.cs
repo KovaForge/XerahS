@@ -23,24 +23,27 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Mobile.Maui.Views;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Ava.ViewModels;
 
-namespace XerahS.Mobile.Maui;
+namespace Ava.Views;
 
-public partial class AppShell : Shell
+public partial class MobileAboutView : UserControl
 {
-    public AppShell()
+    public MobileAboutView()
     {
         InitializeComponent();
+        DataContext = new MobileAboutViewModel();
+    }
 
-        // Register navigation routes
-        Routing.RegisterRoute("Settings", typeof(MobileSettingsPage));
-        Routing.RegisterRoute("History", typeof(MobileHistoryPage));
-        Routing.RegisterRoute("AmazonS3", typeof(MobileAmazonS3ConfigPage));
-        Routing.RegisterRoute("CustomUploader", typeof(MobileCustomUploaderConfigPage));
-        Routing.RegisterRoute("About", typeof(MobileAboutPage));
-        Routing.RegisterRoute("Settings/AmazonS3", typeof(MobileAmazonS3ConfigPage));
-        Routing.RegisterRoute("Settings/CustomUploader", typeof(MobileCustomUploaderConfigPage));
-        Routing.RegisterRoute("Settings/About", typeof(MobileAboutPage));
+    private async void OpenLink_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Avalonia.Controls.Button { Tag: string url } || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return;
+
+        var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+        if (launcher != null)
+            await launcher.LaunchUriAsync(uri);
     }
 }
