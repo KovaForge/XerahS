@@ -37,8 +37,10 @@ import androidx.navigation.compose.rememberNavController
 import com.getsharex.xerahs.mobile.navigation.Screen
 import com.getsharex.xerahs.mobile.ui.theme.XerahSTheme
 import com.getsharex.xerahs.mobile.navigation.XerahSNavGraph
+import com.getsharex.xerahs.mobile.core.data.CustomUploaderImporter
 import com.getsharex.xerahs.mobile.core.data.DestinationConfigImporter
 import java.io.File
+import java.net.URL
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,10 +67,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleShareIntent(intent: Intent?) {
+        if (handleXerahsDeepLink(intent)) return
+
         val paths = ShareIntentHandler.handleIntent(this, intent) ?: return
         val app = application as? XerahSApplication ?: return
+        val sxcuPaths = paths.filter { it.substringAfterLast('.', "").equals("sxcu", ignoreCase = true) }
         val xsdcPaths = paths.filter { it.substringAfterLast('.', "").equals("xsdc", ignoreCase = true) }
-        val uploadPaths = paths.filterNot { it.substringAfterLast('.', "").equals("xsdc", ignoreCase = true) }
+        val uploadPaths = paths.filterNot {
+            val ext = it.substringAfterLast('.', "")
+            ext.equals("sxcu", ignoreCase = true) || ext.equals("xsdc", ignoreCase = true)
+        }
+
+        if (sxcuPaths.isNotEmpty()) {
+            importCustomUploaderFiles(app, sxcuPaths)
+        }
 
         xsdcPaths.firstOrNull()?.let { path ->
             promptForDestinationConfigPassphrase(app, path)
@@ -83,6 +95,101 @@ class MainActivity : ComponentActivity() {
         }
         app.navController?.navigate(Screen.Upload.route) {
             popUpTo(Screen.Upload.route) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
+    private fun handleXerahsDeepLink(intent: Intent?): Boolean {
+        val uri = intent?.data ?: return false
+        if (!uri.scheme.equals("xerahs", ignoreCase = true)) return false
+
+        val normalizedHost = uri.host.orEmpty().lowercase()
+        val normalizedPath = uri.path.orEmpty().trim('/').lowercase()
+        if (normalizedHost != "import-sxcu" && normalizedPath != "import-sxcu") {
+            return false
+        }
+
+        val target = uri.getQueryParameter("url")
+        if (target.isNullOrBlank()) {
+            Toast.makeText(this, "Invalid import link. Missing remote .sxcu URL.", Toast.LENGTH_LONG).show()
+            return true
+        }
+
+        val parsed = try {
+            URL(target)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Invalid import link. Missing or invalid remote .sxcu URL.", Toast.LENGTH_LONG).show()
+            return true
+        }
+        if (parsed.protocol.lowercase() !in setOf("http", "https")) {
+            Toast.makeText(this, "Invalid import link. Missing or invalid remote .sxcu URL.", Toast.LENGTH_LONG).show()
+            return true
+        }
+
+        val app = application as? XerahSApplication ?: return true
+        Thread {
+            try {
+                val bytes = parsed.openStream().use { it.readBytes() }
+                val result = CustomUploaderImporter(app.settingsRepository).import(
+                    bytes,
+                    parsed.path.substringAfterLast('/').ifBlank { parsed.toString() }
+                )
+                runOnUiThread {
+                    showCustomUploaderImportResult(result.updatedExisting, result.displayName)
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(this, e.message ?: "Failed to download .sxcu", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+        return true
+    }
+
+    private fun importCustomUploaderFiles(app: XerahSApplication, paths: List<String>) {
+        val importer = CustomUploaderImporter(app.settingsRepository)
+        var lastImportedName: String? = null
+        var updatedCount = 0
+        var importedCount = 0
+
+        for (path in paths) {
+            try {
+                val result = importer.import(File(path).readBytes(), File(path).name)
+                lastImportedName = result.displayName
+                if (result.updatedExisting) {
+                    updatedCount++
+                } else {
+                    importedCount++
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this, e.message ?: "Failed to import .sxcu", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        if (lastImportedName != null) {
+            val message = when {
+                importedCount + updatedCount == 1 -> if (updatedCount == 1) {
+                    "Updated custom uploader: $lastImportedName"
+                } else {
+                    "Imported custom uploader: $lastImportedName"
+                }
+                else -> "Imported $importedCount and updated $updatedCount custom uploader(s)."
+            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            app.navController?.navigate(Screen.CustomUploaderConfig.route) {
+                launchSingleTop = true
+            }
+        }
+    }
+
+    private fun showCustomUploaderImportResult(updatedExisting: Boolean, displayName: String) {
+        val message = if (updatedExisting) {
+            "Updated custom uploader: $displayName"
+        } else {
+            "Imported custom uploader: $displayName"
+        }
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        (application as? XerahSApplication)?.navController?.navigate(Screen.CustomUploaderConfig.route) {
             launchSingleTop = true
         }
     }
