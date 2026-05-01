@@ -30,6 +30,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
 using XerahS.Core.Services;
+using XerahS.Mobile.Core;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Mobile.Maui.ViewModels;
@@ -102,9 +103,15 @@ public class MobileUploadViewModel : INotifyPropertyChanged
             return;
         }
 
+        var importResult = MobileImportService.ImportFiles(filePaths);
+        foreach (var message in importResult.Messages)
+        {
+            StatusText = message;
+        }
+
         var validPaths = new List<string>();
 
-        foreach (var filePath in filePaths)
+        foreach (var filePath in importResult.UploadPaths)
         {
             if (!File.Exists(filePath))
             {
@@ -121,7 +128,7 @@ public class MobileUploadViewModel : INotifyPropertyChanged
         {
             StatusText = $"Queued {queuedCount} file(s) for upload.";
         }
-        else if (validPaths.Count == 0)
+        else if (validPaths.Count == 0 && importResult.Messages.Count == 0)
         {
             UpdateCompletionStatus();
         }

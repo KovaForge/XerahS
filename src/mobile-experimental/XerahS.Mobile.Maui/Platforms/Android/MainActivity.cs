@@ -31,6 +31,7 @@ using ShareX.AmazonS3.Plugin;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Uploaders;
+using XerahS.Mobile.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.Mobile;
 using XerahS.Uploaders.PluginSystem;
@@ -55,6 +56,14 @@ namespace XerahS.Mobile.Maui;
     new[] { Intent.ActionSend },
     Categories = new[] { Intent.CategoryDefault },
     DataMimeType = "text/*")]
+[IntentFilter(
+    new[] { Intent.ActionView },
+    Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+    DataScheme = "xerahs")]
+[IntentFilter(
+    new[] { Intent.ActionView },
+    Categories = new[] { Intent.CategoryDefault },
+    DataMimeType = "*/*")]
 public class MainActivity : MauiAppCompatActivity
 {
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -80,7 +89,7 @@ public class MainActivity : MauiAppCompatActivity
                 });
             }
 
-            HandleShareIntent(Intent);
+            _ = HandleIncomingIntentAsync(Intent);
         }
         catch (Exception ex)
         {
@@ -94,28 +103,45 @@ public class MainActivity : MauiAppCompatActivity
         base.OnNewIntent(intent);
         if (intent != null)
         {
-            HandleShareIntent(intent);
+            _ = HandleIncomingIntentAsync(intent);
         }
     }
 
 #pragma warning disable CA1422 // Validate platform compatibility
-    private void HandleShareIntent(Intent? intent)
+    private async Task HandleIncomingIntentAsync(Intent? intent)
     {
         if (intent == null) return;
 
         var action = intent.Action;
-        if (action != Intent.ActionSend && action != Intent.ActionSendMultiple) return;
-
-        if (string.IsNullOrEmpty(intent.Type)) return;
+        if (action == Intent.ActionView && intent.Data?.Scheme == "xerahs")
+        {
+            await HandleXerahsDeepLinkAsync(intent.Data).ConfigureAwait(false);
+            return;
+        }
 
         var localPaths = new List<string>();
 
-        if (action == Intent.ActionSend)
+        if (action == Intent.ActionView)
+        {
+            var uri = intent.Data;
+            if (uri != null)
+            {
+                var path = CopyUriToCache(uri);
+                if (path != null) localPaths.Add(path);
+            }
+        }
+        else if (action == Intent.ActionSend)
         {
             var uri = intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri;
             if (uri != null)
             {
                 var path = CopyUriToCache(uri);
+                if (path != null) localPaths.Add(path);
+            }
+            else
+            {
+                var text = intent.GetStringExtra(Intent.ExtraText);
+                var path = CopySharedTextToCache(text);
                 if (path != null) localPaths.Add(path);
             }
         }
@@ -134,6 +160,10 @@ public class MainActivity : MauiAppCompatActivity
                 }
             }
         }
+        else
+        {
+            return;
+        }
 
         if (localPaths.Count > 0)
         {
@@ -142,12 +172,33 @@ public class MainActivity : MauiAppCompatActivity
     }
 #pragma warning restore CA1422
 
+    private async Task HandleXerahsDeepLinkAsync(global::Android.Net.Uri deepLink)
+    {
+        if (!string.Equals(deepLink.Host, "import-sxcu", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var target = deepLink.GetQueryParameter("url");
+        if (!Uri.TryCreate(target, UriKind.Absolute, out var uri))
+            return;
+
+        try
+        {
+            var message = await MobileImportService.ImportRemoteCustomUploaderAsync(uri, CacheDir!.AbsolutePath).ConfigureAwait(false);
+            global::Android.Util.Log.Info("XerahS", message);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Mobile] Failed to import remote .sxcu");
+        }
+    }
+
     private string? CopyUriToCache(global::Android.Net.Uri uri)
     {
         try
         {
-            var fileName = GetFileNameFromUri(uri) ?? $"share_{Guid.NewGuid():N}";
+            var fileName = GetFileNameFromUri(uri) ?? $"share_{Guid.NewGuid():N}{GuessExtension(uri)}";
             var cachePath = Path.Combine(CacheDir!.AbsolutePath, fileName);
+            EnsureUniqueFileName(ref cachePath);
 
             using var input = ContentResolver!.OpenInputStream(uri);
             if (input == null) return null;
@@ -161,6 +212,40 @@ public class MainActivity : MauiAppCompatActivity
         {
             DebugHelper.WriteException(ex, "Failed to copy URI to cache");
             return null;
+        }
+    }
+
+    private string? CopySharedTextToCache(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var cachePath = Path.Combine(CacheDir!.AbsolutePath, $"shared_text_{Guid.NewGuid():N}.txt");
+        File.WriteAllText(cachePath, text);
+        return cachePath;
+    }
+
+    private string GuessExtension(global::Android.Net.Uri uri)
+    {
+        var mimeType = ContentResolver?.GetType(uri);
+        return mimeType switch
+        {
+            "application/x-sxcu+json" => ".sxcu",
+            "application/x-xsdc+json" => ".xsdc",
+            "text/plain" => ".txt",
+            _ => string.Empty
+        };
+    }
+
+    private static void EnsureUniqueFileName(ref string filePath)
+    {
+        if (!File.Exists(filePath)) return;
+        var dir = Path.GetDirectoryName(filePath)!;
+        var name = Path.GetFileNameWithoutExtension(filePath);
+        var ext = Path.GetExtension(filePath);
+        var counter = 1;
+        while (File.Exists(filePath))
+        {
+            filePath = Path.Combine(dir, $"{name}_{counter}{ext}");
+            counter++;
         }
     }
 
