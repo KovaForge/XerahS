@@ -25,6 +25,7 @@
 
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Windows.Capture;
 using SkiaSharp;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -55,23 +56,19 @@ namespace XerahS.Platform.Windows
                 bool cursorHidden = false;
                 try
                 {
-                    int x = (int)rect.Left;
-                    int y = (int)rect.Top;
-                    int width = (int)rect.Width;
-                    int height = (int)rect.Height;
-
-                    // Validate and clamp capture region to screen bounds
-                    var screenBounds = _screenService.GetVirtualScreenBounds();
-                    x = Math.Max(x, screenBounds.X);
-                    y = Math.Max(y, screenBounds.Y);
-                    width = Math.Min(width, screenBounds.Right - x);
-                    height = Math.Min(height, screenBounds.Bottom - y);
-
-                    if (width <= 0 || height <= 0)
+                    // Validate and clamp capture region to screen bounds.
+                    // Use outward rounding so fractional capture coordinates match the DXGI path
+                    // and avoid truncating a caller-selected edge.
+                    if (!GdiCaptureRectHelper.TryCreateCaptureRect(rect, _screenService.GetVirtualScreenBounds(), out Rectangle captureRect))
                     {
                         DebugHelper.WriteLine("Capture region outside screen bounds");
                         return null;
                     }
+
+                    int x = captureRect.X;
+                    int y = captureRect.Y;
+                    int width = captureRect.Width;
+                    int height = captureRect.Height;
 
                     if (options?.ShowCursor == false)
                     {

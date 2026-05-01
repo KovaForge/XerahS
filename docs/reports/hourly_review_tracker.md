@@ -13,17 +13,17 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
+- OCR
+- Tests / test discoverability
+- Editor integration
+- Plugin loading/runtime
 - MCP server
-- CLI / command surface
-- Uploader core / plugin routing
-- Platform-specific services
-- Region capture / window enumeration
 
 ## Current Coverage
 
 | Area | Last Reviewed | Priority | Last Outcome | Follow-up |
 |---|---|---|---|---|
-| Capture pipeline | 2026-04-30 05:41 AWST | High | Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity. |
+| Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
 | OCR | 2026-04-30 06:41 AWST | High | Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh. | Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases. |
 | Settings/configuration | 2026-04-30 07:41 AWST | High | Fixed uploader config saves so SettingsChanged observers are notified for destination/provider changes; added regression coverage. | Continue settings review around async save completion semantics and custom config backup paths. |
 | Assistant local memory/privacy/history | 2026-04-30 14:54 AWST | High | Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes. | Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted. |
@@ -44,6 +44,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-05-01 13:35 AWST | High | Fixed Linux X11 frame extent expansion to ignore invalid `_NET_FRAME_EXTENTS` values that would overflow outer window bounds; added regression coverage; bumped version `0.22.171` -> `0.22.172`. | Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics. |
 
 ## Recent Runs
+
+### 2026-05-01 17:45 AWST - Capture pipeline
+
+- Area: Capture pipeline / Windows GDI fallback region normalization; files: `src/platform/XerahS.Platform.Windows/WindowsScreenCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/GdiCaptureRectHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: GDI fallback truncated fractional `SKRect` edges and cast before finite validation, diverging from the safer DXGI crop path and potentially shrinking selected regions or mishandling invalid coordinates.
+- Status: Fixed GDI capture rect creation to validate finite coordinates, floor/ceil outward, clamp against virtual desktop bounds, and reject empty/invalid captures; added regression coverage; bumped version `0.22.173` -> `0.22.174`.
+- Build/test: `dotnet build` 0 warnings/0 errors, `dotnet test` 769 passed. Logs: `/tmp/xerahs-hourly-sweep/build-20260501-174155.log`, `/tmp/xerahs-hourly-sweep/test-20260501-174303.log`.
+- Follow-up: Continue capture pipeline review around DXGI rotated/scaled display bounds and cursor/selection parity between modern and fallback capture paths.
 
 ### 2026-05-01 15:35 AWST - FTP uploader URL generation
 
