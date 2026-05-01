@@ -48,6 +48,7 @@ public partial class AppDelegate : AvaloniaAppDelegate<MobileApp>
 
         MobilePlatform.Initialize(PlatformType.iOS);
         PlatformServices.Clipboard = new iOSClipboardService();
+        MobileApp.RuntimePackageId = NSBundle.MainBundle.BundleIdentifier ?? "com.xerahs.xerahs.mobile";
 
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         PathsManager.PersonalFolder = documentsPath;
@@ -111,7 +112,7 @@ public partial class AppDelegate : AvaloniaAppDelegate<MobileApp>
 
     private static IReadOnlyList<SharedPayloadFile> ReadSharedPayload()
     {
-        var sharedPasteboardName = $"{NSBundle.MainBundle.BundleIdentifier ?? "com.sharexteam.xerahs"}.shared";
+        var sharedPasteboardName = $"{NSBundle.MainBundle.BundleIdentifier ?? "com.xerahs.xerahs.mobile"}.shared";
         var pasteboard = UIPasteboard.FromName(sharedPasteboardName, create: false) ?? UIPasteboard.General;
         var parsedItems = SharedPayloadService.Parse(pasteboard.String);
         if (parsedItems.Count > 0)

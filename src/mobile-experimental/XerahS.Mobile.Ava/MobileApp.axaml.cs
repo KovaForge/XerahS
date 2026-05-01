@@ -51,6 +51,8 @@ public partial class MobileApp : Avalonia.Application
     /// </summary>
     public static Action<string[]>? OnFilesReceived { get; set; }
 
+    public static string RuntimePackageId { get; set; } = "com.xerahs.xerahs.mobile";
+
     /// <summary>
     /// Pending shared file paths received before the upload view is ready (e.g. when app is launched via Share intent).
     /// Drained in ShowUploadView().

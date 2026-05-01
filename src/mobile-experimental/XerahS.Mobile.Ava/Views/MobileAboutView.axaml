@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Ava.ViewModels"
+             x:Class="Ava.Views.MobileAboutView"
+             x:DataType="vm:MobileAboutViewModel">
+
+    <ScrollViewer Classes="adaptive-scroll">
+        <StackPanel Margin="16" Spacing="12">
+            <Border Classes="adaptive-card">
+                <StackPanel Spacing="10" HorizontalAlignment="Center">
+                    <Image Source="avares://XerahS.Mobile.Ava/Assets/Logo.png"
+                           Width="96"
+                           Height="96"
+                           Stretch="Uniform"
+                           AutomationProperties.Name="XerahS logo"/>
+                    <TextBlock Text="XerahS"
+                               FontSize="22"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding VersionText}"
+                               Classes="adaptive-muted"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Copyright (c) 2007-2026 ShareX Team"
+                               FontSize="12"
+                               Classes="adaptive-muted"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="adaptive-card">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Version" FontSize="16" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Version" Classes="adaptive-muted"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Version}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Build" Classes="adaptive-muted"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Build}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Package ID" Classes="adaptive-muted"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PackageId}" TextAlignment="Right" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding PlatformLabel}" Classes="adaptive-muted"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding PlatformVersion}" TextAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="adaptive-card">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Links" FontSize="16" FontWeight="SemiBold"/>
+                    <Button Content="Website&#x0a;https://xerahs.com" Tag="https://xerahs.com" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="GitHub Project&#x0a;https://github.com/ShareX/XerahS" Tag="https://github.com/ShareX/XerahS" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="Issues&#x0a;https://github.com/ShareX/XerahS/issues/" Tag="https://github.com/ShareX/XerahS/issues/" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="Contributors&#x0a;https://github.com/ShareX/XerahS/graphs/contributors" Tag="https://github.com/ShareX/XerahS/graphs/contributors" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="Changelog&#x0a;https://xerahs.com/changelog.html" Tag="https://xerahs.com/changelog.html" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="Privacy Policy&#x0a;https://getsharex.com/privacy-policy" Tag="https://getsharex.com/privacy-policy" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="adaptive-card">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Social" FontSize="16" FontWeight="SemiBold"/>
+                    <Button Content="X&#x0a;https://x.com/ShareX" Tag="https://x.com/ShareX" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="Discord&#x0a;https://discord.gg/ShareX" Tag="https://discord.gg/ShareX" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                    <Button Content="Reddit&#x0a;https://www.reddit.com/r/sharex" Tag="https://www.reddit.com/r/sharex" Click="OpenLink_Click" Classes="adaptive-secondary" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

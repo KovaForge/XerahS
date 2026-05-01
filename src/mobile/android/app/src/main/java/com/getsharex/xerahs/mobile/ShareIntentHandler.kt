@@ -25,6 +25,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import java.io.File
 import java.util.UUID
 
@@ -61,7 +62,9 @@ object ShareIntentHandler {
                     copyUriToCache(activity, uri, cacheDir, type)?.let { localPaths.add(it) }
                         ?: Log.w(TAG, "copyUriToCache failed for $uri")
                 } else {
-                    Log.w(TAG, "ACTION_SEND: no URI in EXTRA_STREAM or clipData")
+                    intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
+                        writeTextToCache(text, cacheDir, type)?.let { localPaths.add(it) }
+                    } ?: Log.w(TAG, "ACTION_SEND: no URI in EXTRA_STREAM or clipData")
                 }
             }
             Intent.ACTION_SEND_MULTIPLE -> {
@@ -85,15 +88,27 @@ object ShareIntentHandler {
         return try {
             var fileName = getFileNameFromUri(activity, uri)
             if (fileName.isNullOrBlank()) {
-                val ext = extensionFromMimeType(mimeType)
+                val ext = extensionFromMimeType(activity, uri, mimeType)
                 fileName = "share_${UUID.randomUUID().toString().take(8)}${if (ext != null) ".$ext" else ""}"
             }
-            val cachePath = File(cacheDir, fileName)
+            val cachePath = uniqueCacheFile(cacheDir, fileName)
             activity.contentResolver.openInputStream(uri)?.use { input ->
                 cachePath.outputStream().use { output ->
                     input.copyTo(output)
                 }
-            }
+            } ?: return null
+            cachePath.absolutePath
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun writeTextToCache(text: String, cacheDir: File, mimeType: String? = null): String? {
+        if (text.isBlank()) return null
+        val ext = extensionFromMimeType(null, null, mimeType) ?: "txt"
+        val cachePath = uniqueCacheFile(cacheDir, "shared_${UUID.randomUUID().toString().take(8)}.$ext")
+        return try {
+            cachePath.writeText(text)
             cachePath.absolutePath
         } catch (e: Exception) {
             null
@@ -112,9 +127,16 @@ object ShareIntentHandler {
         return uri.lastPathSegment?.substringAfterLast('/')
     }
 
-    private fun extensionFromMimeType(mimeType: String?): String? {
+    private fun extensionFromMimeType(activity: MainActivity?, uri: Uri?, mimeType: String?): String? {
+        if (activity != null && uri != null) {
+            activity.contentResolver.getType(uri)?.let { resolved ->
+                MimeTypeMap.getSingleton().getExtensionFromMimeType(resolved)?.let { return it }
+            }
+        }
         if (mimeType.isNullOrBlank()) return null
         return when (mimeType) {
+            "application/x-sxcu+json" -> "sxcu"
+            "application/x-xsdc+json" -> "xsdc"
             "application/pdf" -> "pdf"
             "video/mp4", "video/x-m4v" -> "mp4"
             "video/3gpp" -> "3gp"
@@ -131,5 +153,21 @@ object ShareIntentHandler {
             "text/html" -> "html"
             else -> mimeType.substringAfterLast('/').takeIf { it != "*" && it.isNotBlank() }?.take(4)
         }
+    }
+
+    private fun uniqueCacheFile(cacheDir: File, rawName: String): File {
+        val sanitized = rawName
+            .substringAfterLast('/')
+            .substringAfterLast('\\')
+            .replace(Regex("[\\r\\n\\t]"), "_")
+            .ifBlank { "shared" }
+        val file = File(cacheDir, sanitized)
+        if (!file.exists()) return file
+
+        val base = file.nameWithoutExtension.ifBlank { "shared" }
+        val ext = file.extension
+        val suffix = UUID.randomUUID().toString().take(8)
+        val uniqueName = if (ext.isBlank()) "${base}_$suffix" else "${base}_$suffix.$ext"
+        return File(cacheDir, uniqueName)
     }
 }

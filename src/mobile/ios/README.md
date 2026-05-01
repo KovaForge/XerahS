@@ -12,6 +12,7 @@ XerahS Mobile lets you share files from your iPhone or iPad and upload them quic
 - Copy uploaded links to your clipboard.
 - Copy error messages when an upload fails.
 - Choose where uploads go, including Amazon S3 and custom uploaders.
+- Import custom uploaders (`.sxcu`) and encrypted destination configs (`.xsdc`).
 - Automatically convert HEIC/HEIF photos to PNG before upload (optional).
 - View upload history.
 - Search, copy, delete, or clear history entries.
