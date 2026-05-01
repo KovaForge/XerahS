@@ -41,9 +41,17 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | File/path handling | 2026-04-30 04:36 AWST | High | Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives. | Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next. |
 | Indexer subsystem | 2026-04-29 18:17 AWST | Medium | Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders. | Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling. |
 | Platform-specific services | 2026-05-01 01:45 AWST | High | Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version `0.22.165` -> `0.22.166`. | Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity. |
-| Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
+| Region capture / window enumeration | 2026-05-01 13:35 AWST | High | Fixed Linux X11 frame extent expansion to ignore invalid `_NET_FRAME_EXTENTS` values that would overflow outer window bounds; added regression coverage; bumped version `0.22.171` -> `0.22.172`. | Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics. |
 
 ## Recent Runs
+
+### 2026-05-01 13:35 AWST - Region capture / window enumeration
+
+- Area: Linux X11 frame extent overflow handling; files: `src/platform/XerahS.Platform.Linux/LinuxWindowService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs`, `Directory.Build.props`.
+- Findings: `_NET_FRAME_EXTENTS` is compositor-controlled metadata; very large values could overflow outer window bound expansion and wrap dimensions/origins before capture.
+- Status: Fixed frame extent expansion to ignore invalid extents when calculated outer bounds overflow or become non-positive; added regression coverage; bumped version `0.22.171` -> `0.22.172`.
+- Build/test: Release build 0 warnings/0 errors; tests passed 765 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260501-133751.log`, `/tmp/xerahs-hourly-sweep/test-20260501-134116.log`.
+- Follow-up: Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics.
 
 ### 2026-05-01 01:45 AWST - Platform-specific services
 

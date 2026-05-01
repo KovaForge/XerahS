@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-01 01:45 AWST",
+  "last_updated": "2026-05-01 13:35 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -13,8 +13,9 @@
   "next_candidates": [
     "MCP server",
     "CLI / command surface",
-    "Platform-specific services",
-    "Region capture / window enumeration"
+    "Uploader core / plugin routing",
+    "Capture pipeline",
+    "Settings/configuration"
   ],
   "areas": [
     {
@@ -163,14 +164,29 @@
     },
     {
       "area": "Region capture / window enumeration",
-      "last_reviewed": "2026-04-29 20:17 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-01 13:35 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely.",
-      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling."
+      "last_outcome": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
+      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-01 13:35 AWST",
+      "area": "Region capture / window enumeration",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/LinuxWindowService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "status": "fixed",
+      "version_bump": "0.22.171 -> 0.22.172",
+      "summary": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-133751.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-134116.log",
+      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
+    },
     {
       "timestamp": "2026-05-01 01:45 AWST",
       "area": "Platform-specific services",
@@ -261,22 +277,6 @@
         "build": "/tmp/xerahs-hourly-sweep/build-20260430-083931.log",
         "test": "/tmp/xerahs-hourly-sweep/test-20260430-084035.log"
       }
-    },
-    {
-      "timestamp": "2026-04-30 07:41 AWST",
-      "area": "Settings/configuration",
-      "topic": "uploader config save notifications",
-      "outcome": "SaveUploadersConfig now raises SettingsChanged like application/workflow saves; version bumped to 0.22.150.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-073743.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-074103.log"
-    },
-    {
-      "timestamp": "2026-04-30 06:41 AWST",
-      "area": "OCR",
-      "topic": "Onboarding OCR language refresh handlers",
-      "outcome": "Unsubscribed removed onboarding OCR language options during platform language refresh and added regression coverage.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-063524.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-063846.log"
     }
   ]
 }
