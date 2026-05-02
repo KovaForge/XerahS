@@ -38,6 +38,12 @@ class S3Uploader {
 
     fun uploadFile(filePath: String, config: S3Config): UploadOutcome {
         if (!config.isConfigured) return UploadOutcome.Failure("S3 is not configured")
+        if (config.customEndpoint.trim().startsWith("http://", ignoreCase = true)) {
+            return UploadOutcome.Failure("HTTP S3 endpoints are not supported. Use HTTPS.")
+        }
+        if (config.useCustomDomain && config.customDomain.trim().startsWith("http://", ignoreCase = true)) {
+            return UploadOutcome.Failure("HTTP custom domains are not supported. Use HTTPS.")
+        }
         val file = File(filePath)
         if (!file.exists()) return UploadOutcome.Failure("File not found")
         return try {

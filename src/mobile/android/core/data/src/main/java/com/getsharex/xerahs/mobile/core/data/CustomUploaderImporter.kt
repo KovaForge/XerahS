@@ -33,11 +33,23 @@ data class CustomUploaderImportResult(
     val updatedExisting: Boolean
 )
 
+data class CustomUploaderImportPreview(
+    val entry: CustomUploaderEntry,
+    val displayName: String,
+    val requestUrl: String,
+    val requestMethod: String,
+    val hasHeaders: Boolean,
+    val hasParameters: Boolean,
+    val hasBodyData: Boolean,
+    val canSendFiles: Boolean,
+    val canSendTextOrUrls: Boolean
+)
+
 class CustomUploaderImporter(
     private val settingsRepository: SettingsRepository,
     private val gson: Gson = Gson()
 ) {
-    fun import(data: ByteArray, sourceLabel: String = ".sxcu"): CustomUploaderImportResult {
+    fun preview(data: ByteArray, sourceLabel: String = ".sxcu"): CustomUploaderImportPreview {
         val text = String(data, StandardCharsets.UTF_8)
         val definition = try {
             gson.fromJson(text, SxcuDefinition::class.java)
@@ -50,6 +62,26 @@ class CustomUploaderImporter(
         }
 
         val imported = CustomUploaderEntry.from(definition)
+        validateRequestUrl(imported.requestUrl)
+        return CustomUploaderImportPreview(
+            entry = imported,
+            displayName = imported.displayName,
+            requestUrl = imported.requestUrl,
+            requestMethod = imported.requestMethod.name,
+            hasHeaders = imported.headers.isNotEmpty(),
+            hasParameters = imported.parameters.isNotEmpty(),
+            hasBodyData = imported.data.isNotBlank() || imported.arguments.isNotEmpty(),
+            canSendFiles = imported.destinationType.contains("file", ignoreCase = true) ||
+                imported.fileFormName.isNotBlank(),
+            canSendTextOrUrls = imported.destinationType.contains("text", ignoreCase = true) ||
+                imported.destinationType.contains("url", ignoreCase = true) ||
+                imported.data.contains("{input}", ignoreCase = true) ||
+                imported.requestUrl.contains("{input}", ignoreCase = true)
+        )
+    }
+
+    fun import(data: ByteArray, sourceLabel: String = ".sxcu"): CustomUploaderImportResult {
+        val imported = preview(data, sourceLabel).entry
         val list = settingsRepository.loadCustomUploaders().toMutableList()
         val existingIndex = list.indexOfFirst {
             it.requestUrl.equals(imported.requestUrl, ignoreCase = true) &&
@@ -69,5 +101,13 @@ class CustomUploaderImporter(
             displayName = imported.displayName,
             updatedExisting = updatedExisting
         )
+    }
+
+    private fun validateRequestUrl(requestUrl: String) {
+        if (!requestUrl.trim().startsWith("https://", ignoreCase = true)) {
+            throw CustomUploaderImportException(
+                "HTTP upload endpoints are not supported because uploads may contain private user files or credentials. Use HTTPS."
+            )
+        }
     }
 }

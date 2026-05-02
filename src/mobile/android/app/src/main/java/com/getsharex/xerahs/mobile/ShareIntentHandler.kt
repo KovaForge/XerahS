@@ -30,6 +30,7 @@ import java.io.File
 import java.util.UUID
 
 private const val TAG = "ShareIntentHandler"
+private const val MAX_SHARED_BYTES = 512L * 1024L * 1024L
 
 object ShareIntentHandler {
 
@@ -86,15 +87,32 @@ object ShareIntentHandler {
 
     private fun copyUriToCache(activity: MainActivity, uri: Uri, cacheDir: File, mimeType: String? = null): String? {
         return try {
+            if (!uri.scheme.equals("content", ignoreCase = true)) return null
+            val resolvedMimeType = activity.contentResolver.getType(uri) ?: mimeType
+            if (!isSupportedMimeType(resolvedMimeType, uri)) return null
+            val size = contentSize(activity, uri)
+            if (size != null && size > MAX_SHARED_BYTES) return null
+
             var fileName = getFileNameFromUri(activity, uri)
             if (fileName.isNullOrBlank()) {
-                val ext = extensionFromMimeType(activity, uri, mimeType)
+                val ext = extensionFromMimeType(activity, uri, resolvedMimeType)
                 fileName = "share_${UUID.randomUUID().toString().take(8)}${if (ext != null) ".$ext" else ""}"
             }
             val cachePath = uniqueCacheFile(cacheDir, fileName)
             activity.contentResolver.openInputStream(uri)?.use { input ->
                 cachePath.outputStream().use { output ->
-                    input.copyTo(output)
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var copied = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        copied += read
+                        if (copied > MAX_SHARED_BYTES) {
+                            cachePath.delete()
+                            return null
+                        }
+                        output.write(buffer, 0, read)
+                    }
                 }
             } ?: return null
             cachePath.absolutePath
@@ -105,6 +123,8 @@ object ShareIntentHandler {
 
     private fun writeTextToCache(text: String, cacheDir: File, mimeType: String? = null): String? {
         if (text.isBlank()) return null
+        if (!isSupportedMimeType(mimeType, null)) return null
+        if (text.toByteArray(Charsets.UTF_8).size > MAX_SHARED_BYTES) return null
         val ext = extensionFromMimeType(null, null, mimeType) ?: "txt"
         val cachePath = uniqueCacheFile(cacheDir, "shared_${UUID.randomUUID().toString().take(8)}.$ext")
         return try {
@@ -153,6 +173,31 @@ object ShareIntentHandler {
             "text/html" -> "html"
             else -> mimeType.substringAfterLast('/').takeIf { it != "*" && it.isNotBlank() }?.take(4)
         }
+    }
+
+    private fun isSupportedMimeType(mimeType: String?, uri: Uri?): Boolean {
+        val normalized = mimeType?.substringBefore(';')?.trim()?.lowercase()
+        if (normalized == null) {
+            val ext = uri?.lastPathSegment?.substringAfterLast('.', "")?.lowercase().orEmpty()
+            return ext in setOf("sxcu", "xsdc")
+        }
+        return normalized == "text/plain" ||
+            normalized == "application/json" ||
+            normalized == "application/x-sxcu+json" ||
+            normalized == "application/x-xsdc+json" ||
+            normalized.startsWith("image/") ||
+            normalized.startsWith("video/") ||
+            normalized.startsWith("audio/")
+    }
+
+    private fun contentSize(activity: MainActivity, uri: Uri): Long? {
+        activity.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) return cursor.getLong(sizeIndex)
+            }
+        }
+        return null
     }
 
     private fun uniqueCacheFile(cacheDir: File, rawName: String): File {

@@ -63,6 +63,11 @@ class CustomUploader(
 
     fun uploadFile(filePath: String, entry: CustomUploaderEntry): UploadOutcome {
         if (entry.requestUrl.isBlank()) return UploadOutcome.Failure("Request URL is empty")
+        if (!entry.requestUrl.trim().startsWith("https://", ignoreCase = true)) {
+            return UploadOutcome.Failure(
+                "HTTP upload endpoints are not supported because uploads may contain private user files or credentials. Use HTTPS."
+            )
+        }
         val file = File(filePath)
         if (!file.exists()) return UploadOutcome.Failure("File not found")
 
@@ -167,6 +172,7 @@ class CustomUploader(
     private fun buildRequestUrl(entry: CustomUploaderEntry, context: TemplateContext): String? {
         val rendered = renderTemplate(entry.requestUrl, context, urlEncodeInput = true)
         val builder = rendered.toHttpUrlOrNull()?.newBuilder() ?: return null
+        if (builder.build().scheme != "https") return null
         renderDictionary(entry.parameters, context).forEach { (key, value) ->
             builder.addQueryParameter(key, value)
         }
@@ -342,17 +348,17 @@ class CustomUploader(
         responseBody: String?,
         error: Exception?
     ): String {
-        val requestHeaders = request?.headers?.toMultimap()?.mapValues { (_, values) ->
-            sanitizeHeaderValue(values.joinToString(", "))
+        val requestHeaders = request?.headers?.toMultimap()?.mapValues { (key, values) ->
+            if (isSensitiveName(key)) "<redacted>" else sanitizeText(values.joinToString(", "))
         }.orEmpty()
         return buildString {
             appendLine("Request:")
             appendLine("Uploader: Custom Uploader (.sxcu)")
             appendLine("Timestamp: ${Instant.now()}")
-            appendLine("File: ${file.absolutePath}")
+            appendLine("File Name: ${file.name}")
             appendLine("Upload Name: ${UploadFileNameGenerator.uploadFileName(file.absolutePath)}")
             appendLine("Request Method: ${entry.requestMethod.name}")
-            appendLine("Request URL: ${request?.url ?: entry.requestUrl}")
+            appendLine("Request URL: ${redactUrl(request?.url?.toString() ?: entry.requestUrl)}")
             appendLine("Destination Type: ${entry.destinationType}")
             appendLine("Body Type: ${entry.bodyType.name}")
             appendLine("File Form Name: ${entry.fileFormName}")
@@ -372,29 +378,49 @@ class CustomUploader(
             if (!responseBody.isNullOrBlank()) {
                 appendLine()
                 appendLine("Response Body:")
-                appendLine(responseBody.take(1200))
+                appendLine(sanitizeText(responseBody).take(1200))
             }
             if (error != null) {
                 appendLine()
                 appendLine("Exception:")
                 appendLine(error::class.java.name)
-                appendLine(error.message.orEmpty())
+                appendLine(sanitizeText(error.message.orEmpty()))
             }
         }.trim()
     }
 
-    private fun sanitizeHeaderValue(value: String): String =
-        if (
-            value.contains("authorization", ignoreCase = true) ||
-            value.contains("secret", ignoreCase = true) ||
-            value.contains("token", ignoreCase = true) ||
-            value.contains("cookie", ignoreCase = true) ||
-            value.contains("api-key", ignoreCase = true)
-        ) {
-            "<redacted>"
-        } else {
-            value.take(256)
+    private fun redactUrl(value: String): String {
+        val parsed = value.toHttpUrlOrNull() ?: return sanitizeText(value).take(1024)
+        val builder = parsed.newBuilder().query(null)
+        parsed.queryParameterNames.forEach { name ->
+            parsed.queryParameterValues(name).forEach { parameterValue ->
+                builder.addQueryParameter(
+                    name,
+                    if (isSensitiveName(name)) "<redacted>" else sanitizeText(parameterValue.orEmpty())
+                )
+            }
         }
+        return builder.build().toString().take(1024)
+    }
+
+    private fun sanitizeText(value: String): String =
+        value
+            .replace(Regex("""(?i)(authorization|cookie|x-api-key|api[_-]?key|access[_-]?token|token|secret|password)=([^&\s]+)""")) {
+                "${it.groupValues[1]}=<redacted>"
+            }
+            .replace(Regex("""(?i)(Bearer\s+)[A-Za-z0-9._~+/=-]+"""), "$1<redacted>")
+            .take(2048)
+
+    private fun isSensitiveName(name: String): Boolean {
+        val normalized = name.lowercase()
+            .replace("-", "")
+            .replace("_", "")
+            .replace(" ", "")
+        return normalized == "authorization" ||
+            normalized == "cookie" ||
+            normalized == "xapikey" ||
+            listOf("apikey", "accesstoken", "token", "secret", "password").any { normalized.contains(it) }
+    }
 }
 
 private data class TemplateContext(
