@@ -50,11 +50,9 @@ public sealed class LinuxShellIntegrationService : IShellIntegrationService
     {
         _processPath = Environment.ProcessPath ?? string.Empty;
 
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-        string dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME") ??
-                          Path.Combine(home, ".local", "share");
-        string configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") ??
-                            Path.Combine(home, ".config");
+        LinuxXdgDirectories xdg = LinuxXdgDirectories.Detect();
+        string dataHome = xdg.DataHome;
+        string configHome = xdg.ConfigHome;
 
         _desktopEntryPath = Path.Combine(dataHome, "applications", PluginDesktopEntryFileName);
         _mimeXmlPath = Path.Combine(dataHome, "mime", "packages", PluginMimeXmlFileName);

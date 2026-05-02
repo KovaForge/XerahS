@@ -164,9 +164,7 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
 
     private static string GetStateFilePath()
     {
-        string configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") ??
-                            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".config");
-        return Path.Combine(configHome, "xerahs", EnabledMarkerFileName);
+        return Path.Combine(LinuxXdgDirectories.Detect().ConfigDirectory, EnabledMarkerFileName);
     }
 
     internal static string[] BuildAutostartCommandLine(string appId)

@@ -38,9 +38,7 @@ public sealed class LinuxStartupService : IStartupService
 
     public LinuxStartupService()
     {
-        var configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") ??
-                         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".config");
-        var autostartFolder = Path.Combine(configHome, "autostart");
+        var autostartFolder = Path.Combine(LinuxXdgDirectories.Detect().ConfigHome, "autostart");
         Directory.CreateDirectory(autostartFolder);
 
         _desktopFilePath = Path.Combine(autostartFolder, $"{AppResources.AppName}.desktop");

@@ -5,42 +5,30 @@ sdk: org.freedesktop.Sdk
 command: xerahs
 
 finish-args:
-  # X11 + Wayland display
-  - --socket=x11
+  # Display. Prefer native Wayland; allow X11 only as a fallback for non-Wayland sessions.
   - --socket=wayland
   - --socket=fallback-x11
-  # GPU / Skia acceleration
+
+  # GPU / Skia acceleration.
   - --device=dri
-  # Network (uploaders, update checks)
+
+  # Network is required for upload destinations, update checks, and connected integrations.
   - --share=network
-  # Freedesktop notifications
-  - --talk-name=org.freedesktop.Notifications
-  # DBus screenshot APIs
-  - --talk-name=org.kde.KWin.ScreenShot2
-  - --talk-name=org.gnome.Shell.Screenshot
-  - --talk-name=org.gnome.SettingsDaemon.Plugins.MediaKeys
-  # XDG portals (Wayland screenshot, file chooser, notification daemon)
+
+  # XDG Desktop Portals: screenshots, screencasts, file access, OpenURI,
+  # notifications, background startup, and global shortcuts when supported by
+  # the user's portal backend.
   - --talk-name=org.freedesktop.portal.Desktop
   - --talk-name=org.freedesktop.portal.Documents
-  # System tray on GNOME
-  - --talk-name=org.kde.StatusNotifierWatcher
-  # DBus session bus
-  - --socket=session-bus
-  # Filesystem — captures saved here; config read from XDG_CONFIG_HOME
-  - --filesystem=xdg-pictures
-  - --filesystem=xdg-videos
-  - --filesystem=xdg-documents
-  - --filesystem=xdg-download
-  - --filesystem=xdg-config/XerahS
-  - --filesystem=xdg-data/XerahS
-  - --filesystem=home
-  # App Steam (games detection)
-  - --talk-name=com.steampowered.steam.AppUpdate
 
-# NOTE: grim, slurp, hyprshot, wl-clipboard, xclip, and xdotool are CLI
-# fallbacks for capture regions. On a Flatpak these tools live in the host
-# user's PATH and are invoked via ShellCommandCaptureTool. Portal-based
-# capture (xdg-desktop-portal) is tried first — see SandboxDetector.cs.
+  # StatusNotifierItem tray integration. On GNOME this still depends on a
+  # compatible AppIndicator/KStatusNotifier extension.
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+# NOTE: Flatpak builds do not rely on host CLI capture tools such as grim,
+# slurp, hyprshot, wl-clipboard, xclip, or xdotool. Sandboxed capture and
+# recording are portal-first; native CLI fallbacks are reserved for non-sandboxed
+# Linux installs.
 
 modules:
   - name: xerahs

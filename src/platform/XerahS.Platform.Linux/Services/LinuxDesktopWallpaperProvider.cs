@@ -585,7 +585,7 @@ namespace XerahS.Platform.Linux.Services
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
 
-            string cacheDirectory = Path.Combine(Path.GetTempPath(), WallpaperConversionCacheDirectoryName);
+            string cacheDirectory = Path.Combine(LinuxXdgDirectories.Detect().CacheDirectory, WallpaperConversionCacheDirectoryName);
             Directory.CreateDirectory(cacheDirectory);
 
             FileInfo sourceInfo = new FileInfo(sourcePath);
@@ -842,7 +842,7 @@ namespace XerahS.Platform.Linux.Services
 
         private static IEnumerable<string> EnumeratePcmanfmRoots(string appDirectoryName)
         {
-            string userConfigRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), appDirectoryName);
+            string userConfigRoot = Path.Combine(LinuxXdgDirectories.Detect().ConfigHome, appDirectoryName);
             yield return userConfigRoot;
             yield return Path.Combine("/etc/xdg", appDirectoryName);
             yield return Path.Combine("/run/host/etc/xdg", appDirectoryName);
@@ -916,10 +916,7 @@ namespace XerahS.Platform.Linux.Services
 
         private static string GetKdeWallpaperConfigPath()
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".config",
-                "plasma-org.kde.plasma.desktop-appletsrc");
+            return Path.Combine(LinuxXdgDirectories.Detect().ConfigHome, "plasma-org.kde.plasma.desktop-appletsrc");
         }
 
         private static bool CommandExists(string command)
