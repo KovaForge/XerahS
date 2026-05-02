@@ -58,7 +58,7 @@ private val aboutLinks = listOf(
     AboutLink("Issues", "https://github.com/ShareX/XerahS/issues/"),
     AboutLink("Contributors", "https://github.com/ShareX/XerahS/graphs/contributors"),
     AboutLink("Changelog", "https://xerahs.com/changelog.html"),
-    AboutLink("Privacy Policy", "https://xerahs.com/privacy.html")
+    AboutLink("Privacy Policy", "https://xerahs.com/privacy-policy/")
 )
 
 private val socialLinks = listOf(

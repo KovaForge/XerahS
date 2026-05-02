@@ -16,9 +16,9 @@ Last reviewed: 2026-05-02.
 
 ## App Content
 
-- [x] Draft the XerahS Android privacy policy in `PRIVACY_POLICY.md`.
+- [x] Integrate the XerahS Android privacy policy into the public website privacy policy.
 - [x] Add the Android privacy policy URL in the app About screen.
-- [ ] Publish the public privacy policy URL for XerahS Android at `https://xerahs.com/privacy.html`.
+- [ ] Publish the public privacy policy URL for XerahS Android at `https://xerahs.com/privacy-policy/`.
 - [ ] Add the same privacy policy URL in Play Console.
 - [ ] Complete the Play Console Data safety form.
 - [ ] Declare that user-selected files can be transmitted to user-configured upload destinations.

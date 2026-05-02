@@ -12,7 +12,7 @@ Ads declaration: No ads, while the current dependency set remains free of ad SDK
 
 Target audience: Not child-directed.
 
-Privacy policy URL: `https://xerahs.com/privacy.html`
+Privacy policy URL: `https://xerahs.com/privacy-policy/`
 
 ## Short Description
 
