@@ -370,3 +370,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Release build 0 warnings/0 errors; Release tests passed 796 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-214611.log`, `/tmp/xerahs-hourly-sweep/test-20260502-214934.log`.
 - Submodule: `ShareX.ImageEditor` verified on `develop`, origin/upstream remotes corrected, fetched both; origin/develop unchanged at `360eeabe`, fork remains 1 ahead of upstream with no pointer update needed.
 - Follow-up: continue Linux Flatpak portal review around portal notification payload variants, startup marker reconciliation after denied requests, and Wayland portal fallback diagnostics.
+
+### 2026-05-02 23:56 AWST - Linux Flatpak portal autostart state
+- Area: Linux Flatpak/XDG portal startup state after upstream Flatpak/XDG sync.
+- Files reviewed: `FlatpakPortalStartupService.cs`, Linux portal service tests, wallpaper XDG cache test.
+- Findings: Flatpak autostart marker was stored under XDG config even though it is mutable runtime state; stale config marker could also survive disable after moving storage.
+- Fix: moved new marker writes to XDG state, kept legacy config-marker reads for migration, deletes both paths on disable/new write, and updated tests; bumped version to 0.22.190.
+- Build/test: Release build 0 warnings/0 errors; Release tests passed (789 + 14). Logs: `/tmp/xerahs-hourly-sweep/build-20260502-235518.log`, `/tmp/xerahs-hourly-sweep/test-20260502-235626.log`.
+- Follow-up: Continue Linux portal UX review around Background portal denial/cancellation diagnostics.

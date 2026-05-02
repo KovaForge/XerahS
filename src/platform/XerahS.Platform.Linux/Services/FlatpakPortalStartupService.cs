@@ -38,6 +38,7 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
     private static readonly ObjectPath PortalObjectPath = new("/org/freedesktop/portal/desktop");
 
     private readonly string _appId;
+    private readonly string _legacyConfigStateFilePath;
     private readonly string _stateFilePath;
     private Connection? _connection;
     private IBackgroundPortal? _portal;
@@ -46,7 +47,9 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
     public FlatpakPortalStartupService(string appId)
     {
         _appId = LinuxRuntimeEnvironment.NormalizeAppId(appId, "io.github.ShareX.XerahS");
-        _stateFilePath = GetStateFilePath();
+        var xdgDirectories = LinuxXdgDirectories.Detect();
+        _stateFilePath = GetStateFilePath(xdgDirectories);
+        _legacyConfigStateFilePath = GetLegacyConfigStateFilePath(xdgDirectories);
 
         try
         {
@@ -64,7 +67,7 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
 
     public bool IsRunAtStartupEnabled()
     {
-        return File.Exists(_stateFilePath);
+        return File.Exists(_stateFilePath) || File.Exists(_legacyConfigStateFilePath);
     }
 
     public bool SetRunAtStartup(bool enable)
@@ -152,19 +155,31 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
         }
 
         File.WriteAllText(_stateFilePath, _appId);
+        DeleteEnabledMarkerFile(_legacyConfigStateFilePath);
     }
 
     private void DeleteEnabledMarker()
     {
-        if (File.Exists(_stateFilePath))
+        DeleteEnabledMarkerFile(_stateFilePath);
+        DeleteEnabledMarkerFile(_legacyConfigStateFilePath);
+    }
+
+    private static void DeleteEnabledMarkerFile(string filePath)
+    {
+        if (File.Exists(filePath))
         {
-            File.Delete(_stateFilePath);
+            File.Delete(filePath);
         }
     }
 
-    private static string GetStateFilePath()
+    internal static string GetStateFilePath(LinuxXdgDirectories xdgDirectories)
     {
-        return Path.Combine(LinuxXdgDirectories.Detect().ConfigDirectory, EnabledMarkerFileName);
+        return Path.Combine(xdgDirectories.StateDirectory, EnabledMarkerFileName);
+    }
+
+    internal static string GetLegacyConfigStateFilePath(LinuxXdgDirectories xdgDirectories)
+    {
+        return Path.Combine(xdgDirectories.ConfigDirectory, EnabledMarkerFileName);
     }
 
     internal static string[] BuildAutostartCommandLine(string appId)

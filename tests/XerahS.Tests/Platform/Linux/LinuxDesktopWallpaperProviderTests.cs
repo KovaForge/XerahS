@@ -95,7 +95,7 @@ public class LinuxDesktopWallpaperProviderTests
             string cachePath = LinuxDesktopWallpaperProvider.GetWallpaperConversionCachePath(sourcePath);
 
             Assert.That(Path.GetExtension(cachePath), Is.EqualTo(".png"));
-            Assert.That(Path.GetDirectoryName(cachePath), Is.EqualTo(Path.Combine(Path.GetTempPath(), "xerahs-wallpaper-cache")));
+            Assert.That(Path.GetDirectoryName(cachePath), Is.EqualTo(Path.Combine(XerahS.Common.LinuxXdgDirectories.Detect().CacheDirectory, "xerahs-wallpaper-cache")));
             Assert.That(Path.GetFileName(cachePath), Does.StartWith("wallpaper-"));
         }
         finally
