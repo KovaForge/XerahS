@@ -86,6 +86,13 @@ class CustomUploaderConfigViewModel(
     }
 
     fun saveEdit(entry: CustomUploaderEntry) {
+        if (!isSecureRequestUrl(entry.requestUrl)) {
+            setStatus(
+                "HTTP upload endpoints are not supported because uploads may contain private user files or credentials. Use HTTPS.",
+                isError = true
+            )
+            return
+        }
         val list = _uploaders.value.toMutableList()
         val index = list.indexOfFirst { it.id == entry.id }
         if (index >= 0) {
@@ -124,6 +131,14 @@ class CustomUploaderConfigViewModel(
         try {
             val definition = gson.fromJson(payload, SxcuDefinition::class.java)
             val imported = CustomUploaderEntry.from(definition)
+            if (!isSecureRequestUrl(imported.requestUrl)) {
+                setStatus(
+                    "HTTP upload endpoints are not supported because uploads may contain private user files or credentials. Use HTTPS.",
+                    isError = true,
+                    details = clipboardDiagnostics(payload, text, null)
+                )
+                return
+            }
             val list = _uploaders.value.toMutableList()
             val existingIndex = list.indexOfFirst {
                 it.requestUrl.equals(imported.requestUrl, ignoreCase = true) &&
@@ -195,10 +210,22 @@ class CustomUploaderConfigViewModel(
         val preview = payload ?: cleanedString
         if (!preview.isNullOrBlank()) {
             lines.add("Clipboard preview:")
-            lines.add(preview.take(400))
+            lines.add(redactSensitiveText(preview).take(400))
         }
         return lines.joinToString("\n")
     }
+
+    private fun isSecureRequestUrl(requestUrl: String): Boolean =
+        requestUrl.trim().startsWith("https://", ignoreCase = true)
+
+    private fun redactSensitiveText(value: String): String =
+        value
+            .replace(Regex("""(?i)("(?:Authorization|Cookie|X-Api-Key|api_key|token|secret|password|access_token)"\s*:\s*")([^"]*)(")""")) {
+                "${it.groupValues[1]}<redacted>${it.groupValues[3]}"
+            }
+            .replace(Regex("""(?i)((?:Authorization|Cookie|X-Api-Key|api_key|token|secret|password|access_token)\s*[=:]\s*)([^\n\r&]+)""")) {
+                "${it.groupValues[1]}<redacted>"
+            }
 
     private fun setStatus(message: String, isError: Boolean = false, details: String? = null) {
         _statusMessage.value = message

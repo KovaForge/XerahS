@@ -113,6 +113,11 @@ fun CustomUploaderConfigScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Text(
+            text = "Custom uploaders can transmit files, text, headers, parameters, and saved secrets to the configured HTTPS endpoint.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.height(8.dp))
         if (!statusMessage.isNullOrBlank()) {
             Card(
