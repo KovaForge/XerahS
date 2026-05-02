@@ -35,6 +35,7 @@ namespace XerahS.Common
     public static class PathsManager
     {
         private static string _personalFolder = "";
+        private static bool _personalFolderOverrideSet;
         private const string PluginManifestFileName = "plugin.json";
         private const string PluginMigrationConflictFolderName = "_migration_conflicts";
         private static readonly string[] KnownPluginArchitectureFolders =
@@ -50,6 +51,11 @@ namespace XerahS.Common
         {
             get
             {
+                if (UseLinuxXdgLayout)
+                {
+                    return LinuxXdgDirectories.Detect().DataDirectory;
+                }
+
                 if (string.IsNullOrEmpty(_personalFolder))
                 {
                     _personalFolder = Path.Combine(
@@ -63,16 +69,27 @@ namespace XerahS.Common
                 if (!string.IsNullOrEmpty(value))
                 {
                     _personalFolder = value;
+                    _personalFolderOverrideSet = true;
                 }
             }
         }
 
-        public static string ScreenshotsFolder => Path.Combine(PersonalFolder, AppResources.ScreenshotsFolderName);
-        public static string ScreencastsFolder => Path.Combine(PersonalFolder, AppResources.ScreencastsFolderName);
+        private static bool UseLinuxXdgLayout => OperatingSystem.IsLinux() && !_personalFolderOverrideSet;
+
+        public static string ScreenshotsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.ScreenshotsFolderName)
+            : Path.Combine(PersonalFolder, AppResources.ScreenshotsFolderName);
+
+        public static string ScreencastsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.ScreencastsFolderName)
+            : Path.Combine(PersonalFolder, AppResources.ScreencastsFolderName);
+
         public static string FrameDumpsFolder => Path.Combine(ScreencastsFolder, "FrameDumps");
 
         /// <summary>Base folder for all log files (e.g. PersonalFolder/Logs).</summary>
-        public static string LogsFolderBase => Path.Combine(PersonalFolder, "Logs");
+        public static string LogsFolderBase => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "Logs")
+            : Path.Combine(PersonalFolder, "Logs");
 
         /// <summary>Logs subfolder for the given month (e.g. Logs/yyyy-MM). Uses current date if null.</summary>
         public static string GetLogsFolderForMonth(DateTime? date = null) =>
@@ -95,17 +112,35 @@ namespace XerahS.Common
             return Path.Combine(GetLogsFolderForMonth(date), $"{AppResources.AppName}-{date:yyyyMMdd}.log");
         }
 
-        public static string SettingsFolder => Path.Combine(PersonalFolder, AppResources.SettingsFolderName);
-        public static string HistoryFolder => Path.Combine(PersonalFolder, AppResources.HistoryFolderName);
+        public static string SettingsFolder => UseLinuxXdgLayout
+            ? LinuxXdgDirectories.Detect().ConfigDirectory
+            : Path.Combine(PersonalFolder, AppResources.SettingsFolderName);
+
+        public static string HistoryFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, AppResources.HistoryFolderName)
+            : Path.Combine(PersonalFolder, AppResources.HistoryFolderName);
+
         public static string BackupFolder => Path.Combine(SettingsFolder, AppResources.BackupFolderName);
         public static string HistoryBackupFolder => Path.Combine(HistoryFolder, AppResources.BackupFolderName);
         /// <summary>Folder for troubleshooting / diagnostic logs (e.g. DPI, capture).</summary>
-        public static string TroubleshootingFolder => Path.Combine(PersonalFolder, "Troubleshooting");
+        public static string TroubleshootingFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "Troubleshooting")
+            : Path.Combine(PersonalFolder, "Troubleshooting");
+
         /// <summary>Base folder for capture verification outputs (region/recording verify).</summary>
-        public static string CaptureTroubleshootingFolder => Path.Combine(PersonalFolder, "CaptureTroubleshooting");
-        public static string ToolsFolder => Path.Combine(PersonalFolder, "Tools");
+        public static string CaptureTroubleshootingFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "CaptureTroubleshooting")
+            : Path.Combine(PersonalFolder, "CaptureTroubleshooting");
+
+        public static string ToolsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, "Tools")
+            : Path.Combine(PersonalFolder, "Tools");
+
         public static string ToolsArchitectureFolder => Path.Combine(ToolsFolder, GetArchitectureFolderName());
-        public static string PluginsFolder => Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
+        public static string PluginsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.PluginsFolderName)
+            : Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
+
         public static string PluginsArchitectureFolder => Path.Combine(PluginsFolder, GetArchitectureFolderName());
         public static string AppPluginsFolder => Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
         public static string CurrentArchitectureFolderName => GetArchitectureFolderName();

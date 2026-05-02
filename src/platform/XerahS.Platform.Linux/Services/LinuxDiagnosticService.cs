@@ -29,6 +29,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Linq;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services
@@ -72,6 +73,7 @@ namespace XerahS.Platform.Linux.Services
         {
             var sb = new StringBuilder();
             var environment = LinuxRuntimeEnvironment.Detect();
+            var xdg = LinuxXdgDirectories.Detect();
 
             string sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") ?? "unknown";
             string currentDesktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "unknown";
@@ -169,6 +171,18 @@ namespace XerahS.Platform.Linux.Services
             sb.AppendLine($"Sandbox.DockerMarker: {hasDockerEnv}");
             sb.AppendLine($"Sandbox.ContainerMarker: {hasContainerEnv}");
             sb.AppendLine($"RuntimeEnvironment: {environment.ToDiagnosticString()}");
+            sb.AppendLine();
+
+            sb.AppendLine("[XDG STORAGE]");
+            sb.AppendLine($"ConfigHome: {xdg.ConfigHome}");
+            sb.AppendLine($"DataHome: {xdg.DataHome}");
+            sb.AppendLine($"StateHome: {xdg.StateHome}");
+            sb.AppendLine($"CacheHome: {xdg.CacheHome}");
+            sb.AppendLine($"RuntimeDirectory: {xdg.RuntimeDirectory ?? "<not set>"}");
+            sb.AppendLine($"XerahS.ConfigDirectory: {xdg.ConfigDirectory}");
+            sb.AppendLine($"XerahS.DataDirectory: {xdg.DataDirectory}");
+            sb.AppendLine($"XerahS.StateDirectory: {xdg.StateDirectory}");
+            sb.AppendLine($"XerahS.CacheDirectory: {xdg.CacheDirectory}");
             sb.AppendLine();
 
             sb.AppendLine("[SESSION]");

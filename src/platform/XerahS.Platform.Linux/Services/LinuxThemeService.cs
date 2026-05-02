@@ -29,6 +29,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services
@@ -225,8 +226,9 @@ namespace XerahS.Platform.Linux.Services
             try
             {
                 string settingsPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".config", "gtk-3.0", "settings.ini");
+                    LinuxXdgDirectories.Detect().ConfigHome,
+                    "gtk-3.0",
+                    "settings.ini");
 
                 if (File.Exists(settingsPath))
                 {

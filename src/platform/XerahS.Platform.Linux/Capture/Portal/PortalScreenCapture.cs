@@ -253,19 +253,9 @@ internal static class PortalScreenCapture
 
     private static string GetPortalsConfigSummary()
     {
-        var configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        if (string.IsNullOrWhiteSpace(configHome))
-        {
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            configHome = string.IsNullOrWhiteSpace(userProfile) ? null : Path.Combine(userProfile, ".config");
-        }
-        var userConfigPath = string.IsNullOrWhiteSpace(configHome)
-            ? string.Empty
-            : Path.Combine(configHome, "xdg-desktop-portal", "portals.conf");
+        var userConfigPath = Path.Combine(LinuxXdgDirectories.Detect().ConfigHome, "xdg-desktop-portal", "portals.conf");
         var systemConfigPath = "/etc/xdg-desktop-portal/portals.conf";
-        var userConfigState = string.IsNullOrWhiteSpace(userConfigPath)
-            ? "user=unresolved"
-            : $"user={(File.Exists(userConfigPath) ? "present" : "missing")}";
+        var userConfigState = $"user={(File.Exists(userConfigPath) ? "present" : "missing")}";
         var systemConfigState = $"system={(File.Exists(systemConfigPath) ? "present" : "missing")}";
         return $"{userConfigState}, {systemConfigState}";
     }
