@@ -55,7 +55,7 @@ modules:
       - ln -s ../XerahS /app/bin/xerahs
 
       # Install app icon
-      - install -Dm644 com.getsharex.XerahS.png /app/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
+      - install -Dm644 com.getsharex.XerahS.png /app/share/icons/hicolor/512x512/apps/com.getsharex.XerahS.png
 
       # Install .desktop file (converted to use the /usr/bin symlink)
       - install -Dm644 com.getsharex.XerahS.desktop /app/share/applications/com.getsharex.XerahS.desktop
@@ -76,7 +76,7 @@ modules:
         path: ../dist/xerahs-flatpak-staging
         dest: self-contained
       - type: file
-        path: ../src/desktop/app/XerahS.UI/Assets/Logo.png
+        path: ../src/desktop/app/XerahS.UI/Assets/ShareX.iconset/icon_512x512.png
         dest-filename: com.getsharex.XerahS.png
       - type: file
         path: com.getsharex.XerahS.desktop

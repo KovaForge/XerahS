@@ -142,7 +142,7 @@ public class InstanceManager
     {
         lock (_lock)
         {
-            return _configuration.Instances.FirstOrDefault(i => i.InstanceId == instanceId);
+            return _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
         }
     }
 
@@ -161,7 +161,7 @@ public class InstanceManager
                 instance.InstanceId = GenerateInstanceId(instance.ProviderId, instance.DisplayName, instance.CreatedAt);
             }
 
-            if (_configuration.Instances.Any(i => i.InstanceId == instance.InstanceId))
+            if (_configuration.Instances.Any(i => InstanceIdsEqual(i.InstanceId, instance.InstanceId)))
             {
                 throw new InvalidOperationException($"Instance with ID {instance.InstanceId} already exists");
             }
@@ -182,7 +182,7 @@ public class InstanceManager
         {
             NormalizeInstance(instance);
 
-            var existing = _configuration.Instances.FirstOrDefault(i => i.InstanceId == instance.InstanceId);
+            var existing = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instance.InstanceId));
             if (existing == null)
             {
                 throw new InvalidOperationException($"Instance with ID {instance.InstanceId} not found");
@@ -202,14 +202,14 @@ public class InstanceManager
     {
         lock (_lock)
         {
-            var instance = _configuration.Instances.FirstOrDefault(i => i.InstanceId == instanceId);
+            var instance = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
             if (instance != null)
             {
                 _configuration.Instances.Remove(instance);
 
                 // Remove from defaults if it was set
                 var defaultsToRemove = _configuration.DefaultInstances
-                    .Where(kvp => kvp.Value == instanceId)
+                    .Where(kvp => InstanceIdsEqual(kvp.Value, instanceId))
                     .Select(kvp => kvp.Key)
                     .ToList();
 
@@ -230,7 +230,7 @@ public class InstanceManager
     {
         lock (_lock)
         {
-            var source = _configuration.Instances.FirstOrDefault(i => i.InstanceId == sourceInstanceId);
+            var source = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, sourceInstanceId));
             if (source == null)
             {
                 throw new InvalidOperationException($"Instance with ID {sourceInstanceId} not found");
@@ -270,7 +270,7 @@ public class InstanceManager
     {
         lock (_lock)
         {
-            var instance = _configuration.Instances.FirstOrDefault(i => i.InstanceId == instanceId);
+            var instance = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
             if (instance == null)
             {
                 throw new InvalidOperationException($"Instance with ID {instanceId} not found");
@@ -295,7 +295,7 @@ public class InstanceManager
         {
             if (_configuration.DefaultInstances.TryGetValue(category, out var instanceId))
             {
-                return _configuration.Instances.FirstOrDefault(i => i.InstanceId == instanceId);
+                return _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
             }
             return null;
         }
@@ -386,7 +386,7 @@ public class InstanceManager
             }
 
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && i.InstanceId != excludeInstanceId);
+                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
 
             // Cannot add if any other instance has "All File Types"
             if (otherInstances.Any(i => GetFileTypeRouting(i).AllFileTypes))
@@ -409,7 +409,7 @@ public class InstanceManager
         lock (_lock)
         {
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && i.InstanceId != currentInstanceId);
+                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, currentInstanceId));
 
             // Can only set "All File Types" if no other instances exist in this category
             return !otherInstances.Any();
@@ -429,7 +429,7 @@ public class InstanceManager
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && i.InstanceId != excludeInstanceId);
+                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
 
             foreach (var instance in otherInstances)
             {
@@ -461,7 +461,7 @@ public class InstanceManager
         lock (_lock)
         {
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == instance.Category && i.InstanceId != instance.InstanceId);
+                .Where(i => i.Category == instance.Category && !InstanceIdsEqual(i.InstanceId, instance.InstanceId));
 
             var instanceRouting = GetFileTypeRouting(instance);
 
@@ -568,6 +568,9 @@ public class InstanceManager
         var normalized = fileExtension.Trim().TrimStart('.').ToLowerInvariant();
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
+
+    private static bool InstanceIdsEqual(string? left, string? right) =>
+        string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
     private void SaveConfiguration()
     {

@@ -51,4 +51,35 @@ public class WindowsModernCaptureServiceTests
             Assert.That(cropRect, Is.EqualTo(default(SKRectI)));
         });
     }
+
+    [Test]
+    public void TryCreateGdiCaptureRect_RoundsOutwardAndClampsToVirtualScreen()
+    {
+        var screenBounds = new Rectangle(-100, -50, 300, 200);
+        var rect = new SKRect(-99.6f, -49.2f, 25.1f, 80.9f);
+
+        bool created = GdiCaptureRectHelper.TryCreateCaptureRect(rect, screenBounds, out var captureRect);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created, Is.True);
+            Assert.That(captureRect, Is.EqualTo(new Rectangle(-100, -50, 126, 131)));
+        });
+    }
+
+    [Test]
+    public void TryCreateGdiCaptureRect_RejectsNonFiniteCoordinatesBeforeCasting()
+    {
+        var screenBounds = new Rectangle(0, 0, 100, 100);
+        var rect = new SKRect(0, 0, float.PositiveInfinity, 10);
+
+        bool created = GdiCaptureRectHelper.TryCreateCaptureRect(rect, screenBounds, out var captureRect);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created, Is.False);
+            Assert.That(captureRect, Is.EqualTo(default(Rectangle)));
+        });
+    }
 }
+

@@ -193,6 +193,28 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void ResetSettings_CreatesDistinctBackupFolder_WhenResetAlreadyExistsForSameSecond()
+    {
+        WaitForStartOfSecond();
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        string existingResetBackup = Path.Combine(SettingsManager.BackupFolder, $"Reset_{timestamp}");
+        Directory.CreateDirectory(existingResetBackup);
+        File.WriteAllText(Path.Combine(existingResetBackup, SettingsManager.ApplicationConfigFileName), "previous backup");
+        File.WriteAllText(SettingsManager.ApplicationConfigFilePath, "current settings");
+
+        bool reset = SettingsManager.ResetSettings();
+
+        string collisionBackup = Path.Combine(SettingsManager.BackupFolder, $"Reset_{timestamp} (1)");
+        Assert.Multiple(() =>
+        {
+            Assert.That(reset, Is.True);
+            Assert.That(File.ReadAllText(Path.Combine(existingResetBackup, SettingsManager.ApplicationConfigFileName)), Is.EqualTo("previous backup"),
+                "A second reset within the same timestamp should not overwrite the earlier reset backup.");
+            Assert.That(File.ReadAllText(Path.Combine(collisionBackup, SettingsManager.ApplicationConfigFileName)), Is.EqualTo("current settings"));
+        });
+    }
+
+    [Test]
     public void ResetSettings_ClearsCachedProviderContext()
     {
         SettingsManager.Settings.UseMachineSpecificSecretsStore = true;
@@ -473,6 +495,14 @@ public class SettingsManagerSecretsPathTests
     private static void ResetProviderContext()
     {
         ProviderContextManager.ResetProviderContext();
+    }
+
+    private static void WaitForStartOfSecond()
+    {
+        while (DateTime.Now.Millisecond > 100)
+        {
+            Thread.Sleep(10);
+        }
     }
 
     private static string? GetProviderContextSecretsPath()

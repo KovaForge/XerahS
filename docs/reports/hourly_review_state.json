@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-01 01:45 AWST",
+  "last_updated": "2026-05-02 07:52 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,19 +11,20 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "MCP server",
-    "CLI / command surface",
-    "Platform-specific services",
-    "Region capture / window enumeration"
+    "OCR",
+    "Tests / test discoverability",
+    "Editor integration",
+    "Plugin loading/runtime",
+    "MCP server"
   ],
   "areas": [
     {
       "area": "Capture pipeline",
-      "last_reviewed": "2026-04-30 05:41 AWST",
+      "last_reviewed": "2026-05-01 17:45 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts.",
-      "follow_up": "Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity."
+      "last_outcome": "Fixed Windows GDI fallback region normalization so fractional capture coordinates are preserved outward like DXGI, clamped to virtual desktop bounds, and non-finite coordinates are rejected before integer casts; added regression coverage; bumped version 0.22.173 -> 0.22.174.",
+      "follow_up": "Continue capture pipeline review around DXGI rotated/scaled display bounds and cursor/selection parity between modern and fallback capture paths."
     },
     {
       "area": "OCR",
@@ -83,19 +84,19 @@
     },
     {
       "area": "FTP uploader plugin",
-      "last_reviewed": "2026-04-30 02:18 AWST",
+      "last_reviewed": "2026-05-01 15:35 AWST",
       "status": "reviewed",
       "priority": "Medium",
-      "last_outcome": "Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths.",
-      "follow_up": "Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens."
+      "last_outcome": "Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values (including name-parser-encoded brackets), preserving IPv6 hosts and optional ports; added regression coverage; bumped version 0.22.172 -> 0.22.173.",
+      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
     },
     {
       "area": "Hotkeys/input",
-      "last_reviewed": "2026-04-30 15:46 AWST",
+      "last_reviewed": "2026-05-02 07:52 AWST",
       "status": "reviewed",
       "priority": "Medium",
-      "last_outcome": "Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage.",
-      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization."
+      "last_outcome": "Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (KP_0..KP_9) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`.",
+      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization."
     },
     {
       "area": "Imgur uploader plugin",
@@ -163,14 +164,60 @@
     },
     {
       "area": "Region capture / window enumeration",
-      "last_reviewed": "2026-04-29 20:17 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-01 13:35 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely.",
-      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling."
+      "last_outcome": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
+      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-01 17:45 AWST",
+      "area": "Capture pipeline",
+      "files": [
+        "src/platform/XerahS.Platform.Windows/WindowsScreenCaptureService.cs",
+        "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureRectHelper.cs",
+        "tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs",
+        "tests/XerahS.Tests/XerahS.Tests.csproj",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed Windows GDI fallback capture rect normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before casts; bumped version 0.22.173 -> 0.22.174.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-174155.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-174303.log",
+      "result": "build 0 warnings/0 errors; tests 769 passed"
+    },
+    {
+      "timestamp": "2026-05-01 15:35 AWST",
+      "area": "FTP uploader plugin / legacy FTP URL generation",
+      "files": [
+        "src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs",
+        "tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs",
+        "Directory.Build.props"
+      ],
+      "finding": "Bracketed IPv6 HttpHomePath values were split by the generic colon-as-port parser (or by encoded brackets from name parsing), so generated public URLs could lose the IPv6 host shape or fail URI construction.",
+      "fix": "Parse bracketed IPv6 hosts separately, preserve optional ports, and return bracketed IPv6 URLs without relying on UriBuilder host serialization; added regression coverage.",
+      "upstream": "Parent and ShareX.ImageEditor already ahead of upstream; no upstream commits merged.",
+      "version": "0.22.172 -> 0.22.173",
+      "build": "pass, 0 warnings/0 errors (/tmp/xerahs-hourly-sweep/build-20260501-155129.log)",
+      "tests": "pass, 767 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260501-155226.log)",
+      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
+    },
+    {
+      "timestamp": "2026-05-01 13:35 AWST",
+      "area": "Region capture / window enumeration",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/LinuxWindowService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "status": "fixed",
+      "version_bump": "0.22.171 -> 0.22.172",
+      "summary": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-133751.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-134116.log",
+      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
+    },
     {
       "timestamp": "2026-05-01 01:45 AWST",
       "area": "Platform-specific services",
@@ -263,20 +310,21 @@
       }
     },
     {
-      "timestamp": "2026-04-30 07:41 AWST",
-      "area": "Settings/configuration",
-      "topic": "uploader config save notifications",
-      "outcome": "SaveUploadersConfig now raises SettingsChanged like application/workflow saves; version bumped to 0.22.150.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-073743.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-074103.log"
-    },
-    {
-      "timestamp": "2026-04-30 06:41 AWST",
-      "area": "OCR",
-      "topic": "Onboarding OCR language refresh handlers",
-      "outcome": "Unsubscribed removed onboarding OCR language options during platform language refresh and added regression coverage.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-063524.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-063846.log"
+      "timestamp": "2026-05-02 07:52 AWST",
+      "area": "Hotkeys/input",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "findings": "Wayland portal preferred triggers used human-facing Numpad labels for keypad digits, which are not GTK/GDK accelerator key names and could prevent compositor binding of keypad shortcuts.",
+      "fix": "Map keypad digits to KP_0..KP_9 in portal accelerator generation and add regression coverage for direct mapping and preferred trigger output.",
+      "version": "0.22.181",
+      "validation": "Release build 0 warnings/0 errors; tests passed 780 total.",
+      "logs": {
+        "build": "/tmp/xerahs-hourly-sweep/build-20260502-074515.log",
+        "test": "/tmp/xerahs-hourly-sweep/test-20260502-074902.log"
+      }
     }
   ]
 }

@@ -26,4 +26,20 @@ public class FlatpakPortalServiceTests
             Assert.That(PortalNotificationService.MapPriority(NotificationType.Error), Is.EqualTo("urgent"));
         });
     }
+
+    [Test]
+    public void FlatpakPortalStartupService_BuildAutostartCommandLine_TrimsAppId()
+    {
+        var commandLine = FlatpakPortalStartupService.BuildAutostartCommandLine("  io.github.ShareX.XerahS  ");
+
+        Assert.That(commandLine, Is.EqualTo(new[] { "flatpak", "run", "io.github.ShareX.XerahS" }));
+    }
+
+    [Test]
+    public void FlatpakPortalStartupService_BuildAutostartCommandLine_UsesDefaultForBlankAppId()
+    {
+        var commandLine = FlatpakPortalStartupService.BuildAutostartCommandLine("   ");
+
+        Assert.That(commandLine, Is.EqualTo(new[] { "flatpak", "run", "io.github.ShareX.XerahS" }));
+    }
 }

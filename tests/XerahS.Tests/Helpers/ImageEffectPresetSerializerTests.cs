@@ -91,6 +91,36 @@ public class ImageEffectPresetSerializerTests
     }
 
     [Test]
+    public void SaveXsieFile_CreatesMissingParentDirectory()
+    {
+        var preset = new ImageEffectPreset
+        {
+            Name = "NestedPreset",
+            Effects = { new BrightnessImageEffect { Amount = 10 } }
+        };
+
+        var root = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}");
+        var path = Path.Combine(root, "missing", "nested.xsie");
+
+        try
+        {
+            ImageEffectPresetSerializer.SaveXsieFile(path, preset);
+
+            Assert.That(File.Exists(path), Is.True);
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+            Assert.That(loaded, Is.Not.Null);
+            Assert.That(loaded!.Name, Is.EqualTo("NestedPreset"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Test]
     public void ExportSxie_WritesLegacyConfig()
     {
         var effects = new object[]
@@ -162,6 +192,55 @@ public class ImageEffectPresetSerializerTests
             Assert.That(loaded.Effects.Count, Is.EqualTo(1));
             Assert.That(loaded.Effects[0], Is.TypeOf<BrightnessImageEffect>());
             Assert.That(((BrightnessImageEffect)loaded.Effects[0]).Amount, Is.EqualTo(37).Within(0.01));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadXsie_MalformedArchive_ReturnsNull()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}.xsie");
+
+        try
+        {
+            File.WriteAllText(path, "not a zip archive");
+
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+
+            Assert.That(loaded, Is.Null);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadXsie_InvalidConfigJson_ReturnsNull()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"xip0020-{Guid.NewGuid():N}.xsie");
+
+        try
+        {
+            using (var archive = ZipFile.Open(path, ZipArchiveMode.Create))
+            {
+                var entry = archive.CreateEntry("Config.json");
+                using var writer = new StreamWriter(entry.Open());
+                writer.Write("{");
+            }
+
+            var loaded = ImageEffectPresetSerializer.LoadXsieFile(path);
+
+            Assert.That(loaded, Is.Null);
         }
         finally
         {

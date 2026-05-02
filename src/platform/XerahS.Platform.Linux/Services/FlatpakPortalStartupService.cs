@@ -45,7 +45,7 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
 
     public FlatpakPortalStartupService(string appId)
     {
-        _appId = string.IsNullOrWhiteSpace(appId) ? "io.github.ShareX.XerahS" : appId;
+        _appId = LinuxRuntimeEnvironment.NormalizeAppId(appId, "io.github.ShareX.XerahS");
         _stateFilePath = GetStateFilePath();
 
         try
@@ -171,7 +171,7 @@ public sealed class FlatpakPortalStartupService : IStartupService, IDisposable
 
     internal static string[] BuildAutostartCommandLine(string appId)
     {
-        return ["flatpak", "run", appId];
+        return ["flatpak", "run", LinuxRuntimeEnvironment.NormalizeAppId(appId, "io.github.ShareX.XerahS")];
     }
 
     public void Dispose()

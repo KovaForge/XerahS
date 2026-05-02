@@ -71,7 +71,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
     public Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken)
     {
         string? normalizedFilePath = NormalizeHistoryFilePath(filePath);
-        if (normalizedFilePath == null)
+        if (normalizedFilePath == null || !File.Exists(normalizedFilePath))
         {
             return Task.FromResult<string?>(null);
         }
@@ -90,7 +90,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
     public Task CacheOcrTextAsync(string filePath, string ocrText, CancellationToken cancellationToken)
     {
         string? normalizedFilePath = NormalizeHistoryFilePath(filePath);
-        if (normalizedFilePath == null || string.IsNullOrWhiteSpace(ocrText))
+        if (normalizedFilePath == null || string.IsNullOrWhiteSpace(ocrText) || !File.Exists(normalizedFilePath))
         {
             return Task.CompletedTask;
         }
@@ -177,7 +177,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             string.IsNullOrWhiteSpace(item.FileName) ? GetSafeFileName(item.FilePath) : item.FileName,
             new DateTimeOffset(item.DateTime == DateTime.MinValue ? DateTime.Now : item.DateTime),
             item.Type,
-            TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText"),
+            File.Exists(item.FilePath) ? TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText") : null,
             File.Exists(item.FilePath),
             item);
     }

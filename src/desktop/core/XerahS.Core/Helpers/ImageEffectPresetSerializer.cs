@@ -29,6 +29,7 @@ using ShareX.ImageEditor.Core.ImageEffects;
 using SkiaSharp;
 using System.IO.Compression;
 using System.Reflection;
+using XerahS.Common;
 
 namespace XerahS.Core.Helpers;
 
@@ -55,19 +56,27 @@ public static class ImageEffectPresetSerializer
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             return null;
 
-        var configJson = ExtractConfigJson(filePath);
-        if (string.IsNullOrWhiteSpace(configJson))
-            return null;
-
-        var payload = JsonConvert.DeserializeObject<XsiePreset>(configJson, CreateSerializerSettings());
-        if (payload == null)
-            return null;
-
-        return new ImageEffectPreset
+        try
         {
-            Name = payload.Name ?? "Preset",
-            Effects = payload.Effects ?? new List<ImageEffect>()
-        };
+            var configJson = ExtractConfigJson(filePath);
+            if (string.IsNullOrWhiteSpace(configJson))
+                return null;
+
+            var payload = JsonConvert.DeserializeObject<XsiePreset>(configJson, CreateSerializerSettings());
+            if (payload == null)
+                return null;
+
+            return new ImageEffectPreset
+            {
+                Name = payload.Name ?? "Preset",
+                Effects = payload.Effects ?? new List<ImageEffect>()
+            };
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            DebugHelper.WriteException(ex, $"ImageEffectPresetSerializer: Failed to load preset file '{filePath}'.");
+            return null;
+        }
     }
 
     private static JsonSerializerSettings CreateSerializerSettings()
@@ -98,6 +107,12 @@ public static class ImageEffectPresetSerializer
 
     private static void WriteZip(string filePath, string configJson)
     {
+        string? directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         if (File.Exists(filePath))
         {
             File.Delete(filePath);

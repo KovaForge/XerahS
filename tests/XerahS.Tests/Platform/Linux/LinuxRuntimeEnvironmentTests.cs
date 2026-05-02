@@ -71,4 +71,37 @@ public class LinuxRuntimeEnvironmentTests
             Assert.That(environment.ShouldUsePortalServices(usePortalServices: true), Is.True);
         });
     }
+
+    [Test]
+    public void Detect_FlatpakId_TrimsAppIdBeforePortalUse()
+    {
+        var environment = LinuxRuntimeEnvironment.Detect(
+            name => name switch
+            {
+                "FLATPAK_ID" => "  io.github.ShareX.XerahS  ",
+                _ => null
+            },
+            _ => false);
+
+        Assert.That(environment.AppId, Is.EqualTo("io.github.ShareX.XerahS"));
+    }
+
+    [Test]
+    public void Detect_SnapName_UsesFallbackWhenBlank()
+    {
+        var environment = LinuxRuntimeEnvironment.Detect(
+            name => name switch
+            {
+                "SNAP" => "/snap/xerahs/current",
+                "SNAP_NAME" => "   ",
+                _ => null
+            },
+            _ => false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(environment.IsSnap, Is.True);
+            Assert.That(environment.AppId, Is.EqualTo("/snap/xerahs/current"));
+        });
+    }
 }

@@ -100,13 +100,13 @@ internal sealed class LinuxRuntimeEnvironment
             SafeFileExists(fileExists, "/.flatpak-info"))
         {
             sandboxKind = LinuxSandboxKind.Flatpak;
-            appId = string.IsNullOrWhiteSpace(flatpakId) ? "flatpak" : flatpakId;
+            appId = NormalizeAppId(flatpakId, "flatpak");
         }
         else if (!string.IsNullOrWhiteSpace(snap) ||
                  string.Equals(container, "snap", StringComparison.OrdinalIgnoreCase))
         {
             sandboxKind = LinuxSandboxKind.Snap;
-            appId = getEnvironmentVariable("SNAP_NAME") ?? snap;
+            appId = NormalizeAppId(getEnvironmentVariable("SNAP_NAME"), NormalizeAppId(snap, "snap"));
         }
         else if (!string.IsNullOrWhiteSpace(container))
         {
@@ -121,6 +121,11 @@ internal sealed class LinuxRuntimeEnvironment
             getEnvironmentVariable("DISPLAY"),
             DesktopEnvironmentDetector.Detect(getEnvironmentVariable),
             container);
+    }
+
+    internal static string NormalizeAppId(string? appId, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(appId) ? fallback : appId.Trim();
     }
 
     private static bool SafeFileExists(Func<string, bool> fileExists, string path)

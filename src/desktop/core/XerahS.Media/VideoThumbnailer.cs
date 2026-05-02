@@ -84,6 +84,9 @@ namespace XerahS.Media
                 string fileName = string.Format("{0}-{1}.{2}", mediaFileName, timeSliceElapsed, EnumExtensions.GetDescription(Options.ImageFormat));
                 string tempThumbnailPath = Path.Combine(GetOutputDirectory(), fileName);
 
+                FileHelpers.DeleteFile(tempThumbnailPath);
+                bool thumbnailCreated = false;
+
                 using (Process process = new Process())
                 {
                     ProcessStartInfo psi = new ProcessStartInfo()
@@ -96,10 +99,10 @@ namespace XerahS.Media
 
                     process.StartInfo = psi;
                     process.Start();
-                    WaitForExitOrKill(process, TimeSpan.FromSeconds(30));
+                    thumbnailCreated = WaitForExitOrKill(process, TimeSpan.FromSeconds(30)) && process.ExitCode == 0 && File.Exists(tempThumbnailPath);
                 }
 
-                if (File.Exists(tempThumbnailPath))
+                if (thumbnailCreated)
                 {
                     VideoThumbnailInfo screenshotInfo = new VideoThumbnailInfo(tempThumbnailPath)
                     {
@@ -107,6 +110,10 @@ namespace XerahS.Media
                     };
 
                     tempThumbnails.Add(screenshotInfo);
+                }
+                else
+                {
+                    FileHelpers.DeleteFile(tempThumbnailPath);
                 }
 
                 OnProgressChanged(i + 1, Options.ThumbnailCount);
@@ -204,11 +211,11 @@ namespace XerahS.Media
             return RandomFast.Next(start, Math.Max(start, end));
         }
 
-        private static void WaitForExitOrKill(Process process, TimeSpan timeout)
+        private static bool WaitForExitOrKill(Process process, TimeSpan timeout)
         {
             if (process.WaitForExit(timeout))
             {
-                return;
+                return true;
             }
 
             try
@@ -223,6 +230,7 @@ namespace XerahS.Media
             }
 
             process.WaitForExit();
+            return false;
         }
 
         private sealed class LoadedThumbnail : IDisposable

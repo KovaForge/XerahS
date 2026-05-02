@@ -195,12 +195,8 @@ CREATE TABLE IF NOT EXISTS History (
                 return null;
             }
 
-            string normalized;
-            try
-            {
-                normalized = Path.GetFullPath(filePath);
-            }
-            catch
+            IReadOnlyList<string>? normalizedPaths = GetComparablePaths(filePath);
+            if (normalizedPaths == null)
             {
                 return null;
             }
@@ -216,7 +212,7 @@ CREATE TABLE IF NOT EXISTS History (
                     return null;
                 }
 
-                HistoryItem? match = items.FirstOrDefault(item => IsSamePath(item.FilePath, normalized));
+                HistoryItem? match = items.FirstOrDefault(item => IsSamePath(item.FilePath, normalizedPaths));
                 if (match != null)
                 {
                     return match;
@@ -367,20 +363,58 @@ WHERE Id = @Id;";
             return connection ?? throw new InvalidOperationException("Database connection is not initialized.");
         }
 
-        private static bool IsSamePath(string? left, string right)
+        private static bool IsSamePath(string? left, IReadOnlyList<string> rightPaths)
         {
-            if (string.IsNullOrWhiteSpace(left))
+            IReadOnlyList<string>? leftPaths = GetComparablePaths(left);
+            if (leftPaths == null)
             {
                 return false;
             }
 
+            StringComparison comparison = GetPathComparison();
+            return leftPaths.Any(leftPath => rightPaths.Any(rightPath => string.Equals(leftPath, rightPath, comparison)));
+        }
+
+        private static IReadOnlyList<string>? GetComparablePaths(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            string fullPath;
             try
             {
-                return string.Equals(Path.GetFullPath(left), right, GetPathComparison());
+                fullPath = Path.GetFullPath(path);
             }
             catch
             {
-                return false;
+                return null;
+            }
+
+            List<string> paths = new() { fullPath };
+            string? resolvedPath = TryResolveLinkTarget(fullPath);
+            if (!string.IsNullOrEmpty(resolvedPath) && !paths.Any(path => string.Equals(path, resolvedPath, GetPathComparison())))
+            {
+                paths.Add(resolvedPath);
+            }
+
+            return paths;
+        }
+
+        private static string? TryResolveLinkTarget(string path)
+        {
+            try
+            {
+                FileSystemInfo fileSystemInfo = File.Exists(path)
+                    ? new FileInfo(path)
+                    : new DirectoryInfo(path);
+                FileSystemInfo? target = fileSystemInfo.ResolveLinkTarget(returnFinalTarget: true);
+                return target == null ? null : Path.GetFullPath(target.FullName);
+            }
+            catch
+            {
+                return null;
             }
         }
 

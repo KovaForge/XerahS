@@ -43,6 +43,26 @@ public class LinuxWindowServiceTests
     }
 
     [Test]
+    public void ApplyFrameExtents_IgnoresExtentsWhenOuterBoundsWouldOverflow()
+    {
+        var clientBounds = new Rectangle(100, 200, 800, 600);
+
+        var frameBounds = LinuxWindowService.ApplyFrameExtents(clientBounds, left: int.MaxValue, right: int.MaxValue, top: 30, bottom: 8);
+
+        Assert.That(frameBounds, Is.EqualTo(clientBounds));
+    }
+
+    [Test]
+    public void ApplyFrameExtents_IgnoresExtentsWhenOuterOriginWouldOverflow()
+    {
+        var clientBounds = new Rectangle(int.MinValue + 10, int.MinValue + 20, 800, 600);
+
+        var frameBounds = LinuxWindowService.ApplyFrameExtents(clientBounds, left: 20, right: 8, top: 30, bottom: 8);
+
+        Assert.That(frameBounds, Is.EqualTo(clientBounds));
+    }
+
+    [Test]
     public void ContainsExcludedWindowTypeName_SkipsDesktopAndDockWindows()
     {
         Assert.Multiple(() =>

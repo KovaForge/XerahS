@@ -55,6 +55,35 @@ public sealed class AssistantLocalMemoryStoreTests
         Assert.That(command, Is.EqualTo("copy the path of the latest screenshot"));
     }
 
+    [Test]
+    public void SavedAlias_WhenNameMatchesBuiltIn_OverridesBuiltInCommand()
+    {
+        var store = CreateStore();
+        Assert.That(store.TryParseAliasDefinition("alias copy last five paths = Show the last five file paths without copying them", out var definition), Is.True);
+
+        store.SaveAlias(definition);
+        bool resolved = store.TryResolveAlias("copy last five paths", out string command);
+
+        Assert.That(resolved, Is.True);
+        Assert.That(command, Is.EqualTo("Show the last five file paths without copying them"));
+    }
+
+    [Test]
+    public void DeleteAlias_RemovesSavedOverrideAndRestoresBuiltInFallback()
+    {
+        var store = CreateStore();
+        Assert.That(store.TryParseAliasDefinition("alias copy last five paths = Show the paths only", out var definition), Is.True);
+        store.SaveAlias(definition);
+
+        Assert.That(store.TryParseAliasDeletion("forget alias copy last five paths", out string alias), Is.True);
+        bool deleted = store.DeleteAlias(alias);
+        bool resolved = store.TryResolveAlias("copy last five paths", out string command);
+
+        Assert.That(deleted, Is.True);
+        Assert.That(resolved, Is.True);
+        Assert.That(command, Does.Contain("last 5 screenshots"));
+    }
+
     private static AssistantLocalMemoryStore CreateStore()
     {
         string directory = Path.Combine(Path.GetTempPath(), "XerahS.Assistant.Tests", Guid.NewGuid().ToString("N"));

@@ -686,11 +686,20 @@ namespace XerahS.Platform.Linux
             if (left == 0 && right == 0 && top == 0 && bottom == 0)
                 return clientBounds;
 
-            return new Rectangle(
-                clientBounds.X - left,
-                clientBounds.Y - top,
-                clientBounds.Width + left + right,
-                clientBounds.Height + top + bottom);
+            long x = (long)clientBounds.X - left;
+            long y = (long)clientBounds.Y - top;
+            long width = (long)clientBounds.Width + left + right;
+            long height = (long)clientBounds.Height + top + bottom;
+
+            if (x < int.MinValue || x > int.MaxValue ||
+                y < int.MinValue || y > int.MaxValue ||
+                width <= 0 || width > int.MaxValue ||
+                height <= 0 || height > int.MaxValue)
+            {
+                return clientBounds;
+            }
+
+            return new Rectangle((int)x, (int)y, (int)width, (int)height);
         }
 
         internal static bool ContainsExcludedWindowTypeName(IEnumerable<string> windowTypes)

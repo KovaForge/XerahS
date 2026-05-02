@@ -374,6 +374,76 @@ public sealed class FtpConfigViewModelTests
     }
 
     [Test]
+    public void GetUriPath_AtPrefixedHttpHomePath_DoesNotAutoAppendSubFolderPath()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "@https://cdn.example.com/base",
+            SubFolderPath = "shots",
+            HttpHomePathAutoAddSubFolderPath = true
+        };
+
+        string url = account.GetUriPath("capture.png");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(url, Is.EqualTo("https://cdn.example.com/base/capture.png"));
+            Assert.That(account.GetHttpHomePath(), Is.EqualTo("cdn.example.com/base"));
+            Assert.That(account.HttpHomePathAutoAddSubFolderPath, Is.True);
+        });
+    }
+
+    [Test]
+    public void GetUriPath_QueryTemplateAppendsSubfolderWithoutLeadingSlash()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "cdn.example.com/view?file=",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture 1.png");
+
+        Assert.That(url, Is.EqualTo("https://cdn.example.com/view?file=shots/capture%201.png"));
+    }
+
+    [Test]
+    public void GetUriPath_BracketedIpv6HttpHomePathWithoutPort_PreservesHost()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "[2001:db8::1]/base",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture.png");
+
+        Assert.That(url, Is.EqualTo("https://[2001:db8::1]/base/shots/capture.png"));
+    }
+
+    [Test]
+    public void GetUriPath_BracketedIpv6HttpHomePathWithPort_PreservesPort()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "[2001:db8::1]:8443/base",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture.png");
+
+        Assert.That(url, Is.EqualTo("https://[2001:db8::1]:8443/base/shots/capture.png"));
+    }
+
+    [Test]
     public void CreateSftpClient_FallsBackToPassword_WhenConfiguredKeyPathIsMissing()
     {
         var uploader = new FtpUploader(new FTPAccount

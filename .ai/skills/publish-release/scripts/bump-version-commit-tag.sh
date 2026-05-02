@@ -31,7 +31,10 @@ require_cmd() {
 }
 
 normalize_bump() {
-  case "${1,,}" in
+  local bump
+  bump=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+
+  case "$bump" in
     x|major) echo "x" ;;
     y|minor) echo "y" ;;
     z|patch) echo "z" ;;

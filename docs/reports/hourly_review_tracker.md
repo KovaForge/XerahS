@@ -13,17 +13,17 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
+- OCR
+- Tests / test discoverability
+- Editor integration
+- Plugin loading/runtime
 - MCP server
-- CLI / command surface
-- Uploader core / plugin routing
-- Platform-specific services
-- Region capture / window enumeration
 
 ## Current Coverage
 
 | Area | Last Reviewed | Priority | Last Outcome | Follow-up |
 |---|---|---|---|---|
-| Capture pipeline | 2026-04-30 05:41 AWST | High | Fixed DXGI rectangle capture crop conversion so fractional coordinates are preserved outward and non-finite/huge finite values are rejected/clamped before integer casts. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases and GDI fallback parity. |
+| Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
 | OCR | 2026-04-30 06:41 AWST | High | Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh. | Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases. |
 | Settings/configuration | 2026-04-30 07:41 AWST | High | Fixed uploader config saves so SettingsChanged observers are notified for destination/provider changes; added regression coverage. | Continue settings review around async save completion semantics and custom config backup paths. |
 | Assistant local memory/privacy/history | 2026-04-30 14:54 AWST | High | Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes. | Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted. |
@@ -31,8 +31,8 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Editor integration | 2026-04-30 09:43 AWST | High | Fixed editor window direct-close handling so ShowEditorSessionAsync completes with null instead of leaving callers awaiting forever; added regression coverage. | Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing. |
 | Uploader core / plugin routing | 2026-04-30 16:50 AWST | High | Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage. | Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity. |
 | Plugin loading/runtime | 2026-04-29 04:11 AWST | High | Fixed plugin package installation so a missing plugins root is created before installing a .xsdp package instead of failing with DirectoryNotFoundException. |  |
-| FTP uploader plugin | 2026-04-30 02:18 AWST | Medium | Fixed FTP/SFTP missing-directory retry parent-path handling for bare, nested, absolute, and root-file remote paths. | Next FTP pass can inspect URL generation for HttpHomePathAutoAddSubFolderPath with absolute SFTP subfolders and name-parser tokens. |
-| Hotkeys/input | 2026-04-30 15:46 AWST | Medium | Fixed Linux X11 hotkey matching so registered shortcuts ignore Caps Lock/Num Lock but reject unrelated extra modifiers; added regression coverage. | Continue hotkeys/input review around Wayland portal fallback state transitions and platform parity for modifier normalization. |
+| FTP uploader plugin | 2026-05-01 15:35 AWST | Medium | Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values, preserving IPv6 hosts and optional ports; added regression coverage; bumped version `0.22.172` -> `0.22.173`. | Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior. |
+| Hotkeys/input | 2026-05-02 07:52 AWST | Medium | Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (`KP_0`..`KP_9`) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`. | Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization. |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
 | Media subsystem | 2026-04-30 21:45 AWST | High | Fixed combined video thumbnail generation so skipped unreadable source images no longer shift timestamps onto later loaded images. | Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout. |
 | MCP server | 2026-04-29 11:15 AWST | Medium | Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely. | Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation. |
@@ -41,9 +41,34 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | File/path handling | 2026-04-30 04:36 AWST | High | Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives. | Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next. |
 | Indexer subsystem | 2026-04-29 18:17 AWST | Medium | Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders. | Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling. |
 | Platform-specific services | 2026-05-01 01:45 AWST | High | Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version `0.22.165` -> `0.22.166`. | Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity. |
-| Region capture / window enumeration | 2026-04-29 20:17 AWST | High | Fixed Sway Wayland rectangle parsing so malformed rect objects and overflowing right/bottom edges are rejected safely. | Continue region/window enumeration review around GNOME eval rect validation and X11 frame extent overflow/invalid metadata handling. |
+| Region capture / window enumeration | 2026-05-01 13:35 AWST | High | Fixed Linux X11 frame extent expansion to ignore invalid `_NET_FRAME_EXTENTS` values that would overflow outer window bounds; added regression coverage; bumped version `0.22.171` -> `0.22.172`. | Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics. |
 
 ## Recent Runs
+
+### 2026-05-01 17:45 AWST - Capture pipeline
+
+- Area: Capture pipeline / Windows GDI fallback region normalization; files: `src/platform/XerahS.Platform.Windows/WindowsScreenCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/GdiCaptureRectHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: GDI fallback truncated fractional `SKRect` edges and cast before finite validation, diverging from the safer DXGI crop path and potentially shrinking selected regions or mishandling invalid coordinates.
+- Status: Fixed GDI capture rect creation to validate finite coordinates, floor/ceil outward, clamp against virtual desktop bounds, and reject empty/invalid captures; added regression coverage; bumped version `0.22.173` -> `0.22.174`.
+- Build/test: `dotnet build` 0 warnings/0 errors, `dotnet test` 769 passed. Logs: `/tmp/xerahs-hourly-sweep/build-20260501-174155.log`, `/tmp/xerahs-hourly-sweep/test-20260501-174303.log`.
+- Follow-up: Continue capture pipeline review around DXGI rotated/scaled display bounds and cursor/selection parity between modern and fallback capture paths.
+
+### 2026-05-01 15:35 AWST - FTP uploader URL generation
+
+- Area: FTP uploader plugin / legacy FTP URL generation (bracketed IPv6 `HttpHomePath`); files: `src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs`, `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`, `Directory.Build.props`.
+- Findings: bracketed IPv6 home paths could be misread by colon-as-port parsing, and name-parser URL encoding could turn brackets into `%5B/%5D`, causing generated public URLs to fail URI construction or lose host shape.
+- Status: Fixed IPv6 host/port parsing and bracketed IPv6 URL rendering; added regression coverage; bumped version `0.22.172` -> `0.22.173`.
+- Upstream: parent and `ShareX.ImageEditor` were already ahead/up to date with their upstream develop refs; no new upstream commits merged this run.
+- Build/test: Release build 0 warnings/0 errors; tests passed 767 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260501-155129.log`, `/tmp/xerahs-hourly-sweep/test-20260501-155226.log`.
+- Follow-up: Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior.
+
+### 2026-05-01 13:35 AWST - Region capture / window enumeration
+
+- Area: Linux X11 frame extent overflow handling; files: `src/platform/XerahS.Platform.Linux/LinuxWindowService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs`, `Directory.Build.props`.
+- Findings: `_NET_FRAME_EXTENTS` is compositor-controlled metadata; very large values could overflow outer window bound expansion and wrap dimensions/origins before capture.
+- Status: Fixed frame extent expansion to ignore invalid extents when calculated outer bounds overflow or become non-positive; added regression coverage; bumped version `0.22.171` -> `0.22.172`.
+- Build/test: Release build 0 warnings/0 errors; tests passed 765 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260501-133751.log`, `/tmp/xerahs-hourly-sweep/test-20260501-134116.log`.
+- Follow-up: Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics.
 
 ### 2026-05-01 01:45 AWST - Platform-specific services
 
@@ -237,3 +262,111 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed unique-name generation to use `Path.Exists` for initial and numbered candidates; added regression coverage for directory collisions; bumped version `0.22.169` -> `0.22.170`.
 - Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-093718.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-094044.log`.
 - Follow-up: Continue file/path review around copy/backup overwrite semantics, backup archive path validation, and file-lock behavior on missing paths.
+
+### 2026-05-01 11:35 AWST - FTP uploader URL generation
+- Area: FTP uploader plugin / legacy FTP URL generation (`@` HttpHomePath no-auto-subfolder marker); files: `src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs`, `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`, `Directory.Build.props`.
+- Findings: Legacy ShareX configs can prefix `HttpHomePath` with `@` to suppress automatic subfolder insertion, but XerahS stripped URL protocols without honoring the marker, producing URLs with duplicated/undesired subfolders.
+- Status: Fixed `FTPAccount.GetUriPath` to strip the marker, disable subfolder auto-append for that URL calculation without mutating config, and preserve protocol-prefix cleanup; added regression coverage; bumped version `0.22.170` -> `0.22.171`.
+- Validation: Release build and full Release no-build test suite passed (0 warnings/errors; 763 tests). Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-113828.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-114242.log`.
+- Follow-up: Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior.
+
+### 2026-05-01 19:35 AWST - Settings/configuration backups
+- Area: Settings reset backup collision handling; files: `src/desktop/core/XerahS.Core/Managers/SettingsManager.cs`, `tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs`, `Directory.Build.props`.
+- Findings: Two settings resets in the same second reused the same `Reset_yyyy-MM-dd_HH-mm-ss` backup folder, allowing the newer reset backup to overwrite files from the earlier reset.
+- Status: Fixed reset backup creation to choose a suffixed unique folder on timestamp collision; added regression coverage; bumped version `0.22.174` -> `0.22.175`.
+- Validation: Release build and full Release no-build test suite passed (0 warnings/errors; 770 tests). Evidence: build `/tmp/xerahs-hourly-sweep/build-20260501-194134.log`; test `/tmp/xerahs-hourly-sweep/test-20260501-194459.log`.
+- Follow-up: Continue settings/configuration review around archived backup restore/fallback behavior and non-JSON companion-file coverage.
+
+### 2026-05-01 21:35 AWST - Editor integration / image effect presets
+- Area: Editor integration / `.xsie` image effect preset save path handling; files: `src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs`, `tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs`, `Directory.Build.props`.
+- Status: Fixed preset saving to create missing parent folders before writing `Config.json` zip archives; added regression coverage; bumped version `0.22.175` -> `0.22.176`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260501-213832.log`).
+- Tests: pass, 771 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260501-214327.log`).
+- Follow-up: Continue editor integration review around malformed preset archives, sidecar save error reporting, and video editor ffmpeg/ffprobe fallback diagnostics.
+
+### 2026-05-01 23:50 AWST - Editor integration / malformed image effect presets
+- Area: Editor integration / `.xsie` malformed preset load handling; files: `src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs`, `tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs`, `Directory.Build.props`.
+- Findings: `LoadXsieFile` returned `null` for missing config but could still throw on corrupt zip payloads or invalid `Config.json`, allowing a bad preset file to break import/load flows.
+- Status: Fixed preset loading to log and return `null` for malformed archives, invalid JSON, and IO/access failures; added regression coverage for corrupt archive and invalid config JSON; bumped version `0.22.176` -> `0.22.177`.
+- Build/test: Release build succeeded with 0 warnings/errors; Release tests passed (`759` XerahS, `14` MCP) with logs under `/tmp/xerahs-hourly-sweep`.
+- Follow-up: Continue editor integration review around sidecar save error reporting, unknown effect type UX, and video editor ffmpeg/ffprobe fallback diagnostics.
+
+### 2026-05-02 01:50 AWST - Media subsystem / FFmpeg thumbnail failure handling
+- Area: Media subsystem (VideoThumbnailer FFmpeg exit/timeout handling); files: `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`, `tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs`, `Directory.Build.props`.
+- Status: Fixed thumbnail capture to delete stale deterministic output files before each FFmpeg run, only accept thumbnails from clean zero-exit FFmpeg runs, and clean partial files after failures/timeouts; added regression coverage for timeout return semantics; bumped version `0.22.177` -> `0.22.178`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-014822.log`).
+- Tests: pass, 774 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260502-014931.log`).
+- Follow-up: Continue media review around partial thumbnail cleanup surfacing/logging and video editor ffmpeg/ffprobe fallback diagnostics.
+
+### 2026-05-02 03:52 AWST - Uploader instance identity matching
+- Area/files: `InstanceManager` lifecycle/default/routing ID lookups plus uploaders tests.
+- Findings: uploader instance IDs are generated lowercase but external/config callers can provide equivalent mixed-case IDs; several lifecycle and routing exclusion paths compared IDs case-sensitively, causing missed updates/defaults/removals or false routing conflicts.
+- Fix: normalized all instance ID equality checks through ordinal-ignore-case comparison and added regression coverage for get/update, default/duplicate/remove, and routing exclusion validation.
+- Version: bumped patch to 0.22.179.
+- Validation: Release build 0 warnings/0 errors; tests passed 777 total.
+- Follow-up: continue rotating stale uploader/configuration surfaces for persistence/import edge cases.
+
+### 2026-05-02 05:50 AWST - Assistant local memory aliases
+- Area/files: assistant local alias persistence and built-in alias resolution; files: `src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs`, `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`, `Directory.Build.props`.
+- Findings: saved aliases using the same phrase as a built-in alias were shadowed forever by the built-in dictionary, so users could not override commands with side-effect wording such as "copy last five paths".
+- Fix: resolve persisted aliases before falling back to built-ins and added regression coverage for user overrides; bumped version `0.22.179` -> `0.22.180`.
+- Validation: Release build 0 warnings/0 errors; tests passed 778 total.
+- Follow-up: continue assistant memory review around alias deletion/import semantics and symlink-equivalent history paths.
+### 2026-05-02 07:52 AWST - Hotkeys/input
+- Area/files: Wayland portal hotkey accelerator generation; files: `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`, `Directory.Build.props`.
+- Findings: keypad digit shortcuts were serialized as human-facing `Numpad N` labels, not GTK/GDK accelerator names, so compositors could reject or ignore the requested portal binding.
+- Fix: map keypad digits to `KP_0`..`KP_9`, add regression coverage for mapping and preferred trigger output, and bump version `0.22.180` -> `0.22.181`.
+- Validation: Release build 0 warnings/0 errors; tests passed 780 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-074515.log`, `/tmp/xerahs-hourly-sweep/test-20260502-074902.log`.
+- Follow-up: continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization.
+
+### 2026-05-02 09:43 AWST - Hotkeys/input
+- Area/files: Wayland portal hotkey accelerator generation; files: `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`, `Directory.Build.props`.
+- Findings: the Wayland portal emitted `Space` for spacebar shortcuts while GDK/X11 key names use lowercase `space`, creating a platform parity edge case where compositors may reject the accelerator.
+- Fix: normalized Wayland portal spacebar accelerators to `space`, added regression coverage, and bumped version `0.22.181` -> `0.22.182`.
+- Validation: blocked pending local exec approval for sync/build/test/push; latest sync command approval gate is `165b74a7` and build gate is `29f9c0d8`.
+- Follow-up: once exec approval is available, complete upstream/submodule sync, Release build/test, and push the hotkey fix.
+
+### 2026-05-02 11:52 AWST - Upstream sync + Hotkeys/input validation
+- Area/files: upstream develop sync plus Wayland portal hotkey accelerator generation; files: `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`, `Directory.Build.props`, `ShareX.ImageEditor`.
+- Findings: merged 4 upstream Android privacy/security commits into `develop`; ShareX.ImageEditor is healthy on `develop` with origin/upstream configured and no upstream-only commits. Spacebar accelerators needed GDK lowercase `space` parity for Wayland portal registration.
+- Fix: completed/pushed the pending spacebar accelerator normalization with regression coverage and patch bump `0.22.181` -> `0.22.182`; parent includes upstream merge commit.
+- Validation: Release build 0 warnings/0 errors; tests passed 781 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-114415.log`, `/tmp/xerahs-hourly-sweep/test-20260502-114826.log`.
+- Follow-up: continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization.
+
+### 2026-05-02 14:02 AWST - FTP uploader URL generation
+- Area: FTP uploader HTTP home/query URL generation after upstream sync.
+- Files: `src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs`, `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`, `Directory.Build.props`.
+- Finding/Fix: Fixed query-template HTTP home paths ending in `=` so auto-added subfolders append to the query value without inserting a leading slash, and handled parser-encoded `%3F` query separators.
+- Version: bumped `0.22.182` -> `0.22.183`.
+- Validation: Release build 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-135840.log`); Release tests passed 782 total (`/tmp/xerahs-hourly-sweep/test-20260502-140021.log`).
+- Follow-up: Continue rotating through uploader edge cases, especially FTP/SFTP path normalization and URL template parity.
+
+### 2026-05-02 15:51 AWST - Assistant history path equivalence
+- Area: Assistant local memory/privacy/history (symlink-equivalent history paths); files: `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`, `tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs`, `Directory.Build.props`.
+- Finding: history lookups canonicalized casing/full paths but did not compare symlink-resolved equivalents, so assistant OCR/history checks could miss captures accessed through a linked path.
+- Fix: compare both full and final symlink target paths for history lookups; added regression coverage; bumped version `0.22.183` -> `0.22.184`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-154623.log`).
+- Tests: pass, 783 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260502-155038.log`).
+- Follow-up: continue assistant memory review around alias deletion/import semantics and OCR cache invalidation when capture files are moved or deleted.
+
+### 2026-05-02 17:55 AWST - Assistant local memory alias deletion
+- Area: Assistant local memory/privacy/history (saved alias deletion semantics); files: `src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs`, `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`, `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`, `Directory.Build.props`.
+- Findings: Saved aliases could override built-in aliases but there was no safe local command to remove a saved alias and restore the built-in fallback.
+- Status: Fixed assistant prompts such as `forget alias ...` / `delete alias ...` / `remove assistant alias ...` to delete saved aliases, report misses, and fall back to built-ins after override removal; added regression coverage; bumped version `0.22.184` -> `0.22.185`.
+- Validation: Release build/test passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260502-174653.log`, `/tmp/xerahs-hourly-sweep/test-20260502-175017.log`.
+- Follow-up: continue assistant memory review around alias import/export semantics and OCR cache invalidation when capture files are moved or deleted.
+
+### 2026-05-02 19:54 AWST - Assistant OCR cache invalidation
+- Area: Assistant local memory/privacy/history (OCR cache invalidation for moved/deleted capture files); files: `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`, `tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`, `Directory.Build.props`.
+- Findings: Assistant OCR actions could reuse cached history OCR text before checking that the referenced capture file still existed, and latest-screenshot history items could surface stale OCR text for unavailable files.
+- Status: Fixed cached OCR reads/writes to require the local file to exist and hide OCR text on unavailable latest-screenshot entries; added regression coverage; bumped version `0.22.187` -> `0.22.188`.
+- Validation: Release build/test passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260502-195213.log`, `/tmp/xerahs-hourly-sweep/test-20260502-195414.log`.
+- Follow-up: continue assistant memory review around alias import/export semantics and history cleanup for moved files.
+
+### 2026-05-02 21:56 AWST - Linux Flatpak/Snap runtime app id normalization
+- Area: Linux Flatpak runtime compatibility / portal startup; files: `src/platform/XerahS.Platform.Linux/Services/LinuxRuntimeEnvironment.cs`, `src/platform/XerahS.Platform.Linux/Services/FlatpakPortalStartupService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxRuntimeEnvironmentTests.cs`, `tests/XerahS.Tests/Platform/Linux/FlatpakPortalServiceTests.cs`, `Directory.Build.props`.
+- Findings: Upstream Flatpak support trusted raw sandbox app-id environment/config values; whitespace-only or padded IDs could produce invalid portal autostart command lines and blank Snap IDs.
+- Status: Merged upstream `a2324c80` into `develop`; fixed sandbox app-id normalization for Flatpak/Snap detection and Flatpak autostart command generation; added regression coverage; bumped version `0.22.188` -> `0.22.189`; pushed `1bea7609` to `origin/develop`.
+- Build/test: Release build 0 warnings/0 errors; Release tests passed 796 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-214611.log`, `/tmp/xerahs-hourly-sweep/test-20260502-214934.log`.
+- Submodule: `ShareX.ImageEditor` verified on `develop`, origin/upstream remotes corrected, fetched both; origin/develop unchanged at `360eeabe`, fork remains 1 ahead of upstream with no pointer update needed.
+- Follow-up: continue Linux Flatpak portal review around portal notification payload variants, startup marker reconciliation after denied requests, and Wayland portal fallback diagnostics.
