@@ -3,6 +3,16 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+val releaseSigningStoreFile = providers.environmentVariable("XERAHS_ANDROID_UPLOAD_STORE_FILE").orNull
+val releaseSigningStorePassword = providers.environmentVariable("XERAHS_ANDROID_UPLOAD_STORE_PASSWORD").orNull
+val releaseSigningKeyAlias = providers.environmentVariable("XERAHS_ANDROID_UPLOAD_KEY_ALIAS").orNull
+val releaseSigningKeyPassword = providers.environmentVariable("XERAHS_ANDROID_UPLOAD_KEY_PASSWORD").orNull
+val hasReleaseSigningConfig =
+    !releaseSigningStoreFile.isNullOrBlank() &&
+        !releaseSigningStorePassword.isNullOrBlank() &&
+        !releaseSigningKeyAlias.isNullOrBlank() &&
+        !releaseSigningKeyPassword.isNullOrBlank()
+
 android {
     namespace = "com.getsharex.xerahs.mobile"
     compileSdk = 35
@@ -11,13 +21,28 @@ android {
         applicationId = "com.xerahs.xerahs.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22133
-        versionName = "0.22.133"
+        versionCode = 22170
+        versionName = "0.22.170"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = file(releaseSigningStoreFile!!)
+                storePassword = releaseSigningStorePassword
+                keyAlias = releaseSigningKeyAlias
+                keyPassword = releaseSigningKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
