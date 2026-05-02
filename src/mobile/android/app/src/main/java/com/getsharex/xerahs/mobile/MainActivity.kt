@@ -164,18 +164,30 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        AlertDialog.Builder(this)
+        var shouldCleanup = true
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Confirm upload")
             .setMessage(
                 "XerahS uploads files you select or share to the destination you configure, such as S3 or a custom uploader. " +
                     "XerahS does not host these files by default. The destination service may store, process, or expose your uploaded content according to its own settings and privacy policy."
             )
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Cancel") { _, _ ->
+                cleanupUploadPaths(app, uploadPaths)
+                Toast.makeText(this, "Upload cancelled.", Toast.LENGTH_SHORT).show()
+            }
             .setPositiveButton("Upload") { _, _ ->
+                shouldCleanup = false
                 app.settingsRepository.setFirstUploadWarningAccepted(true)
                 enqueueUploadPaths(app, uploadPaths)
             }
-            .show()
+            .create()
+        dialog.setOnCancelListener {
+            if (shouldCleanup) {
+                cleanupUploadPaths(app, uploadPaths)
+                Toast.makeText(this, "Upload cancelled.", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
     }
 
     private fun enqueueUploadPaths(app: XerahSApplication, uploadPaths: List<String>) {
@@ -185,6 +197,18 @@ class MainActivity : ComponentActivity() {
         app.navController?.navigate(Screen.Upload.route) {
             popUpTo(Screen.Upload.route) { inclusive = true }
             launchSingleTop = true
+        }
+    }
+
+    private fun cleanupUploadPaths(app: XerahSApplication, uploadPaths: List<String>) {
+        val cacheRoot = app.cacheDir.canonicalPath
+        uploadPaths.forEach { path ->
+            runCatching {
+                val file = File(path)
+                if (file.exists() && file.parentFile?.canonicalPath == cacheRoot) {
+                    file.delete()
+                }
+            }
         }
     }
 

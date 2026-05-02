@@ -23,6 +23,7 @@ package com.getsharex.xerahs.mobile
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.MimeTypeMap
@@ -54,11 +55,7 @@ object ShareIntentHandler {
                 }
             }
             Intent.ACTION_SEND -> {
-                @Suppress("DEPRECATION")
-                var uri: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM)
-                if (uri == null && intent.clipData != null && intent.clipData!!.itemCount > 0) {
-                    uri = intent.clipData!!.getItemAt(0).uri
-                }
+                val uri = firstSharedUri(intent)
                 if (uri != null) {
                     copyUriToCache(activity, uri, cacheDir, type)?.let { localPaths.add(it) }
                         ?: Log.w(TAG, "copyUriToCache failed for $uri")
@@ -69,11 +66,7 @@ object ShareIntentHandler {
                 }
             }
             Intent.ACTION_SEND_MULTIPLE -> {
-                @Suppress("DEPRECATION")
-                var uris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
-                if (uris.isNullOrEmpty() && intent.clipData != null) {
-                    uris = ArrayList((0 until intent.clipData!!.itemCount).map { intent.clipData!!.getItemAt(it).uri })
-                }
+                val uris = sharedUris(intent)
                 uris?.forEach { uri ->
                     copyUriToCache(activity, uri, cacheDir, type)?.let { localPaths.add(it) }
                         ?: Log.w(TAG, "copyUriToCache failed for $uri")
@@ -85,10 +78,37 @@ object ShareIntentHandler {
         return if (localPaths.isEmpty()) null else localPaths.toTypedArray()
     }
 
+    @Suppress("DEPRECATION")
+    private fun firstSharedUri(intent: Intent): Uri? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        } ?: intent.data ?: intent.clipData?.let { clipData ->
+            (0 until clipData.itemCount).firstNotNullOfOrNull { index -> clipData.getItemAt(index).uri }
+        }
+
+    @Suppress("DEPRECATION")
+    private fun sharedUris(intent: Intent): List<Uri>? {
+        val streamUris = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+        }
+        if (!streamUris.isNullOrEmpty()) return streamUris
+
+        val clipUris = intent.clipData?.let { clipData ->
+            (0 until clipData.itemCount).mapNotNull { index -> clipData.getItemAt(index).uri }
+        }
+        if (!clipUris.isNullOrEmpty()) return clipUris
+
+        return intent.data?.let { listOf(it) }
+    }
+
     private fun copyUriToCache(activity: MainActivity, uri: Uri, cacheDir: File, mimeType: String? = null): String? {
         return try {
             if (!uri.scheme.equals("content", ignoreCase = true)) return null
-            val resolvedMimeType = activity.contentResolver.getType(uri) ?: mimeType
+            val resolvedMimeType = runCatching { activity.contentResolver.getType(uri) }.getOrNull() ?: mimeType
             if (!isSupportedMimeType(resolvedMimeType, uri)) return null
             val size = contentSize(activity, uri)
             if (size != null && size > MAX_SHARED_BYTES) return null
@@ -138,10 +158,12 @@ object ShareIntentHandler {
     @Suppress("DEPRECATION")
     private fun getFileNameFromUri(activity: MainActivity, uri: Uri): String? {
         if (uri.scheme != "content") return uri.lastPathSegment?.substringAfterLast('/')
-        activity.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (nameIndex >= 0) return cursor.getString(nameIndex)
+        runCatching {
+            activity.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) return cursor.getString(nameIndex)
+                }
             }
         }
         return uri.lastPathSegment?.substringAfterLast('/')
@@ -149,7 +171,7 @@ object ShareIntentHandler {
 
     private fun extensionFromMimeType(activity: MainActivity?, uri: Uri?, mimeType: String?): String? {
         if (activity != null && uri != null) {
-            activity.contentResolver.getType(uri)?.let { resolved ->
+            runCatching { activity.contentResolver.getType(uri) }.getOrNull()?.let { resolved ->
                 MimeTypeMap.getSingleton().getExtensionFromMimeType(resolved)?.let { return it }
             }
         }
@@ -191,10 +213,12 @@ object ShareIntentHandler {
     }
 
     private fun contentSize(activity: MainActivity, uri: Uri): Long? {
-        activity.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) return cursor.getLong(sizeIndex)
+        runCatching {
+            activity.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) return cursor.getLong(sizeIndex)
+                }
             }
         }
         return null
