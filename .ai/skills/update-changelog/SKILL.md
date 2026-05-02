@@ -5,7 +5,7 @@ description: Rules and workflows for updating docs/CHANGELOG.md, including versi
 
 ## Automation Script (Recommended)
 
-Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below).
+Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below). Treat the script output as a draft: before applying or releasing, perform a human-quality grouping pass so repeated commits become concise user-facing bullets instead of a commit log dump.
 
 Script path:
 
@@ -42,6 +42,7 @@ Notes:
 - `-FromTag` defaults to `git describe --tags --abbrev=0`.
 - The script upserts `## vX.Y.Z` (replaces existing section for that version or inserts after `## Unreleased`).
 - **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same similarity bucket (for example: **ShareX.ImageEditor** in the subject, **2026-... blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
+- **Mandatory final compression pass**: even when the script consolidates automatically, scan each category for adjacent or near-duplicate entries with the same component, feature area, document series, platform, dependency, or bug theme. Merge those into one readable bullet unless doing so would hide contributor attribution or combine unrelated behavior.
 - Always **manually review** for wording, missed merges, and contributor attribution (`#PR`, `@user`) before publishing.
 
 ## Version Grouping Strategy
@@ -59,8 +60,11 @@ Notes:
 
 ### Consolidation Rules
 - Combine related commits that affect the same component and purpose.
+- Prefer semantic groups over literal commit prefixes: normalize minor wording differences like `add`, `update`, `finish`, `polish`, `refactor`, `wire`, `document`, and `fix` when they describe the same user-facing workstream.
+- Use one bullet per **component + intent cluster**, not one bullet per commit. Good clusters include UI polish, installer/docs updates, proposal draft series, editor cleanup, upload provider work, dependency/build maintenance, and repeated bug fixes for the same behavior.
 - Keep different components separate unless they are part of one coherent user-facing change.
 - Keep commits with external contributor attribution separate when merging would obscure credit.
+- If a category still reads like a raw commit log after consolidation, it is not done; merge further or rewrite the bullets into concise release-note language.
 
 ## Commit Entry Handling
 
