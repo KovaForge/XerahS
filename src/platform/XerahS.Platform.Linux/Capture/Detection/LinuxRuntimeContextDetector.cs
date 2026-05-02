@@ -32,10 +32,11 @@ internal static class LinuxRuntimeContextDetector
 {
     public static LinuxCaptureContext Detect()
     {
-        bool isWayland = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE")?.Equals("wayland", StringComparison.OrdinalIgnoreCase) == true;
-        string? desktop = DesktopEnvironmentDetector.Detect();
+        var environment = LinuxRuntimeEnvironment.Detect();
+        bool isWayland = environment.IsWayland;
+        string? desktop = environment.Desktop;
         string compositor = CompositorDetector.Detect(isWayland, desktop);
-        bool isSandboxed = SandboxDetector.IsSandboxed();
+        bool isSandboxed = environment.IsSandboxed;
         bool hasScreenshotPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Screenshot");
         bool hasGnomeShellScreenshot = false;
         bool hasKdeScreenShot2 = false;
@@ -66,6 +67,7 @@ internal static class LinuxRuntimeContextDetector
             compositor,
             isSandboxed,
             hasScreenshotPortal,
+            isFlatpak: environment.IsFlatpak,
             prefersPortalForRegionCaptureOnX11: x11PortalSupport.PrefersPortalForRegionCaptureOnX11);
     }
 }

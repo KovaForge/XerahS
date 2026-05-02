@@ -33,12 +33,14 @@ internal sealed class LinuxCaptureContext : ILinuxCaptureContext
         string? compositor,
         bool isSandboxed,
         bool hasScreenshotPortal,
+        bool isFlatpak = false,
         bool prefersPortalForRegionCaptureOnX11 = false)
     {
         IsWayland = isWayland;
         Desktop = desktop;
         Compositor = compositor;
         IsSandboxed = isSandboxed;
+        IsFlatpak = isFlatpak;
         HasScreenshotPortal = hasScreenshotPortal;
         PrefersPortalForRegionCaptureOnX11 = prefersPortalForRegionCaptureOnX11;
     }
@@ -50,6 +52,8 @@ internal sealed class LinuxCaptureContext : ILinuxCaptureContext
     public string? Compositor { get; }
 
     public bool IsSandboxed { get; }
+
+    public bool IsFlatpak { get; }
 
     public bool HasScreenshotPortal { get; }
 

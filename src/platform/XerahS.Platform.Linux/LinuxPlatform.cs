@@ -33,40 +33,44 @@ namespace XerahS.Platform.Linux
     {
         public static void Initialize(IScreenCaptureService? screenCaptureService = null, bool useWaylandPortalServices = true)
         {
+            var environment = LinuxRuntimeEnvironment.Detect();
+            DebugHelper.WriteLine($"Linux: Runtime environment detected: {environment.ToDiagnosticString()}");
+
             var clipboardService = new LinuxClipboardService();
-            var clipboardMonitorService = new LinuxClipboardMonitorService();
+            IClipboardMonitorService clipboardMonitorService = environment.IsSandboxed
+                ? new UnsupportedClipboardMonitorService()
+                : new LinuxClipboardMonitorService();
 
             // Use LinuxScreenCaptureService if none provided
             if (screenCaptureService == null)
             {
                 screenCaptureService = new LinuxScreenCaptureService();
-                DebugHelper.WriteLine(LinuxScreenCaptureService.IsWayland
-                    ? "Linux: Running on Wayland. Using LinuxScreenCaptureService with XDG Portal support."
-                    : "Linux: Running on X11. Using LinuxScreenCaptureService with CLI fallbacks.");
+                DebugHelper.WriteLine(environment.IsWayland || environment.IsSandboxed
+                    ? "Linux: Using LinuxScreenCaptureService with portal-aware capture routing."
+                    : "Linux: Using LinuxScreenCaptureService with native X11/CLI fallbacks.");
             }
 
-            bool isWayland = LinuxScreenCaptureService.IsWayland;
+            bool isWayland = environment.IsWayland;
 
             // When Wayland portal services are disabled, skip portal-backed hotkeys/input/system
             // and fall back to simpler desktop services.
             // This setting is separate from Linux screenshot/recording preferences.
             // It controls GlobalShortcuts/InputCapture/OpenURI integration only.
-            // On X11, this flag has no effect.
-            // On Wayland, disabling it may reduce integration but also avoids portal-specific issues.
+            // On native X11, this flag has no effect.
+            // On Wayland or sandboxed Linux, disabling it may reduce integration but also avoids portal-specific issues.
             // Keeping this separate avoids overloading the old UseModernCapture toggle.
             //
             // Note: Screen capture and recording continue to make their own backend decisions.
             // EIS connection errors and unnecessary D-Bus connections
-            bool usePortalServices = useWaylandPortalServices && isWayland;
-            if (!useWaylandPortalServices && isWayland)
+            bool usePortalServices = environment.ShouldUsePortalServices(useWaylandPortalServices);
+            if (!useWaylandPortalServices && (isWayland || environment.IsSandboxed))
             {
-                DebugHelper.WriteLine("Linux: Wayland portal services are disabled. Skipping portal hotkeys/input/system integration. " +
+                DebugHelper.WriteLine("Linux: Portal services are disabled. Skipping portal hotkeys/input/system integration. " +
                     "Using fallback services instead. Re-enable and restart to use portal-backed integration.");
             }
 
             bool hasGlobalShortcuts = usePortalServices && PortalInterfaceChecker.HasInterface("org.freedesktop.portal.GlobalShortcuts");
             bool hasInputCapture = usePortalServices && PortalInterfaceChecker.HasInterface("org.freedesktop.portal.InputCapture");
-            bool hasOpenUri = usePortalServices && PortalInterfaceChecker.HasInterface("org.freedesktop.portal.OpenURI");
 
             IHotkeyService hotkeyService = hasGlobalShortcuts
                 ? new WaylandPortalHotkeyService()
@@ -76,9 +80,15 @@ namespace XerahS.Platform.Linux
                 ? new WaylandPortalInputService()
                 : new LinuxInputService();
 
-            ISystemService systemService = hasOpenUri
-                ? new WaylandPortalSystemService()
+            ISystemService systemService = usePortalServices
+                ? new WaylandPortalSystemService(allowNativeFallback: !environment.IsSandboxed)
                 : new LinuxSystemService();
+
+            IStartupService startupService = CreateStartupService(environment);
+            IShellIntegrationService shellIntegrationService = environment.IsSandboxed
+                ? new UnsupportedShellIntegrationService()
+                : new LinuxShellIntegrationService();
+            var notificationService = CreateNotificationService(environment, usePortalServices);
 
             PlatformServices.Initialize(
                 platformInfo: new LinuxPlatformInfo(),
@@ -89,10 +99,10 @@ namespace XerahS.Platform.Linux
                 hotkeyService: hotkeyService,
                 inputService: inputService,
                 fontService: new LinuxFontService(),
-                startupService: new LinuxStartupService(),
+                startupService: startupService,
                 systemService: systemService,
-                shellIntegrationService: new LinuxShellIntegrationService(),
-                notificationService: new LinuxNotificationService(),
+                shellIntegrationService: shellIntegrationService,
+                notificationService: notificationService,
                 diagnosticService: new Services.LinuxDiagnosticService(),
                 watchFolderDaemonService: new LinuxWatchFolderDaemonService(),
                 clipboardMonitorService: clipboardMonitorService
@@ -104,6 +114,36 @@ namespace XerahS.Platform.Linux
             // Initialize theme service for dark mode detection
             PlatformServices.Theme = new LinuxThemeService();
             DebugHelper.WriteLine($"Linux: Theme service initialized. Dark mode preferred: {PlatformServices.Theme.IsDarkModePreferred}");
+        }
+
+        private static IStartupService CreateStartupService(LinuxRuntimeEnvironment environment)
+        {
+            if (!environment.IsSandboxed)
+            {
+                return new LinuxStartupService();
+            }
+
+            if (environment.IsFlatpak &&
+                PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Background"))
+            {
+                return new FlatpakPortalStartupService(environment.AppId ?? "io.github.ShareX.XerahS");
+            }
+
+            DebugHelper.WriteLine("Linux: Startup integration is unavailable in this sandbox.");
+            return new UnsupportedStartupService();
+        }
+
+        private static XerahS.Services.Abstractions.INotificationService CreateNotificationService(
+            LinuxRuntimeEnvironment environment,
+            bool usePortalServices)
+        {
+            if (usePortalServices &&
+                PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Notification"))
+            {
+                return new PortalNotificationService(allowNativeFallback: !environment.IsSandboxed);
+            }
+
+            return new LinuxNotificationService();
         }
 
         /// <summary>
@@ -119,11 +159,13 @@ namespace XerahS.Platform.Linux
             DebugHelper.WriteLine("LinuxPlatform.InitializeRecording() called");
             try
             {
-                bool isWayland = LinuxScreenCaptureService.IsWayland;
+                var environment = LinuxRuntimeEnvironment.Detect();
+                bool isWayland = environment.IsWayland;
                 DebugHelper.WriteLine($"LinuxPlatform: isWayland={isWayland}");
+                DebugHelper.WriteLine($"LinuxPlatform: recording environment={environment.ToDiagnosticString()}");
 
                 bool hasScreenCastPortal = false;
-                if (isWayland)
+                if (isWayland || environment.IsSandboxed)
                 {
                     hasScreenCastPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.ScreenCast");
                     DebugHelper.WriteLine($"LinuxPlatform: hasScreenCastPortal={hasScreenCastPortal}");
@@ -138,9 +180,9 @@ namespace XerahS.Platform.Linux
                 else
                 {
                     DebugHelper.WriteLine("Linux: ScreenCast portal NOT detected.");
-                    if (isWayland)
+                    if (isWayland || environment.IsSandboxed)
                     {
-                        DebugHelper.WriteLine("WARNING: On Wayland without ScreenCast portal, screen recording may not work properly.");
+                        DebugHelper.WriteLine("WARNING: On Wayland/sandboxed Linux without ScreenCast portal, screen recording may not work properly.");
                         DebugHelper.WriteLine("  - Install xdg-desktop-portal with ScreenCast support for your desktop environment");
                         DebugHelper.WriteLine("  - Ensure PipeWire is running");
                         DebugHelper.WriteLine("  - Common portal backends: xdg-desktop-portal-gnome, xdg-desktop-portal-kde, xdg-desktop-portal-wlr, xdg-desktop-portal-hyprland");
@@ -152,8 +194,10 @@ namespace XerahS.Platform.Linux
                 }
 
                 // FFmpeg fallback only works reliably on X11
-                // On Wayland without portal, this will likely fail
-                ScreenRecorderService.FallbackServiceFactory = () => new FFmpegRecordingService();
+                // On Wayland or in Flatpak without portal, this will likely fail
+                ScreenRecorderService.FallbackServiceFactory = environment.IsSandboxed
+                    ? null
+                    : () => new FFmpegRecordingService();
 
                 DebugHelper.WriteLine("Linux: Screen recording initialized successfully");
                 DebugHelper.WriteLine(hasScreenCastPortal
