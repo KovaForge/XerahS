@@ -7,6 +7,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Collections.ObjectModel;
 using NUnit.Framework;
 using XerahS.Uploaders.PluginSystem;
 
@@ -32,6 +33,30 @@ public class PluginLoaderTests
             Assert.That(loader.GetLoadedContexts().ContainsKey(MismatchedPluginProvider.ProviderIdValue), Is.True);
             Assert.That(loader.GetLoadedContexts().ContainsKey(manifest.PluginId), Is.False);
         });
+
+        Assert.That(loader.UnloadPlugin(MismatchedPluginProvider.ProviderIdValue), Is.True);
+        Assert.That(loader.GetLoadedContexts(), Is.Empty);
+    }
+
+    [Test]
+    public void GetLoadedContexts_ReturnsSnapshotSoUnloadHandlesCannotBeClearedExternally()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(CreateMismatchedProviderManifest("manifest-plugin-id"), Path.GetDirectoryName(assemblyPath)!, assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Not.Null);
+        var contexts = loader.GetLoadedContexts();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(contexts, Is.InstanceOf<ReadOnlyDictionary<string, PluginLoadContext>>());
+            Assert.That(contexts, Has.Count.EqualTo(1));
+            Assert.That(loader.GetLoadedContexts(), Has.Count.EqualTo(1));
+        });
+
+        Assert.Throws<NotSupportedException>(() => ((IDictionary<string, PluginLoadContext>)contexts).Clear());
+        Assert.That(loader.GetLoadedContexts(), Has.Count.EqualTo(1));
 
         Assert.That(loader.UnloadPlugin(MismatchedPluginProvider.ProviderIdValue), Is.True);
         Assert.That(loader.GetLoadedContexts(), Is.Empty);

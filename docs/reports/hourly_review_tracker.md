@@ -400,3 +400,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Upstream/Submodules: Parent `upstream/develop` had no new commits to merge; `ShareX.ImageEditor` stayed on `develop` at `360eeab`, origin/upstream fetched and already contained upstream `2144d8a`.
 - Validation: Release build and tests passed with zero warnings/errors. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-054454.log`, `/tmp/xerahs-hourly-sweep/test-20260503-054812.log`.
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for non-root asset metadata.
+
+### 2026-05-03 07:56 AWST - Plugin loading/runtime load-context snapshot
+- Area: Plugin loading/runtime (`PluginLoader.GetLoadedContexts` external mutation hardening); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `GetLoadedContexts()` returned the loader's live dictionary behind an `IReadOnlyDictionary`, so diagnostic/preview callers could cast and mutate it, losing unload handles and leaking collectible contexts.
+- Status: Fixed the API to return a read-only snapshot, added regression coverage that external `Clear()` is rejected while unload still succeeds, and bumped version `0.22.193` -> `0.22.194`.
+- Upstream/submodules: parent already ahead of `upstream/develop` with no new upstream commits; `ShareX.ImageEditor` remotes verified (`origin` KovaForge, `upstream` ShareX), on `develop`, no pointer change.
+- Validation: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-075142.log`); Release tests passed 808 total, 0 failed (`/tmp/xerahs-hourly-sweep/test-20260503-075425.log`).
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for non-root asset metadata.

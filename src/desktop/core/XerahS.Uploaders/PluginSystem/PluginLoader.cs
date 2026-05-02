@@ -23,8 +23,9 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Common;
+using System.Collections.ObjectModel;
 using System.Reflection;
+using XerahS.Common;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
@@ -186,7 +187,8 @@ public class PluginLoader
     /// <summary>
     /// Get list of loaded plugin contexts
     /// </summary>
-    public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() => _loadedContexts;
+    public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() =>
+        new ReadOnlyDictionary<string, PluginLoadContext>(new Dictionary<string, PluginLoadContext>(_loadedContexts));
 
     private static void UnloadFailedContext(PluginLoadContext loadContext)
     {
