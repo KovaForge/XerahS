@@ -395,6 +395,21 @@ public sealed class FtpConfigViewModelTests
         });
     }
 
+    [Test]
+    public void GetUriPath_QueryTemplateAppendsSubfolderWithoutLeadingSlash()
+    {
+        var account = new FTPAccount
+        {
+            Host = "ftp.example.com",
+            BrowserProtocol = BrowserProtocol.https,
+            HttpHomePath = "cdn.example.com/view?file=",
+            SubFolderPath = "shots"
+        };
+
+        string url = account.GetUriPath("capture 1.png");
+
+        Assert.That(url, Is.EqualTo("https://cdn.example.com/view?file=shots/capture%201.png"));
+    }
 
     [Test]
     public void GetUriPath_BracketedIpv6HttpHomePathWithoutPort_PreservesHost()

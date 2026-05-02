@@ -205,7 +205,15 @@ namespace XerahS.Uploaders.FileUploaders
             else
             {
                 int firstSlash = httpHomePath.IndexOf('/');
-                string httpHome = firstSlash >= 0 ? httpHomePath.Substring(0, firstSlash) : httpHomePath;
+                int firstQuestion = httpHomePath.IndexOf('?');
+                int firstEncodedQuestion = httpHomePath.IndexOf("%3F", StringComparison.OrdinalIgnoreCase);
+                int firstQuery = firstQuestion >= 0 && firstEncodedQuestion >= 0
+                    ? Math.Min(firstQuestion, firstEncodedQuestion)
+                    : Math.Max(firstQuestion, firstEncodedQuestion);
+                int firstPathOrQuery = firstSlash >= 0 && firstQuery >= 0
+                    ? Math.Min(firstSlash, firstQuery)
+                    : Math.Max(firstSlash, firstQuery);
+                string httpHome = firstPathOrQuery >= 0 ? httpHomePath.Substring(0, firstPathOrQuery) : httpHomePath;
 
                 string httpHomeHost = httpHome;
                 int httpHomePort = -1;
@@ -253,10 +261,17 @@ namespace XerahS.Uploaders.FileUploaders
                     }
                 }
 
-                string httpHomePathAndQuery = firstSlash >= 0 ? httpHomePath.Substring(firstSlash + 1) : string.Empty;
+                string httpHomePathAndQuery = firstPathOrQuery >= 0
+                    ? httpHomePath.Substring(firstPathOrQuery + (httpHomePath[firstPathOrQuery] == '/' ? 1 : 0))
+                    : string.Empty;
                 int querySpecifiedAt = httpHomePathAndQuery.LastIndexOf('?');
-                string httpHomeDir = querySpecifiedAt >= 0 ? httpHomePathAndQuery.Substring(0, querySpecifiedAt) : httpHomePathAndQuery;
-                string httpHomeQuery = querySpecifiedAt >= 0 ? httpHomePathAndQuery.Substring(querySpecifiedAt + 1) : string.Empty;
+                int encodedQuerySpecifiedAt = httpHomePathAndQuery.LastIndexOf("%3F", StringComparison.OrdinalIgnoreCase);
+                int querySeparatorAt = querySpecifiedAt >= 0 && encodedQuerySpecifiedAt >= 0
+                    ? Math.Max(querySpecifiedAt, encodedQuerySpecifiedAt)
+                    : Math.Max(querySpecifiedAt, encodedQuerySpecifiedAt);
+                int querySeparatorLength = querySeparatorAt == encodedQuerySpecifiedAt ? 3 : 1;
+                string httpHomeDir = querySeparatorAt >= 0 ? httpHomePathAndQuery.Substring(0, querySeparatorAt) : httpHomePathAndQuery;
+                string httpHomeQuery = querySeparatorAt >= 0 ? httpHomePathAndQuery.Substring(querySeparatorAt + querySeparatorLength) : string.Empty;
 
                 httpHomeUri = new UriBuilder
                 {
@@ -273,9 +288,10 @@ namespace XerahS.Uploaders.FileUploaders
                 if (httpHomeUri.Query.EndsWith("=", StringComparison.Ordinal))
                 {
                     string query = httpHomeUri.Query.TrimStart('?');
-                    httpHomeUri.Query = httpHomePathAutoAddSubFolderPath
-                        ? URLHelpers.CombineURL(query, subFolderPath, fileName)
-                        : query + fileName;
+                    string queryValue = httpHomePathAutoAddSubFolderPath
+                        ? URLHelpers.CombineURL(subFolderPath, fileName)
+                        : fileName;
+                    httpHomeUri.Query = query + queryValue;
                 }
                 else
                 {

@@ -332,3 +332,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Fix: completed/pushed the pending spacebar accelerator normalization with regression coverage and patch bump `0.22.181` -> `0.22.182`; parent includes upstream merge commit.
 - Validation: Release build 0 warnings/0 errors; tests passed 781 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-114415.log`, `/tmp/xerahs-hourly-sweep/test-20260502-114826.log`.
 - Follow-up: continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization.
+
+### 2026-05-02 14:02 AWST - FTP uploader URL generation
+- Area: FTP uploader HTTP home/query URL generation after upstream sync.
+- Files: `src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs`, `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`, `Directory.Build.props`.
+- Finding/Fix: Fixed query-template HTTP home paths ending in `=` so auto-added subfolders append to the query value without inserting a leading slash, and handled parser-encoded `%3F` query separators.
+- Version: bumped `0.22.182` -> `0.22.183`.
+- Validation: Release build 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-135840.log`); Release tests passed 782 total (`/tmp/xerahs-hourly-sweep/test-20260502-140021.log`).
+- Follow-up: Continue rotating through uploader edge cases, especially FTP/SFTP path normalization and URL template parity.
