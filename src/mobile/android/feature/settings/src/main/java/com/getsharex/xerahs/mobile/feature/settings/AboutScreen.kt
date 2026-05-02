@@ -58,7 +58,7 @@ private val aboutLinks = listOf(
     AboutLink("Issues", "https://github.com/ShareX/XerahS/issues/"),
     AboutLink("Contributors", "https://github.com/ShareX/XerahS/graphs/contributors"),
     AboutLink("Changelog", "https://xerahs.com/changelog.html"),
-    AboutLink("Privacy Policy", "https://getsharex.com/privacy-policy")
+    AboutLink("Privacy Policy", "https://xerahs.com/privacy-policy/")
 )
 
 private val socialLinks = listOf(
@@ -68,7 +68,7 @@ private val socialLinks = listOf(
 )
 
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(onBack: (() -> Unit)?) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -88,10 +88,12 @@ fun AboutScreen(onBack: () -> Unit) {
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onBack) { Text("Back") }
+            if (onBack != null) {
+                Button(onClick = onBack) { Text("Back") }
+            }
             Text(text = "About", style = MaterialTheme.typography.titleLarge)
         }
         Spacer(modifier = Modifier.height(16.dp))

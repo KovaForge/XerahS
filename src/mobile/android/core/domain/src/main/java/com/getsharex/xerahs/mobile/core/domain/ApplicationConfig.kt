@@ -21,6 +21,8 @@
 
 package com.getsharex.xerahs.mobile.core.domain
 
+const val XERAHS_MOBILE_CONFIG_VERSION = "0.22.170"
+
 /**
  * Minimal app config for mobile: default destination, S3, and custom uploaders.
  * Persisted as JSON in settings folder (ApplicationConfig.json).
@@ -74,7 +76,7 @@ enum class CustomUploaderBodyType {
 }
 
 data class SxcuDefinition(
-    var Version: String = "0.22.133",
+    var Version: String = XERAHS_MOBILE_CONFIG_VERSION,
     var Name: String = "",
     var DestinationType: String = "FileUploader",
     var RequestMethod: CustomUploaderRequestMethod = CustomUploaderRequestMethod.POST,
@@ -96,7 +98,7 @@ data class SxcuDefinition(
  */
 data class CustomUploaderEntry(
     var id: String = "",
-    var version: String = "0.22.133",
+    var version: String = XERAHS_MOBILE_CONFIG_VERSION,
     var name: String = "",
     var destinationType: String = "FileUploader",
     var requestMethod: CustomUploaderRequestMethod = CustomUploaderRequestMethod.POST,
@@ -120,7 +122,7 @@ data class CustomUploaderEntry(
         get() = name.ifBlank { requestUrl.substringAfter("://", requestUrl).substringBefore('/').ifBlank { id } }
 
     fun toSxcuDefinition(): SxcuDefinition = SxcuDefinition(
-        Version = version.ifBlank { "0.22.133" },
+        Version = version.ifBlank { XERAHS_MOBILE_CONFIG_VERSION },
         Name = name,
         DestinationType = destinationType,
         RequestMethod = requestMethod,

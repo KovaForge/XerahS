@@ -28,8 +28,11 @@ import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -50,8 +53,8 @@ class UploadQueueWorker(
     private val _state = MutableStateFlow(UploadQueueState(processing = false, pendingCount = 0))
     val state: StateFlow<UploadQueueState> = _state.asStateFlow()
 
-    private val _itemCompleted = MutableStateFlow<UploadResultItem?>(null)
-    val itemCompleted: StateFlow<UploadResultItem?> = _itemCompleted.asStateFlow()
+    private val _itemCompleted = MutableSharedFlow<UploadResultItem>(extraBufferCapacity = 16)
+    val itemCompleted: SharedFlow<UploadResultItem> = _itemCompleted.asSharedFlow()
 
     private var processingJob: Job? = null
 
@@ -73,8 +76,7 @@ class UploadQueueWorker(
                         url = resultUrl
                     )
                 }
-                _itemCompleted.value = result
-                _itemCompleted.value = null
+                _itemCompleted.emit(result)
             }
             updateState()
         }

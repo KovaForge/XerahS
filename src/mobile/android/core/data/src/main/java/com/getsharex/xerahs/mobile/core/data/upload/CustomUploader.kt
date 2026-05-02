@@ -214,7 +214,7 @@ class CustomUploader(
 
     private fun renderTemplate(template: String, context: TemplateContext, urlEncodeInput: Boolean = false): String {
         if (template.isBlank()) return ""
-        val regex = Regex("""\{([A-Za-z][^{}]*)}""")
+        val regex = Regex("""\{([A-Za-z][^{}]*)\}""")
         var result = template
         repeat(12) {
             val updated = regex.replace(result) { match ->
