@@ -27,6 +27,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -115,6 +116,9 @@ fun XerahSNavGraph(
                     },
                     onNavigateSettings = {
                         navController.navigateTopLevel(Screen.Settings.route)
+                    },
+                    onNavigateAbout = {
+                        navController.navigateTopLevel(Screen.About.route)
                     }
                 )
             }
@@ -161,7 +165,6 @@ fun XerahSNavGraph(
                     onBack = null,
                     onNavigateToS3 = { navController.navigate(Screen.S3Config.route) },
                     onNavigateToCustomUploader = { navController.navigate(Screen.CustomUploaderConfig.route) },
-                    onNavigateToAbout = { navController.navigate(Screen.About.route) },
                     onRefresh = { }
                 )
             } else {
@@ -181,7 +184,7 @@ fun XerahSNavGraph(
             )
         }
         composable(Screen.About.route) {
-            AboutScreen(onBack = { navController.popBackStack() })
+            AboutScreen(onBack = null)
         }
     }
     }
@@ -191,7 +194,8 @@ fun XerahSNavGraph(
 private fun XerahSNavigationBar(
     selectedRoute: String?,
     onNavigateHome: () -> Unit,
-    onNavigateSettings: () -> Unit
+    onNavigateSettings: () -> Unit,
+    onNavigateAbout: () -> Unit
 ) {
     NavigationBar {
         NavigationBarItem(
@@ -216,6 +220,17 @@ private fun XerahSNavigationBar(
             },
             label = { Text("Settings") }
         )
+        NavigationBarItem(
+            selected = selectedRoute == Screen.About.route,
+            onClick = onNavigateAbout,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = "About"
+                )
+            },
+            label = { Text("About") }
+        )
     }
 }
 
@@ -223,6 +238,7 @@ private fun NavDestination.selectedTopLevelRoute(): String? =
     when {
         route == Screen.Loading.route -> null
         route?.startsWith("settings") == true -> Screen.Settings.route
+        route == Screen.About.route -> Screen.About.route
         else -> Screen.Upload.route
     }
 

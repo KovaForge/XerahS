@@ -58,7 +58,6 @@ fun SettingsHubScreen(
     onBack: (() -> Unit)?,
     onNavigateToS3: () -> Unit,
     onNavigateToCustomUploader: () -> Unit,
-    onNavigateToAbout: () -> Unit,
     onRefresh: () -> Unit = {}
 ) {
     val config = settingsRepository.load()
@@ -262,25 +261,6 @@ fun SettingsHubScreen(
                             text = it,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                onClick = onNavigateToAbout,
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "About XerahS", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            text = "Version, build, and project links",
-                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
