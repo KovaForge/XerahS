@@ -36,10 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun PlaceholderUploadScreen(
-    onOpenHistory: () -> Unit,
-    onOpenSettings: () -> Unit
-) {
+fun PlaceholderUploadScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,10 +50,6 @@ fun PlaceholderUploadScreen(
                 text = "XerahS",
                 style = MaterialTheme.typography.titleLarge
             )
-            Row {
-                Button(onClick = onOpenHistory) { Text("History") }
-                Button(onClick = onOpenSettings) { Text("Settings") }
-            }
         }
         Column(
             modifier = Modifier

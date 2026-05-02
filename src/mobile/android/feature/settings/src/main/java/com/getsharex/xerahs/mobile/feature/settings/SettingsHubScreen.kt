@@ -55,7 +55,7 @@ import com.getsharex.xerahs.mobile.core.domain.selectableDestinations
 @Composable
 fun SettingsHubScreen(
     settingsRepository: SettingsRepository,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onNavigateToS3: () -> Unit,
     onNavigateToCustomUploader: () -> Unit,
     onNavigateToAbout: () -> Unit,
@@ -78,10 +78,12 @@ fun SettingsHubScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onBack) { Text("Back") }
+            if (onBack != null) {
+                Button(onClick = onBack) { Text("Back") }
+            }
             OutlinedButton(onClick = onRefresh) { Text("Refresh") }
         }
         Spacer(modifier = Modifier.height(16.dp))

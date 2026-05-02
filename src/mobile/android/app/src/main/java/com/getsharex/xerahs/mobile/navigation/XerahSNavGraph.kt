@@ -24,19 +24,29 @@ package com.getsharex.xerahs.mobile.navigation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.getsharex.xerahs.mobile.XerahSApplication
@@ -92,8 +102,29 @@ fun XerahSNavGraph(
     }
 
     val hasPendingShare = app?.pendingSharedPaths?.isNotEmpty() == true
+    val navBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry.value?.destination
+    val selectedTopLevelRoute = currentDestination?.selectedTopLevelRoute()
+    val showTopLevelNavigation = selectedTopLevelRoute != null
+
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            if (showTopLevelNavigation) {
+                XerahSNavigationBar(
+                    selectedRoute = selectedTopLevelRoute,
+                    onNavigateHome = {
+                        navController.navigateTopLevel(Screen.Upload.route)
+                    },
+                    onNavigateHistory = {
+                        navController.navigateTopLevel(Screen.History.route)
+                    },
+                    onNavigateSettings = {
+                        navController.navigateTopLevel(Screen.Settings.route)
+                    }
+                )
+            }
+        }
     ) { paddingValues ->
     NavHost(
         modifier = Modifier.padding(paddingValues),
@@ -117,8 +148,6 @@ fun XerahSNavGraph(
                 }
                 UploadScreen(
                     worker = worker,
-                    onOpenHistory = { navController.navigate(Screen.History.route) },
-                    onOpenSettings = { navController.navigate(Screen.Settings.route) },
                     onPickFiles = null,
                     onCopyToClipboard = onCopyToClipboard,
                     onAutoShareUploadFinished = onAutoShareUploadFinished,
@@ -126,10 +155,7 @@ fun XerahSNavGraph(
                     settingsRepository = app.settingsRepository
                 )
             } else {
-                PlaceholderUploadScreen(
-                    onOpenHistory = { navController.navigate(Screen.History.route) },
-                    onOpenSettings = { navController.navigate(Screen.Settings.route) }
-                )
+                PlaceholderUploadScreen()
             }
         }
         composable(Screen.History.route) {
@@ -137,11 +163,11 @@ fun XerahSNavGraph(
             if (historyRepo != null) {
                 HistoryScreen(
                     historyRepository = historyRepo,
-                    onBack = { navController.popBackStack() },
+                    onBack = null,
                     onCopyToClipboard = onCopyToClipboard
                 )
             } else {
-                PlaceholderHistoryScreen(onBack = { navController.popBackStack() })
+                PlaceholderHistoryScreen(onBack = { navController.navigateTopLevel(Screen.Upload.route) })
             }
         }
         composable(Screen.Settings.route) {
@@ -149,14 +175,14 @@ fun XerahSNavGraph(
             if (settingsRepo != null) {
                 SettingsHubScreen(
                     settingsRepository = settingsRepo,
-                    onBack = { navController.popBackStack() },
+                    onBack = null,
                     onNavigateToS3 = { navController.navigate(Screen.S3Config.route) },
                     onNavigateToCustomUploader = { navController.navigate(Screen.CustomUploaderConfig.route) },
                     onNavigateToAbout = { navController.navigate(Screen.About.route) },
                     onRefresh = { }
                 )
             } else {
-                PlaceholderSettingsScreen(onBack = { navController.popBackStack() })
+                PlaceholderSettingsScreen(onBack = null)
             }
         }
         composable(Screen.S3Config.route) {
@@ -175,5 +201,67 @@ fun XerahSNavGraph(
             AboutScreen(onBack = { navController.popBackStack() })
         }
     }
+    }
+}
+
+@Composable
+private fun XerahSNavigationBar(
+    selectedRoute: String?,
+    onNavigateHome: () -> Unit,
+    onNavigateHistory: () -> Unit,
+    onNavigateSettings: () -> Unit
+) {
+    NavigationBar {
+        NavigationBarItem(
+            selected = selectedRoute == Screen.Upload.route,
+            onClick = onNavigateHome,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Home,
+                    contentDescription = "Home"
+                )
+            },
+            label = { Text("Home") }
+        )
+        NavigationBarItem(
+            selected = selectedRoute == Screen.History.route,
+            onClick = onNavigateHistory,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.History,
+                    contentDescription = "History"
+                )
+            },
+            label = { Text("History") }
+        )
+        NavigationBarItem(
+            selected = selectedRoute == Screen.Settings.route,
+            onClick = onNavigateSettings,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = "Settings"
+                )
+            },
+            label = { Text("Settings") }
+        )
+    }
+}
+
+private fun NavDestination.selectedTopLevelRoute(): String? =
+    when {
+        route == Screen.Loading.route -> null
+        route?.startsWith("settings") == true -> Screen.Settings.route
+        route == Screen.History.route -> Screen.History.route
+        else -> Screen.Upload.route
+    }
+
+private fun NavHostController.navigateTopLevel(route: String) {
+    navigate(route) {
+        popUpTo(Screen.Upload.route) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }

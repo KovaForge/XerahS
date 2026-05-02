@@ -58,8 +58,6 @@ import java.io.File
 @Composable
 fun UploadScreen(
     worker: UploadQueueWorker,
-    onOpenHistory: () -> Unit,
-    onOpenSettings: () -> Unit,
     onPickFiles: (() -> Unit)? = null,
     onCopyToClipboard: (String) -> Unit = {},
     onAutoShareUploadFinished: (List<UploadResultItem>) -> Unit = {},
@@ -117,11 +115,6 @@ fun UploadScreen(
                 text = "XerahS",
                 style = MaterialTheme.typography.titleLarge
             )
-            Row {
-                OutlinedButton(onClick = onOpenHistory) { Text("History") }
-                Spacer(modifier = Modifier.padding(4.dp))
-                OutlinedButton(onClick = onOpenSettings) { Text("Settings") }
-            }
         }
         Spacer(modifier = Modifier.height(16.dp))
         Column(
