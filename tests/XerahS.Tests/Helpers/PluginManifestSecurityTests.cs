@@ -120,6 +120,22 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void PreviewPackage_RejectsDuplicateManifestEntries()
+    {
+        string packagePath = Path.Combine(_tempRoot, "duplicate-preview-manifest.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("other-plugin", "other-plugin.dll"));
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("duplicate entry path"));
+    }
+
+    [Test]
     public void InstallPackage_RejectsFileThenNestedDirectoryCollision()
     {
         string packagePath = Path.Combine(_tempRoot, "file-directory-collision.xsdp");

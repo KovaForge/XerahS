@@ -378,3 +378,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Fix: moved new marker writes to XDG state, kept legacy config-marker reads for migration, deletes both paths on disable/new write, and updated tests; bumped version to 0.22.190.
 - Build/test: Release build 0 warnings/0 errors; Release tests passed (789 + 14). Logs: `/tmp/xerahs-hourly-sweep/build-20260502-235518.log`, `/tmp/xerahs-hourly-sweep/test-20260502-235626.log`.
 - Follow-up: Continue Linux portal UX review around Background portal denial/cancellation diagnostics.
+
+### 2026-05-03 01:56 AWST - Plugin loading/runtime preview manifest validation
+- Area: Plugin loading/runtime (`.xsdp` preview/install manifest entry parity); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: `PreviewPackage` trusted the first `plugin.json` entry while install-time safe extraction rejected duplicate entries later, letting installer UI preview ambiguous/tampered package metadata.
+- Status: Fixed manifest lookup to require a single manifest entry for preview and install, added duplicate-manifest preview regression coverage, and bumped version `0.22.190` -> `0.22.191`.
+- Validation: Release build and full Release test suite passed with zero warnings/errors; logs under `/tmp/xerahs-hourly-sweep/`.
+- Follow-up: continue plugin runtime review around package entry casing/canonicalization parity and load-context unload diagnostics.

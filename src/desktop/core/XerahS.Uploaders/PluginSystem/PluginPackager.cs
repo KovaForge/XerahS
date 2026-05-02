@@ -85,11 +85,7 @@ public static class PluginPackager
         DebugHelper.WriteLine($"Plugin install requested: {packageFilePath}");
 
         using var archive = ZipFile.OpenRead(packageFilePath);
-        var manifestEntry = archive.GetEntry(ManifestFileName);
-        if (manifestEntry == null)
-        {
-            throw new InvalidDataException($"Package does not contain {ManifestFileName}");
-        }
+        var manifestEntry = GetSingleManifestEntry(archive, requireManifest: true)!;
 
         string manifestJson;
         using (var stream = manifestEntry.Open())
@@ -168,7 +164,7 @@ public static class PluginPackager
         }
 
         using var archive = ZipFile.OpenRead(packageFilePath);
-        var manifestEntry = archive.GetEntry(ManifestFileName);
+        var manifestEntry = GetSingleManifestEntry(archive, requireManifest: false);
         if (manifestEntry == null)
         {
             return null;
@@ -184,6 +180,33 @@ public static class PluginPackager
     {
         string json = File.ReadAllText(manifestPath);
         return LoadAndValidateManifestJson(json);
+    }
+
+    private static ZipArchiveEntry? GetSingleManifestEntry(ZipArchive archive, bool requireManifest)
+    {
+        ZipArchiveEntry? manifestEntry = null;
+
+        foreach (var entry in archive.Entries)
+        {
+            if (!entry.FullName.Equals(ManifestFileName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (manifestEntry != null)
+            {
+                throw new InvalidDataException("Package contains a duplicate entry path for the manifest.");
+            }
+
+            manifestEntry = entry;
+        }
+
+        if (manifestEntry == null && requireManifest)
+        {
+            throw new InvalidDataException($"Package does not contain {ManifestFileName}");
+        }
+
+        return manifestEntry;
     }
 
     private static PluginManifest LoadAndValidateManifestJson(string json)
