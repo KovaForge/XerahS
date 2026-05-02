@@ -39,6 +39,10 @@ public sealed class AssistantLocalMemoryStore
         @"^\s*(?:alias|remember|save\s+alias)\s+""?(?<alias>[^""=]+?)""?\s+(?:as|=)\s+""?(?<command>.+?)""?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex DeleteAliasRegex = new(
+        @"^\s*(?:delete|forget|remove)\s+(?:assistant\s+)?alias\s+""?(?<alias>[^""=]+?)""?\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static readonly IReadOnlyDictionary<string, string> BuiltInAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["copy last five paths"] = "Copy the local file paths of my last 5 screenshots",
@@ -76,6 +80,19 @@ public sealed class AssistantLocalMemoryStore
 
         definition = new AssistantAliasDefinition(alias, command);
         return true;
+    }
+
+    public bool TryParseAliasDeletion(string prompt, out string alias)
+    {
+        alias = string.Empty;
+        var match = DeleteAliasRegex.Match(prompt);
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        alias = Normalize(match.Groups["alias"].Value);
+        return !string.IsNullOrWhiteSpace(alias);
     }
 
     public bool TryResolveAlias(string prompt, out string command)
@@ -125,6 +142,16 @@ public sealed class AssistantLocalMemoryStore
         command.Parameters.AddWithValue("$command", definition.Command.Trim());
         command.Parameters.AddWithValue("$updatedAt", DateTimeOffset.UtcNow.ToString("O"));
         command.ExecuteNonQuery();
+    }
+
+    public bool DeleteAlias(string alias)
+    {
+        EnsureInitialized();
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM aliases WHERE alias = $alias;";
+        command.Parameters.AddWithValue("$alias", Normalize(alias));
+        return command.ExecuteNonQuery() > 0;
     }
 
     public void RecordExecution(AssistantDeterministicIntent intent, string actionSummary, bool pinned = false)

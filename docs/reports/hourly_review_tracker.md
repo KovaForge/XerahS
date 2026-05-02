@@ -348,3 +348,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-154623.log`).
 - Tests: pass, 783 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260502-155038.log`).
 - Follow-up: continue assistant memory review around alias deletion/import semantics and OCR cache invalidation when capture files are moved or deleted.
+
+### 2026-05-02 17:55 AWST - Assistant local memory alias deletion
+- Area: Assistant local memory/privacy/history (saved alias deletion semantics); files: `src/desktop/app/XerahS.Assistant/Services/AssistantLocalMemoryStore.cs`, `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`, `tests/XerahS.Tests/Assistant/AssistantLocalMemoryStoreTests.cs`, `Directory.Build.props`.
+- Findings: Saved aliases could override built-in aliases but there was no safe local command to remove a saved alias and restore the built-in fallback.
+- Status: Fixed assistant prompts such as `forget alias ...` / `delete alias ...` / `remove assistant alias ...` to delete saved aliases, report misses, and fall back to built-ins after override removal; added regression coverage; bumped version `0.22.184` -> `0.22.185`.
+- Validation: Release build/test passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260502-174653.log`, `/tmp/xerahs-hourly-sweep/test-20260502-175017.log`.
+- Follow-up: continue assistant memory review around alias import/export semantics and OCR cache invalidation when capture files are moved or deleted.

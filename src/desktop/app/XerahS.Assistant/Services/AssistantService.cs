@@ -90,6 +90,14 @@ public sealed class AssistantService : IAssistantService
             return AssistantResponse.Info($"Saved assistant alias: {aliasDefinition.Alias}");
         }
 
+        if (_memoryStore.TryParseAliasDeletion(prompt, out string aliasToDelete))
+        {
+            DebugHelper.WriteLine($"[Assistant] Deleting alias '{aliasToDelete}'.");
+            return _memoryStore.DeleteAlias(aliasToDelete)
+                ? AssistantResponse.Info($"Deleted assistant alias: {aliasToDelete}")
+                : AssistantResponse.Info($"No saved assistant alias found: {aliasToDelete}");
+        }
+
         if (_memoryStore.TryResolveAlias(prompt, out string aliasCommand))
         {
             DebugHelper.WriteLine($"[Assistant] Resolved alias prompt to '{aliasCommand}'.");
