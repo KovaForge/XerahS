@@ -30,6 +30,7 @@ using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
 using Tmds.DBus;
 using XerahS.Common;
+using XerahS.Platform.Linux.Services;
 
 namespace XerahS.Platform.Linux.Capture;
 
@@ -47,8 +48,8 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
 
     public static bool IsSupported()
     {
-        var sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
-        return sessionType?.Equals("wayland", StringComparison.OrdinalIgnoreCase) ?? false;
+        var environment = LinuxRuntimeEnvironment.Detect();
+        return environment.IsWayland || environment.IsSandboxed;
     }
 
     public MonitorInfo[] GetMonitors()
@@ -80,6 +81,11 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
         if (captured != null)
         {
             return captured;
+        }
+
+        if (LinuxRuntimeEnvironment.Detect().IsSandboxed)
+        {
+            throw new InvalidOperationException("Portal capture failed in a sandboxed Linux environment; native CLI capture fallbacks are disabled.");
         }
 
         var cliStrategy = new LinuxCliCaptureStrategy();

@@ -154,6 +154,24 @@ public class LinuxCaptureOrchestrationTests
     }
 
     [Test]
+    public void WaterfallPolicy_FlatpakX11_UsesPortalOnlyOrder()
+    {
+        var policy = new WaterfallCapturePolicy();
+        var request = new LinuxCaptureRequest(LinuxCaptureKind.Region, options: null);
+        var context = new LinuxCaptureContext(
+            isWayland: false,
+            desktop: "KDE",
+            compositor: "X11",
+            isSandboxed: true,
+            hasScreenshotPortal: true,
+            isFlatpak: true);
+
+        var order = policy.GetStageOrder(request, context);
+
+        Assert.That(order, Is.EqualTo(new[] { LinuxCaptureStage.Portal }));
+    }
+
+    [Test]
     public async Task Coordinator_TraceRecordsSkipFailSuccessInOrder()
     {
         var providers = new ILinuxCaptureProvider[]

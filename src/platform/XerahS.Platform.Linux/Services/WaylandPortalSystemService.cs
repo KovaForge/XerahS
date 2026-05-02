@@ -41,13 +41,24 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
     private static readonly ObjectPath PortalObjectPath = new("/org/freedesktop/portal/desktop");
 
     private readonly LinuxSystemService _fallback = new();
+    private readonly bool _allowNativeFallback;
     private Connection? _connection;
     private IOpenUriPortal? _portal;
     private bool _disposed;
 
-    public WaylandPortalSystemService()
+    public WaylandPortalSystemService(bool allowNativeFallback = true)
     {
-        if (!WaylandPortalStrategy.IsSupported())
+        _allowNativeFallback = allowNativeFallback;
+
+        if (!allowNativeFallback || WaylandPortalStrategy.IsSupported())
+        {
+            InitializePortal();
+        }
+    }
+
+    private void InitializePortal()
+    {
+        if (!PortalInterfaceChecker.HasInterface("org.freedesktop.portal.OpenURI"))
         {
             return;
         }
@@ -66,7 +77,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         }
     }
 
-    public bool IsDesktopWallpaperSupported => _fallback.IsDesktopWallpaperSupported;
+    public bool IsDesktopWallpaperSupported => _allowNativeFallback && _fallback.IsDesktopWallpaperSupported;
 
     public bool ShowFileInExplorer(string filePath)
     {
@@ -84,7 +95,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
             }
         }
 
-        return _fallback.ShowFileInExplorer(filePath);
+        return _allowNativeFallback && _fallback.ShowFileInExplorer(filePath);
     }
 
     public bool OpenUrl(string url)
@@ -102,7 +113,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
             }
         }
 
-        return _fallback.OpenUrl(url);
+        return _allowNativeFallback && _fallback.OpenUrl(url);
     }
 
     public bool OpenFile(string filePath)
@@ -123,7 +134,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
                 }
             }
 
-            return _fallback.OpenFile(filePath);
+            return _allowNativeFallback && _fallback.OpenFile(filePath);
         }
 
         if (_portal != null)
@@ -135,17 +146,29 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
             }
         }
 
-        return _fallback.OpenFile(filePath);
+        return _allowNativeFallback && _fallback.OpenFile(filePath);
     }
 
     public bool TryGetDesktopWallpaperPath(out string? path)
     {
-        return _fallback.TryGetDesktopWallpaperPath(out path);
+        if (_allowNativeFallback)
+        {
+            return _fallback.TryGetDesktopWallpaperPath(out path);
+        }
+
+        path = null;
+        return false;
     }
 
     public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
     {
-        return _fallback.TryGetDesktopWallpaper(out wallpaper);
+        if (_allowNativeFallback)
+        {
+            return _fallback.TryGetDesktopWallpaper(out wallpaper);
+        }
+
+        wallpaper = null;
+        return false;
     }
 
     internal static string CreateDirectoryUri(string directoryPath)

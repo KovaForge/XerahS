@@ -23,19 +23,12 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Platform.Linux.Services;
+namespace XerahS.Platform.Linux.Services;
 
-namespace XerahS.Platform.Linux.Capture.Detection;
-
-internal static class SandboxDetector
+internal enum LinuxSandboxKind
 {
-    public static bool IsSandboxed()
-    {
-        return LinuxRuntimeEnvironment.Detect().IsSandboxed;
-    }
-
-    public static bool IsFlatpak()
-    {
-        return LinuxRuntimeEnvironment.Detect().IsFlatpak;
-    }
+    None,
+    Flatpak,
+    Snap,
+    Container
 }
