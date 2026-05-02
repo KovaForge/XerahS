@@ -188,9 +188,14 @@ public static class PluginPackager
 
         foreach (var entry in archive.Entries)
         {
-            if (!entry.FullName.Equals(ManifestFileName, StringComparison.Ordinal))
+            if (!entry.FullName.Equals(ManifestFileName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
+            }
+
+            if (!entry.FullName.Equals(ManifestFileName, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException($"Package contains a non-canonical manifest entry path: {entry.FullName}");
             }
 
             if (manifestEntry != null)

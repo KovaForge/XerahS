@@ -385,3 +385,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed manifest lookup to require a single manifest entry for preview and install, added duplicate-manifest preview regression coverage, and bumped version `0.22.190` -> `0.22.191`.
 - Validation: Release build and full Release test suite passed with zero warnings/errors; logs under `/tmp/xerahs-hourly-sweep/`.
 - Follow-up: continue plugin runtime review around package entry casing/canonicalization parity and load-context unload diagnostics.
+
+### 2026-05-03 03:53 AWST - Plugin loading/runtime manifest casing parity
+- Area: Plugin loading/runtime (`.xsdp` manifest entry canonicalization); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Upstream sync: `develop` already contained `upstream/develop` (`2914c22d`) and remained 4 commits ahead of upstream / even with origin; ShareX.ImageEditor stayed on `develop` at `360eeab`, remotes verified, no parent pointer change needed.
+- Status: Fixed preview/install manifest lookup to reject case-variant non-canonical `plugin.json` entries instead of preview silently ignoring packages that would collide on case-insensitive extraction; added regression coverage; bumped version `0.22.191` -> `0.22.192`.
+- Build/test: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-034510.log`); Release tests passed 805 total (`/tmp/xerahs-hourly-sweep/test-20260503-034826.log`).
+- Follow-up: continue plugin runtime review around package path segment canonicalization beyond root manifest casing and load-context unload diagnostics.

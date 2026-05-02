@@ -119,6 +119,22 @@ public class PluginManifestSecurityTests
         });
     }
 
+
+    [Test]
+    public void PreviewPackage_RejectsCaseVariantManifestEntry()
+    {
+        string packagePath = Path.Combine(_tempRoot, "case-variant-manifest.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "Plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("non-canonical manifest entry path"));
+    }
+
     [Test]
     public void PreviewPackage_RejectsDuplicateManifestEntries()
     {
