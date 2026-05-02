@@ -355,3 +355,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed assistant prompts such as `forget alias ...` / `delete alias ...` / `remove assistant alias ...` to delete saved aliases, report misses, and fall back to built-ins after override removal; added regression coverage; bumped version `0.22.184` -> `0.22.185`.
 - Validation: Release build/test passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260502-174653.log`, `/tmp/xerahs-hourly-sweep/test-20260502-175017.log`.
 - Follow-up: continue assistant memory review around alias import/export semantics and OCR cache invalidation when capture files are moved or deleted.
+
+### 2026-05-02 19:54 AWST - Assistant OCR cache invalidation
+- Area: Assistant local memory/privacy/history (OCR cache invalidation for moved/deleted capture files); files: `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`, `tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`, `Directory.Build.props`.
+- Findings: Assistant OCR actions could reuse cached history OCR text before checking that the referenced capture file still existed, and latest-screenshot history items could surface stale OCR text for unavailable files.
+- Status: Fixed cached OCR reads/writes to require the local file to exist and hide OCR text on unavailable latest-screenshot entries; added regression coverage; bumped version `0.22.187` -> `0.22.188`.
+- Validation: Release build/test passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260502-195213.log`, `/tmp/xerahs-hourly-sweep/test-20260502-195414.log`.
+- Follow-up: continue assistant memory review around alias import/export semantics and history cleanup for moved files.

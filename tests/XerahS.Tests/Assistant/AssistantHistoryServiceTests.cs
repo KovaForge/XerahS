@@ -112,6 +112,7 @@ public sealed class AssistantHistoryServiceTests
     {
         string historyPath = SettingsManager.GetHistoryFilePath();
         string filePath = Path.Combine(SettingsManager.HistoryFolder, "capture.png");
+        File.WriteAllText(filePath, "image placeholder");
 
         using (var connection = new SqliteConnection($"Data Source={historyPath}"))
         {
@@ -125,6 +126,51 @@ public sealed class AssistantHistoryServiceTests
         string? ocrText = await service.GetCachedOcrTextAsync($"  {filePath}  ", CancellationToken.None);
 
         Assert.That(ocrText, Is.EqualTo("cached text"));
+    }
+
+    [Test]
+    public async Task GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_IgnoresStaleCachedText()
+    {
+        string historyPath = SettingsManager.GetHistoryFilePath();
+        string filePath = Path.Combine(SettingsManager.HistoryFolder, "deleted-capture.png");
+
+        using (var connection = new SqliteConnection($"Data Source={historyPath}"))
+        {
+            connection.Open();
+            CreateHistoryTable(connection);
+            InsertHistoryItem(connection, filePath, new DateTime(2026, 5, 2, 11, 0, 0, DateTimeKind.Utc), "{\"OcrText\":\"stale text\"}");
+        }
+
+        var service = new AssistantHistoryService();
+
+        string? ocrText = await service.GetCachedOcrTextAsync(filePath, CancellationToken.None);
+
+        Assert.That(ocrText, Is.Null);
+    }
+
+    [Test]
+    public async Task GetLatestScreenshotsAsync_WhenHistoryFileWasDeleted_HidesStaleOcrText()
+    {
+        string historyPath = SettingsManager.GetHistoryFilePath();
+        string filePath = Path.Combine(SettingsManager.HistoryFolder, "deleted-capture.png");
+
+        using (var connection = new SqliteConnection($"Data Source={historyPath}"))
+        {
+            connection.Open();
+            CreateHistoryTable(connection);
+            InsertHistoryItem(connection, filePath, new DateTime(2026, 5, 2, 11, 5, 0, DateTimeKind.Utc), "{\"OcrText\":\"stale text\"}");
+        }
+
+        var service = new AssistantHistoryService();
+
+        IReadOnlyList<AssistantHistoryItem> items = await service.GetLatestScreenshotsAsync(1, CancellationToken.None);
+
+        Assert.That(items, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(items[0].Exists, Is.False);
+            Assert.That(items[0].OcrText, Is.Null);
+        });
     }
 
     private static void CreateHistoryTable(SqliteConnection connection)
