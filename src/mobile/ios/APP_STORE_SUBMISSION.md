@@ -9,6 +9,7 @@ Validated on 2026-04-29 for bundle ID `com.xerahs.xerahs.mobile`.
 - App and share extension include privacy manifests for App Group `UserDefaults` access using required reason `1C8F.1`.
 - App and share extension share files through App Group `group.com.xerahs.xerahs`.
 - App `Info.plist` declares `ITSAppUsesNonExemptEncryption` as `false`.
+- In-app About screen links to the public XerahS Privacy Policy at `https://xerahs.com/privacy-policy/`.
 - App and share extension use marketing version `0.22.133` and build number `2`.
 - Uploader secrets are migrated out of the JSON settings file and into Keychain.
 - App Store Connect export options are in `ExportOptions.plist`.
@@ -16,7 +17,7 @@ Validated on 2026-04-29 for bundle ID `com.xerahs.xerahs.mobile`.
 ## App Store Connect Checklist
 
 - Agreements, Tax, and Banking: confirm the Apple Developer account has no pending agreement, tax, or banking actions.
-- App Information: set category to Utilities, set Support URL, Marketing URL if available, and a public Privacy Policy URL.
+- App Information: set category to Utilities, set Support URL, Marketing URL if available, and Privacy Policy URL `https://xerahs.com/privacy-policy/`.
 - Privacy: answer App Privacy questions based on the current app behavior. The app does not use tracking, analytics SDKs, ads, camera, microphone, location, contacts, or photo-library permission prompts. It sends user-selected files only to destinations configured by the user, such as S3 or a custom uploader.
 - Age Rating: complete the App Store Connect questionnaire. The expected rating should be low because the app has no user-generated content feed, gambling, commerce, social networking, or mature built-in content.
 - Pricing and Availability: choose storefront availability and price tier.
