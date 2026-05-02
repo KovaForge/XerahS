@@ -392,3 +392,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed preview/install manifest lookup to reject case-variant non-canonical `plugin.json` entries instead of preview silently ignoring packages that would collide on case-insensitive extraction; added regression coverage; bumped version `0.22.191` -> `0.22.192`.
 - Build/test: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-034510.log`); Release tests passed 805 total (`/tmp/xerahs-hourly-sweep/test-20260503-034826.log`).
 - Follow-up: continue plugin runtime review around package path segment canonicalization beyond root manifest casing and load-context unload diagnostics.
+
+### 2026-05-03 05:54 AWST - Plugin loading/runtime package entry path canonicalization
+- Area: Plugin loading/runtime (`.xsdp` extraction entry path canonicalization); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: `.xsdp` install extraction canonicalized target paths after `Path.GetFullPath`, allowing ambiguous archive names such as `assets/../sample-plugin.dll` to install as valid files and backslash-separated entries to behave differently across platforms.
+- Status: Fixed install extraction to reject rooted, backslash, empty, `.`, and `..` entry path segments before extraction; added regression coverage for dot-dot and backslash entries; bumped version `0.22.192` -> `0.22.193`.
+- Upstream/Submodules: Parent `upstream/develop` had no new commits to merge; `ShareX.ImageEditor` stayed on `develop` at `360eeab`, origin/upstream fetched and already contained upstream `2144d8a`.
+- Validation: Release build and tests passed with zero warnings/errors. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-054454.log`, `/tmp/xerahs-hourly-sweep/test-20260503-054812.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for non-root asset metadata.

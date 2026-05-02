@@ -200,6 +200,50 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void InstallPackage_RejectsDotDotEntryPathSegments()
+    {
+        string packagePath = Path.Combine(_tempRoot, "dotdot-entry.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        Directory.CreateDirectory(pluginsRoot);
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "assets/../sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("non-canonical entry path"));
+            Assert.That(Directory.Exists(Path.Combine(pluginsRoot, "sample-plugin")), Is.False);
+        });
+    }
+
+    [Test]
+    public void InstallPackage_RejectsBackslashEntryPathSeparators()
+    {
+        string packagePath = Path.Combine(_tempRoot, "backslash-entry.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        Directory.CreateDirectory(pluginsRoot);
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "assets\\sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("non-canonical entry path"));
+            Assert.That(Directory.Exists(Path.Combine(pluginsRoot, "sample-plugin")), Is.False);
+        });
+    }
+
+    [Test]
     public void InstallPackage_CreatesMissingPluginsDirectory()
     {
         string packagePath = Path.Combine(_tempRoot, "sample.xsdp");

@@ -250,6 +250,8 @@ public static class PluginPackager
                 continue;
             }
 
+            ValidateCanonicalEntryPath(entry.FullName);
+
             string targetPath = NormalizeExtractedPath(Path.GetFullPath(Path.Combine(destinationDirectory, entry.FullName)));
             if (!targetPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
             {
@@ -295,6 +297,33 @@ public static class PluginPackager
 
             entry.ExtractToFile(targetPath, false);
             extractedFiles.Add(targetPath);
+        }
+    }
+
+    private static void ValidateCanonicalEntryPath(string entryName)
+    {
+        if (Path.IsPathRooted(entryName) || entryName.Contains('\\'))
+        {
+            throw new InvalidDataException("Package contains a non-canonical entry path.");
+        }
+
+        string[] segments = entryName.Split('/');
+        int lastSegmentIndex = segments.Length - 1;
+
+        for (int i = 0; i < segments.Length; i++)
+        {
+            string segment = segments[i];
+            bool isTrailingDirectorySeparator = i == lastSegmentIndex && segment.Length == 0;
+
+            if (isTrailingDirectorySeparator)
+            {
+                continue;
+            }
+
+            if (segment.Length == 0 || segment == "." || segment == "..")
+            {
+                throw new InvalidDataException("Package contains a non-canonical entry path.");
+            }
         }
     }
 
