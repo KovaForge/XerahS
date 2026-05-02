@@ -103,6 +103,12 @@ public class LinuxHotkeyServiceTests
     }
 
     [Test]
+    public void WaylandPortalHotkeyService_MapKeyName_SpaceUsesGdkName()
+    {
+        Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.Space), Is.EqualTo("space"));
+    }
+
+    [Test]
     public void WaylandPortalHotkeyService_BuildShortcutSnapshotMap_ToleratesDuplicatePortalIds()
     {
         var first = new Dictionary<string, object>

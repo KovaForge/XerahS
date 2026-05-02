@@ -318,3 +318,17 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Fix: map keypad digits to `KP_0`..`KP_9`, add regression coverage for mapping and preferred trigger output, and bump version `0.22.180` -> `0.22.181`.
 - Validation: Release build 0 warnings/0 errors; tests passed 780 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-074515.log`, `/tmp/xerahs-hourly-sweep/test-20260502-074902.log`.
 - Follow-up: continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization.
+
+### 2026-05-02 09:43 AWST - Hotkeys/input
+- Area/files: Wayland portal hotkey accelerator generation; files: `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`, `Directory.Build.props`.
+- Findings: the Wayland portal emitted `Space` for spacebar shortcuts while GDK/X11 key names use lowercase `space`, creating a platform parity edge case where compositors may reject the accelerator.
+- Fix: normalized Wayland portal spacebar accelerators to `space`, added regression coverage, and bumped version `0.22.181` -> `0.22.182`.
+- Validation: blocked pending local exec approval for sync/build/test/push; latest sync command approval gate is `165b74a7` and build gate is `29f9c0d8`.
+- Follow-up: once exec approval is available, complete upstream/submodule sync, Release build/test, and push the hotkey fix.
+
+### 2026-05-02 11:52 AWST - Upstream sync + Hotkeys/input validation
+- Area/files: upstream develop sync plus Wayland portal hotkey accelerator generation; files: `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`, `Directory.Build.props`, `ShareX.ImageEditor`.
+- Findings: merged 4 upstream Android privacy/security commits into `develop`; ShareX.ImageEditor is healthy on `develop` with origin/upstream configured and no upstream-only commits. Spacebar accelerators needed GDK lowercase `space` parity for Wayland portal registration.
+- Fix: completed/pushed the pending spacebar accelerator normalization with regression coverage and patch bump `0.22.181` -> `0.22.182`; parent includes upstream merge commit.
+- Validation: Release build 0 warnings/0 errors; tests passed 781 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-114415.log`, `/tmp/xerahs-hourly-sweep/test-20260502-114826.log`.
+- Follow-up: continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization.

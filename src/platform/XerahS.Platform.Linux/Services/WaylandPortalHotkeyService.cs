@@ -970,7 +970,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         { Key.Scroll, "Scroll_Lock" },
         { Key.Pause, "Pause" },
         { Key.CapsLock, "Caps_Lock" },
-        { Key.Space, "Space" },
+        { Key.Space, "space" },
         { Key.Tab, "Tab" },
         { Key.Enter, "Return" },
         { Key.Back, "BackSpace" },
