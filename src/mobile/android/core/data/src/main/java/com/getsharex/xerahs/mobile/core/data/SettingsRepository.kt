@@ -95,6 +95,12 @@ class SettingsRepository(
         save(c.copy(convertHeicToPng = value))
     }
 
+    fun hasAcceptedFirstUploadWarning(): Boolean = load().firstUploadWarningAccepted
+    fun setFirstUploadWarningAccepted(value: Boolean) {
+        val c = load()
+        save(c.copy(firstUploadWarningAccepted = value))
+    }
+
     private fun writeConfig(config: ApplicationConfig, file: File) {
         Paths.settingsFolder?.mkdirs()
         file.writeText(gson.toJson(config))

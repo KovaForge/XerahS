@@ -30,7 +30,9 @@ data class ApplicationConfig(
     var s3Config: S3Config = S3Config(),
     var customUploaders: List<CustomUploaderEntry> = emptyList(),
     /** Convert HEIC/HEIF images to PNG before upload so they display in browsers instead of prompting download. */
-    var convertHeicToPng: Boolean = true
+    var convertHeicToPng: Boolean = true,
+    /** User has acknowledged that uploads send selected files to their configured third-party destination. */
+    var firstUploadWarningAccepted: Boolean = false
 )
 
 data class S3Config(
