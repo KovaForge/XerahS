@@ -362,3 +362,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed cached OCR reads/writes to require the local file to exist and hide OCR text on unavailable latest-screenshot entries; added regression coverage; bumped version `0.22.187` -> `0.22.188`.
 - Validation: Release build/test passed with zero warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260502-195213.log`, `/tmp/xerahs-hourly-sweep/test-20260502-195414.log`.
 - Follow-up: continue assistant memory review around alias import/export semantics and history cleanup for moved files.
+
+### 2026-05-02 21:56 AWST - Linux Flatpak/Snap runtime app id normalization
+- Area: Linux Flatpak runtime compatibility / portal startup; files: `src/platform/XerahS.Platform.Linux/Services/LinuxRuntimeEnvironment.cs`, `src/platform/XerahS.Platform.Linux/Services/FlatpakPortalStartupService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxRuntimeEnvironmentTests.cs`, `tests/XerahS.Tests/Platform/Linux/FlatpakPortalServiceTests.cs`, `Directory.Build.props`.
+- Findings: Upstream Flatpak support trusted raw sandbox app-id environment/config values; whitespace-only or padded IDs could produce invalid portal autostart command lines and blank Snap IDs.
+- Status: Merged upstream `a2324c80` into `develop`; fixed sandbox app-id normalization for Flatpak/Snap detection and Flatpak autostart command generation; added regression coverage; bumped version `0.22.188` -> `0.22.189`; pushed `1bea7609` to `origin/develop`.
+- Build/test: Release build 0 warnings/0 errors; Release tests passed 796 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-214611.log`, `/tmp/xerahs-hourly-sweep/test-20260502-214934.log`.
+- Submodule: `ShareX.ImageEditor` verified on `develop`, origin/upstream remotes corrected, fetched both; origin/develop unchanged at `360eeabe`, fork remains 1 ahead of upstream with no pointer update needed.
+- Follow-up: continue Linux Flatpak portal review around portal notification payload variants, startup marker reconciliation after denied requests, and Wayland portal fallback diagnostics.
