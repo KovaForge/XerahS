@@ -60,11 +60,9 @@ class UploadViewModel(
                 else -> if (_results.value.isEmpty()) "Share files to XerahS to upload them." else "Done."
             }
         }.launchIn(viewModelScope)
-        worker.itemCompleted.onEach { item ->
-            item?.let { result ->
-                _results.value = _results.value + result
-                _completedResult.emit(result)
-            }
+        worker.itemCompleted.onEach { result ->
+            _results.value = _results.value + result
+            _completedResult.emit(result)
         }.launchIn(viewModelScope)
         viewModelScope.launch {
             worker.updateState()
