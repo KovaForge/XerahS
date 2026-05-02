@@ -23,11 +23,11 @@ package com.getsharex.xerahs.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,32 +42,39 @@ fun PlaceholderUploadScreen() {
             .fillMaxSize()
             .padding(20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "XerahS",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
+        Text(
+            text = "XerahS",
+            style = MaterialTheme.typography.titleLarge
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(vertical = 24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
         ) {
-            Text(
-                text = "Share & Upload",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Share files to XerahS to upload them.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Button(onClick = { }) {
-                Text("Choose Photo or File")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Home",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Ready for shared files.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Uploaded links will appear here.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

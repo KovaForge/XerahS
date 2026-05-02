@@ -26,7 +26,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -51,11 +50,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.getsharex.xerahs.mobile.XerahSApplication
 import com.getsharex.xerahs.mobile.ui.screens.LoadingScreen
-import com.getsharex.xerahs.mobile.ui.screens.PlaceholderHistoryScreen
 import com.getsharex.xerahs.mobile.ui.screens.PlaceholderSettingsScreen
 import com.getsharex.xerahs.mobile.feature.upload.UploadScreen
 import com.getsharex.xerahs.mobile.ui.screens.PlaceholderUploadScreen
-import com.getsharex.xerahs.mobile.feature.history.HistoryScreen
 import com.getsharex.xerahs.mobile.feature.settings.AboutScreen
 import com.getsharex.xerahs.mobile.feature.settings.SettingsHubScreen
 import com.getsharex.xerahs.mobile.feature.settings.S3ConfigScreen
@@ -116,9 +113,6 @@ fun XerahSNavGraph(
                     onNavigateHome = {
                         navController.navigateTopLevel(Screen.Upload.route)
                     },
-                    onNavigateHistory = {
-                        navController.navigateTopLevel(Screen.History.route)
-                    },
                     onNavigateSettings = {
                         navController.navigateTopLevel(Screen.Settings.route)
                     }
@@ -152,22 +146,11 @@ fun XerahSNavGraph(
                     onCopyToClipboard = onCopyToClipboard,
                     onAutoShareUploadFinished = onAutoShareUploadFinished,
                     initialPaths = pending,
+                    historyRepository = app.historyRepository,
                     settingsRepository = app.settingsRepository
                 )
             } else {
                 PlaceholderUploadScreen()
-            }
-        }
-        composable(Screen.History.route) {
-            val historyRepo = app?.historyRepository
-            if (historyRepo != null) {
-                HistoryScreen(
-                    historyRepository = historyRepo,
-                    onBack = null,
-                    onCopyToClipboard = onCopyToClipboard
-                )
-            } else {
-                PlaceholderHistoryScreen(onBack = { navController.navigateTopLevel(Screen.Upload.route) })
             }
         }
         composable(Screen.Settings.route) {
@@ -208,7 +191,6 @@ fun XerahSNavGraph(
 private fun XerahSNavigationBar(
     selectedRoute: String?,
     onNavigateHome: () -> Unit,
-    onNavigateHistory: () -> Unit,
     onNavigateSettings: () -> Unit
 ) {
     NavigationBar {
@@ -222,17 +204,6 @@ private fun XerahSNavigationBar(
                 )
             },
             label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = selectedRoute == Screen.History.route,
-            onClick = onNavigateHistory,
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.History,
-                    contentDescription = "History"
-                )
-            },
-            label = { Text("History") }
         )
         NavigationBarItem(
             selected = selectedRoute == Screen.Settings.route,
@@ -252,7 +223,6 @@ private fun NavDestination.selectedTopLevelRoute(): String? =
     when {
         route == Screen.Loading.route -> null
         route?.startsWith("settings") == true -> Screen.Settings.route
-        route == Screen.History.route -> Screen.History.route
         else -> Screen.Upload.route
     }
 

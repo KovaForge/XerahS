@@ -73,7 +73,6 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
     implementation(project(":feature:upload"))
-    implementation(project(":feature:history"))
     implementation(project(":feature:settings"))
 
     implementation(libs.core.ktx)
