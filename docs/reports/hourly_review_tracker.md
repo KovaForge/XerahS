@@ -340,3 +340,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version: bumped `0.22.182` -> `0.22.183`.
 - Validation: Release build 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-135840.log`); Release tests passed 782 total (`/tmp/xerahs-hourly-sweep/test-20260502-140021.log`).
 - Follow-up: Continue rotating through uploader edge cases, especially FTP/SFTP path normalization and URL template parity.
+
+### 2026-05-02 15:51 AWST - Assistant history path equivalence
+- Area: Assistant local memory/privacy/history (symlink-equivalent history paths); files: `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`, `tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs`, `Directory.Build.props`.
+- Finding: history lookups canonicalized casing/full paths but did not compare symlink-resolved equivalents, so assistant OCR/history checks could miss captures accessed through a linked path.
+- Fix: compare both full and final symlink target paths for history lookups; added regression coverage; bumped version `0.22.183` -> `0.22.184`.
+- Build: pass, 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260502-154623.log`).
+- Tests: pass, 783 total / 0 failed (`/tmp/xerahs-hourly-sweep/test-20260502-155038.log`).
+- Follow-up: continue assistant memory review around alias deletion/import semantics and OCR cache invalidation when capture files are moved or deleted.

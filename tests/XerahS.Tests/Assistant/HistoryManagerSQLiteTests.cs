@@ -67,6 +67,51 @@ public sealed class HistoryManagerSQLiteTests
         }
     }
 
+
+    [Test]
+    public void ContainsFilePath_MatchesSymbolicLinkEquivalentPath()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+            string targetPath = Path.Combine(tempDirectory, "target.png");
+            string linkPath = Path.Combine(tempDirectory, "linked.png");
+            File.WriteAllText(targetPath, "image placeholder");
+
+            try
+            {
+                File.CreateSymbolicLink(linkPath, targetPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            {
+                Assert.Ignore($"Symbolic links are not available in this test environment: {ex.Message}");
+            }
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "target.png",
+                    FilePath = targetPath,
+                    DateTime = new DateTime(2026, 5, 2, 7, 0, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+
+                Assert.That(manager.ContainsFilePath(linkPath), Is.True);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
     [Test]
     public void ContainsFilePath_UsesHostPathCasingSemantics()
     {
