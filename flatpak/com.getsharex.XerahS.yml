@@ -76,7 +76,7 @@ modules:
         path: ../dist/xerahs-flatpak-staging
         dest: self-contained
       - type: file
-        path: ../src/desktop/app/XerahS.UI/Assets/Logo.png
+        path: ../src/desktop/app/XerahS.UI/Assets/ShareX.iconset/icon_256x256.png
         dest-filename: com.getsharex.XerahS.png
       - type: file
         path: com.getsharex.XerahS.desktop
