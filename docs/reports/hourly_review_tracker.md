@@ -408,3 +408,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Upstream/submodules: parent already ahead of `upstream/develop` with no new upstream commits; `ShareX.ImageEditor` remotes verified (`origin` KovaForge, `upstream` ShareX), on `develop`, no pointer change.
 - Validation: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-075142.log`); Release tests passed 808 total, 0 failed (`/tmp/xerahs-hourly-sweep/test-20260503-075425.log`).
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for non-root asset metadata.
+
+### 2026-05-03 11:55 AWST - Plugin loading/runtime preview package asset path parity
+- Area: Plugin loading/runtime (`.xsdp` preview validation for non-root asset entries); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: Preview validation parsed the manifest but did not apply install-time canonical entry/path-collision checks to non-root package assets, so malformed packages could preview successfully and only fail during install.
+- Status: Fixed preview to validate all archive entry paths, duplicate/case-insensitive collisions, and file-vs-directory parent collisions before reading manifest metadata; added regressions for dot-dot asset paths and file-then-nested asset collisions; bumped version `0.22.194` -> `0.22.195`.
+- Validation: Release build/test passed with 0 warnings; logs: `/tmp/xerahs-hourly-sweep/build-20260503-115628.log`, `/tmp/xerahs-hourly-sweep/test-20260503-115950.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for declared assembly/dependency asset existence.

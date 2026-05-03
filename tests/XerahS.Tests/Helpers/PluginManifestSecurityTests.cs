@@ -152,6 +152,39 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void PreviewPackage_RejectsNonCanonicalAssetEntryPath()
+    {
+        string packagePath = Path.Combine(_tempRoot, "preview-dotdot-entry.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "assets/../sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("non-canonical entry path"));
+    }
+
+    [Test]
+    public void PreviewPackage_RejectsFileThenNestedAssetPathCollision()
+    {
+        string packagePath = Path.Combine(_tempRoot, "preview-file-directory-collision.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+            AddTextEntry(archive, "assets", "file that blocks nested assets directory");
+            AddTextEntry(archive, "assets/icon.png", "icon");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("file/directory path collision"));
+    }
+
+    [Test]
     public void InstallPackage_RejectsFileThenNestedDirectoryCollision()
     {
         string packagePath = Path.Combine(_tempRoot, "file-directory-collision.xsdp");

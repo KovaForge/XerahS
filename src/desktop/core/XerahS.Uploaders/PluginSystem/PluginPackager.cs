@@ -170,6 +170,8 @@ public static class PluginPackager
             return null;
         }
 
+        ValidateArchiveEntryPaths(archive);
+
         using var stream = manifestEntry.Open();
         using var reader = new StreamReader(stream);
         string json = reader.ReadToEnd();
@@ -229,6 +231,56 @@ public static class PluginPackager
         }
 
         return manifest;
+    }
+
+    private static void ValidateArchiveEntryPaths(ZipArchive archive)
+    {
+        var extractedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.FullName))
+            {
+                continue;
+            }
+
+            ValidateCanonicalEntryPath(entry.FullName);
+
+            string entryPath = NormalizeExtractedPath(entry.FullName);
+            bool isDirectory = string.IsNullOrEmpty(entry.Name);
+            bool collidesWithDifferentEntryType = isDirectory
+                ? extractedFiles.Contains(entryPath)
+                : extractedDirectories.Contains(entryPath);
+            if (collidesWithDifferentEntryType)
+            {
+                throw new InvalidDataException("Package contains a file/directory path collision.");
+            }
+
+            if (!extractedPaths.Add(entryPath))
+            {
+                throw new InvalidDataException("Package contains a duplicate entry path.");
+            }
+
+            if (isDirectory)
+            {
+                if (HasParentEntryFilePath(extractedFiles, entryPath))
+                {
+                    throw new InvalidDataException("Package contains a file/directory path collision.");
+                }
+
+                extractedDirectories.Add(entryPath);
+                continue;
+            }
+
+            if (HasParentEntryFilePath(extractedFiles, entryPath))
+            {
+                throw new InvalidDataException("Package contains a file/directory path collision.");
+            }
+
+            extractedFiles.Add(entryPath);
+        }
     }
 
     private static void ExtractArchiveSafely(ZipArchive archive, string destinationDirectory)
@@ -330,6 +382,23 @@ public static class PluginPackager
     private static string NormalizeExtractedPath(string path)
     {
         return Path.TrimEndingDirectorySeparator(path);
+    }
+
+    private static bool HasParentEntryFilePath(ISet<string> extractedFiles, string targetPath)
+    {
+        string? currentPath = Path.GetDirectoryName(targetPath);
+
+        while (!string.IsNullOrEmpty(currentPath))
+        {
+            if (extractedFiles.Contains(currentPath))
+            {
+                return true;
+            }
+
+            currentPath = Path.GetDirectoryName(currentPath);
+        }
+
+        return false;
     }
 
     private static bool HasParentFilePath(ISet<string> extractedFiles, string targetPath, string destinationRoot)
