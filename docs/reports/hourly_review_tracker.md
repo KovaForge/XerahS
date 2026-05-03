@@ -415,3 +415,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed preview to validate all archive entry paths, duplicate/case-insensitive collisions, and file-vs-directory parent collisions before reading manifest metadata; added regressions for dot-dot asset paths and file-then-nested asset collisions; bumped version `0.22.194` -> `0.22.195`.
 - Validation: Release build/test passed with 0 warnings; logs: `/tmp/xerahs-hourly-sweep/build-20260503-115628.log`, `/tmp/xerahs-hourly-sweep/test-20260503-115950.log`.
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for declared assembly/dependency asset existence.
+
+### 2026-05-03 14:05 AWST - Plugin loading/runtime declared package asset validation
+- Area: Plugin loading/runtime (`.xsdp` manifest-declared assembly/dependency entries); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: Package preview could accept manifests whose declared assembly was absent, and install did not reject missing/non-canonical manifest dependency assets before extraction.
+- Status: Fixed preview/install validation to require the manifest assembly and each declared dependency to exist as canonical file entries in the package; added regression coverage; bumped version `0.22.195` -> `0.22.196`.
+- Upstream/Submodule: Parent `develop` already contained upstream `2914c22d`; `ShareX.ImageEditor` checked out on `develop` at `360eeab` with origin/upstream healthy and no parent pointer change.
+- Build/Test: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-140305.log`); Release tests passed 814 total (`/tmp/xerahs-hourly-sweep/test-20260503-140500.log`).
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and richer dependency metadata validation/error messaging.

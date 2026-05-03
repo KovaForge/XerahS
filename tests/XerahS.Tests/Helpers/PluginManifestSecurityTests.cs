@@ -185,6 +185,61 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void PreviewPackage_RejectsMissingDeclaredAssembly()
+    {
+        string packagePath = Path.Combine(_tempRoot, "preview-missing-assembly.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+        }
+
+        var exception = Assert.Throws<FileNotFoundException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("assembly"));
+    }
+
+    [Test]
+    public void InstallPackage_RejectsMissingDeclaredDependency()
+    {
+        string packagePath = Path.Combine(_tempRoot, "missing-dependency.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        Directory.CreateDirectory(pluginsRoot);
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll", "lib/helper.dll"));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<FileNotFoundException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("dependency"));
+            Assert.That(Directory.Exists(Path.Combine(pluginsRoot, "sample-plugin")), Is.False);
+        });
+    }
+
+    [Test]
+    public void InstallPackage_RejectsNonCanonicalDeclaredDependency()
+    {
+        string packagePath = Path.Combine(_tempRoot, "bad-dependency.xsdp");
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        Directory.CreateDirectory(pluginsRoot);
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll", "lib/../helper.dll"));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
+
+        Assert.That(exception!.Message, Does.Contain("non-canonical entry path"));
+    }
+
+    [Test]
     public void InstallPackage_RejectsFileThenNestedDirectoryCollision()
     {
         string packagePath = Path.Combine(_tempRoot, "file-directory-collision.xsdp");
@@ -315,8 +370,12 @@ public class PluginManifestSecurityTests
         };
     }
 
-    private static string CreateManifestJson(string pluginId, string assemblyFileName)
+    private static string CreateManifestJson(string pluginId, string assemblyFileName, string? dependency = null)
     {
+        string dependenciesJson = dependency == null
+            ? string.Empty
+            : $",\n  \"Dependencies\": [\"{dependency}\"]";
+
         return $$"""
         {
           "PluginId": "{{pluginId}}",
@@ -327,7 +386,7 @@ public class PluginManifestSecurityTests
           "ApiVersion": "1.0",
           "EntryPoint": "Sample.Plugin.Provider",
           "AssemblyFileName": "{{assemblyFileName}}",
-          "SupportedCategories": ["Image"]
+          "SupportedCategories": ["Image"]{{dependenciesJson}}
         }
         """;
     }

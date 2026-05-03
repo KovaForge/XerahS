@@ -95,6 +95,8 @@ public static class PluginPackager
         }
 
         var manifest = LoadAndValidateManifestJson(manifestJson);
+        ValidateArchiveEntryPaths(archive);
+        ValidateDeclaredArchiveAssets(archive, manifest);
 
         Directory.CreateDirectory(pluginsDirectory);
 
@@ -175,7 +177,9 @@ public static class PluginPackager
         using var stream = manifestEntry.Open();
         using var reader = new StreamReader(stream);
         string json = reader.ReadToEnd();
-        return LoadAndValidateManifestJson(json);
+        var manifest = LoadAndValidateManifestJson(json);
+        ValidateDeclaredArchiveAssets(archive, manifest);
+        return manifest;
     }
 
     private static PluginManifest LoadAndValidateManifest(string manifestPath)
@@ -231,6 +235,36 @@ public static class PluginPackager
         }
 
         return manifest;
+    }
+
+    private static void ValidateDeclaredArchiveAssets(ZipArchive archive, PluginManifest manifest)
+    {
+        RequireArchiveFileEntry(archive, manifest.GetAssemblyFileName(), "assembly");
+
+        foreach (string dependency in manifest.Dependencies)
+        {
+            if (string.IsNullOrWhiteSpace(dependency))
+            {
+                continue;
+            }
+
+            RequireArchiveFileEntry(archive, dependency, "dependency");
+        }
+    }
+
+    private static void RequireArchiveFileEntry(ZipArchive archive, string entryName, string assetDescription)
+    {
+        ValidateCanonicalEntryPath(entryName);
+        string normalizedEntryName = NormalizeExtractedPath(entryName);
+
+        bool exists = archive.Entries.Any(entry =>
+            !string.IsNullOrEmpty(entry.Name) &&
+            string.Equals(NormalizeExtractedPath(entry.FullName), normalizedEntryName, StringComparison.Ordinal));
+
+        if (!exists)
+        {
+            throw new FileNotFoundException($"Declared plugin {assetDescription} not found in package: {entryName}");
+        }
     }
 
     private static void ValidateArchiveEntryPaths(ZipArchive archive)
