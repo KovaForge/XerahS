@@ -157,7 +157,7 @@ public class PluginLoader
     /// </summary>
     public bool UnloadPlugin(string pluginId)
     {
-        if (!_loadedContexts.TryGetValue(pluginId, out var context))
+        if (string.IsNullOrWhiteSpace(pluginId) || !_loadedContexts.TryGetValue(pluginId, out var context))
         {
             return false;
         }

@@ -63,6 +63,27 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void UnloadPlugin_BlankPluginId_ReturnsFalseWithoutMutatingLoadedContexts()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(CreateMismatchedProviderManifest("manifest-plugin-id"), Path.GetDirectoryName(assemblyPath)!, assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loader.UnloadPlugin(null!), Is.False);
+            Assert.That(loader.UnloadPlugin(string.Empty), Is.False);
+            Assert.That(loader.UnloadPlugin("   "), Is.False);
+            Assert.That(loader.GetLoadedContexts(), Has.Count.EqualTo(1));
+        });
+
+        Assert.That(loader.UnloadPlugin(MismatchedPluginProvider.ProviderIdValue), Is.True);
+        Assert.That(loader.GetLoadedContexts(), Is.Empty);
+    }
+
+    [Test]
     public void LoadPlugin_DuplicateProviderId_ReplacesPreviousContextWithoutLeakingHandle()
     {
         var loader = new PluginLoader();

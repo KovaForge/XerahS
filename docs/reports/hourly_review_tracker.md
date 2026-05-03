@@ -451,3 +451,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed plugin cleanup to ignore unsafe/non-canonical `.deps.json` runtime/native/resource asset paths instead of preserving unexpected files; added regression coverage; bumped version `0.22.199` -> `0.22.200`.
 - Validation: Release build 0 warnings/0 errors; Release tests passed 820 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-215639.log`, `/tmp/xerahs-hourly-sweep/test-20260503-215954.log`.
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging.
+
+### 2026-05-04 00:00 AWST - Plugin loading/runtime unload request validation
+- Area: Plugin loading/runtime (`PluginLoader.UnloadPlugin` invalid provider ids); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `UnloadPlugin(null)` could throw from dictionary lookup and blank ids were treated as real lookup keys, which made defensive unload/error paths less robust.
+- Status: Fixed unload requests to return `false` for null/blank provider ids without mutating loaded contexts; added regression coverage; bumped version `0.22.200` -> `0.22.201`.
+- Build/test: Release build succeeded with 0 warnings; Release tests passed (821 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260503-235634.log`, `/tmp/xerahs-hourly-sweep/test-20260503-235945.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging.
