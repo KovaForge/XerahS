@@ -444,3 +444,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed installed plugin cleanup so unsafe/non-canonical manifest dependency paths are ignored instead of preserving unexpected files during quarantine cleanup; added regression coverage; bumped version `0.22.198` -> `0.22.199`.
 - Validation: Release build succeeded with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-195905.log`); Release tests passed 819 total (`/tmp/xerahs-hourly-sweep/test-20260503-200230.log`).
 - Follow-up: continue plugin runtime review around deps.json asset path canonicalization and load-context unload diagnostics.
+
+### 2026-05-03 22:00 AWST - Plugin loading/runtime deps.json asset path canonicalization
+- Area: Plugin loading/runtime (`PluginFolderCleaner` handling of deps.json asset paths); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginFolderCleaner.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Upstream: XerahS `upstream/develop` already contained; ShareX.ImageEditor `upstream/develop` already contained; submodule stayed on `develop` at `360eeab`.
+- Status: Fixed plugin cleanup to ignore unsafe/non-canonical `.deps.json` runtime/native/resource asset paths instead of preserving unexpected files; added regression coverage; bumped version `0.22.199` -> `0.22.200`.
+- Validation: Release build 0 warnings/0 errors; Release tests passed 820 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-215639.log`, `/tmp/xerahs-hourly-sweep/test-20260503-215954.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging.

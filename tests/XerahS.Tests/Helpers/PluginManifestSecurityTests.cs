@@ -105,6 +105,48 @@ public class PluginManifestSecurityTests
         });
     }
 
+
+    [Test]
+    public void PluginFolderCleaner_QuarantinesFileReferencedOnlyByUnsafeDepsAssetPath()
+    {
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        string pluginDirectory = Path.Combine(pluginsRoot, "sample-plugin");
+        Directory.CreateDirectory(pluginDirectory);
+
+        string manifestPath = Path.Combine(pluginDirectory, "plugin.json");
+        string assemblyPath = Path.Combine(pluginDirectory, "sample-plugin.dll");
+        string depsPath = Path.Combine(pluginDirectory, "sample-plugin.deps.json");
+        string unsafeAssetPath = Path.Combine(pluginDirectory, "evil.dll");
+
+        File.WriteAllText(manifestPath, CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+        File.WriteAllText(assemblyPath, "not really an assembly");
+        File.WriteAllText(depsPath, """
+        {
+          "targets": {
+            ".NETCoreApp,Version=v8.0": {
+              "sample-plugin/1.0.0": {
+                "runtime": {
+                  "assets/../evil.dll": {}
+                }
+              }
+            }
+          }
+        }
+        """);
+        File.WriteAllText(unsafeAssetPath, "unexpected dependency");
+
+        InvokePluginFolderCleanup(pluginDirectory, manifestPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(manifestPath), Is.True);
+            Assert.That(File.Exists(assemblyPath), Is.True);
+            Assert.That(File.Exists(depsPath), Is.True);
+            Assert.That(File.Exists(unsafeAssetPath), Is.False);
+            Assert.That(Directory.GetFiles(Path.Combine(pluginDirectory, "_quarantine"), "evil.dll", SearchOption.AllDirectories), Has.Length.EqualTo(1));
+        });
+    }
+
     [Test]
     public void InstallPackage_RejectsManifestWithPluginIdPathTraversal()
     {

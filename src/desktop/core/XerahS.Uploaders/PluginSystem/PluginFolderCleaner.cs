@@ -231,7 +231,7 @@ internal static class PluginFolderCleaner
 
         foreach (var dependency in manifest.Dependencies)
         {
-            if (!IsSafeManifestAssetPath(dependency))
+            if (!IsSafePluginRelativeFilePath(dependency))
             {
                 DebugHelper.WriteLine($"[PluginCleaner] Ignoring unsafe declared dependency path '{dependency}' in '{manifestPath}'.");
                 continue;
@@ -296,6 +296,12 @@ internal static class PluginFolderCleaner
                 continue;
             }
 
+            if (!IsSafePluginRelativeFilePath(asset.Name))
+            {
+                DebugHelper.WriteLine($"[PluginCleaner] Ignoring unsafe deps asset path '{asset.Name}' in '{pluginDirectory}'.");
+                continue;
+            }
+
             TryAddRelativeAssetPath(pluginDirectory, asset.Name, keep);
         }
     }
@@ -313,7 +319,7 @@ internal static class PluginFolderCleaner
         }
     }
 
-    private static bool IsSafeManifestAssetPath(string? assetPath)
+    private static bool IsSafePluginRelativeFilePath(string? assetPath)
     {
         if (string.IsNullOrWhiteSpace(assetPath) || Path.IsPathRooted(assetPath) || assetPath.Contains('\\') || assetPath.Contains(':'))
         {
