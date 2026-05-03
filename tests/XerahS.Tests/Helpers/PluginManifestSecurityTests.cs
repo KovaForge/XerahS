@@ -8,6 +8,7 @@
 #endregion License Information (GPL v3)
 
 using System.IO.Compression;
+using System.Reflection;
 using NUnit.Framework;
 using XerahS.Uploaders.PluginSystem;
 
@@ -76,6 +77,32 @@ public class PluginManifestSecurityTests
         var discovered = new PluginDiscovery().DiscoverPlugins(pluginsRoot);
 
         Assert.That(discovered, Is.Empty);
+    }
+
+    [Test]
+    public void PluginFolderCleaner_QuarantinesFileReferencedOnlyByUnsafeDependencyPath()
+    {
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        string pluginDirectory = Path.Combine(pluginsRoot, "sample-plugin");
+        Directory.CreateDirectory(pluginDirectory);
+
+        string manifestPath = Path.Combine(pluginDirectory, "plugin.json");
+        string assemblyPath = Path.Combine(pluginDirectory, "sample-plugin.dll");
+        string unsafeDependencyPath = Path.Combine(pluginDirectory, "evil.dll");
+
+        File.WriteAllText(manifestPath, CreateManifestJson("sample-plugin", "sample-plugin.dll", "assets/../evil.dll"));
+        File.WriteAllText(assemblyPath, "not really an assembly");
+        File.WriteAllText(unsafeDependencyPath, "unexpected dependency");
+
+        InvokePluginFolderCleanup(pluginDirectory, manifestPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(manifestPath), Is.True);
+            Assert.That(File.Exists(assemblyPath), Is.True);
+            Assert.That(File.Exists(unsafeDependencyPath), Is.False);
+            Assert.That(Directory.GetFiles(Path.Combine(pluginDirectory, "_quarantine"), "evil.dll", SearchOption.AllDirectories), Has.Length.EqualTo(1));
+        });
     }
 
     [Test]
@@ -441,6 +468,13 @@ public class PluginManifestSecurityTests
           "SupportedCategories": ["Image"]{{dependenciesJson}}
         }
         """;
+    }
+
+    private static void InvokePluginFolderCleanup(string pluginDirectory, string manifestPath)
+    {
+        var cleanMethod = typeof(PluginFolderCleaner).GetMethod("CleanSinglePluginDirectory", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(cleanMethod, Is.Not.Null);
+        cleanMethod!.Invoke(null, [pluginDirectory, manifestPath]);
     }
 
     private static void AddTextEntry(ZipArchive archive, string entryName, string content)
