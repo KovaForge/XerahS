@@ -32,6 +32,8 @@ public class PluginManifest
         if (string.IsNullOrWhiteSpace(EntryPoint)) { error = "EntryPoint is required"; return false; }
         if (string.IsNullOrWhiteSpace(ApiVersion)) { error = "ApiVersion is required"; return false; }
         if (!string.IsNullOrWhiteSpace(AssemblyFileName) && !IsSafeAssemblyFileName(AssemblyFileName)) { error = "AssemblyFileName must be a simple .dll file name"; return false; }
+        if (Dependencies == null) { error = "Dependencies must be a list when provided"; return false; }
+        if (Dependencies.Any(string.IsNullOrWhiteSpace)) { error = "Dependencies must not contain empty values"; return false; }
         if (!SupportedCategories.Any()) { error = "At least one SupportedCategory is required"; return false; }
         error = null;
         return true;

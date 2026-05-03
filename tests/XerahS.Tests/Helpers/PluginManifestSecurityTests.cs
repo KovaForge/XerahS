@@ -240,6 +240,38 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void PreviewPackage_RejectsBlankDeclaredDependency()
+    {
+        string packagePath = Path.Combine(_tempRoot, "blank-dependency.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll", " "));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("Dependencies must not contain empty values"));
+    }
+
+    [Test]
+    public void PreviewPackage_RejectsNullDependencyList()
+    {
+        string packagePath = Path.Combine(_tempRoot, "null-dependencies.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll", null, "null"));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("Dependencies must be a list when provided"));
+    }
+
+    [Test]
     public void InstallPackage_RejectsFileThenNestedDirectoryCollision()
     {
         string packagePath = Path.Combine(_tempRoot, "file-directory-collision.xsdp");
@@ -370,11 +402,13 @@ public class PluginManifestSecurityTests
         };
     }
 
-    private static string CreateManifestJson(string pluginId, string assemblyFileName, string? dependency = null)
+    private static string CreateManifestJson(string pluginId, string assemblyFileName, string? dependency = null, string? dependenciesJsonOverride = null)
     {
-        string dependenciesJson = dependency == null
-            ? string.Empty
-            : $",\n  \"Dependencies\": [\"{dependency}\"]";
+        string dependenciesJson = dependenciesJsonOverride == null
+            ? dependency == null
+                ? string.Empty
+                : $",\n  \"Dependencies\": [\"{dependency}\"]"
+            : $",\n  \"Dependencies\": {dependenciesJsonOverride}";
 
         return $$"""
         {

@@ -423,3 +423,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Upstream/Submodule: Parent `develop` already contained upstream `2914c22d`; `ShareX.ImageEditor` checked out on `develop` at `360eeab` with origin/upstream healthy and no parent pointer change.
 - Build/Test: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-140305.log`); Release tests passed 814 total (`/tmp/xerahs-hourly-sweep/test-20260503-140500.log`).
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and richer dependency metadata validation/error messaging.
+
+### 2026-05-03 16:03 AWST - Plugin loading/runtime dependency metadata validation
+- Area: Plugin loading/runtime (`.xsdp` manifest dependency metadata); files: `src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: Dependency lists loaded from package manifests could be `null` or include blank entries; preview/install validation then either risked a null-reference path or silently ignored invalid dependency metadata.
+- Status: Fixed manifest validation to reject null dependency lists and empty dependency values, added preview regression coverage, and bumped version `0.22.196` -> `0.22.197`.
+- Upstream/Submodules: Parent `develop` and `ShareX.ImageEditor` were already current with upstream/origin; submodule remains on `develop` at `360eeabe`.
+- Build/Test: Release build succeeded with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260503-155807.log`); Release tests passed 816/816 (`/tmp/xerahs-hourly-sweep/test-20260503-160122.log`).
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and richer dependency metadata validation/error messaging.
