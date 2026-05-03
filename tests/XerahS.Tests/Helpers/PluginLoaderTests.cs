@@ -108,6 +108,25 @@ public class PluginLoaderTests
         Assert.That(loader.GetLoadedContexts(), Is.Empty);
     }
 
+    [Test]
+    public void LoadPlugin_MissingAssembly_ReportsAssemblyNotFound()
+    {
+        var loader = new PluginLoader();
+        string missingAssemblyPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"missing-plugin-{Guid.NewGuid():N}.dll");
+        var metadata = new PluginMetadata(
+            CreateMismatchedProviderManifest("missing-assembly-plugin"),
+            Path.GetDirectoryName(missingAssemblyPath)!,
+            missingAssemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Is.EqualTo($"Assembly not found: {missingAssemblyPath}"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,

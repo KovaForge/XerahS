@@ -48,6 +48,13 @@ public class PluginLoader
 
         try
         {
+            if (!File.Exists(metadata.AssemblyPath))
+            {
+                metadata.LoadError = $"Assembly not found: {metadata.AssemblyPath}";
+                DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+                return null;
+            }
+
             if (!IsAssemblyCompatibleWithCurrentProcess(metadata.AssemblyPath, out string? compatibilityError))
             {
                 metadata.LoadError = compatibilityError;

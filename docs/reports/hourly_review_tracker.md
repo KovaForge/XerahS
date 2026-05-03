@@ -458,3 +458,9 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed unload requests to return `false` for null/blank provider ids without mutating loaded contexts; added regression coverage; bumped version `0.22.200` -> `0.22.201`.
 - Build/test: Release build succeeded with 0 warnings; Release tests passed (821 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260503-235634.log`, `/tmp/xerahs-hourly-sweep/test-20260503-235945.log`.
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging.
+
+### 2026-05-04 02:00 AWST - Plugin loading/runtime missing assembly diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` missing assembly diagnostics); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained); fixed missing plugin assembly loads to report `Assembly not found` directly instead of architecture-inspection failure; added regression coverage; bumped version `0.22.201` -> `0.22.202`.
+- Validation: Release build succeeded with 0 warnings/0 errors; Release tests passed 822 total.
+- Follow-up: continue plugin runtime review around dependency resolution diagnostics and load-context unload diagnostics.
