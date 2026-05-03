@@ -376,7 +376,7 @@ public partial class OverlayWindow : Window
         var annotationCanvas = _annotationCanvas ?? this.FindControl<Canvas>("AnnotationCanvas");
         if (annotationCanvas != null)
         {
-            annotationCanvas.Cursor = hiddenCursor;
+            annotationCanvas.Cursor = new Cursor(StandardCursorType.Cross);
         }
 
         var toolbar = this.FindControl<Control>("AnnotationToolbarControl");

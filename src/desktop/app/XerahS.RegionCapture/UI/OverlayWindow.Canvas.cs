@@ -154,6 +154,9 @@ public partial class OverlayWindow
 
         // Match EditorCanvas behavior: forward move events while a button is pressed or while captured.
         var props = e.GetCurrentPoint(_annotationCanvas).Properties;
+        var point = e.GetPosition(_annotationCanvas);
+        _captureControl.UpdateAimFromOverlayPointer(point, e.KeyModifiers);
+
         if (e.Pointer.Captured != _annotationCanvas &&
             !props.IsLeftButtonPressed &&
             !props.IsRightButtonPressed)
@@ -161,7 +164,6 @@ public partial class OverlayWindow
             return;
         }
 
-        var point = e.GetPosition(_annotationCanvas);
         var skPoint = new SKPoint((float)point.X, (float)point.Y);
 
         if (_isDrawing && _currentAnnotation != null)
