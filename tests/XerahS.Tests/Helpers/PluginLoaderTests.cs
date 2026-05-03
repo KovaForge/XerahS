@@ -146,6 +146,25 @@ public class PluginLoaderTests
         });
     }
 
+    [Test]
+    public void LoadPlugin_ProviderConstructorMissingDependency_ReportsDependencyNotFoundAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateMissingDependencyProviderManifest("missing-dependency-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Is.EqualTo("Dependency not found: Missing.Plugin.Dependency.dll"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -161,6 +180,15 @@ public class PluginLoaderTests
         Name = "Blank provider ID test",
         ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
         EntryPoint = typeof(BlankProviderIdPluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
+    private static PluginManifest CreateMissingDependencyProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Missing dependency test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(MissingDependencyPluginProvider).FullName!,
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
@@ -191,6 +219,30 @@ public class PluginLoaderTests
     {
         public string ProviderId => "   ";
         public string Name => "Blank provider ID plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class MissingDependencyPluginProvider : IUploaderProvider
+    {
+        public MissingDependencyPluginProvider() =>
+            throw new FileNotFoundException("Missing dependency", "Missing.Plugin.Dependency.dll");
+
+        public string ProviderId => "missing-dependency-provider";
+        public string Name => "Missing dependency plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };

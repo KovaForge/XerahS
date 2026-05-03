@@ -129,9 +129,14 @@ public class PluginLoader
 
             return provider;
         }
+        catch (TargetInvocationException ex) when (ex.InnerException is FileNotFoundException fileNotFoundException)
+        {
+            metadata.LoadError = $"Dependency not found: {fileNotFoundException.FileName}";
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
         catch (FileNotFoundException ex)
         {
-            metadata.LoadError = $"Assembly not found: {ex.FileName}";
+            metadata.LoadError = $"Dependency not found: {ex.FileName}";
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (BadImageFormatException ex)

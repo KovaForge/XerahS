@@ -471,3 +471,9 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained); fixed load validation to reject blank provider ids with a clear load error and unload the failed context; added regression coverage; bumped version `0.22.202` -> `0.22.203`.
 - Validation: Release build/test passed with 0 warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260504-035715.log`, `/tmp/xerahs-hourly-sweep/test-20260504-040024.log`.
 - Follow-up: continue plugin runtime review around dependency resolution diagnostics and load-context unload diagnostics.
+
+### 2026-05-04 06:02 AWST - Plugin loading/runtime dependency diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` dependency resolution diagnostics); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop (`eabdc09b`) into `develop`; ShareX.ImageEditor develop was already current. Fixed provider activation failures caused by missing dependencies to report `Dependency not found` instead of a misleading assembly/unexpected error; added regression coverage; bumped version `0.22.203` -> `0.22.204`.
+- Build/test: Release build 0 warnings/0 errors; tests passed (824 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-055654.log`, `/tmp/xerahs-hourly-sweep/test-20260504-060004.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging for type-load/reflection loader exceptions.
