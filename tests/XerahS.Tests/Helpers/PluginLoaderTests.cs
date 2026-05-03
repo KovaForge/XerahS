@@ -127,6 +127,25 @@ public class PluginLoaderTests
         });
     }
 
+    [Test]
+    public void LoadPlugin_BlankProviderId_ReportsErrorAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateBlankProviderIdManifest("blank-provider-id-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Is.EqualTo("Provider ID is empty"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -136,12 +155,42 @@ public class PluginLoaderTests
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
+    private static PluginManifest CreateBlankProviderIdManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Blank provider ID test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(BlankProviderIdPluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
     public sealed class MismatchedPluginProvider : IUploaderProvider
     {
         public const string ProviderIdValue = "actual-provider-id";
 
         public string ProviderId => ProviderIdValue;
         public string Name => "Mismatched plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class BlankProviderIdPluginProvider : IUploaderProvider
+    {
+        public string ProviderId => "   ";
+        public string Name => "Blank provider ID plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };

@@ -97,6 +97,14 @@ public class PluginLoader
                 return null;
             }
 
+            if (string.IsNullOrWhiteSpace(provider.ProviderId))
+            {
+                metadata.LoadError = "Provider ID is empty";
+                DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+                UnloadFailedContext(loadContext);
+                return null;
+            }
+
             // Verify plugin ID matches
             if (provider.ProviderId != metadata.Manifest.PluginId)
             {
