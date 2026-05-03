@@ -236,7 +236,25 @@ public class PluginManifestSecurityTests
 
         var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.InstallPackage(packagePath, pluginsRoot));
 
-        Assert.That(exception!.Message, Does.Contain("non-canonical entry path"));
+        Assert.That(exception!.Message, Does.Contain("Dependencies must be canonical relative file paths"));
+    }
+
+    [Test]
+    [TestCase("/tmp/helper.dll")]
+    [TestCase("C:/tmp/helper.dll")]
+    public void PreviewPackage_RejectsRootedDeclaredDependency(string dependencyPath)
+    {
+        string packagePath = Path.Combine(_tempRoot, $"rooted-dependency-{Guid.NewGuid():N}.xsdp");
+
+        using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
+        {
+            AddTextEntry(archive, "plugin.json", CreateManifestJson("sample-plugin", "sample-plugin.dll", dependencyPath));
+            AddTextEntry(archive, "sample-plugin.dll", "not really an assembly");
+        }
+
+        var exception = Assert.Throws<InvalidDataException>(() => PluginPackager.PreviewPackage(packagePath));
+
+        Assert.That(exception!.Message, Does.Contain("Dependencies must be canonical relative file paths"));
     }
 
     [Test]
