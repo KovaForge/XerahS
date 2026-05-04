@@ -477,3 +477,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop (`eabdc09b`) into `develop`; ShareX.ImageEditor develop was already current. Fixed provider activation failures caused by missing dependencies to report `Dependency not found` instead of a misleading assembly/unexpected error; added regression coverage; bumped version `0.22.203` -> `0.22.204`.
 - Build/test: Release build 0 warnings/0 errors; tests passed (824 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-055654.log`, `/tmp/xerahs-hourly-sweep/test-20260504-060004.log`.
 - Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging for type-load/reflection loader exceptions.
+
+### 2026-05-04 08:03 AWST - Plugin loading/runtime type-load diagnostics
+
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` type/reflection loader diagnostics); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Provider activation failures that surfaced `TypeLoadException` or `ReflectionTypeLoadException` through `TargetInvocationException` were reported as generic unexpected errors, and direct reflection loader failures omitted `LoadError` loader details.
+- Status: Merged upstream/develop (`523099ed`), resolved the 2026-05-03 blog add/add conflict by keeping KovaForge's populated draft, and confirmed ShareX.ImageEditor develop was current. Fixed type/reflection loader diagnostics to preserve actionable load errors and loader-exception messages; added regression coverage; bumped version `0.22.204` -> `0.22.205`.
+- Build/Test: Release build succeeded with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260504-075714.log`); Release tests passed 826/826 (`/tmp/xerahs-hourly-sweep/test-20260504-080035.log`).
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and dependency resolution error messaging for load-context resolver failures.

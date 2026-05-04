@@ -134,6 +134,17 @@ public class PluginLoader
             metadata.LoadError = $"Dependency not found: {fileNotFoundException.FileName}";
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
+        catch (TargetInvocationException ex) when (ex.InnerException is TypeLoadException typeLoadException)
+        {
+            metadata.LoadError = FormatTypeLoadError(typeLoadException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is ReflectionTypeLoadException reflectionTypeLoadException)
+        {
+            metadata.LoadError = FormatReflectionTypeLoadError(reflectionTypeLoadException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+            WriteLoaderExceptions(reflectionTypeLoadException);
+        }
         catch (FileNotFoundException ex)
         {
             metadata.LoadError = $"Dependency not found: {ex.FileName}";
@@ -146,16 +157,14 @@ public class PluginLoader
         }
         catch (TypeLoadException ex)
         {
-            metadata.LoadError = $"Type load error: {ex.Message}";
+            metadata.LoadError = FormatTypeLoadError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (ReflectionTypeLoadException ex)
         {
-            metadata.LoadError = $"Reflection error: {ex.Message}";
-            foreach (var loaderEx in ex.LoaderExceptions)
-            {
-                DebugHelper.WriteLine($"  Loader exception: {loaderEx?.Message}");
-            }
+            metadata.LoadError = FormatReflectionTypeLoadError(ex);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+            WriteLoaderExceptions(ex);
         }
         catch (Exception ex)
         {
@@ -213,6 +222,34 @@ public class PluginLoader
     private static void UnloadFailedContext(PluginLoadContext loadContext)
     {
         loadContext.Unload();
+    }
+
+    private static string FormatTypeLoadError(TypeLoadException ex) => $"Type load error: {ex.Message}";
+
+    private static string FormatReflectionTypeLoadError(ReflectionTypeLoadException ex)
+    {
+        string[] loaderMessages = ex.LoaderExceptions
+            .Where(loaderException => !string.IsNullOrWhiteSpace(loaderException?.Message))
+            .Select(loaderException => loaderException!.Message)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        string error = $"Reflection type load error: {ex.Message}";
+
+        if (loaderMessages.Length > 0)
+        {
+            error += $" Loader exceptions: {string.Join("; ", loaderMessages)}";
+        }
+
+        return error;
+    }
+
+    private static void WriteLoaderExceptions(ReflectionTypeLoadException ex)
+    {
+        foreach (var loaderEx in ex.LoaderExceptions)
+        {
+            DebugHelper.WriteLine($"  Loader exception: {loaderEx?.Message}");
+        }
     }
 
     private static bool IsAssemblyCompatibleWithCurrentProcess(string assemblyPath, out string? error)

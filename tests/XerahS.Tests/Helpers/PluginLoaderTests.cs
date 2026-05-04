@@ -8,6 +8,7 @@
 #endregion License Information (GPL v3)
 
 using System.Collections.ObjectModel;
+using System.Reflection;
 using NUnit.Framework;
 using XerahS.Uploaders.PluginSystem;
 
@@ -165,6 +166,45 @@ public class PluginLoaderTests
         });
     }
 
+    [Test]
+    public void LoadPlugin_ProviderConstructorTypeLoadException_ReportsTypeLoadErrorAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateTypeLoadFailureProviderManifest("type-load-failure-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Does.StartWith("Type load error: Missing provider dependency type"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void LoadPlugin_ProviderConstructorReflectionTypeLoadException_ReportsLoaderExceptionAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateReflectionTypeLoadFailureProviderManifest("reflection-type-load-failure-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Does.StartWith("Reflection type load error: Reflection load failed"));
+            Assert.That(metadata.LoadError, Does.Contain("Missing reflection dependency"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -189,6 +229,24 @@ public class PluginLoaderTests
         Name = "Missing dependency test",
         ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
         EntryPoint = typeof(MissingDependencyPluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
+    private static PluginManifest CreateTypeLoadFailureProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Type load failure test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(TypeLoadFailurePluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
+    private static PluginManifest CreateReflectionTypeLoadFailureProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Reflection type load failure test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(ReflectionTypeLoadFailurePluginProvider).FullName!,
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
@@ -243,6 +301,57 @@ public class PluginLoaderTests
 
         public string ProviderId => "missing-dependency-provider";
         public string Name => "Missing dependency plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class TypeLoadFailurePluginProvider : IUploaderProvider
+    {
+        public TypeLoadFailurePluginProvider() =>
+            throw new TypeLoadException("Missing provider dependency type");
+
+        public string ProviderId => "type-load-failure-provider";
+        public string Name => "Type load failure plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class ReflectionTypeLoadFailurePluginProvider : IUploaderProvider
+    {
+        public ReflectionTypeLoadFailurePluginProvider() =>
+            throw new ReflectionTypeLoadException(
+                Array.Empty<Type>(),
+                new Exception[] { new FileNotFoundException("Missing reflection dependency", "Missing.Reflection.Dependency.dll") },
+                "Reflection load failed");
+
+        public string ProviderId => "reflection-type-load-failure-provider";
+        public string Name => "Reflection type load failure plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
