@@ -61,6 +61,18 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void ProviderCatalog_RegisterProvider_BlankProviderId_IsIgnored()
+    {
+        ProviderCatalog.Clear();
+
+        ProviderCatalog.RegisterProvider(new BlankProviderIdPluginProvider());
+
+        Assert.That(ProviderCatalog.GetAllProviders(), Is.Empty);
+
+        ProviderCatalog.Clear();
+    }
+
+    [Test]
     public void LoadPlugin_MismatchedManifestId_TracksContextByProviderIdForUnload()
     {
         var loader = new PluginLoader();

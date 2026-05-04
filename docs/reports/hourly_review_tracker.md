@@ -517,3 +517,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed ProviderCatalog `GetProvider`, `GetPluginMetadata`, and `GetExplorer` to return null for null/blank provider IDs instead of letting dictionary lookups throw; added regression coverage; bumped version `0.22.209` -> `0.22.210`.
 - Build/Test: Release build zero warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260504-175713.log`); Release tests passed 831 total (`/tmp/xerahs-hourly-sweep/test-20260504-180028.log`).
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 20:02 AWST - Plugin loading/runtime programmatic provider registration blank IDs
+- Area: Plugin loading/runtime (`ProviderCatalog.RegisterProvider` provider-id guards); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Programmatic provider registration did not mirror runtime blank provider-id guards; a blank/null-like provider ID could reach dictionary registration and throw or pollute catalog state.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed registration to ignore providers with missing provider IDs, added regression coverage, and bumped version `0.22.210` -> `0.22.211`.
+- Validation: Release build/test passed with 0 warnings/errors; tests passed 832 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260504-195723.log`, `/tmp/xerahs-hourly-sweep/test-20260504-195723.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.

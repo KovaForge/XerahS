@@ -226,6 +226,12 @@ public static class ProviderCatalog
     {
         if (provider == null) throw new ArgumentNullException(nameof(provider));
 
+        if (string.IsNullOrWhiteSpace(provider.ProviderId))
+        {
+            DebugHelper.WriteLine($"[Plugins] Skipped provider with missing provider ID: {provider.Name}");
+            return;
+        }
+
         lock (_lock)
         {
             if (!_providers.ContainsKey(provider.ProviderId))
