@@ -36,6 +36,31 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void ProviderCatalog_BlankProviderIdLookups_ReturnNull()
+    {
+        ProviderCatalog.Clear();
+        var provider = new MismatchedPluginProvider();
+
+        ProviderCatalog.RegisterProvider(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ProviderCatalog.GetProvider(null!), Is.Null);
+            Assert.That(ProviderCatalog.GetProvider(string.Empty), Is.Null);
+            Assert.That(ProviderCatalog.GetProvider("   "), Is.Null);
+            Assert.That(ProviderCatalog.GetPluginMetadata(null!), Is.Null);
+            Assert.That(ProviderCatalog.GetPluginMetadata(string.Empty), Is.Null);
+            Assert.That(ProviderCatalog.GetPluginMetadata("   "), Is.Null);
+            Assert.That(ProviderCatalog.GetExplorer(null!), Is.Null);
+            Assert.That(ProviderCatalog.GetExplorer(string.Empty), Is.Null);
+            Assert.That(ProviderCatalog.GetExplorer("   "), Is.Null);
+            Assert.That(ProviderCatalog.GetAllProviders(), Has.Count.EqualTo(1));
+        });
+
+        ProviderCatalog.Clear();
+    }
+
+    [Test]
     public void LoadPlugin_MismatchedManifestId_TracksContextByProviderIdForUnload()
     {
         var loader = new PluginLoader();

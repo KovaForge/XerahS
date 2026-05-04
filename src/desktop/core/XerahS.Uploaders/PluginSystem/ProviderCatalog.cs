@@ -242,6 +242,11 @@ public static class ProviderCatalog
     /// </summary>
     public static IUploaderProvider? GetProvider(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             return _providers.TryGetValue(providerId, out var provider) ? provider : null;
@@ -277,6 +282,11 @@ public static class ProviderCatalog
     /// </summary>
     public static PluginMetadata? GetPluginMetadata(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             return _pluginMetadata.TryGetValue(providerId, out var metadata) ? metadata : null;
@@ -577,6 +587,11 @@ public static class ProviderCatalog
     /// </summary>
     public static IUploaderExplorer? GetExplorer(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             if (_providers.TryGetValue(providerId, out var provider) && provider is IUploaderExplorer explorer)
