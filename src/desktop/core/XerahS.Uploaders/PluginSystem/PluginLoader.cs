@@ -37,7 +37,7 @@ namespace XerahS.Uploaders.PluginSystem;
 /// </summary>
 public class PluginLoader
 {
-    private readonly Dictionary<string, PluginLoadContext> _loadedContexts = new();
+    private readonly Dictionary<string, PluginLoadContext> _loadedContexts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Load a plugin from its metadata
@@ -232,7 +232,7 @@ public class PluginLoader
     /// Get list of loaded plugin contexts
     /// </summary>
     public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() =>
-        new ReadOnlyDictionary<string, PluginLoadContext>(new Dictionary<string, PluginLoadContext>(_loadedContexts));
+        new ReadOnlyDictionary<string, PluginLoadContext>(new Dictionary<string, PluginLoadContext>(_loadedContexts, _loadedContexts.Comparer));
 
     private static void UnloadFailedContext(PluginLoadContext loadContext)
     {

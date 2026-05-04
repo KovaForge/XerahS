@@ -110,6 +110,31 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void LoadPlugin_DuplicateProviderIdDifferentCasing_ReplacesPreviousContextAndUnloadsCaseInsensitively()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        string pluginDirectory = Path.GetDirectoryName(assemblyPath)!;
+        var firstMetadata = new PluginMetadata(CreateMismatchedProviderManifest("first-manifest-id"), pluginDirectory, assemblyPath);
+        var secondMetadata = new PluginMetadata(CreateUppercaseProviderManifest("second-manifest-id"), pluginDirectory, assemblyPath);
+
+        Assert.That(loader.LoadPlugin(firstMetadata), Is.Not.Null);
+        var firstContext = loader.GetLoadedContexts()[MismatchedPluginProvider.ProviderIdValue];
+
+        Assert.That(loader.LoadPlugin(secondMetadata), Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loader.GetLoadedContexts(), Has.Count.EqualTo(1));
+            Assert.That(loader.GetLoadedContexts().ContainsKey(UppercasePluginProvider.ProviderIdValue), Is.True);
+            Assert.That(loader.GetLoadedContexts()[UppercasePluginProvider.ProviderIdValue], Is.Not.SameAs(firstContext));
+        });
+
+        Assert.That(loader.UnloadPlugin(MismatchedPluginProvider.ProviderIdValue.ToUpperInvariant()), Is.True);
+        Assert.That(loader.GetLoadedContexts(), Is.Empty);
+    }
+
+    [Test]
     public void LoadPlugin_MissingAssembly_ReportsAssemblyNotFound()
     {
         var loader = new PluginLoader();
@@ -262,6 +287,15 @@ public class PluginLoaderTests
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
+    private static PluginManifest CreateUppercaseProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Uppercase provider ID test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(UppercasePluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
     private static PluginManifest CreateMissingDependencyProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -334,6 +368,29 @@ public class PluginLoaderTests
     {
         public string ProviderId => "   ";
         public string Name => "Blank provider ID plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class UppercasePluginProvider : IUploaderProvider
+    {
+        public const string ProviderIdValue = "ACTUAL-PROVIDER-ID";
+
+        public string ProviderId => ProviderIdValue;
+        public string Name => "Uppercase provider ID plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };

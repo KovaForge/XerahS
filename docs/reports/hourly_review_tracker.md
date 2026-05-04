@@ -499,3 +499,9 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed activation-time bad-image failures to report `Invalid or incompatible assembly image`, added regression coverage, and bumped version `0.22.206` -> `0.22.207`.
 - Build/Test: Release build 0 warnings/0 errors; Release tests passed (828 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-115659.log`, `/tmp/xerahs-hourly-sweep/test-20260504-120011.log`.
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 14:02 AWST - Plugin loading/runtime provider-id casing unload
+- Area: Plugin loading/runtime (`PluginLoader` provider-id casing); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed loaded-context tracking to compare provider IDs case-insensitively, preserving case-insensitive unload/replacement and snapshot lookups for provider-id casing variants; added regression coverage; bumped version `0.22.207` -> `0.22.208`.
+- Build/test: Release build 0 warnings/0 errors; Release tests 829 passed. Logs: `/tmp/xerahs-hourly-sweep/build-20260504-135732.log`, `/tmp/xerahs-hourly-sweep/test-20260504-140044.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
