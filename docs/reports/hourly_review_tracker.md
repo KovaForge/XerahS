@@ -505,3 +505,9 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed loaded-context tracking to compare provider IDs case-insensitively, preserving case-insensitive unload/replacement and snapshot lookups for provider-id casing variants; added regression coverage; bumped version `0.22.207` -> `0.22.208`.
 - Build/test: Release build 0 warnings/0 errors; Release tests 829 passed. Logs: `/tmp/xerahs-hourly-sweep/build-20260504-135732.log`, `/tmp/xerahs-hourly-sweep/test-20260504-140044.log`.
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 16:01 AWST - Plugin loading/runtime provider catalog ID casing
+- Area: Plugin loading/runtime (ProviderCatalog provider-id lookup casing); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed ProviderCatalog provider/metadata dictionaries to use case-insensitive provider IDs so registration, lookup, reload removal, and metadata access match PluginLoader unload semantics; added regression coverage; bumped version `0.22.208` -> `0.22.209`.
+- Validation: Release build/test passed with 0 warnings; logs `/tmp/xerahs-hourly-sweep/build-20260504-155747.log`, `/tmp/xerahs-hourly-sweep/test-20260504-160100.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.

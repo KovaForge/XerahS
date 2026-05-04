@@ -18,6 +18,24 @@ namespace XerahS.Tests.Helpers;
 public class PluginLoaderTests
 {
     [Test]
+    public void ProviderCatalog_GetProvider_UsesCaseInsensitiveProviderIds()
+    {
+        ProviderCatalog.Clear();
+        var provider = new MismatchedPluginProvider();
+
+        ProviderCatalog.RegisterProvider(provider);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ProviderCatalog.GetProvider(MismatchedPluginProvider.ProviderIdValue.ToUpperInvariant()), Is.SameAs(provider));
+            Assert.That(ProviderCatalog.GetProvider(MismatchedPluginProvider.ProviderIdValue.ToLowerInvariant()), Is.SameAs(provider));
+            Assert.That(ProviderCatalog.GetAllProviders(), Has.Count.EqualTo(1));
+        });
+
+        ProviderCatalog.Clear();
+    }
+
+    [Test]
     public void LoadPlugin_MismatchedManifestId_TracksContextByProviderIdForUnload()
     {
         var loader = new PluginLoader();

@@ -33,8 +33,8 @@ namespace XerahS.Uploaders.PluginSystem;
 /// </summary>
 public static class ProviderCatalog
 {
-    private static readonly Dictionary<string, IUploaderProvider> _providers = new();
-    private static readonly Dictionary<string, PluginMetadata> _pluginMetadata = new();
+    private static readonly Dictionary<string, IUploaderProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, PluginMetadata> _pluginMetadata = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object _lock = new();
     private static bool _pluginsLoaded = false;
     private static readonly PluginLoader _pluginLoader = new(); // Keep contexts alive
