@@ -225,6 +225,25 @@ public class PluginLoaderTests
         });
     }
 
+    [Test]
+    public void LoadPlugin_ProviderConstructorBadImageFormatException_ReportsIncompatibleAssemblyAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateBadImageFormatFailureProviderManifest("bad-image-format-failure-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Does.StartWith("Invalid or incompatible assembly image: Unsupported processor architecture"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -276,6 +295,15 @@ public class PluginLoaderTests
         Name = "Reflection type load failure test",
         ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
         EntryPoint = typeof(ReflectionTypeLoadFailurePluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
+    private static PluginManifest CreateBadImageFormatFailureProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Bad image format failure test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(BadImageFormatFailurePluginProvider).FullName!,
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
@@ -405,6 +433,30 @@ public class PluginLoaderTests
 
         public string ProviderId => "reflection-type-load-failure-provider";
         public string Name => "Reflection type load failure plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class BadImageFormatFailurePluginProvider : IUploaderProvider
+    {
+        public BadImageFormatFailurePluginProvider() =>
+            throw new BadImageFormatException("Unsupported processor architecture");
+
+        public string ProviderId => "bad-image-format-failure-provider";
+        public string Name => "Bad image format failure plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };

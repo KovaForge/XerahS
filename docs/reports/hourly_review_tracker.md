@@ -492,3 +492,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained). Fixed `FileLoadException` handling to report `Dependency load failed: <assembly>: <message>` and keep failed contexts untracked; added regression coverage; bumped version `0.22.205` -> `0.22.206`.
 - Validation: Release build succeeded with 0 warnings/errors; Release tests passed (827 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-095747.log`, `/tmp/xerahs-hourly-sweep/test-20260504-100057.log`.
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface outside provider activation.
+
+### 2026-05-04 12:03 AWST - Plugin loading/runtime bad image diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` provider activation bad image failures); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Provider activation can surface `BadImageFormatException` through `TargetInvocationException`, which previously fell through to an `Unexpected error` load message.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed activation-time bad-image failures to report `Invalid or incompatible assembly image`, added regression coverage, and bumped version `0.22.206` -> `0.22.207`.
+- Build/Test: Release build 0 warnings/0 errors; Release tests passed (828 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-115659.log`, `/tmp/xerahs-hourly-sweep/test-20260504-120011.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.

@@ -150,6 +150,11 @@ public class PluginLoader
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
             WriteLoaderExceptions(reflectionTypeLoadException);
         }
+        catch (TargetInvocationException ex) when (ex.InnerException is BadImageFormatException badImageFormatException)
+        {
+            metadata.LoadError = FormatBadImageFormatError(badImageFormatException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
         catch (FileNotFoundException ex)
         {
             metadata.LoadError = $"Dependency not found: {ex.FileName}";
@@ -162,7 +167,7 @@ public class PluginLoader
         }
         catch (BadImageFormatException ex)
         {
-            metadata.LoadError = $"Invalid or incompatible assembly image: {ex.Message}";
+            metadata.LoadError = FormatBadImageFormatError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (TypeLoadException ex)
@@ -235,6 +240,8 @@ public class PluginLoader
     }
 
     private static string FormatTypeLoadError(TypeLoadException ex) => $"Type load error: {ex.Message}";
+
+    private static string FormatBadImageFormatError(BadImageFormatException ex) => $"Invalid or incompatible assembly image: {ex.Message}";
 
     private static string FormatDependencyLoadError(FileLoadException ex)
     {
