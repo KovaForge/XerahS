@@ -485,3 +485,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop (`523099ed`), resolved the 2026-05-03 blog add/add conflict by keeping KovaForge's populated draft, and confirmed ShareX.ImageEditor develop was current. Fixed type/reflection loader diagnostics to preserve actionable load errors and loader-exception messages; added regression coverage; bumped version `0.22.204` -> `0.22.205`.
 - Build/Test: Release build succeeded with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260504-075714.log`); Release tests passed 826/826 (`/tmp/xerahs-hourly-sweep/test-20260504-080035.log`).
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and dependency resolution error messaging for load-context resolver failures.
+
+### 2026-05-04 10:03 AWST - Plugin loading/runtime dependency load diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` dependency load failures); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Dependency load failures raised as `FileLoadException` during provider activation fell through to the generic unexpected-error path, hiding the dependency filename and actionable loader message.
+- Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained). Fixed `FileLoadException` handling to report `Dependency load failed: <assembly>: <message>` and keep failed contexts untracked; added regression coverage; bumped version `0.22.205` -> `0.22.206`.
+- Validation: Release build succeeded with 0 warnings/errors; Release tests passed (827 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-095747.log`, `/tmp/xerahs-hourly-sweep/test-20260504-100057.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface outside provider activation.

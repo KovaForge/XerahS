@@ -167,6 +167,26 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void LoadPlugin_ProviderConstructorFileLoadException_ReportsDependencyLoadFailureAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateFileLoadFailureProviderManifest("file-load-failure-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Does.StartWith("Dependency load failed: Blocked.Plugin.Dependency.dll:"));
+            Assert.That(metadata.LoadError, Does.Contain("Could not load plugin dependency"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
+    [Test]
     public void LoadPlugin_ProviderConstructorTypeLoadException_ReportsTypeLoadErrorAndDoesNotTrackContext()
     {
         var loader = new PluginLoader();
@@ -229,6 +249,15 @@ public class PluginLoaderTests
         Name = "Missing dependency test",
         ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
         EntryPoint = typeof(MissingDependencyPluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
+    private static PluginManifest CreateFileLoadFailureProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "File load failure test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(FileLoadFailurePluginProvider).FullName!,
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
@@ -301,6 +330,30 @@ public class PluginLoaderTests
 
         public string ProviderId => "missing-dependency-provider";
         public string Name => "Missing dependency plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class FileLoadFailurePluginProvider : IUploaderProvider
+    {
+        public FileLoadFailurePluginProvider() =>
+            throw new FileLoadException("Could not load plugin dependency", "Blocked.Plugin.Dependency.dll");
+
+        public string ProviderId => "file-load-failure-provider";
+        public string Name => "File load failure plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };

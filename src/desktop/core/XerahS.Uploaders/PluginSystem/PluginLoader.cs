@@ -134,6 +134,11 @@ public class PluginLoader
             metadata.LoadError = $"Dependency not found: {fileNotFoundException.FileName}";
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
+        catch (TargetInvocationException ex) when (ex.InnerException is FileLoadException fileLoadException)
+        {
+            metadata.LoadError = FormatDependencyLoadError(fileLoadException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
         catch (TargetInvocationException ex) when (ex.InnerException is TypeLoadException typeLoadException)
         {
             metadata.LoadError = FormatTypeLoadError(typeLoadException);
@@ -148,6 +153,11 @@ public class PluginLoader
         catch (FileNotFoundException ex)
         {
             metadata.LoadError = $"Dependency not found: {ex.FileName}";
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (FileLoadException ex)
+        {
+            metadata.LoadError = FormatDependencyLoadError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (BadImageFormatException ex)
@@ -225,6 +235,12 @@ public class PluginLoader
     }
 
     private static string FormatTypeLoadError(TypeLoadException ex) => $"Type load error: {ex.Message}";
+
+    private static string FormatDependencyLoadError(FileLoadException ex)
+    {
+        string fileName = string.IsNullOrWhiteSpace(ex.FileName) ? "unknown assembly" : ex.FileName;
+        return $"Dependency load failed: {fileName}: {ex.Message}";
+    }
 
     private static string FormatReflectionTypeLoadError(ReflectionTypeLoadException ex)
     {
