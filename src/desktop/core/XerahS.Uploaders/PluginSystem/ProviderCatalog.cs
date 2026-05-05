@@ -594,6 +594,7 @@ public static class ProviderCatalog
         {
             _providers.Clear();
             _pluginMetadata.Clear();
+            _pluginLoader.UnloadAllPlugins();
             _pluginsLoaded = false;
             _builtInInitialized = false;
             CustomUploaderRepository.Clear();

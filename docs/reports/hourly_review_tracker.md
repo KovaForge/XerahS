@@ -531,3 +531,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fast-forwarded local `develop` to `origin/develop`; upstream/develop and ShareX.ImageEditor develop were already contained/current. Fixed loaded-plugin duplicate checks to find manifest IDs even when metadata is keyed by runtime provider ID; added regression coverage; bumped version `0.22.211` -> `0.22.212`.
 - Validation: Release build passed with 0 warnings/errors; tests passed 833 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-120123.log`, `/tmp/xerahs-hourly-sweep/test-20260505-120527.log`.
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-05 16:04 AWST - Plugin loading/runtime static loader cleanup
+- Area: Plugin loading/runtime (`ProviderCatalog.Clear` static loader context cleanup); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `ProviderCatalog.Clear()` reset providers and metadata but left the static `PluginLoader` holding loaded collectible contexts, which could keep plugin assemblies/handles alive after resets.
+- Status: Upstream/develop and ShareX.ImageEditor develop were already contained/current; origin push remains blocked by missing GitHub HTTPS credentials. Fixed `Clear()` to unload retained static plugin loader contexts, added regression coverage, and bumped version `0.22.212` -> `0.22.213`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 834 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-155954.log`, `/tmp/xerahs-hourly-sweep/test-20260505-160312.log`.
+- Follow-up: unblock GitHub credentials and push the two local commits; continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.

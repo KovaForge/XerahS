@@ -211,12 +211,7 @@ public class PluginLoader
             context.Unload();
             _loadedContexts.Remove(pluginId);
 
-            // Force GC to collect unloaded assemblies
-            for (int i = 0; i < 3; i++)
-            {
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-            }
+            ForceUnloadCollection();
 
             DebugHelper.WriteLine($"Unloaded plugin: {pluginId}");
             return true;
@@ -228,6 +223,25 @@ public class PluginLoader
         }
     }
 
+    internal void UnloadAllPlugins()
+    {
+        foreach (var (pluginId, context) in _loadedContexts.ToList())
+        {
+            try
+            {
+                context.Unload();
+                DebugHelper.WriteLine($"Unloaded plugin: {pluginId}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Error unloading plugin {pluginId}: {ex.Message}");
+            }
+        }
+
+        _loadedContexts.Clear();
+        ForceUnloadCollection();
+    }
+
     /// <summary>
     /// Get list of loaded plugin contexts
     /// </summary>
@@ -237,6 +251,15 @@ public class PluginLoader
     private static void UnloadFailedContext(PluginLoadContext loadContext)
     {
         loadContext.Unload();
+    }
+
+    private static void ForceUnloadCollection()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
     }
 
     private static string FormatTypeLoadError(TypeLoadException ex) => $"Type load error: {ex.Message}";

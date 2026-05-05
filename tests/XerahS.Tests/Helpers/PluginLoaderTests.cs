@@ -73,6 +73,26 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void ProviderCatalog_Clear_UnloadsStaticPluginLoaderContexts()
+    {
+        ProviderCatalog.Clear();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateMismatchedProviderManifest("manifest-plugin-id"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+        var loaderField = typeof(ProviderCatalog).GetField("_pluginLoader", BindingFlags.NonPublic | BindingFlags.Static);
+        var loader = (PluginLoader)loaderField!.GetValue(null)!;
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Not.Null);
+        Assert.That(loader.GetLoadedContexts(), Is.Not.Empty);
+
+        ProviderCatalog.Clear();
+
+        Assert.That(loader.GetLoadedContexts(), Is.Empty);
+    }
+
+    [Test]
     public void ProviderCatalog_LoadedManifestIdCheck_FindsMetadataStoredUnderRuntimeProviderId()
     {
         ProviderCatalog.Clear();
