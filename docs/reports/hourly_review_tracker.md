@@ -552,3 +552,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop `09e5a718` into local `develop`, keeping KovaForge blog conflict content; ShareX.ImageEditor remotes/branch verified current. Fixed missing-dependency formatting to report `unknown assembly` plus the exception message, added regression coverage, bumped version `0.22.214` -> `0.22.215`, and pushed `develop` to origin through `4c62eaa4`.
 - Validation: Release build passed with 0 warnings/errors; tests passed 836 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260506-000022.log`, `/tmp/xerahs-hourly-sweep/test-20260506-000350.log`.
 - Follow-up: continue plugin runtime review around resolver failures before entry-point discovery.
+
+### 2026-05-06 04:04 AWST - Plugin loading/runtime reflection loader diagnostics
+- Area: Plugin loading/runtime (`PluginLoader` reflection loader exception formatting); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Reflection loader diagnostics appended raw nested loader messages, so missing/load-failed dependency assembly names could be omitted from the user-facing `LoadError`.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed nested reflection loader exception formatting to reuse dependency/type/bad-image diagnostics, added regression coverage, and bumped version `0.22.215` -> `0.22.216`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-035759.log`); tests passed 836 total (`/tmp/xerahs-hourly-sweep/test-20260506-040112.log`).
+- Follow-up: continue plugin runtime review around resolver failures before entry-point discovery, especially direct `AssemblyLoadContext` resolver errors.

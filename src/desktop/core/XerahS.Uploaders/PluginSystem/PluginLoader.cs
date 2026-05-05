@@ -282,8 +282,9 @@ public class PluginLoader
     private static string FormatReflectionTypeLoadError(ReflectionTypeLoadException ex)
     {
         string[] loaderMessages = ex.LoaderExceptions
-            .Where(loaderException => !string.IsNullOrWhiteSpace(loaderException?.Message))
-            .Select(loaderException => loaderException!.Message)
+            .Where(loaderException => loaderException != null)
+            .Select(loaderException => FormatLoaderException(loaderException!))
+            .Where(message => !string.IsNullOrWhiteSpace(message))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
@@ -296,6 +297,16 @@ public class PluginLoader
 
         return error;
     }
+
+    private static string FormatLoaderException(Exception ex) => ex switch
+    {
+        FileNotFoundException fileNotFoundException => FormatDependencyNotFoundError(fileNotFoundException),
+        FileLoadException fileLoadException => FormatDependencyLoadError(fileLoadException),
+        BadImageFormatException badImageFormatException => FormatBadImageFormatError(badImageFormatException),
+        TypeLoadException typeLoadException => FormatTypeLoadError(typeLoadException),
+        ReflectionTypeLoadException reflectionTypeLoadException => FormatReflectionTypeLoadError(reflectionTypeLoadException),
+        _ => ex.Message
+    };
 
     private static void WriteLoaderExceptions(ReflectionTypeLoadException ex)
     {

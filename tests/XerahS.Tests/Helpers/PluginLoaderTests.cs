@@ -387,6 +387,7 @@ public class PluginLoaderTests
         Assert.Multiple(() =>
         {
             Assert.That(metadata.LoadError, Does.StartWith("Reflection type load error: Reflection load failed"));
+            Assert.That(metadata.LoadError, Does.Contain("Dependency not found: Missing.Reflection.Dependency.dll:"));
             Assert.That(metadata.LoadError, Does.Contain("Missing reflection dependency"));
             Assert.That(loader.GetLoadedContexts(), Is.Empty);
         });
