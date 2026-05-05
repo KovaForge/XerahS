@@ -549,6 +549,6 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 ### 2026-05-06 00:06 AWST - Plugin loading/runtime missing dependency diagnostics
 - Area: Plugin loading/runtime (`PluginLoader` missing dependency error formatting); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
 - Findings: `FileNotFoundException` diagnostics assumed `FileName` was populated, so resolver/load failures without a file name produced an empty `Dependency not found:` message.
-- Status: Merged upstream/develop `09e5a718` into local `develop`, keeping KovaForge blog conflict content; ShareX.ImageEditor remotes/branch verified current. Fixed missing-dependency formatting to report `unknown assembly` plus the exception message, added regression coverage, and bumped version `0.22.214` -> `0.22.215`.
+- Status: Merged upstream/develop `09e5a718` into local `develop`, keeping KovaForge blog conflict content; ShareX.ImageEditor remotes/branch verified current. Fixed missing-dependency formatting to report `unknown assembly` plus the exception message, added regression coverage, bumped version `0.22.214` -> `0.22.215`, and pushed `develop` to origin through `4c62eaa4`.
 - Validation: Release build passed with 0 warnings/errors; tests passed 836 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260506-000022.log`, `/tmp/xerahs-hourly-sweep/test-20260506-000350.log`.
-- Follow-up: unblock GitHub credentials and push the local maintenance commits; continue plugin runtime review around resolver failures before entry-point discovery.
+- Follow-up: continue plugin runtime review around resolver failures before entry-point discovery.
