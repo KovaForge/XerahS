@@ -131,7 +131,7 @@ public class PluginLoader
         }
         catch (TargetInvocationException ex) when (ex.InnerException is FileNotFoundException fileNotFoundException)
         {
-            metadata.LoadError = $"Dependency not found: {fileNotFoundException.FileName}";
+            metadata.LoadError = FormatDependencyNotFoundError(fileNotFoundException);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (TargetInvocationException ex) when (ex.InnerException is FileLoadException fileLoadException)
@@ -157,7 +157,7 @@ public class PluginLoader
         }
         catch (FileNotFoundException ex)
         {
-            metadata.LoadError = $"Dependency not found: {ex.FileName}";
+            metadata.LoadError = FormatDependencyNotFoundError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (FileLoadException ex)
@@ -266,6 +266,12 @@ public class PluginLoader
     private static string FormatTypeLoadError(TypeLoadException ex) => $"Type load error: {ex.Message}";
 
     private static string FormatBadImageFormatError(BadImageFormatException ex) => $"Invalid or incompatible assembly image: {ex.Message}";
+
+    private static string FormatDependencyNotFoundError(FileNotFoundException ex)
+    {
+        string fileName = string.IsNullOrWhiteSpace(ex.FileName) ? "unknown assembly" : ex.FileName;
+        return $"Dependency not found: {fileName}: {ex.Message}";
+    }
 
     private static string FormatDependencyLoadError(FileLoadException ex)
     {

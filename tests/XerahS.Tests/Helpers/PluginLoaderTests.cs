@@ -307,7 +307,28 @@ public class PluginLoaderTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(metadata.LoadError, Is.EqualTo("Dependency not found: Missing.Plugin.Dependency.dll"));
+            Assert.That(metadata.LoadError, Does.StartWith("Dependency not found: Missing.Plugin.Dependency.dll:"));
+            Assert.That(metadata.LoadError, Does.Contain("Missing dependency"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void LoadPlugin_ProviderConstructorMissingDependencyWithoutFileName_ReportsUnknownAssemblyAndDoesNotTrackContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateMissingDependencyWithoutFileNameProviderManifest("missing-dependency-without-file-name-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Does.StartWith("Dependency not found: unknown assembly:"));
+            Assert.That(metadata.LoadError, Does.Contain("Missing dependency without file name"));
             Assert.That(loader.GetLoadedContexts(), Is.Empty);
         });
     }
@@ -444,6 +465,15 @@ public class PluginLoaderTests
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
+    private static PluginManifest CreateMissingDependencyWithoutFileNameProviderManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Missing dependency without file name test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = typeof(MissingDependencyWithoutFileNamePluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
     private static PluginManifest CreateTypeLoadFailureProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -569,6 +599,30 @@ public class PluginLoaderTests
 
         public string ProviderId => "file-load-failure-provider";
         public string Name => "File load failure plugin provider";
+        public string Description => "Provider used by PluginLoader tests.";
+        public Version Version => new(1, 0, 0);
+        public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
+        public Type ConfigModelType => typeof(object);
+
+        public event EventHandler? ConfigChanged;
+
+        public object? CreateConfigView() => null;
+        public IUploaderConfigViewModel? CreateConfigViewModel() => null;
+        public object CreateInstance(string settingsJson) => new object();
+        public Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new();
+        public bool ValidateSettings(string settingsJson) => true;
+        public string GetDefaultSettings(UploaderCategory category) => "{}";
+
+        public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public sealed class MissingDependencyWithoutFileNamePluginProvider : IUploaderProvider
+    {
+        public MissingDependencyWithoutFileNamePluginProvider() =>
+            throw new FileNotFoundException("Missing dependency without file name");
+
+        public string ProviderId => "missing-dependency-without-file-name-provider";
+        public string Name => "Missing dependency without file name plugin provider";
         public string Description => "Provider used by PluginLoader tests.";
         public Version Version => new(1, 0, 0);
         public UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
