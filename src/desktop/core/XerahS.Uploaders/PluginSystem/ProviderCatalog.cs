@@ -98,7 +98,7 @@ public static class ProviderCatalog
 
             foreach (var metadata in allDiscovered)
             {
-                if (_pluginMetadata.ContainsKey(metadata.Manifest.PluginId))
+                if (HasLoadedManifestPluginId(metadata.Manifest.PluginId))
                 {
                     continue;
                 }
@@ -297,6 +297,18 @@ public static class ProviderCatalog
         {
             return _pluginMetadata.TryGetValue(providerId, out var metadata) ? metadata : null;
         }
+    }
+
+    private static bool HasLoadedManifestPluginId(string pluginId)
+    {
+        if (string.IsNullOrWhiteSpace(pluginId))
+        {
+            return false;
+        }
+
+        return _pluginMetadata.ContainsKey(pluginId) ||
+            _pluginMetadata.Values.Any(metadata =>
+                string.Equals(metadata.Manifest.PluginId, pluginId, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

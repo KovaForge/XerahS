@@ -524,3 +524,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed registration to ignore providers with missing provider IDs, added regression coverage, and bumped version `0.22.210` -> `0.22.211`.
 - Validation: Release build/test passed with 0 warnings/errors; tests passed 832 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260504-195723.log`, `/tmp/xerahs-hourly-sweep/test-20260504-195723.log`.
 - Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-05 12:06 AWST - Plugin loading/runtime manifest duplicate guard
+- Area: Plugin loading/runtime (`ProviderCatalog` duplicate manifest tracking for mismatched runtime provider IDs); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Duplicate-discovery checks only looked up manifest IDs as dictionary keys, but successful mismatched plugins store metadata under runtime provider ID; the same manifest plugin ID could be loaded again.
+- Status: Fast-forwarded local `develop` to `origin/develop`; upstream/develop and ShareX.ImageEditor develop were already contained/current. Fixed loaded-plugin duplicate checks to find manifest IDs even when metadata is keyed by runtime provider ID; added regression coverage; bumped version `0.22.211` -> `0.22.212`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 833 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-120123.log`, `/tmp/xerahs-hourly-sweep/test-20260505-120527.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.

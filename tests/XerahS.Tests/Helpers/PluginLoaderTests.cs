@@ -73,6 +73,33 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void ProviderCatalog_LoadedManifestIdCheck_FindsMetadataStoredUnderRuntimeProviderId()
+    {
+        ProviderCatalog.Clear();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateMismatchedProviderManifest("manifest-plugin-id"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        var metadataField = typeof(ProviderCatalog).GetField("_pluginMetadata", BindingFlags.NonPublic | BindingFlags.Static);
+        var metadataByProviderId = (Dictionary<string, PluginMetadata>)metadataField!.GetValue(null)!;
+        metadataByProviderId[MismatchedPluginProvider.ProviderIdValue] = metadata;
+
+        var method = typeof(ProviderCatalog).GetMethod("HasLoadedManifestPluginId", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((bool)method!.Invoke(null, new object[] { "manifest-plugin-id" })!, Is.True);
+            Assert.That((bool)method.Invoke(null, new object[] { "MANIFEST-PLUGIN-ID" })!, Is.True);
+            Assert.That((bool)method.Invoke(null, new object[] { MismatchedPluginProvider.ProviderIdValue })!, Is.True);
+            Assert.That((bool)method.Invoke(null, new object[] { "missing-plugin-id" })!, Is.False);
+        });
+
+        ProviderCatalog.Clear();
+    }
+
+    [Test]
     public void LoadPlugin_MismatchedManifestId_TracksContextByProviderIdForUnload()
     {
         var loader = new PluginLoader();
