@@ -538,3 +538,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and ShareX.ImageEditor develop were already contained/current; origin push remains blocked by missing GitHub HTTPS credentials. Fixed `Clear()` to unload retained static plugin loader contexts, added regression coverage, and bumped version `0.22.212` -> `0.22.213`.
 - Validation: Release build passed with 0 warnings/errors; tests passed 834 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-155954.log`, `/tmp/xerahs-hourly-sweep/test-20260505-160312.log`.
 - Follow-up: unblock GitHub credentials and push the two local commits; continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-05 20:03 AWST - Plugin loading/runtime failed-load collectibility
+- Area: Plugin loading/runtime (`PluginLoader` failed context cleanup after missing entry points); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Failed plugin load paths unloaded collectible contexts but skipped the forced collection pass used by normal unloads, leaving failed-load cleanup weaker than successful unload cleanup.
+- Status: Upstream/develop and ShareX.ImageEditor develop were already contained/current; origin push remains blocked by missing GitHub HTTPS credentials. Fixed failed plugin load cleanup to force collection after unloading failed contexts, added missing-entry-point regression coverage, and bumped version `0.22.213` -> `0.22.214`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 835 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-195853.log`, `/tmp/xerahs-hourly-sweep/test-20260505-200254.log`.
+- Follow-up: unblock GitHub credentials and push the three local commits; continue plugin runtime review around resolver failures that surface before entry-point discovery.

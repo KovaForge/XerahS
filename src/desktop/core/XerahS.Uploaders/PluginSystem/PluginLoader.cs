@@ -251,6 +251,7 @@ public class PluginLoader
     private static void UnloadFailedContext(PluginLoadContext loadContext)
     {
         loadContext.Unload();
+        ForceUnloadCollection();
     }
 
     private static void ForceUnloadCollection()

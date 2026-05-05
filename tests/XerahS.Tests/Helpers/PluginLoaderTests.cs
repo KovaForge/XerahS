@@ -256,6 +256,25 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void LoadPlugin_MissingEntryPoint_UnloadsFailedContext()
+    {
+        var loader = new PluginLoader();
+        string assemblyPath = typeof(PluginLoaderTests).Assembly.Location;
+        var metadata = new PluginMetadata(
+            CreateMissingEntryPointManifest("missing-entry-point-plugin"),
+            Path.GetDirectoryName(assemblyPath)!,
+            assemblyPath);
+
+        Assert.That(loader.LoadPlugin(metadata), Is.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.LoadError, Is.EqualTo("Entry point type not found: XerahS.Tests.Helpers.DoesNotExistProvider"));
+            Assert.That(loader.GetLoadedContexts(), Is.Empty);
+        });
+    }
+
+    [Test]
     public void LoadPlugin_BlankProviderId_ReportsErrorAndDoesNotTrackContext()
     {
         var loader = new PluginLoader();
@@ -386,6 +405,15 @@ public class PluginLoaderTests
         Name = "Blank provider ID test",
         ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
         EntryPoint = typeof(BlankProviderIdPluginProvider).FullName!,
+        SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
+    };
+
+    private static PluginManifest CreateMissingEntryPointManifest(string pluginId) => new()
+    {
+        PluginId = pluginId,
+        Name = "Missing entry point test",
+        ApiVersion = PluginDiscovery.GetCurrentApiVersion(),
+        EntryPoint = "XerahS.Tests.Helpers.DoesNotExistProvider",
         SupportedCategories = new List<string> { nameof(UploaderCategory.Image) }
     };
 
