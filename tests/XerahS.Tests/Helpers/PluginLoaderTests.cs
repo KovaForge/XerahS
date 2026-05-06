@@ -485,6 +485,42 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void LoadContext_Load_DoesNotFallbackToSharedDependencyWithDifferentCasing()
+    {
+        string testDirectory = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"plugin-load-context-shared-{Guid.NewGuid():N}");
+        string resolverDirectory = Path.Combine(testDirectory, "resolver-root");
+        string pluginDirectory = Path.Combine(testDirectory, "plugin-root");
+        Directory.CreateDirectory(resolverDirectory);
+        Directory.CreateDirectory(pluginDirectory);
+
+        string pluginPath = Path.Combine(resolverDirectory, Path.GetFileName(typeof(PluginLoader).Assembly.Location));
+        File.Copy(typeof(PluginLoader).Assembly.Location, pluginPath);
+
+        string sharedAssemblyPath = typeof(Enumerable).Assembly.Location;
+        AssemblyName sharedAssemblyName = AssemblyName.GetAssemblyName(sharedAssemblyPath);
+        string lowerCaseName = sharedAssemblyName.Name!.ToLowerInvariant();
+        File.Copy(sharedAssemblyPath, Path.Combine(pluginDirectory, $"{lowerCaseName}.dll"));
+
+        var sharedDependencyRequest = new AssemblyName(lowerCaseName)
+        {
+            Version = sharedAssemblyName.Version,
+            CultureName = sharedAssemblyName.CultureName
+        };
+        sharedDependencyRequest.SetPublicKeyToken(sharedAssemblyName.GetPublicKeyToken());
+
+        var loadContext = new ExposedPluginLoadContext(pluginPath, pluginDirectory);
+
+        try
+        {
+            Assert.That(loadContext.LoadForTest(sharedDependencyRequest), Is.Null);
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
+    [Test]
     public void LoadContext_Load_DoesNotFallbackToSatelliteAssemblyForNeutralCultureRequest()
     {
         string satelliteAssemblyPath = FindSatelliteResourceAssemblyForTest();

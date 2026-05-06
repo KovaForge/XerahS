@@ -93,14 +93,14 @@ public class PluginLoadContext : AssemblyLoadContext
         var name = assemblyName.Name;
 
         // These assemblies must come from the host, not be duplicated in the plugin context.
-        return name == "XerahS.Uploaders" ||
-               name == "XerahS.UploaderPluginSdk" ||
-               name == "XerahS.Common" ||
-               name == "Newtonsoft.Json" ||
-               name == "CommunityToolkit.Mvvm" ||
-               name?.StartsWith("System.") == true ||
-               name?.StartsWith("Microsoft.") == true ||
-               name?.StartsWith("Avalonia.") == true;
+        return string.Equals(name, "XerahS.Uploaders", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "XerahS.UploaderPluginSdk", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "XerahS.Common", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "Newtonsoft.Json", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "CommunityToolkit.Mvvm", StringComparison.OrdinalIgnoreCase) ||
+               name?.StartsWith("System.", StringComparison.OrdinalIgnoreCase) == true ||
+               name?.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) == true ||
+               name?.StartsWith("Avalonia.", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private string? ResolveAssemblyFromPluginDirectory(AssemblyName assemblyName)

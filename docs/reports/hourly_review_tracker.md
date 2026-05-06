@@ -594,3 +594,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop docs commits `9f90e073` and `925ce5c1`, keeping KovaForge's fuller blog drafts during conflicts; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity matching to require exact public-key-token parity, updated identity regressions, and bumped version `0.22.220` -> `0.22.221`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-000245.log`); tests passed 841 total (`/tmp/xerahs-hourly-sweep/test-20260507-000245.log`).
 - Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version/public-key edge cases.
+
+### 2026-05-07 04:02 AWST - Plugin loading/runtime shared dependency casing
+- Area: Plugin loading/runtime (`PluginLoadContext` shared dependency fallback); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Shared dependency detection was case-sensitive even though assembly identity matching is case-insensitive, so lowercase `system.*` requests could reach plugin-directory fallback instead of staying in the host context.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current. Fixed shared dependency checks to use ordinal-ignore-case comparisons/prefixes, added regression coverage, and bumped version `0.22.221` -> `0.22.222`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-035758.log`); tests passed 842 total (`/tmp/xerahs-hourly-sweep/test-20260507-040110.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version edge cases.
