@@ -114,12 +114,47 @@ public class PluginLoadContext : AssemblyLoadContext
         string assemblyPath = Path.GetFullPath(Path.Combine(pluginDirectory, $"{assemblyName.Name}.dll"));
         string directoryPrefix = pluginDirectory.EndsWith(Path.DirectorySeparatorChar) ? pluginDirectory : pluginDirectory + Path.DirectorySeparatorChar;
 
-        if (!assemblyPath.StartsWith(directoryPrefix, StringComparison.Ordinal) || !File.Exists(assemblyPath))
+        if (!assemblyPath.StartsWith(directoryPrefix, StringComparison.Ordinal) ||
+            !File.Exists(assemblyPath) ||
+            !AssemblyIdentityMatchesRequest(assemblyPath, assemblyName))
         {
             return null;
         }
 
         return assemblyPath;
+    }
+
+    private static bool AssemblyIdentityMatchesRequest(string assemblyPath, AssemblyName requestedName)
+    {
+        AssemblyName candidateName = AssemblyName.GetAssemblyName(assemblyPath);
+
+        if (!string.Equals(candidateName.Name, requestedName.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (requestedName.Version != null && candidateName.Version != requestedName.Version)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(requestedName.CultureName) &&
+            !string.Equals(candidateName.CultureName, requestedName.CultureName, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        byte[]? requestedToken = requestedName.GetPublicKeyToken();
+        if (requestedToken is { Length: > 0 })
+        {
+            byte[]? candidateToken = candidateName.GetPublicKeyToken();
+            if (candidateToken == null || !requestedToken.SequenceEqual(candidateToken))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     protected string? ResolveUnmanagedDllFromPluginDirectory(string unmanagedDllName)
