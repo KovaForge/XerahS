@@ -587,3 +587,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity matching to require exact culture parity, added regression coverage, and bumped version `0.22.219` -> `0.22.220`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-200548.log`); tests passed 840 total (`/tmp/xerahs-hourly-sweep/test-20260506-200852.log`).
 - Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining public-key/version edge cases.
+
+### 2026-05-07 00:05 AWST - Plugin loading/runtime public key identity
+- Area: Plugin loading/runtime (`PluginLoadContext` managed dependency identity); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: The plugin-directory fallback accepted a strong-named DLL for an unsigned/simple-name request when name, version, and culture matched, allowing a non-identical assembly identity to bind from the plugin folder.
+- Status: Merged upstream/develop docs commits `9f90e073` and `925ce5c1`, keeping KovaForge's fuller blog drafts during conflicts; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity matching to require exact public-key-token parity, updated identity regressions, and bumped version `0.22.220` -> `0.22.221`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-000245.log`); tests passed 841 total (`/tmp/xerahs-hourly-sweep/test-20260507-000245.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version/public-key edge cases.

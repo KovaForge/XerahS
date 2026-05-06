@@ -143,14 +143,11 @@ public class PluginLoadContext : AssemblyLoadContext
             return false;
         }
 
-        byte[]? requestedToken = requestedName.GetPublicKeyToken();
-        if (requestedToken is { Length: > 0 })
+        byte[] requestedToken = requestedName.GetPublicKeyToken() ?? Array.Empty<byte>();
+        byte[] candidateToken = candidateName.GetPublicKeyToken() ?? Array.Empty<byte>();
+        if (!requestedToken.SequenceEqual(candidateToken))
         {
-            byte[]? candidateToken = candidateName.GetPublicKeyToken();
-            if (candidateToken == null || !requestedToken.SequenceEqual(candidateToken))
-            {
-                return false;
-            }
+            return false;
         }
 
         return true;

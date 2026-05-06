@@ -428,11 +428,19 @@ public class PluginLoaderTests
         string dependencyPath = Path.Combine(pluginDirectory, $"{dependencyName}.dll");
         File.Copy(typeof(TestAttribute).Assembly.Location, dependencyPath);
 
+        AssemblyName dependencyAssemblyName = AssemblyName.GetAssemblyName(dependencyPath);
+        var dependencyRequest = new AssemblyName(dependencyAssemblyName.Name!)
+        {
+            Version = dependencyAssemblyName.Version,
+            CultureName = dependencyAssemblyName.CultureName
+        };
+        dependencyRequest.SetPublicKeyToken(dependencyAssemblyName.GetPublicKeyToken());
+
         var loadContext = new ExposedPluginLoadContext(pluginPath, pluginDirectory);
 
         try
         {
-            var assembly = loadContext.LoadForTest(new AssemblyName(dependencyName));
+            var assembly = loadContext.LoadForTest(dependencyRequest);
 
             Assert.Multiple(() =>
             {
@@ -490,12 +498,38 @@ public class PluginLoaderTests
             Version = satelliteName.Version,
             CultureName = satelliteName.CultureName
         };
+        cultureRequest.SetPublicKeyToken(satelliteName.GetPublicKeyToken());
 
         Assert.Multiple(() =>
         {
             Assert.That(satelliteName.CultureName, Is.Not.Empty);
             Assert.That(PluginLoadContext.AssemblyIdentityMatchesRequest(satelliteAssemblyPath, neutralRequest), Is.False);
             Assert.That(PluginLoadContext.AssemblyIdentityMatchesRequest(satelliteAssemblyPath, cultureRequest), Is.True);
+        });
+    }
+
+    [Test]
+    public void LoadContext_Load_DoesNotFallbackToStrongNamedAssemblyForUnsignedRequest()
+    {
+        string strongNamedAssemblyPath = typeof(TestAttribute).Assembly.Location;
+        AssemblyName strongNamedAssemblyName = AssemblyName.GetAssemblyName(strongNamedAssemblyPath);
+        var unsignedRequest = new AssemblyName(strongNamedAssemblyName.Name!)
+        {
+            Version = strongNamedAssemblyName.Version,
+            CultureName = strongNamedAssemblyName.CultureName
+        };
+        var signedRequest = new AssemblyName(strongNamedAssemblyName.Name!)
+        {
+            Version = strongNamedAssemblyName.Version,
+            CultureName = strongNamedAssemblyName.CultureName
+        };
+        signedRequest.SetPublicKeyToken(strongNamedAssemblyName.GetPublicKeyToken());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(strongNamedAssemblyName.GetPublicKeyToken(), Is.Not.Null.And.Not.Empty);
+            Assert.That(PluginLoadContext.AssemblyIdentityMatchesRequest(strongNamedAssemblyPath, unsignedRequest), Is.False);
+            Assert.That(PluginLoadContext.AssemblyIdentityMatchesRequest(strongNamedAssemblyPath, signedRequest), Is.True);
         });
     }
 
