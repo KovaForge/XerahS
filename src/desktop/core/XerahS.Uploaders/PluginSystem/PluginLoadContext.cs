@@ -124,7 +124,7 @@ public class PluginLoadContext : AssemblyLoadContext
         return assemblyPath;
     }
 
-    private static bool AssemblyIdentityMatchesRequest(string assemblyPath, AssemblyName requestedName)
+    internal static bool AssemblyIdentityMatchesRequest(string assemblyPath, AssemblyName requestedName)
     {
         AssemblyName candidateName = AssemblyName.GetAssemblyName(assemblyPath);
 
@@ -138,8 +138,7 @@ public class PluginLoadContext : AssemblyLoadContext
             return false;
         }
 
-        if (!string.IsNullOrEmpty(requestedName.CultureName) &&
-            !string.Equals(candidateName.CultureName, requestedName.CultureName, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(candidateName.CultureName ?? string.Empty, requestedName.CultureName ?? string.Empty, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }

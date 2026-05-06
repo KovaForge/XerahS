@@ -477,6 +477,29 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void LoadContext_Load_DoesNotFallbackToSatelliteAssemblyForNeutralCultureRequest()
+    {
+        string satelliteAssemblyPath = FindSatelliteResourceAssemblyForTest();
+        AssemblyName satelliteName = AssemblyName.GetAssemblyName(satelliteAssemblyPath);
+        var neutralRequest = new AssemblyName(satelliteName.Name!)
+        {
+            Version = satelliteName.Version
+        };
+        var cultureRequest = new AssemblyName(satelliteName.Name!)
+        {
+            Version = satelliteName.Version,
+            CultureName = satelliteName.CultureName
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(satelliteName.CultureName, Is.Not.Empty);
+            Assert.That(PluginLoadContext.AssemblyIdentityMatchesRequest(satelliteAssemblyPath, neutralRequest), Is.False);
+            Assert.That(PluginLoadContext.AssemblyIdentityMatchesRequest(satelliteAssemblyPath, cultureRequest), Is.True);
+        });
+    }
+
+    [Test]
     public void LoadContext_LoadUnmanagedDll_FallsBackToPluginDirectoryForPrivateLibraries()
     {
         string testDirectory = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"plugin-load-context-native-{Guid.NewGuid():N}");
@@ -511,6 +534,19 @@ public class PluginLoaderTests
         {
             loadContext.Unload();
         }
+    }
+
+    private static string FindSatelliteResourceAssemblyForTest()
+    {
+        foreach (string path in Directory.EnumerateFiles(TestContext.CurrentContext.WorkDirectory, "*.resources.dll", SearchOption.AllDirectories))
+        {
+            if (!string.IsNullOrEmpty(AssemblyName.GetAssemblyName(path).CultureName))
+            {
+                return path;
+            }
+        }
+
+        throw new FileNotFoundException("No satellite resource assembly was available in the test output.");
     }
 
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
