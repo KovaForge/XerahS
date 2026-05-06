@@ -446,6 +446,43 @@ public class PluginLoaderTests
         }
     }
 
+    [Test]
+    public void LoadContext_LoadUnmanagedDll_FallsBackToPluginDirectoryForPrivateLibraries()
+    {
+        string testDirectory = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"plugin-load-context-native-{Guid.NewGuid():N}");
+        string resolverDirectory = Path.Combine(testDirectory, "resolver-root");
+        string pluginDirectory = Path.Combine(testDirectory, "plugin-root");
+        Directory.CreateDirectory(resolverDirectory);
+        Directory.CreateDirectory(pluginDirectory);
+
+        string pluginPath = Path.Combine(resolverDirectory, Path.GetFileName(typeof(PluginLoader).Assembly.Location));
+        File.Copy(typeof(PluginLoader).Assembly.Location, pluginPath);
+
+        string libraryName = "nativehelper";
+        string libraryFileName = OperatingSystem.IsWindows()
+            ? $"{libraryName}.dll"
+            : OperatingSystem.IsMacOS()
+                ? $"lib{libraryName}.dylib"
+                : $"lib{libraryName}.so";
+        string libraryPath = Path.Combine(pluginDirectory, libraryFileName);
+        File.WriteAllBytes(libraryPath, Array.Empty<byte>());
+
+        var loadContext = new ExposedPluginLoadContext(pluginPath, pluginDirectory);
+
+        try
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(loadContext.ResolveUnmanagedDllPathForTest(libraryName), Is.EqualTo(libraryPath));
+                Assert.That(loadContext.ResolveUnmanagedDllPathForTest($"..{Path.DirectorySeparatorChar}{libraryName}"), Is.Null);
+            });
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -753,5 +790,7 @@ public class PluginLoaderTests
     private sealed class ExposedPluginLoadContext(string pluginPath, string pluginDirectory) : PluginLoadContext(pluginPath, pluginDirectory)
     {
         public Assembly? LoadForTest(AssemblyName assemblyName) => Load(assemblyName);
+
+        public string? ResolveUnmanagedDllPathForTest(string unmanagedDllName) => ResolveUnmanagedDllFromPluginDirectory(unmanagedDllName);
     }
 }

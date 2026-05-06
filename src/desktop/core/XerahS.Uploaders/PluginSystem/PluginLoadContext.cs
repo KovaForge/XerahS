@@ -79,6 +79,12 @@ public class PluginLoadContext : AssemblyLoadContext
             return LoadUnmanagedDllFromPath(libraryPath);
         }
 
+        libraryPath = ResolveUnmanagedDllFromPluginDirectory(unmanagedDllName);
+        if (libraryPath != null)
+        {
+            return LoadUnmanagedDllFromPath(libraryPath);
+        }
+
         return IntPtr.Zero;
     }
 
@@ -114,5 +120,55 @@ public class PluginLoadContext : AssemblyLoadContext
         }
 
         return assemblyPath;
+    }
+
+    protected string? ResolveUnmanagedDllFromPluginDirectory(string unmanagedDllName)
+    {
+        if (string.IsNullOrWhiteSpace(unmanagedDllName) ||
+            unmanagedDllName.IndexOfAny(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) >= 0)
+        {
+            return null;
+        }
+
+        string pluginDirectory = Path.GetFullPath(_pluginDirectory);
+        string directoryPrefix = pluginDirectory.EndsWith(Path.DirectorySeparatorChar) ? pluginDirectory : pluginDirectory + Path.DirectorySeparatorChar;
+
+        foreach (string candidateName in GetUnmanagedDllCandidateNames(unmanagedDllName))
+        {
+            string libraryPath = Path.GetFullPath(Path.Combine(pluginDirectory, candidateName));
+            if (libraryPath.StartsWith(directoryPrefix, StringComparison.Ordinal) && File.Exists(libraryPath))
+            {
+                return libraryPath;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> GetUnmanagedDllCandidateNames(string unmanagedDllName)
+    {
+        yield return unmanagedDllName;
+
+        string extension = Path.GetExtension(unmanagedDllName);
+        if (!string.IsNullOrEmpty(extension))
+        {
+            yield break;
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            yield return $"{unmanagedDllName}.dll";
+            yield break;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            yield return $"{unmanagedDllName}.dylib";
+            yield return $"lib{unmanagedDllName}.dylib";
+            yield break;
+        }
+
+        yield return $"{unmanagedDllName}.so";
+        yield return $"lib{unmanagedDllName}.so";
     }
 }

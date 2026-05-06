@@ -566,3 +566,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed resolver fallback to load safe same-directory plugin-private assemblies, added regression coverage, bumped version `0.22.216` -> `0.22.217`, and pushed `develop` through `44ab0f4c`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-080604.log`); tests passed 837 total (`/tmp/xerahs-hourly-sweep/test-20260506-080711.log`).
 - Follow-up: continue plugin runtime review around unmanaged DLL resolver fallback and dependency diagnostics.
+
+### 2026-05-06 12:06 AWST - Plugin loading/runtime unmanaged dependency fallback
+- Area: Plugin loading/runtime (`PluginLoadContext` unmanaged dependency resolution); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Unmanaged plugin dependencies only used `AssemblyDependencyResolver`, so native libraries copied beside a plugin could fail to resolve when absent from `.deps.json`.
+- Status: Fast-forwarded local `develop` to `origin/develop`; upstream/develop already contained. ShareX.ImageEditor develop/remotes verified current. Fixed unmanaged DLL fallback to resolve safe same-directory native library names, added regression coverage, and bumped version `0.22.217` -> `0.22.218`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-120042.log`); tests passed 838 total (`/tmp/xerahs-hourly-sweep/test-20260506-120405.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback.
