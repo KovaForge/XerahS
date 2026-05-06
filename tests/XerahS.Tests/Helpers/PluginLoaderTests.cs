@@ -412,6 +412,40 @@ public class PluginLoaderTests
         });
     }
 
+    [Test]
+    public void LoadContext_Load_FallsBackToPluginDirectoryForPrivateAssemblies()
+    {
+        string testDirectory = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"plugin-load-context-{Guid.NewGuid():N}");
+        string resolverDirectory = Path.Combine(testDirectory, "resolver-root");
+        string pluginDirectory = Path.Combine(testDirectory, "plugin-root");
+        Directory.CreateDirectory(resolverDirectory);
+        Directory.CreateDirectory(pluginDirectory);
+
+        string pluginPath = Path.Combine(resolverDirectory, Path.GetFileName(typeof(PluginLoader).Assembly.Location));
+        File.Copy(typeof(PluginLoader).Assembly.Location, pluginPath);
+
+        string dependencyName = typeof(TestAttribute).Assembly.GetName().Name!;
+        string dependencyPath = Path.Combine(pluginDirectory, $"{dependencyName}.dll");
+        File.Copy(typeof(TestAttribute).Assembly.Location, dependencyPath);
+
+        var loadContext = new ExposedPluginLoadContext(pluginPath, pluginDirectory);
+
+        try
+        {
+            var assembly = loadContext.LoadForTest(new AssemblyName(dependencyName));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(assembly, Is.Not.Null);
+                Assert.That(assembly!.Location, Is.EqualTo(dependencyPath));
+            });
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
     private static PluginManifest CreateMismatchedProviderManifest(string pluginId) => new()
     {
         PluginId = pluginId,
@@ -714,5 +748,10 @@ public class PluginLoaderTests
         public string GetDefaultSettings(UploaderCategory category) => "{}";
 
         public void RaiseConfigChangedForTest() => ConfigChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private sealed class ExposedPluginLoadContext(string pluginPath, string pluginDirectory) : PluginLoadContext(pluginPath, pluginDirectory)
+    {
+        public Assembly? LoadForTest(AssemblyName assemblyName) => Load(assemblyName);
     }
 }

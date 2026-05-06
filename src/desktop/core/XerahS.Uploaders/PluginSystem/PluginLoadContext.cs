@@ -62,6 +62,12 @@ public class PluginLoadContext : AssemblyLoadContext
             return LoadFromAssemblyPath(assemblyPath);
         }
 
+        assemblyPath = ResolveAssemblyFromPluginDirectory(assemblyName);
+        if (assemblyPath != null)
+        {
+            return LoadFromAssemblyPath(assemblyPath);
+        }
+
         return null;
     }
 
@@ -89,5 +95,24 @@ public class PluginLoadContext : AssemblyLoadContext
                name?.StartsWith("System.") == true ||
                name?.StartsWith("Microsoft.") == true ||
                name?.StartsWith("Avalonia.") == true;
+    }
+
+    private string? ResolveAssemblyFromPluginDirectory(AssemblyName assemblyName)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyName.Name))
+        {
+            return null;
+        }
+
+        string pluginDirectory = Path.GetFullPath(_pluginDirectory);
+        string assemblyPath = Path.GetFullPath(Path.Combine(pluginDirectory, $"{assemblyName.Name}.dll"));
+        string directoryPrefix = pluginDirectory.EndsWith(Path.DirectorySeparatorChar) ? pluginDirectory : pluginDirectory + Path.DirectorySeparatorChar;
+
+        if (!assemblyPath.StartsWith(directoryPrefix, StringComparison.Ordinal) || !File.Exists(assemblyPath))
+        {
+            return null;
+        }
+
+        return assemblyPath;
     }
 }
