@@ -24,15 +24,18 @@ internal static class DxgiCropRectHelper
         cropRect = default;
 
         if (bitmapWidth <= 0 || bitmapHeight <= 0 ||
+            virtualBounds.Width <= 0 || virtualBounds.Height <= 0 ||
             !IsFinite(rect.Left) || !IsFinite(rect.Top) || !IsFinite(rect.Right) || !IsFinite(rect.Bottom))
         {
             return false;
         }
 
-        double left = Math.Floor(rect.Left) - virtualBounds.X;
-        double top = Math.Floor(rect.Top) - virtualBounds.Y;
-        double right = Math.Ceiling(rect.Right) - virtualBounds.X;
-        double bottom = Math.Ceiling(rect.Bottom) - virtualBounds.Y;
+        double scaleX = bitmapWidth / (double)virtualBounds.Width;
+        double scaleY = bitmapHeight / (double)virtualBounds.Height;
+        double left = Math.Floor((rect.Left - virtualBounds.X) * scaleX);
+        double top = Math.Floor((rect.Top - virtualBounds.Y) * scaleY);
+        double right = Math.Ceiling((rect.Right - virtualBounds.X) * scaleX);
+        double bottom = Math.Ceiling((rect.Bottom - virtualBounds.Y) * scaleY);
 
         if (right <= left || bottom <= top)
         {

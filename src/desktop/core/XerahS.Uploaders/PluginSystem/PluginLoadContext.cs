@@ -62,12 +62,24 @@ public class PluginLoadContext : AssemblyLoadContext
             return LoadFromAssemblyPath(assemblyPath);
         }
 
+        assemblyPath = ResolveAssemblyFromPluginDirectory(assemblyName);
+        if (assemblyPath != null)
+        {
+            return LoadFromAssemblyPath(assemblyPath);
+        }
+
         return null;
     }
 
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
         var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        if (libraryPath != null)
+        {
+            return LoadUnmanagedDllFromPath(libraryPath);
+        }
+
+        libraryPath = ResolveUnmanagedDllFromPluginDirectory(unmanagedDllName);
         if (libraryPath != null)
         {
             return LoadUnmanagedDllFromPath(libraryPath);
@@ -81,13 +93,129 @@ public class PluginLoadContext : AssemblyLoadContext
         var name = assemblyName.Name;
 
         // These assemblies must come from the host, not be duplicated in the plugin context.
-        return name == "XerahS.Uploaders" ||
-               name == "XerahS.UploaderPluginSdk" ||
-               name == "XerahS.Common" ||
-               name == "Newtonsoft.Json" ||
-               name == "CommunityToolkit.Mvvm" ||
-               name?.StartsWith("System.") == true ||
-               name?.StartsWith("Microsoft.") == true ||
-               name?.StartsWith("Avalonia.") == true;
+        return string.Equals(name, "XerahS.Uploaders", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "XerahS.UploaderPluginSdk", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "XerahS.Common", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "Newtonsoft.Json", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, "CommunityToolkit.Mvvm", StringComparison.OrdinalIgnoreCase) ||
+               name?.StartsWith("System.", StringComparison.OrdinalIgnoreCase) == true ||
+               name?.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) == true ||
+               name?.StartsWith("Avalonia.", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private string? ResolveAssemblyFromPluginDirectory(AssemblyName assemblyName)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyName.Name))
+        {
+            return null;
+        }
+
+        string pluginDirectory = Path.GetFullPath(_pluginDirectory);
+        string assemblyPath = Path.GetFullPath(Path.Combine(pluginDirectory, $"{assemblyName.Name}.dll"));
+        string directoryPrefix = pluginDirectory.EndsWith(Path.DirectorySeparatorChar) ? pluginDirectory : pluginDirectory + Path.DirectorySeparatorChar;
+
+        if (!assemblyPath.StartsWith(directoryPrefix, StringComparison.Ordinal) ||
+            !File.Exists(assemblyPath) ||
+            !AssemblyIdentityMatchesRequest(assemblyPath, assemblyName))
+        {
+            return null;
+        }
+
+        return assemblyPath;
+    }
+
+    internal static bool AssemblyIdentityMatchesRequest(string assemblyPath, AssemblyName requestedName)
+    {
+        AssemblyName candidateName;
+        try
+        {
+            candidateName = AssemblyName.GetAssemblyName(assemblyPath);
+        }
+        catch (BadImageFormatException)
+        {
+            return false;
+        }
+        catch (FileLoadException)
+        {
+            return false;
+        }
+        catch (FileNotFoundException)
+        {
+            return false;
+        }
+
+        if (!string.Equals(candidateName.Name, requestedName.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (requestedName.Version != null && candidateName.Version != requestedName.Version)
+        {
+            return false;
+        }
+
+        if (!string.Equals(candidateName.CultureName ?? string.Empty, requestedName.CultureName ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        byte[] requestedToken = requestedName.GetPublicKeyToken() ?? Array.Empty<byte>();
+        byte[] candidateToken = candidateName.GetPublicKeyToken() ?? Array.Empty<byte>();
+        if (!requestedToken.SequenceEqual(candidateToken))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected string? ResolveUnmanagedDllFromPluginDirectory(string unmanagedDllName)
+    {
+        if (string.IsNullOrWhiteSpace(unmanagedDllName) ||
+            unmanagedDllName.IndexOfAny(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) >= 0)
+        {
+            return null;
+        }
+
+        string pluginDirectory = Path.GetFullPath(_pluginDirectory);
+        string directoryPrefix = pluginDirectory.EndsWith(Path.DirectorySeparatorChar) ? pluginDirectory : pluginDirectory + Path.DirectorySeparatorChar;
+
+        foreach (string candidateName in GetUnmanagedDllCandidateNames(unmanagedDllName))
+        {
+            string libraryPath = Path.GetFullPath(Path.Combine(pluginDirectory, candidateName));
+            if (libraryPath.StartsWith(directoryPrefix, StringComparison.Ordinal) && File.Exists(libraryPath))
+            {
+                return libraryPath;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> GetUnmanagedDllCandidateNames(string unmanagedDllName)
+    {
+        yield return unmanagedDllName;
+
+        string extension = Path.GetExtension(unmanagedDllName);
+        if (!string.IsNullOrEmpty(extension))
+        {
+            yield break;
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            yield return $"{unmanagedDllName}.dll";
+            yield break;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            yield return $"{unmanagedDllName}.dylib";
+            yield return $"lib{unmanagedDllName}.dylib";
+            yield break;
+        }
+
+        yield return $"{unmanagedDllName}.so";
+        yield return $"lib{unmanagedDllName}.so";
     }
 }

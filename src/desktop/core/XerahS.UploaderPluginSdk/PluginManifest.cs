@@ -32,6 +32,9 @@ public class PluginManifest
         if (string.IsNullOrWhiteSpace(EntryPoint)) { error = "EntryPoint is required"; return false; }
         if (string.IsNullOrWhiteSpace(ApiVersion)) { error = "ApiVersion is required"; return false; }
         if (!string.IsNullOrWhiteSpace(AssemblyFileName) && !IsSafeAssemblyFileName(AssemblyFileName)) { error = "AssemblyFileName must be a simple .dll file name"; return false; }
+        if (Dependencies == null) { error = "Dependencies must be a list when provided"; return false; }
+        if (Dependencies.Any(string.IsNullOrWhiteSpace)) { error = "Dependencies must not contain empty values"; return false; }
+        if (Dependencies.Any(dependency => !IsSafeDependencyPath(dependency))) { error = "Dependencies must be canonical relative file paths"; return false; }
         if (!SupportedCategories.Any()) { error = "At least one SupportedCategory is required"; return false; }
         error = null;
         return true;
@@ -86,5 +89,25 @@ public class PluginManifest
         }
 
         return string.Equals(Path.GetExtension(assemblyFileName), ".dll", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSafeDependencyPath(string dependencyPath)
+    {
+        if (Path.IsPathRooted(dependencyPath) || dependencyPath.Contains('\\') || dependencyPath.Contains(':'))
+        {
+            return false;
+        }
+
+        string[] segments = dependencyPath.Split('/');
+        for (int i = 0; i < segments.Length; i++)
+        {
+            string segment = segments[i];
+            if (segment.Length == 0 || segment == "." || segment == "..")
+            {
+                return false;
+            }
+        }
+
+        return !string.IsNullOrWhiteSpace(Path.GetFileName(dependencyPath));
     }
 }

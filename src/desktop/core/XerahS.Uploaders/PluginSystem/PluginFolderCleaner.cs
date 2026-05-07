@@ -231,8 +231,9 @@ internal static class PluginFolderCleaner
 
         foreach (var dependency in manifest.Dependencies)
         {
-            if (string.IsNullOrWhiteSpace(dependency))
+            if (!IsSafePluginRelativeFilePath(dependency))
             {
+                DebugHelper.WriteLine($"[PluginCleaner] Ignoring unsafe declared dependency path '{dependency}' in '{manifestPath}'.");
                 continue;
             }
 
@@ -295,6 +296,12 @@ internal static class PluginFolderCleaner
                 continue;
             }
 
+            if (!IsSafePluginRelativeFilePath(asset.Name))
+            {
+                DebugHelper.WriteLine($"[PluginCleaner] Ignoring unsafe deps asset path '{asset.Name}' in '{pluginDirectory}'.");
+                continue;
+            }
+
             TryAddRelativeAssetPath(pluginDirectory, asset.Name, keep);
         }
     }
@@ -310,6 +317,25 @@ internal static class PluginFolderCleaner
         {
             // Ignore malformed paths in deps metadata
         }
+    }
+
+    private static bool IsSafePluginRelativeFilePath(string? assetPath)
+    {
+        if (string.IsNullOrWhiteSpace(assetPath) || Path.IsPathRooted(assetPath) || assetPath.Contains('\\') || assetPath.Contains(':'))
+        {
+            return false;
+        }
+
+        string[] segments = assetPath.Split('/');
+        foreach (string segment in segments)
+        {
+            if (segment.Length == 0 || segment == "." || segment == "..")
+            {
+                return false;
+            }
+        }
+
+        return !string.IsNullOrWhiteSpace(Path.GetFileName(assetPath));
     }
 
     private static void AddIfExistsInsidePlugin(string pluginDirectory, string fullPath, HashSet<string> keep)

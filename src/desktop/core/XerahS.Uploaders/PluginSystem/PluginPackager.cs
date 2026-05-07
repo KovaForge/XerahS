@@ -85,11 +85,7 @@ public static class PluginPackager
         DebugHelper.WriteLine($"Plugin install requested: {packageFilePath}");
 
         using var archive = ZipFile.OpenRead(packageFilePath);
-        var manifestEntry = archive.GetEntry(ManifestFileName);
-        if (manifestEntry == null)
-        {
-            throw new InvalidDataException($"Package does not contain {ManifestFileName}");
-        }
+        var manifestEntry = GetSingleManifestEntry(archive, requireManifest: true)!;
 
         string manifestJson;
         using (var stream = manifestEntry.Open())
@@ -99,6 +95,8 @@ public static class PluginPackager
         }
 
         var manifest = LoadAndValidateManifestJson(manifestJson);
+        ValidateArchiveEntryPaths(archive);
+        ValidateDeclaredArchiveAssets(archive, manifest);
 
         Directory.CreateDirectory(pluginsDirectory);
 
@@ -168,22 +166,58 @@ public static class PluginPackager
         }
 
         using var archive = ZipFile.OpenRead(packageFilePath);
-        var manifestEntry = archive.GetEntry(ManifestFileName);
+        var manifestEntry = GetSingleManifestEntry(archive, requireManifest: false);
         if (manifestEntry == null)
         {
             return null;
         }
 
+        ValidateArchiveEntryPaths(archive);
+
         using var stream = manifestEntry.Open();
         using var reader = new StreamReader(stream);
         string json = reader.ReadToEnd();
-        return LoadAndValidateManifestJson(json);
+        var manifest = LoadAndValidateManifestJson(json);
+        ValidateDeclaredArchiveAssets(archive, manifest);
+        return manifest;
     }
 
     private static PluginManifest LoadAndValidateManifest(string manifestPath)
     {
         string json = File.ReadAllText(manifestPath);
         return LoadAndValidateManifestJson(json);
+    }
+
+    private static ZipArchiveEntry? GetSingleManifestEntry(ZipArchive archive, bool requireManifest)
+    {
+        ZipArchiveEntry? manifestEntry = null;
+
+        foreach (var entry in archive.Entries)
+        {
+            if (!entry.FullName.Equals(ManifestFileName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!entry.FullName.Equals(ManifestFileName, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException($"Package contains a non-canonical manifest entry path: {entry.FullName}");
+            }
+
+            if (manifestEntry != null)
+            {
+                throw new InvalidDataException("Package contains a duplicate entry path for the manifest.");
+            }
+
+            manifestEntry = entry;
+        }
+
+        if (manifestEntry == null && requireManifest)
+        {
+            throw new InvalidDataException($"Package does not contain {ManifestFileName}");
+        }
+
+        return manifestEntry;
     }
 
     private static PluginManifest LoadAndValidateManifestJson(string json)
@@ -201,6 +235,86 @@ public static class PluginPackager
         }
 
         return manifest;
+    }
+
+    private static void ValidateDeclaredArchiveAssets(ZipArchive archive, PluginManifest manifest)
+    {
+        RequireArchiveFileEntry(archive, manifest.GetAssemblyFileName(), "assembly");
+
+        foreach (string dependency in manifest.Dependencies)
+        {
+            if (string.IsNullOrWhiteSpace(dependency))
+            {
+                continue;
+            }
+
+            RequireArchiveFileEntry(archive, dependency, "dependency");
+        }
+    }
+
+    private static void RequireArchiveFileEntry(ZipArchive archive, string entryName, string assetDescription)
+    {
+        ValidateCanonicalEntryPath(entryName);
+        string normalizedEntryName = NormalizeExtractedPath(entryName);
+
+        bool exists = archive.Entries.Any(entry =>
+            !string.IsNullOrEmpty(entry.Name) &&
+            string.Equals(NormalizeExtractedPath(entry.FullName), normalizedEntryName, StringComparison.Ordinal));
+
+        if (!exists)
+        {
+            throw new FileNotFoundException($"Declared plugin {assetDescription} not found in package: {entryName}");
+        }
+    }
+
+    private static void ValidateArchiveEntryPaths(ZipArchive archive)
+    {
+        var extractedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var extractedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.FullName))
+            {
+                continue;
+            }
+
+            ValidateCanonicalEntryPath(entry.FullName);
+
+            string entryPath = NormalizeExtractedPath(entry.FullName);
+            bool isDirectory = string.IsNullOrEmpty(entry.Name);
+            bool collidesWithDifferentEntryType = isDirectory
+                ? extractedFiles.Contains(entryPath)
+                : extractedDirectories.Contains(entryPath);
+            if (collidesWithDifferentEntryType)
+            {
+                throw new InvalidDataException("Package contains a file/directory path collision.");
+            }
+
+            if (!extractedPaths.Add(entryPath))
+            {
+                throw new InvalidDataException("Package contains a duplicate entry path.");
+            }
+
+            if (isDirectory)
+            {
+                if (HasParentEntryFilePath(extractedFiles, entryPath))
+                {
+                    throw new InvalidDataException("Package contains a file/directory path collision.");
+                }
+
+                extractedDirectories.Add(entryPath);
+                continue;
+            }
+
+            if (HasParentEntryFilePath(extractedFiles, entryPath))
+            {
+                throw new InvalidDataException("Package contains a file/directory path collision.");
+            }
+
+            extractedFiles.Add(entryPath);
+        }
     }
 
     private static void ExtractArchiveSafely(ZipArchive archive, string destinationDirectory)
@@ -221,6 +335,8 @@ public static class PluginPackager
             {
                 continue;
             }
+
+            ValidateCanonicalEntryPath(entry.FullName);
 
             string targetPath = NormalizeExtractedPath(Path.GetFullPath(Path.Combine(destinationDirectory, entry.FullName)));
             if (!targetPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
@@ -270,9 +386,53 @@ public static class PluginPackager
         }
     }
 
+    private static void ValidateCanonicalEntryPath(string entryName)
+    {
+        if (Path.IsPathRooted(entryName) || entryName.Contains('\\'))
+        {
+            throw new InvalidDataException("Package contains a non-canonical entry path.");
+        }
+
+        string[] segments = entryName.Split('/');
+        int lastSegmentIndex = segments.Length - 1;
+
+        for (int i = 0; i < segments.Length; i++)
+        {
+            string segment = segments[i];
+            bool isTrailingDirectorySeparator = i == lastSegmentIndex && segment.Length == 0;
+
+            if (isTrailingDirectorySeparator)
+            {
+                continue;
+            }
+
+            if (segment.Length == 0 || segment == "." || segment == "..")
+            {
+                throw new InvalidDataException("Package contains a non-canonical entry path.");
+            }
+        }
+    }
+
     private static string NormalizeExtractedPath(string path)
     {
         return Path.TrimEndingDirectorySeparator(path);
+    }
+
+    private static bool HasParentEntryFilePath(ISet<string> extractedFiles, string targetPath)
+    {
+        string? currentPath = Path.GetDirectoryName(targetPath);
+
+        while (!string.IsNullOrEmpty(currentPath))
+        {
+            if (extractedFiles.Contains(currentPath))
+            {
+                return true;
+            }
+
+            currentPath = Path.GetDirectoryName(currentPath);
+        }
+
+        return false;
     }
 
     private static bool HasParentFilePath(ISet<string> extractedFiles, string targetPath, string destinationRoot)

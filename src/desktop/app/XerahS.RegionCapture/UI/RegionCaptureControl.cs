@@ -117,6 +117,7 @@ public sealed class RegionCaptureControl : UserControl
     private PixelPoint _currentPoint => _stateMachine.CurrentPoint;
     private PixelRect _selectionRect => _stateMachine.SelectionRect;
     private WindowInfo? _hoveredWindow => _stateMachine.HoveredWindow;
+    internal PixelPoint CurrentPointForTests => _currentPoint;
 
     public RegionCaptureControl(MonitorInfo monitor, RegionCaptureOptions? options = null, XerahS.Platform.Abstractions.CursorInfo? ghostCursor = null)
     {
@@ -324,7 +325,12 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        UpdateModifiers(e.KeyModifiers);
+        UpdateAimFromOverlayPointer(e.GetPosition(this), e.KeyModifiers);
+    }
+
+    public void UpdateAimFromOverlayPointer(Point localPoint, KeyModifiers keyModifiers)
+    {
+        UpdateModifiers(keyModifiers);
 
         if (!_firstPointerMovedLogged && _sessionStartUtc is { } start)
         {
@@ -333,8 +339,7 @@ public sealed class RegionCaptureControl : UserControl
             XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: first pointer moved (+{elapsedMs:F0} ms)");
         }
 
-        var point = e.GetPosition(this);
-        var physicalPoint = LocalToPhysical(point);
+        var physicalPoint = LocalToPhysical(localPoint);
 
         _stateMachine.UpdateCursorPosition(physicalPoint);
 

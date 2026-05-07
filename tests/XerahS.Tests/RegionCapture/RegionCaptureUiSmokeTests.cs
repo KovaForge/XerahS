@@ -23,13 +23,18 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using Avalonia.Input;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.Controls;
 using XerahS.RegionCapture.UI;
 using XerahS.RegionCapture.ViewModels;
+using CaptureMonitorInfo = XerahS.RegionCapture.Models.MonitorInfo;
+using CapturePixelPoint = XerahS.RegionCapture.Models.PixelPoint;
+using CapturePixelRect = XerahS.RegionCapture.Models.PixelRect;
 
 namespace XerahS.Tests.RegionCapture;
 
@@ -89,5 +94,22 @@ public class RegionCaptureUiSmokeTests
         {
             overlayWindow.Close();
         }
+    }
+
+    [AvaloniaTest]
+    public void RegionCaptureControl_UpdateAimFromOverlayPointer_TracksAnnotationCanvasHover()
+    {
+        var monitor = new CaptureMonitorInfo(
+            DeviceName: "Display 1",
+            PhysicalBounds: new CapturePixelRect(100, 200, 1920, 1080),
+            WorkArea: new CapturePixelRect(100, 200, 1920, 1040),
+            ScaleFactor: 2.0,
+            IsPrimary: true);
+
+        var control = new RegionCaptureControl(monitor);
+
+        control.UpdateAimFromOverlayPointer(new Point(12.5, 20), KeyModifiers.None);
+
+        Assert.That(control.CurrentPointForTests, Is.EqualTo(new CapturePixelPoint(125, 240)));
     }
 }

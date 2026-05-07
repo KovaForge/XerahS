@@ -370,3 +370,279 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Release build 0 warnings/0 errors; Release tests passed 796 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260502-214611.log`, `/tmp/xerahs-hourly-sweep/test-20260502-214934.log`.
 - Submodule: `ShareX.ImageEditor` verified on `develop`, origin/upstream remotes corrected, fetched both; origin/develop unchanged at `360eeabe`, fork remains 1 ahead of upstream with no pointer update needed.
 - Follow-up: continue Linux Flatpak portal review around portal notification payload variants, startup marker reconciliation after denied requests, and Wayland portal fallback diagnostics.
+
+### 2026-05-02 23:56 AWST - Linux Flatpak portal autostart state
+- Area: Linux Flatpak/XDG portal startup state after upstream Flatpak/XDG sync.
+- Files reviewed: `FlatpakPortalStartupService.cs`, Linux portal service tests, wallpaper XDG cache test.
+- Findings: Flatpak autostart marker was stored under XDG config even though it is mutable runtime state; stale config marker could also survive disable after moving storage.
+- Fix: moved new marker writes to XDG state, kept legacy config-marker reads for migration, deletes both paths on disable/new write, and updated tests; bumped version to 0.22.190.
+- Build/test: Release build 0 warnings/0 errors; Release tests passed (789 + 14). Logs: `/tmp/xerahs-hourly-sweep/build-20260502-235518.log`, `/tmp/xerahs-hourly-sweep/test-20260502-235626.log`.
+- Follow-up: Continue Linux portal UX review around Background portal denial/cancellation diagnostics.
+
+### 2026-05-03 01:56 AWST - Plugin loading/runtime preview manifest validation
+- Area: Plugin loading/runtime (`.xsdp` preview/install manifest entry parity); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: `PreviewPackage` trusted the first `plugin.json` entry while install-time safe extraction rejected duplicate entries later, letting installer UI preview ambiguous/tampered package metadata.
+- Status: Fixed manifest lookup to require a single manifest entry for preview and install, added duplicate-manifest preview regression coverage, and bumped version `0.22.190` -> `0.22.191`.
+- Validation: Release build and full Release test suite passed with zero warnings/errors; logs under `/tmp/xerahs-hourly-sweep/`.
+- Follow-up: continue plugin runtime review around package entry casing/canonicalization parity and load-context unload diagnostics.
+
+### 2026-05-03 03:53 AWST - Plugin loading/runtime manifest casing parity
+- Area: Plugin loading/runtime (`.xsdp` manifest entry canonicalization); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Upstream sync: `develop` already contained `upstream/develop` (`2914c22d`) and remained 4 commits ahead of upstream / even with origin; ShareX.ImageEditor stayed on `develop` at `360eeab`, remotes verified, no parent pointer change needed.
+- Status: Fixed preview/install manifest lookup to reject case-variant non-canonical `plugin.json` entries instead of preview silently ignoring packages that would collide on case-insensitive extraction; added regression coverage; bumped version `0.22.191` -> `0.22.192`.
+- Build/test: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-034510.log`); Release tests passed 805 total (`/tmp/xerahs-hourly-sweep/test-20260503-034826.log`).
+- Follow-up: continue plugin runtime review around package path segment canonicalization beyond root manifest casing and load-context unload diagnostics.
+
+### 2026-05-03 05:54 AWST - Plugin loading/runtime package entry path canonicalization
+- Area: Plugin loading/runtime (`.xsdp` extraction entry path canonicalization); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: `.xsdp` install extraction canonicalized target paths after `Path.GetFullPath`, allowing ambiguous archive names such as `assets/../sample-plugin.dll` to install as valid files and backslash-separated entries to behave differently across platforms.
+- Status: Fixed install extraction to reject rooted, backslash, empty, `.`, and `..` entry path segments before extraction; added regression coverage for dot-dot and backslash entries; bumped version `0.22.192` -> `0.22.193`.
+- Upstream/Submodules: Parent `upstream/develop` had no new commits to merge; `ShareX.ImageEditor` stayed on `develop` at `360eeab`, origin/upstream fetched and already contained upstream `2144d8a`.
+- Validation: Release build and tests passed with zero warnings/errors. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-054454.log`, `/tmp/xerahs-hourly-sweep/test-20260503-054812.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for non-root asset metadata.
+
+### 2026-05-03 07:56 AWST - Plugin loading/runtime load-context snapshot
+- Area: Plugin loading/runtime (`PluginLoader.GetLoadedContexts` external mutation hardening); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `GetLoadedContexts()` returned the loader's live dictionary behind an `IReadOnlyDictionary`, so diagnostic/preview callers could cast and mutate it, losing unload handles and leaking collectible contexts.
+- Status: Fixed the API to return a read-only snapshot, added regression coverage that external `Clear()` is rejected while unload still succeeds, and bumped version `0.22.193` -> `0.22.194`.
+- Upstream/submodules: parent already ahead of `upstream/develop` with no new upstream commits; `ShareX.ImageEditor` remotes verified (`origin` KovaForge, `upstream` ShareX), on `develop`, no pointer change.
+- Validation: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-075142.log`); Release tests passed 808 total, 0 failed (`/tmp/xerahs-hourly-sweep/test-20260503-075425.log`).
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for non-root asset metadata.
+
+### 2026-05-03 11:55 AWST - Plugin loading/runtime preview package asset path parity
+- Area: Plugin loading/runtime (`.xsdp` preview validation for non-root asset entries); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: Preview validation parsed the manifest but did not apply install-time canonical entry/path-collision checks to non-root package assets, so malformed packages could preview successfully and only fail during install.
+- Status: Fixed preview to validate all archive entry paths, duplicate/case-insensitive collisions, and file-vs-directory parent collisions before reading manifest metadata; added regressions for dot-dot asset paths and file-then-nested asset collisions; bumped version `0.22.194` -> `0.22.195`.
+- Validation: Release build/test passed with 0 warnings; logs: `/tmp/xerahs-hourly-sweep/build-20260503-115628.log`, `/tmp/xerahs-hourly-sweep/test-20260503-115950.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and package preview/install parity for declared assembly/dependency asset existence.
+
+### 2026-05-03 14:05 AWST - Plugin loading/runtime declared package asset validation
+- Area: Plugin loading/runtime (`.xsdp` manifest-declared assembly/dependency entries); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: Package preview could accept manifests whose declared assembly was absent, and install did not reject missing/non-canonical manifest dependency assets before extraction.
+- Status: Fixed preview/install validation to require the manifest assembly and each declared dependency to exist as canonical file entries in the package; added regression coverage; bumped version `0.22.195` -> `0.22.196`.
+- Upstream/Submodule: Parent `develop` already contained upstream `2914c22d`; `ShareX.ImageEditor` checked out on `develop` at `360eeab` with origin/upstream healthy and no parent pointer change.
+- Build/Test: Release build passed with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-140305.log`); Release tests passed 814 total (`/tmp/xerahs-hourly-sweep/test-20260503-140500.log`).
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and richer dependency metadata validation/error messaging.
+
+### 2026-05-03 16:03 AWST - Plugin loading/runtime dependency metadata validation
+- Area: Plugin loading/runtime (`.xsdp` manifest dependency metadata); files: `src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Findings: Dependency lists loaded from package manifests could be `null` or include blank entries; preview/install validation then either risked a null-reference path or silently ignored invalid dependency metadata.
+- Status: Fixed manifest validation to reject null dependency lists and empty dependency values, added preview regression coverage, and bumped version `0.22.196` -> `0.22.197`.
+- Upstream/Submodules: Parent `develop` and `ShareX.ImageEditor` were already current with upstream/origin; submodule remains on `develop` at `360eeabe`.
+- Build/Test: Release build succeeded with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260503-155807.log`); Release tests passed 816/816 (`/tmp/xerahs-hourly-sweep/test-20260503-160122.log`).
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and richer dependency metadata validation/error messaging.
+
+### 2026-05-03 18:01 AWST - Plugin loading/runtime dependency path metadata validation
+- Area: Plugin loading/runtime (`.xsdp` manifest dependency path metadata); files: `src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained); fixed manifest validation to reject non-canonical/rooted dependency paths before preview/install asset lookup; added regression coverage; bumped version `0.22.197` -> `0.22.198`.
+- Build/test: Release build 0 warnings/0 errors; tests passed 818 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-180355.log`, `/tmp/xerahs-hourly-sweep/test-20260503-180458.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and dependency metadata.
+
+### 2026-05-03 20:02 AWST - Plugin loading/runtime installed-folder cleanup dependency metadata
+- Area: Plugin loading/runtime (`PluginFolderCleaner` handling of manifest-declared dependency paths); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginFolderCleaner.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Upstream sync: `origin/develop` and `upstream/develop` already contained at parent `bb92deb1`; `ShareX.ImageEditor` develop already contained at `360eeab` with origin/upstream remotes normalized.
+- Status: Fixed installed plugin cleanup so unsafe/non-canonical manifest dependency paths are ignored instead of preserving unexpected files during quarantine cleanup; added regression coverage; bumped version `0.22.198` -> `0.22.199`.
+- Validation: Release build succeeded with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260503-195905.log`); Release tests passed 819 total (`/tmp/xerahs-hourly-sweep/test-20260503-200230.log`).
+- Follow-up: continue plugin runtime review around deps.json asset path canonicalization and load-context unload diagnostics.
+
+### 2026-05-03 22:00 AWST - Plugin loading/runtime deps.json asset path canonicalization
+- Area: Plugin loading/runtime (`PluginFolderCleaner` handling of deps.json asset paths); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginFolderCleaner.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`.
+- Upstream: XerahS `upstream/develop` already contained; ShareX.ImageEditor `upstream/develop` already contained; submodule stayed on `develop` at `360eeab`.
+- Status: Fixed plugin cleanup to ignore unsafe/non-canonical `.deps.json` runtime/native/resource asset paths instead of preserving unexpected files; added regression coverage; bumped version `0.22.199` -> `0.22.200`.
+- Validation: Release build 0 warnings/0 errors; Release tests passed 820 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260503-215639.log`, `/tmp/xerahs-hourly-sweep/test-20260503-215954.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging.
+
+### 2026-05-04 00:00 AWST - Plugin loading/runtime unload request validation
+- Area: Plugin loading/runtime (`PluginLoader.UnloadPlugin` invalid provider ids); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `UnloadPlugin(null)` could throw from dictionary lookup and blank ids were treated as real lookup keys, which made defensive unload/error paths less robust.
+- Status: Fixed unload requests to return `false` for null/blank provider ids without mutating loaded contexts; added regression coverage; bumped version `0.22.200` -> `0.22.201`.
+- Build/test: Release build succeeded with 0 warnings; Release tests passed (821 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260503-235634.log`, `/tmp/xerahs-hourly-sweep/test-20260503-235945.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging.
+
+### 2026-05-04 02:00 AWST - Plugin loading/runtime missing assembly diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` missing assembly diagnostics); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained); fixed missing plugin assembly loads to report `Assembly not found` directly instead of architecture-inspection failure; added regression coverage; bumped version `0.22.201` -> `0.22.202`.
+- Validation: Release build succeeded with 0 warnings/0 errors; Release tests passed 822 total.
+- Follow-up: continue plugin runtime review around dependency resolution diagnostics and load-context unload diagnostics.
+
+### 2026-05-04 04:02 AWST - Plugin loading/runtime blank provider id validation
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` blank runtime provider ids); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: A plugin whose provider returned a null/blank runtime `ProviderId` could be instantiated and then fail or leave an unusable unload key during context tracking.
+- Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained); fixed load validation to reject blank provider ids with a clear load error and unload the failed context; added regression coverage; bumped version `0.22.202` -> `0.22.203`.
+- Validation: Release build/test passed with 0 warnings/errors; logs `/tmp/xerahs-hourly-sweep/build-20260504-035715.log`, `/tmp/xerahs-hourly-sweep/test-20260504-040024.log`.
+- Follow-up: continue plugin runtime review around dependency resolution diagnostics and load-context unload diagnostics.
+
+### 2026-05-04 06:02 AWST - Plugin loading/runtime dependency diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` dependency resolution diagnostics); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop (`eabdc09b`) into `develop`; ShareX.ImageEditor develop was already current. Fixed provider activation failures caused by missing dependencies to report `Dependency not found` instead of a misleading assembly/unexpected error; added regression coverage; bumped version `0.22.203` -> `0.22.204`.
+- Build/test: Release build 0 warnings/0 errors; tests passed (824 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-055654.log`, `/tmp/xerahs-hourly-sweep/test-20260504-060004.log`.
+- Follow-up: continue plugin runtime review around load-context unload diagnostics and plugin dependency resolution error messaging for type-load/reflection loader exceptions.
+
+### 2026-05-04 08:03 AWST - Plugin loading/runtime type-load diagnostics
+
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` type/reflection loader diagnostics); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Provider activation failures that surfaced `TypeLoadException` or `ReflectionTypeLoadException` through `TargetInvocationException` were reported as generic unexpected errors, and direct reflection loader failures omitted `LoadError` loader details.
+- Status: Merged upstream/develop (`523099ed`), resolved the 2026-05-03 blog add/add conflict by keeping KovaForge's populated draft, and confirmed ShareX.ImageEditor develop was current. Fixed type/reflection loader diagnostics to preserve actionable load errors and loader-exception messages; added regression coverage; bumped version `0.22.204` -> `0.22.205`.
+- Build/Test: Release build succeeded with 0 warnings/0 errors (`/tmp/xerahs-hourly-sweep/build-20260504-075714.log`); Release tests passed 826/826 (`/tmp/xerahs-hourly-sweep/test-20260504-080035.log`).
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and dependency resolution error messaging for load-context resolver failures.
+
+### 2026-05-04 10:03 AWST - Plugin loading/runtime dependency load diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` dependency load failures); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Dependency load failures raised as `FileLoadException` during provider activation fell through to the generic unexpected-error path, hiding the dependency filename and actionable loader message.
+- Status: Synced upstream/develop (already contained) and ShareX.ImageEditor develop (already contained). Fixed `FileLoadException` handling to report `Dependency load failed: <assembly>: <message>` and keep failed contexts untracked; added regression coverage; bumped version `0.22.205` -> `0.22.206`.
+- Validation: Release build succeeded with 0 warnings/errors; Release tests passed (827 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-095747.log`, `/tmp/xerahs-hourly-sweep/test-20260504-100057.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface outside provider activation.
+
+### 2026-05-04 12:03 AWST - Plugin loading/runtime bad image diagnostics
+- Area: Plugin loading/runtime (`PluginLoader.LoadPlugin` provider activation bad image failures); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Provider activation can surface `BadImageFormatException` through `TargetInvocationException`, which previously fell through to an `Unexpected error` load message.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed activation-time bad-image failures to report `Invalid or incompatible assembly image`, added regression coverage, and bumped version `0.22.206` -> `0.22.207`.
+- Build/Test: Release build 0 warnings/0 errors; Release tests passed (828 total). Logs: `/tmp/xerahs-hourly-sweep/build-20260504-115659.log`, `/tmp/xerahs-hourly-sweep/test-20260504-120011.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 14:02 AWST - Plugin loading/runtime provider-id casing unload
+- Area: Plugin loading/runtime (`PluginLoader` provider-id casing); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed loaded-context tracking to compare provider IDs case-insensitively, preserving case-insensitive unload/replacement and snapshot lookups for provider-id casing variants; added regression coverage; bumped version `0.22.207` -> `0.22.208`.
+- Build/test: Release build 0 warnings/0 errors; Release tests 829 passed. Logs: `/tmp/xerahs-hourly-sweep/build-20260504-135732.log`, `/tmp/xerahs-hourly-sweep/test-20260504-140044.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 16:01 AWST - Plugin loading/runtime provider catalog ID casing
+- Area: Plugin loading/runtime (ProviderCatalog provider-id lookup casing); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed ProviderCatalog provider/metadata dictionaries to use case-insensitive provider IDs so registration, lookup, reload removal, and metadata access match PluginLoader unload semantics; added regression coverage; bumped version `0.22.208` -> `0.22.209`.
+- Validation: Release build/test passed with 0 warnings; logs `/tmp/xerahs-hourly-sweep/build-20260504-155747.log`, `/tmp/xerahs-hourly-sweep/test-20260504-160100.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 18:02 AWST - Plugin loading/runtime blank provider-id catalog lookups
+- Area: Plugin loading/runtime (ProviderCatalog blank provider-id lookup guards); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed ProviderCatalog `GetProvider`, `GetPluginMetadata`, and `GetExplorer` to return null for null/blank provider IDs instead of letting dictionary lookups throw; added regression coverage; bumped version `0.22.209` -> `0.22.210`.
+- Build/Test: Release build zero warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260504-175713.log`); Release tests passed 831 total (`/tmp/xerahs-hourly-sweep/test-20260504-180028.log`).
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-04 20:02 AWST - Plugin loading/runtime programmatic provider registration blank IDs
+- Area: Plugin loading/runtime (`ProviderCatalog.RegisterProvider` provider-id guards); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Programmatic provider registration did not mirror runtime blank provider-id guards; a blank/null-like provider ID could reach dictionary registration and throw or pollute catalog state.
+- Status: Synced upstream/develop and ShareX.ImageEditor develop (both already contained). Fixed registration to ignore providers with missing provider IDs, added regression coverage, and bumped version `0.22.210` -> `0.22.211`.
+- Validation: Release build/test passed with 0 warnings/errors; tests passed 832 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260504-195723.log`, `/tmp/xerahs-hourly-sweep/test-20260504-195723.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-05 12:06 AWST - Plugin loading/runtime manifest duplicate guard
+- Area: Plugin loading/runtime (`ProviderCatalog` duplicate manifest tracking for mismatched runtime provider IDs); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Duplicate-discovery checks only looked up manifest IDs as dictionary keys, but successful mismatched plugins store metadata under runtime provider ID; the same manifest plugin ID could be loaded again.
+- Status: Fast-forwarded local `develop` to `origin/develop`; upstream/develop and ShareX.ImageEditor develop were already contained/current. Fixed loaded-plugin duplicate checks to find manifest IDs even when metadata is keyed by runtime provider ID; added regression coverage; bumped version `0.22.211` -> `0.22.212`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 833 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-120123.log`, `/tmp/xerahs-hourly-sweep/test-20260505-120527.log`.
+- Follow-up: continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-05 16:04 AWST - Plugin loading/runtime static loader cleanup
+- Area: Plugin loading/runtime (`ProviderCatalog.Clear` static loader context cleanup); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `ProviderCatalog.Clear()` reset providers and metadata but left the static `PluginLoader` holding loaded collectible contexts, which could keep plugin assemblies/handles alive after resets.
+- Status: Upstream/develop and ShareX.ImageEditor develop were already contained/current; origin push remains blocked by missing GitHub HTTPS credentials. Fixed `Clear()` to unload retained static plugin loader contexts, added regression coverage, and bumped version `0.22.212` -> `0.22.213`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 834 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-155954.log`, `/tmp/xerahs-hourly-sweep/test-20260505-160312.log`.
+- Follow-up: unblock GitHub credentials and push the two local commits; continue plugin runtime review around unload/collectibility diagnostics and resolver failures that surface before entry-point discovery.
+
+### 2026-05-05 20:03 AWST - Plugin loading/runtime failed-load collectibility
+- Area: Plugin loading/runtime (`PluginLoader` failed context cleanup after missing entry points); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Failed plugin load paths unloaded collectible contexts but skipped the forced collection pass used by normal unloads, leaving failed-load cleanup weaker than successful unload cleanup.
+- Status: Upstream/develop and ShareX.ImageEditor develop were already contained/current; origin push remains blocked by missing GitHub HTTPS credentials. Fixed failed plugin load cleanup to force collection after unloading failed contexts, added missing-entry-point regression coverage, and bumped version `0.22.213` -> `0.22.214`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 835 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260505-195853.log`, `/tmp/xerahs-hourly-sweep/test-20260505-200254.log`.
+- Follow-up: unblock GitHub credentials and push the three local commits; continue plugin runtime review around resolver failures that surface before entry-point discovery.
+
+### 2026-05-06 00:06 AWST - Plugin loading/runtime missing dependency diagnostics
+- Area: Plugin loading/runtime (`PluginLoader` missing dependency error formatting); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: `FileNotFoundException` diagnostics assumed `FileName` was populated, so resolver/load failures without a file name produced an empty `Dependency not found:` message.
+- Status: Merged upstream/develop `09e5a718` into local `develop`, keeping KovaForge blog conflict content; ShareX.ImageEditor remotes/branch verified current. Fixed missing-dependency formatting to report `unknown assembly` plus the exception message, added regression coverage, bumped version `0.22.214` -> `0.22.215`, and pushed `develop` to origin through `4c62eaa4`.
+- Validation: Release build passed with 0 warnings/errors; tests passed 836 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260506-000022.log`, `/tmp/xerahs-hourly-sweep/test-20260506-000350.log`.
+- Follow-up: continue plugin runtime review around resolver failures before entry-point discovery.
+
+### 2026-05-06 04:04 AWST - Plugin loading/runtime reflection loader diagnostics
+- Area: Plugin loading/runtime (`PluginLoader` reflection loader exception formatting); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Reflection loader diagnostics appended raw nested loader messages, so missing/load-failed dependency assembly names could be omitted from the user-facing `LoadError`.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed nested reflection loader exception formatting to reuse dependency/type/bad-image diagnostics, added regression coverage, and bumped version `0.22.215` -> `0.22.216`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-035759.log`); tests passed 836 total (`/tmp/xerahs-hourly-sweep/test-20260506-040112.log`).
+- Follow-up: continue plugin runtime review around resolver failures before entry-point discovery, especially direct `AssemblyLoadContext` resolver errors.
+
+### 2026-05-06 08:08 AWST - Plugin loading/runtime private dependency fallback
+- Area: Plugin loading/runtime (`PluginLoadContext` dependency resolution); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: The load context kept the plugin directory but only used `AssemblyDependencyResolver`, so plugin-private DLLs copied beside the plugin could fail when absent from the resolver graph.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed resolver fallback to load safe same-directory plugin-private assemblies, added regression coverage, bumped version `0.22.216` -> `0.22.217`, and pushed `develop` through `44ab0f4c`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-080604.log`); tests passed 837 total (`/tmp/xerahs-hourly-sweep/test-20260506-080711.log`).
+- Follow-up: continue plugin runtime review around unmanaged DLL resolver fallback and dependency diagnostics.
+
+### 2026-05-06 12:06 AWST - Plugin loading/runtime unmanaged dependency fallback
+- Area: Plugin loading/runtime (`PluginLoadContext` unmanaged dependency resolution); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Unmanaged plugin dependencies only used `AssemblyDependencyResolver`, so native libraries copied beside a plugin could fail to resolve when absent from `.deps.json`.
+- Status: Fast-forwarded local `develop` to `origin/develop`; upstream/develop already contained. ShareX.ImageEditor develop/remotes verified current. Fixed unmanaged DLL fallback to resolve safe same-directory native library names, added regression coverage, and bumped version `0.22.217` -> `0.22.218`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-120042.log`); tests passed 838 total (`/tmp/xerahs-hourly-sweep/test-20260506-120405.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback.
+
+### 2026-05-06 16:02 AWST - Plugin loading/runtime assembly identity fallback
+- Area: Plugin loading/runtime (`PluginLoadContext` managed dependency resolution); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: The plugin-directory managed DLL fallback accepted a DLL by filename only, so a mismatched assembly copied under the requested name could be loaded as the dependency.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed fallback to verify assembly identity before loading, added mismatch regression coverage, and bumped version `0.22.218` -> `0.22.219`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-155910.log`); tests passed 839 total (`/tmp/xerahs-hourly-sweep/test-20260506-160226.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and version/culture edge cases.
+
+### 2026-05-06 20:09 AWST - Plugin loading/runtime assembly culture identity
+- Area: Plugin loading/runtime (`PluginLoadContext` managed dependency identity); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: The plugin-directory fallback treated a neutral-culture request as compatible with a satellite/resource assembly when simple name and version matched.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity matching to require exact culture parity, added regression coverage, and bumped version `0.22.219` -> `0.22.220`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260506-200548.log`); tests passed 840 total (`/tmp/xerahs-hourly-sweep/test-20260506-200852.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining public-key/version edge cases.
+
+### 2026-05-07 00:05 AWST - Plugin loading/runtime public key identity
+- Area: Plugin loading/runtime (`PluginLoadContext` managed dependency identity); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: The plugin-directory fallback accepted a strong-named DLL for an unsigned/simple-name request when name, version, and culture matched, allowing a non-identical assembly identity to bind from the plugin folder.
+- Status: Merged upstream/develop docs commits `9f90e073` and `925ce5c1`, keeping KovaForge's fuller blog drafts during conflicts; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity matching to require exact public-key-token parity, updated identity regressions, and bumped version `0.22.220` -> `0.22.221`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-000245.log`); tests passed 841 total (`/tmp/xerahs-hourly-sweep/test-20260507-000245.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version/public-key edge cases.
+
+### 2026-05-07 04:02 AWST - Plugin loading/runtime shared dependency casing
+- Area: Plugin loading/runtime (`PluginLoadContext` shared dependency fallback); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: Shared dependency detection was case-sensitive even though assembly identity matching is case-insensitive, so lowercase `system.*` requests could reach plugin-directory fallback instead of staying in the host context.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current. Fixed shared dependency checks to use ordinal-ignore-case comparisons/prefixes, added regression coverage, and bumped version `0.22.221` -> `0.22.222`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-035758.log`); tests passed 842 total (`/tmp/xerahs-hourly-sweep/test-20260507-040110.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version edge cases.
+
+### 2026-05-07 08:04 AWST - Plugin loading/runtime invalid fallback assembly
+- Area: Plugin loading/runtime (`PluginLoadContext` managed dependency fallback); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: A malformed same-name DLL in the plugin directory could throw during fallback identity inspection instead of being rejected as an unusable fallback candidate.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity inspection to ignore unreadable/invalid candidate assemblies, added regression coverage, and bumped version `0.22.222` -> `0.22.223`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-075941.log`); tests passed 843 total (`/tmp/xerahs-hourly-sweep/test-20260507-080303.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version edge cases.
+
+### 2026-05-07 12:03 AWST - Capture pipeline DXGI scaled crop bounds
+
+- Area: Capture pipeline / Windows DXGI crop rect scaling; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCropRectHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `Directory.Build.props`.
+- Findings: DXGI region cropping translated virtual desktop coordinates directly to bitmap pixels, so DPI-scaled captures could crop the wrong offset/size and empty virtual bounds could divide the coordinate contract implicitly.
+- Status: Fast-forwarded local `develop` to `origin/develop` (`8194d78c` docs refresh); upstream/develop already contained. ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI crop scaling and empty-bounds rejection; added regression coverage; bumped version `0.22.223` -> `0.22.224`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-115917.log`); tests passed 845 total (`/tmp/xerahs-hourly-sweep/test-20260507-120238.log`).
+- Follow-up: Continue capture pipeline review around rotated display bounds and cursor/selection parity between modern and fallback capture paths.
+
+### 2026-05-07 16:05 AWST - Capture pipeline DXGI cursor capability parity
+
+- Area: Capture pipeline / Windows DXGI backend capabilities; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCapabilitiesHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: DXGI advertised cursor capture support even though the capture path does not read pointer metadata or composite the cursor into returned bitmaps.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI capabilities to report cursor capture unsupported until composition exists; added regression coverage; bumped version `0.22.224` -> `0.22.225`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-160249.log`); tests passed 846 total (`/tmp/xerahs-hourly-sweep/test-20260507-160400.log`).
+- Follow-up: Continue capture pipeline review around rotated display bounds and implementing real DXGI cursor metadata composition before re-enabling cursor support.
+
+### 2026-05-07 20:09 AWST - Capture pipeline DXGI rotated region source boxes
+
+- Area: Capture pipeline / Windows DXGI rotated region capture; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI region capture to map desktop-oriented regions into the unrotated duplication texture for 90/180/270 degree outputs, rotate the copied sub-bitmap back to desktop orientation, added source-box regression coverage, and bumped version `0.22.225` -> `0.22.226`.
+- Follow-up: Continue capture pipeline review around real DXGI cursor metadata composition before re-enabling cursor capture support.
+
+### 2026-05-07 23:55 AWST / completed 2026-05-08 00:04 AWST - Capture pipeline DXGI context replacement cleanup
+
+- Area: Capture pipeline / Windows DXGI duplication context lifecycle; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DisposableContextDictionary.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: Repeated DXGI monitor refreshes replaced existing per-monitor duplication contexts without disposing the old duplication/device resources.
+- Status: Merged upstream/develop docs commits `62a11bbf` and `eb555a81`, keeping KovaForge's fuller 2026-05-06 blog conflict content; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed context replacement disposal and initialization-failure cleanup; added regression coverage; bumped version `0.22.226` -> `0.22.227`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-000033.log`); tests passed 856 total (`/tmp/xerahs-hourly-sweep/test-20260508-000345.log`).
+- Follow-up: Continue capture pipeline review around real DXGI cursor metadata composition before re-enabling cursor capture support.
+
+### 2026-05-08 03:55 AWST / completed 2026-05-08 04:04 AWST - Capture pipeline DXGI cursor composition
+
+- Area: Capture pipeline / Windows DXGI cursor capture; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCapabilitiesHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: DXGI region capture accepted `RegionCaptureOptions.IncludeCursor` but ignored it, so callers could request cursor capture and still receive cursorless images.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Added best-effort DXGI cursor overlay composition for region captures, advertised cursor capability, added placement regression coverage, and bumped version `0.22.227` -> `0.22.228`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-035909.log`); tests passed 859 total (`/tmp/xerahs-hourly-sweep/test-20260508-040223.log`).
+- Follow-up: Continue capture pipeline review around full-screen DXGI cursor parity and reducing the legacy `WindowsModernCaptureService` cursor-overlay duplication.

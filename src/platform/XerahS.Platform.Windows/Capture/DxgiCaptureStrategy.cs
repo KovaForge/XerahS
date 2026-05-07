@@ -24,11 +24,15 @@
 #endregion License Information (GPL v3)
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
+using XerahS.Common;
+using XerahS.Platform.Windows;
 using XerahS.Platform.Windows.Capture;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
@@ -191,12 +195,21 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             var captureRegion = intersection.Value;
             var localX = captureRegion.X - monitor.Bounds.X;
             var localY = captureRegion.Y - monitor.Bounds.Y;
+            var localRegion = new PhysicalRectangle(localX, localY, captureRegion.Width, captureRegion.Height);
+            var textureDesc = texture.Description;
+            var sourceBox = DxgiRotationHelper.CreateSourceBox(
+                localRegion,
+                monitor.Rotation,
+                (int)textureDesc.Width,
+                (int)textureDesc.Height);
+            int sourceWidth = DxgiRotationHelper.GetSourceWidth(sourceBox);
+            int sourceHeight = DxgiRotationHelper.GetSourceHeight(sourceBox);
 
             // Create staging texture for CPU readback
             var stagingDesc = new Texture2DDescription
             {
-                Width = (uint)captureRegion.Width,
-                Height = (uint)captureRegion.Height,
+                Width = (uint)sourceWidth,
+                Height = (uint)sourceHeight,
                 MipLevels = 1,
                 ArraySize = 1,
                 Format = Format.B8G8R8A8_UNorm,
@@ -207,15 +220,6 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             };
 
             using var staging = device.CreateTexture2D(stagingDesc);
-
-            // Copy only the requested region
-            var sourceBox = new Box(
-                localX,
-                localY,
-                0,
-                localX + captureRegion.Width,
-                localY + captureRegion.Height,
-                1);
 
             context.ImmediateContext.CopySubresourceRegion(
                 staging,
@@ -231,23 +235,25 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             try
             {
                 // Create SKBitmap from mapped data
-                var bitmap = new SKBitmap(
-                    captureRegion.Width,
-                    captureRegion.Height,
+                using var sourceBitmap = new SKBitmap(
+                    sourceWidth,
+                    sourceHeight,
                     SKColorType.Bgra8888,
                     SKAlphaType.Premul);
 
-                var info = bitmap.Info;
+                var info = sourceBitmap.Info;
                 var rowBytes = info.RowBytes;
 
                 BgraRowCopyHelper.CopyRows(
                     mapped.DataPointer,
                     (int)mapped.RowPitch,
-                    bitmap.GetPixels(),
+                    sourceBitmap.GetPixels(),
                     rowBytes,
-                    captureRegion.Width * 4,
-                    captureRegion.Height);
+                    sourceWidth * 4,
+                    sourceHeight);
 
+                SKBitmap bitmap = BitmapRotationHelper.RotateClockwise(sourceBitmap, monitor.Rotation);
+                TryCompositeCursor(bitmap, captureRegion, options);
                 return new CapturedBitmap(bitmap, captureRegion, monitor.ScaleFactor);
             }
             finally
@@ -262,48 +268,98 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
         }
     }
 
-    public BackendCapabilities GetCapabilities()
+    public BackendCapabilities GetCapabilities() => DxgiCapabilitiesHelper.Create();
+
+    private static void TryCompositeCursor(SKBitmap bitmap, PhysicalRectangle captureRegion, RegionCaptureOptions options)
     {
-        return new BackendCapabilities
+        if (!options.IncludeCursor)
+            return;
+
+        try
         {
-            BackendName = "DXGI Desktop Duplication",
-            Version = "1.2+",
-            SupportsHardwareAcceleration = true,
-            SupportsCursorCapture = true, // DXGI supports cursor metadata
-            SupportsHDR = false, // Would require additional format handling
-            SupportsPerMonitorDpi = true,
-            SupportsMonitorHotplug = true,
-            MaxCaptureResolution = 16384, // D3D11 texture limit
-            RequiresPermission = false
-        };
+            var cursor = new CursorData();
+            var placement = DxgiCursorCompositionHelper.CreatePlacement(
+                options.IncludeCursor,
+                cursor.IsVisible,
+                cursor.Position,
+                cursor.Hotspot,
+                cursor.Size,
+                captureRegion);
+
+            if (!placement.ShouldDraw)
+                return;
+
+            using var overlay = new System.Drawing.Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format32bppArgb);
+            using (var graphics = System.Drawing.Graphics.FromImage(overlay))
+            {
+                IntPtr hdc = graphics.GetHdc();
+                try
+                {
+                    cursor.DrawCursor(hdc, new System.Drawing.Point(captureRegion.X, captureRegion.Y));
+                }
+                finally
+                {
+                    graphics.ReleaseHdc(hdc);
+                }
+            }
+
+            using var stream = new MemoryStream();
+            overlay.Save(stream, ImageFormat.Png);
+            stream.Position = 0;
+            using var cursorBitmap = SKBitmap.Decode(stream);
+            if (cursorBitmap == null)
+                return;
+
+            using var canvas = new SKCanvas(bitmap);
+            using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
+            canvas.DrawBitmap(cursorBitmap, 0, 0, paint);
+        }
+        catch
+        {
+            // Cursor composition is best-effort; capture must still succeed if cursor APIs fail.
+        }
     }
 
     private void InitializeDuplication(IDXGIOutput output, IDXGIAdapter1 adapter, string monitorId)
     {
-        using var output1 = output.QueryInterface<IDXGIOutput1>();
+        IDXGIOutput1? output1 = null;
+        ID3D11Device? device = null;
 
-        // Create D3D11 device for this adapter
-        var featureLevels = new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_0 };
-        var result = D3D11.D3D11CreateDevice(
-            adapter,
-            DriverType.Unknown,
-            DeviceCreationFlags.None,
-            featureLevels,
-            out var device);
-
-        if (result.Failure || device == null)
-            throw new InvalidOperationException($"Failed to create D3D11 device: {result}");
-
-        // Create output duplication
-        var duplication = output1.DuplicateOutput(device);
-
-        _monitorContexts[monitorId] = new DxgiMonitorContext
+        try
         {
-            Device = device,
-            ImmediateContext = device.ImmediateContext,
-            Output = output1,
-            IDXGIOutputDuplication = duplication
-        };
+            output1 = output.QueryInterface<IDXGIOutput1>();
+
+            // Create D3D11 device for this adapter
+            var featureLevels = new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_0 };
+            var result = D3D11.D3D11CreateDevice(
+                adapter,
+                DriverType.Unknown,
+                DeviceCreationFlags.None,
+                featureLevels,
+                out device);
+
+            if (result.Failure || device == null)
+                throw new InvalidOperationException($"Failed to create D3D11 device: {result}");
+
+            // Create output duplication
+            var duplication = output1.DuplicateOutput(device);
+            var context = new DxgiMonitorContext
+            {
+                Device = device,
+                ImmediateContext = device.ImmediateContext,
+                Output = output1,
+                IDXGIOutputDuplication = duplication
+            };
+
+            DisposableContextDictionary.Replace(_monitorContexts, monitorId, context);
+            output1 = null;
+            device = null;
+        }
+        finally
+        {
+            output1?.Dispose();
+            device?.Dispose();
+        }
     }
 
     private string GetMonitorDeviceName(IntPtr hMonitor)
@@ -364,10 +420,7 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 
         foreach (var context in _monitorContexts.Values)
         {
-            context.IDXGIOutputDuplication?.Dispose();
-            context.Output?.Dispose();
-            context.ImmediateContext?.Dispose();
-            context.Device?.Dispose();
+            context.Dispose();
         }
 
         _monitorContexts.Clear();
@@ -377,12 +430,20 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 /// <summary>
 /// Context information for a DXGI-monitored display.
 /// </summary>
-internal sealed class DxgiMonitorContext
+internal sealed class DxgiMonitorContext : IDisposable
 {
     public required ID3D11Device Device { get; init; }
     public required ID3D11DeviceContext ImmediateContext { get; init; }
     public required IDXGIOutput1 Output { get; init; }
     public required IDXGIOutputDuplication IDXGIOutputDuplication { get; init; }
+
+    public void Dispose()
+    {
+        IDXGIOutputDuplication.Dispose();
+        Output.Dispose();
+        ImmediateContext.Dispose();
+        Device.Dispose();
+    }
 }
 
 /// <summary>

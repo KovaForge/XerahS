@@ -23,8 +23,9 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Common;
+using System.Collections.ObjectModel;
 using System.Reflection;
+using XerahS.Common;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
@@ -36,7 +37,7 @@ namespace XerahS.Uploaders.PluginSystem;
 /// </summary>
 public class PluginLoader
 {
-    private readonly Dictionary<string, PluginLoadContext> _loadedContexts = new();
+    private readonly Dictionary<string, PluginLoadContext> _loadedContexts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Load a plugin from its metadata
@@ -47,6 +48,13 @@ public class PluginLoader
 
         try
         {
+            if (!File.Exists(metadata.AssemblyPath))
+            {
+                metadata.LoadError = $"Assembly not found: {metadata.AssemblyPath}";
+                DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+                return null;
+            }
+
             if (!IsAssemblyCompatibleWithCurrentProcess(metadata.AssemblyPath, out string? compatibilityError))
             {
                 metadata.LoadError = compatibilityError;
@@ -89,6 +97,14 @@ public class PluginLoader
                 return null;
             }
 
+            if (string.IsNullOrWhiteSpace(provider.ProviderId))
+            {
+                metadata.LoadError = "Provider ID is empty";
+                DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+                UnloadFailedContext(loadContext);
+                return null;
+            }
+
             // Verify plugin ID matches
             if (provider.ProviderId != metadata.Manifest.PluginId)
             {
@@ -113,28 +129,57 @@ public class PluginLoader
 
             return provider;
         }
+        catch (TargetInvocationException ex) when (ex.InnerException is FileNotFoundException fileNotFoundException)
+        {
+            metadata.LoadError = FormatDependencyNotFoundError(fileNotFoundException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is FileLoadException fileLoadException)
+        {
+            metadata.LoadError = FormatDependencyLoadError(fileLoadException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is TypeLoadException typeLoadException)
+        {
+            metadata.LoadError = FormatTypeLoadError(typeLoadException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is ReflectionTypeLoadException reflectionTypeLoadException)
+        {
+            metadata.LoadError = FormatReflectionTypeLoadError(reflectionTypeLoadException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+            WriteLoaderExceptions(reflectionTypeLoadException);
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is BadImageFormatException badImageFormatException)
+        {
+            metadata.LoadError = FormatBadImageFormatError(badImageFormatException);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
         catch (FileNotFoundException ex)
         {
-            metadata.LoadError = $"Assembly not found: {ex.FileName}";
+            metadata.LoadError = FormatDependencyNotFoundError(ex);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+        }
+        catch (FileLoadException ex)
+        {
+            metadata.LoadError = FormatDependencyLoadError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (BadImageFormatException ex)
         {
-            metadata.LoadError = $"Invalid or incompatible assembly image: {ex.Message}";
+            metadata.LoadError = FormatBadImageFormatError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (TypeLoadException ex)
         {
-            metadata.LoadError = $"Type load error: {ex.Message}";
+            metadata.LoadError = FormatTypeLoadError(ex);
             DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
         }
         catch (ReflectionTypeLoadException ex)
         {
-            metadata.LoadError = $"Reflection error: {ex.Message}";
-            foreach (var loaderEx in ex.LoaderExceptions)
-            {
-                DebugHelper.WriteLine($"  Loader exception: {loaderEx?.Message}");
-            }
+            metadata.LoadError = FormatReflectionTypeLoadError(ex);
+            DebugHelper.WriteLine($"ERROR loading plugin {metadata.Manifest.PluginId}: {metadata.LoadError}");
+            WriteLoaderExceptions(ex);
         }
         catch (Exception ex)
         {
@@ -156,7 +201,7 @@ public class PluginLoader
     /// </summary>
     public bool UnloadPlugin(string pluginId)
     {
-        if (!_loadedContexts.TryGetValue(pluginId, out var context))
+        if (string.IsNullOrWhiteSpace(pluginId) || !_loadedContexts.TryGetValue(pluginId, out var context))
         {
             return false;
         }
@@ -166,12 +211,7 @@ public class PluginLoader
             context.Unload();
             _loadedContexts.Remove(pluginId);
 
-            // Force GC to collect unloaded assemblies
-            for (int i = 0; i < 3; i++)
-            {
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-            }
+            ForceUnloadCollection();
 
             DebugHelper.WriteLine($"Unloaded plugin: {pluginId}");
             return true;
@@ -183,14 +223,97 @@ public class PluginLoader
         }
     }
 
+    internal void UnloadAllPlugins()
+    {
+        foreach (var (pluginId, context) in _loadedContexts.ToList())
+        {
+            try
+            {
+                context.Unload();
+                DebugHelper.WriteLine($"Unloaded plugin: {pluginId}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Error unloading plugin {pluginId}: {ex.Message}");
+            }
+        }
+
+        _loadedContexts.Clear();
+        ForceUnloadCollection();
+    }
+
     /// <summary>
     /// Get list of loaded plugin contexts
     /// </summary>
-    public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() => _loadedContexts;
+    public IReadOnlyDictionary<string, PluginLoadContext> GetLoadedContexts() =>
+        new ReadOnlyDictionary<string, PluginLoadContext>(new Dictionary<string, PluginLoadContext>(_loadedContexts, _loadedContexts.Comparer));
 
     private static void UnloadFailedContext(PluginLoadContext loadContext)
     {
         loadContext.Unload();
+        ForceUnloadCollection();
+    }
+
+    private static void ForceUnloadCollection()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+    }
+
+    private static string FormatTypeLoadError(TypeLoadException ex) => $"Type load error: {ex.Message}";
+
+    private static string FormatBadImageFormatError(BadImageFormatException ex) => $"Invalid or incompatible assembly image: {ex.Message}";
+
+    private static string FormatDependencyNotFoundError(FileNotFoundException ex)
+    {
+        string fileName = string.IsNullOrWhiteSpace(ex.FileName) ? "unknown assembly" : ex.FileName;
+        return $"Dependency not found: {fileName}: {ex.Message}";
+    }
+
+    private static string FormatDependencyLoadError(FileLoadException ex)
+    {
+        string fileName = string.IsNullOrWhiteSpace(ex.FileName) ? "unknown assembly" : ex.FileName;
+        return $"Dependency load failed: {fileName}: {ex.Message}";
+    }
+
+    private static string FormatReflectionTypeLoadError(ReflectionTypeLoadException ex)
+    {
+        string[] loaderMessages = ex.LoaderExceptions
+            .Where(loaderException => loaderException != null)
+            .Select(loaderException => FormatLoaderException(loaderException!))
+            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        string error = $"Reflection type load error: {ex.Message}";
+
+        if (loaderMessages.Length > 0)
+        {
+            error += $" Loader exceptions: {string.Join("; ", loaderMessages)}";
+        }
+
+        return error;
+    }
+
+    private static string FormatLoaderException(Exception ex) => ex switch
+    {
+        FileNotFoundException fileNotFoundException => FormatDependencyNotFoundError(fileNotFoundException),
+        FileLoadException fileLoadException => FormatDependencyLoadError(fileLoadException),
+        BadImageFormatException badImageFormatException => FormatBadImageFormatError(badImageFormatException),
+        TypeLoadException typeLoadException => FormatTypeLoadError(typeLoadException),
+        ReflectionTypeLoadException reflectionTypeLoadException => FormatReflectionTypeLoadError(reflectionTypeLoadException),
+        _ => ex.Message
+    };
+
+    private static void WriteLoaderExceptions(ReflectionTypeLoadException ex)
+    {
+        foreach (var loaderEx in ex.LoaderExceptions)
+        {
+            DebugHelper.WriteLine($"  Loader exception: {loaderEx?.Message}");
+        }
     }
 
     private static bool IsAssemblyCompatibleWithCurrentProcess(string assemblyPath, out string? error)

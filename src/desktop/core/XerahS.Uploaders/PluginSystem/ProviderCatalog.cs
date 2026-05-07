@@ -33,8 +33,8 @@ namespace XerahS.Uploaders.PluginSystem;
 /// </summary>
 public static class ProviderCatalog
 {
-    private static readonly Dictionary<string, IUploaderProvider> _providers = new();
-    private static readonly Dictionary<string, PluginMetadata> _pluginMetadata = new();
+    private static readonly Dictionary<string, IUploaderProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, PluginMetadata> _pluginMetadata = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object _lock = new();
     private static bool _pluginsLoaded = false;
     private static readonly PluginLoader _pluginLoader = new(); // Keep contexts alive
@@ -98,7 +98,7 @@ public static class ProviderCatalog
 
             foreach (var metadata in allDiscovered)
             {
-                if (_pluginMetadata.ContainsKey(metadata.Manifest.PluginId))
+                if (HasLoadedManifestPluginId(metadata.Manifest.PluginId))
                 {
                     continue;
                 }
@@ -226,6 +226,12 @@ public static class ProviderCatalog
     {
         if (provider == null) throw new ArgumentNullException(nameof(provider));
 
+        if (string.IsNullOrWhiteSpace(provider.ProviderId))
+        {
+            DebugHelper.WriteLine($"[Plugins] Skipped provider with missing provider ID: {provider.Name}");
+            return;
+        }
+
         lock (_lock)
         {
             if (!_providers.ContainsKey(provider.ProviderId))
@@ -242,6 +248,11 @@ public static class ProviderCatalog
     /// </summary>
     public static IUploaderProvider? GetProvider(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             return _providers.TryGetValue(providerId, out var provider) ? provider : null;
@@ -277,10 +288,27 @@ public static class ProviderCatalog
     /// </summary>
     public static PluginMetadata? GetPluginMetadata(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             return _pluginMetadata.TryGetValue(providerId, out var metadata) ? metadata : null;
         }
+    }
+
+    private static bool HasLoadedManifestPluginId(string pluginId)
+    {
+        if (string.IsNullOrWhiteSpace(pluginId))
+        {
+            return false;
+        }
+
+        return _pluginMetadata.ContainsKey(pluginId) ||
+            _pluginMetadata.Values.Any(metadata =>
+                string.Equals(metadata.Manifest.PluginId, pluginId, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -566,6 +594,7 @@ public static class ProviderCatalog
         {
             _providers.Clear();
             _pluginMetadata.Clear();
+            _pluginLoader.UnloadAllPlugins();
             _pluginsLoaded = false;
             _builtInInitialized = false;
             CustomUploaderRepository.Clear();
@@ -577,6 +606,11 @@ public static class ProviderCatalog
     /// </summary>
     public static IUploaderExplorer? GetExplorer(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             if (_providers.TryGetValue(providerId, out var provider) && provider is IUploaderExplorer explorer)
