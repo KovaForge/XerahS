@@ -39,14 +39,16 @@ Hardcoded local paths are intentional here. They make this workflow faster and m
 3. Scan every relevant upstream commit from the previous sync point through the newest relevant commit, not just the tip commit.
 4. Build a holistic understanding of the bugs fixed and features added across that whole commit window before changing XerahS.
 5. Before implementing anything, publish a concise implementation manifest that lists every bug fix and enhancement identified from the new ShareX commits.
-6. Do not start implementing an individual bug fix or enhancement until it appears in the manifest with its source commit, affected files, and intended XerahS mapping.
-7. Read the affected upstream and XerahS files to clarify intent, control flow, rendering behavior, and wiring before re-implementing anything ambiguous.
-8. Preserve XerahS-only repository-level differences such as the submodule's `src/` layout, multi-targeting, and any confirmed host integration changes.
-9. Do not overwrite XerahS-specific fixes blindly. If a target file already diverged for Avalonia or host integration, port the upstream intent instead of doing a raw replace.
-10. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
-11. Re-implement the upstream behavior in the XerahS ImageEditor submodule after understanding it, instead of mechanically transplanting diffs.
-12. Build before claiming completion.
-13. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
+6. For every manifest item, check whether XerahS already fixed it, implemented it differently, partially implemented it, or has a better local behavior that must be preserved.
+7. Do not start implementing an individual bug fix or enhancement until it appears in the manifest with its source commit, affected files, XerahS status, and intended XerahS mapping.
+8. Prefer the best combined design over a direct ShareX copy: preserve superior XerahS behavior, import superior ShareX behavior, and write a custom implementation when that is the cleanest integration.
+9. Read the affected upstream and XerahS files to clarify intent, control flow, rendering behavior, and wiring before re-implementing anything ambiguous.
+10. Preserve XerahS-only repository-level differences such as the submodule's `src/` layout, multi-targeting, and any confirmed host integration changes.
+11. Do not overwrite XerahS-specific fixes blindly. If a target file already diverged for Avalonia or host integration, port the upstream intent instead of doing a raw replace.
+12. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
+13. Re-implement the upstream behavior in the XerahS ImageEditor submodule after understanding it, instead of mechanically transplanting diffs.
+14. Build before claiming completion.
+15. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
 
 ## Step 0 - Resolve the upstream commit range
 
@@ -147,8 +149,10 @@ The manifest must include every bug fix and enhancement identified in the pendin
 - Type: `Bug fix`, `Enhancement`, `Refactor with behavior impact`, or `Infrastructure`
 - Source commit(s): the ShareX hash and short subject
 - Upstream behavior: what changed for users or editor internals
+- XerahS status: `missing`, `already fixed`, `implemented differently`, `partially implemented`, or `conflicts with XerahS`
 - Target files: the mapped XerahS files expected to change
-- Port approach: raw sync, manual port, or intentional skip with reason
+- Decision: raw sync, manual merge, custom implementation, keep XerahS behavior, or intentional skip with reason
+- Rationale: why that decision gives XerahS the best behavior
 
 Use this shape:
 
@@ -158,17 +162,23 @@ Use this shape:
 - [ ] Bug fix: <short name>
   Source: `<hash>` <subject>
   Upstream behavior: <one sentence>
+  XerahS status: <missing/already fixed/implemented differently/partially implemented/conflicts>
   Target files: `<mapped/file.cs>`, `<mapped/file.axaml>`
-  Port approach: <raw sync/manual port/skip>
+  Decision: <raw sync/manual merge/custom implementation/keep XerahS/skip>
+  Rationale: <why this is the best XerahS outcome>
 
 - [ ] Enhancement: <short name>
   Source: `<hash>` <subject>
   Upstream behavior: <one sentence>
+  XerahS status: <missing/already fixed/implemented differently/partially implemented/conflicts>
   Target files: `<mapped/file.cs>`
-  Port approach: <raw sync/manual port/skip>
+  Decision: <raw sync/manual merge/custom implementation/keep XerahS/skip>
+  Rationale: <why this is the best XerahS outcome>
 ```
 
 During implementation, work against this manifest. Announce the item being implemented before editing it, and update the item status as it is completed or intentionally skipped.
+
+Do not use `raw sync` as the default. It is only acceptable after comparing the mapped XerahS file and confirming there is no local fix, no different design, and no host-specific behavior worth preserving.
 
 ### 2d - Read code to remove ambiguity
 
@@ -189,14 +199,28 @@ For each changed upstream file `ShareX.ImageEditor\<relative_path>` compare it t
 
 If the target file does not exist, it is a net-new addition and therefore high risk.
 
+### 2f - Compare behavior, not just text
+
+For every manifest item, answer these questions before editing:
+
+- Is the same bug already fixed in XerahS under a different implementation?
+- Is the ShareX fix better, worse, or complementary to the XerahS behavior?
+- Does XerahS have host integration, Avalonia-specific behavior, tests, or persistence hooks that ShareX does not have?
+- Can the best result be achieved by combining both implementations instead of copying either one wholesale?
+- Is a small custom implementation clearer than copying the upstream patch?
+
+If XerahS already has an equal or better implementation, keep it and record the item as `keep XerahS behavior` or `skip`.
+If both implementations solve different parts of the problem, create a manual merge or custom implementation and record the rationale in `PORT_STATUS.md`.
+
 ## Step 3 - Port or sync safely
 
 ### 3a - When a raw file sync is acceptable
 
-You may replace the target file with the upstream version when all of these are true:
+Raw file sync is an exception, not the normal path. You may replace the target file with the upstream version only when all of these are true:
 - The file lives under `Core/`, `Presentation/`, `Hosting/`, or `Assets/` and maps cleanly into `src/ShareX.ImageEditor`
-- The target file does not contain known XerahS-only adaptation that would be lost
+- The target file was compared and does not contain a relevant XerahS fix, alternate implementation, host integration, persistence hook, test-supported behavior, or Avalonia-specific adaptation that would be lost
 - The upstream change is exactly what XerahS needs and there is no repo-layout-only difference inside the file
+- The manifest item explicitly marks the decision as `raw sync` with a short rationale
 
 ### 3b - When manual porting is required
 
@@ -205,15 +229,32 @@ Port the intent instead of copying the whole file when any of these are true:
 - The target file already diverged beyond the pending upstream commit range
 - The upstream file assumes repository or project settings that do not match the submodule
 - The upstream commit adds a feature partially present in XerahS and a direct replace would regress local behavior
+- XerahS already has a different fix for the same bug and the best result needs parts of both implementations
+- The upstream code is correct for ShareX but a custom XerahS implementation would be simpler, safer, or better aligned with current XerahS architecture
 
 Manual porting usually means:
 - keep the XerahS file as the base
 - apply the upstream behavior in small, reviewable hunks
 - re-implement the bug fix or feature after understanding the whole upstream flow
+- keep any superior XerahS behavior and merge only the missing upstream behavior
+- add or update tests for bugs where the upstream fix differs from the XerahS implementation
 - rebuild after behavior-critical controller, view model, rendering, or view changes
 - only replace the whole file when the diff is layout-only and no XerahS adaptation would be lost
 
-### 3c - Preserve known XerahS repository-level differences
+### 3c - When to write a custom implementation
+
+Write a custom implementation when the upstream patch exposes the desired behavior but the XerahS architecture calls for a different shape.
+
+Common cases:
+- XerahS already has a related service, adapter, or persistence hook that should own the behavior.
+- ShareX solves the bug in UI code, but XerahS should solve it in `EditorCore` or a shared controller.
+- The upstream change duplicates logic already centralized in XerahS.
+- The upstream behavior is useful, but its exact code would regress RegionCapture, embedded editor mode, tests, serialization, or host integration.
+- Combining both implementations would otherwise create duplicated state or unclear ownership.
+
+Record custom implementations in `PORT_STATUS.md` with the source ShareX commit, the XerahS files changed, and the reason for not copying upstream code.
+
+### 3d - Preserve known XerahS repository-level differences
 
 Keep these unless the user explicitly asks to change them:
 - `src/ShareX.ImageEditor` repository layout
@@ -221,7 +262,7 @@ Keep these unless the user explicitly asks to change them:
 - XerahS multi-targeting or packaging differences
 - Any host integration already verified in XerahS
 
-### 3d - New-file checklist
+### 3e - New-file checklist
 
 For each new upstream file:
 1. Create the mapped target directory if needed.
@@ -305,8 +346,9 @@ For the common "catch up XerahS to the latest local ShareX state" task:
 4. Map each changed upstream file into `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor`.
 5. Add missing files first.
 6. Review every upstream commit in the range so you understand the complete feature and bug-fix set.
-7. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement before editing.
-8. Read upstream and XerahS code where needed to confirm how the behavior works.
-9. Port or re-implement changed files as appropriate, but do not blind cherry-pick or raw-copy diverged Avalonia files.
-10. Build the ImageEditor project, then the XerahS solution.
-11. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
+7. For each item, compare the upstream behavior against the current XerahS behavior and decide whether it is missing, already fixed, implemented differently, partially implemented, or conflicting.
+8. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement, including XerahS status, decision, and rationale, before editing.
+9. Read upstream and XerahS code where needed to confirm how the behavior works.
+10. Port, manually merge, keep XerahS behavior, or write a custom implementation as appropriate; do not blind cherry-pick or raw-copy diverged Avalonia files.
+11. Build the ImageEditor project, then the XerahS solution.
+12. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
