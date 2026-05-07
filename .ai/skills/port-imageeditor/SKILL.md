@@ -10,7 +10,7 @@ metadata:
     - submodule
     - avalonia
     - skia
-  last_updated: 2026-04-09
+  last_updated: 2026-05-08
 ---
 
 # Port ImageEditor: Local ShareX -> XerahS
@@ -38,13 +38,15 @@ Hardcoded local paths are intentional here. They make this workflow faster and m
 2. Diff against the mapped XerahS code root. The upstream source lives at `ShareX\ShareX.ImageEditor\...`; the target code lives at `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\...`.
 3. Scan every relevant upstream commit from the previous sync point through the newest relevant commit, not just the tip commit.
 4. Build a holistic understanding of the bugs fixed and features added across that whole commit window before changing XerahS.
-5. Read the affected upstream and XerahS files to clarify intent, control flow, rendering behavior, and wiring before re-implementing anything ambiguous.
-6. Preserve XerahS-only repository-level differences such as the submodule's `src/` layout, multi-targeting, and any confirmed host integration changes.
-7. Do not overwrite XerahS-specific fixes blindly. If a target file already diverged for Avalonia or host integration, port the upstream intent instead of doing a raw replace.
-8. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
-9. Re-implement the upstream behavior in the XerahS ImageEditor submodule after understanding it, instead of mechanically transplanting diffs.
-10. Build before claiming completion.
-11. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
+5. Before implementing anything, publish a concise implementation manifest that lists every bug fix and enhancement identified from the new ShareX commits.
+6. Do not start implementing an individual bug fix or enhancement until it appears in the manifest with its source commit, affected files, and intended XerahS mapping.
+7. Read the affected upstream and XerahS files to clarify intent, control flow, rendering behavior, and wiring before re-implementing anything ambiguous.
+8. Preserve XerahS-only repository-level differences such as the submodule's `src/` layout, multi-targeting, and any confirmed host integration changes.
+9. Do not overwrite XerahS-specific fixes blindly. If a target file already diverged for Avalonia or host integration, port the upstream intent instead of doing a raw replace.
+10. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
+11. Re-implement the upstream behavior in the XerahS ImageEditor submodule after understanding it, instead of mechanically transplanting diffs.
+12. Build before claiming completion.
+13. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
 
 ## Step 0 - Resolve the upstream commit range
 
@@ -137,7 +139,38 @@ Summarize for yourself:
 - which commits depend on earlier commits in the range
 - which files are the authoritative implementation points
 
-### 2c - Read code to remove ambiguity
+### 2c - Publish the implementation manifest before editing
+
+Before changing files, post a concise manifest in chat. This is a mandatory gate for the port session.
+
+The manifest must include every bug fix and enhancement identified in the pending ShareX commits, grouped by implementation item rather than by raw file. Each item must include:
+- Type: `Bug fix`, `Enhancement`, `Refactor with behavior impact`, or `Infrastructure`
+- Source commit(s): the ShareX hash and short subject
+- Upstream behavior: what changed for users or editor internals
+- Target files: the mapped XerahS files expected to change
+- Port approach: raw sync, manual port, or intentional skip with reason
+
+Use this shape:
+
+```markdown
+## ImageEditor Port Manifest
+
+- [ ] Bug fix: <short name>
+  Source: `<hash>` <subject>
+  Upstream behavior: <one sentence>
+  Target files: `<mapped/file.cs>`, `<mapped/file.axaml>`
+  Port approach: <raw sync/manual port/skip>
+
+- [ ] Enhancement: <short name>
+  Source: `<hash>` <subject>
+  Upstream behavior: <one sentence>
+  Target files: `<mapped/file.cs>`
+  Port approach: <raw sync/manual port/skip>
+```
+
+During implementation, work against this manifest. Announce the item being implemented before editing it, and update the item status as it is completed or intentionally skipped.
+
+### 2d - Read code to remove ambiguity
 
 If the commit message or patch alone is not enough, read the upstream implementation files and the current XerahS counterparts before editing.
 
@@ -149,7 +182,7 @@ Typical files to inspect:
 - views and control markup
 - the target `.csproj` for new files or assets
 
-### 2d - Compare mapped files, not raw repo roots
+### 2e - Compare mapped files, not raw repo roots
 
 For each changed upstream file `ShareX.ImageEditor\<relative_path>` compare it to:
 `C:\Users\liveu\source\repos\ShareX Team\XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor\<relative_path>`.
@@ -272,7 +305,8 @@ For the common "catch up XerahS to the latest local ShareX state" task:
 4. Map each changed upstream file into `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor`.
 5. Add missing files first.
 6. Review every upstream commit in the range so you understand the complete feature and bug-fix set.
-7. Read upstream and XerahS code where needed to confirm how the behavior works.
-8. Port or re-implement changed files as appropriate, but do not blind cherry-pick or raw-copy diverged Avalonia files.
-9. Build the ImageEditor project, then the XerahS solution.
-10. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
+7. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement before editing.
+8. Read upstream and XerahS code where needed to confirm how the behavior works.
+9. Port or re-implement changed files as appropriate, but do not blind cherry-pick or raw-copy diverged Avalonia files.
+10. Build the ImageEditor project, then the XerahS solution.
+11. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
