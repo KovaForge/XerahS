@@ -268,30 +268,44 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 
     private void InitializeDuplication(IDXGIOutput output, IDXGIAdapter1 adapter, string monitorId)
     {
-        using var output1 = output.QueryInterface<IDXGIOutput1>();
+        IDXGIOutput1? output1 = null;
+        ID3D11Device? device = null;
 
-        // Create D3D11 device for this adapter
-        var featureLevels = new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_0 };
-        var result = D3D11.D3D11CreateDevice(
-            adapter,
-            DriverType.Unknown,
-            DeviceCreationFlags.None,
-            featureLevels,
-            out var device);
-
-        if (result.Failure || device == null)
-            throw new InvalidOperationException($"Failed to create D3D11 device: {result}");
-
-        // Create output duplication
-        var duplication = output1.DuplicateOutput(device);
-
-        _monitorContexts[monitorId] = new DxgiMonitorContext
+        try
         {
-            Device = device,
-            ImmediateContext = device.ImmediateContext,
-            Output = output1,
-            IDXGIOutputDuplication = duplication
-        };
+            output1 = output.QueryInterface<IDXGIOutput1>();
+
+            // Create D3D11 device for this adapter
+            var featureLevels = new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_0 };
+            var result = D3D11.D3D11CreateDevice(
+                adapter,
+                DriverType.Unknown,
+                DeviceCreationFlags.None,
+                featureLevels,
+                out device);
+
+            if (result.Failure || device == null)
+                throw new InvalidOperationException($"Failed to create D3D11 device: {result}");
+
+            // Create output duplication
+            var duplication = output1.DuplicateOutput(device);
+            var context = new DxgiMonitorContext
+            {
+                Device = device,
+                ImmediateContext = device.ImmediateContext,
+                Output = output1,
+                IDXGIOutputDuplication = duplication
+            };
+
+            DisposableContextDictionary.Replace(_monitorContexts, monitorId, context);
+            output1 = null;
+            device = null;
+        }
+        finally
+        {
+            output1?.Dispose();
+            device?.Dispose();
+        }
     }
 
     private string GetMonitorDeviceName(IntPtr hMonitor)
@@ -352,10 +366,7 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 
         foreach (var context in _monitorContexts.Values)
         {
-            context.IDXGIOutputDuplication?.Dispose();
-            context.Output?.Dispose();
-            context.ImmediateContext?.Dispose();
-            context.Device?.Dispose();
+            context.Dispose();
         }
 
         _monitorContexts.Clear();
@@ -365,12 +376,20 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 /// <summary>
 /// Context information for a DXGI-monitored display.
 /// </summary>
-internal sealed class DxgiMonitorContext
+internal sealed class DxgiMonitorContext : IDisposable
 {
     public required ID3D11Device Device { get; init; }
     public required ID3D11DeviceContext ImmediateContext { get; init; }
     public required IDXGIOutput1 Output { get; init; }
     public required IDXGIOutputDuplication IDXGIOutputDuplication { get; init; }
+
+    public void Dispose()
+    {
+        IDXGIOutputDuplication.Dispose();
+        Output.Dispose();
+        ImmediateContext.Dispose();
+        Device.Dispose();
+    }
 }
 
 /// <summary>

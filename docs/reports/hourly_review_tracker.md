@@ -630,3 +630,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Area: Capture pipeline / Windows DXGI rotated region capture; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
 - Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI region capture to map desktop-oriented regions into the unrotated duplication texture for 90/180/270 degree outputs, rotate the copied sub-bitmap back to desktop orientation, added source-box regression coverage, and bumped version `0.22.225` -> `0.22.226`.
 - Follow-up: Continue capture pipeline review around real DXGI cursor metadata composition before re-enabling cursor capture support.
+
+### 2026-05-07 23:55 AWST / completed 2026-05-08 00:04 AWST - Capture pipeline DXGI context replacement cleanup
+
+- Area: Capture pipeline / Windows DXGI duplication context lifecycle; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DisposableContextDictionary.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: Repeated DXGI monitor refreshes replaced existing per-monitor duplication contexts without disposing the old duplication/device resources.
+- Status: Merged upstream/develop docs commits `62a11bbf` and `eb555a81`, keeping KovaForge's fuller 2026-05-06 blog conflict content; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed context replacement disposal and initialization-failure cleanup; added regression coverage; bumped version `0.22.226` -> `0.22.227`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-000033.log`); tests passed 856 total (`/tmp/xerahs-hourly-sweep/test-20260508-000345.log`).
+- Follow-up: Continue capture pipeline review around real DXGI cursor metadata composition before re-enabling cursor capture support.

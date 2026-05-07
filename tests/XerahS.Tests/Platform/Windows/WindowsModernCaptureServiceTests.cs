@@ -8,6 +8,44 @@ namespace XerahS.Tests.Platform.Windows;
 public class WindowsModernCaptureServiceTests
 {
     [Test]
+    public void DisposableContextDictionary_ReplaceDisposesPreviousContextForSameKey()
+    {
+        var contexts = new Dictionary<string, TrackingDisposable>
+        {
+            ["monitor-1"] = new TrackingDisposable()
+        };
+        var previous = contexts["monitor-1"];
+        var replacement = new TrackingDisposable();
+
+        DisposableContextDictionary.Replace(contexts, "monitor-1", replacement);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(previous.Disposed, Is.True);
+            Assert.That(replacement.Disposed, Is.False);
+            Assert.That(contexts["monitor-1"], Is.SameAs(replacement));
+        });
+    }
+
+    [Test]
+    public void DisposableContextDictionary_ReplaceKeepsCurrentContextWhenReferenceIsSame()
+    {
+        var context = new TrackingDisposable();
+        var contexts = new Dictionary<string, TrackingDisposable>
+        {
+            ["monitor-1"] = context
+        };
+
+        DisposableContextDictionary.Replace(contexts, "monitor-1", context);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.Disposed, Is.False);
+            Assert.That(contexts["monitor-1"], Is.SameAs(context));
+        });
+    }
+
+    [Test]
     public void DxgiCapabilities_DoNotAdvertiseCursorCaptureUntilCursorCompositionIsImplemented()
     {
         var capabilities = DxgiCapabilitiesHelper.Create();
@@ -159,6 +197,16 @@ public class WindowsModernCaptureServiceTests
             Assert.That(created, Is.False);
             Assert.That(captureRect, Is.EqualTo(default(Rectangle)));
         });
+    }
+
+    private sealed class TrackingDisposable : IDisposable
+    {
+        public bool Disposed { get; private set; }
+
+        public void Dispose()
+        {
+            Disposed = true;
+        }
     }
 }
 
