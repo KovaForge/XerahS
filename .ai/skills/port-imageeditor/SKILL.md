@@ -58,9 +58,23 @@ Hardcoded local paths are intentional here. They make this workflow faster and m
 git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" status --short
 git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" branch --show-current
 git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" rev-parse HEAD
+git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" fetch --prune
+git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" status --short --branch
 ```
 
-The repo is expected to already be pulled locally. Use the checked-out branch as the default upstream branch unless the user requests a different ref.
+Use the checked-out branch as the default upstream branch unless the user requests a different ref.
+
+If the local ShareX checkout is behind its upstream tracking branch, pull it before resolving the ImageEditor range:
+
+```powershell
+git -C "C:\Users\liveu\source\repos\ShareX Team\ShareX" pull --ff-only
+```
+
+If ShareX has local uncommitted changes, do not overwrite them. Prefer:
+- If the changes are unrelated and the checkout is only needed for read-only upstream assessment, use `git pull --rebase --autostash` so the newest source is available locally.
+- If the changes conflict with the pull or look relevant to `ShareX.ImageEditor`, stop and report that the local ShareX checkout must be cleaned or reviewed before porting.
+
+After pulling, record the updated ShareX `HEAD` and use that local source for the rest of the assessment. This keeps the upstream code local and fast to inspect without cloning ShareX again.
 
 ### 0b - Find the latest ShareX commit that touches `ShareX.ImageEditor`
 
@@ -341,14 +355,16 @@ Do not stop after a local commit unless the user explicitly asks to pause before
 For the common "catch up XerahS to the latest local ShareX state" task:
 
 1. Read `PORT_STATUS.md` to get the last synced ShareX hash.
-2. Run `git -C <sharex_repo> log -1 --format="%H %cs %s" -- ShareX.ImageEditor`.
-3. Run `git -C <sharex_repo> diff --name-only <last_sync>..HEAD -- ShareX.ImageEditor`.
-4. Map each changed upstream file into `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor`.
-5. Add missing files first.
-6. Review every upstream commit in the range so you understand the complete feature and bug-fix set.
-7. For each item, compare the upstream behavior against the current XerahS behavior and decide whether it is missing, already fixed, implemented differently, partially implemented, or conflicting.
-8. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement, including XerahS status, decision, and rationale, before editing.
-9. Read upstream and XerahS code where needed to confirm how the behavior works.
-10. Port, manually merge, keep XerahS behavior, or write a custom implementation as appropriate; do not blind cherry-pick or raw-copy diverged Avalonia files.
-11. Build the ImageEditor project, then the XerahS solution.
-12. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
+2. Run `git -C <sharex_repo> fetch --prune` and check `git -C <sharex_repo> status --short --branch`.
+3. If the local ShareX checkout is behind, run `git -C <sharex_repo> pull --ff-only`; use `--rebase --autostash` only for unrelated local ShareX changes that must be preserved.
+4. Run `git -C <sharex_repo> log -1 --format="%H %cs %s" -- ShareX.ImageEditor`.
+5. Run `git -C <sharex_repo> diff --name-only <last_sync>..HEAD -- ShareX.ImageEditor`.
+6. Map each changed upstream file into `XerahS\ShareX.ImageEditor\src\ShareX.ImageEditor`.
+7. Add missing files first.
+8. Review every upstream commit in the range so you understand the complete feature and bug-fix set.
+9. For each item, compare the upstream behavior against the current XerahS behavior and decide whether it is missing, already fixed, implemented differently, partially implemented, or conflicting.
+10. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement, including XerahS status, decision, and rationale, before editing.
+11. Read upstream and XerahS code where needed to confirm how the behavior works.
+12. Port, manually merge, keep XerahS behavior, or write a custom implementation as appropriate; do not blind cherry-pick or raw-copy diverged Avalonia files.
+13. Build the ImageEditor project, then the XerahS solution.
+14. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
