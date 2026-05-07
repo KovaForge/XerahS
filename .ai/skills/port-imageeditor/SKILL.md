@@ -48,7 +48,8 @@ Hardcoded local paths are intentional here. They make this workflow faster and m
 12. This is not a blind cherry-pick workflow. Review the upstream change set, understand the behavior being introduced or fixed, and then map that behavior into the Avalonia submodule.
 13. Re-implement the upstream behavior in the XerahS ImageEditor submodule after understanding it, instead of mechanically transplanting diffs.
 14. Build before claiming completion.
-15. If verification passes and the user did not ask to pause, commit and push the submodule change and then commit and push the XerahS root pointer update.
+15. Commit each completed bug fix and enhancement separately in the `ShareX.ImageEditor` submodule. Do not bundle unrelated manifest items into one port commit.
+16. If verification passes and the user did not ask to pause, push the submodule commits and then commit and push the XerahS root pointer update.
 
 ## Step 0 - Resolve the upstream commit range
 
@@ -167,6 +168,7 @@ The manifest must include every bug fix and enhancement identified in the pendin
 - Target files: the mapped XerahS files expected to change
 - Decision: raw sync, manual merge, custom implementation, keep XerahS behavior, or intentional skip with reason
 - Rationale: why that decision gives XerahS the best behavior
+- Commit plan: the intended standalone submodule commit subject for this item, or `none` when the item is kept/skipped
 
 Use this shape:
 
@@ -180,6 +182,7 @@ Use this shape:
   Target files: `<mapped/file.cs>`, `<mapped/file.axaml>`
   Decision: <raw sync/manual merge/custom implementation/keep XerahS/skip>
   Rationale: <why this is the best XerahS outcome>
+  Commit plan: `[ShareX.ImageEditor] [Fix] <short description> from ShareX@<hash>`
 
 - [ ] Enhancement: <short name>
   Source: `<hash>` <subject>
@@ -188,11 +191,18 @@ Use this shape:
   Target files: `<mapped/file.cs>`
   Decision: <raw sync/manual merge/custom implementation/keep XerahS/skip>
   Rationale: <why this is the best XerahS outcome>
+  Commit plan: `[ShareX.ImageEditor] [Enhancement] <short description> from ShareX@<hash>`
 ```
 
 During implementation, work against this manifest. Announce the item being implemented before editing it, and update the item status as it is completed or intentionally skipped.
 
 Do not use `raw sync` as the default. It is only acceptable after comparing the mapped XerahS file and confirming there is no local fix, no different design, and no host-specific behavior worth preserving.
+
+When multiple manifest items share prerequisite scaffolding, such as a new enum, helper, or control required by later items, either:
+- include the shared scaffold in the first item that needs it when that keeps the commit coherent, or
+- create a separate preparatory commit with `[ShareX.ImageEditor] [Infrastructure] ...` before the dependent bug-fix/enhancement commits.
+
+Do not create one large "sync latest ShareX changes" submodule commit unless the pending range has exactly one cohesive manifest item.
 
 ### 2d - Read code to remove ambiguity
 
@@ -330,11 +340,26 @@ Suggested status block:
 
 The submodule is a shared library repo, so submodule commits do not use the XerahS version prefix.
 
-Use:
+Commit each completed manifest item separately in the `ShareX.ImageEditor` submodule.
+
+Use these submodule commit formats:
 
 ```text
+[ShareX.ImageEditor] [Fix] <bug fix description> from ShareX@<hash>
+[ShareX.ImageEditor] [Enhancement] <feature description> from ShareX@<hash>
+[ShareX.ImageEditor] [Infrastructure] <shared prerequisite description>
 [ShareX.ImageEditor] [Port] <description> from ShareX@<hash>
 ```
+
+Use `[Port]` only for cohesive changes that are not cleanly a fix or enhancement, such as a behavior-impacting refactor. If one upstream commit contains several unrelated user-visible fixes or enhancements, split the XerahS commits by manifest item, not by upstream commit.
+
+Before each submodule commit:
+1. Stage only the files/hunks for that manifest item.
+2. Run the smallest relevant build or test if the item is behavior-critical and fast enough.
+3. Commit with the planned subject.
+4. Continue to the next manifest item.
+
+If a later item needs to amend a previous item because of a discovered integration issue, prefer a new targeted follow-up commit unless history has not been pushed and the scope is still clearly the same manifest item.
 
 Then update the XerahS root repo to point to the new submodule commit.
 
@@ -342,10 +367,10 @@ Then update the XerahS root repo to point to the new submodule commit.
 
 After verification succeeds:
 
-1. Commit the `ShareX.ImageEditor` submodule changes.
-2. Push the submodule branch.
+1. Confirm every implemented manifest item has its own `ShareX.ImageEditor` submodule commit, except items explicitly kept or skipped.
+2. Push the submodule branch after the full verification gates pass.
 3. Stage the updated submodule pointer and any root tracking or skill changes in `XerahS`.
-4. Commit the XerahS root repo using the next unreleased XerahS version prefix.
+4. Commit the XerahS root repo using the next unreleased XerahS version prefix. The root commit may summarize the batch because it only records the final submodule pointer and host/test integration.
 5. Push the XerahS root branch.
 
 Do not stop after a local commit unless the user explicitly asks to pause before push.
@@ -366,5 +391,6 @@ For the common "catch up XerahS to the latest local ShareX state" task:
 10. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement, including XerahS status, decision, and rationale, before editing.
 11. Read upstream and XerahS code where needed to confirm how the behavior works.
 12. Port, manually merge, keep XerahS behavior, or write a custom implementation as appropriate; do not blind cherry-pick or raw-copy diverged Avalonia files.
-13. Build the ImageEditor project, then the XerahS solution.
-14. Update `PORT_STATUS.md`, then commit and push the submodule and root pointer separately.
+13. Commit each completed bug fix/enhancement as a separate `ShareX.ImageEditor` submodule commit, keeping shared infrastructure separate when needed.
+14. Build the ImageEditor project, then the XerahS solution.
+15. Update `PORT_STATUS.md`, then push the submodule commits and commit/push the root pointer separately.
