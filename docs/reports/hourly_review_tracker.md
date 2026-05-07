@@ -608,3 +608,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity inspection to ignore unreadable/invalid candidate assemblies, added regression coverage, and bumped version `0.22.222` -> `0.22.223`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-075941.log`); tests passed 843 total (`/tmp/xerahs-hourly-sweep/test-20260507-080303.log`).
 - Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version edge cases.
+
+### 2026-05-07 12:03 AWST - Capture pipeline DXGI scaled crop bounds
+
+- Area: Capture pipeline / Windows DXGI crop rect scaling; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCropRectHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `Directory.Build.props`.
+- Findings: DXGI region cropping translated virtual desktop coordinates directly to bitmap pixels, so DPI-scaled captures could crop the wrong offset/size and empty virtual bounds could divide the coordinate contract implicitly.
+- Status: Fast-forwarded local `develop` to `origin/develop` (`8194d78c` docs refresh); upstream/develop already contained. ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI crop scaling and empty-bounds rejection; added regression coverage; bumped version `0.22.223` -> `0.22.224`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-115917.log`); tests passed 845 total (`/tmp/xerahs-hourly-sweep/test-20260507-120238.log`).
+- Follow-up: Continue capture pipeline review around rotated display bounds and cursor/selection parity between modern and fallback capture paths.
