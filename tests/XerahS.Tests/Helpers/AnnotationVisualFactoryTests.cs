@@ -41,7 +41,7 @@ public class AnnotationVisualFactoryTests
     {
         // ComputeArrowPoints is the single source of truth for arrow shape.
         // Both Render() (SKCanvas) and CreateArrowGeometry() (Avalonia) consume it.
-        var pts = ArrowAnnotation.ComputeArrowPoints(10, 20, 140, 85, 6 * ArrowAnnotation.ArrowHeadWidthMultiplier);
+        var pts = ArrowAnnotation.ComputeArrowPoints(10, 20, 140, 85, 6 * ArrowAnnotation.ClassicArrowHeadWidthMultiplier);
 
         Assert.That(pts, Is.Not.Null);
         var p = pts!.Value;

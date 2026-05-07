@@ -41,6 +41,9 @@ namespace XerahS.RegionCapture.ViewModels;
 
 public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnotationToolbarAdapter
 {
+    private static readonly IReadOnlyList<string> _availableFontFamilies = ["Segoe UI", "Arial", "Calibri", "Consolas", "Times New Roman"];
+    private static readonly IReadOnlyList<ArrowStyle> _availableArrowStyles = Enum.GetValues<ArrowStyle>();
+
     private const float MinEffectStrength = 1;
     private const float MaxBlurStrength = 200;
     private const float MaxPixelateStrength = 200;
@@ -277,6 +280,40 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     }
 
     [ObservableProperty]
+    private string _selectedFontFamily = "Segoe UI";
+
+    partial void OnSelectedFontFamilyChanged(string value)
+    {
+        string normalizedFontFamily = NormalizeFontFamily(value);
+        if (!string.Equals(normalizedFontFamily, value, StringComparison.Ordinal))
+        {
+            SelectedFontFamily = normalizedFontFamily;
+            return;
+        }
+
+        ApplySelectedFontFamily(normalizedFontFamily);
+    }
+
+    [ObservableProperty]
+    private ArrowStyle _selectedArrowStyle = ArrowStyle.Classic;
+
+    partial void OnSelectedArrowStyleChanged(ArrowStyle value)
+    {
+        ArrowStyle normalizedArrowStyle = NormalizeArrowStyle(value);
+        if (normalizedArrowStyle != value)
+        {
+            SelectedArrowStyle = normalizedArrowStyle;
+            return;
+        }
+
+        ApplySelectedArrowStyle(normalizedArrowStyle);
+    }
+
+    public IReadOnlyList<string> AvailableFontFamilies => _availableFontFamilies;
+
+    public IReadOnlyList<ArrowStyle> AvailableArrowStyles => _availableArrowStyles;
+
+    [ObservableProperty]
     private float _effectStrength = 15;
 
     partial void OnEffectStrengthChanged(float value)
@@ -384,6 +421,18 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         _ => false
     };
 
+    public bool ShowFontFamily => GetToolOptionsContext() switch
+    {
+        EditorTool.Text or EditorTool.SpeechBalloon => true,
+        _ => false
+    };
+
+    public bool ShowArrowStyle => GetToolOptionsContext() switch
+    {
+        EditorTool.Arrow => true,
+        _ => false
+    };
+
     public bool ShowCornerRadius => GetToolOptionsContext() switch
     {
         EditorTool.Rectangle or EditorTool.SpeechBalloon => true,
@@ -421,6 +470,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ShowTextColor ||
         ShowThickness ||
         ShowFontSize ||
+        ShowFontFamily ||
+        ShowArrowStyle ||
         ShowCornerRadius ||
         ShowStrength ||
         ShowTextStyle ||
@@ -821,6 +872,62 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         }
     }
 
+    private void ApplySelectedFontFamily(string fontFamily)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case SpeechBalloonAnnotation balloon:
+                    balloon.FontFamily = fontFamily;
+                    break;
+                case TextAnnotation text:
+                    text.FontFamily = fontFamily;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonFontFamily = fontFamily;
+                break;
+            case EditorTool.Text:
+                _options.TextFontFamily = fontFamily;
+                break;
+        }
+    }
+
+    private void ApplySelectedArrowStyle(ArrowStyle arrowStyle)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation is ArrowAnnotation arrow)
+        {
+            arrow.Style = arrowStyle;
+            RequestCanvasRefresh();
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Arrow)
+        {
+            _options.ArrowStyle = arrowStyle;
+        }
+    }
+
     private void ApplyEffectStrength(float value)
     {
         if (_isLoadingToolOptions)
@@ -944,6 +1051,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 StrokeWidth = _options.Thickness;
                 CornerRadius = _options.CornerRadius;
                 ShadowEnabled = _options.Shadow;
+                if (tool == EditorTool.Arrow)
+                {
+                    SelectedArrowStyle = NormalizeArrowStyle(_options.ArrowStyle);
+                }
                 break;
             case EditorTool.Text:
                 SelectedColor = ColorToHex(_options.TextBorderColor);
@@ -951,6 +1062,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 StrokeWidth = _options.TextThickness;
                 ShadowEnabled = _options.Shadow;
                 FontSize = _options.TextFontSize;
+                SelectedFontFamily = NormalizeFontFamily(_options.TextFontFamily);
                 TextBold = _options.TextBold;
                 TextItalic = _options.TextItalic;
                 TextUnderline = _options.TextUnderline;
@@ -963,6 +1075,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 CornerRadius = _options.CornerRadius;
                 ShadowEnabled = _options.Shadow;
                 FontSize = _options.SpeechBalloonFontSize;
+                SelectedFontFamily = NormalizeFontFamily(_options.SpeechBalloonFontFamily);
                 TextBold = _options.TextBold;
                 TextItalic = _options.TextItalic;
                 TextUnderline = _options.TextUnderline;
@@ -1019,6 +1132,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 break;
             case TextAnnotation text:
                 FontSize = text.FontSize;
+                SelectedFontFamily = NormalizeFontFamily(text.FontFamily);
                 TextBold = text.IsBold;
                 TextItalic = text.IsItalic;
                 TextUnderline = text.IsUnderline;
@@ -1029,6 +1143,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 break;
             case SpeechBalloonAnnotation balloon:
                 FontSize = balloon.FontSize;
+                SelectedFontFamily = NormalizeFontFamily(balloon.FontFamily);
                 FillColor = balloon.FillColor;
                 CornerRadius = balloon.CornerRadius;
                 if (!string.IsNullOrWhiteSpace(balloon.TextColor))
@@ -1042,6 +1157,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 break;
             case EllipseAnnotation ellipse:
                 FillColor = ellipse.FillColor;
+                break;
+            case ArrowAnnotation arrow:
+                SelectedArrowStyle = NormalizeArrowStyle(arrow.Style);
                 break;
             case SpotlightAnnotation spotlight:
                 EffectStrength = ConvertSpotlightOpacityToStrength(spotlight.DarkenOpacity);
@@ -1063,6 +1181,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         OnPropertyChanged(nameof(ShowTextColor));
         OnPropertyChanged(nameof(ShowThickness));
         OnPropertyChanged(nameof(ShowFontSize));
+        OnPropertyChanged(nameof(ShowFontFamily));
+        OnPropertyChanged(nameof(ShowArrowStyle));
         OnPropertyChanged(nameof(ShowCornerRadius));
         OnPropertyChanged(nameof(ShowStrength));
         OnPropertyChanged(nameof(ShowShadow));
@@ -1126,6 +1246,16 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private static Color HexToColor(string hex)
     {
         return Color.TryParse(hex, out Color parsedColor) ? parsedColor : Colors.Transparent;
+    }
+
+    private static string NormalizeFontFamily(string? fontFamily)
+    {
+        return string.IsNullOrWhiteSpace(fontFamily) ? "Segoe UI" : fontFamily;
+    }
+
+    private static ArrowStyle NormalizeArrowStyle(ArrowStyle arrowStyle)
+    {
+        return Enum.IsDefined(arrowStyle) ? arrowStyle : ArrowStyle.Classic;
     }
 
     private enum TextStyle

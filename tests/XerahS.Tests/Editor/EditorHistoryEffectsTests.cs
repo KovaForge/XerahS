@@ -120,6 +120,29 @@ public class EditorHistoryEffectsTests
     }
 
     [Test]
+    public void StepAnnotation_AfterUndo_UsesNextVisibleNumber()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            _core.AddAnnotation(CreateStep(_core.NumberCounter++, i * 10, i * 10));
+        }
+
+        _core.Undo();
+        _core.Undo();
+
+        Assert.That(_core.NumberCounter, Is.EqualTo(4));
+
+        _core.AddAnnotation(CreateStep(_core.NumberCounter++, 60, 60));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_core.Annotations.OfType<NumberAnnotation>().Select(annotation => annotation.Number), Is.EqualTo(new[] { 1, 2, 3, 4 }));
+            Assert.That(_core.NumberCounter, Is.EqualTo(5));
+            Assert.That(_core.CanRedo, Is.False);
+        });
+    }
+
+    [Test]
     public void HistoryChanged_Fires_ForCanvasApplyUndoAndRedo()
     {
         int historyChangedCount = 0;
@@ -137,6 +160,13 @@ public class EditorHistoryEffectsTests
         {
             StartPoint = new SKPoint(x1, y1),
             EndPoint = new SKPoint(x2, y2)
+        };
+
+    private static NumberAnnotation CreateStep(int number, float x, float y) =>
+        new()
+        {
+            Number = number,
+            StartPoint = new SKPoint(x, y)
         };
 
     private static SKBitmap CreateBitmap(SKColor color)
