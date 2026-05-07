@@ -8,6 +8,14 @@ namespace XerahS.Tests.Platform.Windows;
 public class WindowsModernCaptureServiceTests
 {
     [Test]
+    public void DxgiCapabilities_DoNotAdvertiseCursorCaptureUntilCursorCompositionIsImplemented()
+    {
+        var capabilities = DxgiCapabilitiesHelper.Create();
+
+        Assert.That(capabilities.SupportsCursorCapture, Is.False);
+    }
+
+    [Test]
     public void TryCreateDxgiCropRect_TranslatesAndClampsFractionalScreenCoordinates()
     {
         var virtualBounds = new Rectangle(-100, -50, 300, 200);

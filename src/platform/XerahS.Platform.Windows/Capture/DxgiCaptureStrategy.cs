@@ -262,21 +262,7 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
         }
     }
 
-    public BackendCapabilities GetCapabilities()
-    {
-        return new BackendCapabilities
-        {
-            BackendName = "DXGI Desktop Duplication",
-            Version = "1.2+",
-            SupportsHardwareAcceleration = true,
-            SupportsCursorCapture = true, // DXGI supports cursor metadata
-            SupportsHDR = false, // Would require additional format handling
-            SupportsPerMonitorDpi = true,
-            SupportsMonitorHotplug = true,
-            MaxCaptureResolution = 16384, // D3D11 texture limit
-            RequiresPermission = false
-        };
-    }
+    public BackendCapabilities GetCapabilities() => DxgiCapabilitiesHelper.Create();
 
     private void InitializeDuplication(IDXGIOutput output, IDXGIAdapter1 adapter, string monitorId)
     {

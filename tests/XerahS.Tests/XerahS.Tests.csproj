@@ -81,6 +81,8 @@
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\BgraRowCopyHelper.cs"
              Link="Platform\Windows\WindowsSources\BgraRowCopyHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiCapabilitiesHelper.cs"
+             Link="Platform\Windows\WindowsSources\DxgiCapabilitiesHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiCropRectHelper.cs"
              Link="Platform\Windows\WindowsSources\DxgiCropRectHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\GdiCaptureRectHelper.cs"

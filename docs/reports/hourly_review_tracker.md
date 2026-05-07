@@ -616,3 +616,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fast-forwarded local `develop` to `origin/develop` (`8194d78c` docs refresh); upstream/develop already contained. ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI crop scaling and empty-bounds rejection; added regression coverage; bumped version `0.22.223` -> `0.22.224`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-115917.log`); tests passed 845 total (`/tmp/xerahs-hourly-sweep/test-20260507-120238.log`).
 - Follow-up: Continue capture pipeline review around rotated display bounds and cursor/selection parity between modern and fallback capture paths.
+
+### 2026-05-07 16:05 AWST - Capture pipeline DXGI cursor capability parity
+
+- Area: Capture pipeline / Windows DXGI backend capabilities; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCapabilitiesHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: DXGI advertised cursor capture support even though the capture path does not read pointer metadata or composite the cursor into returned bitmaps.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI capabilities to report cursor capture unsupported until composition exists; added regression coverage; bumped version `0.22.224` -> `0.22.225`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-160249.log`); tests passed 846 total (`/tmp/xerahs-hourly-sweep/test-20260507-160400.log`).
+- Follow-up: Continue capture pipeline review around rotated display bounds and implementing real DXGI cursor metadata composition before re-enabling cursor support.
