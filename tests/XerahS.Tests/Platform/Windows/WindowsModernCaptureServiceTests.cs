@@ -46,11 +46,63 @@ public class WindowsModernCaptureServiceTests
     }
 
     [Test]
-    public void DxgiCapabilities_DoNotAdvertiseCursorCaptureUntilCursorCompositionIsImplemented()
+    public void DxgiCapabilities_AdvertiseCursorCaptureWhenCursorCompositionIsAvailable()
     {
         var capabilities = DxgiCapabilitiesHelper.Create();
 
-        Assert.That(capabilities.SupportsCursorCapture, Is.False);
+        Assert.That(capabilities.SupportsCursorCapture, Is.True);
+    }
+
+    [Test]
+    public void CreateDxgiCursorPlacement_MapsScreenCursorToCapturedBitmapCoordinates()
+    {
+        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(125, 80),
+            hotspot: new Point(5, 10),
+            cursorSize: new Size(32, 32),
+            captureRegion);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(placement.ShouldDraw, Is.True);
+            Assert.That(placement.DrawOffset, Is.EqualTo(new Point(20, 20)));
+        });
+    }
+
+    [Test]
+    public void CreateDxgiCursorPlacement_RejectsCursorOutsideCapturedBitmap()
+    {
+        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(350, 80),
+            hotspot: Point.Empty,
+            cursorSize: new Size(32, 32),
+            captureRegion);
+
+        Assert.That(placement.ShouldDraw, Is.False);
+    }
+
+    [Test]
+    public void CreateDxgiCursorPlacement_UsesDefaultExtentForSystemSizedCursor()
+    {
+        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(90, 70),
+            hotspot: Point.Empty,
+            cursorSize: Size.Empty,
+            captureRegion);
+
+        Assert.That(placement.ShouldDraw, Is.True);
     }
 
     [TestCase(0, 20, 30, 60, 80)]

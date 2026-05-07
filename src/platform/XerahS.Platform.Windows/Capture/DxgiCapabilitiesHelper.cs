@@ -25,7 +25,7 @@ internal static class DxgiCapabilitiesHelper
             BackendName = "DXGI Desktop Duplication",
             Version = "1.2+",
             SupportsHardwareAcceleration = true,
-            SupportsCursorCapture = false,
+            SupportsCursorCapture = true,
             SupportsHDR = false,
             SupportsPerMonitorDpi = true,
             SupportsMonitorHotplug = true,

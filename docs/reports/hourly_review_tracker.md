@@ -638,3 +638,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop docs commits `62a11bbf` and `eb555a81`, keeping KovaForge's fuller 2026-05-06 blog conflict content; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed context replacement disposal and initialization-failure cleanup; added regression coverage; bumped version `0.22.226` -> `0.22.227`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-000033.log`); tests passed 856 total (`/tmp/xerahs-hourly-sweep/test-20260508-000345.log`).
 - Follow-up: Continue capture pipeline review around real DXGI cursor metadata composition before re-enabling cursor capture support.
+
+### 2026-05-08 03:55 AWST / completed 2026-05-08 04:04 AWST - Capture pipeline DXGI cursor composition
+
+- Area: Capture pipeline / Windows DXGI cursor capture; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCapabilitiesHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: DXGI region capture accepted `RegionCaptureOptions.IncludeCursor` but ignored it, so callers could request cursor capture and still receive cursorless images.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Added best-effort DXGI cursor overlay composition for region captures, advertised cursor capability, added placement regression coverage, and bumped version `0.22.227` -> `0.22.228`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-035909.log`); tests passed 859 total (`/tmp/xerahs-hourly-sweep/test-20260508-040223.log`).
+- Follow-up: Continue capture pipeline review around full-screen DXGI cursor parity and reducing the legacy `WindowsModernCaptureService` cursor-overlay duplication.

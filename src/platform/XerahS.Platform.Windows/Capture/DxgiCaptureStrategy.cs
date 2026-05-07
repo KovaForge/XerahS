@@ -24,12 +24,15 @@
 #endregion License Information (GPL v3)
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
 using XerahS.Common;
+using XerahS.Platform.Windows;
 using XerahS.Platform.Windows.Capture;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
@@ -250,6 +253,7 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
                     sourceHeight);
 
                 SKBitmap bitmap = BitmapRotationHelper.RotateClockwise(sourceBitmap, monitor.Rotation);
+                TryCompositeCursor(bitmap, captureRegion, options);
                 return new CapturedBitmap(bitmap, captureRegion, monitor.ScaleFactor);
             }
             finally
@@ -265,6 +269,56 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
     }
 
     public BackendCapabilities GetCapabilities() => DxgiCapabilitiesHelper.Create();
+
+    private static void TryCompositeCursor(SKBitmap bitmap, PhysicalRectangle captureRegion, RegionCaptureOptions options)
+    {
+        if (!options.IncludeCursor)
+            return;
+
+        try
+        {
+            var cursor = new CursorData();
+            var placement = DxgiCursorCompositionHelper.CreatePlacement(
+                options.IncludeCursor,
+                cursor.IsVisible,
+                cursor.Position,
+                cursor.Hotspot,
+                cursor.Size,
+                captureRegion);
+
+            if (!placement.ShouldDraw)
+                return;
+
+            using var overlay = new System.Drawing.Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format32bppArgb);
+            using (var graphics = System.Drawing.Graphics.FromImage(overlay))
+            {
+                IntPtr hdc = graphics.GetHdc();
+                try
+                {
+                    cursor.DrawCursor(hdc, new System.Drawing.Point(captureRegion.X, captureRegion.Y));
+                }
+                finally
+                {
+                    graphics.ReleaseHdc(hdc);
+                }
+            }
+
+            using var stream = new MemoryStream();
+            overlay.Save(stream, ImageFormat.Png);
+            stream.Position = 0;
+            using var cursorBitmap = SKBitmap.Decode(stream);
+            if (cursorBitmap == null)
+                return;
+
+            using var canvas = new SKCanvas(bitmap);
+            using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
+            canvas.DrawBitmap(cursorBitmap, 0, 0, paint);
+        }
+        catch
+        {
+            // Cursor composition is best-effort; capture must still succeed if cursor APIs fail.
+        }
+    }
 
     private void InitializeDuplication(IDXGIOutput output, IDXGIAdapter1 adapter, string monitorId)
     {
