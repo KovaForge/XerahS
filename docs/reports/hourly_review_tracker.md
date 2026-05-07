@@ -624,3 +624,9 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI capabilities to report cursor capture unsupported until composition exists; added regression coverage; bumped version `0.22.224` -> `0.22.225`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-160249.log`); tests passed 846 total (`/tmp/xerahs-hourly-sweep/test-20260507-160400.log`).
 - Follow-up: Continue capture pipeline review around rotated display bounds and implementing real DXGI cursor metadata composition before re-enabling cursor support.
+
+### 2026-05-07 20:09 AWST - Capture pipeline DXGI rotated region source boxes
+
+- Area: Capture pipeline / Windows DXGI rotated region capture; files: `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Fixed DXGI region capture to map desktop-oriented regions into the unrotated duplication texture for 90/180/270 degree outputs, rotate the copied sub-bitmap back to desktop orientation, added source-box regression coverage, and bumped version `0.22.225` -> `0.22.226`.
+- Follow-up: Continue capture pipeline review around real DXGI cursor metadata composition before re-enabling cursor capture support.

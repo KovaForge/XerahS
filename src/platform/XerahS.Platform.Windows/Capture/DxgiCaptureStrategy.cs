@@ -29,6 +29,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
+using XerahS.Common;
 using XerahS.Platform.Windows.Capture;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
@@ -191,12 +192,21 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             var captureRegion = intersection.Value;
             var localX = captureRegion.X - monitor.Bounds.X;
             var localY = captureRegion.Y - monitor.Bounds.Y;
+            var localRegion = new PhysicalRectangle(localX, localY, captureRegion.Width, captureRegion.Height);
+            var textureDesc = texture.Description;
+            var sourceBox = DxgiRotationHelper.CreateSourceBox(
+                localRegion,
+                monitor.Rotation,
+                (int)textureDesc.Width,
+                (int)textureDesc.Height);
+            int sourceWidth = DxgiRotationHelper.GetSourceWidth(sourceBox);
+            int sourceHeight = DxgiRotationHelper.GetSourceHeight(sourceBox);
 
             // Create staging texture for CPU readback
             var stagingDesc = new Texture2DDescription
             {
-                Width = (uint)captureRegion.Width,
-                Height = (uint)captureRegion.Height,
+                Width = (uint)sourceWidth,
+                Height = (uint)sourceHeight,
                 MipLevels = 1,
                 ArraySize = 1,
                 Format = Format.B8G8R8A8_UNorm,
@@ -207,15 +217,6 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             };
 
             using var staging = device.CreateTexture2D(stagingDesc);
-
-            // Copy only the requested region
-            var sourceBox = new Box(
-                localX,
-                localY,
-                0,
-                localX + captureRegion.Width,
-                localY + captureRegion.Height,
-                1);
 
             context.ImmediateContext.CopySubresourceRegion(
                 staging,
@@ -231,23 +232,24 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             try
             {
                 // Create SKBitmap from mapped data
-                var bitmap = new SKBitmap(
-                    captureRegion.Width,
-                    captureRegion.Height,
+                using var sourceBitmap = new SKBitmap(
+                    sourceWidth,
+                    sourceHeight,
                     SKColorType.Bgra8888,
                     SKAlphaType.Premul);
 
-                var info = bitmap.Info;
+                var info = sourceBitmap.Info;
                 var rowBytes = info.RowBytes;
 
                 BgraRowCopyHelper.CopyRows(
                     mapped.DataPointer,
                     (int)mapped.RowPitch,
-                    bitmap.GetPixels(),
+                    sourceBitmap.GetPixels(),
                     rowBytes,
-                    captureRegion.Width * 4,
-                    captureRegion.Height);
+                    sourceWidth * 4,
+                    sourceHeight);
 
+                SKBitmap bitmap = BitmapRotationHelper.RotateClockwise(sourceBitmap, monitor.Rotation);
                 return new CapturedBitmap(bitmap, captureRegion, monitor.ScaleFactor);
             }
             finally

@@ -15,6 +15,47 @@ public class WindowsModernCaptureServiceTests
         Assert.That(capabilities.SupportsCursorCapture, Is.False);
     }
 
+    [TestCase(0, 20, 30, 60, 80)]
+    [TestCase(90, 30, 180, 80, 220)]
+    [TestCase(180, 140, 160, 180, 210)]
+    [TestCase(270, 120, 20, 170, 60)]
+    public void CreateDxgiSourceBox_MapsDesktopRegionToUnrotatedDuplicationTexture(
+        int rotation,
+        int expectedLeft,
+        int expectedTop,
+        int expectedRight,
+        int expectedBottom)
+    {
+        var desktopLocalRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(20, 30, 40, 50);
+        var sourceBox = DxgiRotationHelper.CreateSourceBox(desktopLocalRegion, rotation, sourceWidth: 200, sourceHeight: 240);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sourceBox.Left, Is.EqualTo(expectedLeft));
+            Assert.That(sourceBox.Top, Is.EqualTo(expectedTop));
+            Assert.That(sourceBox.Right, Is.EqualTo(expectedRight));
+            Assert.That(sourceBox.Bottom, Is.EqualTo(expectedBottom));
+            Assert.That(sourceBox.Front, Is.EqualTo(0));
+            Assert.That(sourceBox.Back, Is.EqualTo(1));
+        });
+    }
+
+    [TestCase(0, 40, 50)]
+    [TestCase(90, 50, 40)]
+    [TestCase(180, 40, 50)]
+    [TestCase(270, 50, 40)]
+    public void CreateDxgiSourceBox_ReportsSourceDimensionsForRotation(int rotation, int expectedWidth, int expectedHeight)
+    {
+        var desktopLocalRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(20, 30, 40, 50);
+        var sourceBox = DxgiRotationHelper.CreateSourceBox(desktopLocalRegion, rotation, sourceWidth: 200, sourceHeight: 240);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(DxgiRotationHelper.GetSourceWidth(sourceBox), Is.EqualTo(expectedWidth));
+            Assert.That(DxgiRotationHelper.GetSourceHeight(sourceBox), Is.EqualTo(expectedHeight));
+        });
+    }
+
     [Test]
     public void TryCreateDxgiCropRect_TranslatesAndClampsFractionalScreenCoordinates()
     {
