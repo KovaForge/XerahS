@@ -126,7 +126,23 @@ public class PluginLoadContext : AssemblyLoadContext
 
     internal static bool AssemblyIdentityMatchesRequest(string assemblyPath, AssemblyName requestedName)
     {
-        AssemblyName candidateName = AssemblyName.GetAssemblyName(assemblyPath);
+        AssemblyName candidateName;
+        try
+        {
+            candidateName = AssemblyName.GetAssemblyName(assemblyPath);
+        }
+        catch (BadImageFormatException)
+        {
+            return false;
+        }
+        catch (FileLoadException)
+        {
+            return false;
+        }
+        catch (FileNotFoundException)
+        {
+            return false;
+        }
 
         if (!string.Equals(candidateName.Name, requestedName.Name, StringComparison.OrdinalIgnoreCase))
         {

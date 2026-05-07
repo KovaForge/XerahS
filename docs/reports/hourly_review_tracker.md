@@ -601,3 +601,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current. Fixed shared dependency checks to use ordinal-ignore-case comparisons/prefixes, added regression coverage, and bumped version `0.22.221` -> `0.22.222`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-035758.log`); tests passed 842 total (`/tmp/xerahs-hourly-sweep/test-20260507-040110.log`).
 - Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version edge cases.
+
+### 2026-05-07 08:04 AWST - Plugin loading/runtime invalid fallback assembly
+- Area: Plugin loading/runtime (`PluginLoadContext` managed dependency fallback); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs`, `tests/XerahS.Tests/Helpers/PluginLoaderTests.cs`, `Directory.Build.props`.
+- Findings: A malformed same-name DLL in the plugin directory could throw during fallback identity inspection instead of being rejected as an unusable fallback candidate.
+- Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current. Fixed fallback identity inspection to ignore unreadable/invalid candidate assemblies, added regression coverage, and bumped version `0.22.222` -> `0.22.223`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260507-075941.log`); tests passed 843 total (`/tmp/xerahs-hourly-sweep/test-20260507-080303.log`).
+- Follow-up: continue plugin runtime review around dependency diagnostics beyond resolver fallback and remaining version edge cases.

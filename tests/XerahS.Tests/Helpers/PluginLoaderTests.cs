@@ -485,6 +485,36 @@ public class PluginLoaderTests
     }
 
     [Test]
+    public void LoadContext_Load_DoesNotFallbackToInvalidSameNameAssembly()
+    {
+        string testDirectory = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"plugin-load-context-invalid-{Guid.NewGuid():N}");
+        string resolverDirectory = Path.Combine(testDirectory, "resolver-root");
+        string pluginDirectory = Path.Combine(testDirectory, "plugin-root");
+        Directory.CreateDirectory(resolverDirectory);
+        Directory.CreateDirectory(pluginDirectory);
+
+        string pluginPath = Path.Combine(resolverDirectory, Path.GetFileName(typeof(PluginLoader).Assembly.Location));
+        File.Copy(typeof(PluginLoader).Assembly.Location, pluginPath);
+
+        string requestedDependencyName = $"Fake.Plugin.Dependency.{Guid.NewGuid():N}";
+        string invalidDependencyPath = Path.Combine(pluginDirectory, $"{requestedDependencyName}.dll");
+        File.WriteAllText(invalidDependencyPath, "not a managed assembly");
+
+        var loadContext = new ExposedPluginLoadContext(pluginPath, pluginDirectory);
+
+        try
+        {
+            var assembly = loadContext.LoadForTest(new AssemblyName(requestedDependencyName));
+
+            Assert.That(assembly, Is.Null);
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
+    [Test]
     public void LoadContext_Load_DoesNotFallbackToSharedDependencyWithDifferentCasing()
     {
         string testDirectory = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"plugin-load-context-shared-{Guid.NewGuid():N}");
