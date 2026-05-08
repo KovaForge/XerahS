@@ -69,6 +69,22 @@ public class WindowsModernCaptureServiceTests
         Assert.That(shouldRetry, Is.EqualTo(expectedRetry));
     }
 
+    [TestCase(0, 0, true)]
+    [TestCase(2, 0, true)]
+    [TestCase(2, 1, true)]
+    [TestCase(2, 2, false)]
+    public void ShouldFallbackToGdi_WhenDxgiDoesNotCaptureEveryExpectedOutput(
+        int expectedOutputCount,
+        int capturedOutputCount,
+        bool expectedFallback)
+    {
+        bool shouldFallback = DxgiFrameAcquisitionHelper.ShouldFallbackToGdi(
+            expectedOutputCount,
+            capturedOutputCount);
+
+        Assert.That(shouldFallback, Is.EqualTo(expectedFallback));
+    }
+
     [Test]
     public void CreateDxgiCursorPlacement_MapsScreenCursorToCapturedBitmapCoordinates()
     {
@@ -323,4 +339,3 @@ public class WindowsModernCaptureServiceTests
         }
     }
 }
-

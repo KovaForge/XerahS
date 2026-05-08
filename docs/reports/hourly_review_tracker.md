@@ -670,3 +670,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor verified clean on `develop` at `417f584`. Added retry gating for unusable DXGI frames, release/dispose cleanup before retry, regression coverage, and bumped version `0.22.230` -> `0.22.231`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-160408.log`); tests passed 866 total (`/tmp/xerahs-hourly-sweep/test-20260508-160519.log`).
 - Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and DXGI adapter-loss recovery.
+
+### 2026-05-08 23:55 AWST / completed 2026-05-09 00:10 AWST - Capture pipeline DXGI adapter-loss fallback
+
+- Area: Capture pipeline / Windows DXGI full-screen fallback; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiFrameAcquisitionHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop blog commits `844f147c` and `5100f787`, preserving KovaForge's fuller daily-blog context while incorporating upstream additions; ShareX.ImageEditor verified clean on `develop` at `417f584`. Fixed full-screen DXGI capture to return null and trigger the existing GDI fallback when no outputs duplicate or any expected output fails frame acquisition after retry, preventing black/partial captures from being reported as success. Added fallback-decision regression coverage and bumped version `0.22.231` -> `0.22.232`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 870 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-000604.log`, `/tmp/xerahs-hourly-sweep/test-20260509-000931.log`.
+- Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and monitor-output disposal paths during DXGI enumeration failures.

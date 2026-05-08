@@ -306,6 +306,7 @@ namespace XerahS.Platform.Windows
                 string DeviceName,
                 ModeRotation DxgiRotation)>();
             var devicesToDispose = new List<ID3D11Device>();
+            int capturedOutputCount = 0;
 
             try
             {
@@ -420,6 +421,8 @@ namespace XerahS.Platform.Windows
                                 {
                                     device.ImmediateContext.Unmap(staging, 0);
                                 }
+
+                                capturedOutputCount++;
                             }
                         }
                         else
@@ -451,6 +454,14 @@ namespace XerahS.Platform.Windows
                 {
                     group.Key.Dispose();
                 }
+            }
+
+            if (DxgiFrameAcquisitionHelper.ShouldFallbackToGdi(activeDuplications.Count, capturedOutputCount))
+            {
+                combinedBitmap.Dispose();
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"CaptureFullScreenDxgi: Captured {capturedOutputCount}/{activeDuplications.Count} outputs; using GDI fallback.");
+                return null;
             }
 
             // Log success so the log file verifies DXGI (Vortice.Direct3D11/DXGI) was actually used

@@ -11,4 +11,9 @@ internal static class DxgiFrameAcquisitionHelper
     {
         return !IsUsableFrame(acquireSucceeded, desktopResourceAvailable);
     }
+
+    public static bool ShouldFallbackToGdi(int expectedOutputCount, int capturedOutputCount)
+    {
+        return expectedOutputCount <= 0 || capturedOutputCount < expectedOutputCount;
+    }
 }
