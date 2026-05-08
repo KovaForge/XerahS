@@ -91,6 +91,8 @@
              Link="Platform\Windows\WindowsSources\DxgiCursorCompositionHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiFrameAcquisitionHelper.cs"
              Link="Platform\Windows\WindowsSources\DxgiFrameAcquisitionHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\CursorReplacementHelper.cs"
+             Link="Platform\Windows\WindowsSources\CursorReplacementHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiRotationHelper.cs"
              Link="Platform\Windows\WindowsSources\DxgiRotationHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\GdiCaptureRectHelper.cs"

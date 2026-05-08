@@ -86,6 +86,43 @@ public class WindowsModernCaptureServiceTests
     }
 
     [Test]
+    public void TryReplaceSystemCursors_DisposesCopiesWhenReplacementFails()
+    {
+        var destroyed = new List<IntPtr>();
+
+        bool replacedAny = CursorReplacementHelper.TryReplaceSystemCursors(
+            new uint[] { 32512, 32513 },
+            copyCursor: () => new IntPtr(42),
+            setSystemCursor: (_, _) => false,
+            destroyCursor: destroyed.Add);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(replacedAny, Is.False);
+            Assert.That(destroyed, Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void TryReplaceSystemCursors_ReportsReplacementOnlyAfterSuccessfulSet()
+    {
+        int calls = 0;
+        var destroyed = new List<IntPtr>();
+
+        bool replacedAny = CursorReplacementHelper.TryReplaceSystemCursors(
+            new uint[] { 32512, 32513 },
+            copyCursor: () => new IntPtr(++calls),
+            setSystemCursor: (_, id) => id == 32513,
+            destroyCursor: destroyed.Add);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(replacedAny, Is.True);
+            Assert.That(destroyed, Is.EqualTo(new[] { new IntPtr(1) }));
+        });
+    }
+
+    [Test]
     public void CreateDxgiCursorPlacement_MapsScreenCursorToCapturedBitmapCoordinates()
     {
         var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);

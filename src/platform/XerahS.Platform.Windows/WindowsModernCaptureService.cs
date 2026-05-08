@@ -239,13 +239,11 @@ namespace XerahS.Platform.Windows
                     {
                         try
                         {
-                            foreach (uint id in AllCursorIds)
-                            {
-                                IntPtr copy = CopyIcon(blankCursor);
-                                if (copy != IntPtr.Zero)
-                                    SetSystemCursor(copy, id);
-                            }
-                            cursorHidden = true;
+                            cursorHidden = CursorReplacementHelper.TryReplaceSystemCursors(
+                                AllCursorIds,
+                                () => CopyIcon(blankCursor),
+                                (copy, id) => SetSystemCursor(copy, id),
+                                copy => DestroyCursor(copy));
                         }
                         finally
                         {
