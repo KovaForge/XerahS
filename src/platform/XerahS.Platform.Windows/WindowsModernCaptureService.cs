@@ -373,9 +373,9 @@ namespace XerahS.Platform.Windows
 
                         if (DxgiFrameAcquisitionHelper.IsUsableFrame(acquireResult.Success, desktopResource != null))
                         {
-                            using (desktopResource!)
+                            using (var resource = desktopResource!)
                             {
-                                using var desktopTex = desktopResource.QueryInterface<ID3D11Texture2D>();
+                                using var desktopTex = resource.QueryInterface<ID3D11Texture2D>();
                                 var sourceDesc = desktopTex.Description;
                                 XerahS.Common.DebugHelper.WriteLine(
                                     $"CaptureFullScreenDxgi: Output {deviceName} frame source={sourceDesc.Width}x{sourceDesc.Height}, target={bounds.Width}x{bounds.Height}, rotation={rotation}, dxgiRotation={dxgiRotation}");
