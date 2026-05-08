@@ -662,3 +662,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fast-forwarded origin/develop docs commits `6053ec6e` and `1610b143`; upstream/develop already contained; ShareX.ImageEditor verified clean on `develop` at `417f584`. Fixed full-screen cursor placement to use captured DXGI bounds, centralized cursor overlay composition, added negative/expanded DXGI bounds regression coverage, and bumped version `0.22.229` -> `0.22.230`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-120541.log`); tests passed 862 total (`/tmp/xerahs-hourly-sweep/test-20260508-120647.log`).
 - Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and DXGI multi-adapter frame acquisition edge cases.
+
+### 2026-05-08 15:55 AWST / completed 2026-05-08 16:05 AWST - Capture pipeline DXGI frame acquisition retry
+
+- Area: Capture pipeline / Windows DXGI multi-monitor frame acquisition; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiFrameAcquisitionHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: Full-screen DXGI capture only attempted `AcquireNextFrame` once per output, so a transient first timeout or success without a desktop resource could leave one monitor blank while region capture already retried.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor verified clean on `develop` at `417f584`. Added retry gating for unusable DXGI frames, release/dispose cleanup before retry, regression coverage, and bumped version `0.22.230` -> `0.22.231`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-160408.log`); tests passed 866 total (`/tmp/xerahs-hourly-sweep/test-20260508-160519.log`).
+- Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and DXGI adapter-loss recovery.

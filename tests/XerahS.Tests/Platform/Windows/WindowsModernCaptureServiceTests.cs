@@ -53,6 +53,22 @@ public class WindowsModernCaptureServiceTests
         Assert.That(capabilities.SupportsCursorCapture, Is.True);
     }
 
+    [TestCase(false, false, true)]
+    [TestCase(true, false, true)]
+    [TestCase(false, true, true)]
+    [TestCase(true, true, false)]
+    public void ShouldRetryFrameAcquisition_RetriesUntilResultAndDesktopResourceAreAvailable(
+        bool acquireSucceeded,
+        bool desktopResourceAvailable,
+        bool expectedRetry)
+    {
+        bool shouldRetry = DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(
+            acquireSucceeded,
+            desktopResourceAvailable);
+
+        Assert.That(shouldRetry, Is.EqualTo(expectedRetry));
+    }
+
     [Test]
     public void CreateDxgiCursorPlacement_MapsScreenCursorToCapturedBitmapCoordinates()
     {

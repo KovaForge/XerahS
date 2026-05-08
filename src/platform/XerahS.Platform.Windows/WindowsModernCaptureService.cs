@@ -357,13 +357,24 @@ namespace XerahS.Platform.Windows
                     bool frameAcquired = false;
                     try
                     {
-                        // Acquire frame
                         var acquireResult = duplication.AcquireNextFrame(250, out var frameInfo, out var desktopResource);
 
-                        if (acquireResult.Success && desktopResource != null)
+                        if (DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(acquireResult.Success, desktopResource != null))
                         {
-                            frameAcquired = true;
-                            using (desktopResource)
+                            if (acquireResult.Success)
+                            {
+                                ReleaseFrameQuietly(duplication);
+                            }
+
+                            desktopResource?.Dispose();
+                            acquireResult = duplication.AcquireNextFrame(500, out frameInfo, out desktopResource);
+                        }
+
+                        frameAcquired = acquireResult.Success;
+
+                        if (DxgiFrameAcquisitionHelper.IsUsableFrame(acquireResult.Success, desktopResource != null))
+                        {
+                            using (desktopResource!)
                             {
                                 using var desktopTex = desktopResource.QueryInterface<ID3D11Texture2D>();
                                 var sourceDesc = desktopTex.Description;
@@ -413,7 +424,7 @@ namespace XerahS.Platform.Windows
                         }
                         else
                         {
-                            XerahS.Common.DebugHelper.WriteLine($"CaptureFullScreenDxgi: AcquireFrame failed or timed out.");
+                            XerahS.Common.DebugHelper.WriteLine($"CaptureFullScreenDxgi: AcquireFrame failed or timed out after retry.");
                         }
                     }
                     catch (Exception ex)
@@ -424,14 +435,7 @@ namespace XerahS.Platform.Windows
                     {
                         if (frameAcquired)
                         {
-                            try
-                            {
-                                duplication.ReleaseFrame();
-                            }
-                            catch
-                            {
-                                // Ignore frame release failures during cleanup.
-                            }
+                            ReleaseFrameQuietly(duplication);
                         }
 
                         duplication.Dispose();
@@ -483,6 +487,18 @@ namespace XerahS.Platform.Windows
                 {
                     SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
                 }
+            }
+        }
+
+        private static void ReleaseFrameQuietly(IDXGIOutputDuplication duplication)
+        {
+            try
+            {
+                duplication.ReleaseFrame();
+            }
+            catch
+            {
+                // Ignore frame release failures during cleanup.
             }
         }
 
