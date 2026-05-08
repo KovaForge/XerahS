@@ -105,6 +105,26 @@ public class WindowsModernCaptureServiceTests
         Assert.That(placement.ShouldDraw, Is.True);
     }
 
+    [Test]
+    public void CreateDxgiCursorPlacement_MapsNegativeVirtualDesktopCursorToFullScreenBitmap()
+    {
+        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(-1920, -200, 3840, 1280);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(-1900, -180),
+            hotspot: new Point(10, 8),
+            cursorSize: new Size(32, 32),
+            captureRegion);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(placement.ShouldDraw, Is.True);
+            Assert.That(placement.DrawOffset, Is.EqualTo(new Point(10, 12)));
+        });
+    }
+
     [TestCase(0, 20, 30, 60, 80)]
     [TestCase(90, 30, 180, 80, 220)]
     [TestCase(180, 140, 160, 180, 210)]

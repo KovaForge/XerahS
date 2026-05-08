@@ -459,14 +459,32 @@ namespace XerahS.Platform.Windows
                 {
                     // Get virtual desktop offset for cursor position calculation
                     var virtualBounds = _screenService.GetVirtualScreenBounds();
+                    var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(
+                        virtualBounds.X,
+                        virtualBounds.Y,
+                        virtualBounds.Width,
+                        virtualBounds.Height);
+                    var cursor = new CursorData();
+                    var placement = DxgiCursorCompositionHelper.CreatePlacement(
+                        includeCursor: true,
+                        cursor.IsVisible,
+                        cursor.Position,
+                        cursor.Hotspot,
+                        cursor.Size,
+                        captureRegion);
+
+                    if (!placement.ShouldDraw)
+                    {
+                        return combinedBitmap;
+                    }
                     
                     // CursorData draws the cursor onto a GDI DC, so we use GDI
-                    using var tempBitmap = new System.Drawing.Bitmap(combinedBitmap.Width, combinedBitmap.Height);
+                    using var tempBitmap = new System.Drawing.Bitmap(combinedBitmap.Width, combinedBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
                     using var g = System.Drawing.Graphics.FromImage(tempBitmap);
+                    g.Clear(System.Drawing.Color.Transparent);
                     IntPtr hdc = g.GetHdc();
                     try
                     {
-                        var cursor = new CursorData();
                         cursor.DrawCursor(hdc, new System.Drawing.Point(virtualBounds.X, virtualBounds.Y));
                     }
                     finally

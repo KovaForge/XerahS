@@ -207,11 +207,11 @@ public class SchemaDrivenFilterCatalogTests
         EffectDefinition definition = GetDefinition("convolution_matrix");
         var dialog = new SchemaDrivenEffectDialog(definition);
 
-        GetParameterState<NumericParameterState>(dialog, "x1_y0").Value = -1;
-        GetParameterState<NumericParameterState>(dialog, "x0_y1").Value = -1;
-        GetParameterState<NumericParameterState>(dialog, "x1_y1").Value = 5;
-        GetParameterState<NumericParameterState>(dialog, "x2_y1").Value = -1;
-        GetParameterState<NumericParameterState>(dialog, "x1_y2").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x1y0").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x0y1").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x1y1").Value = 5;
+        GetParameterState<NumericParameterState>(dialog, "x2y1").Value = -1;
+        GetParameterState<NumericParameterState>(dialog, "x1y2").Value = -1;
         GetParameterState<NumericParameterState>(dialog, "factor").Value = 2.5m;
         GetParameterState<NumericParameterState>(dialog, "offset").Value = 6;
 

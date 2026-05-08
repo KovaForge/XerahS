@@ -292,6 +292,7 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             using var overlay = new System.Drawing.Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format32bppArgb);
             using (var graphics = System.Drawing.Graphics.FromImage(overlay))
             {
+                graphics.Clear(System.Drawing.Color.Transparent);
                 IntPtr hdc = graphics.GetHdc();
                 try
                 {
