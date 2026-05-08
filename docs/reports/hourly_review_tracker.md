@@ -654,3 +654,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fast-forwarded upstream/develop through `e7296c54`, updated/pushed ShareX.ImageEditor develop to `417f584`, added explicit transparent cursor overlays plus full-screen placement gating, ignored `ImageAnnotation.ImageBitmap` during `.xann` JSON serialization, refreshed upstream-aligned editor tests, and bumped version `0.22.228` -> `0.22.229`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-080657.log`); tests passed 861 total (`/tmp/xerahs-hourly-sweep/test-20260508-081007.log`).
 - Follow-up: Continue capture pipeline review around consolidating the remaining GDI cursor overlay implementation and multi-monitor cursor edge cases.
+
+### 2026-05-08 11:55 AWST / completed 2026-05-08 12:07 AWST - Capture pipeline DXGI full-screen cursor bounds
+
+- Area: Capture pipeline / Windows DXGI cursor overlay bounds; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `Directory.Build.props`.
+- Findings: Full-screen DXGI cursor overlay used `_screenService.GetVirtualScreenBounds()` after assembling the bitmap from DXGI output bounds, so monitor churn or enumeration differences could offset/reject cursor drawing; region and full-screen overlays also duplicated the GDI/SKBitmap bridge.
+- Status: Fast-forwarded origin/develop docs commits `6053ec6e` and `1610b143`; upstream/develop already contained; ShareX.ImageEditor verified clean on `develop` at `417f584`. Fixed full-screen cursor placement to use captured DXGI bounds, centralized cursor overlay composition, added negative/expanded DXGI bounds regression coverage, and bumped version `0.22.229` -> `0.22.230`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-120541.log`); tests passed 862 total (`/tmp/xerahs-hourly-sweep/test-20260508-120647.log`).
+- Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and DXGI multi-adapter frame acquisition edge cases.

@@ -1,5 +1,8 @@
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.Versioning;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
+using SkiaSharp;
 
 namespace XerahS.Platform.Windows.Capture;
 
@@ -33,5 +36,66 @@ internal static class DxgiCursorCompositionHelper
         }
 
         return new CursorOverlayPlacement(true, new Point(drawX, drawY));
+    }
+
+    public static PhysicalRectangle CreateCaptureRegion(int left, int top, int right, int bottom)
+    {
+        int width = right - left;
+        int height = bottom - top;
+
+        if (width <= 0 || height <= 0)
+            return default;
+
+        return new PhysicalRectangle(left, top, width, height);
+    }
+
+    [SupportedOSPlatform("windows")]
+    public static bool TryCompositeCursor(
+        SKBitmap bitmap,
+        bool cursorVisible,
+        Point cursorPosition,
+        Point hotspot,
+        Size cursorSize,
+        PhysicalRectangle captureRegion,
+        Action<IntPtr, Point> drawCursor)
+    {
+        var placement = CreatePlacement(
+            includeCursor: true,
+            cursorVisible,
+            cursorPosition,
+            hotspot,
+            cursorSize,
+            captureRegion);
+
+        if (!placement.ShouldDraw)
+            return false;
+
+        using var overlay = new Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format32bppArgb);
+        using (var graphics = Graphics.FromImage(overlay))
+        {
+            graphics.Clear(Color.Transparent);
+            IntPtr hdc = graphics.GetHdc();
+            try
+            {
+                drawCursor(hdc, new Point(captureRegion.X, captureRegion.Y));
+            }
+            finally
+            {
+                graphics.ReleaseHdc(hdc);
+            }
+        }
+
+        using var stream = new MemoryStream();
+        overlay.Save(stream, ImageFormat.Png);
+        stream.Position = 0;
+        using var cursorBitmap = SKBitmap.Decode(stream);
+        if (cursorBitmap == null)
+            return false;
+
+        using var canvas = new SKCanvas(bitmap);
+        using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
+        canvas.DrawBitmap(cursorBitmap, 0, 0, paint);
+
+        return true;
     }
 }

@@ -125,6 +125,32 @@ public class WindowsModernCaptureServiceTests
         });
     }
 
+    [Test]
+    public void CreateDxgiCursorCaptureRegion_UsesCapturedDxgiBounds()
+    {
+        var captureRegion = DxgiCursorCompositionHelper.CreateCaptureRegion(
+            left: -1920,
+            top: -200,
+            right: 2560,
+            bottom: 1440);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(-1900, -180),
+            hotspot: new Point(10, 8),
+            cursorSize: new Size(32, 32),
+            captureRegion);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(captureRegion.X, Is.EqualTo(-1920));
+            Assert.That(captureRegion.Width, Is.EqualTo(4480));
+            Assert.That(placement.ShouldDraw, Is.True);
+            Assert.That(placement.DrawOffset, Is.EqualTo(new Point(10, 12)));
+        });
+    }
+
     [TestCase(0, 20, 30, 60, 80)]
     [TestCase(90, 30, 180, 80, 220)]
     [TestCase(180, 140, 160, 180, 210)]

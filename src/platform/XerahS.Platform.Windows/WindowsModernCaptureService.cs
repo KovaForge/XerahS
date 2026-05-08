@@ -457,52 +457,16 @@ namespace XerahS.Platform.Windows
             {
                 try
                 {
-                    // Get virtual desktop offset for cursor position calculation
-                    var virtualBounds = _screenService.GetVirtualScreenBounds();
-                    var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(
-                        virtualBounds.X,
-                        virtualBounds.Y,
-                        virtualBounds.Width,
-                        virtualBounds.Height);
+                    var captureRegion = DxgiCursorCompositionHelper.CreateCaptureRegion(minX, minY, maxX, maxY);
                     var cursor = new CursorData();
-                    var placement = DxgiCursorCompositionHelper.CreatePlacement(
-                        includeCursor: true,
+                    DxgiCursorCompositionHelper.TryCompositeCursor(
+                        combinedBitmap,
                         cursor.IsVisible,
                         cursor.Position,
                         cursor.Hotspot,
                         cursor.Size,
-                        captureRegion);
-
-                    if (!placement.ShouldDraw)
-                    {
-                        return combinedBitmap;
-                    }
-                    
-                    // CursorData draws the cursor onto a GDI DC, so we use GDI
-                    using var tempBitmap = new System.Drawing.Bitmap(combinedBitmap.Width, combinedBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                    using var g = System.Drawing.Graphics.FromImage(tempBitmap);
-                    g.Clear(System.Drawing.Color.Transparent);
-                    IntPtr hdc = g.GetHdc();
-                    try
-                    {
-                        cursor.DrawCursor(hdc, new System.Drawing.Point(virtualBounds.X, virtualBounds.Y));
-                    }
-                    finally
-                    {
-                        g.ReleaseHdc(hdc);
-                    }
-                    
-                    // Copy cursor overlay to SKBitmap using alpha blend
-                    using var cursorStream = new MemoryStream();
-                    tempBitmap.Save(cursorStream, System.Drawing.Imaging.ImageFormat.Png);
-                    cursorStream.Seek(0, SeekOrigin.Begin);
-                    using var cursorBitmap = SKBitmap.Decode(cursorStream);
-                    
-                    // Draw only the cursor (non-black pixels) onto combined bitmap
-                    // Note: CursorData only draws the cursor, so tempBitmap should have cursor on transparent/black
-                    using var cursorCanvas = new SKCanvas(combinedBitmap);
-                    using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
-                    cursorCanvas.DrawBitmap(cursorBitmap, 0, 0, paint);
+                        captureRegion,
+                        cursor.DrawCursor);
                 }
                 catch
                 {
