@@ -22,6 +22,8 @@ xerahs openclaw manifest
 
 The manifest is JSON and includes the preferred health check, bootstrap command, supported automation commands, and whether each command may use network/capture facilities.
 
+For native OpenClaw plugin setup, see [OPENCLAW_PLUGIN.md](OPENCLAW_PLUGIN.md). The plugin exporter creates an OpenClaw source plugin that registers upload-focused tools and shells out to this CLI.
+
 ## First-use bootstrap
 
 Before upload automation, repair safe local defaults:
