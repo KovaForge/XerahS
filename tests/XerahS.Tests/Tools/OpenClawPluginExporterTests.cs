@@ -100,7 +100,9 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(runner, Does.Contain("child.stdout.on(\"error\", rejectOnce);"));
                 Assert.That(runner, Does.Contain("child.stderr.on(\"error\", rejectOnce);"));
                 Assert.That(runner, Does.Contain("let timedOut = false;"));
+                Assert.That(runner, Does.Contain("const terminateChild = () =>"));
                 Assert.That(runner, Does.Contain("forceKillTimer = setTimeout(() => child.kill(\"SIGKILL\"), forceKillDelayMs);"));
+                Assert.That(runner, Does.Contain("terminateChild();"));
                 Assert.That(runner, Does.Contain("if (timedOut)"));
             });
         }

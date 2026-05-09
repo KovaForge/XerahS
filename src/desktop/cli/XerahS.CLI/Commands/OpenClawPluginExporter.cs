@@ -230,10 +230,20 @@ public static class OpenClawPluginExporter
                 const stderr: Buffer[] = [];
                 const forceKillDelayMs = 5_000;
                 let forceKillTimer: NodeJS.Timeout | undefined;
+                const forceKill = () => {
+                  if (!forceKillTimer) {
+                    forceKillTimer = setTimeout(() => child.kill("SIGKILL"), forceKillDelayMs);
+                  }
+                };
+                const terminateChild = () => {
+                  if (child.exitCode === null && child.signalCode === null) {
+                    child.kill();
+                    forceKill();
+                  }
+                };
                 const timer = setTimeout(() => {
                   timedOut = true;
-                  child.kill();
-                  forceKillTimer = setTimeout(() => child.kill("SIGKILL"), forceKillDelayMs);
+                  terminateChild();
                 }, config.timeoutMs);
                 const cleanup = () => {
                   clearTimeout(timer);
@@ -247,7 +257,8 @@ public static class OpenClawPluginExporter
                   }
 
                   settled = true;
-                  cleanup();
+                  clearTimeout(timer);
+                  terminateChild();
                   reject(error);
                 };
 
@@ -262,11 +273,11 @@ public static class OpenClawPluginExporter
                 });
                 child.on("error", rejectOnce);
                 child.on("close", (exitCode) => {
+                  cleanup();
                   if (settled) {
                     return;
                   }
                   settled = true;
-                  cleanup();
                   const rawStdout = Buffer.concat(stdout).toString("utf8").trim();
                   const rawStderr = Buffer.concat(stderr).toString("utf8").trim();
                   const result: XerahSRunResult = {
