@@ -1,3 +1,19 @@
+## v0.22.239
+
+### Fixes
+- **Core**: Resolve startup log issues (83b367ab)
+- **Core**: parse raw openclaw plugin json output (4ce71989)
+- **Core**: redact openclaw plugin stdout diagnostics (fb0ee5ff)
+- **Core**: use core openclaw plugin sdk import (5868981b)
+
+### Build
+- **Core**: Attach ImageEditor during release prep (d84cc957)
+
+### Documentation
+- **Core**: Link changelog only for existing tags (314700ee)
+- **Core**: Link changelog tags and omit hashes (437b49b6)
+- **Core**: Update changelog for release prep (0ea08f80)
+
 # Changelog
 All notable changes to XerahS will be documented in this file.
 The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
