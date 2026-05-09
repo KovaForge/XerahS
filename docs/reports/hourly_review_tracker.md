@@ -712,3 +712,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop commits `83b367ab`, `437b49b6`, `0ea08f80`, and `314700ee`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated OpenClaw tools to import `jsonResult` from the core plugin SDK instead of the web-search provider SDK, added exporter regression coverage, and bumped version `0.22.238` -> `0.22.239`.
 - Build/Test: Release build passed with 0 warnings/errors; Release tests passed 880 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-160350.log`, `/tmp/xerahs-hourly-sweep/test-20260509-160654.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export timeout handling around child process termination.
+
+### 2026-05-09 17:55 AWST / completed 2026-05-09 18:35 AWST - OpenClaw plugin exporter timeout termination
+
+- Area: OpenClaw native plugin export / generated runner timeout handling; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Origin/develop and upstream/develop were already contained; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner timeout handling so timed-out XerahS child processes are terminated with a grace-period escalation, settled once, and reported only after process close. Added exporter regression checks and bumped version `0.22.240` -> `0.22.241`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 880 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-183036.log`, `/tmp/xerahs-hourly-sweep/test-20260509-183401.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner process lifecycle around spawn errors and stream cleanup.

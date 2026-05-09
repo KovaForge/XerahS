@@ -220,25 +220,44 @@ public static class OpenClawPluginExporter
               options: XerahSRunOptions = {},
             ): Promise<XerahSRunResult> {
               return await new Promise<XerahSRunResult>((resolve, reject) => {
+                let settled = false;
+                let timedOut = false;
                 const child = spawn(config.command, args, {
                   stdio: ["pipe", "pipe", "pipe"],
                   windowsHide: true,
                 });
                 const stdout: Buffer[] = [];
                 const stderr: Buffer[] = [];
+                const forceKillDelayMs = 5_000;
+                let forceKillTimer: NodeJS.Timeout | undefined;
                 const timer = setTimeout(() => {
+                  timedOut = true;
                   child.kill();
-                  reject(new Error(`XerahS command timed out after ${config.timeoutMs} ms.`));
+                  forceKillTimer = setTimeout(() => child.kill("SIGKILL"), forceKillDelayMs);
                 }, config.timeoutMs);
+                const cleanup = () => {
+                  clearTimeout(timer);
+                  if (forceKillTimer) {
+                    clearTimeout(forceKillTimer);
+                  }
+                };
 
                 child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
                 child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
                 child.on("error", (error) => {
-                  clearTimeout(timer);
+                  if (settled) {
+                    return;
+                  }
+                  settled = true;
+                  cleanup();
                   reject(error);
                 });
                 child.on("close", (exitCode) => {
-                  clearTimeout(timer);
+                  if (settled) {
+                    return;
+                  }
+                  settled = true;
+                  cleanup();
                   const rawStdout = Buffer.concat(stdout).toString("utf8").trim();
                   const rawStderr = Buffer.concat(stderr).toString("utf8").trim();
                   const result: XerahSRunResult = {
@@ -246,6 +265,11 @@ public static class OpenClawPluginExporter
                     stdout: redactDiagnostics(rawStdout),
                     stderr: redactDiagnostics(rawStderr),
                   };
+
+                  if (timedOut) {
+                    reject(new Error(`XerahS command timed out after ${config.timeoutMs} ms.`));
+                    return;
+                  }
 
                   if (exitCode !== 0) {
                     reject(new Error(formatFailure(args, result)));
