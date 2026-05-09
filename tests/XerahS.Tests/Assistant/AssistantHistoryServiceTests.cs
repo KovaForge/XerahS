@@ -27,6 +27,7 @@ using NUnit.Framework;
 using Microsoft.Data.Sqlite;
 using XerahS.Assistant.Services;
 using XerahS.Core;
+using XerahS.History;
 
 namespace XerahS.Tests.Assistant;
 
@@ -171,6 +172,30 @@ public sealed class AssistantHistoryServiceTests
             Assert.That(items[0].Exists, Is.False);
             Assert.That(items[0].OcrText, Is.Null);
         });
+    }
+
+    [Test]
+    public async Task SearchScreenshotsAsync_FindsIndexedOcrText()
+    {
+        string historyPath = SettingsManager.GetHistoryFilePath();
+        string filePath = Path.Combine(SettingsManager.HistoryFolder, "indexed-capture.png");
+        File.WriteAllText(filePath, "image placeholder");
+
+        using (var connection = new SqliteConnection($"Data Source={historyPath}"))
+        {
+            connection.Open();
+            CreateHistoryTable(connection);
+            InsertHistoryItem(connection, filePath, new DateTime(2026, 5, 9, 14, 0, 0, DateTimeKind.Utc));
+        }
+
+        new HistoryOcrIndexStore(historyPath).UpsertText(1, filePath, null, "Quarterly roadmap review", "test", "en");
+
+        var service = new AssistantHistoryService();
+
+        IReadOnlyList<AssistantHistoryItem> items = await service.SearchScreenshotsAsync("roadmap", 10, CancellationToken.None);
+
+        Assert.That(items, Has.Count.EqualTo(1));
+        Assert.That(items[0].OcrText, Is.EqualTo("Quarterly roadmap review"));
     }
 
     private static void CreateHistoryTable(SqliteConnection connection)

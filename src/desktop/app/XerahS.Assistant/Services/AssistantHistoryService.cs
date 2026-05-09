@@ -25,6 +25,7 @@
 
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Services;
 using XerahS.History;
 using XerahS.Assistant.Models;
 using XerahS.Assistant.Routing;
@@ -44,6 +45,7 @@ public sealed record AssistantHistoryItem(
 public interface IAssistantHistoryService
 {
     Task<IReadOnlyList<AssistantHistoryItem>> GetLatestScreenshotsAsync(int limit, CancellationToken cancellationToken);
+    Task<IReadOnlyList<AssistantHistoryItem>> SearchScreenshotsAsync(string query, int limit, CancellationToken cancellationToken);
     Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken);
     Task CacheOcrTextAsync(string filePath, string ocrText, CancellationToken cancellationToken);
     bool IsKnownHistoryFile(string filePath);
@@ -62,8 +64,47 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             string historyPath = SettingsManager.GetHistoryFilePath();
             using var manager = new HistoryManagerSQLite(historyPath);
 
-            return GetLatestScreenshotHistoryItems(manager, clampedLimit)
-                .Select(ToAssistantHistoryItem)
+            IReadOnlyList<HistoryItem> items = GetLatestScreenshotHistoryItems(manager, clampedLimit);
+            Dictionary<long, string> indexedTexts = new HistoryOcrIndexStore(historyPath).GetTexts(items.Select(item => item.Id));
+
+            return items
+                .Select(item => ToAssistantHistoryItem(item, indexedTexts))
+                .ToList();
+        }, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<AssistantHistoryItem>> SearchScreenshotsAsync(string query, int limit, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Task.FromResult<IReadOnlyList<AssistantHistoryItem>>([]);
+        }
+
+        int clampedLimit = Math.Clamp(limit, 1, AssistantCommandRouter.MaxLatestScreenshotLimit);
+        string needle = query.Trim();
+
+        return Task.Run<IReadOnlyList<AssistantHistoryItem>>(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string historyPath = SettingsManager.GetHistoryFilePath();
+            using var manager = new HistoryManagerSQLite(historyPath);
+            int count = manager.GetTotalCount();
+            if (count <= 0)
+            {
+                return [];
+            }
+
+            List<HistoryItem> items = manager.GetHistoryItems(0, count)
+                .Where(IsScreenshotHistoryItem)
+                .ToList();
+            Dictionary<long, string> indexedTexts = new HistoryOcrIndexStore(historyPath).GetTexts(items.Select(item => item.Id));
+
+            return items
+                .Where(item => MatchesSearch(item, needle, indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
+                .OrderByDescending(item => item.DateTime)
+                .Take(clampedLimit)
+                .Select(item => ToAssistantHistoryItem(item, indexedTexts))
                 .ToList();
         }, cancellationToken);
     }
@@ -83,7 +124,9 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             string historyPath = SettingsManager.GetHistoryFilePath();
             using var manager = new HistoryManagerSQLite(historyPath);
             HistoryItem? item = manager.GetLatestByFilePath(normalizedFilePath);
-            return item == null ? null : TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText");
+            return item == null
+                ? null
+                : new HistoryOcrIndexStore(historyPath).GetText(item.Id) ?? TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText");
         }, cancellationToken);
     }
 
@@ -95,7 +138,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             return Task.CompletedTask;
         }
 
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -107,15 +150,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
                 return;
             }
 
-            item.Tags ??= new Dictionary<string, string?>();
-            if (item.Tags.TryGetValue("OcrText", out string? existing) && string.Equals(existing, ocrText, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            item.Tags["OcrText"] = ocrText;
-            item.Tags.Remove("OCRText");
-            manager.Edit(item);
+            await OcrIndexingService.PersistRecognizedTextAsync(item, ocrText, "assistant", null, cancellationToken);
         }, cancellationToken);
     }
 
@@ -169,15 +204,23 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         return screenshots;
     }
 
-    private static AssistantHistoryItem ToAssistantHistoryItem(HistoryItem item)
+    private static AssistantHistoryItem ToAssistantHistoryItem(HistoryItem item, IReadOnlyDictionary<long, string> indexedTexts)
     {
+        string? ocrText = null;
+        if (File.Exists(item.FilePath))
+        {
+            ocrText = indexedTexts.TryGetValue(item.Id, out string? indexedText)
+                ? indexedText
+                : TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText");
+        }
+
         return new AssistantHistoryItem(
             item.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
             item.FilePath,
             string.IsNullOrWhiteSpace(item.FileName) ? GetSafeFileName(item.FilePath) : item.FileName,
             new DateTimeOffset(item.DateTime == DateTime.MinValue ? DateTime.Now : item.DateTime),
             item.Type,
-            File.Exists(item.FilePath) ? TryGetTag(item, "OcrText") ?? TryGetTag(item, "OCRText") : null,
+            ocrText,
             File.Exists(item.FilePath),
             item);
     }
@@ -190,6 +233,23 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
         }
 
         return FileHelpers.IsImageFile(item.FilePath);
+    }
+
+    private static bool MatchesSearch(HistoryItem item, string query, string? indexedOcrText)
+    {
+        return ContainsSearchText(indexedOcrText, query) ||
+            ContainsSearchText(item.FileName, query) ||
+            ContainsSearchText(item.FilePath, query) ||
+            ContainsSearchText(item.URL, query) ||
+            ContainsSearchText(item.TagsWindowTitle, query) ||
+            ContainsSearchText(item.TagsProcessName, query) ||
+            item.Tags.Any(pair => ContainsSearchText(pair.Key, query) || ContainsSearchText(pair.Value, query));
+    }
+
+    private static bool ContainsSearchText(string? source, string query)
+    {
+        return !string.IsNullOrWhiteSpace(source) &&
+            source.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? TryGetTag(HistoryItem item, string tag)

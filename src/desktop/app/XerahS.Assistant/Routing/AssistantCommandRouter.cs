@@ -37,6 +37,7 @@ public enum AssistantDeterministicIntentKind
     OcrLatestScreenshot,
     CopyOcrLatestScreenshot,
     UploadLatestScreenshot,
+    SearchScreenshotText,
     RunWorkflow
 }
 
@@ -83,6 +84,10 @@ public sealed class AssistantCommandRouter
         @"\b(?:upload|share)\b.*\b(?:latest|last|most\s+recent)\s+(?:capture|screenshot)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex SearchScreenshotTextRegex = new(
+        @"\b(?:find|search|show)\b.*\b(?:screenshots?|captures?)\b.*\b(?:containing|with|for|text)\b\s+(?<query>.+)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static readonly Regex RunWorkflowRegex = new(
         @"\b(?:run|start)\s+(?:the\s+)?(?:workflow\s+)?(?<name>.+)$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -112,6 +117,20 @@ public sealed class AssistantCommandRouter
         if (UploadLatestScreenshotRegex.IsMatch(prompt))
         {
             return new AssistantDeterministicIntent(AssistantDeterministicIntentKind.UploadLatestScreenshot, 1, CopyRequested: false);
+        }
+
+        var searchMatch = SearchScreenshotTextRegex.Match(prompt);
+        if (searchMatch.Success)
+        {
+            string query = searchMatch.Groups["query"].Value.Trim().Trim('"', '\'');
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                return new AssistantDeterministicIntent(
+                    AssistantDeterministicIntentKind.SearchScreenshotText,
+                    MaxLatestScreenshotLimit,
+                    CopyRequested: prompt.Contains("copy", StringComparison.OrdinalIgnoreCase),
+                    Argument: query);
+            }
         }
 
         if (OpenLatestScreenshotRegex.IsMatch(prompt))

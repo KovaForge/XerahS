@@ -15,13 +15,13 @@ public sealed class HistoryTools(IXerahSMcpRuntime runtime)
         {
           "name": "query_history",
           "title": "Query Capture History",
-          "description": "Searches XerahS history by free text, date range, and file type.",
+          "description": "Searches XerahS history by free text, OCR-indexed screenshot content, date range, and file type.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "query": {
                 "type": "string",
-                "description": "Free-text match against file names, paths, URLs, window titles, process names, and history tags."
+                "description": "Free-text match against file names, paths, URLs, window titles, process names, history tags, and OCR-indexed screenshot text."
               },
               "from_date": {
                 "type": "string",

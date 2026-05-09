@@ -9,6 +9,7 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
 using XerahS.Core.Hotkeys;
+using XerahS.Core.Services;
 using XerahS.Core.Tasks;
 using XerahS.History;
 using XerahS.McpServer.Transport;
@@ -315,15 +316,23 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
     {
         await EnsureInitializedAsync(cancellationToken);
 
-        var filtered = LoadHistoryItems()
+        List<HistoryItem> historyItems = LoadHistoryItems();
+        Dictionary<long, string> indexedTexts = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath())
+            .GetTexts(historyItems.Select(item => item.Id));
+
+        var filtered = historyItems
             .Where(item => MatchesDate(item, fromDate, toDate))
             .Where(item => MatchesFileType(item, fileType))
-            .Where(item => MatchesQuery(item, query))
+            .Where(item => MatchesQuery(item, query, indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
             .OrderByDescending(item => item.DateTime)
             .ToList();
 
         var boundedLimit = Math.Clamp(limit, 1, 100);
-        var page = filtered.Take(boundedLimit).Select(CreateHistorySummary).Cast<JsonNode>().ToArray();
+        var page = filtered
+            .Take(boundedLimit)
+            .Select(item => CreateHistorySummary(item, indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
+            .Cast<JsonNode>()
+            .ToArray();
 
         return new JsonObject
         {
@@ -855,7 +864,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         string? fileHash = null;
         int? width = null;
         int? height = null;
-        string? ocrText = null;
+        string? ocrText = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).GetText(item.Id);
 
         if (!string.IsNullOrWhiteSpace(item.FilePath) && File.Exists(item.FilePath))
         {
@@ -874,12 +883,13 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                     width = bitmap.Width;
                     height = bitmap.Height;
 
-                    if (PlatformServices.Ocr?.IsSupported == true)
+                    if (string.IsNullOrWhiteSpace(ocrText) && PlatformServices.Ocr?.IsSupported == true)
                     {
                         var result = await PlatformServices.Ocr.RecognizeAsync(bitmap, new OcrOptions());
                         if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
                         {
                             ocrText = result.Text;
+                            await OcrIndexingService.PersistRecognizedTextAsync(item, result.Text, "mcp-history-details", null, cancellationToken);
                         }
                     }
                 }
@@ -908,7 +918,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         };
     }
 
-    private static JsonObject CreateHistorySummary(HistoryItem item)
+    private static JsonObject CreateHistorySummary(HistoryItem item, string? ocrText)
     {
         long size = 0;
         if (!string.IsNullOrWhiteSpace(item.FilePath) && File.Exists(item.FilePath))
@@ -923,7 +933,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["thumbnail_url"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
             ["created_at"] = item.DateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             ["file_size_bytes"] = size,
-            ["ocr_text"] = null,
+            ["ocr_text"] = string.IsNullOrWhiteSpace(ocrText) ? null : ocrText,
             ["tags"] = ToJsonArray(item.Tags.Keys)
         };
     }
@@ -958,7 +968,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         };
     }
 
-    private static bool MatchesQuery(HistoryItem item, string? query)
+    private static bool MatchesQuery(HistoryItem item, string? query, string? indexedOcrText)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
@@ -972,6 +982,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                Contains(item.Host, needle) ||
                Contains(item.TagsWindowTitle, needle) ||
                Contains(item.TagsProcessName, needle) ||
+               Contains(indexedOcrText, needle) ||
                item.Tags.Any(pair => Contains(pair.Key, needle) || Contains(pair.Value, needle));
     }
 
@@ -1069,6 +1080,8 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["verify_urls"] = SettingsManager.Settings.HistoryCheckURL,
             ["save_recent_tasks"] = SettingsManager.Settings.RecentTasksSave,
             ["recent_tasks_limit"] = SettingsManager.Settings.RecentTasksMaxCount,
+            ["screenshot_content_search_enabled"] = SettingsManager.Settings.ScreenshotContentSearchEnabled,
+            ["ocr_indexed_count"] = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).CountIndexed(),
             ["history_folder"] = SettingsManager.HistoryFolder,
             ["history_file"] = SettingsManager.GetHistoryFilePath()
         };
