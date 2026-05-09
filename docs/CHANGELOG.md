@@ -5,6 +5,17 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
 
+## [v0.22.237](https://github.com/ShareX/XerahS/releases/tag/v0.22.237)
+
+### Fixes
+- **Core**: Resolve startup log issues
+
+### Build
+- **Core**: Attach ImageEditor during release prep
+
+### Documentation
+- **Core**: Link changelog tags and omit hashes
+
 ## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)
 
 ### Features
