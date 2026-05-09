@@ -46,6 +46,36 @@ public class WindowsModernCaptureServiceTests
     }
 
     [Test]
+    public void DisposeOutputsAndAdapters_DisposesEveryOutputAndEachAdapterOnce()
+    {
+        var adapter = new TrackingDisposable();
+        var otherAdapter = new TrackingDisposable();
+        var output1 = new TrackingDisposable();
+        var output2 = new TrackingDisposable();
+        var output3 = new TrackingDisposable();
+        var outputs = new[]
+        {
+            (Output: output1, Adapter: adapter),
+            (Output: output2, Adapter: adapter),
+            (Output: output3, Adapter: otherAdapter)
+        };
+
+        DxgiOutputEnumerationCleanupHelper.DisposeOutputsAndAdapters(
+            outputs,
+            item => item.Output,
+            item => item.Adapter);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(output1.DisposeCount, Is.EqualTo(1));
+            Assert.That(output2.DisposeCount, Is.EqualTo(1));
+            Assert.That(output3.DisposeCount, Is.EqualTo(1));
+            Assert.That(adapter.DisposeCount, Is.EqualTo(1));
+            Assert.That(otherAdapter.DisposeCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void DxgiCapabilities_AdvertiseCursorCaptureWhenCursorCompositionIsAvailable()
     {
         var capabilities = DxgiCapabilitiesHelper.Create();
@@ -369,10 +399,12 @@ public class WindowsModernCaptureServiceTests
     private sealed class TrackingDisposable : IDisposable
     {
         public bool Disposed { get; private set; }
+        public int DisposeCount { get; private set; }
 
         public void Dispose()
         {
             Disposed = true;
+            DisposeCount++;
         }
     }
 }

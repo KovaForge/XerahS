@@ -268,7 +268,9 @@ namespace XerahS.Platform.Windows
 
             // Enumerate adapters and outputs
             var outputs = EnumerateOutputs(factory);
-            if (outputs.Count == 0) return null;
+            try
+            {
+                if (outputs.Count == 0) return null;
 
             // Calculate captured virtual screen bounds
             int minX = int.MaxValue, minY = int.MaxValue;
@@ -335,10 +337,6 @@ namespace XerahS.Platform.Windows
                         {
                             // Output might be disconnected or in use
                             XerahS.Common.DebugHelper.WriteLine($"CaptureFullScreenDxgi: Setup failed for output. {ex}");
-                        }
-                        finally
-                        {
-                            output.Dispose(); // Dispose IDXGIOutput1 immediately after use
                         }
                     }
                 }
@@ -446,12 +444,6 @@ namespace XerahS.Platform.Windows
             finally
             {
                 foreach (var d in devicesToDispose) d.Dispose();
-
-                // Dispose unique adapters
-                foreach (var group in outputsByAdapter)
-                {
-                    group.Key.Dispose();
-                }
             }
 
             if (DxgiFrameAcquisitionHelper.ShouldFallbackToGdi(activeDuplications.Count, capturedOutputCount))
@@ -489,6 +481,14 @@ namespace XerahS.Platform.Windows
 
             return combinedBitmap;
             }
+            finally
+            {
+                DxgiOutputEnumerationCleanupHelper.DisposeOutputsAndAdapters(
+                    outputs,
+                    item => item.Output,
+                    item => item.Adapter);
+            }
+        }
             finally
             {
                 // Restore cursors if we hid them using SetSystemCursor
