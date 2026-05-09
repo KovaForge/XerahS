@@ -15,6 +15,16 @@ This guide describes the current `xerahs-mcp` implementation. It matches XIP0064
 
 The MCP server is not a shell wrapper around the CLI.
 
+## Runtime Scope
+
+The current MCP server is a user-desktop runtime. It must run on the same machine whose screen, clipboard, history, settings, and uploader configuration are being controlled.
+
+Cloudflare, GitHub Pages, or any other static/edge host can publish discovery metadata or proxy requests to a reachable `xerahs-mcp` process, but they do not run XerahS themselves. A public hostname such as `mcp.xerahs.com` is only usable when it is backed by a real `xerahs-mcp --transport http` process running on a desktop session or a dedicated desktop/VM host.
+
+For most users and MCP hosts, local stdio mode is the intended integration path.
+
+For the contributor-facing setup checklist, see `developers/guidelines/MCP_CONFIGURATION_GUIDELINE.html`.
+
 ## Prerequisites
 
 - A built XerahS tree or a released build that includes `xerahs-mcp`.
@@ -54,9 +64,24 @@ xerahs-mcp --mcp-server --transport stdio
 
 Each stdin line is one JSON-RPC 2.0 request. Each stdout line is one JSON-RPC 2.0 response.
 
+Example MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "xerahs": {
+      "command": "C:/Program Files/XerahS/xerahs-mcp.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+Use the installed `xerahs-mcp` path for packaged builds. For development builds, use the executable under `src/tools/XerahS.McpServer/bin/<Configuration>/net10.0/`.
+
 ## HTTP and SSE Mode
 
-Use HTTP mode when an MCP client connects over the network:
+Use HTTP mode when an MCP client connects over the network to a user-controlled machine that is running XerahS:
 
 ```powershell
 xerahs-mcp --mcp-server --transport http --port 7890
@@ -76,6 +101,8 @@ Authorization: Bearer <mcp-api-key>
 
 The API key is stored in `ApplicationConfig.McpApiKey`. It can be copied or regenerated from XerahS application settings under `Integration -> MCP Server`. If no key exists, the MCP runtime generates and saves one on first startup.
 
+HTTP mode does not turn XerahS into a hosted cloud service. The process still needs an interactive desktop session and the same OS capture, clipboard, and accessibility permissions required by the desktop app.
+
 ## Public Discovery Manifest
 
 The public manifest is:
@@ -84,14 +111,16 @@ The public manifest is:
 https://xerahs.com/.well-known/mcp/manifest.json
 ```
 
-It points remote clients to:
+It advertises the optional public HTTP endpoint:
 
 ```text
 https://mcp.xerahs.com/mcp/
 https://mcp.xerahs.com/mcp/events/
 ```
 
-GitHub Pages hosts the manifest and documentation. It is not the MCP execution host.
+GitHub Pages or Cloudflare hosts the manifest and documentation. It is not the MCP execution host.
+
+The public endpoint is a deployment slot, not proof that a shared hosted XerahS runtime exists. It only works when the operator has configured the endpoint to proxy to a running `xerahs-mcp` HTTP backend. If no backend is configured, clients should use local stdio mode instead.
 
 ## Basic JSON-RPC Examples
 
@@ -399,4 +428,5 @@ Use `prompts/list` to discover prompt metadata and `prompts/get` to render a pro
 - If upload tools fail, verify uploader instances and defaults are configured in XerahS.
 - If capture tools fail, verify the server is running inside an interactive desktop session with capture permissions.
 - If `capture_scrolling` fails, verify the current platform and active window support scrolling capture.
-- If the public manifest resolves but remote requests fail, verify that `mcp.xerahs.com` points at a running `xerahs-mcp` HTTP deployment or proxy.
+- If local MCP hosts cannot discover tools, verify the configured `xerahs-mcp` executable path and arguments.
+- If the public manifest resolves but remote requests fail, verify that `mcp.xerahs.com` points at a running `xerahs-mcp` HTTP backend. A Cloudflare Worker by itself can only proxy requests; it cannot execute XerahS capture, clipboard, history, uploader, or settings operations.

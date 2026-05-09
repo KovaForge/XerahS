@@ -11,17 +11,21 @@ XerahS ships a dedicated MCP server executable, `xerahs-mcp`, that exposes scree
 
 The implementation is not a CLI wrapper. It boots the real XerahS runtime headlessly and routes MCP calls into the same capture, history, uploader, and settings systems used by the desktop application.
 
+The current implementation is a user-desktop MCP server. It must run on the same machine whose screen, clipboard, history, settings, and uploader configuration are being controlled. Cloudflare, GitHub Pages, and other edge/static hosts can publish discovery metadata or proxy to a reachable `xerahs-mcp` HTTP process, but they do not execute the XerahS runtime.
+
 ## Goals
 
 - Make XerahS discoverable and callable from MCP-compatible hosts.
 - Reuse the real XerahS runtime instead of inventing a second automation stack.
-- Support both local stdio transport and remote HTTP transport with the same tool contract.
+- Support both local stdio transport and user-controlled HTTP transport with the same tool contract.
 - Expose only MCP-safe settings data; do not leak uploader secrets or raw API keys.
 
 ## Non-Goals
 
 - Reproducing the full interactive editor UI over MCP.
+- Providing a shared Cloudflare-hosted XerahS runtime.
 - Turning GitHub Pages into the MCP execution host.
+- Letting remote users control capture, clipboard, history, settings, or uploader secrets without a running XerahS desktop/runtime backend.
 - Streaming live capture frames.
 - Exposing every XerahS feature before the contract is stable.
 
@@ -33,6 +37,8 @@ The implementation is not a CLI wrapper. It boots the real XerahS runtime headle
 
 - `--mcp` or `--mcp-server` for stdio JSON-RPC.
 - `--transport http --port <port>` for HTTP JSON-RPC plus SSE.
+
+Stdio mode is the intended default for local MCP hosts. HTTP mode is for a user-controlled desktop session or dedicated desktop/VM host that runs the same XerahS runtime over a network-reachable endpoint.
 
 The HTTP server exposes:
 
@@ -289,12 +295,14 @@ The public discovery manifest is published at:
 
 - `https://xerahs.com/.well-known/mcp/manifest.json`
 
-That manifest points remote clients at the deployed HTTP endpoint:
+That manifest advertises the optional public HTTP endpoint:
 
 - `https://mcp.xerahs.com/mcp/`
 - `https://mcp.xerahs.com/mcp/events/`
 
-GitHub Pages hosts the manifest and documentation. It is not the execution host for the MCP server itself.
+GitHub Pages or Cloudflare hosts the manifest and documentation. It is not the execution host for the MCP server itself.
+
+The public endpoint is a deployment slot, not a standalone hosted MCP runtime. It is only functional when configured to proxy to a running `xerahs-mcp --transport http` backend. If no backend is configured, MCP clients should use local stdio mode.
 
 ## Implementation Notes
 
@@ -306,6 +314,7 @@ Key implementation points:
 
 - real runtime integration is centralized in `Runtime/XerahSMcpRuntime.cs`
 - HTTP auth reads the saved `McpApiKey`
+- Cloudflare Worker code, when used, is a proxy/discovery layer only; it cannot run desktop capture, clipboard, history, uploader, or settings operations without a reachable XerahS backend
 - SSE now sends plain JSON event payloads rather than custom base64 payloads
 - tests are unit tests over the JSON-RPC server surface rather than machine-specific spawned-process tests
 

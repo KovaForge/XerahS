@@ -1,12 +1,21 @@
 {
   "name": "xerahs",
   "version": "0.22.0",
-  "description": "XerahS MCP server for capture, annotation, upload, history, workflows, and safe settings access.",
+  "description": "XerahS MCP server for local desktop capture, annotation, upload, history, workflows, and safe settings access.",
   "endpoint": "https://mcp.xerahs.com/mcp/",
   "endpoint_events": "https://mcp.xerahs.com/mcp/events/",
+  "runtime_scope": "user_desktop",
+  "endpoint_status": "requires_operator_configured_xerahs_mcp_http_backend",
+  "local_transport": {
+    "command": "xerahs-mcp",
+    "args": [
+      "--mcp"
+    ],
+    "description": "Preferred integration path for local MCP hosts. Runs on the user's desktop and controls that user's XerahS runtime."
+  },
   "authentication": {
     "type": "bearer",
-    "description": "API key from XerahS settings (Settings -> Integration -> MCP API Key)"
+    "description": "Required for HTTP transport. API key from the XerahS desktop settings on the backend machine."
   },
   "documentation_url": "https://xerahs.com/features/mcp-server.html",
   "capabilities": {
