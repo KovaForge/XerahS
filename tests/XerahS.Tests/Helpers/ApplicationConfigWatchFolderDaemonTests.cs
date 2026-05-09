@@ -43,6 +43,14 @@ public class ApplicationConfigWatchFolderDaemonTests
     }
 
     [Test]
+    public void ApplicationConfig_DefaultClipboardContentViewer_IsDisabled()
+    {
+        var config = new ApplicationConfig();
+
+        Assert.That(config.ShowClipboardContentViewer, Is.False);
+    }
+
+    [Test]
     public void ApplicationConfig_WatchFolderDaemonSettings_RoundTripSerialization()
     {
         var config = new ApplicationConfig

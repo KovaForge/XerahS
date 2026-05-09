@@ -252,7 +252,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     }
 
     [Category("Clipboard"), DefaultValue(false), Description("Show clipboard content viewer.")]
-    public bool ShowClipboardContentViewer { get; set; }
+    public bool ShowClipboardContentViewer { get; set; } = false;
 
     [Category("Clipboard"), DefaultValue(true), Description("Fill white background for clipboard copy.")]
     public bool DefaultClipboardCopyImageFillBackground { get; set; }
