@@ -239,13 +239,11 @@ namespace XerahS.Platform.Windows
                     {
                         try
                         {
-                            foreach (uint id in AllCursorIds)
-                            {
-                                IntPtr copy = CopyIcon(blankCursor);
-                                if (copy != IntPtr.Zero)
-                                    SetSystemCursor(copy, id);
-                            }
-                            cursorHidden = true;
+                            cursorHidden = CursorReplacementHelper.TryReplaceSystemCursors(
+                                AllCursorIds,
+                                () => CopyIcon(blankCursor),
+                                (copy, id) => SetSystemCursor(copy, id),
+                                copy => DestroyCursor(copy));
                         }
                         finally
                         {
@@ -270,7 +268,9 @@ namespace XerahS.Platform.Windows
 
             // Enumerate adapters and outputs
             var outputs = EnumerateOutputs(factory);
-            if (outputs.Count == 0) return null;
+            try
+            {
+                if (outputs.Count == 0) return null;
 
             // Calculate captured virtual screen bounds
             int minX = int.MaxValue, minY = int.MaxValue;
@@ -306,6 +306,7 @@ namespace XerahS.Platform.Windows
                 string DeviceName,
                 ModeRotation DxgiRotation)>();
             var devicesToDispose = new List<ID3D11Device>();
+            int capturedOutputCount = 0;
 
             try
             {
@@ -337,10 +338,6 @@ namespace XerahS.Platform.Windows
                             // Output might be disconnected or in use
                             XerahS.Common.DebugHelper.WriteLine($"CaptureFullScreenDxgi: Setup failed for output. {ex}");
                         }
-                        finally
-                        {
-                            output.Dispose(); // Dispose IDXGIOutput1 immediately after use
-                        }
                     }
                 }
 
@@ -357,15 +354,26 @@ namespace XerahS.Platform.Windows
                     bool frameAcquired = false;
                     try
                     {
-                        // Acquire frame
                         var acquireResult = duplication.AcquireNextFrame(250, out var frameInfo, out var desktopResource);
 
-                        if (acquireResult.Success && desktopResource != null)
+                        if (DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(acquireResult.Success, desktopResource != null))
                         {
-                            frameAcquired = true;
-                            using (desktopResource)
+                            if (acquireResult.Success)
                             {
-                                using var desktopTex = desktopResource.QueryInterface<ID3D11Texture2D>();
+                                ReleaseFrameQuietly(duplication);
+                            }
+
+                            desktopResource?.Dispose();
+                            acquireResult = duplication.AcquireNextFrame(500, out frameInfo, out desktopResource);
+                        }
+
+                        frameAcquired = acquireResult.Success;
+
+                        if (DxgiFrameAcquisitionHelper.IsUsableFrame(acquireResult.Success, desktopResource != null))
+                        {
+                            using (var resource = desktopResource!)
+                            {
+                                using var desktopTex = resource.QueryInterface<ID3D11Texture2D>();
                                 var sourceDesc = desktopTex.Description;
                                 XerahS.Common.DebugHelper.WriteLine(
                                     $"CaptureFullScreenDxgi: Output {deviceName} frame source={sourceDesc.Width}x{sourceDesc.Height}, target={bounds.Width}x{bounds.Height}, rotation={rotation}, dxgiRotation={dxgiRotation}");
@@ -409,11 +417,13 @@ namespace XerahS.Platform.Windows
                                 {
                                     device.ImmediateContext.Unmap(staging, 0);
                                 }
+
+                                capturedOutputCount++;
                             }
                         }
                         else
                         {
-                            XerahS.Common.DebugHelper.WriteLine($"CaptureFullScreenDxgi: AcquireFrame failed or timed out.");
+                            XerahS.Common.DebugHelper.WriteLine($"CaptureFullScreenDxgi: AcquireFrame failed or timed out after retry.");
                         }
                     }
                     catch (Exception ex)
@@ -424,14 +434,7 @@ namespace XerahS.Platform.Windows
                     {
                         if (frameAcquired)
                         {
-                            try
-                            {
-                                duplication.ReleaseFrame();
-                            }
-                            catch
-                            {
-                                // Ignore frame release failures during cleanup.
-                            }
+                            ReleaseFrameQuietly(duplication);
                         }
 
                         duplication.Dispose();
@@ -441,12 +444,14 @@ namespace XerahS.Platform.Windows
             finally
             {
                 foreach (var d in devicesToDispose) d.Dispose();
+            }
 
-                // Dispose unique adapters
-                foreach (var group in outputsByAdapter)
-                {
-                    group.Key.Dispose();
-                }
+            if (DxgiFrameAcquisitionHelper.ShouldFallbackToGdi(activeDuplications.Count, capturedOutputCount))
+            {
+                combinedBitmap.Dispose();
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"CaptureFullScreenDxgi: Captured {capturedOutputCount}/{activeDuplications.Count} outputs; using GDI fallback.");
+                return null;
             }
 
             // Log success so the log file verifies DXGI (Vortice.Direct3D11/DXGI) was actually used
@@ -457,34 +462,16 @@ namespace XerahS.Platform.Windows
             {
                 try
                 {
-                    // Get virtual desktop offset for cursor position calculation
-                    var virtualBounds = _screenService.GetVirtualScreenBounds();
-                    
-                    // CursorData draws the cursor onto a GDI DC, so we use GDI
-                    using var tempBitmap = new System.Drawing.Bitmap(combinedBitmap.Width, combinedBitmap.Height);
-                    using var g = System.Drawing.Graphics.FromImage(tempBitmap);
-                    IntPtr hdc = g.GetHdc();
-                    try
-                    {
-                        var cursor = new CursorData();
-                        cursor.DrawCursor(hdc, new System.Drawing.Point(virtualBounds.X, virtualBounds.Y));
-                    }
-                    finally
-                    {
-                        g.ReleaseHdc(hdc);
-                    }
-                    
-                    // Copy cursor overlay to SKBitmap using alpha blend
-                    using var cursorStream = new MemoryStream();
-                    tempBitmap.Save(cursorStream, System.Drawing.Imaging.ImageFormat.Png);
-                    cursorStream.Seek(0, SeekOrigin.Begin);
-                    using var cursorBitmap = SKBitmap.Decode(cursorStream);
-                    
-                    // Draw only the cursor (non-black pixels) onto combined bitmap
-                    // Note: CursorData only draws the cursor, so tempBitmap should have cursor on transparent/black
-                    using var cursorCanvas = new SKCanvas(combinedBitmap);
-                    using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
-                    cursorCanvas.DrawBitmap(cursorBitmap, 0, 0, paint);
+                    var captureRegion = DxgiCursorCompositionHelper.CreateCaptureRegion(minX, minY, maxX, maxY);
+                    var cursor = new CursorData();
+                    DxgiCursorCompositionHelper.TryCompositeCursor(
+                        combinedBitmap,
+                        cursor.IsVisible,
+                        cursor.Position,
+                        cursor.Hotspot,
+                        cursor.Size,
+                        captureRegion,
+                        cursor.DrawCursor);
                 }
                 catch
                 {
@@ -496,11 +483,31 @@ namespace XerahS.Platform.Windows
             }
             finally
             {
+                DxgiOutputEnumerationCleanupHelper.DisposeOutputsAndAdapters(
+                    outputs,
+                    item => item.Output,
+                    item => item.Adapter);
+            }
+        }
+            finally
+            {
                 // Restore cursors if we hid them using SetSystemCursor
                 if (cursorHidden)
                 {
                     SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
                 }
+            }
+        }
+
+        private static void ReleaseFrameQuietly(IDXGIOutputDuplication duplication)
+        {
+            try
+            {
+                duplication.ReleaseFrame();
+            }
+            catch
+            {
+                // Ignore frame release failures during cleanup.
             }
         }
 

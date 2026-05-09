@@ -35,13 +35,13 @@ namespace XerahS.Tests.Editor;
 public class EditorContextMenuSmokeTests
 {
     [AvaloniaTest]
-    public void EditorView_Uses_MenuFlyout_For_Context_Actions()
+    public void EditorView_Uses_ContextMenu_For_Context_Actions()
     {
         var view = new EditorView
         {
             DataContext = new MainViewModel()
         };
 
-        Assert.That(view.Resources["EditorContextFlyout"], Is.InstanceOf<MenuFlyout>());
+        Assert.That(view.Resources["EditorContextMenu"], Is.InstanceOf<ContextMenu>());
     }
 }

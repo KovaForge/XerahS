@@ -46,11 +46,110 @@ public class WindowsModernCaptureServiceTests
     }
 
     [Test]
+    public void DisposeOutputsAndAdapters_DisposesEveryOutputAndEachAdapterOnce()
+    {
+        var adapter = new TrackingDisposable();
+        var otherAdapter = new TrackingDisposable();
+        var output1 = new TrackingDisposable();
+        var output2 = new TrackingDisposable();
+        var output3 = new TrackingDisposable();
+        var outputs = new[]
+        {
+            (Output: output1, Adapter: adapter),
+            (Output: output2, Adapter: adapter),
+            (Output: output3, Adapter: otherAdapter)
+        };
+
+        DxgiOutputEnumerationCleanupHelper.DisposeOutputsAndAdapters(
+            outputs,
+            item => item.Output,
+            item => item.Adapter);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(output1.DisposeCount, Is.EqualTo(1));
+            Assert.That(output2.DisposeCount, Is.EqualTo(1));
+            Assert.That(output3.DisposeCount, Is.EqualTo(1));
+            Assert.That(adapter.DisposeCount, Is.EqualTo(1));
+            Assert.That(otherAdapter.DisposeCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void DxgiCapabilities_AdvertiseCursorCaptureWhenCursorCompositionIsAvailable()
     {
         var capabilities = DxgiCapabilitiesHelper.Create();
 
         Assert.That(capabilities.SupportsCursorCapture, Is.True);
+    }
+
+    [TestCase(false, false, true)]
+    [TestCase(true, false, true)]
+    [TestCase(false, true, true)]
+    [TestCase(true, true, false)]
+    public void ShouldRetryFrameAcquisition_RetriesUntilResultAndDesktopResourceAreAvailable(
+        bool acquireSucceeded,
+        bool desktopResourceAvailable,
+        bool expectedRetry)
+    {
+        bool shouldRetry = DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(
+            acquireSucceeded,
+            desktopResourceAvailable);
+
+        Assert.That(shouldRetry, Is.EqualTo(expectedRetry));
+    }
+
+    [TestCase(0, 0, true)]
+    [TestCase(2, 0, true)]
+    [TestCase(2, 1, true)]
+    [TestCase(2, 2, false)]
+    public void ShouldFallbackToGdi_WhenDxgiDoesNotCaptureEveryExpectedOutput(
+        int expectedOutputCount,
+        int capturedOutputCount,
+        bool expectedFallback)
+    {
+        bool shouldFallback = DxgiFrameAcquisitionHelper.ShouldFallbackToGdi(
+            expectedOutputCount,
+            capturedOutputCount);
+
+        Assert.That(shouldFallback, Is.EqualTo(expectedFallback));
+    }
+
+    [Test]
+    public void TryReplaceSystemCursors_DisposesCopiesWhenReplacementFails()
+    {
+        var destroyed = new List<IntPtr>();
+
+        bool replacedAny = CursorReplacementHelper.TryReplaceSystemCursors(
+            new uint[] { 32512, 32513 },
+            copyCursor: () => new IntPtr(42),
+            setSystemCursor: (_, _) => false,
+            destroyCursor: destroyed.Add);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(replacedAny, Is.False);
+            Assert.That(destroyed, Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void TryReplaceSystemCursors_ReportsReplacementOnlyAfterSuccessfulSet()
+    {
+        int calls = 0;
+        var destroyed = new List<IntPtr>();
+
+        bool replacedAny = CursorReplacementHelper.TryReplaceSystemCursors(
+            new uint[] { 32512, 32513 },
+            copyCursor: () => new IntPtr(++calls),
+            setSystemCursor: (_, id) => id == 32513,
+            destroyCursor: destroyed.Add);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(replacedAny, Is.True);
+            Assert.That(destroyed, Is.EqualTo(new[] { new IntPtr(1) }));
+        });
     }
 
     [Test]
@@ -103,6 +202,52 @@ public class WindowsModernCaptureServiceTests
             captureRegion);
 
         Assert.That(placement.ShouldDraw, Is.True);
+    }
+
+    [Test]
+    public void CreateDxgiCursorPlacement_MapsNegativeVirtualDesktopCursorToFullScreenBitmap()
+    {
+        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(-1920, -200, 3840, 1280);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(-1900, -180),
+            hotspot: new Point(10, 8),
+            cursorSize: new Size(32, 32),
+            captureRegion);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(placement.ShouldDraw, Is.True);
+            Assert.That(placement.DrawOffset, Is.EqualTo(new Point(10, 12)));
+        });
+    }
+
+    [Test]
+    public void CreateDxgiCursorCaptureRegion_UsesCapturedDxgiBounds()
+    {
+        var captureRegion = DxgiCursorCompositionHelper.CreateCaptureRegion(
+            left: -1920,
+            top: -200,
+            right: 2560,
+            bottom: 1440);
+
+        var placement = DxgiCursorCompositionHelper.CreatePlacement(
+            includeCursor: true,
+            cursorVisible: true,
+            cursorPosition: new Point(-1900, -180),
+            hotspot: new Point(10, 8),
+            cursorSize: new Size(32, 32),
+            captureRegion);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(captureRegion.X, Is.EqualTo(-1920));
+            Assert.That(captureRegion.Width, Is.EqualTo(4480));
+            Assert.That(placement.ShouldDraw, Is.True);
+            Assert.That(placement.DrawOffset, Is.EqualTo(new Point(10, 12)));
+        });
     }
 
     [TestCase(0, 20, 30, 60, 80)]
@@ -254,11 +399,12 @@ public class WindowsModernCaptureServiceTests
     private sealed class TrackingDisposable : IDisposable
     {
         public bool Disposed { get; private set; }
+        public int DisposeCount { get; private set; }
 
         public void Dispose()
         {
             Disposed = true;
+            DisposeCount++;
         }
     }
 }
-

@@ -646,3 +646,48 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Upstream/develop and origin/develop already contained; ShareX.ImageEditor develop/remotes verified current at `360eeabe`; no parent pointer change. Added best-effort DXGI cursor overlay composition for region captures, advertised cursor capability, added placement regression coverage, and bumped version `0.22.227` -> `0.22.228`.
 - Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-035909.log`); tests passed 859 total (`/tmp/xerahs-hourly-sweep/test-20260508-040223.log`).
 - Follow-up: Continue capture pipeline review around full-screen DXGI cursor parity and reducing the legacy `WindowsModernCaptureService` cursor-overlay duplication.
+
+### 2026-05-08 07:55 AWST / completed 2026-05-08 08:10 AWST - Capture pipeline DXGI full-screen cursor overlay
+
+- Area: Capture pipeline / Windows DXGI full-screen cursor capture and ImageEditor upstream test health; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `ShareX.ImageEditor`, `tests/XerahS.Tests/Editor/EditorContextMenuSmokeTests.cs`, `tests/XerahS.Tests/Editor/SchemaDrivenFilterCatalogTests.cs`, `Directory.Build.props`.
+- Findings: Full-screen DXGI cursor composition bypassed the tested cursor-placement guard and both DXGI cursor overlay paths relied on implicit GDI bitmap transparency; upstream ImageEditor sync also exposed stale parent tests and JSON serialization of live `SKBitmap` image annotations.
+- Status: Fast-forwarded upstream/develop through `e7296c54`, updated/pushed ShareX.ImageEditor develop to `417f584`, added explicit transparent cursor overlays plus full-screen placement gating, ignored `ImageAnnotation.ImageBitmap` during `.xann` JSON serialization, refreshed upstream-aligned editor tests, and bumped version `0.22.228` -> `0.22.229`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-080657.log`); tests passed 861 total (`/tmp/xerahs-hourly-sweep/test-20260508-081007.log`).
+- Follow-up: Continue capture pipeline review around consolidating the remaining GDI cursor overlay implementation and multi-monitor cursor edge cases.
+
+### 2026-05-08 11:55 AWST / completed 2026-05-08 12:07 AWST - Capture pipeline DXGI full-screen cursor bounds
+
+- Area: Capture pipeline / Windows DXGI cursor overlay bounds; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `Directory.Build.props`.
+- Findings: Full-screen DXGI cursor overlay used `_screenService.GetVirtualScreenBounds()` after assembling the bitmap from DXGI output bounds, so monitor churn or enumeration differences could offset/reject cursor drawing; region and full-screen overlays also duplicated the GDI/SKBitmap bridge.
+- Status: Fast-forwarded origin/develop docs commits `6053ec6e` and `1610b143`; upstream/develop already contained; ShareX.ImageEditor verified clean on `develop` at `417f584`. Fixed full-screen cursor placement to use captured DXGI bounds, centralized cursor overlay composition, added negative/expanded DXGI bounds regression coverage, and bumped version `0.22.229` -> `0.22.230`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-120541.log`); tests passed 862 total (`/tmp/xerahs-hourly-sweep/test-20260508-120647.log`).
+- Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and DXGI multi-adapter frame acquisition edge cases.
+
+### 2026-05-08 15:55 AWST / completed 2026-05-08 16:05 AWST - Capture pipeline DXGI frame acquisition retry
+
+- Area: Capture pipeline / Windows DXGI multi-monitor frame acquisition; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiFrameAcquisitionHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Findings: Full-screen DXGI capture only attempted `AcquireNextFrame` once per output, so a transient first timeout or success without a desktop resource could leave one monitor blank while region capture already retried.
+- Status: Upstream/develop and origin/develop were already contained; ShareX.ImageEditor verified clean on `develop` at `417f584`. Added retry gating for unusable DXGI frames, release/dispose cleanup before retry, regression coverage, and bumped version `0.22.230` -> `0.22.231`.
+- Verification: Release build passed with 0 warnings/errors (`/tmp/xerahs-hourly-sweep/build-20260508-160408.log`); tests passed 866 total (`/tmp/xerahs-hourly-sweep/test-20260508-160519.log`).
+- Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and DXGI adapter-loss recovery.
+
+### 2026-05-08 23:55 AWST / completed 2026-05-09 00:10 AWST - Capture pipeline DXGI adapter-loss fallback
+
+- Area: Capture pipeline / Windows DXGI full-screen fallback; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiFrameAcquisitionHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop blog commits `844f147c` and `5100f787`, preserving KovaForge's fuller daily-blog context while incorporating upstream additions; ShareX.ImageEditor verified clean on `develop` at `417f584`. Fixed full-screen DXGI capture to return null and trigger the existing GDI fallback when no outputs duplicate or any expected output fails frame acquisition after retry, preventing black/partial captures from being reported as success. Added fallback-decision regression coverage and bumped version `0.22.231` -> `0.22.232`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 870 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-000604.log`, `/tmp/xerahs-hourly-sweep/test-20260509-000931.log`.
+- Follow-up: Continue capture pipeline review around remaining GDI fallback cursor hide/restore behavior and monitor-output disposal paths during DXGI enumeration failures.
+
+### 2026-05-09 03:55 AWST / completed 2026-05-09 04:08 AWST - Capture pipeline cursor replacement cleanup
+
+- Area: Capture pipeline / Windows DXGI cursor hide/restore; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/CursorReplacementHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Status: Upstream/develop and origin/develop had no new commits beyond the local queued upstream blog merge/fix; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`. Fixed failed cursor replacement cleanup so unsuccessful `SetSystemCursor` copies are destroyed and the capture path only restores/sleeps after at least one cursor is actually replaced. Added regression coverage and bumped version `0.22.232` -> `0.22.233`. Commit/push blocker: GitHub App auth timed out under a 45s guard and direct HTTPS push failed with missing username credentials; local `develop` remains ahead of `origin/develop`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 872 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-040628.log`, `/tmp/xerahs-hourly-sweep/test-20260509-040730.log`.
+- Follow-up: Continue capture pipeline review around monitor-output disposal paths during DXGI enumeration/setup failures and finish pushing the queued local commits once GitHub App auth is available. Push logs: `/tmp/xerahs-hourly-sweep/push-20260509-040851.log`, `/tmp/xerahs-hourly-sweep/push-direct-20260509-040948.log`.
+
+### 2026-05-09 07:55 AWST / completed 2026-05-09 08:11 AWST - Capture pipeline DXGI enumeration cleanup
+
+- Area: Capture pipeline / Windows DXGI output enumeration cleanup; files: `src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs`, `src/platform/XerahS.Platform.Windows/Capture/DxgiOutputEnumerationCleanupHelper.cs`, `tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs`, `tests/XerahS.Tests/XerahS.Tests.csproj`, `Directory.Build.props`.
+- Status: Fast-forwarded local `develop` to `origin/develop` commit `6ab2a45b`; upstream/develop already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed DXGI full-screen capture cleanup so enumerated outputs and unique adapters are disposed on early returns, invalid bounds, device-creation skips, and setup failures. Added regression coverage and bumped version `0.22.233` -> `0.22.234`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 873 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-080839.log`, `/tmp/xerahs-hourly-sweep/test-20260509-080934.log`.
+- Follow-up: Continue capture pipeline review around DXGI full-screen resource ownership during partial duplication setup and frame acquisition failures.
