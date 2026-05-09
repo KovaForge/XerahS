@@ -58,6 +58,8 @@ public class UpdateService : IDisposable
     }
 
     private GitHubUpdateManager? _updateManager;
+    private DispatcherTimer? _pendingUpdateDialogTimer;
+    private UpdateChecker? _pendingUpdateChecker;
     private bool _disposed;
 
     public bool IsUpdateDialogOpen { get; private set; }
@@ -129,9 +131,9 @@ public class UpdateService : IDisposable
                 var owner = await WaitForDialogOwnerAsync();
                 if (!CanUseDialogOwner(owner))
                 {
-                    // Skip this prompt if the main window is not ready/visible yet.
+                    // Defer this prompt if the main window is not ready/visible yet.
                     // Returning true prevents auto-update from being disabled as if user declined.
-                    DebugHelper.WriteLine("Cannot show update dialog: Main window is not visible yet.");
+                    DeferUpdateDialog(updateChecker);
                     return true;
                 }
 
@@ -234,6 +236,47 @@ public class UpdateService : IDisposable
         });
     }
 
+    private void DeferUpdateDialog(UpdateChecker updateChecker)
+    {
+        _pendingUpdateChecker = updateChecker;
+
+        if (_pendingUpdateDialogTimer == null)
+        {
+            _pendingUpdateDialogTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _pendingUpdateDialogTimer.Tick += PendingUpdateDialogTimer_Tick;
+        }
+
+        if (!_pendingUpdateDialogTimer.IsEnabled)
+        {
+            _pendingUpdateDialogTimer.Start();
+        }
+
+        DebugHelper.WriteLine("Update dialog deferred until main window is visible.");
+    }
+
+    private async void PendingUpdateDialogTimer_Tick(object? sender, EventArgs e)
+    {
+        if (IsUpdateDialogOpen || _pendingUpdateChecker == null)
+        {
+            return;
+        }
+
+        var owner = GetMainWindow();
+        if (!CanUseDialogOwner(owner))
+        {
+            return;
+        }
+
+        var updateChecker = _pendingUpdateChecker;
+        _pendingUpdateChecker = null;
+        _pendingUpdateDialogTimer?.Stop();
+
+        await ShowUpdateDialogAsync(updateChecker);
+    }
+
     private static void ShutdownApplication()
     {
         if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -313,6 +356,14 @@ public class UpdateService : IDisposable
     {
         if (!_disposed)
         {
+            if (_pendingUpdateDialogTimer != null)
+            {
+                _pendingUpdateDialogTimer.Stop();
+                _pendingUpdateDialogTimer.Tick -= PendingUpdateDialogTimer_Tick;
+                _pendingUpdateDialogTimer = null;
+            }
+
+            _pendingUpdateChecker = null;
             _updateManager?.Dispose();
             _updateManager = null;
             _disposed = true;

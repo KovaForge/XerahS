@@ -5,7 +5,8 @@ param(
     [switch]$Apply,
     [switch]$IncludeMerges,
     [string]$OutputPath,
-    [switch]$NoConsolidation
+    [switch]$NoConsolidation,
+    [switch]$IncludeHashes
 )
 
 Set-StrictMode -Version Latest
@@ -53,6 +54,65 @@ function Resolve-FromTag([string]$RequestedTag) {
     }
 
     return $tag.Trim()
+}
+
+function Resolve-GitHubRepositoryUrl {
+    $remote = git remote get-url origin 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remote)) {
+        return "https://github.com/ShareX/XerahS"
+    }
+
+    $remote = $remote.Trim()
+    if ($remote -match '^git@github\.com:(?<repo>[^/]+/[^/]+?)(\.git)?$') {
+        return "https://github.com/$($Matches["repo"])"
+    }
+
+    if ($remote -match '^https://github\.com/(?<repo>[^/]+/[^/]+?)(\.git)?$') {
+        return "https://github.com/$($Matches["repo"])"
+    }
+
+    return "https://github.com/ShareX/XerahS"
+}
+
+function Resolve-TagUrl([string]$Version) {
+    $repoUrl = Resolve-GitHubRepositoryUrl
+    return "$repoUrl/releases/tag/v$Version"
+}
+
+function Test-ReleaseTagExists([string]$Version) {
+    $tagName = "v$Version"
+
+    git show-ref --verify --quiet "refs/tags/$tagName"
+    if ($LASTEXITCODE -eq 0) {
+        return $true
+    }
+
+    git ls-remote --exit-code --tags origin "refs/tags/$tagName" *> $null
+    return $LASTEXITCODE -eq 0
+}
+
+function Resolve-VersionHeading([string]$Version) {
+    if (Test-ReleaseTagExists -Version $Version) {
+        $tagUrl = Resolve-TagUrl -Version $Version
+        return "## [v$Version]($tagUrl)"
+    }
+
+    return "## v$Version"
+}
+
+function Normalize-ChangelogText([string]$Text) {
+    $arrowBad = [string][char]0x00E2 + [char]0x2020 + [char]0x2019
+    $emDashBad = [string][char]0x00E2 + [char]0x20AC + [char]0x201D
+    $enDashBad = [string][char]0x00E2 + [char]0x20AC + [char]0x201C
+    $sectionBad = [string][char]0x00C2 + [char]0x00A7
+
+    $Text = $Text.Replace($arrowBad, [string][char]0x2192)
+    $Text = $Text.Replace($emDashBad, [string][char]0x2014)
+    $Text = $Text.Replace($enDashBad, [string][char]0x2013)
+    $Text = $Text.Replace($sectionBad, [string][char]0x00A7)
+    $Text = $Text -replace "\r?\n", "`n"
+    $Text = $Text -replace "`n{3,}", "`n`n"
+    return $Text -replace "`n", "`r`n"
 }
 
 function Normalize-Component([string]$RawComponent) {
@@ -246,7 +306,7 @@ function Get-CommitRows([string]$FromTag, [bool]$IncludeMerges) {
     return $rows
 }
 
-function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar) {
+function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar, [bool]$EmitHashes) {
     $grouped = @{}
     foreach ($row in $CommitRows) {
         if ($row.Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
@@ -294,7 +354,7 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
     }
 
     $lines = New-Object System.Collections.Generic.List[string]
-    $lines.Add("## v$Version")
+    $lines.Add((Resolve-VersionHeading -Version $Version))
     $lines.Add("")
 
     foreach ($category in $categoryOrder) {
@@ -309,8 +369,13 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
 
         $lines.Add("### $category")
         foreach ($entry in $entries) {
-            $hashes = ($entry.Hashes | Sort-Object) -join ", "
-            $lines.Add("- **$($entry.Component)**: $($entry.Description) `($hashes`)")
+            if ($EmitHashes) {
+                $hashes = ($entry.Hashes | Sort-Object) -join ", "
+                $lines.Add("- **$($entry.Component)**: $($entry.Description) `($hashes`)")
+            }
+            else {
+                $lines.Add("- **$($entry.Component)**: $($entry.Description)")
+            }
         }
         $lines.Add("")
     }
@@ -326,9 +391,11 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
 
 function Upsert-ChangelogSection([string]$Content, [string]$Version, [string]$Section) {
     $escapedVersion = [regex]::Escape($Version)
-    $existingPattern = "(?ms)^## v$escapedVersion\s*$.*?(?=^## v\d+\.\d+\.\d+\s*$|\z)"
+    $currentHeading = "##\s+(?:v$escapedVersion|\[v$escapedVersion\]\([^)]+\))"
+    $anyVersionHeading = "##\s+(?:v\d+\.\d+\.\d+(?:\s+-[^\r\n]*)?|\[v\d+\.\d+\.\d+\]\([^)]+\)(?:\s+-[^\r\n]*)?)"
+    $existingPattern = "(?ms)^$currentHeading\s*$.*?(?=^$anyVersionHeading\s*$|\z)"
     if ([regex]::IsMatch($Content, $existingPattern)) {
-        return [regex]::Replace($Content, $existingPattern, $Section.TrimEnd() + "`n")
+        return [regex]::Replace($Content, $existingPattern, $Section.TrimEnd() + "`n`n")
     }
 
     $unreleasedMatch = [regex]::Match($Content, '(?m)^## Unreleased\s*$')
@@ -348,16 +415,11 @@ $resolvedVersion = Resolve-Version -RepoRoot $repoRoot -RequestedVersion $Versio
 $resolvedFromTag = Resolve-FromTag -RequestedTag $FromTag
 $commits = @(Get-CommitRows -FromTag $resolvedFromTag -IncludeMerges:$IncludeMerges)
 $consolidate = -not $NoConsolidation
-$section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits -ConsolidateSimilar:$consolidate
+$section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits -ConsolidateSimilar:$consolidate -EmitHashes:$IncludeHashes
 
 if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
     $resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) { $OutputPath } else { Join-Path $repoRoot $OutputPath }
-    $outText = $section
-    $outText = $outText -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
-    $outText = $outText -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
-    $outText = $outText -replace "\r?\n", "`n"
-    $outText = $outText -replace "`n{3,}", "`n`n"
-    $outText = $outText -replace "`n", "`r`n"
+    $outText = Normalize-ChangelogText -Text $section
     [System.IO.File]::WriteAllText($resolvedOutput, $outText, [System.Text.UTF8Encoding]::new($false))
 }
 
@@ -370,14 +432,7 @@ if ($Apply) {
     $existing = Get-Content -Path $resolvedChangelog -Raw
     $updated = Upsert-ChangelogSection -Content $existing -Version $resolvedVersion -Section $section
 
-    # Fix double-encoded em-dash (C2 A7 mojibake → U+2014) and section-sign artifacts
-    $updated = $updated -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
-    $updated = $updated -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
-
-    # Collapse 3+ consecutive blank lines
-    $updated = $updated -replace "\r?\n", "`n"
-    $updated = $updated -replace "`n{3,}", "`n`n"
-    $updated = $updated -replace "`n", "`r`n"
+    $updated = Normalize-ChangelogText -Text $updated
 
     [System.IO.File]::WriteAllText($resolvedChangelog, $updated, [System.Text.UTF8Encoding]::new($false))
 }
@@ -387,6 +442,7 @@ $fromTagLabel = if ([string]::IsNullOrWhiteSpace($resolvedFromTag)) { "(none)" }
 Write-Host "From tag       : $fromTagLabel"
 Write-Host "Commits parsed : $($commits.Count)"
 Write-Host "Consolidation  : $(if ($consolidate) { 'on (similar commits merged)' } else { 'off (-NoConsolidation)' })"
+Write-Host "Hash output    : $(if ($IncludeHashes) { 'on (-IncludeHashes)' } else { 'off (default)' })"
 if ($Apply) {
     Write-Host "Applied to     : $ChangelogPath"
 }
