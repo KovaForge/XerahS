@@ -87,6 +87,8 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
 
     public bool AutoCheckUpdate = true;
     public UpdateChannel UpdateChannel = UpdateChannel.Release;
+    public PreReleaseUpdateSource PreReleaseUpdateSource = PreReleaseUpdateSource.KovaForge;
+    public string CustomPreReleaseUpdateSource = "";
     public string McpApiKey { get; set; } = string.Empty;
     public bool AssistantEnabled { get; set; } = true;
     public HotkeyInfo AssistantHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Shift);
@@ -252,7 +254,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     }
 
     [Category("Clipboard"), DefaultValue(false), Description("Show clipboard content viewer.")]
-    public bool ShowClipboardContentViewer { get; set; }
+    public bool ShowClipboardContentViewer { get; set; } = false;
 
     [Category("Clipboard"), DefaultValue(true), Description("Fill white background for clipboard copy.")]
     public bool DefaultClipboardCopyImageFillBackground { get; set; }
