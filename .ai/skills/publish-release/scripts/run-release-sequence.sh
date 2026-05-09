@@ -88,6 +88,18 @@ run_maintenance_chores() {
   git pull --recurse-submodules
   echo "  - git submodule update --init --recursive"
   git submodule update --init --recursive
+  if [[ -d "ShareX.ImageEditor/.git" || -f "ShareX.ImageEditor/.git" ]]; then
+    echo "  - reattach ShareX.ImageEditor to develop"
+    git -C ShareX.ImageEditor fetch origin --prune
+    git -C ShareX.ImageEditor checkout develop
+    git -C ShareX.ImageEditor pull --ff-only origin develop
+    local image_editor_branch
+    image_editor_branch="$(git -C ShareX.ImageEditor symbolic-ref --short HEAD 2>/dev/null || true)"
+    if [[ "$image_editor_branch" != "develop" ]]; then
+      echo "Error: ShareX.ImageEditor must be attached to develop after maintenance; current branch: ${image_editor_branch:-detached}" >&2
+      exit 1
+    fi
+  fi
 }
 
 run_build_precheck() {
