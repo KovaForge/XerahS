@@ -8,7 +8,7 @@ description: "Orchestrate XerahS release flow in strict order: run maintenance p
 ## Overview
 
 Use this skill to run release steps in strict order:
-- Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`)
+- Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`), then reattach `ShareX.ImageEditor` to `develop` and fast-forward it from `origin/develop`
 - Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional only if `docs/CHANGELOG.md` is intentionally absent)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
@@ -115,6 +115,11 @@ On environments where `bash` is not in PATH, execute the sequence manually:
 1. Step 1 - Maintenance
    - `git pull --recurse-submodules`
    - `git submodule update --init --recursive`
+   - Mandatory after submodule update: `git -C ShareX.ImageEditor fetch origin --prune`
+   - Mandatory after submodule update: `git -C ShareX.ImageEditor checkout develop`
+   - Mandatory after submodule update: `git -C ShareX.ImageEditor pull --ff-only origin develop`
+   - Verify `git -C ShareX.ImageEditor status --short --branch` shows `develop...origin/develop`, not detached HEAD.
+   - Abort if `ShareX.ImageEditor` has local changes, cannot fast-forward, or remains detached. If this updates the recorded submodule commit, commit and push the submodule before committing the parent XerahS gitlink.
 
 2. Step 2 - Changelog
    - Run `.ai/skills/update-changelog/SKILL.md`.
@@ -183,6 +188,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 - Do not skip sequence unless user explicitly requests bypass.
 - Do not skip maintenance unless user explicitly requests bypass (`--skip-maintenance`).
 - Do not commit/push during maintenance/changelog steps.
+- After maintenance submodule update, always reattach `ShareX.ImageEditor` to `develop`, fast-forward it from `origin/develop`, and verify it is not detached before build, bump, tag, or release work continues.
 - Always verify build before bump/tag.
 - Always monitor workflow after tag push; do not stop at tag creation.
 - Always inspect logs on failure and fix root cause before retry.
@@ -216,6 +222,7 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Changelog optional: do not block if `docs/CHANGELOG.md` is intentionally absent unless user requires it.
 - Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
 - **Windows packaging produces 4 assets per release**: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`. The EXE is built by Inno Setup; the MSI is built by WiX Toolset v4 (`build/windows/XerahS-setup.wxs`). Both are produced by `build/windows/package-windows.ps1` in the same loop iteration.
+- **ShareX.ImageEditor submodule must stay on `develop`**: after `git submodule update --init --recursive`, immediately run `git -C ShareX.ImageEditor fetch origin --prune`, `git -C ShareX.ImageEditor checkout develop`, and `git -C ShareX.ImageEditor pull --ff-only origin develop`. `git submodule update` checks out the parent-recorded commit and can leave a detached HEAD; do not proceed with release work until `git -C ShareX.ImageEditor status --short --branch` confirms `develop...origin/develop`.
 - **WiX prerequisite (CI & local)**: use a pinned pre-v7 WiX CLI, currently `dotnet tool install --global wix --version 6.0.2` + `wix extension add --global WixToolset.UI.wixext/6.0.2`. The `release-build-all-platforms.yml` workflow installs WiX automatically in the `build-windows` job. For local MSI builds: install WiX first; if not present the script emits a warning and skips MSI.
 - **MSI install layout**: per-user, no UAC elevation required. Binaries → `%LocalAppData%\Programs\XerahS\`; Plugins → `%USERPROFILE%\Documents\XerahS\Plugins\`; Start Menu shortcut created automatically.
 - **Winget manifest**: both `InstallerType: nullsoft` (EXE) and `InstallerType: wix` (MSI) entries must be included for each architecture when submitting to winget-pkgs. See `build/windows/winget/manifests/0.16.0/ShareX.XerahS.yaml` as the template.

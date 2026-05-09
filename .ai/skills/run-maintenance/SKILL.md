@@ -53,6 +53,18 @@ git pull --recurse-submodules
 git submodule update --init --recursive
 ```
 
+`git submodule update` can detach submodule HEADs because it checks out the exact commit recorded by the parent repository. Mandatory follow-up: reattach `ShareX.ImageEditor` to its tracked `develop` branch and fast-forward it before release or changelog work continues:
+
+```powershell
+git -C ShareX.ImageEditor fetch origin --prune
+git -C ShareX.ImageEditor checkout develop
+git -C ShareX.ImageEditor pull --ff-only origin develop
+git submodule status ShareX.ImageEditor
+git -C ShareX.ImageEditor status --short --branch
+```
+
+Abort and resolve manually if `ShareX.ImageEditor` cannot fast-forward, has local changes, or remains detached. If the fast-forward changes the submodule commit recorded by XerahS, commit and push the submodule first, then commit the updated XerahS gitlink in the parent repository.
+
 If the task also touches optional sibling repositories, sync only those clean repositories:
 
 ```powershell
@@ -115,6 +127,7 @@ Summary:
 - [ ] Local changes handled before pulling or updating submodules.
 - [ ] Main repository synced with `git pull --recurse-submodules`.
 - [ ] Submodules initialized and updated.
+- [ ] `ShareX.ImageEditor` reattached to `develop`, fast-forwarded from `origin/develop`, and verified not detached.
 - [ ] Relevant sibling repositories synced only if they are in scope.
 - [ ] Version bump need evaluated against `Directory.Build.props` and latest tag.
 - [ ] Changelog update delegated to `update-changelog` when needed.
