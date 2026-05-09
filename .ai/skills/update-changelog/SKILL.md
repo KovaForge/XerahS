@@ -1,11 +1,11 @@
 ---
 name: update-changelog
-description: Rules and workflows for updating docs/CHANGELOG.md, including version grouping, consolidation, and commit-entry attribution.
+description: Rules and workflows for updating docs/CHANGELOG.md, including version grouping, aggressive consolidation, and GitHub tag-linked release headings.
 ---
 
 ## Automation Script (Recommended)
 
-Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below). Treat the script output as a draft: before applying or releasing, perform a human-quality grouping pass so repeated commits become concise user-facing bullets instead of a commit log dump.
+Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below). The default output is intentionally compact: version headings are linked to the GitHub tag URL and bullet entries do **not** include commit hashes. Treat the script output as a draft: before applying or releasing, perform a human-quality grouping pass so repeated commits become concise user-facing bullets instead of a commit log dump.
 
 Script path:
 
@@ -37,10 +37,17 @@ Per-commit lines only (disables automatic similarity merge):
 powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -NoConsolidation
 ```
 
+Include commit hashes only when explicitly requested for audit/debug work:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -IncludeHashes
+```
+
 Notes:
 - `-Version` defaults to root `Directory.Build.props`.
 - `-FromTag` defaults to `git describe --tags --abbrev=0`.
-- The script upserts `## vX.Y.Z` (replaces existing section for that version or inserts after `## Unreleased`).
+- The script upserts `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` (replaces existing linked or unlinked section for that version or inserts after `## Unreleased`).
+- Commit hashes are omitted by default to keep the changelog readable. Use `-IncludeHashes` only for temporary audit/debug drafts, not normal release notes.
 - **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same similarity bucket (for example: **ShareX.ImageEditor** in the subject, **2026-... blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
 - **Mandatory final compression pass**: even when the script consolidates automatically, scan each category for adjacent or near-duplicate entries with the same component, feature area, document series, platform, dependency, or bug theme. Merge those into one readable bullet unless doing so would hide contributor attribution or combine unrelated behavior.
 - Always **manually review** for wording, missed merges, and contributor attribution (`#PR`, `@user`) before publishing.
@@ -62,6 +69,7 @@ Notes:
 - Combine related commits that affect the same component and purpose.
 - Prefer semantic groups over literal commit prefixes: normalize minor wording differences like `add`, `update`, `finish`, `polish`, `refactor`, `wire`, `document`, and `fix` when they describe the same user-facing workstream.
 - Use one bullet per **component + intent cluster**, not one bullet per commit. Good clusters include UI polish, installer/docs updates, proposal draft series, editor cleanup, upload provider work, dependency/build maintenance, and repeated bug fixes for the same behavior.
+- Do not include raw commit hashes such as `65bccfb9` in normal changelog entries. The linked version heading is the traceability anchor.
 - Keep different components separate unless they are part of one coherent user-facing change.
 - Keep commits with external contributor attribution separate when merging would obscure credit.
 - If a category still reads like a raw commit log after consolidation, it is not done; merge further or rewrite the bullets into concise release-note language.
@@ -71,7 +79,7 @@ Notes:
 ### Specific Commit Assignment
 - Respect specific user requests to assign certain commits to specific versions.
 - **Example**: "List commit `298457a` under **v0.11.0**."
-- Always verify the commit hash and subject before assignment.
+- Always verify the commit hash and subject before assignment, but do not print the hash in the final changelog unless the user explicitly asks for audit-style output.
 
 ### Attribution
 - **External Contributors**: Attribute Pull Requests from external contributors by including the PR number and their username.
@@ -99,51 +107,51 @@ The automation script does this **by default**; agents should still **edit the d
 
 #### Guidelines:
 - **Group by Component and Purpose**: Combine multiple commits that affect the same component and serve the same purpose.
-- **Preserve All Commit Hashes**: When consolidating, include all relevant commit hashes in a single line.
-- **Target Reduction**: Aim for 30-50% line reduction by consolidating related work.
+- **Remove Commit Hashes**: Normal changelog entries must not include commit hashes. Link the version heading to the GitHub tag instead, for example `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`.
+- **Target Reduction**: Aim for 50-80% line reduction by consolidating related work and removing hash lists.
 
 #### Examples:
 
 **Before (verbose)**:
 ```markdown
-- **Media Explorer**: Add `IUploaderExplorer` interface `(9deedf9)`
-- **Media Explorer**: Implement S3 file browser `(9deedf9)`
-- **Media Explorer**: Implement Imgur album browser `(9deedf9)`
-- **Media Explorer**: Add navigation, breadcrumbs, search, filter `(9deedf9)`
-- **Media Explorer**: Add bandwidth savings banner `(e374160)`
+- **Media Explorer**: Add `IUploaderExplorer` interface
+- **Media Explorer**: Implement S3 file browser
+- **Media Explorer**: Implement Imgur album browser
+- **Media Explorer**: Add navigation, breadcrumbs, search, filter
+- **Media Explorer**: Add bandwidth savings banner
 ```
 
 **After (consolidated)**:
 ```markdown
-- **Media Explorer**: Implement provider file browsing with S3 and Imgur support, including navigation, search, filtering, and CDN thumbnail optimization `(9deedf9, e374160)`
+- **Media Explorer**: Implement provider file browsing with S3 and Imgur support, including navigation, search, filtering, and CDN thumbnail optimization
 ```
 
 **Before (mobile features)**:
 ```markdown
-- **Mobile**: Add adaptive mobile theming infrastructure `(4b79ddb)`
-- **Mobile**: Refactor mobile views for adaptive native styling `(a7cfb22)`
-- **Mobile**: Align mobile heads with native theming defaults `(1e5f9eb)`
-- **Mobile**: Complete sprint 5 mobile theming polish and docs `(30bbe98)`
-- **Mobile**: Add mobile upload queue and picker `(68d97d9)`
-- **Mobile**: Add mobile upload history screens `(52d6ad2)`
+- **Mobile**: Add adaptive mobile theming infrastructure
+- **Mobile**: Refactor mobile views for adaptive native styling
+- **Mobile**: Align mobile heads with native theming defaults
+- **Mobile**: Complete sprint 5 mobile theming polish and docs
+- **Mobile**: Add mobile upload queue and picker
+- **Mobile**: Add mobile upload history screens
 ```
 
 **After (consolidated)**:
 ```markdown
-- **Mobile**: Add adaptive theming infrastructure with native styling polish `(4b79ddb, a7cfb22, 1e5f9eb, 30bbe98)`
-- **Mobile**: Add upload queue, picker, and history screens `(68d97d9, 52d6ad2)`
+- **Mobile**: Add adaptive theming infrastructure with native styling polish
+- **Mobile**: Add upload queue, picker, and history screens
 ```
 
 **Before (fixes)**:
 ```markdown
-- **Scrolling Capture**: Always auto-scroll to top `(1fa45f2)`
-- **Scrolling Capture**: Apply workflow settings and refresh hotkeys `(971219c)`
-- **Scrolling Capture**: Use current scroll position for detection `(8ac2c8b)`
+- **Scrolling Capture**: Always auto-scroll to top
+- **Scrolling Capture**: Apply workflow settings and refresh hotkeys
+- **Scrolling Capture**: Use current scroll position for detection
 ```
 
 **After (consolidated)**:
 ```markdown
-- **Scrolling Capture**: Improve auto-scroll behavior and workflow settings integration `(1fa45f2, 971219c, 8ac2c8b)`
+- **Scrolling Capture**: Improve auto-scroll behavior and workflow settings integration
 ```
 
 #### When NOT to Consolidate:
@@ -155,14 +163,13 @@ The automation script does this **by default**; agents should still **edit the d
 Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with Semantic Versioning.
 
 ```markdown
-## vX.Y.Z
+## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)
 
 ### Features
-- **Component**: Description `(short-hash)`
-- **Component**: Description `(short-hash, short-hash)`
+- **Component**: Description
 
 ### Fixes
-- Description `(short-hash)`
+- Description
 ```
 
 ## Workflow
@@ -187,7 +194,7 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    Read the root `Directory.Build.props` `<Version>` property unless the user explicitly provided a historical target version.
 
 4. **Consolidate Version Headings**
-   - Current unreleased work: create or update one `## vX.Y.Z` heading for the target version.
+   - Current unreleased work: create or update one linked `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` heading for the target version.
    - Historical reconstruction: preserve stable release boundaries, but fold patch/prerelease fragments into the stable heading unless a patch release was intentionally standalone.
 
 5. **Categorize Commits**
@@ -197,12 +204,14 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
 6. **Consolidate Related Entries**
    - Identify commits affecting the same component with similar purpose
    - Merge them into single, comprehensive entries
-   - Preserve all commit hashes
-   - Aim for 30-50% reduction in line count
+   - Remove raw commit hashes from final bullets
+   - Link the version heading to the GitHub tag URL
+   - Aim for 50-80% reduction in line count
 
 7. **Format and Verify**
    - Ensure proper markdown formatting
-   - Verify all commit hashes are present
+   - Verify the version heading links to the expected GitHub tag URL
+   - Verify normal bullets do not contain raw short hashes
    - Check that external contributor attributions are preserved
    - Confirm adherence to Keep a Changelog format
 
@@ -257,7 +266,7 @@ $cl = 'docs/CHANGELOG.md'
 $c  = [System.IO.File]::ReadAllText($cl, [System.Text.Encoding]::UTF8)
 
 $newSection = @'
-## v0.X.Y
+## [v0.X.Y](https://github.com/ShareX/XerahS/releases/tag/v0.X.Y)
 
 ### Features
 - ...
@@ -270,7 +279,7 @@ $newSection = @'
 # (?s) = dotall (. matches newlines); match from first prerelease heading up to (but not including) the previous stable heading
 $c = [System.Text.RegularExpressions.Regex]::Replace(
     $c,
-    '(?s)## v0\.FIRST_PRERELEASE.*?(?=## v0\.PREV_STABLE)',
+    '(?s)## (?:v0\.FIRST_PRERELEASE|\[v0\.FIRST_PRERELEASE\]\([^)]+\)).*?(?=## (?:v0\.PREV_STABLE|\[v0\.PREV_STABLE\]\([^)]+\)))',
     $newSection
 )
 
@@ -287,6 +296,6 @@ $c = $c -replace "`n", "`r`n"   # restore CRLF if the repo uses it
 
 **Key points**:
 - `(?s)` makes `.` match newlines so the pattern spans the whole block.
-- The lookahead `(?=## v0\.PREV_STABLE)` stops the match at the previous stable heading; it is **not** consumed.
+- The lookahead stops the match at the previous stable heading, linked or unlinked; it is **not** consumed.
 - The mojibake normalization pass (`[char]0x00C2 + [char]0x00A7` to `[char]0x00A7`) should always run after a regex write to guard against double-encoding.
 - Blank-line normalization (`\n{3,}` to `\n\n`) prevents the file from accumulating excess whitespace after sections are removed.

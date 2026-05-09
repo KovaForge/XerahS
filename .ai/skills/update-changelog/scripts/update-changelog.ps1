@@ -5,7 +5,8 @@ param(
     [switch]$Apply,
     [switch]$IncludeMerges,
     [string]$OutputPath,
-    [switch]$NoConsolidation
+    [switch]$NoConsolidation,
+    [switch]$IncludeHashes
 )
 
 Set-StrictMode -Version Latest
@@ -53,6 +54,29 @@ function Resolve-FromTag([string]$RequestedTag) {
     }
 
     return $tag.Trim()
+}
+
+function Resolve-GitHubRepositoryUrl {
+    $remote = git remote get-url origin 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remote)) {
+        return "https://github.com/ShareX/XerahS"
+    }
+
+    $remote = $remote.Trim()
+    if ($remote -match '^git@github\.com:(?<repo>[^/]+/[^/]+?)(\.git)?$') {
+        return "https://github.com/$($Matches["repo"])"
+    }
+
+    if ($remote -match '^https://github\.com/(?<repo>[^/]+/[^/]+?)(\.git)?$') {
+        return "https://github.com/$($Matches["repo"])"
+    }
+
+    return "https://github.com/ShareX/XerahS"
+}
+
+function Resolve-TagUrl([string]$Version) {
+    $repoUrl = Resolve-GitHubRepositoryUrl
+    return "$repoUrl/releases/tag/v$Version"
 }
 
 function Normalize-Component([string]$RawComponent) {
@@ -246,7 +270,7 @@ function Get-CommitRows([string]$FromTag, [bool]$IncludeMerges) {
     return $rows
 }
 
-function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar) {
+function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar, [bool]$EmitHashes) {
     $grouped = @{}
     foreach ($row in $CommitRows) {
         if ($row.Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
@@ -294,7 +318,8 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
     }
 
     $lines = New-Object System.Collections.Generic.List[string]
-    $lines.Add("## v$Version")
+    $tagUrl = Resolve-TagUrl -Version $Version
+    $lines.Add("## [v$Version]($tagUrl)")
     $lines.Add("")
 
     foreach ($category in $categoryOrder) {
@@ -309,8 +334,13 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
 
         $lines.Add("### $category")
         foreach ($entry in $entries) {
-            $hashes = ($entry.Hashes | Sort-Object) -join ", "
-            $lines.Add("- **$($entry.Component)**: $($entry.Description) `($hashes`)")
+            if ($EmitHashes) {
+                $hashes = ($entry.Hashes | Sort-Object) -join ", "
+                $lines.Add("- **$($entry.Component)**: $($entry.Description) `($hashes`)")
+            }
+            else {
+                $lines.Add("- **$($entry.Component)**: $($entry.Description)")
+            }
         }
         $lines.Add("")
     }
@@ -326,7 +356,9 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
 
 function Upsert-ChangelogSection([string]$Content, [string]$Version, [string]$Section) {
     $escapedVersion = [regex]::Escape($Version)
-    $existingPattern = "(?ms)^## v$escapedVersion\s*$.*?(?=^## v\d+\.\d+\.\d+\s*$|\z)"
+    $currentHeading = "##\s+(?:v$escapedVersion|\[v$escapedVersion\]\([^)]+\))"
+    $anyVersionHeading = "##\s+(?:v\d+\.\d+\.\d+(?:\s+-[^\r\n]*)?|\[v\d+\.\d+\.\d+\]\([^)]+\)(?:\s+-[^\r\n]*)?)"
+    $existingPattern = "(?ms)^$currentHeading\s*$.*?(?=^$anyVersionHeading\s*$|\z)"
     if ([regex]::IsMatch($Content, $existingPattern)) {
         return [regex]::Replace($Content, $existingPattern, $Section.TrimEnd() + "`n")
     }
@@ -348,7 +380,7 @@ $resolvedVersion = Resolve-Version -RepoRoot $repoRoot -RequestedVersion $Versio
 $resolvedFromTag = Resolve-FromTag -RequestedTag $FromTag
 $commits = @(Get-CommitRows -FromTag $resolvedFromTag -IncludeMerges:$IncludeMerges)
 $consolidate = -not $NoConsolidation
-$section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits -ConsolidateSimilar:$consolidate
+$section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits -ConsolidateSimilar:$consolidate -EmitHashes:$IncludeHashes
 
 if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
     $resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) { $OutputPath } else { Join-Path $repoRoot $OutputPath }
@@ -387,6 +419,7 @@ $fromTagLabel = if ([string]::IsNullOrWhiteSpace($resolvedFromTag)) { "(none)" }
 Write-Host "From tag       : $fromTagLabel"
 Write-Host "Commits parsed : $($commits.Count)"
 Write-Host "Consolidation  : $(if ($consolidate) { 'on (similar commits merged)' } else { 'off (-NoConsolidation)' })"
+Write-Host "Hash output    : $(if ($IncludeHashes) { 'on (-IncludeHashes)' } else { 'off (default)' })"
 if ($Apply) {
     Write-Host "Applied to     : $ChangelogPath"
 }
