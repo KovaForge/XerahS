@@ -252,7 +252,9 @@ public static class OpenClawPluginExporter
                 };
 
                 child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+                child.stdout.on("error", rejectOnce);
                 child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+                child.stderr.on("error", rejectOnce);
                 child.stdin.on("error", (error: NodeJS.ErrnoException) => {
                   if (error.code !== "EPIPE") {
                     rejectOnce(error);

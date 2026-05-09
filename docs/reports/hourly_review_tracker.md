@@ -726,3 +726,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Local `develop` already contained upstream/develop commits `c7fe1211` and `b96648a4` via merge `a0c01705`; origin/develop was behind. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner stdin error handling so expected `EPIPE` from early child exit is ignored while real stdin/spawn errors reject once through shared cleanup. Added exporter regression checks and bumped version `0.22.241` -> `0.22.242`.
 - Build/Test: Release build passed with 0 warnings/errors; Release tests passed 887 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-222959.log`, `/tmp/xerahs-hourly-sweep/test-20260509-223316.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export generated runner stream cleanup around stdout/stderr error paths and cancellation.
+
+### 2026-05-09 23:55 AWST / completed 2026-05-10 00:35 AWST - OpenClaw plugin exporter stdout/stderr stream errors
+
+- Area: OpenClaw native plugin export / generated runner stream cleanup; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop docs commits `3cc08971` and `e19a8c4d`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner stdout/stderr stream error handling so stream failures reject through shared cleanup instead of surfacing as unhandled plugin-host errors. Added exporter regression checks and bumped version `0.22.242` -> `0.22.243`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 887 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-003031.log`, `/tmp/xerahs-hourly-sweep/test-20260510-003348.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export cancellation behavior and generated runner cleanup after abort-like host shutdown.
