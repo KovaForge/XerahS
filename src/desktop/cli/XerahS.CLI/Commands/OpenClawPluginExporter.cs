@@ -84,7 +84,7 @@ public static class OpenClawPluginExporter
                   "command": {
                     "type": "string",
                     "description": "XerahS CLI command or absolute executable path.",
-                    "default": "xerahs"
+                    "default": "xerahscli"
                   },
                   "timeoutMs": {
                     "type": "integer",
@@ -107,7 +107,7 @@ public static class OpenClawPluginExporter
                 api.registerCli(() => {}, {
                   descriptors: [
                     {
-                      name: "xerahs",
+                      name: "xerahscli",
                       description: "Upload files or text through XerahS",
                       hasSubcommands: true,
                     },
@@ -141,7 +141,7 @@ public static class OpenClawPluginExporter
                   {
                     descriptors: [
                       {
-                        name: "xerahs",
+                        name: "xerahscli",
                         description: "Upload files or text through XerahS",
                         hasSubcommands: true,
                       },
@@ -164,7 +164,7 @@ public static class OpenClawPluginExporter
                 command: Type.Optional(
                   Type.String({
                     description: "XerahS CLI command or absolute executable path.",
-                    default: "xerahs",
+                    default: "xerahscli",
                   }),
                 ),
                 timeoutMs: Type.Optional(
@@ -184,7 +184,7 @@ public static class OpenClawPluginExporter
               const command =
                 typeof rawConfig?.command === "string" && rawConfig.command.trim()
                   ? rawConfig.command.trim()
-                  : "xerahs";
+                  : "xerahscli";
               const timeoutMs =
                 typeof rawConfig?.timeoutMs === "number" &&
                 Number.isFinite(rawConfig.timeoutMs) &&
