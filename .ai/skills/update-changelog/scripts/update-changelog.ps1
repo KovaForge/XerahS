@@ -79,6 +79,42 @@ function Resolve-TagUrl([string]$Version) {
     return "$repoUrl/releases/tag/v$Version"
 }
 
+function Test-ReleaseTagExists([string]$Version) {
+    $tagName = "v$Version"
+
+    git show-ref --verify --quiet "refs/tags/$tagName"
+    if ($LASTEXITCODE -eq 0) {
+        return $true
+    }
+
+    git ls-remote --exit-code --tags origin "refs/tags/$tagName" *> $null
+    return $LASTEXITCODE -eq 0
+}
+
+function Resolve-VersionHeading([string]$Version) {
+    if (Test-ReleaseTagExists -Version $Version) {
+        $tagUrl = Resolve-TagUrl -Version $Version
+        return "## [v$Version]($tagUrl)"
+    }
+
+    return "## v$Version"
+}
+
+function Normalize-ChangelogText([string]$Text) {
+    $arrowBad = [string][char]0x00E2 + [char]0x2020 + [char]0x2019
+    $emDashBad = [string][char]0x00E2 + [char]0x20AC + [char]0x201D
+    $enDashBad = [string][char]0x00E2 + [char]0x20AC + [char]0x201C
+    $sectionBad = [string][char]0x00C2 + [char]0x00A7
+
+    $Text = $Text.Replace($arrowBad, [string][char]0x2192)
+    $Text = $Text.Replace($emDashBad, [string][char]0x2014)
+    $Text = $Text.Replace($enDashBad, [string][char]0x2013)
+    $Text = $Text.Replace($sectionBad, [string][char]0x00A7)
+    $Text = $Text -replace "\r?\n", "`n"
+    $Text = $Text -replace "`n{3,}", "`n`n"
+    return $Text -replace "`n", "`r`n"
+}
+
 function Normalize-Component([string]$RawComponent) {
     $component = $RawComponent.Trim()
     if ([string]::IsNullOrWhiteSpace($component)) {
@@ -318,8 +354,7 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
     }
 
     $lines = New-Object System.Collections.Generic.List[string]
-    $tagUrl = Resolve-TagUrl -Version $Version
-    $lines.Add("## [v$Version]($tagUrl)")
+    $lines.Add((Resolve-VersionHeading -Version $Version))
     $lines.Add("")
 
     foreach ($category in $categoryOrder) {
@@ -360,7 +395,7 @@ function Upsert-ChangelogSection([string]$Content, [string]$Version, [string]$Se
     $anyVersionHeading = "##\s+(?:v\d+\.\d+\.\d+(?:\s+-[^\r\n]*)?|\[v\d+\.\d+\.\d+\]\([^)]+\)(?:\s+-[^\r\n]*)?)"
     $existingPattern = "(?ms)^$currentHeading\s*$.*?(?=^$anyVersionHeading\s*$|\z)"
     if ([regex]::IsMatch($Content, $existingPattern)) {
-        return [regex]::Replace($Content, $existingPattern, $Section.TrimEnd() + "`n")
+        return [regex]::Replace($Content, $existingPattern, $Section.TrimEnd() + "`n`n")
     }
 
     $unreleasedMatch = [regex]::Match($Content, '(?m)^## Unreleased\s*$')
@@ -384,12 +419,7 @@ $section = Build-ChangelogSection -Version $resolvedVersion -CommitRows $commits
 
 if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
     $resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) { $OutputPath } else { Join-Path $repoRoot $OutputPath }
-    $outText = $section
-    $outText = $outText -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
-    $outText = $outText -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
-    $outText = $outText -replace "\r?\n", "`n"
-    $outText = $outText -replace "`n{3,}", "`n`n"
-    $outText = $outText -replace "`n", "`r`n"
+    $outText = Normalize-ChangelogText -Text $section
     [System.IO.File]::WriteAllText($resolvedOutput, $outText, [System.Text.UTF8Encoding]::new($false))
 }
 
@@ -402,14 +432,7 @@ if ($Apply) {
     $existing = Get-Content -Path $resolvedChangelog -Raw
     $updated = Upsert-ChangelogSection -Content $existing -Version $resolvedVersion -Section $section
 
-    # Fix double-encoded em-dash (C2 A7 mojibake → U+2014) and section-sign artifacts
-    $updated = $updated -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
-    $updated = $updated -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
-
-    # Collapse 3+ consecutive blank lines
-    $updated = $updated -replace "\r?\n", "`n"
-    $updated = $updated -replace "`n{3,}", "`n`n"
-    $updated = $updated -replace "`n", "`r`n"
+    $updated = Normalize-ChangelogText -Text $updated
 
     [System.IO.File]::WriteAllText($resolvedChangelog, $updated, [System.Text.UTF8Encoding]::new($false))
 }

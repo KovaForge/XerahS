@@ -5,7 +5,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
 
-## [v0.22.237](https://github.com/ShareX/XerahS/releases/tag/v0.22.237)
+## v0.22.237
 
 ### Fixes
 - **Core**: Resolve startup log issues
@@ -15,6 +15,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ### Documentation
 - **Core**: Link changelog tags and omit hashes
+- **Core**: Update changelog for release prep
 
 ## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)
 
@@ -323,7 +324,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Documentation
 - **Build System**: Rename developer README and add Linux guide
 - **Roadmap**: Finalize Linux phase roadmap and release gate
-## [v0.15.0](https://github.com/ShareX/XerahS/releases/tag/v0.15.0)
+## v0.15.0
 ### Features
 - **Mobile**: Add Android and iOS MVP with Share Extension support, .NET MAUI project
 - **Mobile**: Add Custom Uploader and Amazon S3 configuration UI (#124, #125, @Hexeption)
@@ -348,7 +349,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Documentation
 - **Audits**: Organize audit files and update UI control inventory snapshots
 - **Tasks**: Mark XIP0030 complete and move to completed tasks
-## [v0.14.0](https://github.com/ShareX/XerahS/releases/tag/v0.14.0)
+## v0.14.0
 ### Features
 - **Monitor Test**: Implement MonitorTest workflow with diagnostic and pattern testing modes
 - **Tools**: Add Ruler workflow with full RegionCapture integration
@@ -369,11 +370,11 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Build
 - **Cross-Compilation**: Add macOS from Windows support and build system documentation
 - **Infrastructure**: Fix version parsing in Windows package script
-## [v0.13.0](https://github.com/ShareX/XerahS/releases/tag/v0.13.0)
+## v0.13.0
 ### Fixes
 - **Menu Bar**: Fix hash checker routing and dynamic workflows menu
 - **Upload**: Improve Upload Content workflow handling, window UX, and text upload routing
-## [v0.12.0](https://github.com/ShareX/XerahS/releases/tag/v0.12.0)
+## v0.12.0
 ### Fixes
 - **Tools**: Add media tools to navigation bar and fix DataTemplate issues
 - **Proxy**: Fix custom uploader loading and add configuration UI (#77, @Hexeption)
@@ -386,13 +387,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Build
 - **Plugins**: Improve plugin copy target to only include plugin assemblies
 - **Configuration**: Update build files, packaging configuration, issue templates, and .gitignore
-## [v0.11.0](https://github.com/ShareX/XerahS/releases/tag/v0.11.0)
+## v0.11.0
 ### Features
 - **Upload**: Implement UploadContentWindow and remove superseded upload WorkflowTypes
-## [v0.10.0](https://github.com/ShareX/XerahS/releases/tag/v0.10.0)
+## v0.10.0
 ### Features
 - **Workflows**: Implement AutoCapture workflows
-## [v0.9.0](https://github.com/ShareX/XerahS/releases/tag/v0.9.0)
+## v0.9.0
 ### Features
 - **Workflows**: Implement Pin to Screen workflows
 - **Amazon S3**: Enhance SSO with region selection
@@ -404,7 +405,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Plugins**: Restore plugin DLL deduplication with retry logic
 ### Core
 - **Rendering**: Remove RectangleLight; modern Skia rendering deprecated it
-## [v0.8.0](https://github.com/ShareX/XerahS/releases/tag/v0.8.0)
+## v0.8.0
 ### Features
 - **Security**: Add cross-platform secrets store with diagnostics
 - **Upload**: Add auto destination uploader
@@ -453,7 +454,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **After Upload**: Fix window theming and errors
 - **Rendering**: Fix speech balloon tail geometry rendering
 - **Region Capture**: Fix system cursor appearing in screenshots and hotkey issues (#38, #39)
-## [v0.5.0](https://github.com/ShareX/XerahS/releases/tag/v0.5.0) - Core Capture & Editor Improvements
+## v0.5.0 - Core Capture & Editor Improvements
 ### Features & Improvements
 - **Capture**: Add single instance enforcement for the application
 - **Region Capture**: Enhance crosshair visibility, add magnifier pixel sampling, and hide system cursor when ghost cursor active
@@ -462,7 +463,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Bug Fixes
 - Fix 11+ HIGH/MEDIUM priority issues including null safety and resource management
 - Set RegionCaptureControl cursor to None to prevent double cursor visibility
-## [v0.4.0](https://github.com/ShareX/XerahS/releases/tag/v0.4.0) - Image Effects & Tools
+## v0.4.0 - Image Effects & Tools
 ### Features & Improvements
 - **Image Effects**: Refactor preset management and improve effects UI
 - **Tools**: Add QR code generator/decoder and Color Picker tools with standard color name mapping
@@ -472,7 +473,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Bug Fixes
 - **Capture**: Fix cursor tracking and visibility during GDI capture
 - **Capture**: Fix NullReferenceException in DXGI capture by preventing premature disposal of D3D11 device context
-## [v0.3.0](https://github.com/ShareX/XerahS/releases/tag/v0.3.0) - Modern Capture Architecture
+## v0.3.0 - Modern Capture Architecture
 ### Features & Improvements
 - **Modern Capture**: Implement DXGI-based high-performance screen capture for Windows
 - **Screen Recording**: Unified recording pipeline with Windows Media Foundation and FFmpeg support
@@ -486,13 +487,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Region Capture**: Fix DPI handling, coordinate mapping, and offsets/scaling on multi-monitor setups
 - **Code Quality**: Massive code audit fixing 500+ license headers and 160+ nullability issues
 - **Windows**: Standardize Windows TFM and fix CsWinRT interop issues
-## [v0.2.0](https://github.com/ShareX/XerahS/releases/tag/v0.2.0) - macOS Support & Plugin System
+## v0.2.0 - macOS Support & Plugin System
 ### Features & Improvements
 - **macOS**: Initial platform support including ScreenCaptureKit, SharpHook hotkeys, and app bundling
 - **Plugins**: Implement dynamic plugin system with packaging (`.sxap`), CLI tools, and `.sxadp` file association
 - **History**: Switch history storage from XML to SQLite with automatic backups
 - **Editor**: Integrate ShareX.Editor as core component with SkiaSharp rendering
-## [v0.1.0](https://github.com/ShareX/XerahS/releases/tag/v0.1.0) - Initial Feature Set
+## v0.1.0 - Initial Feature Set
 ### Core Features
 - **UI**: Reimagined interface with two-toolbar system and modern dark theme
 - **Capture**: Region, Fullscreen, and Window capture modes

@@ -5,7 +5,7 @@ description: Rules and workflows for updating docs/CHANGELOG.md, including versi
 
 ## Automation Script (Recommended)
 
-Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below). The default output is intentionally compact: version headings are linked to the GitHub tag URL and bullet entries do **not** include commit hashes. Treat the script output as a draft: before applying or releasing, perform a human-quality grouping pass so repeated commits become concise user-facing bullets instead of a commit log dump.
+Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below). The default output is intentionally compact: version headings are linked to the GitHub tag URL only when the tag exists, and bullet entries do **not** include commit hashes. Treat the script output as a draft: before applying or releasing, perform a human-quality grouping pass so repeated commits become concise user-facing bullets instead of a commit log dump.
 
 Script path:
 
@@ -46,7 +46,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/
 Notes:
 - `-Version` defaults to root `Directory.Build.props`.
 - `-FromTag` defaults to `git describe --tags --abbrev=0`.
-- The script upserts `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` (replaces existing linked or unlinked section for that version or inserts after `## Unreleased`).
+- The script upserts the version heading for the target version (replaces existing linked or unlinked section for that version or inserts after `## Unreleased`).
+- Link version headings only when the corresponding Git tag exists locally or on `origin`. Existing tag example: `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`. Unreleased/no-tag example: `## v0.22.237`.
 - Commit hashes are omitted by default to keep the changelog readable. Use `-IncludeHashes` only for temporary audit/debug drafts, not normal release notes.
 - **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same similarity bucket (for example: **ShareX.ImageEditor** in the subject, **2026-... blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
 - **Mandatory final compression pass**: even when the script consolidates automatically, scan each category for adjacent or near-duplicate entries with the same component, feature area, document series, platform, dependency, or bug theme. Merge those into one readable bullet unless doing so would hide contributor attribution or combine unrelated behavior.
@@ -107,7 +108,7 @@ The automation script does this **by default**; agents should still **edit the d
 
 #### Guidelines:
 - **Group by Component and Purpose**: Combine multiple commits that affect the same component and serve the same purpose.
-- **Remove Commit Hashes**: Normal changelog entries must not include commit hashes. Link the version heading to the GitHub tag instead, for example `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`.
+- **Remove Commit Hashes**: Normal changelog entries must not include commit hashes. Link the version heading to the GitHub tag only after the tag exists, for example `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`. If the tag does not exist yet, use plain `## v0.22.237`.
 - **Target Reduction**: Aim for 50-80% line reduction by consolidating related work and removing hash lists.
 
 #### Examples:
@@ -163,7 +164,9 @@ The automation script does this **by default**; agents should still **edit the d
 Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with Semantic Versioning.
 
 ```markdown
-## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)
+## vX.Y.Z
+
+Use `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` only after `vX.Y.Z` exists as a local or remote Git tag.
 
 ### Features
 - **Component**: Description
@@ -194,7 +197,8 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    Read the root `Directory.Build.props` `<Version>` property unless the user explicitly provided a historical target version.
 
 4. **Consolidate Version Headings**
-   - Current unreleased work: create or update one linked `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` heading for the target version.
+   - Current unreleased work: create or update one `## vX.Y.Z` heading for the target version when the tag does not exist yet.
+   - Released/tagged work: use `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` only when the tag exists locally or on `origin`.
    - Historical reconstruction: preserve stable release boundaries, but fold patch/prerelease fragments into the stable heading unless a patch release was intentionally standalone.
 
 5. **Categorize Commits**
@@ -205,12 +209,12 @@ Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with 
    - Identify commits affecting the same component with similar purpose
    - Merge them into single, comprehensive entries
    - Remove raw commit hashes from final bullets
-   - Link the version heading to the GitHub tag URL
+   - Link the version heading to the GitHub tag URL only when the tag exists
    - Aim for 50-80% reduction in line count
 
 7. **Format and Verify**
    - Ensure proper markdown formatting
-   - Verify the version heading links to the expected GitHub tag URL
+   - Verify linked version headings point to existing GitHub tags; unlink headings for tags that do not exist
    - Verify normal bullets do not contain raw short hashes
    - Check that external contributor attributions are preserved
    - Confirm adherence to Keep a Changelog format
@@ -266,7 +270,7 @@ $cl = 'docs/CHANGELOG.md'
 $c  = [System.IO.File]::ReadAllText($cl, [System.Text.Encoding]::UTF8)
 
 $newSection = @'
-## [v0.X.Y](https://github.com/ShareX/XerahS/releases/tag/v0.X.Y)
+## v0.X.Y
 
 ### Features
 - ...
@@ -275,6 +279,8 @@ $newSection = @'
 - ...
 
 '@
+
+# Use a linked heading instead only when v0.X.Y exists as a local or remote tag.
 
 # (?s) = dotall (. matches newlines); match from first prerelease heading up to (but not including) the previous stable heading
 $c = [System.Text.RegularExpressions.Regex]::Replace(
