@@ -26,6 +26,7 @@ using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture;
 using XerahS.RegionCapture.UI;
 using XerahS.Common;
+using XerahS.RegionCapture.ViewModels;
 
 namespace XerahS.RegionCapture.Services;
 
@@ -39,12 +40,14 @@ public sealed class OverlayManager : IDisposable
     private readonly List<OverlayWindow> _overlays = [];
     private readonly TaskCompletionSource<RegionSelectionResult?> _completionSource;
     private readonly CoordinateTranslationService _coordinateService;
+    private readonly RegionCaptureAnnotationToolCoordinator _annotationToolCoordinator;
     private bool _disposed;
 
     public OverlayManager()
     {
         _completionSource = new TaskCompletionSource<RegionSelectionResult?>();
         _coordinateService = new CoordinateTranslationService();
+        _annotationToolCoordinator = new RegionCaptureAnnotationToolCoordinator();
     }
 
     /// <summary>
@@ -80,7 +83,7 @@ public sealed class OverlayManager : IDisposable
             // Create one overlay per monitor
             foreach (var monitor in monitors)
             {
-                var overlay = new OverlayWindow(monitor, _completionSource, onSelectionChanged, initialCursor, options);
+                var overlay = new OverlayWindow(monitor, _completionSource, onSelectionChanged, initialCursor, options, _annotationToolCoordinator);
                 _overlays.Add(overlay);
             }
 

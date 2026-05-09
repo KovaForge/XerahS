@@ -68,6 +68,7 @@ public partial class OverlayWindow : Window
     private readonly TaskCompletionSource<RegionSelectionResult?> _completionSource;
     private readonly RegionCaptureControl _captureControl;
     private readonly RegionCaptureAnnotationViewModel _viewModel;
+    private readonly RegionCaptureAnnotationToolCoordinator? _annotationToolCoordinator;
     private readonly SKBitmap? _backgroundBitmap;
     private Canvas? _annotationCanvas;
     private AvPixelPoint _targetPosition;
@@ -115,11 +116,13 @@ public partial class OverlayWindow : Window
         TaskCompletionSource<RegionSelectionResult?> completionSource,
         Action<PixelRect>? selectionChanged = null,
         XerahS.Platform.Abstractions.CursorInfo? initialCursor = null,
-        RegionCaptureOptions? options = null)
+        RegionCaptureOptions? options = null,
+        RegionCaptureAnnotationToolCoordinator? annotationToolCoordinator = null)
     {
         _monitor = monitor;
         _completionSource = completionSource;
         _backgroundBitmap = options?.BackgroundImage;
+        _annotationToolCoordinator = annotationToolCoordinator;
 
         // XIP-0023: Create ViewModel for annotation toolbar
         _viewModel = new RegionCaptureAnnotationViewModel();
@@ -188,6 +191,7 @@ public partial class OverlayWindow : Window
 
         // Subscribe to ActiveTool changes to toggle canvas hit testing
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _annotationToolCoordinator?.Register(_viewModel);
 
         // Ensure window can receive keyboard input
         Focusable = true;
@@ -203,6 +207,7 @@ public partial class OverlayWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         ThemeManager.ThemeChanged -= OnThemeChanged;
+        _annotationToolCoordinator?.Unregister(_viewModel);
         _windowClosed = true;
         base.OnClosed(e);
     }
