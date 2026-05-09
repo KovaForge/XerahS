@@ -121,12 +121,16 @@
           <TextBlock Text="Preview" Classes="section-header" AutomationProperties.Name="Preview Heading"/>
           <TextBlock Text="Inspect the capture before applying tasks." Classes="caption" AutomationProperties.Name="Preview Description"/>
         </StackPanel>
-        <Border Grid.Row="1" Classes="card" Padding="{StaticResource CardPadding}" MinHeight="{StaticResource PreviewMinHeight}">
-          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Transparent">
-            <Image Source="{Binding PreviewImage}"
-                   Stretch="Uniform"
-                   AutomationProperties.Name="Capture Preview"/>
-          </ScrollViewer>
+        <Border Grid.Row="1"
+                Classes="card"
+                Padding="{StaticResource CardPadding}"
+                MinHeight="{StaticResource PreviewMinHeight}"
+                ClipToBounds="True">
+          <Image Source="{Binding PreviewImage}"
+                 Stretch="Uniform"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 AutomationProperties.Name="Capture Preview"/>
         </Border>
       </Grid>
 
