@@ -239,10 +239,12 @@ public static class OpenClawPluginExporter
                 });
                 child.on("close", (exitCode) => {
                   clearTimeout(timer);
+                  const rawStdout = Buffer.concat(stdout).toString("utf8").trim();
+                  const rawStderr = Buffer.concat(stderr).toString("utf8").trim();
                   const result: XerahSRunResult = {
                     exitCode,
-                    stdout: redactDiagnostics(Buffer.concat(stdout).toString("utf8").trim()),
-                    stderr: redactDiagnostics(Buffer.concat(stderr).toString("utf8").trim()),
+                    stdout: redactDiagnostics(rawStdout),
+                    stderr: redactDiagnostics(rawStderr),
                   };
 
                   if (exitCode !== 0) {
@@ -252,7 +254,7 @@ public static class OpenClawPluginExporter
 
                   if (options.expectJson) {
                     try {
-                      result.json = JSON.parse(result.stdout);
+                      result.json = JSON.parse(rawStdout);
                     } catch (error) {
                       reject(new Error(`XerahS did not return valid JSON: ${(error as Error).message}`));
                       return;
