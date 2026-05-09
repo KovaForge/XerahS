@@ -285,7 +285,7 @@ public static class OpenClawPluginExporter
             }
             """,
             ["src/tools.ts"] = """
-            import { jsonResult } from "openclaw/plugin-sdk/provider-web-search";
+            import { jsonResult } from "openclaw/plugin-sdk/core";
             import { Type } from "typebox";
             import type { XerahSPluginConfig } from "./config.js";
             import { runXerahS } from "./runner.js";

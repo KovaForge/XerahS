@@ -705,3 +705,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Merged upstream/develop release-prep commit `d84cc957`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed the exported OpenClaw plugin runner to parse raw stdout for expected JSON while keeping redacted stdout/stderr for diagnostics and non-JSON output, preventing token-like JSON URL fields from being corrupted before parsing. Added exporter regression coverage and bumped version `0.22.237` -> `0.22.238`.
 - Build/Test: Release build passed with 0 warnings/errors; Release tests passed 878 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-140301.log`, `/tmp/xerahs-hourly-sweep/test-20260509-140605.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export timeout handling around child process termination and generated TypeScript SDK imports.
+
+### 2026-05-09 15:55 AWST / completed 2026-05-09 16:08 AWST - OpenClaw plugin exporter SDK imports
+
+- Area: OpenClaw native plugin export / generated TypeScript SDK imports; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop commits `83b367ab`, `437b49b6`, `0ea08f80`, and `314700ee`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated OpenClaw tools to import `jsonResult` from the core plugin SDK instead of the web-search provider SDK, added exporter regression coverage, and bumped version `0.22.238` -> `0.22.239`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 880 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-160350.log`, `/tmp/xerahs-hourly-sweep/test-20260509-160654.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export timeout handling around child process termination.

@@ -84,6 +84,8 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(index, Does.Contain("api.registerCli("));
                 Assert.That(tools, Does.Contain("xerahs_upload_file"));
                 Assert.That(tools, Does.Contain("xerahs_upload_text"));
+                Assert.That(tools, Does.Contain("import { jsonResult } from \"openclaw/plugin-sdk/core\";"));
+                Assert.That(tools, Does.Not.Contain("plugin-sdk/provider-web-search"));
                 Assert.That(tools, Does.Contain("[\"upload\", \"--pipe\", \"--name\", name, \"--json\"]"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(runner, Does.Contain("windowsHide: true"));
