@@ -241,17 +241,24 @@ public static class OpenClawPluginExporter
                     clearTimeout(forceKillTimer);
                   }
                 };
-
-                child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
-                child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
-                child.on("error", (error) => {
+                const rejectOnce = (error: Error) => {
                   if (settled) {
                     return;
                   }
+
                   settled = true;
                   cleanup();
                   reject(error);
+                };
+
+                child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+                child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+                child.stdin.on("error", (error: NodeJS.ErrnoException) => {
+                  if (error.code !== "EPIPE") {
+                    rejectOnce(error);
+                  }
                 });
+                child.on("error", rejectOnce);
                 child.on("close", (exitCode) => {
                   if (settled) {
                     return;

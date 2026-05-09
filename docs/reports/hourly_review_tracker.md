@@ -719,3 +719,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Origin/develop and upstream/develop were already contained; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner timeout handling so timed-out XerahS child processes are terminated with a grace-period escalation, settled once, and reported only after process close. Added exporter regression checks and bumped version `0.22.240` -> `0.22.241`.
 - Build/Test: Release build passed with 0 warnings/errors; Release tests passed 880 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-183036.log`, `/tmp/xerahs-hourly-sweep/test-20260509-183401.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export generated runner process lifecycle around spawn errors and stream cleanup.
+
+### 2026-05-09 21:55 AWST / completed 2026-05-09 22:34 AWST - OpenClaw plugin exporter stdin pipe errors
+
+- Area: OpenClaw native plugin export / generated runner process lifecycle; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Local `develop` already contained upstream/develop commits `c7fe1211` and `b96648a4` via merge `a0c01705`; origin/develop was behind. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner stdin error handling so expected `EPIPE` from early child exit is ignored while real stdin/spawn errors reject once through shared cleanup. Added exporter regression checks and bumped version `0.22.241` -> `0.22.242`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 887 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-222959.log`, `/tmp/xerahs-hourly-sweep/test-20260509-223316.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner stream cleanup around stdout/stderr error paths and cancellation.
