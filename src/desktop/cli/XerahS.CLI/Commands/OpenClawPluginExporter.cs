@@ -1,0 +1,519 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
+using System.Collections.ObjectModel;
+using System.Text;
+
+namespace XerahS.CLI.Commands;
+
+public static class OpenClawPluginExporter
+{
+    private static readonly IReadOnlyDictionary<string, string> Templates = new ReadOnlyDictionary<string, string>(
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["package.json"] = """
+            {
+              "name": "@xerahs/openclaw-plugin",
+              "version": "0.1.0",
+              "private": true,
+              "description": "OpenClaw native plugin for XerahS upload-to-URL workflows.",
+              "type": "module",
+              "devDependencies": {
+                "@openclaw/plugin-sdk": "workspace:*"
+              },
+              "dependencies": {
+                "typebox": "1.1.37"
+              },
+              "openclaw": {
+                "extensions": [
+                  "./index.ts"
+                ]
+              }
+            }
+            """,
+            ["openclaw.plugin.json"] = """
+            {
+              "id": "xerahs",
+              "activation": {
+                "onStartup": true,
+                "onCommands": [
+                  "xerahs",
+                  "xerahs.upload",
+                  "xerahs.uploadText",
+                  "xerahs.doctorUploaders",
+                  "xerahs.bootstrapUploaders"
+                ]
+              },
+              "enabledByDefault": true,
+              "name": "XerahS",
+              "description": "Upload files and generated text through XerahS and return shareable URLs.",
+              "contracts": {
+                "tools": [
+                  "xerahs_upload_file",
+                  "xerahs_upload_text",
+                  "xerahs_doctor_uploaders",
+                  "xerahs_bootstrap_uploaders"
+                ]
+              },
+              "configSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "XerahS CLI command or absolute executable path.",
+                    "default": "xerahs"
+                  },
+                  "timeoutMs": {
+                    "type": "integer",
+                    "description": "Maximum time to wait for a XerahS CLI operation.",
+                    "minimum": 1000,
+                    "default": 120000
+                  }
+                }
+              }
+            }
+            """,
+            ["cli-metadata.ts"] = """
+            import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+
+            export default definePluginEntry({
+              id: "xerahs",
+              name: "XerahS",
+              description: "Upload files and generated text through XerahS and return shareable URLs.",
+              register(api) {
+                api.registerCli(() => {}, {
+                  descriptors: [
+                    {
+                      name: "xerahs",
+                      description: "Upload files or text through XerahS",
+                      hasSubcommands: true,
+                    },
+                  ],
+                });
+              },
+            });
+            """,
+            ["index.ts"] = """
+            import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+            import { registerXerahSCli } from "./src/cli.js";
+            import { resolveXerahSPluginConfig, xerahsConfigSchema } from "./src/config.js";
+            import { createXerahSTools } from "./src/tools.js";
+
+            export default definePluginEntry({
+              id: "xerahs",
+              name: "XerahS",
+              description: "Upload files and generated text through XerahS and return shareable URLs.",
+              configSchema: xerahsConfigSchema,
+              register(api) {
+                const config = resolveXerahSPluginConfig(api.pluginConfig);
+
+                for (const tool of createXerahSTools(config)) {
+                  api.registerTool(tool);
+                }
+
+                api.registerCli(
+                  ({ program }) => {
+                    registerXerahSCli(program, config);
+                  },
+                  {
+                    descriptors: [
+                      {
+                        name: "xerahs",
+                        description: "Upload files or text through XerahS",
+                        hasSubcommands: true,
+                      },
+                    ],
+                  },
+                );
+              },
+            });
+            """,
+            ["src/config.ts"] = """
+            import { Type } from "typebox";
+
+            export type XerahSPluginConfig = {
+              command: string;
+              timeoutMs: number;
+            };
+
+            export const xerahsConfigSchema = Type.Object(
+              {
+                command: Type.Optional(
+                  Type.String({
+                    description: "XerahS CLI command or absolute executable path.",
+                    default: "xerahs",
+                  }),
+                ),
+                timeoutMs: Type.Optional(
+                  Type.Integer({
+                    description: "Maximum time to wait for a XerahS CLI operation.",
+                    minimum: 1000,
+                    default: 120000,
+                  }),
+                ),
+              },
+              { additionalProperties: false },
+            );
+
+            export function resolveXerahSPluginConfig(
+              rawConfig: Record<string, unknown> | undefined,
+            ): XerahSPluginConfig {
+              const command =
+                typeof rawConfig?.command === "string" && rawConfig.command.trim()
+                  ? rawConfig.command.trim()
+                  : "xerahs";
+              const timeoutMs =
+                typeof rawConfig?.timeoutMs === "number" &&
+                Number.isFinite(rawConfig.timeoutMs) &&
+                rawConfig.timeoutMs >= 1000
+                  ? Math.trunc(rawConfig.timeoutMs)
+                  : 120_000;
+
+              return {
+                command,
+                timeoutMs,
+              };
+            }
+            """,
+            ["src/runner.ts"] = """
+            import { spawn } from "node:child_process";
+            import type { XerahSPluginConfig } from "./config.js";
+
+            export type XerahSRunOptions = {
+              input?: string;
+              expectJson?: boolean;
+            };
+
+            export type XerahSRunResult = {
+              exitCode: number | null;
+              stdout: string;
+              stderr: string;
+              json?: unknown;
+            };
+
+            export async function runXerahS(
+              config: XerahSPluginConfig,
+              args: string[],
+              options: XerahSRunOptions = {},
+            ): Promise<XerahSRunResult> {
+              return await new Promise<XerahSRunResult>((resolve, reject) => {
+                const child = spawn(config.command, args, {
+                  stdio: ["pipe", "pipe", "pipe"],
+                  windowsHide: true,
+                });
+                const stdout: Buffer[] = [];
+                const stderr: Buffer[] = [];
+                const timer = setTimeout(() => {
+                  child.kill();
+                  reject(new Error(`XerahS command timed out after ${config.timeoutMs} ms.`));
+                }, config.timeoutMs);
+
+                child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+                child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+                child.on("error", (error) => {
+                  clearTimeout(timer);
+                  reject(error);
+                });
+                child.on("close", (exitCode) => {
+                  clearTimeout(timer);
+                  const result: XerahSRunResult = {
+                    exitCode,
+                    stdout: Buffer.concat(stdout).toString("utf8").trim(),
+                    stderr: redactDiagnostics(Buffer.concat(stderr).toString("utf8").trim()),
+                  };
+
+                  if (exitCode !== 0) {
+                    reject(new Error(formatFailure(args, result)));
+                    return;
+                  }
+
+                  if (options.expectJson) {
+                    try {
+                      result.json = JSON.parse(result.stdout);
+                    } catch (error) {
+                      reject(new Error(`XerahS did not return valid JSON: ${(error as Error).message}`));
+                      return;
+                    }
+                  }
+
+                  resolve(result);
+                });
+
+                if (options.input !== undefined) {
+                  child.stdin.end(options.input, "utf8");
+                } else {
+                  child.stdin.end();
+                }
+              });
+            }
+
+            function formatFailure(args: string[], result: XerahSRunResult): string {
+              const details = [result.stderr, result.stdout].filter(Boolean).join("\n");
+              return `XerahS ${args.join(" ")} failed with exit code ${result.exitCode}.${details ? `\n${details}` : ""}`;
+            }
+
+            function redactDiagnostics(text: string): string {
+              return text.replace(
+                /\b(api[_-]?key|authorization|bearer|password|secret|token)\b\s*[:=]\s*[^\s]+/giu,
+                "$1=[redacted]",
+              );
+            }
+            """,
+            ["src/tools.ts"] = """
+            import { jsonResult } from "openclaw/plugin-sdk/provider-web-search";
+            import { Type } from "typebox";
+            import type { XerahSPluginConfig } from "./config.js";
+            import { runXerahS } from "./runner.js";
+
+            const uploadFileParams = Type.Object(
+              {
+                path: Type.String({
+                  description: "Absolute or workspace-relative path to the file to upload.",
+                }),
+                name: Type.Optional(
+                  Type.String({
+                    description: "Optional upload filename override.",
+                  }),
+                ),
+                asFile: Type.Optional(
+                  Type.Boolean({
+                    description: "Force text-like artifacts such as HTML through the file uploader category.",
+                  }),
+                ),
+              },
+              { additionalProperties: false },
+            );
+
+            const uploadTextParams = Type.Object(
+              {
+                text: Type.String({
+                  description: "Text content to upload through the configured XerahS text uploader.",
+                }),
+                name: Type.Optional(
+                  Type.String({
+                    description: "Filename to associate with the uploaded text content.",
+                    default: "upload.txt",
+                  }),
+                ),
+              },
+              { additionalProperties: false },
+            );
+
+            export function createXerahSTools(config: XerahSPluginConfig) {
+              return [
+                {
+                  name: "xerahs_upload_file",
+                  label: "Upload File with XerahS",
+                  description: "Upload a local file through XerahS and return the resulting URL JSON.",
+                  parameters: uploadFileParams,
+                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+                    const filePath = readRequiredString(rawParams, "path");
+                    const args = ["upload", filePath, "--json"];
+                    const name = readOptionalString(rawParams, "name");
+
+                    if (name) {
+                      args.push("--name", name);
+                    }
+
+                    if (rawParams.asFile === true) {
+                      args.push("--as-file");
+                    }
+
+                    const result = await runXerahS(config, args, { expectJson: true });
+                    return jsonResult(requireUploadUrl(result.json));
+                  },
+                },
+                {
+                  name: "xerahs_upload_text",
+                  label: "Upload Text with XerahS",
+                  description: "Upload generated text through XerahS stdin and return the resulting URL JSON.",
+                  parameters: uploadTextParams,
+                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+                    const text = readRequiredString(rawParams, "text");
+                    const name = readOptionalString(rawParams, "name") ?? "upload.txt";
+                    const result = await runXerahS(config, ["upload", "--pipe", "--name", name, "--json"], {
+                      input: text,
+                      expectJson: true,
+                    });
+
+                    return jsonResult(requireUploadUrl(result.json));
+                  },
+                },
+                {
+                  name: "xerahs_doctor_uploaders",
+                  label: "Check XerahS Uploaders",
+                  description: "Inspect whether XerahS uploaders are configured and ready.",
+                  parameters: Type.Object({}, { additionalProperties: false }),
+                  execute: async () => {
+                    const result = await runXerahS(config, ["doctor", "uploaders", "--json"], {
+                      expectJson: true,
+                    });
+
+                    return jsonResult(result.json);
+                  },
+                },
+                {
+                  name: "xerahs_bootstrap_uploaders",
+                  label: "Bootstrap XerahS Uploaders",
+                  description: "Initialize safe first-use XerahS uploader defaults.",
+                  parameters: Type.Object({}, { additionalProperties: false }),
+                  execute: async () => {
+                    const result = await runXerahS(config, ["bootstrap", "uploaders"]);
+
+                    return jsonResult({
+                      stdout: result.stdout,
+                      stderr: result.stderr,
+                    });
+                  },
+                },
+              ];
+            }
+
+            function readRequiredString(params: Record<string, unknown>, name: string): string {
+              const value = params[name];
+              if (typeof value !== "string" || !value.trim()) {
+                throw new Error(`${name} is required.`);
+              }
+
+              return value;
+            }
+
+            function readOptionalString(params: Record<string, unknown>, name: string): string | undefined {
+              const value = params[name];
+              return typeof value === "string" && value.trim() ? value : undefined;
+            }
+
+            function requireUploadUrl(value: unknown): unknown {
+              if (!value || typeof value !== "object") {
+                throw new Error("XerahS upload did not return an object.");
+              }
+
+              const url = (value as { url?: unknown }).url;
+              if (typeof url !== "string" || !url.trim()) {
+                throw new Error("XerahS upload did not return a URL.");
+              }
+
+              return value;
+            }
+            """,
+            ["src/cli.ts"] = """
+            import type { XerahSPluginConfig } from "./config.js";
+            import { runXerahS } from "./runner.js";
+
+            type ProgramLike = {
+              command(name: string): CommandLike;
+            };
+
+            type CommandLike = {
+              description(text: string): CommandLike;
+              option(flags: string, description?: string): CommandLike;
+              argument?(name: string, description?: string): CommandLike;
+              command(name: string): CommandLike;
+              action(handler: (...args: unknown[]) => Promise<void> | void): CommandLike;
+            };
+
+            export function registerXerahSCli(program: ProgramLike, config: XerahSPluginConfig): void {
+              const root = program.command("xerahs").description("Upload files or text through XerahS.");
+
+              root
+                .command("doctor-uploaders")
+                .description("Inspect XerahS uploader readiness.")
+                .action(async () => {
+                  await printRun(config, ["doctor", "uploaders", "--json"], true);
+                });
+
+              root
+                .command("bootstrap-uploaders")
+                .description("Initialize safe first-use XerahS uploader defaults.")
+                .action(async () => {
+                  await printRun(config, ["bootstrap", "uploaders"], false);
+                });
+
+              root
+                .command("upload <file>")
+                .description("Upload a local file through XerahS and print URL JSON.")
+                .option("--name <name>", "Optional upload filename override.")
+                .option("--as-file", "Force the file uploader category.")
+                .action(async (file, options) => {
+                  const args = ["upload", String(file), "--json"];
+                  const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
+
+                  if (typeof opts.name === "string" && opts.name.trim()) {
+                    args.push("--name", opts.name.trim());
+                  }
+
+                  if (opts.asFile === true) {
+                    args.push("--as-file");
+                  }
+
+                  await printRun(config, args, true);
+                });
+            }
+
+            async function printRun(config: XerahSPluginConfig, args: string[], expectJson: boolean): Promise<void> {
+              const result = await runXerahS(config, args, { expectJson });
+              process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+              process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
+            }
+            """
+        });
+
+    public static OpenClawPluginExportResult Export(string outputDirectory, bool force)
+    {
+        if (string.IsNullOrWhiteSpace(outputDirectory))
+        {
+            throw new ArgumentException("Output directory is required.", nameof(outputDirectory));
+        }
+
+        string fullOutputDirectory = Path.GetFullPath(outputDirectory);
+        Directory.CreateDirectory(fullOutputDirectory);
+
+        var writtenFiles = new List<string>(Templates.Count);
+
+        foreach ((string relativePath, string content) in Templates)
+        {
+            string destinationPath = Path.Combine(fullOutputDirectory, relativePath);
+            string? destinationDirectory = Path.GetDirectoryName(destinationPath);
+
+            if (!string.IsNullOrEmpty(destinationDirectory))
+            {
+                Directory.CreateDirectory(destinationDirectory);
+            }
+
+            if (!force && File.Exists(destinationPath))
+            {
+                throw new IOException($"Refusing to overwrite existing file without --force: {destinationPath}");
+            }
+
+            File.WriteAllText(destinationPath, content + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            writtenFiles.Add(destinationPath);
+        }
+
+        return new OpenClawPluginExportResult(fullOutputDirectory, writtenFiles);
+    }
+}
+
+public sealed record OpenClawPluginExportResult(string OutputDirectory, IReadOnlyList<string> Files);

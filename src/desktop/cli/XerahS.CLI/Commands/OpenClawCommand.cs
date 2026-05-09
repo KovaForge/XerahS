@@ -9,6 +9,16 @@ public static class OpenClawCommand
     {
         var command = new Command("openclaw", "OpenClaw/Hermes agent integration helpers");
         var manifestCommand = new Command("manifest", "Print a machine-readable OpenClaw/Hermes capability manifest as JSON");
+        var pluginCommand = new Command("plugin", "OpenClaw native plugin helpers");
+        var pluginExportCommand = new Command("export", "Export the XerahS upload-to-URL native OpenClaw plugin source");
+        var outputOption = new Option<string?>("--output")
+        {
+            Description = "Directory that will receive the OpenClaw plugin files."
+        };
+        var forceOption = new Option<bool>("--force")
+        {
+            Description = "Overwrite generated files if they already exist."
+        };
 
         manifestCommand.SetAction(_ =>
         {
@@ -53,6 +63,35 @@ public static class OpenClawCommand
         });
 
         command.Add(manifestCommand);
+        pluginExportCommand.Add(outputOption);
+        pluginExportCommand.Add(forceOption);
+        pluginExportCommand.SetAction(parseResult =>
+        {
+            string? outputDirectory = parseResult.GetValue(outputOption);
+            bool force = parseResult.GetValue(forceOption);
+
+            if (string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                Console.Error.WriteLine("Missing required option: --output <directory>");
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            try
+            {
+                OpenClawPluginExportResult result = OpenClawPluginExporter.Export(outputDirectory, force);
+                Console.WriteLine(JsonSerializer.Serialize(result, OpenClawJsonOptions.Default));
+                Environment.ExitCode = 0;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                Console.Error.WriteLine(ex.Message);
+                Environment.ExitCode = 1;
+            }
+        });
+
+        pluginCommand.Add(pluginExportCommand);
+        command.Add(pluginCommand);
         return command;
     }
 }
