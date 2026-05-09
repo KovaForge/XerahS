@@ -76,6 +76,30 @@
                                                   HorizontalAlignment="Stretch" MinWidth="200"
                                                   AutomationProperties.Name="Update Channel"/>
                                     </Grid>
+
+                                    <StackPanel Spacing="12"
+                                                IsVisible="{Binding ShowPreReleaseSourceSettings}">
+                                        <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto">
+                                            <TextBlock Grid.Column="0" Text="Pre-release source:" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding PreReleaseUpdateSources}"
+                                                      SelectedItem="{Binding PreReleaseUpdateSource}"
+                                                      IsEnabled="{Binding AutoCheckUpdate}"
+                                                      HorizontalAlignment="Stretch" MinWidth="200"
+                                                      AutomationProperties.Name="Pre-release Source"/>
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto"
+                                              IsVisible="{Binding ShowCustomPreReleaseSource}">
+                                            <TextBlock Grid.Column="0" Text="Custom source:" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="2"
+                                                     Text="{Binding CustomPreReleaseUpdateSource}"
+                                                     PlaceholderText="GitHub owner or owner/repo"
+                                                     IsEnabled="{Binding AutoCheckUpdate}"
+                                                     HorizontalAlignment="Stretch" MinWidth="200"
+                                                     AutomationProperties.Name="Custom Pre-release Source"/>
+                                        </Grid>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

@@ -43,6 +43,13 @@ public enum UpdateChannel // Localized
     PreRelease
 }
 
+public enum PreReleaseUpdateSource // Localized
+{
+    ShareX,
+    KovaForge,
+    Custom
+}
+
 public enum SupportedLanguage
 {
     Automatic, // Localized

@@ -41,6 +41,9 @@ public class UpdateService : IDisposable
     private static readonly object _lock = new();
     private static readonly TimeSpan DialogOwnerRetryInterval = TimeSpan.FromMilliseconds(200);
     private const int DialogOwnerRetryCount = 25;
+    private const string DefaultReleaseOwner = "ShareX";
+    private const string DefaultPreReleaseOwner = "KovaForge";
+    private const string DefaultRepo = "XerahS";
 
     public static UpdateService Instance
     {
@@ -81,9 +84,9 @@ public class UpdateService : IDisposable
 
         var settings = SettingsManager.Settings;
         bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
-        string updateOwner = includePreRelease ? "KovaForge" : "ShareX";
+        var updateRepository = ResolveUpdateRepository(settings);
 
-        _updateManager = new GitHubUpdateManager(updateOwner, "XerahS")
+        _updateManager = new GitHubUpdateManager(updateRepository.Owner, updateRepository.Repo)
         {
             IsPortable = IsPortableBuild(),
             IncludePreRelease = includePreRelease,
@@ -102,6 +105,52 @@ public class UpdateService : IDisposable
         {
             DebugHelper.WriteLine("UpdateService: Auto-update is disabled.");
         }
+    }
+
+    public static (string Owner, string Repo) ResolveUpdateRepository(ApplicationConfig settings)
+    {
+        if (settings.UpdateChannel != UpdateChannel.PreRelease)
+        {
+            return (DefaultReleaseOwner, DefaultRepo);
+        }
+
+        return settings.PreReleaseUpdateSource switch
+        {
+            PreReleaseUpdateSource.ShareX => (DefaultReleaseOwner, DefaultRepo),
+            PreReleaseUpdateSource.Custom => ResolveCustomPreReleaseRepository(settings.CustomPreReleaseUpdateSource),
+            _ => (DefaultPreReleaseOwner, DefaultRepo)
+        };
+    }
+
+    public static (string Owner, string Repo) ResolveCustomPreReleaseRepository(string? source)
+    {
+        string normalized = NormalizeCustomPreReleaseSource(source);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return (DefaultPreReleaseOwner, DefaultRepo);
+        }
+
+        string[] parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length >= 2
+            ? (parts[0], parts[1])
+            : (parts[0], DefaultRepo);
+    }
+
+    private static string NormalizeCustomPreReleaseSource(string? source)
+    {
+        string normalized = source?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.Empty;
+        }
+
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri) &&
+            uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = uri.AbsolutePath;
+        }
+
+        return normalized.Trim().Trim('/');
     }
 
     /// <summary>

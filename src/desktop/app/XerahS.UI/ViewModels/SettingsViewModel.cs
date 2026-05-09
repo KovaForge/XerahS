@@ -103,6 +103,34 @@ namespace XerahS.UI.ViewModels
         public UpdateChannel[] UpdateChannels => (UpdateChannel[])Enum.GetValues(typeof(UpdateChannel));
 
         [ObservableProperty]
+        private PreReleaseUpdateSource _preReleaseUpdateSource;
+
+        public PreReleaseUpdateSource[] PreReleaseUpdateSources => (PreReleaseUpdateSource[])Enum.GetValues(typeof(PreReleaseUpdateSource));
+
+        [ObservableProperty]
+        private string _customPreReleaseUpdateSource = string.Empty;
+
+        public bool ShowPreReleaseSourceSettings => UpdateChannel == UpdateChannel.PreRelease;
+        public bool ShowCustomPreReleaseSource => ShowPreReleaseSourceSettings && PreReleaseUpdateSource == PreReleaseUpdateSource.Custom;
+
+        partial void OnAutoCheckUpdateChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ShowPreReleaseSourceSettings));
+            OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        partial void OnUpdateChannelChanged(UpdateChannel value)
+        {
+            OnPropertyChanged(nameof(ShowPreReleaseSourceSettings));
+            OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        partial void OnPreReleaseUpdateSourceChanged(PreReleaseUpdateSource value)
+        {
+            OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        [ObservableProperty]
         private HotkeySettingsViewModel _hotkeySettings;
 
         public ApplicationConfig ApplicationConfig => SettingsManager.Settings;
@@ -204,6 +232,8 @@ namespace XerahS.UI.ViewModels
             TaskbarProgressEnabled = settings.TaskbarProgressEnabled;
             AutoCheckUpdate = settings.AutoCheckUpdate;
             UpdateChannel = settings.UpdateChannel;
+            PreReleaseUpdateSource = settings.PreReleaseUpdateSource;
+            CustomPreReleaseUpdateSource = settings.CustomPreReleaseUpdateSource;
             // Migrate legacy Dev channel to PreRelease (Dev was removed)
             if ((int)UpdateChannel >= 2)
             {
@@ -318,6 +348,8 @@ namespace XerahS.UI.ViewModels
             settings.TaskbarProgressEnabled = TaskbarProgressEnabled;
             settings.AutoCheckUpdate = AutoCheckUpdate;
             settings.UpdateChannel = UpdateChannel;
+            settings.PreReleaseUpdateSource = PreReleaseUpdateSource;
+            settings.CustomPreReleaseUpdateSource = CustomPreReleaseUpdateSource?.Trim() ?? string.Empty;
 
             // Proxy Settings
             settings.ProxySettings.ProxyMethod = ProxyMethod;
