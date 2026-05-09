@@ -241,7 +241,7 @@ public static class OpenClawPluginExporter
                   clearTimeout(timer);
                   const result: XerahSRunResult = {
                     exitCode,
-                    stdout: Buffer.concat(stdout).toString("utf8").trim(),
+                    stdout: redactDiagnostics(Buffer.concat(stdout).toString("utf8").trim()),
                     stderr: redactDiagnostics(Buffer.concat(stderr).toString("utf8").trim()),
                   };
 

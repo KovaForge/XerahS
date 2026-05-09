@@ -87,6 +87,8 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(tools, Does.Contain("[\"upload\", \"--pipe\", \"--name\", name, \"--json\"]"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(runner, Does.Contain("windowsHide: true"));
+                Assert.That(runner, Does.Contain("stdout: redactDiagnostics(Buffer.concat(stdout).toString(\"utf8\").trim())"));
+                Assert.That(runner, Does.Contain("stderr: redactDiagnostics(Buffer.concat(stderr).toString(\"utf8\").trim())"));
             });
         }
         finally
