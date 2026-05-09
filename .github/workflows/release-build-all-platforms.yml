@@ -333,7 +333,7 @@ jobs:
           test -f build/com.getsharex.XerahS/metadata
           test -x build/com.getsharex.XerahS/files/bin/xerahs
           test -f build/com.getsharex.XerahS/files/share/applications/com.getsharex.XerahS.desktop
-          test -f build/com.getsharex.XerahS/files/share/icons/hicolor/256x256/apps/com.getsharex.XerahS.png
+          test -f build/com.getsharex.XerahS/files/share/icons/hicolor/512x512/apps/com.getsharex.XerahS.png
           test -f build/com.getsharex.XerahS/files/share/metainfo/com.getsharex.XerahS.metainfo.xml
           test -f dist/flatpak-repo/config
 
