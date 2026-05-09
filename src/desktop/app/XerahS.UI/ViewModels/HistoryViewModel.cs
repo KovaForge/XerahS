@@ -367,7 +367,10 @@ namespace XerahS.UI.ViewModels
         {
             // Cancel any previous thumbnail loading
             _thumbnailCancellationTokenSource?.Cancel();
-            _thumbnailCancellationTokenSource = new CancellationTokenSource();
+            var thumbnailCancellationTokenSource = new CancellationTokenSource();
+            _thumbnailCancellationTokenSource = thumbnailCancellationTokenSource;
+            CancellationToken cancellationToken = thumbnailCancellationTokenSource.Token;
+            List<HistoryItem> snapshot = HistoryItems.ToList();
 
             IsLoadingThumbnails = true;
             try
@@ -375,10 +378,10 @@ namespace XerahS.UI.ViewModels
                 await Task.Run(() =>
                 {
                     int loadedCount = 0;
-                    foreach (var item in HistoryItems)
+                    foreach (var item in snapshot)
                     {
                         // Check cancellation token
-                        _thumbnailCancellationTokenSource.Token.ThrowIfCancellationRequested();
+                        cancellationToken.ThrowIfCancellationRequested();
 
                         // Pre-load thumbnail by accessing the converter
                         // This forces the thumbnail to be cached for faster display
@@ -401,14 +404,15 @@ namespace XerahS.UI.ViewModels
                         }
 
                         // Add small delay to prevent CPU saturation
-                        if (loadedCount % 5 == 0)
+                        if (loadedCount > 0 && loadedCount % 5 == 0)
                         {
-                            System.Threading.Thread.Sleep(50);
+                            cancellationToken.WaitHandle.WaitOne(50);
+                            cancellationToken.ThrowIfCancellationRequested();
                         }
                     }
 
                     DebugHelper.WriteLine($"Thumbnails pre-loaded: {loadedCount} images");
-                }, _thumbnailCancellationTokenSource.Token);
+                }, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -420,7 +424,13 @@ namespace XerahS.UI.ViewModels
             }
             finally
             {
-                IsLoadingThumbnails = false;
+                if (ReferenceEquals(_thumbnailCancellationTokenSource, thumbnailCancellationTokenSource))
+                {
+                    _thumbnailCancellationTokenSource = null;
+                    IsLoadingThumbnails = false;
+                }
+
+                thumbnailCancellationTokenSource.Dispose();
             }
         }
 
