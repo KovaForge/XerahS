@@ -691,3 +691,87 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fast-forwarded local `develop` to `origin/develop` commit `6ab2a45b`; upstream/develop already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed DXGI full-screen capture cleanup so enumerated outputs and unique adapters are disposed on early returns, invalid bounds, device-creation skips, and setup failures. Added regression coverage and bumped version `0.22.233` -> `0.22.234`.
 - Build/Test: Release build passed with 0 warnings/errors; Release tests passed 873 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-080839.log`, `/tmp/xerahs-hourly-sweep/test-20260509-080934.log`.
 - Follow-up: Continue capture pipeline review around DXGI full-screen resource ownership during partial duplication setup and frame acquisition failures.
+
+### 2026-05-09 11:55 AWST / completed 2026-05-09 12:06 AWST - OpenClaw plugin exporter diagnostic redaction
+
+- Area: OpenClaw native plugin export / generated runner diagnostics; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Fast-forwarded local `develop` through origin docs commits `9f8bd5bc`/`14d8a6d6` and upstream release/integration commits through `54cbce83`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed the exported OpenClaw plugin runner to redact stdout as well as stderr before formatting failed XerahS command diagnostics, preventing token-like stdout from leaking through plugin errors. Added exporter regression coverage and bumped version `0.22.236` -> `0.22.237`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 878 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-120238.log`, `/tmp/xerahs-hourly-sweep/test-20260509-120558.log`.
+- Follow-up: Continue reviewing the OpenClaw plugin export templates around generated TypeScript SDK imports and command timeout/error handling.
+
+### 2026-05-09 13:55 AWST / completed 2026-05-09 14:06 AWST - OpenClaw plugin exporter JSON parsing
+
+- Area: OpenClaw native plugin export / generated runner JSON parsing; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop release-prep commit `d84cc957`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed the exported OpenClaw plugin runner to parse raw stdout for expected JSON while keeping redacted stdout/stderr for diagnostics and non-JSON output, preventing token-like JSON URL fields from being corrupted before parsing. Added exporter regression coverage and bumped version `0.22.237` -> `0.22.238`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 878 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-140301.log`, `/tmp/xerahs-hourly-sweep/test-20260509-140605.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export timeout handling around child process termination and generated TypeScript SDK imports.
+
+### 2026-05-09 15:55 AWST / completed 2026-05-09 16:08 AWST - OpenClaw plugin exporter SDK imports
+
+- Area: OpenClaw native plugin export / generated TypeScript SDK imports; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop commits `83b367ab`, `437b49b6`, `0ea08f80`, and `314700ee`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated OpenClaw tools to import `jsonResult` from the core plugin SDK instead of the web-search provider SDK, added exporter regression coverage, and bumped version `0.22.238` -> `0.22.239`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 880 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-160350.log`, `/tmp/xerahs-hourly-sweep/test-20260509-160654.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export timeout handling around child process termination.
+
+### 2026-05-09 17:55 AWST / completed 2026-05-09 18:35 AWST - OpenClaw plugin exporter timeout termination
+
+- Area: OpenClaw native plugin export / generated runner timeout handling; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Origin/develop and upstream/develop were already contained; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner timeout handling so timed-out XerahS child processes are terminated with a grace-period escalation, settled once, and reported only after process close. Added exporter regression checks and bumped version `0.22.240` -> `0.22.241`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 880 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-183036.log`, `/tmp/xerahs-hourly-sweep/test-20260509-183401.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner process lifecycle around spawn errors and stream cleanup.
+
+### 2026-05-09 21:55 AWST / completed 2026-05-09 22:34 AWST - OpenClaw plugin exporter stdin pipe errors
+
+- Area: OpenClaw native plugin export / generated runner process lifecycle; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Local `develop` already contained upstream/develop commits `c7fe1211` and `b96648a4` via merge `a0c01705`; origin/develop was behind. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner stdin error handling so expected `EPIPE` from early child exit is ignored while real stdin/spawn errors reject once through shared cleanup. Added exporter regression checks and bumped version `0.22.241` -> `0.22.242`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 887 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260509-222959.log`, `/tmp/xerahs-hourly-sweep/test-20260509-223316.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner stream cleanup around stdout/stderr error paths and cancellation.
+
+### 2026-05-09 23:55 AWST / completed 2026-05-10 00:35 AWST - OpenClaw plugin exporter stdout/stderr stream errors
+
+- Area: OpenClaw native plugin export / generated runner stream cleanup; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop docs commits `3cc08971` and `e19a8c4d`; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed generated runner stdout/stderr stream error handling so stream failures reject through shared cleanup instead of surfacing as unhandled plugin-host errors. Added exporter regression checks and bumped version `0.22.242` -> `0.22.243`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 887 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-003031.log`, `/tmp/xerahs-hourly-sweep/test-20260510-003348.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export cancellation behavior and generated runner cleanup after abort-like host shutdown.
+
+### 2026-05-10 06:27 AWST / completed 2026-05-10 06:36 AWST - OpenClaw plugin exporter rejection cleanup
+
+- Area: OpenClaw native plugin export / generated runner cancellation and rejection cleanup; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Fast-forwarded local `develop` to origin commits `562cf474` and `6bbd0220`; upstream/develop was already contained. ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; upstream image editor has divergent `d3ef805`, no parent pointer change. Fixed generated runner rejection paths so stream/spawn failures terminate the child process with the existing graceful kill plus SIGKILL escalation instead of leaving a live child after host-side rejection. Added exporter regression checks and bumped version `0.22.243` -> `0.22.244`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 892 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-063042.log`, `/tmp/xerahs-hourly-sweep/test-20260510-063357.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner abort/cancellation behavior around caller-initiated cancellation and post-rejection close events.
+
+### 2026-05-10 08:27 AWST / completed 2026-05-10 08:35 AWST - OpenClaw plugin exporter caller cancellation
+
+- Area: OpenClaw native plugin export / generated runner cancellation; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Local `develop` already matched `origin/develop` at `991450e8` and already contained `upstream/develop`; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`, upstream still divergent at `d3ef805`, no parent pointer change. Fixed generated runner caller cancellation so pre-aborted calls reject before spawn and active abort signals terminate the child with cleanup. Added exporter regression checks and bumped version `0.22.244` -> `0.22.245`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 892 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-083130.log`, `/tmp/xerahs-hourly-sweep/test-20260510-083459.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner process lifecycle around SDK-provided abort propagation from tool handlers.
+
+### 2026-05-10 10:27 AWST / completed 2026-05-10 10:35 AWST - OpenClaw plugin exporter tool abort propagation
+
+- Area: OpenClaw native plugin export / generated tool handler cancellation; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Fast-forwarded local `develop` to origin docs commits `73d4011c` and `cc3b163f`, then merged upstream/develop commits `98ecb500` and `05f38ed3`; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`, no parent pointer change. Fixed generated OpenClaw tools to accept the SDK-provided `AbortSignal` and pass it into every `runXerahS` invocation so host-side tool cancellation terminates the child command. Added exporter regression checks and bumped version `0.22.245` -> `0.22.246`.
+- Build/Test: Release build passed with 0 warnings/errors; Release tests passed 892 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-103205.log`, `/tmp/xerahs-hourly-sweep/test-20260510-103516.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner process lifecycle around tool-result formatting and CLI command cancellation parity.
+
+### 2026-05-10 12:27 AWST / completed 2026-05-10 12:34 AWST - OpenClaw plugin exporter CLI cancellation parity
+
+- Area: OpenClaw native plugin export / generated CLI cancellation; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop docs commit `688a8d69` via `457a7f0a`; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`, no parent pointer change. Fixed generated OpenClaw CLI commands to abort active XerahS child runs on SIGINT/SIGTERM and unregister process listeners after completion. Added exporter regression assertions and bumped version `0.22.246` -> `0.22.247`.
+- Verification: `dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors; `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 892 total tests. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-123017.log`, `/tmp/xerahs-hourly-sweep/test-20260510-123334.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner/tool behavior around tool-result formatting and generated CLI exit-code handling after cancellation.
+
+### 2026-05-10 18:27 AWST / completed 2026-05-10 18:34 AWST - OpenClaw plugin exporter CLI cancellation exit codes
+
+- Area: OpenClaw native plugin export / generated CLI cancellation; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop commits through `eae26d65`; ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`, no parent pointer change. Fixed generated OpenClaw CLI cancellation to convert SIGINT/SIGTERM aborts into conventional exit codes 130/143 instead of surfacing a generic rejection path. Added exporter regression assertions and bumped version `0.22.247` -> `0.22.248`.
+- Verification: `dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors; `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 892 total tests. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-183033.log`, `/tmp/xerahs-hourly-sweep/test-20260510-183346.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner/tool behavior around tool-result formatting and non-cancellation CLI failure reporting.
+
+### 2026-05-10 20:33 AWST / completed 2026-05-10 20:41 AWST - OpenClaw plugin exporter signal failure reporting
+
+- Area: OpenClaw native plugin export / generated runner non-cancellation failure reporting; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop commit `1296a1bc`; origin/develop already matched local before the merge. ShareX.ImageEditor verified on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`, no parent pointer change. Fixed generated runner failure formatting to report signal-terminated child commands as `signal SIG...` instead of `exit code null`. Added exporter regression assertions and bumped version `0.22.248` -> `0.22.249`.
+- Verification: `dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/errors; `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 892 total tests. Logs: `/tmp/xerahs-hourly-sweep/build-20260510-203727.log`, `/tmp/xerahs-hourly-sweep/test-20260510-204039.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated runner/tool behavior around invalid JSON diagnostics and preserving useful, redacted failure context.

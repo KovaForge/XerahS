@@ -17,7 +17,7 @@ The CLI is designed for automation:
 OpenClaw/Hermes agents can ask the CLI for a capability manifest:
 
 ```bash
-xerahs openclaw manifest
+xerahscli openclaw manifest
 ```
 
 The manifest is JSON and includes the preferred health check, bootstrap command, supported automation commands, and whether each command may use network/capture facilities.
@@ -29,9 +29,9 @@ For native OpenClaw plugin setup, see [OPENCLAW_PLUGIN.md](OPENCLAW_PLUGIN.md). 
 Before upload automation, repair safe local defaults:
 
 ```bash
-xerahs bootstrap uploaders
+xerahscli bootstrap uploaders
 # or, with diagnostics:
-xerahs doctor uploaders --fix
+xerahscli doctor uploaders --fix
 ```
 
 Default behavior:
@@ -46,7 +46,7 @@ Default behavior:
 Use JSON diagnostics in automation:
 
 ```bash
-xerahs doctor uploaders --json
+xerahscli doctor uploaders --json
 ```
 
 A healthy result has `hasBlockingIssues: false` and at least one usable default for the relevant upload category.
@@ -56,25 +56,25 @@ A healthy result has `hasBlockingIssues: false` and at least one usable default 
 Upload a file and parse the URL:
 
 ```bash
-xerahs upload ./artifact.png --json
+xerahscli upload ./artifact.png --json
 ```
 
 Force a text-like file, such as an HTML report, through the file uploader category instead of the text uploader:
 
 ```bash
-xerahs upload ./report.html --as-file --json
+xerahscli upload ./report.html --as-file --json
 ```
 
 Upload generated text:
 
 ```bash
-xerahs upload --text "hello from OpenClaw" --name note.txt --json
+xerahscli upload --text "hello from OpenClaw" --name note.txt --json
 ```
 
 Upload stdin from another tool:
 
 ```bash
-printf 'hello from Hermes\n' | xerahs upload --pipe --name hermes-note.txt --json
+printf 'hello from Hermes\n' | xerahscli upload --pipe --name hermes-note.txt --json
 ```
 
 JSON upload output is intentionally clean stdout:
@@ -93,7 +93,7 @@ JSON upload output is intentionally clean stdout:
 Generate an HTML directory index:
 
 ```bash
-xerahs index ./folder --format html --output ./folder-index.html
+xerahscli index ./folder --format html --output ./folder-index.html
 ```
 
 For automation, add `--json` to print machine-readable metadata including `outputFilePath`, totals, duration, and format.
@@ -103,15 +103,15 @@ When `--format` is omitted, the CLI writes HTML. When `--output` is omitted, it 
 Other supported file formats:
 
 ```bash
-xerahs index ./folder --format txt --output ./folder-index.txt
-xerahs index ./folder --format xml --output ./folder-index.xml
-xerahs index ./folder --format json --output ./folder-index.json
+xerahscli index ./folder --format txt --output ./folder-index.txt
+xerahscli index ./folder --format xml --output ./folder-index.xml
+xerahscli index ./folder --format json --output ./folder-index.json
 ```
 
 Useful filters:
 
 ```bash
-xerahs index ./folder --include .cs,.md --exclude .bin,.obj --max-depth 2 --json
+xerahscli index ./folder --include .cs,.md --exclude .bin,.obj --max-depth 2 --json
 ```
 
 ## ReClip integration
@@ -119,37 +119,37 @@ xerahs index ./folder --include .cs,.md --exclude .bin,.obj --max-depth 2 --json
 Configure the local ReClip handoff folder:
 
 ```bash
-xerahs reclip use-default-watch-folder
+xerahscli reclip use-default-watch-folder
 # equivalent explicit form:
-xerahs reclip set-watch-folder /Users/mike/Library/CloudStorage/OneDrive-Personal/Videos/ReClip
+xerahscli reclip set-watch-folder /Users/mike/Library/CloudStorage/OneDrive-Personal/Videos/ReClip
 ```
 
 Inspect the current ReClip config:
 
 ```bash
-xerahs reclip status
-xerahs reclip status --json
+xerahscli reclip status
+xerahscli reclip status --json
 ```
 
-The setting is stored at `ReClipConfig.json` under the normal XerahS settings folder shown by `xerahs config path`.
+The setting is stored at `ReClipConfig.json` under the normal XerahS settings folder shown by `xerahscli config path`.
 
 ## Useful commands for agents
 
 ```bash
-xerahs --help
-xerahs openclaw manifest
-xerahs config path
-xerahs list workflows
-xerahs doctor uploaders --json
-xerahs doctor uploaders --fix
-xerahs bootstrap uploaders
-xerahs reclip status --json
-xerahs reclip use-default-watch-folder --json
-xerahs index <folder> --format html --output <file> --json
-xerahs upload <file> --json
-xerahs upload <file> --as-file --json
-xerahs upload --text <content> --name <name> --json
-xerahs upload --pipe --name <name> --json
+xerahscli --help
+xerahscli openclaw manifest
+xerahscli config path
+xerahscli list workflows
+xerahscli doctor uploaders --json
+xerahscli doctor uploaders --fix
+xerahscli bootstrap uploaders
+xerahscli reclip status --json
+xerahscli reclip use-default-watch-folder --json
+xerahscli index <folder> --format html --output <file> --json
+xerahscli upload <file> --json
+xerahscli upload <file> --as-file --json
+xerahscli upload --text <content> --name <name> --json
+xerahscli upload --pipe --name <name> --json
 ```
 
 ## Notes for OpenClaw tool authors

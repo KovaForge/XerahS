@@ -127,6 +127,19 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool ScreenshotContentSearchEnabled
+        {
+            get => SettingsManager.Settings.ScreenshotContentSearchEnabled;
+            set
+            {
+                if (SettingsManager.Settings.ScreenshotContentSearchEnabled != value)
+                {
+                    SettingsManager.Settings.ScreenshotContentSearchEnabled = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // Recent Tasks Settings
         public bool RecentTasksSave
         {

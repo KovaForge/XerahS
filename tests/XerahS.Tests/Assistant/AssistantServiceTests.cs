@@ -597,6 +597,12 @@ public sealed class AssistantServiceTests
         public Task<IReadOnlyList<AssistantHistoryItem>> GetLatestScreenshotsAsync(int limit, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<AssistantHistoryItem>>(items.Take(limit).ToList());
 
+        public Task<IReadOnlyList<AssistantHistoryItem>> SearchScreenshotsAsync(string query, int limit, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<AssistantHistoryItem>>(items
+                .Where(item => item.OcrText?.Contains(query, StringComparison.OrdinalIgnoreCase) == true)
+                .Take(limit)
+                .ToList());
+
         public Task<string?> GetCachedOcrTextAsync(string filePath, CancellationToken cancellationToken)
         {
             CachedOcrByPath.TryGetValue(filePath, out string? value);

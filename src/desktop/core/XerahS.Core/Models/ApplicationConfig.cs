@@ -93,6 +93,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool AssistantEnabled { get; set; } = true;
     public HotkeyInfo AssistantHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Shift);
     public bool AssistantPromptHistoryEnabled { get; set; }
+    public bool ScreenshotContentSearchEnabled { get; set; }
     public string AssistantActiveProviderId { get; set; } = string.Empty;
     public List<AssistantProviderConfig> AssistantProviders { get; set; } = new();
 

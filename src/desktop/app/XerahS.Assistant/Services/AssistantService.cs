@@ -141,6 +141,7 @@ public sealed class AssistantService : IAssistantService
             AssistantDeterministicIntentKind.OcrLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RunOcr, cancellationToken),
             AssistantDeterministicIntentKind.CopyOcrLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.RunOcr, cancellationToken, "copy"),
             AssistantDeterministicIntentKind.UploadLatestScreenshot => await ExecuteLatestFileActionAsync(AssistantActionKind.UploadFile, cancellationToken),
+            AssistantDeterministicIntentKind.SearchScreenshotText => await SearchScreenshotTextAsync(intent, cancellationToken),
             AssistantDeterministicIntentKind.RunWorkflow => await PrepareWorkflowRunAsync(intent.Argument, cancellationToken),
             _ => AssistantResponse.Info(
                 "AI provider not configured. XerahS Assistant can only run local commands without a provider.",
@@ -184,7 +185,7 @@ public sealed class AssistantService : IAssistantService
                     Convert the user's request into exactly one JSON object with no surrounding prose.
                     Allowed intents: latest_screenshot_paths, copy_latest_screenshot_path, open_latest_screenshot,
                     reveal_latest_screenshot, ocr_latest_screenshot, copy_ocr_latest_screenshot,
-                    upload_latest_screenshot, run_workflow, no_match.
+                    upload_latest_screenshot, search_screenshot_text, run_workflow, no_match.
                     JSON schema:
                     {
                       "intent": string,
@@ -195,6 +196,7 @@ public sealed class AssistantService : IAssistantService
                     }
                     Rules:
                     - Use latest_screenshot_paths for requests asking for one or more screenshot file paths.
+                    - Use search_screenshot_text for requests to find screenshots by visible words. Put the search text in argument.
                     - Preserve an explicit separator like ";", ",", "|", "newline", or "tab" in the separator field.
                     - For run_workflow, place the workflow name in argument.
                     - Return no_match when the request does not cleanly map to one safe local action.
@@ -337,6 +339,44 @@ public sealed class AssistantService : IAssistantService
         return new AssistantResponse(
             AssistantResponseKind.Results,
             message,
+            items.Select(ToResultItem).ToList(),
+            [new AssistantAction(AssistantActionKind.CopyText, "Copy paths", paths, ToolName: AssistantToolNames.ClipboardCopyText)]);
+    }
+
+    private async Task<AssistantResponse> SearchScreenshotTextAsync(
+        AssistantDeterministicIntent intent,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(intent.Argument))
+        {
+            return AssistantResponse.Error("Enter text to search for in screenshots.");
+        }
+
+        IReadOnlyList<AssistantHistoryItem> items = await _history.SearchScreenshotsAsync(intent.Argument, intent.Limit, cancellationToken);
+        if (items.Count == 0)
+        {
+            return AssistantResponse.Error($"No screenshots found containing \"{intent.Argument}\".");
+        }
+
+        string paths = string.Join(Environment.NewLine, items.Select(item => item.FilePath));
+        if (intent.CopyRequested)
+        {
+            AssistantResponse? clipboardResponse = await TryCopyTextToClipboardAsync(paths);
+            if (clipboardResponse != null)
+            {
+                return clipboardResponse with
+                {
+                    Items = items.Select(ToResultItem).ToList(),
+                    Actions = [new AssistantAction(AssistantActionKind.CopyText, "Copy paths", paths, ToolName: AssistantToolNames.ClipboardCopyText)]
+                };
+            }
+        }
+
+        return new AssistantResponse(
+            AssistantResponseKind.Results,
+            intent.CopyRequested
+                ? $"Copied {items.Count} matching screenshot path(s)."
+                : $"Found {items.Count} matching screenshot(s).",
             items.Select(ToResultItem).ToList(),
             [new AssistantAction(AssistantActionKind.CopyText, "Copy paths", paths, ToolName: AssistantToolNames.ClipboardCopyText)]);
     }
@@ -792,6 +832,7 @@ public sealed class AssistantService : IAssistantService
                 "ocr_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.OcrLatestScreenshot, 1, false),
                 "copy_ocr_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.CopyOcrLatestScreenshot, 1, true),
                 "upload_latest_screenshot" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.UploadLatestScreenshot, 1, false),
+                "search_screenshot_text" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.SearchScreenshotText, limit, copyRequested, Argument: argument),
                 "run_workflow" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.RunWorkflow, 1, false, Argument: argument),
                 "no_match" => new AssistantDeterministicIntent(AssistantDeterministicIntentKind.Unknown, 0, false),
                 _ => null

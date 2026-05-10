@@ -357,9 +357,30 @@ namespace XerahS.Core.Tasks.Processors
                         }
                     }
 
-                    historyManager.AppendHistoryItem(historyItem);
+                    bool appended = historyManager.AppendHistoryItem(historyItem);
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
-                    DebugHelper.WriteLine($"Added to history: {historyItem.FileName}");
+                    if (appended)
+                    {
+                        DebugHelper.WriteLine($"Added to history: {historyItem.FileName}");
+
+                        if (!string.IsNullOrWhiteSpace(info.Metadata?.OcrText))
+                        {
+                            await OcrIndexingService.PersistRecognizedTextAsync(
+                                historyItem,
+                                info.Metadata.OcrText,
+                                "after-capture-ocr",
+                                NormalizeOcrLanguage(info.TaskSettings.CaptureSettings.OCROptions?.Language),
+                                token);
+                        }
+                        else
+                        {
+                            OcrIndexingService.QueueIndexHistoryItem(historyItem);
+                        }
+                    }
+                    else
+                    {
+                        DebugHelper.WriteLine($"Failed to append history item: {historyItem.FileName}");
+                    }
                 }
                 catch (Exception ex)
                 {

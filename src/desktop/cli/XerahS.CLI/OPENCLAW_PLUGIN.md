@@ -2,7 +2,7 @@
 
 Use this guide when configuring OpenClaw to call XerahS for upload-to-URL workflows.
 
-The XerahS OpenClaw plugin is a small native OpenClaw plugin that shells out to the installed `xerahs` CLI. It does not store uploader credentials. Upload credentials and destinations stay in the local XerahS configuration.
+The XerahS OpenClaw plugin is a small native OpenClaw plugin that shells out to the installed `xerahscli` CLI. It does not store uploader credentials. Upload credentials and destinations stay in the local XerahS configuration.
 
 ## What The Plugin Provides
 
@@ -10,20 +10,20 @@ The exported plugin registers these OpenClaw tools:
 
 - `xerahs_upload_file` uploads a local file and returns XerahS upload JSON with a `url`.
 - `xerahs_upload_text` uploads generated text through stdin and returns XerahS upload JSON with a `url`.
-- `xerahs_doctor_uploaders` checks uploader readiness with `xerahs doctor uploaders --json`.
-- `xerahs_bootstrap_uploaders` initializes safe first-use uploader defaults with `xerahs bootstrap uploaders`.
+- `xerahs_doctor_uploaders` checks uploader readiness with `xerahscli doctor uploaders --json`.
+- `xerahs_bootstrap_uploaders` initializes safe first-use uploader defaults with `xerahscli bootstrap uploaders`.
 
-The initial scope is intentionally upload-focused. Capture, recording, ReClip, and directory-index tools remain direct `xerahs` CLI capabilities until a later plugin expansion.
+The initial scope is intentionally upload-focused. Capture, recording, ReClip, and directory-index tools remain direct `xerahscli` CLI capabilities until a later plugin expansion.
 
 ## Prerequisites
 
-1. Build or install XerahS so the `xerahs` CLI is available.
+1. Build or install XerahS so the `xerahscli` CLI is available.
 2. Configure XerahS uploaders in the desktop app or through imported local uploader configuration.
 3. Run the uploader bootstrap once:
 
 ```powershell
-xerahs bootstrap uploaders
-xerahs doctor uploaders --json
+xerahscli bootstrap uploaders
+xerahscli doctor uploaders --json
 ```
 
 The doctor result should report no blocking issues for the upload category you plan to use.
@@ -34,13 +34,13 @@ From the XerahS repository root:
 
 ```powershell
 dotnet build -m:1
-.\src\desktop\cli\XerahS.CLI\bin\Debug\net10.0-windows10.0.26100.0\xerahs.exe openclaw plugin export --output .\.artifacts\openclaw\xerahs-plugin --force
+.\src\desktop\cli\XerahS.CLI\bin\Debug\net10.0-windows10.0.26100.0\xerahscli.exe openclaw plugin export --output .\.artifacts\openclaw\xerahs-plugin --force
 ```
 
-If `xerahs` is already on `PATH`, this shorter form is enough:
+If `xerahscli` is already on `PATH`, this shorter form is enough:
 
 ```powershell
-xerahs openclaw plugin export --output .\.artifacts\openclaw\xerahs-plugin --force
+xerahscli openclaw plugin export --output .\.artifacts\openclaw\xerahs-plugin --force
 ```
 
 The output directory is a complete OpenClaw plugin source folder. It contains:
@@ -74,17 +74,17 @@ Restart the OpenClaw Gateway after installing or changing plugin source.
 
 ## Configure The XerahS Command
 
-If `xerahs` is on `PATH`, keep the default plugin config:
+If `xerahscli` is on `PATH`, keep the default plugin config:
 
 ```powershell
-openclaw config set plugins.entries.xerahs.config.command xerahs
+openclaw config set plugins.entries.xerahs.config.command xerahscli
 openclaw config set plugins.entries.xerahs.config.timeoutMs 120000
 ```
 
-If OpenClaw cannot find `xerahs`, point it at the executable built by this repository:
+If OpenClaw cannot find `xerahscli`, point it at the executable built by this repository:
 
 ```powershell
-openclaw config set plugins.entries.xerahs.config.command "C:\Users\liveu\source\repos\ShareX Team\XerahS\src\desktop\cli\XerahS.CLI\bin\Debug\net10.0-windows10.0.26100.0\xerahs.exe"
+openclaw config set plugins.entries.xerahs.config.command "C:\Users\liveu\source\repos\ShareX Team\XerahS\src\desktop\cli\XerahS.CLI\bin\Debug\net10.0-windows10.0.26100.0\xerahscli.exe"
 openclaw config set plugins.entries.xerahs.config.timeoutMs 120000
 ```
 
@@ -99,7 +99,7 @@ openclaw plugins inspect xerahs --json
 openclaw plugins inspect xerahs --runtime --json
 ```
 
-The runtime inspection should show the four `xerahs_*` tools and the `xerahs` CLI command descriptor.
+The runtime inspection should show the four `xerahs_*` tools and the `xerahscli` CLI command descriptor.
 
 Then run an uploader health check from OpenClaw by asking an agent to call `xerahs_doctor_uploaders`, or use OpenClaw's tool inspection output to invoke the tool directly if your OpenClaw build exposes direct tool invocation.
 
@@ -108,8 +108,8 @@ Then run an uploader health check from OpenClaw by asking an agent to call `xera
 Before asking OpenClaw to upload user artifacts, verify XerahS itself:
 
 ```powershell
-xerahs upload .\README.md --json
-"hello from OpenClaw" | xerahs upload --pipe --name openclaw-smoke.txt --json
+xerahscli upload .\README.md --json
+"hello from OpenClaw" | xerahscli upload --pipe --name openclaw-smoke.txt --json
 ```
 
 Expected output shape:
@@ -140,7 +140,7 @@ Then ask OpenClaw to use:
 
 ## Troubleshooting
 
-If OpenClaw reports that `xerahs` is not found, set `plugins.entries.xerahs.config.command` to the full `xerahs.exe` path.
+If OpenClaw reports that `xerahscli` is not found, set `plugins.entries.xerahs.config.command` to the full `xerahscli.exe` path.
 
 If `xerahs_upload_file` fails with a missing file, pass an absolute path or a path relative to the OpenClaw process working directory.
 

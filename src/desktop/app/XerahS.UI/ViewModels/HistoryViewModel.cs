@@ -99,6 +99,12 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private bool _isCombiningSelection = false;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsSearchActive))]
+        private string _searchText = string.Empty;
+
+        private int _searchVersion;
+
         public ObservableCollection<HistoryItem> SelectedHistoryItems { get; } = new();
 
         public bool CanCombineSelectedImages => GetSelectedCombinableHistoryItems().Count >= 2;
@@ -106,6 +112,8 @@ namespace XerahS.UI.ViewModels
         public bool ShowCombineActions => CanCombineSelectedImages;
 
         public int SelectedImageCount => GetSelectedCombinableHistoryItems().Count;
+
+        public bool IsSearchActive => !string.IsNullOrWhiteSpace(SearchText);
 
         public string CombineSelectionSummary => SelectedImageCount == 1
             ? "1 image selected"
@@ -192,20 +200,34 @@ namespace XerahS.UI.ViewModels
                 var historyPath = SettingsManager.GetHistoryFilePath();
                 DebugHelper.WriteLine($"History.xml location: {historyPath} (exists={File.Exists(historyPath)})");
 
-                // calculating offset
-                int offset = (CurrentPage - 1) * PageSize;
+                List<HistoryItem> items;
+                string query = SearchText.Trim();
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    TotalItems = await _historyManager.GetTotalCountAsync();
+                    TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
+                    if (TotalPages == 0) TotalPages = 1; // Ensure at least 1 page even if empty
 
-                // Load total count first
-                TotalItems = await _historyManager.GetTotalCountAsync();
-                TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
-                if (TotalPages == 0) TotalPages = 1; // Ensure at least 1 page even if empty
+                    // Adjust CurrentPage if out of bounds (e.g. after deletion)
+                    if (CurrentPage > TotalPages) CurrentPage = TotalPages;
+                    if (CurrentPage < 1) CurrentPage = 1;
 
-                // Adjust CurrentPage if out of bounds (e.g. after deletion)
-                if (CurrentPage > TotalPages) CurrentPage = TotalPages;
-                if (CurrentPage < 1) CurrentPage = 1;
+                    int offset = (CurrentPage - 1) * PageSize;
+                    items = await _historyManager.GetHistoryItemsAsync(offset, PageSize);
+                }
+                else
+                {
+                    List<HistoryItem> matches = await SearchHistoryItemsAsync(query);
+                    TotalItems = matches.Count;
+                    TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
+                    if (TotalPages == 0) TotalPages = 1;
 
-                // Load paged history on background thread
-                var items = await _historyManager.GetHistoryItemsAsync(offset, PageSize);
+                    if (CurrentPage > TotalPages) CurrentPage = TotalPages;
+                    if (CurrentPage < 1) CurrentPage = 1;
+
+                    int offset = (CurrentPage - 1) * PageSize;
+                    items = matches.Skip(offset).Take(PageSize).ToList();
+                }
 
                 // Clear and populate on UI thread
                 ClearSelectedHistoryItems();
@@ -232,6 +254,89 @@ namespace XerahS.UI.ViewModels
             {
                 IsLoading = false;
             }
+        }
+
+        [RelayCommand]
+        private async Task SearchHistoryAsync()
+        {
+            CurrentPage = 1;
+            await LoadHistoryAsync();
+        }
+
+        [RelayCommand]
+        private async Task ClearSearchAsync()
+        {
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                return;
+            }
+
+            SearchText = string.Empty;
+            CurrentPage = 1;
+            await LoadHistoryAsync();
+        }
+
+        partial void OnSearchTextChanged(string value)
+        {
+            CurrentPage = 1;
+            int version = Interlocked.Increment(ref _searchVersion);
+            _ = DebouncedSearchAsync(version);
+        }
+
+        private async Task DebouncedSearchAsync(int version)
+        {
+            await Task.Delay(300);
+            if (version == _searchVersion)
+            {
+                await LoadHistoryAsync();
+            }
+        }
+
+        private Task<List<HistoryItem>> SearchHistoryItemsAsync(string query)
+        {
+            return Task.Run(() =>
+            {
+                int count = _historyManager.GetTotalCount();
+                if (count <= 0)
+                {
+                    return new List<HistoryItem>();
+                }
+
+                List<HistoryItem> items = _historyManager.GetHistoryItems(0, count);
+                Dictionary<long, string> indexedTexts = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath())
+                    .GetTexts(items.Select(item => item.Id));
+
+                return items
+                    .Where(item => MatchesHistorySearch(
+                        item,
+                        query,
+                        indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
+                    .OrderByDescending(item => item.DateTime)
+                    .ToList();
+            });
+        }
+
+        private static bool MatchesHistorySearch(HistoryItem item, string query, string? indexedOcrText)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return true;
+            }
+
+            return ContainsSearchText(item.FileName, query) ||
+                   ContainsSearchText(item.FilePath, query) ||
+                   ContainsSearchText(item.URL, query) ||
+                   ContainsSearchText(item.Host, query) ||
+                   ContainsSearchText(item.TagsWindowTitle, query) ||
+                   ContainsSearchText(item.TagsProcessName, query) ||
+                   ContainsSearchText(indexedOcrText, query) ||
+                   item.Tags.Any(pair => ContainsSearchText(pair.Key, query) || ContainsSearchText(pair.Value, query));
+        }
+
+        private static bool ContainsSearchText(string? source, string query)
+        {
+            return !string.IsNullOrWhiteSpace(source) &&
+                source.Contains(query, StringComparison.OrdinalIgnoreCase);
         }
 
         [RelayCommand]
@@ -262,7 +367,10 @@ namespace XerahS.UI.ViewModels
         {
             // Cancel any previous thumbnail loading
             _thumbnailCancellationTokenSource?.Cancel();
-            _thumbnailCancellationTokenSource = new CancellationTokenSource();
+            var thumbnailCancellationTokenSource = new CancellationTokenSource();
+            _thumbnailCancellationTokenSource = thumbnailCancellationTokenSource;
+            CancellationToken cancellationToken = thumbnailCancellationTokenSource.Token;
+            List<HistoryItem> snapshot = HistoryItems.ToList();
 
             IsLoadingThumbnails = true;
             try
@@ -270,10 +378,10 @@ namespace XerahS.UI.ViewModels
                 await Task.Run(() =>
                 {
                     int loadedCount = 0;
-                    foreach (var item in HistoryItems)
+                    foreach (var item in snapshot)
                     {
                         // Check cancellation token
-                        _thumbnailCancellationTokenSource.Token.ThrowIfCancellationRequested();
+                        cancellationToken.ThrowIfCancellationRequested();
 
                         // Pre-load thumbnail by accessing the converter
                         // This forces the thumbnail to be cached for faster display
@@ -296,14 +404,15 @@ namespace XerahS.UI.ViewModels
                         }
 
                         // Add small delay to prevent CPU saturation
-                        if (loadedCount % 5 == 0)
+                        if (loadedCount > 0 && loadedCount % 5 == 0)
                         {
-                            System.Threading.Thread.Sleep(50);
+                            cancellationToken.WaitHandle.WaitOne(50);
+                            cancellationToken.ThrowIfCancellationRequested();
                         }
                     }
 
                     DebugHelper.WriteLine($"Thumbnails pre-loaded: {loadedCount} images");
-                }, _thumbnailCancellationTokenSource.Token);
+                }, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -315,7 +424,13 @@ namespace XerahS.UI.ViewModels
             }
             finally
             {
-                IsLoadingThumbnails = false;
+                if (ReferenceEquals(_thumbnailCancellationTokenSource, thumbnailCancellationTokenSource))
+                {
+                    _thumbnailCancellationTokenSource = null;
+                    IsLoadingThumbnails = false;
+                }
+
+                thumbnailCancellationTokenSource.Dispose();
             }
         }
 
@@ -728,6 +843,7 @@ namespace XerahS.UI.ViewModels
 
             // Persist deletion to database
             _historyManager.Delete(item);
+            new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).Delete(item.Id);
             DebugHelper.WriteLine($"Deleted history item: {item.FileName}");
         }
 
@@ -796,6 +912,8 @@ namespace XerahS.UI.ViewModels
                     DebugHelper.WriteLine($"HistoryViewModel - Failed to append combined history item: {combinedHistoryItem.FilePath}");
                     return;
                 }
+
+                XerahS.Core.Services.OcrIndexingService.QueueIndexHistoryItem(combinedHistoryItem);
 
                 ClearSelectedHistoryItems();
                 CurrentPage = 1;

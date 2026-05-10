@@ -58,9 +58,7 @@ namespace XerahS.Common
 
                 if (string.IsNullOrEmpty(_personalFolder))
                 {
-                    _personalFolder = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
-                        AppResources.AppName);
+                    _personalFolder = Path.Combine(GetDocumentsFolder(), AppResources.AppName);
                 }
                 return _personalFolder;
             }
@@ -75,6 +73,33 @@ namespace XerahS.Common
         }
 
         private static bool UseLinuxXdgLayout => OperatingSystem.IsLinux() && !_personalFolderOverrideSet;
+
+        private static string GetDocumentsFolder()
+        {
+            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (!string.IsNullOrWhiteSpace(documents) && Path.IsPathRooted(documents))
+            {
+                return documents;
+            }
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (OperatingSystem.IsMacOS())
+            {
+                string macOSDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
+                if (Directory.Exists(macOSDocuments))
+                {
+                    return macOSDocuments;
+                }
+            }
+
+            string userProfileDocuments = Path.Combine(userProfile ?? string.Empty, "Documents");
+            if (!string.IsNullOrWhiteSpace(userProfile) && Path.IsPathRooted(userProfileDocuments))
+            {
+                return userProfileDocuments;
+            }
+
+            return string.IsNullOrWhiteSpace(documents) ? Environment.CurrentDirectory : documents;
+        }
 
         public static string ScreenshotsFolder => UseLinuxXdgLayout
             ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.ScreenshotsFolderName)
@@ -332,7 +357,18 @@ namespace XerahS.Common
                 return;
             }
 
-            foreach (var legacyPluginDirectory in Directory.GetDirectories(PluginsFolder))
+            string[] legacyPluginDirectories;
+            try
+            {
+                legacyPluginDirectories = Directory.GetDirectories(PluginsFolder);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException)
+            {
+                DebugHelper.WriteLine($"[Plugins] Skipping legacy plugin migration because '{PluginsFolder}' cannot be enumerated: {ex.Message}");
+                return;
+            }
+
+            foreach (var legacyPluginDirectory in legacyPluginDirectories)
             {
                 string directoryName = Path.GetFileName(legacyPluginDirectory);
 

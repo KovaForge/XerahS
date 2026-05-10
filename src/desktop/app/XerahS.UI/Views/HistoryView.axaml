@@ -22,6 +22,22 @@
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
             <StackPanel Spacing="12">
                 <StackPanel Orientation="Horizontal" Spacing="16">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Search history"
+                             MinWidth="260"
+                             AutomationProperties.Name="Search History"/>
+                    <Button Content="Search"
+                            Command="{Binding SearchHistoryCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            AutomationProperties.Name="Search History"/>
+                    <Button Content="Clear"
+                            Command="{Binding ClearSearchCommand}"
+                            IsVisible="{Binding IsSearchActive}"
+                            IsEnabled="{Binding !IsLoading}"
+                            AutomationProperties.Name="Clear History Search"/>
+
+                    <Separator Classes="vertical" Height="20"/>
+
                     <Button Content="Refresh" Command="{Binding RefreshHistoryCommand}" 
                             IsEnabled="{Binding !IsLoading}"
                             AutomationProperties.Name="Refresh History"/>

@@ -27,10 +27,10 @@ public static class OpenClawCommand
                 Name: "xerahs",
                 DisplayName: "XerahS CLI",
                 Description: "First-party XerahS automation CLI for OpenClaw and Hermes agents.",
-                Invocation: "xerahs",
-                VersionCommand: "xerahs --version",
-                HealthCommand: "xerahs doctor uploaders --json",
-                BootstrapCommand: "xerahs bootstrap uploaders",
+                Invocation: "xerahscli",
+                VersionCommand: "xerahscli --version",
+                HealthCommand: "xerahscli doctor uploaders --json",
+                BootstrapCommand: "xerahscli bootstrap uploaders",
                 Principles:
                 [
                     "Non-interactive by default",

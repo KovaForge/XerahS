@@ -84,7 +84,7 @@ public static class OpenClawPluginExporter
                   "command": {
                     "type": "string",
                     "description": "XerahS CLI command or absolute executable path.",
-                    "default": "xerahs"
+                    "default": "xerahscli"
                   },
                   "timeoutMs": {
                     "type": "integer",
@@ -107,7 +107,7 @@ public static class OpenClawPluginExporter
                 api.registerCli(() => {}, {
                   descriptors: [
                     {
-                      name: "xerahs",
+                      name: "xerahscli",
                       description: "Upload files or text through XerahS",
                       hasSubcommands: true,
                     },
@@ -141,7 +141,7 @@ public static class OpenClawPluginExporter
                   {
                     descriptors: [
                       {
-                        name: "xerahs",
+                        name: "xerahscli",
                         description: "Upload files or text through XerahS",
                         hasSubcommands: true,
                       },
@@ -164,7 +164,7 @@ public static class OpenClawPluginExporter
                 command: Type.Optional(
                   Type.String({
                     description: "XerahS CLI command or absolute executable path.",
-                    default: "xerahs",
+                    default: "xerahscli",
                   }),
                 ),
                 timeoutMs: Type.Optional(
@@ -184,7 +184,7 @@ public static class OpenClawPluginExporter
               const command =
                 typeof rawConfig?.command === "string" && rawConfig.command.trim()
                   ? rawConfig.command.trim()
-                  : "xerahs";
+                  : "xerahscli";
               const timeoutMs =
                 typeof rawConfig?.timeoutMs === "number" &&
                 Number.isFinite(rawConfig.timeoutMs) &&
@@ -205,10 +205,12 @@ public static class OpenClawPluginExporter
             export type XerahSRunOptions = {
               input?: string;
               expectJson?: boolean;
+              signal?: AbortSignal;
             };
 
             export type XerahSRunResult = {
               exitCode: number | null;
+              signalCode: NodeJS.Signals | null;
               stdout: string;
               stderr: string;
               json?: unknown;
@@ -220,30 +222,89 @@ public static class OpenClawPluginExporter
               options: XerahSRunOptions = {},
             ): Promise<XerahSRunResult> {
               return await new Promise<XerahSRunResult>((resolve, reject) => {
+                const abortSignal = options.signal;
+                if (abortSignal?.aborted) {
+                  reject(createAbortError());
+                  return;
+                }
+
+                let settled = false;
+                let timedOut = false;
                 const child = spawn(config.command, args, {
                   stdio: ["pipe", "pipe", "pipe"],
                   windowsHide: true,
                 });
                 const stdout: Buffer[] = [];
                 const stderr: Buffer[] = [];
+                const forceKillDelayMs = 5_000;
+                let forceKillTimer: NodeJS.Timeout | undefined;
+                let abortListener: (() => void) | undefined;
+                const forceKill = () => {
+                  if (!forceKillTimer) {
+                    forceKillTimer = setTimeout(() => child.kill("SIGKILL"), forceKillDelayMs);
+                  }
+                };
+                const terminateChild = () => {
+                  if (child.exitCode === null && child.signalCode === null) {
+                    child.kill();
+                    forceKill();
+                  }
+                };
                 const timer = setTimeout(() => {
-                  child.kill();
-                  reject(new Error(`XerahS command timed out after ${config.timeoutMs} ms.`));
+                  timedOut = true;
+                  terminateChild();
                 }, config.timeoutMs);
+                const cleanup = () => {
+                  clearTimeout(timer);
+                  if (forceKillTimer) {
+                    clearTimeout(forceKillTimer);
+                  }
+                  if (abortListener) {
+                    abortSignal?.removeEventListener("abort", abortListener);
+                  }
+                };
+                const rejectOnce = (error: Error) => {
+                  if (settled) {
+                    return;
+                  }
+
+                  settled = true;
+                  cleanup();
+                  terminateChild();
+                  reject(error);
+                };
+                abortListener = () => rejectOnce(createAbortError());
+                abortSignal?.addEventListener("abort", abortListener, { once: true });
 
                 child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+                child.stdout.on("error", rejectOnce);
                 child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
-                child.on("error", (error) => {
-                  clearTimeout(timer);
-                  reject(error);
+                child.stderr.on("error", rejectOnce);
+                child.stdin.on("error", (error: NodeJS.ErrnoException) => {
+                  if (error.code !== "EPIPE") {
+                    rejectOnce(error);
+                  }
                 });
-                child.on("close", (exitCode) => {
-                  clearTimeout(timer);
+                child.on("error", rejectOnce);
+                child.on("close", (exitCode, signalCode) => {
+                  cleanup();
+                  if (settled) {
+                    return;
+                  }
+                  settled = true;
+                  const rawStdout = Buffer.concat(stdout).toString("utf8").trim();
+                  const rawStderr = Buffer.concat(stderr).toString("utf8").trim();
                   const result: XerahSRunResult = {
                     exitCode,
-                    stdout: Buffer.concat(stdout).toString("utf8").trim(),
-                    stderr: redactDiagnostics(Buffer.concat(stderr).toString("utf8").trim()),
+                    signalCode,
+                    stdout: redactDiagnostics(rawStdout),
+                    stderr: redactDiagnostics(rawStderr),
                   };
+
+                  if (timedOut) {
+                    reject(new Error(`XerahS command timed out after ${config.timeoutMs} ms.`));
+                    return;
+                  }
 
                   if (exitCode !== 0) {
                     reject(new Error(formatFailure(args, result)));
@@ -252,7 +313,7 @@ public static class OpenClawPluginExporter
 
                   if (options.expectJson) {
                     try {
-                      result.json = JSON.parse(result.stdout);
+                      result.json = JSON.parse(rawStdout);
                     } catch (error) {
                       reject(new Error(`XerahS did not return valid JSON: ${(error as Error).message}`));
                       return;
@@ -270,9 +331,17 @@ public static class OpenClawPluginExporter
               });
             }
 
+            function createAbortError(): Error {
+              return new Error("XerahS command was cancelled.");
+            }
+
             function formatFailure(args: string[], result: XerahSRunResult): string {
               const details = [result.stderr, result.stdout].filter(Boolean).join("\n");
-              return `XerahS ${args.join(" ")} failed with exit code ${result.exitCode}.${details ? `\n${details}` : ""}`;
+              const status =
+                result.exitCode === null && result.signalCode
+                  ? `signal ${result.signalCode}`
+                  : `exit code ${result.exitCode}`;
+              return `XerahS ${args.join(" ")} failed with ${status}.${details ? `\n${details}` : ""}`;
             }
 
             function redactDiagnostics(text: string): string {
@@ -283,7 +352,7 @@ public static class OpenClawPluginExporter
             }
             """,
             ["src/tools.ts"] = """
-            import { jsonResult } from "openclaw/plugin-sdk/provider-web-search";
+            import { jsonResult } from "openclaw/plugin-sdk/core";
             import { Type } from "typebox";
             import type { XerahSPluginConfig } from "./config.js";
             import { runXerahS } from "./runner.js";
@@ -329,7 +398,7 @@ public static class OpenClawPluginExporter
                   label: "Upload File with XerahS",
                   description: "Upload a local file through XerahS and return the resulting URL JSON.",
                   parameters: uploadFileParams,
-                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal) => {
                     const filePath = readRequiredString(rawParams, "path");
                     const args = ["upload", filePath, "--json"];
                     const name = readOptionalString(rawParams, "name");
@@ -342,7 +411,7 @@ public static class OpenClawPluginExporter
                       args.push("--as-file");
                     }
 
-                    const result = await runXerahS(config, args, { expectJson: true });
+                    const result = await runXerahS(config, args, { expectJson: true, signal });
                     return jsonResult(requireUploadUrl(result.json));
                   },
                 },
@@ -351,12 +420,13 @@ public static class OpenClawPluginExporter
                   label: "Upload Text with XerahS",
                   description: "Upload generated text through XerahS stdin and return the resulting URL JSON.",
                   parameters: uploadTextParams,
-                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal) => {
                     const text = readRequiredString(rawParams, "text");
                     const name = readOptionalString(rawParams, "name") ?? "upload.txt";
                     const result = await runXerahS(config, ["upload", "--pipe", "--name", name, "--json"], {
                       input: text,
                       expectJson: true,
+                      signal,
                     });
 
                     return jsonResult(requireUploadUrl(result.json));
@@ -367,9 +437,10 @@ public static class OpenClawPluginExporter
                   label: "Check XerahS Uploaders",
                   description: "Inspect whether XerahS uploaders are configured and ready.",
                   parameters: Type.Object({}, { additionalProperties: false }),
-                  execute: async () => {
+                  execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal) => {
                     const result = await runXerahS(config, ["doctor", "uploaders", "--json"], {
                       expectJson: true,
+                      signal,
                     });
 
                     return jsonResult(result.json);
@@ -380,8 +451,8 @@ public static class OpenClawPluginExporter
                   label: "Bootstrap XerahS Uploaders",
                   description: "Initialize safe first-use XerahS uploader defaults.",
                   parameters: Type.Object({}, { additionalProperties: false }),
-                  execute: async () => {
-                    const result = await runXerahS(config, ["bootstrap", "uploaders"]);
+                  execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal) => {
+                    const result = await runXerahS(config, ["bootstrap", "uploaders"], { signal });
 
                     return jsonResult({
                       stdout: result.stdout,
@@ -474,9 +545,35 @@ public static class OpenClawPluginExporter
             }
 
             async function printRun(config: XerahSPluginConfig, args: string[], expectJson: boolean): Promise<void> {
-              const result = await runXerahS(config, args, { expectJson });
-              process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
-              process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
+              const abortController = new AbortController();
+              let cancellationExitCode: number | undefined;
+              const abortSigint = () => {
+                cancellationExitCode = 130;
+                abortController.abort();
+              };
+              const abortSigterm = () => {
+                cancellationExitCode = 143;
+                abortController.abort();
+              };
+              process.once("SIGINT", abortSigint);
+              process.once("SIGTERM", abortSigterm);
+
+              try {
+                const result = await runXerahS(config, args, { expectJson, signal: abortController.signal });
+                process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+                process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
+              } catch (error) {
+                if (cancellationExitCode !== undefined) {
+                  process.exitCode = cancellationExitCode;
+                  process.stderr.write(`${(error as Error).message}\n`);
+                  return;
+                }
+
+                throw error;
+              } finally {
+                process.off("SIGINT", abortSigint);
+                process.off("SIGTERM", abortSigterm);
+              }
             }
             """
         });

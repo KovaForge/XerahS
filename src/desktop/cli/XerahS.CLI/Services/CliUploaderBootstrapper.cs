@@ -50,7 +50,7 @@ internal static class CliUploaderBootstrapper
         }
 
         return UploadReadiness.NotReady(report,
-            $"No usable uploader is configured for {Path.GetFileName(fileName)}. Run 'xerahs doctor uploaders --fix' for details.");
+            $"No usable uploader is configured for {Path.GetFileName(fileName)}. Run 'xerahscli doctor uploaders --fix' for details.");
     }
 
     public static int DoctorUploaders(bool fix, bool json)

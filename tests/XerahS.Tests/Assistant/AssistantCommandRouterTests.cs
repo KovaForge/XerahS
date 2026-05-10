@@ -144,6 +144,16 @@ public sealed class AssistantCommandRouterTests
     }
 
     [Test]
+    public void SearchScreenshotText_ParsesOcrCatalogSearch()
+    {
+        var intent = _router.Parse("find screenshots containing invoice 4812");
+
+        Assert.That(intent.Kind, Is.EqualTo(AssistantDeterministicIntentKind.SearchScreenshotText));
+        Assert.That(intent.Argument, Is.EqualTo("invoice 4812"));
+        Assert.That(intent.Limit, Is.EqualTo(AssistantCommandRouter.MaxLatestScreenshotLimit));
+    }
+
+    [Test]
     public void RunWorkflow_ParsesWorkflowName()
     {
         var intent = _router.Parse("run workflow region capture");

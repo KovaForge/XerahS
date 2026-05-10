@@ -75,6 +75,7 @@ public sealed class OpenClawPluginExporterTests
             string index = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "index.ts"));
             string tools = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "tools.ts"));
             string runner = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "runner.ts"));
+            string cli = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "cli.ts"));
 
             Assert.Multiple(() =>
             {
@@ -84,9 +85,52 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(index, Does.Contain("api.registerCli("));
                 Assert.That(tools, Does.Contain("xerahs_upload_file"));
                 Assert.That(tools, Does.Contain("xerahs_upload_text"));
+                Assert.That(tools, Does.Contain("import { jsonResult } from \"openclaw/plugin-sdk/core\";"));
+                Assert.That(tools, Does.Not.Contain("plugin-sdk/provider-web-search"));
+                Assert.That(tools, Does.Contain("execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal)"));
+                Assert.That(tools, Does.Contain("execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal)"));
+                Assert.That(tools, Does.Contain("runXerahS(config, args, { expectJson: true, signal })"));
                 Assert.That(tools, Does.Contain("[\"upload\", \"--pipe\", \"--name\", name, \"--json\"]"));
+                Assert.That(tools, Does.Contain("signal,"));
+                Assert.That(tools, Does.Contain("runXerahS(config, [\"bootstrap\", \"uploaders\"], { signal })"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(runner, Does.Contain("windowsHide: true"));
+                Assert.That(runner, Does.Contain("signalCode: NodeJS.Signals | null;"));
+                Assert.That(runner, Does.Contain("const rawStdout = Buffer.concat(stdout).toString(\"utf8\").trim();"));
+                Assert.That(runner, Does.Contain("const rawStderr = Buffer.concat(stderr).toString(\"utf8\").trim();"));
+                Assert.That(runner, Does.Contain("child.on(\"close\", (exitCode, signalCode) =>"));
+                Assert.That(runner, Does.Contain("signalCode,"));
+                Assert.That(runner, Does.Contain("stdout: redactDiagnostics(rawStdout)"));
+                Assert.That(runner, Does.Contain("stderr: redactDiagnostics(rawStderr)"));
+                Assert.That(runner, Does.Contain("result.exitCode === null && result.signalCode"));
+                Assert.That(runner, Does.Contain("`signal ${result.signalCode}`"));
+                Assert.That(runner, Does.Contain("result.json = JSON.parse(rawStdout);"));
+                Assert.That(runner, Does.Contain("child.stdin.on(\"error\", (error: NodeJS.ErrnoException) =>"));
+                Assert.That(runner, Does.Contain("if (error.code !== \"EPIPE\")"));
+                Assert.That(runner, Does.Contain("child.on(\"error\", rejectOnce);"));
+                Assert.That(runner, Does.Contain("child.stdout.on(\"error\", rejectOnce);"));
+                Assert.That(runner, Does.Contain("child.stderr.on(\"error\", rejectOnce);"));
+                Assert.That(runner, Does.Contain("let timedOut = false;"));
+                Assert.That(runner, Does.Contain("signal?: AbortSignal;"));
+                Assert.That(runner, Does.Contain("const abortSignal = options.signal;"));
+                Assert.That(runner, Does.Contain("if (abortSignal?.aborted)"));
+                Assert.That(runner, Does.Contain("abortSignal?.addEventListener(\"abort\", abortListener, { once: true });"));
+                Assert.That(runner, Does.Contain("abortSignal?.removeEventListener(\"abort\", abortListener);"));
+                Assert.That(runner, Does.Contain("XerahS command was cancelled."));
+                Assert.That(runner, Does.Contain("const terminateChild = () =>"));
+                Assert.That(runner, Does.Contain("forceKillTimer = setTimeout(() => child.kill(\"SIGKILL\"), forceKillDelayMs);"));
+                Assert.That(runner, Does.Contain("terminateChild();"));
+                Assert.That(runner, Does.Contain("if (timedOut)"));
+                Assert.That(cli, Does.Contain("const abortController = new AbortController();"));
+                Assert.That(cli, Does.Contain("let cancellationExitCode: number | undefined;"));
+                Assert.That(cli, Does.Contain("cancellationExitCode = 130;"));
+                Assert.That(cli, Does.Contain("cancellationExitCode = 143;"));
+                Assert.That(cli, Does.Contain("process.once(\"SIGINT\", abortSigint);"));
+                Assert.That(cli, Does.Contain("process.once(\"SIGTERM\", abortSigterm);"));
+                Assert.That(cli, Does.Contain("runXerahS(config, args, { expectJson, signal: abortController.signal })"));
+                Assert.That(cli, Does.Contain("process.exitCode = cancellationExitCode;"));
+                Assert.That(cli, Does.Contain("process.off(\"SIGINT\", abortSigint);"));
+                Assert.That(cli, Does.Contain("process.off(\"SIGTERM\", abortSigterm);"));
             });
         }
         finally

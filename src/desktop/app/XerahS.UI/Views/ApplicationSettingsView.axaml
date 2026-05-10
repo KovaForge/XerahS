@@ -579,6 +579,13 @@
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding HistorySaveTasks}" Content="Save captured/uploaded items to history" AutomationProperties.Name="Save Tasks to History"/>
                                     <CheckBox IsChecked="{Binding HistoryCheckURL}" Content="Only save items with URL" AutomationProperties.Name="Only Save Tasks with URL"/>
+                                    <CheckBox IsChecked="{Binding ScreenshotContentSearchEnabled}"
+                                              Content="Make screenshots searchable"
+                                              AutomationProperties.Name="Make Screenshots Searchable"/>
+                                    <TextBlock Text="Reads text in new screenshots locally so History and Assistant search can find screenshots by visible words."
+                                               FontSize="11"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

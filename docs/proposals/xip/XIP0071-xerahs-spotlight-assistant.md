@@ -1,10 +1,11 @@
 # XIP0071 XerahS Spotlight Assistant
 
-**Status**: Draft
+**Status**: Implemented
 **Priority**: High
 **Area**: AI Integration | UX | Automation | Privacy
 **Created**: 2026-04-12
-**Related**: XIP0064 (XerahS MCP Server), XIP0068 (Re-Editing Saved Annotated Screenshots), XIP0069 (AfterCapture OCR Integration), XIP0070 (User Research - Top Screen Capture Needs)
+**Implemented**: 2026-05-10
+**Related**: XIP0064 (XerahS MCP Server), XIP0068 (Re-Editing Saved Annotated Screenshots), XIP0070 (User Research - Top Screen Capture Needs), XIP0074 (AfterCapture OCR Integration)
 
 ---
 
@@ -15,6 +16,49 @@ Add an in-app natural-language assistant to XerahS, summoned by a keyboard short
 The feature is not a general chatbot and is not an external automation endpoint. It is a first-party command overlay for XerahS-owned actions and XerahS-owned data. Users should be able to ask for things like "give me the local file path of my last 5 screenshots", "OCR the latest screenshot", or "upload the latest capture", and have XerahS perform the matching local workflow through approved internal tools.
 
 The assistant should be local-first and privacy-first. It should prefer structured metadata and tool results over sending screenshot pixels or arbitrary files to a model. External AI providers are optional and user-configured through bring-your-own-key settings.
+
+---
+
+## Implementation Update - 2026-05-10
+
+The combined XIP0071/XIP0074 implementation is now in place for the first complete desktop experience:
+
+- The assistant shell, deterministic routing, provider scaffolding, provider settings, privacy guard, and local action execution are implemented.
+- The **Make screenshots searchable** setting is implemented in History settings.
+- New screenshot captures are OCR-indexed locally in the background when the setting is enabled.
+- The interactive XIP0074 `DoOCR` path and the silent XIP0071 indexing path are compatible: successful interactive OCR results are persisted to the OCR catalog, while silent indexing does not open `OcrWindow` or toggle `AfterCaptureTasks.DoOCR`.
+- Recognized text is stored in the local history SQLite database through `HistoryOcrIndexStore` and mirrored to `HistoryItem.Tags["OcrText"]` during the compatibility transition.
+- Desktop History search filters by metadata and indexed OCR text.
+- Assistant commands can search screenshots by visible text using the same OCR catalog.
+- MCP `query_history` searches OCR-indexed screenshot text and returns indexed `ocr_text` in result summaries/details.
+
+Implemented files include:
+
+- `src/desktop/core/XerahS.History/HistoryOcrIndexStore.cs`
+- `src/desktop/core/XerahS.Core/Services/OcrIndexingService.cs`
+- `src/desktop/core/XerahS.Core/Tasks/Processors/CaptureJobProcessor.cs`
+- `src/desktop/app/XerahS.UI/ViewModels/HistoryViewModel.cs`
+- `src/desktop/app/XerahS.UI/Views/HistoryView.axaml`
+- `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`
+- `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`
+- `src/desktop/app/XerahS.Assistant/Services/AssistantService.cs`
+- `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`
+
+Verification:
+
+- `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter FullyQualifiedName~HistoryOcrIndexStoreTests --no-restore -m:1`
+- `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter FullyQualifiedName~AssistantCommandRouterTests --no-restore -m:1`
+- `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter FullyQualifiedName~AssistantHistoryServiceTests --no-restore -m:1`
+- `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj --filter FullyQualifiedName~AssistantServiceTests --no-restore -m:1`
+- `dotnet build -m:1`
+
+Follow-up hardening still allowed by this XIP:
+
+- SQLite FTS5 table for larger OCR catalogs.
+- Durable OCR job table and restart recovery.
+- Explicit backfill UI for selected/recent/all existing screenshots.
+- OCR snippets and "text match" indicators in History results.
+- Semantic/hybrid OCR search as an opt-in later capability.
 
 ---
 
@@ -44,6 +88,7 @@ Examples:
 - "Open the most recent capture in the editor."
 - "Upload the last capture to my default destination."
 - "Find screenshots from yesterday that mention invoice."
+- "Search my screenshot history for the text from that error dialog."
 
 These are XerahS tasks, not open-ended web assistant tasks. A natural-language command overlay can make existing capabilities feel faster without compromising the app's local-first posture.
 
@@ -60,6 +105,8 @@ These are XerahS tasks, not open-ended web assistant tasks. A natural-language c
 - Keep metadata-only requests metadata-only; do not send screenshot pixels or file contents to AI providers unless the user explicitly requests an image/content analysis action.
 - Require confirmation for external sharing, uploads, destructive operations, or any action that sends image/file content to an AI provider.
 - Reuse existing XerahS runtime surfaces where practical, including the XIP0064 MCP/tool contract, without exposing this feature as a new external control channel.
+- Provide first-class screenshot History search over persisted OCR text so users can find older captures by visible text without manually opening each image.
+- Make screenshot content search explicitly opt-in with a user-facing **"Make screenshots searchable"** setting. When enabled, new screenshots are OCR-indexed locally after capture and History search filters by recognized text.
 
 ---
 
@@ -72,6 +119,7 @@ These are XerahS tasks, not open-ended web assistant tasks. A natural-language c
 - Sending raw screenshot pixels, clipboard contents, file contents, uploader secrets, or API keys to an AI provider by default.
 - Replacing existing menus, workflow editors, or settings pages.
 - Implementing fully autonomous multi-step agents in the first version.
+- Requiring semantic/vector search for the first OCR History search release.
 
 ---
 
@@ -221,8 +269,8 @@ The tool names above are planning names. Implementation may map them to existing
 #### Exact Typed Arguments and Result Payloads
 
 `history.search`:
-- Args: `{ query?: string, dateFrom?: ISO8601, dateTo?: ISO8601, type?: 'screenshot'|'recording'|'all', limit: number(1-50) }`
-- Result: `{ items: HistoryItem[], total: number }`
+- Args: `{ query?: string, dateFrom?: ISO8601, dateTo?: ISO8601, type?: 'screenshot'|'recording'|'all', matchMode?: 'metadata'|'ocr'|'all', limit: number(1-50) }`
+- Result: `{ items: HistoryItem[], total: number, searchedFields: string[] }`
 - HistoryItem: `{ id: string, filePath: string, fileName: string, capturedAt: ISO8601, type: string, ocrText?: string, exists: boolean }`
 
 `history.latest`:
@@ -761,8 +809,65 @@ Exit criteria:
 - "Latest capture": most recent successful file-producing capture regardless of type
 - Maximum N = 10 for `history.latest`; return fewer than N without warning if fewer exist
 - Timezone for date phrases: OS local timezone (user override: `local | utc | capture`)
-- "Find screenshots from yesterday that mention invoice": requires pre-indexed OCR text, not on-demand OCR
+- "Find screenshots from yesterday that mention invoice": uses the local OCR text catalog first. It must not send screenshots to an AI provider and must not run cloud OCR silently.
+- OCR History search is exact substring search in Phase 1: filename/path/URL/window/process metadata plus the local OCR text catalog. It should be case-insensitive and support date/type filters.
+- `matchMode='ocr'` restricts the query to OCR text; `matchMode='metadata'` excludes OCR text; `matchMode='all'` searches both. Natural-language prompts such as "screenshots that mention invoice" should route to `type='screenshot'`, `matchMode='all'`.
+- On-demand OCR is allowed only for a bounded explicit action such as "OCR latest screenshot" or "OCR this selected history item", and successful local OCR should write back to the history OCR catalog. It is not the default behavior for broad history search because a single query could otherwise trigger expensive background processing over many files.
+- Existing history rows without OCR text remain searchable by metadata and may show an "OCR not indexed" state in results.
 - Missing/inaccessible files: return `exists: false` flag; UI shows strikethrough or "(unavailable)" badge
+
+**OCR text catalog**:
+- User control: add a checkbox/toggle in History or Capture settings:
+  - Label: **Make screenshots searchable**
+  - Helper text: **XerahS reads text in new screenshots locally so you can find them from History search.**
+  - Privacy detail, shown in tooltip or expandable help: **Recognized text is saved on this device. Cloud OCR is never used automatically.**
+  - Avoid technical UI labels such as "Search screenshots by content"; keep "OCR" and indexing terminology in advanced/help text only.
+- Status: implemented in desktop History settings as **Make screenshots searchable**.
+- Default is off unless the user enables it.
+- Capture path: implemented. When the setting is enabled, every new screenshot capture is queued for local OCR after the file is saved and the history row exists. The OCR job runs off the UI thread and does not block saving, preview, upload, or copy actions.
+- OCR engine preference: use the native platform OCR engine first when available (`Windows.Media.Ocr`, macOS Vision, or platform-native Linux/Tesseract integration as supported). If no local OCR engine is available, mark the row as `not_supported` and do not use cloud OCR automatically.
+- Storage source: implemented as a SQLite-backed OCR catalog tied to history item IDs and normalized file paths in the existing history database. FTS5 remains a later scale/performance improvement.
+- Compatibility: implemented. Successful OCR text is mirrored into `HistoryItem.Tags["OcrText"]` during the transition so existing assistant/MCP history tag search continues to work.
+- Write paths: implemented for automatic after-capture indexing, interactive after-capture OCR result persistence, assistant/local `ocr.run`, and MCP history detail OCR write-back.
+- Read paths: implemented for desktop History search, assistant screenshot text search, and MCP `query_history`.
+- History UI behavior: implemented. The History search box filters screenshot rows by recognized text and still includes normal metadata matches. OCR-only match badges/snippets remain future polish.
+- Backfill: enabling the setting must not automatically OCR the entire old history in the foreground. Offer an explicit "Index existing screenshots" action with scope controls such as selected items, last 7 days, last 30 days, or all history, plus progress and cancel.
+- Index freshness: use file hash or last-write metadata to detect when an image has changed and mark the OCR entry stale. Re-index stale rows only through explicit selection/backfill or the next relevant local OCR action.
+- Staleness: if the source image no longer exists, do not show stale OCR snippets as authoritative search evidence. The row may still match metadata, but OCR-only results should either be hidden or marked unavailable.
+- Privacy: OCR catalog text is local private content. Do not log OCR text, prompts that include OCR query terms, or matched snippets unless the user explicitly exports them.
+
+**Relationship to XIP0074**:
+- XIP0074 remains the interactive after-capture OCR workflow: `AfterCaptureTasks.DoOCR` runs OCR and opens `OcrWindow` so the user can review, adjust, copy, or rescan.
+- XIP0071 should not implement a second OCR engine path. It should reuse the same local OCR abstraction (`IOcrService`) and option normalization that XIP0074 already uses.
+- **Make screenshots searchable** must not silently toggle `AfterCaptureTasks.DoOCR`; it is a separate non-interactive indexing setting.
+- If `DoOCR` and **Make screenshots searchable** are both enabled for a capture, XerahS should avoid duplicate OCR work. A successful `DoOCR` result can be handed to `IOcrIndexService`/`OcrIndexingService` for catalog persistence. If `DoOCR` fails, is cancelled, or returns no text, the background indexing queue can still run later.
+- `OcrWindow` is never shown for automatic search indexing. It is only shown for explicit OCR actions such as the after-capture `DoOCR` task or assistant `ocr.run` flows that require review/copy UX.
+
+**Implemented architecture and future hardening**:
+- Implemented: screenshot content search is treated as a History subsystem, not an assistant-only feature. The assistant, MCP server, and desktop History UI read from the same OCR catalog.
+- Implemented: `OcrIndexingService` owns queueing, engine selection, OCR execution, persistence, and basic failure status tracking. Capture code queues a history item or persists an already-known OCR result.
+- Add an `OcrEngineRegistry` that exposes local engines in priority order: platform-native OCR first, then packaged/local fallback engines. Cloud OCR providers are excluded from automatic indexing and require a separate explicit action.
+- Future hardening: use a durable SQLite job table so indexing survives app restarts:
+  - `HistoryOcrJob(Id, HistoryItemId, FilePath, FileHash, Status, AttemptCount, LastError, CreatedAt, UpdatedAt)`
+  - statuses: `pending`, `indexing`, `indexed`, `failed`, `not_supported`, `stale`, `missing_file`
+- Implemented: use a search table:
+  - `HistoryOcrIndex(HistoryItemId, FilePath, FileHash, OcrText, Engine, Language, Confidence, IndexedAt, Status)`
+- Future hardening: add an FTS table when needed:
+  - `HistoryOcrFts(HistoryItemId UNINDEXED, OcrText)` as an FTS5 virtual table when available
+- Keep search query composition deterministic: apply date/type/existence filters against History rows first, then join OCR matches for `matchMode='ocr'|'all'`. Exact metadata matches should be shown before OCR matches when scores are otherwise equal.
+- Run OCR workers with bounded concurrency, usually one image at a time by default. OCR can be CPU-heavy and memory-heavy, so background indexing should pause during active capture, recording, uploads, and low-battery/power-save states where the platform exposes that signal.
+- Implemented: normalize OCR text before indexing by trimming line endings and collapsing excessive whitespace. Empty or whitespace-only OCR results are not indexed.
+- Store enough engine/version metadata to allow future re-indexing if OCR quality improves or a language pack changes.
+- Provide maintenance controls: pause indexing, resume indexing, clear OCR index, re-index selected screenshots, and show index status/count in settings.
+- Implemented: deleting a history row from the desktop History UI removes its OCR index row.
+- Tests added for OCR index storage/search, assistant command routing, assistant history OCR search, and assistant service integration. Further tests should cover restart recovery, explicit backfill, stale-file invalidation, FTS, and richer UI indicators.
+
+**Semantic search**:
+- Useful later, but not required for the first useful release. Exact OCR search solves the common cases ("invoice", "error code 0x80070005", "Acme Pty Ltd") with lower privacy, cost, and implementation risk.
+- Add semantic search only after exact OCR catalog search is reliable and measurable. Treat it as an opt-in local index where possible; cloud embeddings require explicit user consent because OCR text can contain secrets.
+- Semantic search should complement exact search, not replace it. Recommended later modes: `exact`, `semantic`, and `hybrid`, with exact matches ranked first when the query appears verbatim in OCR text.
+- Good semantic use cases: "the screenshot with the Kubernetes error", "that bank receipt from last month", or "the warning about permissions" when the user does not remember the exact words.
+- Poor semantic use cases: serial numbers, invoice IDs, error codes, URLs, email addresses, and other exact identifiers. These must continue to use exact matching.
 
 **Overlay during capture**: Block capture while overlay is open. Close overlay with 50ms delay before capture proceeds. Overlay window excluded from capture APIs (`WS_EX_TOOLWINDOW` on Windows, `NSWindowStyleMask.NonactivatingPanel` on macOS). (Nadia Q81, Q82)
 
@@ -783,16 +888,24 @@ Exit criteria:
 
 ### Phase 3 - OCR and Upload Workflows
 
-- Add `ocr.run` over the existing local OCR path.
-- Add `upload.file` over the configured uploader system.
-- Require confirmation before upload.
-- Add result actions for copying OCR text and uploaded URLs.
+- [Implemented] Add `ocr.run` over the existing local OCR path.
+- [Implemented] Reuse the XIP0074 OCR service path for recognition, while keeping XIP0074's `OcrWindow` behavior separate from silent indexing.
+- [Implemented] Add the "Make screenshots searchable" opt-in setting.
+- [Implemented] Add automatic background OCR indexing for new screenshots when the setting is enabled.
+- [Implemented] Add OCR-backed History search over the SQLite OCR catalog, including History UI search, assistant screenshot text search, and MCP `query_history` parity.
+- Add a bounded "Index OCR for selected/recent screenshots" path; do not OCR the whole history during a foreground search.
+- [Implemented] Add `upload.file` over the configured uploader system.
+- [Implemented] Require confirmation before upload.
+- [Implemented] Add result actions for copying OCR text and uploaded URLs.
 - Add telemetry/logging hooks that record action categories, not private content.
 
 Exit criteria:
 
-- "OCR latest screenshot and copy the text" works with local OCR.
-- "Upload latest capture" prompts before upload and then returns a URL.
+- [Implemented] "OCR latest screenshot and copy the text" works with local OCR.
+- [Implemented] When "Make screenshots searchable" is enabled, newly captured screenshots are OCR-indexed locally in the background and become searchable from History without manual OCR.
+- [Implemented] "Find screenshots with OCR text containing invoice" returns matching screenshot history rows without sending image pixels or OCR text to a cloud provider.
+- [Implemented] Desktop History, assistant screenshot text search, and MCP `query_history` use the same OCR catalog for indexed text. Date filters are implemented in MCP; natural-language date parsing in assistant remains future work.
+- [Implemented] "Upload latest capture" prompts before upload and then returns a URL.
 - Cloud image analysis requires explicit consent before any image bytes leave the machine.
 
 ### Phase 4 - Rich XerahS Workflows
@@ -882,6 +995,8 @@ The following questions have been resolved through the design review clarificati
 - "Copy the path of the latest screenshot."
 - "Show screenshots from yesterday."
 - "Find screenshots with OCR text containing invoice."
+- "Search screenshots from last week for OAuth error."
+- "Find screenshots where the visible text says refund."
 - "Reveal the latest capture in Explorer/Finder/files."
 
 ### OCR

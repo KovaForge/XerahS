@@ -66,11 +66,6 @@
     <ProjectReference Include="..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\..\src\desktop\app\XerahS.App\SendToIntegrationCoordinator.cs"
-             Link="SendTo\AppSources\SendToIntegrationCoordinator.cs" />
-  </ItemGroup>
-
   <!--
     XIP0039 Guardrail 7: EditorRotateAnnotationsTests.cs and EditorHistoryEffectsTests.cs are both
     aligned with the current upstream EditorCore API. The latter now exercises the live canvas
