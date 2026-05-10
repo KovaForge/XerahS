@@ -1,6 +1,6 @@
 # Flatpak Permission Review
 
-Manifest: `flatpak/com.getsharex.XerahS.yml`
+Manifest: `flatpak/com.xerahs.XerahS.yml`
 
 The Flatpak build is designed to work through XDG Desktop Portals and app-private XDG storage. Broad host filesystem access is intentionally avoided.
 
@@ -31,7 +31,7 @@ The Flatpak build is designed to work through XDG Desktop Portals and app-privat
 Run these before Flathub submission:
 
 ```bash
-flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.getsharex.XerahS.yml
+flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.xerahs.XerahS.yml
 flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
 ```
 

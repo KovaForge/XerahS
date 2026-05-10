@@ -12,7 +12,7 @@ submission.
 Options:
   --tag <vX.Y.Z>          Release tag to use (default: v<Directory.Build.props Version>)
   --repo <owner/name>     GitHub repository (default: resolved from origin)
-  --output <path>         Output manifest path (default: dist/flathub/com.getsharex.XerahS.yml)
+  --output <path>         Output manifest path (default: dist/flathub/com.xerahs.XerahS.yml)
   --skip-deps             Do not generate npm/NuGet dependency source files
   --lint                  Run flatpak-builder-lint manifest on the generated manifest
   -h, --help              Show this help
@@ -264,7 +264,7 @@ PY
 
 TAG_NAME=""
 GH_TARGET_REPO=""
-OUTPUT_PATH="dist/flathub/com.getsharex.XerahS.yml"
+OUTPUT_PATH="dist/flathub/com.xerahs.XerahS.yml"
 RUN_LINT=0
 GENERATE_DEPS=1
 
@@ -369,7 +369,7 @@ if [[ $GENERATE_DEPS -eq 1 ]]; then
 fi
 
 cat > "$OUTPUT_PATH" <<EOF
-app-id: com.getsharex.XerahS
+app-id: com.xerahs.XerahS
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
@@ -431,9 +431,9 @@ modules:
       - mkdir -p /app/bin
       - ln -s ../XerahS /app/bin/XerahS
       - ln -s ../XerahS /app/bin/xerahs
-      - install -Dm644 src/desktop/app/XerahS.UI/Assets/ShareX.iconset/icon_512x512.png /app/share/icons/hicolor/512x512/apps/com.getsharex.XerahS.png
-      - install -Dm644 flatpak/com.getsharex.XerahS.desktop /app/share/applications/com.getsharex.XerahS.desktop
-      - install -Dm644 flatpak/com.getsharex.XerahS.metainfo.xml /app/share/metainfo/com.getsharex.XerahS.metainfo.xml
+      - install -Dm644 src/desktop/app/XerahS.UI/Assets/ShareX.iconset/icon_512x512.png /app/share/icons/hicolor/512x512/apps/com.xerahs.XerahS.png
+      - install -Dm644 flatpak/com.xerahs.XerahS.desktop /app/share/applications/com.xerahs.XerahS.desktop
+      - install -Dm644 flatpak/com.xerahs.XerahS.metainfo.xml /app/share/metainfo/com.xerahs.XerahS.metainfo.xml
       - chmod 755 /app/XerahS
       - test -f /app/xerahs-watchfolder-daemon && chmod 755 /app/xerahs-watchfolder-daemon || true
     sources:

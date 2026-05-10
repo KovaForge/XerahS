@@ -319,8 +319,8 @@ jobs:
           mkdir -p build/logs dist/flatpak-repo
           flatpak-builder --user --force-clean --ccache \
             --repo=dist/flatpak-repo \
-            build/com.getsharex.XerahS \
-            flatpak/com.getsharex.XerahS.yml 2>&1 | tee build/logs/flatpak-build.log || {
+            build/com.xerahs.XerahS \
+            flatpak/com.xerahs.XerahS.yml 2>&1 | tee build/logs/flatpak-build.log || {
             echo "flatpak-builder failed. Logs:"
             cat build/logs/flatpak-build.log
             exit 1
@@ -330,11 +330,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f build/com.getsharex.XerahS/metadata
-          test -x build/com.getsharex.XerahS/files/bin/xerahs
-          test -f build/com.getsharex.XerahS/files/share/applications/com.getsharex.XerahS.desktop
-          test -f build/com.getsharex.XerahS/files/share/icons/hicolor/512x512/apps/com.getsharex.XerahS.png
-          test -f build/com.getsharex.XerahS/files/share/metainfo/com.getsharex.XerahS.metainfo.xml
+          test -f build/com.xerahs.XerahS/metadata
+          test -x build/com.xerahs.XerahS/files/bin/xerahs
+          test -f build/com.xerahs.XerahS/files/share/applications/com.xerahs.XerahS.desktop
+          test -f build/com.xerahs.XerahS/files/share/icons/hicolor/512x512/apps/com.xerahs.XerahS.png
+          test -f build/com.xerahs.XerahS/files/share/metainfo/com.xerahs.XerahS.metainfo.xml
           test -f dist/flatpak-repo/config
 
       - name: Export Flatpak bundle
@@ -343,8 +343,8 @@ jobs:
           set -euo pipefail
           VERSION="${{ needs.validate-version.outputs.version }}"
           flatpak build-bundle dist/flatpak-repo \
-            "dist/com.getsharex.XerahS-$VERSION-linux-x64.flatpak" \
-            com.getsharex.XerahS
+            "dist/com.xerahs.XerahS-$VERSION-linux-x64.flatpak" \
+            com.xerahs.XerahS
 
       - name: Upload Flatpak bundle
         uses: actions/upload-artifact@v4
@@ -352,7 +352,7 @@ jobs:
           name: flatpak-release
           if-no-files-found: error
           path: |
-            dist/com.getsharex.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
+            dist/com.xerahs.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
 
       - name: Upload Flatpak build log
         if: always()
@@ -407,7 +407,7 @@ jobs:
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.deb
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.rpm
-            release-assets/com.getsharex.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
+            release-assets/com.xerahs.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

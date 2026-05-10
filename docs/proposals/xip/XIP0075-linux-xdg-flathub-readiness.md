@@ -209,7 +209,7 @@ Create a `docs/linux/flatpak-permissions.md` document containing:
 
 #### Acceptance Criteria
 
-- `flatpak-builder-lint manifest flatpak/com.getsharex.XerahS.yml` passes or has documented exceptions.
+- `flatpak-builder-lint manifest flatpak/com.xerahs.XerahS.yml` passes or has documented exceptions.
 - `flatpak-builder-lint repo repo` passes or has documented exceptions.
 - Every static permission has a written justification.
 
@@ -374,7 +374,7 @@ find "$TMP_HOME" -maxdepth 1 -mindepth 1 -print
 
 ```bash
 # Flatpak linter
-flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.getsharex.XerahS.yml
+flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.xerahs.XerahS.yml
 flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
 ```
 
@@ -388,7 +388,7 @@ echo "$XDG_CURRENT_DESKTOP"
 
 ## Open Questions
 
-1. What final Flatpak app ID should XerahS use: `com.getsharex.XerahS`, `io.github.ShareX.XerahS`, or another verified-domain ID?
+1. What final Flatpak app ID should XerahS use: `com.xerahs.XerahS`, `io.github.ShareX.XerahS`, or another verified-domain ID?
 2. Should upload functionality be enabled by default in Flatpak, given network permission implications?
 3. Should Flatpak expose capture output folders only through portals, or provide a narrow default filesystem grant for common screenshot directories?
 4. Which Linux desktops are release-blocking for v1 Linux support: GNOME, KDE, wlroots, Cinnamon, XFCE?

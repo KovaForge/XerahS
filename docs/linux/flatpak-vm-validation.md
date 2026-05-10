@@ -108,7 +108,7 @@ test -d dist/xerahs-flatpak-staging/frontend/dist
 ## 6. Manifest Lint
 
 ```bash
-flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.getsharex.XerahS.yml
+flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.xerahs.XerahS.yml
 ```
 
 Fix every error. Record warnings in:
@@ -120,13 +120,13 @@ docs/linux/flathub-submission-checklist.md
 ## 7. Local Flatpak Build And Install
 
 ```bash
-flatpak-builder --force-clean --user --install-deps-from=flathub --install build-dir flatpak/com.getsharex.XerahS.yml
+flatpak-builder --force-clean --user --install-deps-from=flathub --install build-dir flatpak/com.xerahs.XerahS.yml
 ```
 
 Run it:
 
 ```bash
-flatpak run com.getsharex.XerahS
+flatpak run com.xerahs.XerahS
 ```
 
 ## 8. Smoke Tests
@@ -153,7 +153,7 @@ Expected output: nothing.
 ## 9. Repo Export And Repo Lint
 
 ```bash
-flatpak-builder --force-clean --repo=repo build-dir flatpak/com.getsharex.XerahS.yml
+flatpak-builder --force-clean --repo=repo build-dir flatpak/com.xerahs.XerahS.yml
 flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
 ```
 

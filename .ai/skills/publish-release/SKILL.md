@@ -51,7 +51,7 @@ Step 6 performs:
 
 Optional Step 8 performs:
 - Runs `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag vX.Y.Z --repo owner/name --lint`.
-- Generates `dist/flathub/com.getsharex.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `ShareX.VideoEditor` submodule commits.
+- Generates `dist/flathub/com.xerahs.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `ShareX.VideoEditor` submodule commits.
 - Adds the Freedesktop SDK `dotnet10` and `node24` extensions needed to run the Linux publish script inside the Flatpak build sandbox.
 - Verifies the generated manifest does not use local `dist/xerahs-flatpak-staging` sources.
 - Flags missing offline dependency source artifacts for NuGet/.NET and npm. A release is not Flathub-ready until these generated dependency sources are present and a network-disabled Flatpak source build passes.
