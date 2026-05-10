@@ -15,6 +15,7 @@ Use this skill to run release steps in strict order:
 - Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
 - Step 6: Ensure standard release notes block is present on the GitHub release
 - Step 7: Set the successful release as pre-release by default (opt out only when intentionally publishing stable)
+- Optional Step 8: Generate a Flathub source-build manifest candidate from the successful pre-release tag; do not open or automate a Flathub PR
 
 Repository target behavior:
 - The automation is repository-agnostic. Git pushes use the local `origin` remote.
@@ -47,6 +48,14 @@ Step 6 performs:
 - After the release is published, the tag workflow also builds, smoke-tests, and attaches `xerahs.X.Y.Z.nupkg` to the GitHub release.
 - `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z` remains the manual recovery path for re-syncing checksums or repacking.
 - Expected Windows release assets per architecture: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`.
+
+Optional Step 8 performs:
+- Runs `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag vX.Y.Z --repo owner/name --lint`.
+- Generates `dist/flathub/com.getsharex.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `ShareX.VideoEditor` submodule commits.
+- Adds the Freedesktop SDK `dotnet10` and `node24` extensions needed to run the Linux publish script inside the Flatpak build sandbox.
+- Verifies the generated manifest does not use local `dist/xerahs-flatpak-staging` sources.
+- Flags missing offline dependency source artifacts for NuGet/.NET and npm. A release is not Flathub-ready until these generated dependency sources are present and a network-disabled Flatpak source build passes.
+- Keeps this as a pre-release validation path. Do not mark a release stable for Flathub until the source-build manifest, dependency sources, manifest lint, repo lint, and manual smoke tests pass.
 
 ## Primary Command
 
@@ -94,6 +103,12 @@ Patch bump with built-in 2-minute monitoring:
 
 ```bash
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --monitor-interval 120 --bump z --yes
+```
+
+Patch bump, pre-release, and generate Flathub source-build candidate:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --prepare-flathub-source --bump z --yes
 ```
 
 Minor bump with custom commit token/summary:
@@ -162,7 +177,14 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
    - Stable opt-out: skip this step only when intentionally publishing stable.
 
-8. Optional post-release Chocolatey maintenance
+8. Optional Flathub source-build preparation for manual submission
+   - Keep the GitHub release as a pre-release while this validation is ongoing.
+   - Run `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag v<new-version> --repo owner/name --lint`.
+   - Confirm the generated manifest uses `type: git` sources pinned by tag/commit for the main repository and submodules.
+   - Generate and add offline dependency sources for NuGet/.NET packages and `ShareX.VideoEditor/frontend` npm packages before attempting a network-disabled Flathub build.
+   - Build and lint the generated manifest locally before a human maintainer manually opens the Flathub PR.
+
+9. Optional post-release Chocolatey maintenance
    - The tag workflow should already have produced and smoke-tested `xerahs.<new-version>.nupkg`.
    - Manual repack/re-sync: `powershell -File build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version <new-version> -Pack`
    - Manual smoke test: `powershell -File build/windows/chocolatey/Test-ChocolateyPackage.ps1 -Version <new-version> -SourceDirectory dist\chocolatey`
@@ -182,6 +204,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 7. Continue retry loop until release workflow is successful.
 8. Ensure standard release notes content is present on the successful release.
 9. Mark successful release as pre-release by default; only skip when explicitly publishing stable.
+10. When preparing for Flathub, generate the source-build manifest candidate and treat missing offline dependency sources as release-blocking for Flathub submission.
 
 ## Guardrails
 
@@ -193,6 +216,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 - Always monitor workflow after tag push; do not stop at tag creation.
 - Always inspect logs on failure and fix root cause before retry.
 - Always ensure the standard release notes block exists on the successful release.
+- Always keep Flathub validation releases as pre-release until source-build, dependency-source, lint, repo-lint, and smoke-test gates pass.
 - Always use a new patch version for retries requiring new commits/tags.
 - Abort on detached HEAD.
 - Abort if version format is not `X.Y.Z`.
@@ -210,7 +234,8 @@ When executing this skill:
 5. On failure, inspect logs, fix issue, and retry with next patch version.
 6. Ensure release notes include changelog link + macOS troubleshooting block.
 7. If requested, set the final successful release to pre-release.
-8. Report final version, commit hash, branch push status, tag push status, run URL, and pre-release status.
+8. If preparing for Flathub, run the source-build helper and report which of the source/dependency gates passed or failed.
+9. Report final version, commit hash, branch push status, tag push status, run URL, and pre-release status.
 
 Default pre-release policy: unless explicitly instructed otherwise, keep `--set-prerelease` enabled. Use `--no-prerelease` only for intentional stable publishes.
 
@@ -230,6 +255,9 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
 - Flatpak CI setup must fail loudly when the runtime cannot be installed; use `flatpak remote-add --no-gpg-verify` for unsigned Flathub setup, not `--no-sign-verify`.
 - Flatpak manifest source paths are resolved relative to the manifest directory, so staging paths outside `flatpak/` need a `../` prefix.
+- Flathub submission manifests must not depend on local `dist/xerahs-flatpak-staging`; generate a tag-pinned source-build candidate with `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh`.
+- Flathub source-build candidates must include pinned submodule commits; GitHub source archives do not automatically include submodule contents.
+- Flathub source-build candidates are not ready until NuGet/.NET and npm dependency sources are generated and a network-disabled Flatpak build passes.
 - Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
 - Flatpak build commands run from the module build directory, not the repository root; add icons, desktop files, metainfo, or other repository assets as explicit manifest sources before installing them.
 - Flatpak `finish-args` must use options supported by `flatpak build-finish`; clipboard read/write flags are not valid `finish-args`.
