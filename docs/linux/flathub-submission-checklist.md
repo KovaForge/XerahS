@@ -29,7 +29,7 @@ Flathub submission must be human-led. Do not use an AI tool or agent to open the
 - `npm ci` completed from generated cache, and .NET restore/publish used generated `NuGet.config` sources: `/run/build/xerahs/nuget-sources` and `/usr/lib/sdk/dotnet10/nuget/packages`.
 - Repo lint is documented rather than clean because local AppStream screenshots are not mirrored to Flathub's OSTree media location before submission/review.
 - Local install from `/home/xerahs/tmp/xerahs-flathub-repo-022256` reported `Version: 0.22.256`, confirming AppStream release metadata is in sync.
-- GitHub release workflow for `v0.22.256`: https://github.com/ShareX/XerahS/actions/runs/25641931013. At the time of this checklist update, Linux and macOS jobs had passed; Windows and release packaging were still in progress.
+- GitHub release workflow for `v0.22.256`: https://github.com/ShareX/XerahS/actions/runs/25641931013 completed successfully, including Linux x64, Linux ARM64, Flatpak, macOS, Windows, release, and Chocolatey packaging jobs. GitHub release `v0.22.256` is published as a pre-release with 14 assets.
 
 ## Human PR Draft Notes
 
