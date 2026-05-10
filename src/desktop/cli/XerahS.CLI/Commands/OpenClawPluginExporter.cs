@@ -577,6 +577,16 @@ public static class OpenClawPluginExporter
 
                   await printRun(config, args, true);
                 });
+
+              root
+                .command("upload-text <text>")
+                .description("Upload text through XerahS and print URL JSON.")
+                .option("--name <name>", "Filename to associate with the uploaded text content.")
+                .action(async (text, options) => {
+                  const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
+                  const name = typeof opts.name === "string" && opts.name.trim() ? opts.name.trim() : "upload.txt";
+                  await printRun(config, ["upload", "--text", String(text), "--name", name, "--json"], true);
+                });
             }
 
             async function printRun(config: XerahSPluginConfig, args: string[], expectJson: boolean): Promise<void> {
