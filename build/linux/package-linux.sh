@@ -65,6 +65,7 @@ restore_project_assets_for_publish() {
         "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
         -r "$runtime_identifier" \
         -p:OS="$os_value" \
+        -p:RuntimeIdentifier="$runtime_identifier" \
         -p:RuntimeIdentifiers="$runtime_identifier" \
         -p:DefineConstants=LINUX \
         -p:SelfContained=true \

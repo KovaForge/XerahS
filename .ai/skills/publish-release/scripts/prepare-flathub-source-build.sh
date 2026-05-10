@@ -222,6 +222,7 @@ generate_nuget_sources() {
           -p:EnableWindowsTargeting=true \
           -p:SelfContained=true \
           -p:PublishSingleFile=true \
+          -p:RuntimeIdentifier="$runtime" \
           -p:RuntimeIdentifiers="$runtime" \
           -p:UseSharedCompilation=false \
           -p:BuildInParallel=false \
@@ -250,6 +251,7 @@ generate_nuget_sources() {
           -p:EnableWindowsTargeting=true \
           -p:SelfContained=true \
           -p:PublishSingleFile=true \
+          -p:RuntimeIdentifier="$runtime" \
           -p:RuntimeIdentifiers="$runtime" \
           -p:UseSharedCompilation=false \
           -p:BuildInParallel=false \
