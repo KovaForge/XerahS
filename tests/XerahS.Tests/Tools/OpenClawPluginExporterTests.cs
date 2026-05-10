@@ -117,11 +117,15 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(runner, Does.Contain("terminateChild();"));
                 Assert.That(runner, Does.Contain("if (timedOut)"));
                 Assert.That(cli, Does.Contain("const abortController = new AbortController();"));
-                Assert.That(cli, Does.Contain("process.once(\"SIGINT\", abortRun);"));
-                Assert.That(cli, Does.Contain("process.once(\"SIGTERM\", abortRun);"));
+                Assert.That(cli, Does.Contain("let cancellationExitCode: number | undefined;"));
+                Assert.That(cli, Does.Contain("cancellationExitCode = 130;"));
+                Assert.That(cli, Does.Contain("cancellationExitCode = 143;"));
+                Assert.That(cli, Does.Contain("process.once(\"SIGINT\", abortSigint);"));
+                Assert.That(cli, Does.Contain("process.once(\"SIGTERM\", abortSigterm);"));
                 Assert.That(cli, Does.Contain("runXerahS(config, args, { expectJson, signal: abortController.signal })"));
-                Assert.That(cli, Does.Contain("process.off(\"SIGINT\", abortRun);"));
-                Assert.That(cli, Does.Contain("process.off(\"SIGTERM\", abortRun);"));
+                Assert.That(cli, Does.Contain("process.exitCode = cancellationExitCode;"));
+                Assert.That(cli, Does.Contain("process.off(\"SIGINT\", abortSigint);"));
+                Assert.That(cli, Does.Contain("process.off(\"SIGTERM\", abortSigterm);"));
             });
         }
         finally
