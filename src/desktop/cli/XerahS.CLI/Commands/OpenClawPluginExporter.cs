@@ -205,6 +205,7 @@ public static class OpenClawPluginExporter
             export type XerahSRunOptions = {
               input?: string;
               expectJson?: boolean;
+              signal?: AbortSignal;
             };
 
             export type XerahSRunResult = {
@@ -220,6 +221,12 @@ public static class OpenClawPluginExporter
               options: XerahSRunOptions = {},
             ): Promise<XerahSRunResult> {
               return await new Promise<XerahSRunResult>((resolve, reject) => {
+                const abortSignal = options.signal;
+                if (abortSignal?.aborted) {
+                  reject(createAbortError());
+                  return;
+                }
+
                 let settled = false;
                 let timedOut = false;
                 const child = spawn(config.command, args, {
@@ -230,6 +237,7 @@ public static class OpenClawPluginExporter
                 const stderr: Buffer[] = [];
                 const forceKillDelayMs = 5_000;
                 let forceKillTimer: NodeJS.Timeout | undefined;
+                let abortListener: (() => void) | undefined;
                 const forceKill = () => {
                   if (!forceKillTimer) {
                     forceKillTimer = setTimeout(() => child.kill("SIGKILL"), forceKillDelayMs);
@@ -250,6 +258,9 @@ public static class OpenClawPluginExporter
                   if (forceKillTimer) {
                     clearTimeout(forceKillTimer);
                   }
+                  if (abortListener) {
+                    abortSignal?.removeEventListener("abort", abortListener);
+                  }
                 };
                 const rejectOnce = (error: Error) => {
                   if (settled) {
@@ -257,10 +268,12 @@ public static class OpenClawPluginExporter
                   }
 
                   settled = true;
-                  clearTimeout(timer);
+                  cleanup();
                   terminateChild();
                   reject(error);
                 };
+                abortListener = () => rejectOnce(createAbortError());
+                abortSignal?.addEventListener("abort", abortListener, { once: true });
 
                 child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
                 child.stdout.on("error", rejectOnce);
@@ -314,6 +327,10 @@ public static class OpenClawPluginExporter
                   child.stdin.end();
                 }
               });
+            }
+
+            function createAbortError(): Error {
+              return new Error("XerahS command was cancelled.");
             }
 
             function formatFailure(args: string[], result: XerahSRunResult): string {

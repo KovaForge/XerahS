@@ -100,6 +100,12 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(runner, Does.Contain("child.stdout.on(\"error\", rejectOnce);"));
                 Assert.That(runner, Does.Contain("child.stderr.on(\"error\", rejectOnce);"));
                 Assert.That(runner, Does.Contain("let timedOut = false;"));
+                Assert.That(runner, Does.Contain("signal?: AbortSignal;"));
+                Assert.That(runner, Does.Contain("const abortSignal = options.signal;"));
+                Assert.That(runner, Does.Contain("if (abortSignal?.aborted)"));
+                Assert.That(runner, Does.Contain("abortSignal?.addEventListener(\"abort\", abortListener, { once: true });"));
+                Assert.That(runner, Does.Contain("abortSignal?.removeEventListener(\"abort\", abortListener);"));
+                Assert.That(runner, Does.Contain("XerahS command was cancelled."));
                 Assert.That(runner, Does.Contain("const terminateChild = () =>"));
                 Assert.That(runner, Does.Contain("forceKillTimer = setTimeout(() => child.kill(\"SIGKILL\"), forceKillDelayMs);"));
                 Assert.That(runner, Does.Contain("terminateChild();"));
