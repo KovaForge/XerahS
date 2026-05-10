@@ -122,6 +122,8 @@ restore_scoped_intermediate_assets() {
         # resolve under os-Linux. Pre-restore both RID/self-contained buckets.
         restore_project_assets_for_publish "$image_editor_project" "Unix" "$arch"
         restore_project_assets_for_publish "$image_editor_project" "Linux" "$arch"
+        restore_project_assets_for_runtime "$image_editor_project" "Unix" "$arch"
+        restore_project_assets_for_runtime "$image_editor_project" "Linux" "$arch"
         restore_project_assets_for_runtime "$ui_project" "Linux" "$arch"
     done
 }

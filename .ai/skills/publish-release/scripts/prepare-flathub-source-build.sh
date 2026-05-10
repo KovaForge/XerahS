@@ -234,6 +234,33 @@ generate_nuget_sources() {
   done
 
   for runtime in linux-x64 linux-arm64; do
+    for os_value in Unix Linux; do
+      partial_file="$partial_dir/ShareX.ImageEditor-$os_value-$runtime-framework-dependent.json"
+      (
+        cd "$snapshot_dir"
+        python3 "$generator_path" \
+          --dotnet 10 \
+          --freedesktop 25.08 \
+          --runtime "$runtime" \
+          --destdir nuget-sources \
+          "$partial_file" \
+          "$image_editor_project" \
+          --dotnet-args \
+          -p:OS="$os_value" \
+          -p:DefineConstants=LINUX \
+          -p:EnableWindowsTargeting=true \
+          -p:RuntimeIdentifier="$runtime" \
+          -p:RuntimeIdentifiers="$runtime" \
+          -p:UseSharedCompilation=false \
+          -p:BuildInParallel=false \
+          -p:nodeReuse=false \
+          -m:1 \
+          --disable-build-servers
+      )
+    done
+  done
+
+  for runtime in linux-x64 linux-arm64; do
     partial_file="$partial_dir/XerahS.UI-Linux-$runtime.json"
     (
       cd "$snapshot_dir"
