@@ -86,7 +86,12 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(tools, Does.Contain("xerahs_upload_text"));
                 Assert.That(tools, Does.Contain("import { jsonResult } from \"openclaw/plugin-sdk/core\";"));
                 Assert.That(tools, Does.Not.Contain("plugin-sdk/provider-web-search"));
+                Assert.That(tools, Does.Contain("execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal)"));
+                Assert.That(tools, Does.Contain("execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal)"));
+                Assert.That(tools, Does.Contain("runXerahS(config, args, { expectJson: true, signal })"));
                 Assert.That(tools, Does.Contain("[\"upload\", \"--pipe\", \"--name\", name, \"--json\"]"));
+                Assert.That(tools, Does.Contain("signal,"));
+                Assert.That(tools, Does.Contain("runXerahS(config, [\"bootstrap\", \"uploaders\"], { signal })"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(runner, Does.Contain("windowsHide: true"));
                 Assert.That(runner, Does.Contain("const rawStdout = Buffer.concat(stdout).toString(\"utf8\").trim();"));

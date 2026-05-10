@@ -392,7 +392,7 @@ public static class OpenClawPluginExporter
                   label: "Upload File with XerahS",
                   description: "Upload a local file through XerahS and return the resulting URL JSON.",
                   parameters: uploadFileParams,
-                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal) => {
                     const filePath = readRequiredString(rawParams, "path");
                     const args = ["upload", filePath, "--json"];
                     const name = readOptionalString(rawParams, "name");
@@ -405,7 +405,7 @@ public static class OpenClawPluginExporter
                       args.push("--as-file");
                     }
 
-                    const result = await runXerahS(config, args, { expectJson: true });
+                    const result = await runXerahS(config, args, { expectJson: true, signal });
                     return jsonResult(requireUploadUrl(result.json));
                   },
                 },
@@ -414,12 +414,13 @@ public static class OpenClawPluginExporter
                   label: "Upload Text with XerahS",
                   description: "Upload generated text through XerahS stdin and return the resulting URL JSON.",
                   parameters: uploadTextParams,
-                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>) => {
+                  execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal) => {
                     const text = readRequiredString(rawParams, "text");
                     const name = readOptionalString(rawParams, "name") ?? "upload.txt";
                     const result = await runXerahS(config, ["upload", "--pipe", "--name", name, "--json"], {
                       input: text,
                       expectJson: true,
+                      signal,
                     });
 
                     return jsonResult(requireUploadUrl(result.json));
@@ -430,9 +431,10 @@ public static class OpenClawPluginExporter
                   label: "Check XerahS Uploaders",
                   description: "Inspect whether XerahS uploaders are configured and ready.",
                   parameters: Type.Object({}, { additionalProperties: false }),
-                  execute: async () => {
+                  execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal) => {
                     const result = await runXerahS(config, ["doctor", "uploaders", "--json"], {
                       expectJson: true,
+                      signal,
                     });
 
                     return jsonResult(result.json);
@@ -443,8 +445,8 @@ public static class OpenClawPluginExporter
                   label: "Bootstrap XerahS Uploaders",
                   description: "Initialize safe first-use XerahS uploader defaults.",
                   parameters: Type.Object({}, { additionalProperties: false }),
-                  execute: async () => {
-                    const result = await runXerahS(config, ["bootstrap", "uploaders"]);
+                  execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal) => {
+                    const result = await runXerahS(config, ["bootstrap", "uploaders"], { signal });
 
                     return jsonResult({
                       stdout: result.stdout,
