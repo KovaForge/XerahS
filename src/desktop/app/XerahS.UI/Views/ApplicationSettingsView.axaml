@@ -67,39 +67,41 @@
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding AutoCheckUpdate}" Content="Automatically check for updates" AutomationProperties.Name="Auto Check Update"/>
                                     
-                                    <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto">
-                                        <TextBlock Grid.Column="0" Text="Update channel:" VerticalAlignment="Center"/>
-                                        <ComboBox Grid.Column="2" 
-                                                  ItemsSource="{Binding UpdateChannels}"
-                                                  SelectedItem="{Binding UpdateChannel}"
-                                                  IsEnabled="{Binding AutoCheckUpdate}"
-                                                  HorizontalAlignment="Stretch" MinWidth="200"
-                                                  AutomationProperties.Name="Update Channel"/>
-                                    </Grid>
+                                    <Grid ColumnDefinitions="*, 16, *" RowDefinitions="Auto, 12, Auto">
+                                        <Grid Grid.Column="0" Grid.Row="0" ColumnDefinitions="Auto, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Update channel:" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding UpdateChannels}"
+                                                      SelectedItem="{Binding UpdateChannel}"
+                                                      IsEnabled="{Binding AutoCheckUpdate}"
+                                                      HorizontalAlignment="Stretch" MinWidth="160"
+                                                      AutomationProperties.Name="Update Channel"/>
+                                        </Grid>
 
-                                    <StackPanel Spacing="12"
-                                                IsVisible="{Binding ShowPreReleaseSourceSettings}">
-                                        <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto">
+                                        <Grid Grid.Column="2" Grid.Row="0"
+                                              ColumnDefinitions="Auto, 16, *"
+                                              IsVisible="{Binding ShowPreReleaseSourceSettings}">
                                             <TextBlock Grid.Column="0" Text="Pre-release source:" VerticalAlignment="Center"/>
                                             <ComboBox Grid.Column="2"
                                                       ItemsSource="{Binding PreReleaseUpdateSources}"
                                                       SelectedItem="{Binding PreReleaseUpdateSource}"
                                                       IsEnabled="{Binding AutoCheckUpdate}"
-                                                      HorizontalAlignment="Stretch" MinWidth="200"
+                                                      HorizontalAlignment="Stretch" MinWidth="160"
                                                       AutomationProperties.Name="Pre-release Source"/>
                                         </Grid>
 
-                                        <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto"
+                                        <Grid Grid.Column="2" Grid.Row="2"
+                                              ColumnDefinitions="Auto, 16, *"
                                               IsVisible="{Binding ShowCustomPreReleaseSource}">
                                             <TextBlock Grid.Column="0" Text="Custom source:" VerticalAlignment="Center"/>
                                             <TextBox Grid.Column="2"
                                                      Text="{Binding CustomPreReleaseUpdateSource}"
                                                      PlaceholderText="GitHub owner or owner/repo"
                                                      IsEnabled="{Binding AutoCheckUpdate}"
-                                                     HorizontalAlignment="Stretch" MinWidth="200"
+                                                     HorizontalAlignment="Stretch" MinWidth="160"
                                                      AutomationProperties.Name="Custom Pre-release Source"/>
                                         </Grid>
-                                    </StackPanel>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
