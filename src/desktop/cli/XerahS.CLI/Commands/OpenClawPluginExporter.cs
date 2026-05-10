@@ -555,7 +555,7 @@ public static class OpenClawPluginExporter
                 .command("bootstrap-uploaders")
                 .description("Initialize safe first-use XerahS uploader defaults.")
                 .action(async () => {
-                  await printRun(config, ["bootstrap", "uploaders"], false);
+                  await printRun(config, ["bootstrap", "uploaders", "--json"], true);
                 });
 
               root
