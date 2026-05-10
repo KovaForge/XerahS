@@ -105,6 +105,9 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(runner, Does.Contain("result.exitCode === null && result.signalCode"));
                 Assert.That(runner, Does.Contain("`signal ${result.signalCode}`"));
                 Assert.That(runner, Does.Contain("result.json = JSON.parse(rawStdout);"));
+                Assert.That(runner, Does.Contain("formatInvalidJsonFailure(error as Error, result)"));
+                Assert.That(runner, Does.Contain("function formatInvalidJsonFailure(error: Error, result: XerahSRunResult): string"));
+                Assert.That(runner, Does.Contain("XerahS did not return valid JSON: ${error.message}"));
                 Assert.That(runner, Does.Contain("child.stdin.on(\"error\", (error: NodeJS.ErrnoException) =>"));
                 Assert.That(runner, Does.Contain("if (error.code !== \"EPIPE\")"));
                 Assert.That(runner, Does.Contain("child.on(\"error\", rejectOnce);"));

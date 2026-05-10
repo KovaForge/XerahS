@@ -315,7 +315,7 @@ public static class OpenClawPluginExporter
                     try {
                       result.json = JSON.parse(rawStdout);
                     } catch (error) {
-                      reject(new Error(`XerahS did not return valid JSON: ${(error as Error).message}`));
+                      reject(new Error(formatInvalidJsonFailure(error as Error, result)));
                       return;
                     }
                   }
@@ -342,6 +342,11 @@ public static class OpenClawPluginExporter
                   ? `signal ${result.signalCode}`
                   : `exit code ${result.exitCode}`;
               return `XerahS ${args.join(" ")} failed with ${status}.${details ? `\n${details}` : ""}`;
+            }
+
+            function formatInvalidJsonFailure(error: Error, result: XerahSRunResult): string {
+              const details = [result.stderr, result.stdout].filter(Boolean).join("\n");
+              return `XerahS did not return valid JSON: ${error.message}${details ? `\n${details}` : ""}`;
             }
 
             function redactDiagnostics(text: string): string {
