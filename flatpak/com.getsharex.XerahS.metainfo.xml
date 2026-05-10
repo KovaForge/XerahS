@@ -33,6 +33,12 @@
   <url type="bugtracker">https://github.com/ShareX/XerahS/issues</url>
   <developer_name>ShareX Team</developer_name>
   <content_rating type="oars-1.1" />
+  <screenshots>
+    <screenshot type="default">
+      <image>https://xerahs.com/assets/linux/editor-main.png</image>
+      <caption>XerahS image editor with annotation tools</caption>
+    </screenshot>
+  </screenshots>
   <releases>
     <release version="0.22.1" date="2026-01-01">
       <description>
@@ -65,7 +71,4 @@
     <binary>XerahS</binary>
     <binary>xerahs</binary>
   </provides>
-  <recommends>
-    <control>virtual:keyboard</control>
-  </recommends>
 </component>

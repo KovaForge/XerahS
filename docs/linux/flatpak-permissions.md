@@ -6,12 +6,10 @@ The Flatpak build is designed to work through XDG Desktop Portals and app-privat
 
 | Permission | Why required | Portal alternative | Impact if removed | Review risk |
 |------------|--------------|--------------------|-------------------|-------------|
-| `--socket=wayland` | Allows Avalonia to display on Wayland sessions. | None. Display sockets are static Flatpak permissions. | App cannot display on Wayland. | Low |
-| `--socket=fallback-x11` | Allows X11 only when Wayland is unavailable. | None. | App cannot display on X11-only sessions. | Low-Medium |
+| `--socket=x11` | Allows Avalonia's current Linux desktop backend to display. `fallback-x11` withheld `DISPLAY` on the Fedora GNOME validation VM while Avalonia selected X11. | Future Avalonia Wayland backend validation may allow narrowing this to `fallback-x11` or switching to a raw Wayland display socket. | App fails at startup with `XOpenDisplay failed`. | Medium |
+| `--share=ipc` | Required by Flathub policy when X11 is enabled, so X11 clients can share memory correctly. | None for X11. | X11 may fail or perform poorly; manifest lint fails with `finish-args-x11-without-ipc`. | Low-Medium |
 | `--device=dri` | Enables GPU/Skia acceleration. | None practical for current Avalonia rendering. | Software rendering or startup/rendering failures on some systems. | Low |
 | `--share=network` | Required for uploaders, update checks, and connected integrations. | No portal substitutes arbitrary network upload features. | Upload destinations and network integrations fail. | Medium |
-| `--talk-name=org.freedesktop.portal.Desktop` | Explicit portal access for screenshots, screencasts, OpenURI, background startup, notifications, file chooser, and global shortcuts. | This is the portal path. | Core sandboxed capture and desktop integration fail. | Low |
-| `--talk-name=org.freedesktop.portal.Documents` | Allows document portal mediation for user-selected files. | This is the portal path. | File portal integration may fail for selected host files. | Low |
 | `--talk-name=org.kde.StatusNotifierWatcher` | Enables StatusNotifierItem tray integration where available. | No portal equivalent for current tray behavior. | Tray icon may not appear. Core capture/upload still works. | Medium |
 
 ## Removed Or Avoided Permissions
@@ -23,6 +21,7 @@ The Flatpak build is designed to work through XDG Desktop Portals and app-privat
 | `--socket=session-bus` | Too broad; use specific portal/status-notifier names. |
 | `--filesystem=xdg-config/XerahS` / `--filesystem=xdg-data/XerahS` | App-private Flatpak storage and XDG paths cover config/data without host grants. |
 | `--filesystem=xdg-pictures`, `xdg-videos`, `xdg-documents`, `xdg-download` | File access should be user-mediated through portals. |
+| Explicit `org.freedesktop.portal.Desktop` / `org.freedesktop.portal.Documents` D-Bus names | XDG Desktop Portals are available through the standard Flatpak portal path; explicit portal `talk-name` grants fail Flathub lint. |
 | Direct `org.kde.KWin.ScreenShot2` / `org.gnome.Shell.Screenshot` D-Bus names | Sandboxed capture uses XDG Screenshot/ScreenCast portals instead. |
 | Direct `org.freedesktop.Notifications` | Sandboxed notifications use the portal notification interface. |
 | `com.steampowered.steam.AppUpdate` | Game detection is not release-blocking and needs separate human review before any static D-Bus grant. |
@@ -37,4 +36,3 @@ flatpak run --command=flatpak-builder-lint org.flatpak.Builder repo repo
 ```
 
 Any remaining warning must be copied into [flathub-submission-checklist.md](flathub-submission-checklist.md) with a human-reviewed justification.
-
