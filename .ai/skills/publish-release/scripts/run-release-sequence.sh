@@ -20,6 +20,7 @@ Sequence options:
   --repo <owner/name>         GitHub repository for gh commands (default: origin remote)
   --set-prerelease            Explicitly mark successful tag release as pre-release (default behavior)
   --no-prerelease             Keep successful tag release as stable (opt out)
+  --prepare-flathub-source    Generate Flathub source-build manifest candidate after the pre-release is ready
   -h, --help                  Show this help
 
 All other options are passed through to:
@@ -309,6 +310,7 @@ ASSUME_CHANGELOG_DONE=0
 MONITOR=0
 MONITOR_INTERVAL=120
 SET_PRERELEASE=1
+PREPARE_FLATHUB_SOURCE=0
 WORKFLOW_NAME="Release Build (All Platforms)"
 GH_TARGET_REPO=""
 
@@ -356,6 +358,10 @@ while [[ $# -gt 0 ]]; do
       SET_PRERELEASE=0
       shift
       ;;
+    --prepare-flathub-source)
+      PREPARE_FLATHUB_SOURCE=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -400,6 +406,7 @@ echo "GitHub repo target: $GH_TARGET_REPO"
 maintenance_skill="$repo_root/.ai/skills/run-maintenance/SKILL.md"
 changelog_skill="$repo_root/.ai/skills/update-changelog/SKILL.md"
 bump_script="$repo_root/.ai/skills/publish-release/scripts/bump-version-commit-tag.sh"
+flathub_source_script="$repo_root/.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh"
 
 if [[ ! -f "$maintenance_skill" ]]; then
   echo "Error: required skill file not found: $maintenance_skill" >&2
@@ -411,6 +418,10 @@ if [[ ! -f "$changelog_skill" ]]; then
 fi
 if [[ ! -f "$bump_script" ]]; then
   echo "Error: required script file not found: $bump_script" >&2
+  exit 1
+fi
+if [[ $PREPARE_FLATHUB_SOURCE -eq 1 && ! -f "$flathub_source_script" ]]; then
+  echo "Error: required script file not found: $flathub_source_script" >&2
   exit 1
 fi
 
@@ -476,6 +487,11 @@ ensure_standard_release_notes "$tag_name" "$GH_TARGET_REPO"
 
 if [[ $SET_PRERELEASE -eq 1 ]]; then
   set_release_prerelease "$tag_name" "$GH_TARGET_REPO"
+fi
+
+if [[ $PREPARE_FLATHUB_SOURCE -eq 1 ]]; then
+  echo "Step 8: preparing Flathub source-build manifest candidate for $tag_name..."
+  bash "$flathub_source_script" --tag "$tag_name" --repo "$GH_TARGET_REPO" --lint
 fi
 
 echo "Release sequence completed for $tag_name."
