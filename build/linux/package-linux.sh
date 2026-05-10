@@ -78,6 +78,26 @@ restore_project_assets_for_publish() {
         -m:1
 }
 
+restore_project_assets_for_runtime() {
+    local project_path="$1"
+    local os_value="$2"
+    local runtime_identifier="$3"
+
+    dotnet restore "$project_path" \
+        "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
+        -r "$runtime_identifier" \
+        -p:OS="$os_value" \
+        -p:RuntimeIdentifier="$runtime_identifier" \
+        -p:RuntimeIdentifiers="$runtime_identifier" \
+        -p:DefineConstants=LINUX \
+        -p:EnableWindowsTargeting=true \
+        --disable-build-servers \
+        -p:nodeReuse=false \
+        -p:UseSharedCompilation=false \
+        -p:BuildInParallel=false \
+        -m:1
+}
+
 restore_scoped_intermediate_assets() {
     local image_editor_project="$ROOT/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
     local ui_project="$ROOT/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
@@ -102,6 +122,7 @@ restore_scoped_intermediate_assets() {
         # resolve under os-Linux. Pre-restore both RID/self-contained buckets.
         restore_project_assets_for_publish "$image_editor_project" "Unix" "$arch"
         restore_project_assets_for_publish "$image_editor_project" "Linux" "$arch"
+        restore_project_assets_for_runtime "$ui_project" "Linux" "$arch"
     done
 }
 

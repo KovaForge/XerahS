@@ -186,9 +186,9 @@ generate_nuget_sources() {
   local os_value
   local partial_file
   local image_editor_project="$snapshot_dir/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
+  local ui_project="$snapshot_dir/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
   local -a projects=(
     "$snapshot_dir/src/desktop/app/XerahS.App/XerahS.App.csproj"
-    "$snapshot_dir/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
     "$snapshot_dir/build/linux/XerahS.Packaging/XerahS.Packaging.csproj"
   )
   local plugin_project
@@ -231,6 +231,31 @@ generate_nuget_sources() {
           --disable-build-servers
       )
     done
+  done
+
+  for runtime in linux-x64 linux-arm64; do
+    partial_file="$partial_dir/XerahS.UI-Linux-$runtime.json"
+    (
+      cd "$snapshot_dir"
+      python3 "$generator_path" \
+        --dotnet 10 \
+        --freedesktop 25.08 \
+        --runtime "$runtime" \
+        --destdir nuget-sources \
+        "$partial_file" \
+        "$ui_project" \
+        --dotnet-args \
+        -p:OS=Linux \
+        -p:DefineConstants=LINUX \
+        -p:EnableWindowsTargeting=true \
+        -p:RuntimeIdentifier="$runtime" \
+        -p:RuntimeIdentifiers="$runtime" \
+        -p:UseSharedCompilation=false \
+        -p:BuildInParallel=false \
+        -p:nodeReuse=false \
+        -m:1 \
+        --disable-build-servers
+    )
   done
 
   for plugin_project in "${projects[@]}"; do
