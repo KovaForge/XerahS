@@ -430,6 +430,51 @@ src/desktop/app/XerahS.UI/
 
 ---
 
+## Nadia Product Review
+
+### User Value Risks
+
+**The 100ms open-time target is the wrong hill to die on.** Sub-100ms is a nice goal but the real value killer is a cold-start fuzzy search that returns garbage results. The spec defines the algorithm as O(n×m) but never specifies what happens when 50+ items are loaded from 6 async providers on a HDD laptop. If `GetItemsAsync()` for NamedRegionProvider or SocialPresetProvider hits a disk or network timeout, the palette either shows stale data or nothing. Add a `maxProviderLoadMs(50)` per-provider timeout with graceful degradation — don't let one slow provider block the whole palette.
+
+**Context confidence thresholds are underspecified.** The spec says "confidence > 0.7" triggers context suggestions, but the scoring formula is continuous (0.3 × ContextBoost), not binary. "92% confidence" appears in the UI mockup but no formula produces a percentage — it produces a 0/1 binary boost. This is a disconnect between the UI mock and the algorithm. Pick one: either make the formula output a real confidence float and display it, or remove the percentage from the UI and just show the item in the Context Suggestions section with no number.
+
+**The "learning" from usage is undefined.** "Frequently-used modes rise in the default list" is a promise with no mechanism. If it means a static sort order that updates monthly, that's trivial. If it means per-session dynamic re-ranking based on usage patterns, that's a nontrivial personalization system that belongs in its own KFIP. Vague learning claims create implementation debt. Clarify or cut.
+
+### Scope Cuts
+
+**Defer: Plugin provider support.** Phase 1-3 have no plugin integration anyway. Plugin palette items via `PaletteItemSchema` (Open Question 3) is Phase 4+ and depends on KFIP0004's plugin API being stable. Remove it from the spec entirely and reference KFIP0004 as a future integration path. The file structure listing `PluginProvider.cs` in Phase 1 is wrong and should be removed.
+
+**Defer: Workflow provider for AfterCapture chains.** The `WorkflowProvider` depends on AfterCapture task chains being stable and queryable. If KFIP0005 is also "Proposed" and not implemented, the task chain API may not exist. Surface this as a Phase 2+ dependency risk rather than listing it as a given. If the AfterCapture pipeline isn't committed, this provider will be stub code.
+
+**Cut: "AlphabeticalBias" tiebreaker.** It's 10% of the score, it's a tiebreaker, and it makes the formula look more complicated than it is. Alphabetical ordering is deterministic without it. Remove it and let ties stand (or use item ID as a stable secondary sort). Every component that can be cut is a component that doesn't need to be tested.
+
+### Acceptance Criteria Gaps
+
+**Missing: No definition of "reference hardware."** "100ms on reference hardware" is meaningless without hardware specs. Specify a minimum machine (e.g., 8GB RAM, SSD, Intel i5 10th gen or Apple M1) and measure in CI on that baseline. Without a benchmark definition, "meets 100ms target" is self-attested and will never be caught in regression.
+
+**Missing: Provider failure handling is tested but the spec doesn't define behavior.** Acceptance criteria says "Provider throws exception: item is silently skipped; error logged; palette still opens" — but it doesn't say what the user sees. Do they see a truncated list? A "Some items unavailable" notice? A silent empty section? Define the UX behavior, not just the logging contract.
+
+**Missing: Multi-monitor handling for "stays within screen bounds" is underspecified.** Which screen? Primary? The one with mouse focus? The one with the active capture target? On a 3-monitor setup with different DPIs, clamping to "screen bounds" without specifying which screen will produce bugs that only surface in production.
+
+**Missing: No test for Ctrl+Alt+Space conflict with other apps.** The spec says "warn at startup if conflict detected" but there's no acceptance criterion for the detection itself. Unit test: simulate a global hotkey conflict and verify the warning fires.
+
+### Recommended v1 Shape
+
+Strip to:
+- `IPaletteDataProvider` + `PaletteItem` model
+- `CaptureModeProvider` (4 modes only)
+- `FuzzyMatcher` — subsequence-based, no proximity bonus
+- Basic Avalonia popup with text input + scrollable result list
+- Global hotkey registration
+- Keyboard nav: arrows, Enter, Esc
+- Settings: hotkey config only (no category reordering)
+- Provider timeout: 50ms max, graceful skip on failure
+- Context: hardcoded KFIP0003 detector call (no abstract interface yet) — Phase 2 integration can generalize
+
+Everything else (NamedRegion, SocialPreset, Workflow, Plugin providers; usage tracking; category reordering; screen reader full audit; multi-monitor DPI) ships in Phase 2. A v1 that opens in <100ms and reliably executes one of four capture modes is a shippable product. A v1 that tries to pre-warm six async providers and rank results by a four-term formula with "learned" frequency weights is a research project.
+
+---
+
 ## Related Work
 
 - **KFIP0002**: Smart Region Capture Profiles — palette surfaces profiles alongside modes
