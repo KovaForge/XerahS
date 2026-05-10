@@ -13,6 +13,7 @@ Options:
   --tag <vX.Y.Z>          Release tag to use (default: v<Directory.Build.props Version>)
   --repo <owner/name>     GitHub repository (default: resolved from origin)
   --output <path>         Output manifest path (default: dist/flathub/com.getsharex.XerahS.yml)
+  --skip-deps             Do not generate npm/NuGet dependency source files
   --lint                  Run flatpak-builder-lint manifest on the generated manifest
   -h, --help              Show this help
 
@@ -120,14 +121,152 @@ resolve_submodule_url() {
   echo "$url"
 }
 
-escape_sed_replacement() {
-  printf '%s' "$1" | sed 's/[&/\]/\\&/g'
+ensure_commit_available() {
+  local repo_path="$1"
+  local remote_url="$2"
+  local commit="$3"
+  local label="$4"
+
+  if git -C "$repo_path" cat-file -e "${commit}^{commit}" 2>/dev/null; then
+    return 0
+  fi
+
+  echo "Fetching $label source commit $commit..."
+  git -C "$repo_path" fetch --depth=1 "$remote_url" "$commit"
+}
+
+archive_git_tree() {
+  local repo_path="$1"
+  local commit="$2"
+  local destination="$3"
+
+  mkdir -p "$destination"
+  git -C "$repo_path" archive "$commit" | tar -x -C "$destination"
+}
+
+create_release_snapshot() {
+  local snapshot_dir="$1"
+
+  rm -rf "$snapshot_dir"
+  mkdir -p "$snapshot_dir"
+
+  archive_git_tree "$repo_root" "$main_commit" "$snapshot_dir"
+  archive_git_tree "$repo_root/ShareX.ImageEditor" "$image_editor_commit" "$snapshot_dir/ShareX.ImageEditor"
+  archive_git_tree "$repo_root/ShareX.VideoEditor" "$video_editor_commit" "$snapshot_dir/ShareX.VideoEditor"
+}
+
+generate_npm_sources() {
+  local snapshot_dir="$1"
+  local output_file="$2"
+  local lock_file="$snapshot_dir/ShareX.VideoEditor/frontend/package-lock.json"
+
+  if [[ ! -f "$lock_file" ]]; then
+    echo "Error: npm lock file missing from release snapshot: $lock_file" >&2
+    exit 1
+  fi
+
+  echo "Generating npm dependency sources from ShareX.VideoEditor/frontend/package-lock.json..."
+  flatpak run \
+    --filesystem="$snapshot_dir" \
+    --filesystem="$(dirname "$output_file")" \
+    --command=flatpak-node-generator \
+    org.flatpak.Builder \
+    npm "$lock_file" \
+    -o "$output_file" \
+    --node-sdk-extension=org.freedesktop.Sdk.Extension.node24//25.08
+}
+
+generate_nuget_sources() {
+  local snapshot_dir="$1"
+  local output_file="$2"
+  local generator_path="$snapshot_dir/.flathub-tools/flatpak-dotnet-generator.py"
+  local partial_dir="$snapshot_dir/.flathub-tools/nuget-partials"
+  local source_count
+  local runtime
+  local partial_file
+  local -a projects=(
+    "$snapshot_dir/src/desktop/app/XerahS.App/XerahS.App.csproj"
+    "$snapshot_dir/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
+    "$snapshot_dir/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
+    "$snapshot_dir/build/linux/XerahS.Packaging/XerahS.Packaging.csproj"
+  )
+  local plugin_project
+
+  while IFS= read -r plugin_project; do
+    projects+=("$plugin_project")
+  done < <(find "$snapshot_dir/src/desktop/plugins" -mindepth 2 -maxdepth 2 -name "*.csproj" | sort)
+
+  mkdir -p "$(dirname "$generator_path")"
+  mkdir -p "$partial_dir"
+  curl -fsSL \
+    https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/dotnet/flatpak-dotnet-generator.py \
+    -o "$generator_path"
+
+  echo "Generating NuGet dependency sources for Linux publish projects..."
+  for plugin_project in "${projects[@]}"; do
+    for runtime in linux-x64 linux-arm64; do
+      partial_file="$partial_dir/$(basename "${plugin_project%.csproj}")-$runtime.json"
+      (
+        cd "$snapshot_dir"
+        python3 "$generator_path" \
+          --dotnet 10 \
+          --freedesktop 25.08 \
+          --runtime "$runtime" \
+          --destdir nuget-sources \
+          "$partial_file" \
+          "$plugin_project" \
+          --dotnet-args \
+          -p:OS=Linux \
+          -p:DefineConstants=LINUX \
+          -p:EnableWindowsTargeting=true \
+          -p:SelfContained=true \
+          -p:PublishSingleFile=true \
+          -p:RuntimeIdentifiers="$runtime" \
+          -p:UseSharedCompilation=false \
+          -p:BuildInParallel=false \
+          -p:nodeReuse=false \
+          -m:1 \
+          --disable-build-servers
+      )
+    done
+  done
+
+  python3 - "$output_file" "$partial_dir"/*.json <<'PY'
+import json
+import sys
+
+output = sys.argv[1]
+entries = {}
+
+for path in sys.argv[2:]:
+    with open(path, encoding="utf-8") as handle:
+        for item in json.load(handle):
+            key = (
+                item.get("type"),
+                item.get("url"),
+                item.get("sha512"),
+                item.get("dest"),
+                item.get("dest-filename"),
+            )
+            entries[key] = item
+
+merged = sorted(entries.values(), key=lambda item: item.get("dest-filename", ""))
+with open(output, "w", encoding="utf-8") as handle:
+    json.dump(merged, handle, indent=4)
+PY
+
+  source_count="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1], encoding="utf-8"))))' "$output_file")"
+  if [[ "$source_count" == "0" ]]; then
+    echo "Error: NuGet dependency source generation produced zero entries." >&2
+    exit 1
+  fi
 }
 
 TAG_NAME=""
 GH_TARGET_REPO=""
 OUTPUT_PATH="dist/flathub/com.getsharex.XerahS.yml"
 RUN_LINT=0
+GENERATE_DEPS=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -142,6 +281,10 @@ while [[ $# -gt 0 ]]; do
     --output)
       OUTPUT_PATH="$2"
       shift 2
+      ;;
+    --skip-deps)
+      GENERATE_DEPS=0
+      shift
       ;;
     --lint)
       RUN_LINT=1
@@ -161,8 +304,8 @@ done
 
 require_cmd git
 require_cmd awk
-require_cmd sed
 require_cmd mkdir
+require_cmd tar
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "$repo_root" ]]; then
@@ -205,8 +348,25 @@ video_editor_commit="$(resolve_tree_commit "$TAG_NAME" ShareX.VideoEditor)"
 image_editor_url="$(resolve_submodule_url ShareX.ImageEditor)"
 video_editor_url="$(resolve_submodule_url ShareX.VideoEditor)"
 main_url="https://github.com/${GH_TARGET_REPO}.git"
+output_dir="$(dirname "$OUTPUT_PATH")"
+generated_sources_dir="$output_dir/generated-sources"
 
-mkdir -p "$(dirname "$OUTPUT_PATH")"
+mkdir -p "$output_dir"
+
+if [[ $GENERATE_DEPS -eq 1 ]]; then
+  require_cmd curl
+  require_cmd find
+  require_cmd flatpak
+  require_cmd python3
+  ensure_commit_available "$repo_root/ShareX.ImageEditor" "$image_editor_url" "$image_editor_commit" "ShareX.ImageEditor"
+  ensure_commit_available "$repo_root/ShareX.VideoEditor" "$video_editor_url" "$video_editor_commit" "ShareX.VideoEditor"
+  mkdir -p "$generated_sources_dir"
+  snapshot_dir="$(mktemp -d "$repo_root/.flathub-source.XXXXXXXXXX")"
+  trap 'rm -rf "$snapshot_dir"' EXIT
+  create_release_snapshot "$snapshot_dir"
+  generate_npm_sources "$snapshot_dir" "$generated_sources_dir/npm-sources.json"
+  generate_nuget_sources "$snapshot_dir" "$generated_sources_dir/nuget-sources.json"
+fi
 
 cat > "$OUTPUT_PATH" <<EOF
 app-id: com.getsharex.XerahS
@@ -228,19 +388,22 @@ finish-args:
 # Generated by .ai/skills/publish-release/scripts/prepare-flathub-source-build.sh.
 # Source release: ${TAG_NAME}
 # This is a source-build candidate for human review, not an automated Flathub PR.
-# Before submission, add generated offline dependency sources for:
-#   - NuGet/.NET restore packages
-#   - ShareX.VideoEditor/frontend npm packages
 modules:
   - name: xerahs
     buildsystem: simple
     build-options:
       env:
         DOTNET_CLI_HOME: /run/build/xerahs/.dotnet
-        NPM_CONFIG_CACHE: /run/build/xerahs/.npm
+        DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+        DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+        NUGET_PACKAGES: /run/build/xerahs/.nuget/packages
+        NPM_CONFIG_CACHE: /run/build/xerahs/flatpak-node/npm-cache
         NPM_CONFIG_AUDIT: 'false'
         NPM_CONFIG_FUND: 'false'
+        NPM_CONFIG_OFFLINE: 'true'
         PATH: /usr/lib/sdk/dotnet10/bin:/usr/lib/sdk/node24/bin:/app/bin:/usr/bin
+        XERAHS_DOTNET_RESTORE_SOURCES: /run/build/xerahs/nuget-sources;/usr/lib/sdk/dotnet10/nuget/packages
+        XERAHS_NPM_OFFLINE: '1'
         XERAHS_PLUGIN_JOBS: '2'
     build-commands:
       - |
@@ -249,6 +412,16 @@ modules:
           aarch64) export XERAHS_ARCHITECTURES=linux-arm64 ;;
           *) echo "Unsupported Flatpak build architecture: \$(uname -m)" >&2; exit 1 ;;
         esac
+        cat > NuGet.config <<'NUGETCONFIG'
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <packageSources>
+            <clear />
+            <add key="flathub-generated" value="/run/build/xerahs/nuget-sources" />
+            <add key="freedesktop-dotnet-sdk" value="/usr/lib/sdk/dotnet10/nuget/packages" />
+          </packageSources>
+        </configuration>
+        NUGETCONFIG
         ./build/linux/package-linux.sh
         publish_dir="src/desktop/app/XerahS.App/bin/Release/net10.0/\${XERAHS_ARCHITECTURES}/publish"
         test -f "\${publish_dir}/XerahS"
@@ -279,6 +452,19 @@ modules:
         dest: ShareX.VideoEditor
 EOF
 
+if [[ $GENERATE_DEPS -eq 1 ]]; then
+  cat >> "$OUTPUT_PATH" <<'EOF'
+      - generated-sources/npm-sources.json
+      - generated-sources/nuget-sources.json
+EOF
+else
+  cat >> "$OUTPUT_PATH" <<'EOF'
+      # Before submission, add generated offline dependency sources for:
+      #   - NuGet/.NET restore packages
+      #   - ShareX.VideoEditor/frontend npm packages
+EOF
+fi
+
 echo "Generated Flathub source-build manifest candidate:"
 echo "  $OUTPUT_PATH"
 echo ""
@@ -287,26 +473,28 @@ echo "  XerahS             $main_commit ($TAG_NAME)"
 echo "  ShareX.ImageEditor $image_editor_commit"
 echo "  ShareX.VideoEditor $video_editor_commit"
 
-if find . -path './.git' -prune -o -name packages.lock.json -print | grep -q .; then
-  echo "NuGet lock files: found"
+if [[ $GENERATE_DEPS -eq 1 && -f "$generated_sources_dir/nuget-sources.json" ]]; then
+  echo "NuGet source file: $generated_sources_dir/nuget-sources.json"
+  echo "NuGet source entries: $(jq 'length' "$generated_sources_dir/nuget-sources.json" 2>/dev/null || echo unknown)"
 else
-  echo "NuGet lock files: missing"
+  echo "NuGet source file: missing"
 fi
 
-if [[ -f ShareX.VideoEditor/frontend/package-lock.json ]]; then
-  echo "npm lock file: found at ShareX.VideoEditor/frontend/package-lock.json"
+if [[ $GENERATE_DEPS -eq 1 && -f "$generated_sources_dir/npm-sources.json" ]]; then
+  echo "npm source file: $generated_sources_dir/npm-sources.json"
+  echo "npm source entries: $(jq 'length' "$generated_sources_dir/npm-sources.json" 2>/dev/null || echo unknown)"
 else
-  echo "npm lock file: missing"
+  echo "npm source file: missing"
 fi
 
 if [[ $RUN_LINT -eq 1 ]]; then
   require_cmd flatpak
-  flatpak run --filesystem="$repo_root" --command=flatpak-builder-lint org.flatpak.Builder manifest "$OUTPUT_PATH"
+  flatpak run --filesystem="$repo_root" --filesystem="$output_dir" --command=flatpak-builder-lint org.flatpak.Builder manifest "$OUTPUT_PATH"
 fi
 
 echo ""
 echo "Next required work before Flathub submission:"
-echo "  1. Generate and add offline NuGet source entries for this tag."
-echo "  2. Generate and add offline npm source entries for ShareX.VideoEditor/frontend."
-echo "  3. Build with flatpak-builder using the generated manifest with network disabled."
-echo "  4. Keep the GitHub release as pre-release until the source-build path passes."
+echo "  1. Build with flatpak-builder using the generated manifest with network disabled."
+echo "  2. Run manifest and repo lint."
+echo "  3. Record GNOME/KDE smoke tests."
+echo "  4. Keep the GitHub release as pre-release until all gates pass."

@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT="$SCRIPT_DIR/../.."
 PROJECT="$ROOT/src/desktop/app/XerahS.App/XerahS.App.csproj"
+PACKAGING_TOOL="$ROOT/build/linux/XerahS.Packaging/XerahS.Packaging.csproj"
 OUTPUT_DIR="$ROOT/dist"
 
 if [ ! -d "$OUTPUT_DIR" ]; then
@@ -17,16 +18,21 @@ echo "Building XerahS version $VERSION for Linux..."
 
 prepare_video_editor_frontend() {
     local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
+    local npm_ci_args=(ci)
 
     if [ ! -f "$frontend_dir/package.json" ]; then
         echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
         exit 1
     fi
 
+    if [ "${XERAHS_NPM_OFFLINE:-}" = "1" ]; then
+        npm_ci_args+=(--offline)
+    fi
+
     echo "Building ShareX.VideoEditor frontend..."
     (
         cd "$frontend_dir"
-        npm ci
+        npm "${npm_ci_args[@]}"
         npm run build
     )
 
@@ -41,6 +47,7 @@ restore_project_assets_for_os() {
     local os_value="$2"
 
     dotnet restore "$project_path" \
+        "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
         -p:OS="$os_value" \
         --disable-build-servers \
         -p:nodeReuse=false \
@@ -70,6 +77,7 @@ restore_scoped_intermediate_assets() {
 
 dotnet_publish_serial() {
     dotnet publish "$@" \
+        "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
         --disable-build-servers \
         -p:nodeReuse=false \
         -p:UseSharedCompilation=false \
@@ -105,6 +113,7 @@ publish_single_plugin() {
         -c Release \
         -r "$arch" \
         -p:OS=Linux \
+        -p:RuntimeIdentifiers="$arch" \
         -o "$plugin_output" \
         --no-self-contained \
         -p:PublishSingleFile=false \
@@ -159,8 +168,19 @@ else
     ARCHITECTURES=("linux-x64" "linux-arm64")
 fi
 
+DOTNET_RESTORE_SOURCE_ARGS=()
+if [ -n "${XERAHS_DOTNET_RESTORE_SOURCES:-}" ]; then
+    IFS=';' read -r -a DOTNET_RESTORE_SOURCES <<< "$XERAHS_DOTNET_RESTORE_SOURCES"
+    for source_path in "${DOTNET_RESTORE_SOURCES[@]}"; do
+        if [ -n "$source_path" ]; then
+            DOTNET_RESTORE_SOURCE_ARGS+=(--source "$source_path")
+        fi
+    done
+fi
+
 prepare_video_editor_frontend
 restore_scoped_intermediate_assets
+restore_project_assets_for_os "$PACKAGING_TOOL" "Linux"
 
 for ARCH in "${ARCHITECTURES[@]}"; do
     echo ""
@@ -181,6 +201,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
         -c Release \
         -r "$ARCH" \
         -p:OS=Linux \
+        -p:RuntimeIdentifiers="$ARCH" \
         -p:DefineConstants=LINUX \
         -p:PublishSingleFile=true \
         --self-contained true \
@@ -227,8 +248,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     # 2. Package
     echo "Packaging ($ARCH)..."
     echo "Note: rpmbuild is required to produce RPM packages."
-    PACKAGING_TOOL="$ROOT/build/linux/XerahS.Packaging/XerahS.Packaging.csproj"
-    dotnet run --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
+    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
 done
 
 echo ""
