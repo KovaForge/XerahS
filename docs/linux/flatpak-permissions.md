@@ -6,9 +6,8 @@ The Flatpak build is designed to work through XDG Desktop Portals and app-privat
 
 | Permission | Why required | Portal alternative | Impact if removed | Review risk |
 |------------|--------------|--------------------|-------------------|-------------|
-| `--socket=wayland` | Allows Avalonia to display on Wayland sessions. | None. Display sockets are static Flatpak permissions. | App cannot display on Wayland. | Low |
-| `--socket=fallback-x11` | Allows X11 only when Wayland is unavailable. | None. | App cannot display on X11-only sessions. | Low-Medium |
-| `--share=ipc` | Required by Flathub policy when X11 fallback is enabled, so X11 clients can share memory correctly. | None for X11 fallback. | X11 fallback may fail or perform poorly; manifest lint fails with `finish-args-x11-without-ipc`. | Low-Medium |
+| `--socket=x11` | Allows Avalonia's current Linux desktop backend to display. `fallback-x11` withheld `DISPLAY` on the Fedora GNOME validation VM while Avalonia selected X11. | Future Avalonia Wayland backend validation may allow narrowing this to `fallback-x11` or switching to a raw Wayland display socket. | App fails at startup with `XOpenDisplay failed`. | Medium |
+| `--share=ipc` | Required by Flathub policy when X11 is enabled, so X11 clients can share memory correctly. | None for X11. | X11 may fail or perform poorly; manifest lint fails with `finish-args-x11-without-ipc`. | Low-Medium |
 | `--device=dri` | Enables GPU/Skia acceleration. | None practical for current Avalonia rendering. | Software rendering or startup/rendering failures on some systems. | Low |
 | `--share=network` | Required for uploaders, update checks, and connected integrations. | No portal substitutes arbitrary network upload features. | Upload destinations and network integrations fail. | Medium |
 | `--talk-name=org.kde.StatusNotifierWatcher` | Enables StatusNotifierItem tray integration where available. | No portal equivalent for current tray behavior. | Tray icon may not appear. Core capture/upload still works. | Medium |

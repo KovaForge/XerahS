@@ -26,6 +26,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Common;
 
 namespace XerahS.UI.Onboarding.ViewModels.Steps;
 
@@ -80,7 +81,7 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
 
     private void InitializeQuickSelectPaths()
     {
-        string picturesPath = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        string picturesPath = GetDefaultPicturesPath();
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
@@ -91,10 +92,24 @@ public partial class SaveLocationStepViewModel : StepViewModelBase
 
     private void SetDefaultPath()
     {
-        SelectedPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-            "Screenshots");
+        SelectedPath = IsFlatpakSandbox()
+            ? PathsManager.ScreenshotsFolder
+            : Path.Combine(GetDefaultPicturesPath(), "Screenshots");
         _ = TestPathAsync();
+    }
+
+    private static string GetDefaultPicturesPath()
+    {
+        string picturesPath = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        return string.IsNullOrWhiteSpace(picturesPath)
+            ? LinuxXdgDirectories.Detect().PicturesDirectory
+            : picturesPath;
+    }
+
+    private static bool IsFlatpakSandbox()
+    {
+        return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID")) ||
+            File.Exists("/.flatpak-info");
     }
 
     [RelayCommand]

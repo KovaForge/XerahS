@@ -5,9 +5,10 @@ sdk: org.freedesktop.Sdk
 command: xerahs
 
 finish-args:
-  # Display. Prefer native Wayland; allow X11 only as a fallback for non-Wayland sessions.
-  - --socket=wayland
-  - --socket=fallback-x11
+  # Display. Avalonia currently selects its X11 backend on the Fedora GNOME
+  # validation VM. XDG portals remain the path for sandboxed capture and desktop
+  # integration; no raw Wayland display socket is requested.
+  - --socket=x11
   - --share=ipc
 
   # GPU / Skia acceleration.
