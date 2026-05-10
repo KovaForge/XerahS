@@ -37,6 +37,15 @@ internal static class CliUploaderBootstrapper
         return report;
     }
 
+    public static void BootstrapUploaders(bool json)
+    {
+        var report = Bootstrap(quiet: json);
+        if (json)
+        {
+            WriteJson(report);
+        }
+    }
+
     public static UploadReadiness CheckUploadReadiness(string fileName, bool uploadAsText)
     {
         var report = Bootstrap(true);
@@ -58,13 +67,18 @@ internal static class CliUploaderBootstrapper
         var report = fix ? Bootstrap(true) : Inspect();
         if (json)
         {
-            Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+            WriteJson(report);
         }
         else
         {
             PrintReport(report);
         }
         return report.HasBlockingIssues ? 1 : 0;
+    }
+
+    private static void WriteJson(BootstrapReport report)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static BootstrapReport Inspect()

@@ -448,7 +448,7 @@ public static class OpenClawPluginExporter
                       signal,
                     });
 
-                    return jsonResult(result.json);
+                    return jsonResult(requireUploaderReport(result.json));
                   },
                 },
                 {
@@ -457,12 +457,12 @@ public static class OpenClawPluginExporter
                   description: "Initialize safe first-use XerahS uploader defaults.",
                   parameters: Type.Object({}, { additionalProperties: false }),
                   execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal) => {
-                    const result = await runXerahS(config, ["bootstrap", "uploaders"], { signal });
-
-                    return jsonResult({
-                      stdout: result.stdout,
-                      stderr: result.stderr,
+                    const result = await runXerahS(config, ["bootstrap", "uploaders", "--json"], {
+                      expectJson: true,
+                      signal,
                     });
+
+                    return jsonResult(requireUploaderReport(result.json));
                   },
                 },
               ];
@@ -501,6 +501,25 @@ public static class OpenClawPluginExporter
 
               if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
                 throw new Error("XerahS upload did not return an HTTP URL.");
+              }
+
+              return value;
+            }
+
+            function requireUploaderReport(value: unknown): unknown {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("XerahS uploader command did not return a report object.");
+              }
+
+              const report = value as Record<string, unknown>;
+              for (const property of ["Created", "Repaired", "Skipped", "Diagnostics"]) {
+                if (!Array.isArray(report[property])) {
+                  throw new Error(`XerahS uploader report did not return a ${property} array.`);
+                }
+              }
+
+              if (typeof report.HasBlockingIssues !== "boolean") {
+                throw new Error("XerahS uploader report did not return a HasBlockingIssues boolean.");
               }
 
               return value;
