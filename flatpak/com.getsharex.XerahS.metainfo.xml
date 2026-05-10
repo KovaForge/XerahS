@@ -65,7 +65,4 @@
     <binary>XerahS</binary>
     <binary>xerahs</binary>
   </provides>
-  <recommends>
-    <control>virtual:keyboard</control>
-  </recommends>
 </component>

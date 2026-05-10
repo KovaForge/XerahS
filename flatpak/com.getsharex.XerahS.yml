@@ -1,6 +1,6 @@
 app-id: com.getsharex.XerahS
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: xerahs
 
@@ -8,6 +8,7 @@ finish-args:
   # Display. Prefer native Wayland; allow X11 only as a fallback for non-Wayland sessions.
   - --socket=wayland
   - --socket=fallback-x11
+  - --share=ipc
 
   # GPU / Skia acceleration.
   - --device=dri
@@ -15,11 +16,10 @@ finish-args:
   # Network is required for upload destinations, update checks, and connected integrations.
   - --share=network
 
-  # XDG Desktop Portals: screenshots, screencasts, file access, OpenURI,
-  # notifications, background startup, and global shortcuts when supported by
-  # the user's portal backend.
-  - --talk-name=org.freedesktop.portal.Desktop
-  - --talk-name=org.freedesktop.portal.Documents
+  # XDG Desktop Portals are used for screenshots, screencasts, file access,
+  # OpenURI, notifications, background startup, and global shortcuts when
+  # supported by the user's portal backend. Explicit portal bus-name grants are
+  # intentionally avoided for Flathub linter compliance.
 
   # StatusNotifierItem tray integration. On GNOME this still depends on a
   # compatible AppIndicator/KStatusNotifier extension.
