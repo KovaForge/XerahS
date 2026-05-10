@@ -75,6 +75,7 @@ public sealed class OpenClawPluginExporterTests
             string index = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "index.ts"));
             string tools = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "tools.ts"));
             string runner = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "runner.ts"));
+            string cli = await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "cli.ts"));
 
             Assert.Multiple(() =>
             {
@@ -115,6 +116,12 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(runner, Does.Contain("forceKillTimer = setTimeout(() => child.kill(\"SIGKILL\"), forceKillDelayMs);"));
                 Assert.That(runner, Does.Contain("terminateChild();"));
                 Assert.That(runner, Does.Contain("if (timedOut)"));
+                Assert.That(cli, Does.Contain("const abortController = new AbortController();"));
+                Assert.That(cli, Does.Contain("process.once(\"SIGINT\", abortRun);"));
+                Assert.That(cli, Does.Contain("process.once(\"SIGTERM\", abortRun);"));
+                Assert.That(cli, Does.Contain("runXerahS(config, args, { expectJson, signal: abortController.signal })"));
+                Assert.That(cli, Does.Contain("process.off(\"SIGINT\", abortRun);"));
+                Assert.That(cli, Does.Contain("process.off(\"SIGTERM\", abortRun);"));
             });
         }
         finally

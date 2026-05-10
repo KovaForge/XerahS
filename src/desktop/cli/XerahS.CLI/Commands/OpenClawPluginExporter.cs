@@ -539,9 +539,19 @@ public static class OpenClawPluginExporter
             }
 
             async function printRun(config: XerahSPluginConfig, args: string[], expectJson: boolean): Promise<void> {
-              const result = await runXerahS(config, args, { expectJson });
-              process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
-              process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
+              const abortController = new AbortController();
+              const abortRun = () => abortController.abort();
+              process.once("SIGINT", abortRun);
+              process.once("SIGTERM", abortRun);
+
+              try {
+                const result = await runXerahS(config, args, { expectJson, signal: abortController.signal });
+                process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+                process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
+              } finally {
+                process.off("SIGINT", abortRun);
+                process.off("SIGTERM", abortRun);
+              }
             }
             """
         });
