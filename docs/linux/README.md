@@ -12,7 +12,7 @@ This directory documents the Linux desktop behavior needed for native packages, 
 ## Documents
 
 - [XDG storage locations](xdg-storage.md)
+- [Flatpak VM validation runbook](flatpak-vm-validation.md)
 - [Flatpak permission review](flatpak-permissions.md)
 - [Portal behavior and troubleshooting](portal-behavior.md)
 - [Flathub submission checklist](flathub-submission-checklist.md)
-
