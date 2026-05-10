@@ -5,7 +5,7 @@ Flathub submission must be human-led. Do not use an AI tool or agent to open the
 | Gate | Status | Evidence / Notes | Human reviewer |
 |------|--------|------------------|----------------|
 | Named human maintainer responsible | Pending |  |  |
-| Manifest reviewed by human | Pending | Local staging manifest: `flatpak/com.xerahs.XerahS.yml`; verified generated source-build candidate: `/home/xerahs/tmp/xerahs-flathub-verify-022253/com.xerahs.XerahS.yml`. Copy to `dist/flathub/com.xerahs.XerahS.yml` after `dist/` ownership cleanup. |  |
+| Manifest reviewed by human | Pending | Local staging manifest: `flatpak/com.xerahs.XerahS.yml`; verified generated source-build candidate copied to `dist/flathub/com.xerahs.XerahS.yml` with dependency sources under `dist/flathub/generated-sources/`. |  |
 | Permissions reviewed by human | Pending | See `docs/linux/flatpak-permissions.md` |  |
 | `flatpak-builder-lint manifest` output captured | Passed | 2026-05-10 Fedora 44 ARM64 VM: `flatpak run --filesystem=/home/xerahs/src/ShareX/XerahS --filesystem=/home/xerahs/tmp/xerahs-flathub-verify-022253 --command=flatpak-builder-lint org.flatpak.Builder manifest /home/xerahs/tmp/xerahs-flathub-verify-022253/com.xerahs.XerahS.yml` exited 0 |  |
 | `flatpak-builder-lint repo` output captured | Documented | 2026-05-10 Fedora 44 ARM64 VM: repo lint against `/home/xerahs/tmp/xerahs-flathub-repo-022253` exited 1 only for `appstream-external-screenshot-url` and `appstream-screenshots-not-mirrored-in-ostree`. This is expected for local exports before Flathub mirrors screenshots. |  |
@@ -28,7 +28,7 @@ Flathub submission must be human-led. Do not use an AI tool or agent to open the
 - During Flatpak build commands, log scan found no `registry.npmjs.org` or `api.nuget.org` access after `Building XerahS version 0.22.253`; only .NET welcome/help links were present.
 - `npm ci` completed from generated cache, and .NET restore/publish used generated `NuGet.config` sources: `/run/build/xerahs/nuget-sources` and `/usr/lib/sdk/dotnet10/nuget/packages`.
 - Repo lint is documented rather than clean because local AppStream screenshots are not mirrored to Flathub's OSTree media location before submission/review.
-- Local paths `dist/`, `dist/flathub/`, and some prior Flatpak build outputs contain root-owned artifacts from earlier runs. Clean or `chown` them before copying `/home/xerahs/tmp/xerahs-flathub-verify-022253/com.xerahs.XerahS.yml` into `dist/flathub/`.
+- Verified source-build manifest and generated dependency source files were copied into `dist/flathub/` after local ownership cleanup.
 
 ## Required Statement Before Submission
 

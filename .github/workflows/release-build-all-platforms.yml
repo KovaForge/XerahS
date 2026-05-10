@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FREEDESKTOP_RUNTIME_VERSION: "25.08"
+
 jobs:
   validate-version:
     runs-on: ubuntu-24.04
@@ -278,9 +281,9 @@ jobs:
           flatpak remote-add --user --if-not-exists --no-gpg-verify flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --or-update --noninteractive \
             flathub \
-            org.freedesktop.Platform//24.08 \
-            org.freedesktop.Sdk//24.08
-          flatpak list --user --runtime | grep -E 'org\.freedesktop\.(Platform|Sdk).*24\.08'
+            "org.freedesktop.Platform//${FREEDESKTOP_RUNTIME_VERSION}" \
+            "org.freedesktop.Sdk//${FREEDESKTOP_RUNTIME_VERSION}"
+          flatpak list --user --runtime | grep -E "org\.freedesktop\.(Platform|Sdk).*${FREEDESKTOP_RUNTIME_VERSION}"
 
       - name: Build Linux publish (staging for Flatpak)
         shell: bash

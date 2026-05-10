@@ -21,7 +21,7 @@
       <li>Watch folder for automatic processing</li>
       <li>Global hotkeys and system tray integration</li>
       <li>30+ upload destinations (Imgur, S3, FTP, custom scripts, and more)</li>
-      <li>Fully configurable workflows and workflows</li>
+      <li>Fully configurable actions and workflows</li>
     </ul>
     <p>
       On GNOME, install the gnome-shell-extension-appindicator package to enable
@@ -31,7 +31,9 @@
   <launchable type="desktop-id">com.xerahs.XerahS.desktop</launchable>
   <url type="homepage">https://github.com/ShareX/XerahS</url>
   <url type="bugtracker">https://github.com/ShareX/XerahS/issues</url>
-  <developer_name>ShareX Team</developer_name>
+  <developer id="com.xerahs">
+    <name>ShareX Team</name>
+  </developer>
   <content_rating type="oars-1.1" />
   <screenshots>
     <screenshot type="default">
@@ -40,7 +42,7 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="0.22.1" date="2026-01-01">
+    <release version="0.22.254" date="2026-05-11">
       <description>
         <p>See the full changelog on GitHub.</p>
       </description>
