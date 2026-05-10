@@ -210,6 +210,7 @@ public static class OpenClawPluginExporter
 
             export type XerahSRunResult = {
               exitCode: number | null;
+              signalCode: NodeJS.Signals | null;
               stdout: string;
               stderr: string;
               json?: unknown;
@@ -285,7 +286,7 @@ public static class OpenClawPluginExporter
                   }
                 });
                 child.on("error", rejectOnce);
-                child.on("close", (exitCode) => {
+                child.on("close", (exitCode, signalCode) => {
                   cleanup();
                   if (settled) {
                     return;
@@ -295,6 +296,7 @@ public static class OpenClawPluginExporter
                   const rawStderr = Buffer.concat(stderr).toString("utf8").trim();
                   const result: XerahSRunResult = {
                     exitCode,
+                    signalCode,
                     stdout: redactDiagnostics(rawStdout),
                     stderr: redactDiagnostics(rawStderr),
                   };
@@ -335,7 +337,11 @@ public static class OpenClawPluginExporter
 
             function formatFailure(args: string[], result: XerahSRunResult): string {
               const details = [result.stderr, result.stdout].filter(Boolean).join("\n");
-              return `XerahS ${args.join(" ")} failed with exit code ${result.exitCode}.${details ? `\n${details}` : ""}`;
+              const status =
+                result.exitCode === null && result.signalCode
+                  ? `signal ${result.signalCode}`
+                  : `exit code ${result.exitCode}`;
+              return `XerahS ${args.join(" ")} failed with ${status}.${details ? `\n${details}` : ""}`;
             }
 
             function redactDiagnostics(text: string): string {

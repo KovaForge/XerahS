@@ -95,10 +95,15 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(tools, Does.Contain("runXerahS(config, [\"bootstrap\", \"uploaders\"], { signal })"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(runner, Does.Contain("windowsHide: true"));
+                Assert.That(runner, Does.Contain("signalCode: NodeJS.Signals | null;"));
                 Assert.That(runner, Does.Contain("const rawStdout = Buffer.concat(stdout).toString(\"utf8\").trim();"));
                 Assert.That(runner, Does.Contain("const rawStderr = Buffer.concat(stderr).toString(\"utf8\").trim();"));
+                Assert.That(runner, Does.Contain("child.on(\"close\", (exitCode, signalCode) =>"));
+                Assert.That(runner, Does.Contain("signalCode,"));
                 Assert.That(runner, Does.Contain("stdout: redactDiagnostics(rawStdout)"));
                 Assert.That(runner, Does.Contain("stderr: redactDiagnostics(rawStderr)"));
+                Assert.That(runner, Does.Contain("result.exitCode === null && result.signalCode"));
+                Assert.That(runner, Does.Contain("`signal ${result.signalCode}`"));
                 Assert.That(runner, Does.Contain("result.json = JSON.parse(rawStdout);"));
                 Assert.That(runner, Does.Contain("child.stdin.on(\"error\", (error: NodeJS.ErrnoException) =>"));
                 Assert.That(runner, Does.Contain("if (error.code !== \"EPIPE\")"));
