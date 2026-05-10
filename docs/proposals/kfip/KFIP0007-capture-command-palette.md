@@ -475,6 +475,53 @@ Everything else (NamedRegion, SocialPreset, Workflow, Plugin providers; usage tr
 
 ---
 
+## Mikhail Implementation Review
+
+### Architecture Risks
+
+The proposal's file layout assumes a greenfield command system, but XerahS already has implementation surface in the desktop app: `WorkflowManager`, workflow-backed hotkeys, `SettingsManager`, and the existing Avalonia hotkey settings UI. v1 should extend those seams instead of creating a parallel `CaptureCommandPaletteService` that owns its own invocation path, settings model, and execution delegates.
+
+The largest technical risk is duplicate command execution. If palette items call capture actions through new delegates while hotkeys call them through existing workflow paths, the app will grow two subtly different definitions of "Region Capture", "Window Capture", and "Last Region". That will make bugs show up as "works from hotkey but not palette." Palette execution should route through the same workflow/hotkey command layer used today.
+
+### Files Likely Touched
+
+- `src/desktop/app/XerahS.App/WorkflowManager.cs`: expose a queryable list of core capture workflows and execute selected workflow IDs.
+- `src/desktop/app/XerahS.App/SettingsManager.cs`: persist palette hotkey and enabled/disabled setting beside current hotkey settings.
+- Existing hotkey settings view/viewmodel under `src/desktop/app/XerahS.App` or `src/desktop/app/XerahS.UI`: add the palette hotkey field without adding a new settings category for v1.
+- New palette view/viewmodel under the existing Avalonia app project, not a new project.
+- Tests under `tests/XerahS.Tests` for fuzzy matching, provider failure, and workflow ID execution mapping.
+
+### V1 Implementation Cuts
+
+Ship a v1 that is intentionally small:
+
+- one provider backed by existing core capture workflows;
+- four to six built-in items only;
+- no plugin provider;
+- no named-region provider until KFIP0006 is implemented;
+- no social-preset provider until KFIP0005 exposes stable presets;
+- no learning or usage ranking;
+- no confidence percentages in the UI.
+
+That still proves the user value: one hotkey opens a searchable command surface and executes the same capture workflows users already trust.
+
+### Test Gaps
+
+The KFIP needs implementation tests that pin behavior to existing workflows:
+
+- `FuzzyMatcher` exact, subsequence, and no-match cases;
+- palette item generation maps every visible item to an existing workflow ID;
+- executing a palette item calls the same workflow path as the corresponding hotkey;
+- global hotkey conflict detection returns a visible warning state;
+- provider exception does not block palette open and does not hide core capture modes;
+- Linux/Wayland focus behavior is smoke-tested manually because Avalonia popup activation is platform-sensitive.
+
+### Implementation Recommendation
+
+Implement Phase 1 as a docs-to-code spike only after cutting the KFIP to "core workflow palette". Build the palette as a thin UI over existing workflow/hotkey infrastructure, then add named regions and social presets only when those KFIPs expose stable provider APIs. This keeps the first implementation small enough to build/test in one staged commit while preserving the future shape.
+
+---
+
 ## Related Work
 
 - **KFIP0002**: Smart Region Capture Profiles — palette surfaces profiles alongside modes
