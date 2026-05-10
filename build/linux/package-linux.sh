@@ -56,9 +56,31 @@ restore_project_assets_for_os() {
         -m:1
 }
 
+restore_project_assets_for_publish() {
+    local project_path="$1"
+    local os_value="$2"
+    local runtime_identifier="$3"
+
+    dotnet restore "$project_path" \
+        "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
+        -r "$runtime_identifier" \
+        -p:OS="$os_value" \
+        -p:RuntimeIdentifiers="$runtime_identifier" \
+        -p:DefineConstants=LINUX \
+        -p:SelfContained=true \
+        -p:PublishSingleFile=true \
+        -p:EnableWindowsTargeting=true \
+        --disable-build-servers \
+        -p:nodeReuse=false \
+        -p:UseSharedCompilation=false \
+        -p:BuildInParallel=false \
+        -m:1
+}
+
 restore_scoped_intermediate_assets() {
     local image_editor_project="$ROOT/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
     local ui_project="$ROOT/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
+    local arch
 
     if [ ! -f "$image_editor_project" ]; then
         echo "Error: ShareX.ImageEditor project not found: $image_editor_project"
@@ -73,6 +95,13 @@ restore_scoped_intermediate_assets() {
     restore_project_assets_for_os "$image_editor_project" "Unix"
     restore_project_assets_for_os "$image_editor_project" "Linux"
     restore_project_assets_for_os "$ui_project" "Linux"
+    for arch in "${ARCHITECTURES[@]}"; do
+        # Some XerahS project references intentionally remove OS, so on Linux
+        # they resolve ShareX.ImageEditor under os-Unix while direct restores
+        # resolve under os-Linux. Pre-restore both RID/self-contained buckets.
+        restore_project_assets_for_publish "$image_editor_project" "Unix" "$arch"
+        restore_project_assets_for_publish "$image_editor_project" "Linux" "$arch"
+    done
 }
 
 dotnet_publish_serial() {

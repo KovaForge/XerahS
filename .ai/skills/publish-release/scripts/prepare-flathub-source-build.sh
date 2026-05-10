@@ -183,11 +183,12 @@ generate_nuget_sources() {
   local partial_dir="$snapshot_dir/.flathub-tools/nuget-partials"
   local source_count
   local runtime
+  local os_value
   local partial_file
+  local image_editor_project="$snapshot_dir/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
   local -a projects=(
     "$snapshot_dir/src/desktop/app/XerahS.App/XerahS.App.csproj"
     "$snapshot_dir/src/desktop/app/XerahS.UI/XerahS.UI.csproj"
-    "$snapshot_dir/ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj"
     "$snapshot_dir/build/linux/XerahS.Packaging/XerahS.Packaging.csproj"
   )
   local plugin_project
@@ -203,6 +204,34 @@ generate_nuget_sources() {
     -o "$generator_path"
 
   echo "Generating NuGet dependency sources for Linux publish projects..."
+  for runtime in linux-x64 linux-arm64; do
+    for os_value in Unix Linux; do
+      partial_file="$partial_dir/ShareX.ImageEditor-$os_value-$runtime.json"
+      (
+        cd "$snapshot_dir"
+        python3 "$generator_path" \
+          --dotnet 10 \
+          --freedesktop 25.08 \
+          --runtime "$runtime" \
+          --destdir nuget-sources \
+          "$partial_file" \
+          "$image_editor_project" \
+          --dotnet-args \
+          -p:OS="$os_value" \
+          -p:DefineConstants=LINUX \
+          -p:EnableWindowsTargeting=true \
+          -p:SelfContained=true \
+          -p:PublishSingleFile=true \
+          -p:RuntimeIdentifiers="$runtime" \
+          -p:UseSharedCompilation=false \
+          -p:BuildInParallel=false \
+          -p:nodeReuse=false \
+          -m:1 \
+          --disable-build-servers
+      )
+    done
+  done
+
   for plugin_project in "${projects[@]}"; do
     for runtime in linux-x64 linux-arm64; do
       partial_file="$partial_dir/$(basename "${plugin_project%.csproj}")-$runtime.json"
