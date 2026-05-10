@@ -94,6 +94,10 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(tools, Does.Contain("signal,"));
                 Assert.That(tools, Does.Contain("runXerahS(config, [\"bootstrap\", \"uploaders\"], { signal })"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
+                Assert.That(tools, Does.Contain("Array.isArray(value)"));
+                Assert.That(tools, Does.Contain("parsedUrl = new URL(url);"));
+                Assert.That(tools, Does.Contain("parsedUrl.protocol !== \"http:\" && parsedUrl.protocol !== \"https:\""));
+                Assert.That(tools, Does.Contain("XerahS upload did not return an HTTP URL."));
                 Assert.That(runner, Does.Contain("windowsHide: true"));
                 Assert.That(runner, Does.Contain("signalCode: NodeJS.Signals | null;"));
                 Assert.That(runner, Does.Contain("const rawStdout = Buffer.concat(stdout).toString(\"utf8\").trim();"));

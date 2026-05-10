@@ -483,13 +483,24 @@ public static class OpenClawPluginExporter
             }
 
             function requireUploadUrl(value: unknown): unknown {
-              if (!value || typeof value !== "object") {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
                 throw new Error("XerahS upload did not return an object.");
               }
 
               const url = (value as { url?: unknown }).url;
               if (typeof url !== "string" || !url.trim()) {
                 throw new Error("XerahS upload did not return a URL.");
+              }
+
+              let parsedUrl: URL;
+              try {
+                parsedUrl = new URL(url);
+              } catch {
+                throw new Error("XerahS upload did not return a valid URL.");
+              }
+
+              if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+                throw new Error("XerahS upload did not return an HTTP URL.");
               }
 
               return value;
