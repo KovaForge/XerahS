@@ -1,5 +1,8 @@
 # XIP0056 Custom Uploader UX - Instance Creation, Testing, Save-Back
-**Status**: PROPOSED
+
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High
 **Related**: XIP0024, XIP0045
 

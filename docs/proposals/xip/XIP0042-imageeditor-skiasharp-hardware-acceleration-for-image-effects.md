@@ -1,4 +1,8 @@
 # XIP0042 ImageEditor SkiaSharp hardware acceleration for image effects
+
+**Status**: Superseded
+**Version**: v0.22.257
+
 ## Summary
 
 **Goal:** Use SkiaSharp's GPU backend for image effects where possible, and speed up remaining CPU paths.

@@ -1,5 +1,8 @@
 # XIP0062 EagleShot Overlay Modernization
 
+**Status**: Superseded
+**Version**: v0.22.257
+
 XIP0062: EagleShot-Inspired Overlay Modernization
 
 ## Priority

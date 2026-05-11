@@ -1,6 +1,8 @@
 # XIP0075 Linux XDG + Flathub Readiness
 
-**Status**: Draft  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Area**: Linux | Packaging | XDG | Flatpak | Flathub | Wayland | Trust & Provenance  
 **Related**: XIP0044, XIP0046, XIP0051, XIP0058, XIP0059, XIP0061, XIP0063, PR #231  
 **CEO Mission**: Discord thread — `#xerahs-linux` / "XerahS Linux"  

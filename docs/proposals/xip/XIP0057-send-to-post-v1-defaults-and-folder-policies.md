@@ -1,5 +1,8 @@
 # XIP0057 Send-to Post-v1 Defaults and Folder Policies
-**Status**: PROPOSED
+
+**Status**: Open
+**Version**: v0.22.257
+
 **Priority**: Medium
 **Audit date**: 2026-03-27
 **Related**: XIP0055

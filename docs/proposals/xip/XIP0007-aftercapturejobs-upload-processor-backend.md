@@ -1,5 +1,8 @@
 # XIP0007 AfterCaptureJobs - Upload Processor Backend
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0007: AfterCaptureJobs - Upload Processor Backend
 
 

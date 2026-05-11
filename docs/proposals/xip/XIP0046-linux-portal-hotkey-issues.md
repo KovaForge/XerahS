@@ -1,5 +1,8 @@
 # XIP0046 Linux Portal & Hotkey Issues
-**Status**: OPEN
+
+**Status**: Open
+**Version**: v0.22.257
+
 **Priority**: High
 **Related**: Issues [#63](https://github.com/ShareX/XerahS/issues/63), [#64](https://github.com/ShareX/XerahS/issues/64)
 

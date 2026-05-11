@@ -1,6 +1,8 @@
 # XIP0073: Smart Region Capture Profiles & Social Media Screenshot Automation
 
-**Status**: Draft
+**Status**: Open
+**Version**: v0.22.257
+
 **Priority**: P1
 **Area**: Region Capture | UX | Machine Learning | Screen Recording | Social Media | Automation
 **Created**: 2026-04-12

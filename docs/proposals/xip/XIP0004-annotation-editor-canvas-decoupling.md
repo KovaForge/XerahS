@@ -1,5 +1,8 @@
 # XIP0004 Annotation Editor - Canvas & Decoupling
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0004: Annotation Editor - Canvas & Decoupling
 
 **Status**: Complete ?  

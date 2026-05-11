@@ -1,5 +1,8 @@
 # XIP0027 Amazon S3 SSO Login + Auto-Provisioning via Custom Domain
 
+**Status**: Open
+**Version**: v0.22.257
+
 XIP0027: Amazon S3 SSO Login + Auto-Provisioning via Custom Domain
 
 

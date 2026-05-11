@@ -1,5 +1,8 @@
 # XIP0045 Import ShareX Config ΓÇö Runtime Instance Migration & UX Gaps
-**Status**: LARGELY COMPLETE (tests and OAuth-provider instances pending)
+
+**Status**: Open
+**Version**: v0.22.257
+
 **Priority**: High
 **Related**: XIP0012, issue #171
 

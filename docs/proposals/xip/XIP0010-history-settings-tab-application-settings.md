@@ -1,5 +1,8 @@
 # XIP0010 History Settings Tab - Application Settings
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0010: History Settings Tab - Application Settings
 
 

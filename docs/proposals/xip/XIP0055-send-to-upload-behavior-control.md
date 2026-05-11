@@ -1,5 +1,8 @@
 # XIP0055 Send-To Upload Behavior Control
-**Status**: PROPOSED  
+
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High  
 **Audit date**: 2026-03-24  
 **Related**: Shell integration file handoff behavior, FileUpload workflow

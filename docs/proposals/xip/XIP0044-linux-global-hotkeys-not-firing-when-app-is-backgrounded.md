@@ -1,5 +1,8 @@
 # XIP0044 Linux Global Hotkeys Not Firing When App Is Backgrounded
-**Status**: In Progress
+
+**Status**: Open
+**Version**: v0.22.257
+
 **Priority**: High
 **Affected platform**: Linux (Wayland / XWayland)
 **Related**: XIP0029 (Wayland portal D-Bus errors)

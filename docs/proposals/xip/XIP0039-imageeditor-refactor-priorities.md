@@ -1,4 +1,8 @@
 # XIP0039 ImageEditor Refactor Priorities
+
+**Status**: Open
+**Version**: v0.22.257
+
 ## Summary
 
 Audit scope: `ImageEditor/src/ShareX.ImageEditor`.

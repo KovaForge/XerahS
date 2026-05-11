@@ -1,6 +1,8 @@
 # XIP0065 Avalonia 12 Upgrade - Core Migration and Breaking Changes
 
-**Status**: Implemented
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High
 **Area**: Platform | UI Framework
 **Related**: XIP0066 (composition engine performance), XIP0067 (Material scope cleanup)

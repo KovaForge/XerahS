@@ -1,5 +1,8 @@
 # XIP0016 Modern Cross-Platform Capture Architecture
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0016: Modern Cross-Platform Capture Architecture
 
 

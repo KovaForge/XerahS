@@ -1,6 +1,8 @@
 # XIP0070: User Research — Top 5 Screen Capture Needs
 
-**Status:** Proposed  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Created:** 2026-04-10  
 **Author:** Milena Petrova (Researcher, KovaForge)  
 **Research Model:** moonshot/kimi-k2.5

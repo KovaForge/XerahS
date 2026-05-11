@@ -1,6 +1,8 @@
 # XIP0067 Avalonia 12 - Material.Avalonia Compatibility Update
 
-**Status**: Implemented
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High
 **Area**: UI Framework | Theming
 **Related**: XIP0065 (core upgrade)

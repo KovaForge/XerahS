@@ -1,5 +1,8 @@
 # XIP0014 Linux Support Implementation Plan
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0014: Linux Support Implementation Plan
 
 

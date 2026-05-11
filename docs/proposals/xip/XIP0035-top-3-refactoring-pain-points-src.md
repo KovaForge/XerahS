@@ -1,4 +1,8 @@
 # XIP0035 Top 3 Refactoring Pain Points (src)
+
+**Status**: Complete
+**Version**: v0.22.257
+
 ## Summary
 
 Document the top three structural pain points identified in `src` that require refactoring. XerahS intentionally maintains two mobile tech stacks (Avalonia and MAUI) to evaluate which is best; this XIP addresses pain point #3 (duplicate mobile config ViewModels) with a clear separation: **XerahS.Mobile.Core** for shared code, **XerahS.Mobile.Ava.*** for Avalonia-specific code (namespace `Ava`), and **XerahS.Mobile.Maui** for MAUI-specific code.

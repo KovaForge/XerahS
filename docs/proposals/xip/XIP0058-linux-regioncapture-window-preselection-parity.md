@@ -1,5 +1,8 @@
 # XIP0058 Linux RegionCapture Native Wayland Window Preselection Parity
-**Status**: Completed
+
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High
 **Created**: 2026-03-28
 **Updated**: 2026-03-28

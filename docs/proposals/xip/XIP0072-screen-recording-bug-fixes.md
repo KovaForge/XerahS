@@ -1,6 +1,8 @@
 # XIP0072: Screen Recording Bug Fixes — AV1, HEVC Video Editor Launch, and Stride Safety
 
-**Status**: Draft
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: P0 (stride) / P1 (HEVC) / P2 (AV1)
 **Area**: Screen Recording | Video Encoding | Memory Safety | Video Editor
 **Created**: 2026-04-12

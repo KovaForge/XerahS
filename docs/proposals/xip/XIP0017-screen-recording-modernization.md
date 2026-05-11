@@ -1,5 +1,8 @@
 # XIP0017 Screen Recording Modernization
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0017: Screen Recording Modernization (Consolidated)
 
 **Status**: Complete ?  

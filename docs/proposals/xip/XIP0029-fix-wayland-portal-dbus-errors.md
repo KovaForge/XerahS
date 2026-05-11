@@ -1,5 +1,8 @@
 # XIP0029 Fix Wayland Portal DBus Errors
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0029: Fix Wayland Portal DBus Errors
 
 

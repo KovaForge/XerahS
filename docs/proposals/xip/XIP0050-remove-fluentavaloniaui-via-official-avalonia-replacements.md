@@ -1,4 +1,8 @@
 # XIP0050 Remove FluentAvaloniaUI via Official Avalonia Replacements
+
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0050: Remove FluentAvaloniaUI via Official Avalonia Replacements
 
 ## Summary

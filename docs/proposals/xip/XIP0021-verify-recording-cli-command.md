@@ -1,5 +1,8 @@
 # XIP0021 Verify Recording CLI Command
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0021: Verify Recording CLI Command
 
 

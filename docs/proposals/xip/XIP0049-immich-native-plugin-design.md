@@ -1,4 +1,8 @@
 # XIP0049 Immich Native Plugin Design
+
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0049: Immich Native Plugin Design
 
 ## Goal

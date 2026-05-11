@@ -1,5 +1,8 @@
 # XIP0020 Save As Image Effects
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0020: Save As Image Effects
 
 

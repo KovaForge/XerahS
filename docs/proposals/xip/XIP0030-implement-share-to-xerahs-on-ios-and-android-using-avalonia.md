@@ -1,5 +1,8 @@
 # XIP0030 Implement Share to XerahS on iOS and Android using Avalonia
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0030: Implement Share to XerahS on iOS and Android using Avalonia
 
 **Status**: Ready for Implementation  
