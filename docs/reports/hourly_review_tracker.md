@@ -838,3 +838,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Origin/develop and upstream/develop were already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated OpenClaw CLI non-cancellation failures so runner and validator-thrown errors print a concise stderr message and exit code 1 instead of bubbling to host stack handling. Bumped version `0.22.261` -> `0.22.262`.
 - Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260511-183610.log`, `/tmp/xerahs-hourly-sweep/test-20260511-183928.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export generated CLI presentation around preserving structured JSON-mode failure details without leaking sensitive diagnostics.
+
+### 2026-05-11 22:33 AWST / completed 2026-05-11 22:40 AWST - OpenClaw generated CLI JSON validation diagnostics
+
+- Area: OpenClaw native plugin export / generated CLI JSON validation diagnostics; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Origin/develop and upstream/develop were already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated OpenClaw CLI validator failures to include value-safe JSON shape details while avoiding raw field values, and bumped version `0.22.262` -> `0.22.263`.
+- Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260511-223621.log`, `/tmp/xerahs-hourly-sweep/test-20260511-223939.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated CLI presentation around nested JSON shape summaries and upload command parity.

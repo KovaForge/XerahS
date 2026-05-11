@@ -147,9 +147,14 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(cli, Does.Contain("type JsonValidator = (value: unknown) => unknown;"));
                 Assert.That(cli, Does.Contain("expectJson: jsonValidator !== undefined,"));
                 Assert.That(cli, Does.Contain("process.stdout.write(`${JSON.stringify(jsonValidator(result.json))}\\n`);"));
+                Assert.That(cli, Does.Contain("throw new Error(formatJsonValidationError(error, result.json));"));
                 Assert.That(cli, Does.Contain("process.exitCode = 1;"));
                 Assert.That(cli, Does.Contain("process.stderr.write(`${formatCliError(error)}\\n`);"));
                 Assert.That(cli, Does.Contain("function formatCliError(error: unknown): string"));
+                Assert.That(cli, Does.Contain("function formatJsonValidationError(error: unknown, value: unknown): string"));
+                Assert.That(cli, Does.Contain("Received JSON shape: ${describeJsonShape(value)}"));
+                Assert.That(cli, Does.Contain("function describeJsonShape(value: unknown): string"));
+                Assert.That(cli, Does.Contain("return `object{${entries.join(\",\")}}`;"));
                 Assert.That(cli, Does.Contain("function requireUploadUrl(value: unknown): unknown"));
                 Assert.That(cli, Does.Contain("function requireUploaderReport(value: unknown): unknown"));
                 Assert.That(cli, Does.Contain("XerahS upload did not return an HTTP URL."));

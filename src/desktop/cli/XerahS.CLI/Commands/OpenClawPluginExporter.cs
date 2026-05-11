@@ -615,7 +615,11 @@ public static class OpenClawPluginExporter
                   signal: abortController.signal,
                 });
                 if (jsonValidator) {
-                  process.stdout.write(`${JSON.stringify(jsonValidator(result.json))}\n`);
+                  try {
+                    process.stdout.write(`${JSON.stringify(jsonValidator(result.json))}\n`);
+                  } catch (error) {
+                    throw new Error(formatJsonValidationError(error, result.json));
+                  }
                 } else {
                   process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
                 }
@@ -638,6 +642,25 @@ public static class OpenClawPluginExporter
 
             function formatCliError(error: unknown): string {
               return error instanceof Error ? error.message : String(error);
+            }
+
+            function formatJsonValidationError(error: unknown, value: unknown): string {
+              return `${formatCliError(error)}\nReceived JSON shape: ${describeJsonShape(value)}`;
+            }
+
+            function describeJsonShape(value: unknown): string {
+              if (Array.isArray(value)) {
+                return `array(${value.length})`;
+              }
+
+              if (!value || typeof value !== "object") {
+                return typeof value;
+              }
+
+              const entries = Object.entries(value as Record<string, unknown>)
+                .map(([key, entry]) => `${key}:${Array.isArray(entry) ? "array" : typeof entry}`)
+                .sort();
+              return `object{${entries.join(",")}}`;
             }
 
             function requireUploadUrl(value: unknown): unknown {
