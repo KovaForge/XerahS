@@ -89,12 +89,15 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(tools, Does.Not.Contain("plugin-sdk/provider-web-search"));
                 Assert.That(tools, Does.Contain("execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal)"));
                 Assert.That(tools, Does.Contain("execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal)"));
+                Assert.That(tools, Does.Contain("const filePath = readRequiredPath(rawParams, \"path\");"));
                 Assert.That(tools, Does.Contain("runXerahS(config, args, { expectJson: true, signal })"));
                 Assert.That(tools, Does.Contain("[\"upload\", \"--pipe\", \"--name\", name, \"--json\"]"));
                 Assert.That(tools, Does.Contain("signal,"));
                 Assert.That(tools, Does.Contain("runXerahS(config, [\"bootstrap\", \"uploaders\", \"--json\"], {"));
                 Assert.That(tools, Does.Contain("const trimmedValue = value.trim();"));
                 Assert.That(tools, Does.Contain("return trimmedValue ? trimmedValue : undefined;"));
+                Assert.That(tools, Does.Contain("function readRequiredPath(params: Record<string, unknown>, name: string): string"));
+                Assert.That(tools, Does.Contain("return readRequiredString(params, name).trim();"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(tools, Does.Contain("Array.isArray(value)"));
                 Assert.That(tools, Does.Contain("parsedUrl = new URL(url);"));
@@ -144,6 +147,9 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(cli, Does.Contain("process.once(\"SIGTERM\", abortSigterm);"));
                 Assert.That(cli, Does.Contain("await printRun(config, [\"doctor\", \"uploaders\", \"--json\"], requireUploaderReport);"));
                 Assert.That(cli, Does.Contain("await printRun(config, [\"bootstrap\", \"uploaders\", \"--json\"], requireUploaderReport);"));
+                Assert.That(cli, Does.Contain("const filePath = String(file).trim();"));
+                Assert.That(cli, Does.Contain("throw new Error(\"file is required.\");"));
+                Assert.That(cli, Does.Contain("const args = [\"upload\", filePath, \"--json\"];"));
                 Assert.That(cli, Does.Contain("await printRun(config, args, requireUploadUrl);"));
                 Assert.That(cli, Does.Contain("await printRun(config, [\"upload\", \"--pipe\", \"--name\", name, \"--json\"], requireUploadUrl, String(text));"));
                 Assert.That(cli, Does.Contain("type JsonValidator = (value: unknown) => unknown;"));

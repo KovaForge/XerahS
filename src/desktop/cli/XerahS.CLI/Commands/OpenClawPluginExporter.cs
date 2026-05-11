@@ -404,7 +404,7 @@ public static class OpenClawPluginExporter
                   description: "Upload a local file through XerahS and return the resulting URL JSON.",
                   parameters: uploadFileParams,
                   execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal) => {
-                    const filePath = readRequiredString(rawParams, "path");
+                    const filePath = readRequiredPath(rawParams, "path");
                     const args = ["upload", filePath, "--json"];
                     const name = readOptionalString(rawParams, "name");
 
@@ -475,6 +475,10 @@ public static class OpenClawPluginExporter
               }
 
               return value;
+            }
+
+            function readRequiredPath(params: Record<string, unknown>, name: string): string {
+              return readRequiredString(params, name).trim();
             }
 
             function readOptionalString(params: Record<string, unknown>, name: string): string | undefined {
@@ -569,7 +573,12 @@ public static class OpenClawPluginExporter
                 .option("--name <name>", "Optional upload filename override.")
                 .option("--as-file", "Force the file uploader category.")
                 .action(async (file, options) => {
-                  const args = ["upload", String(file), "--json"];
+                  const filePath = String(file).trim();
+                  if (!filePath) {
+                    throw new Error("file is required.");
+                  }
+
+                  const args = ["upload", filePath, "--json"];
                   const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
 
                   if (typeof opts.name === "string" && opts.name.trim()) {

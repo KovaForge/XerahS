@@ -859,3 +859,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Origin/develop and upstream/develop were already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated tool-side optional filename parsing to trim upload `name` values and ignore all-whitespace names, matching generated CLI behavior for file and text uploads. Bumped version `0.22.264` -> `0.22.265`.
 - Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260512-023657.log`, `/tmp/xerahs-hourly-sweep/test-20260512-024034.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export generated upload path handling around required path normalization and safe structured diagnostics.
+
+### 2026-05-12 04:33 AWST / completed 2026-05-12 04:40 AWST - OpenClaw generated upload path normalization
+
+- Area: OpenClaw native plugin export / generated upload path handling; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Origin/develop and upstream/develop were already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated file-upload path handling to trim required paths before invoking `xerahs upload`, reject empty CLI file args, and keep text upload content untrimmed. Bumped version `0.22.265` -> `0.22.266`.
+- Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260512-043646.log`, `/tmp/xerahs-hourly-sweep/test-20260512-044008.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export safe structured diagnostics and any remaining generated CLI/tool parity gaps.
