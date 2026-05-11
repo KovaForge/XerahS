@@ -25,16 +25,25 @@
 
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Core;
+using XerahS.Core.SendTo;
 
 namespace XerahS.UI.ViewModels;
 
 public partial class SendToPromptViewModel : ViewModelBase
 {
     private readonly SendToSelection _selection;
+    private bool _rememberChoice;
+    private int _folderPolicySelectedIndex;
+    private int _batchPolicySelectedIndex;
+    private int _batchConfirmThreshold;
 
-    public SendToPromptViewModel(SendToSelection selection)
+    public SendToPromptViewModel(SendToSelection selection, ApplicationConfig? settings = null)
     {
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
+        RememberScope = SendToPolicyResolver.GetRememberScope(selection);
+        FolderPolicySelectedIndex = ToFolderPolicyIndex(settings?.SendToFolderPolicy ?? SendToFolderPolicy.IncludeTopLevelFiles);
+        BatchPolicySelectedIndex = ToBatchPolicyIndex(settings?.SendToBatchExecutionPolicy ?? SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold);
+        BatchConfirmThreshold = SendToPolicyResolver.NormalizeBatchThreshold(settings?.SendToBatchConfirmThreshold ?? 5);
     }
 
     public event Action? RequestClose;
@@ -43,8 +52,113 @@ public partial class SendToPromptViewModel : ViewModelBase
 
     public SendToPromptResult Result => new()
     {
-        Action = SelectedAction
+        Action = SelectedAction,
+        FolderPolicy = SelectedFolderPolicy,
+        RememberChoice = RememberChoice,
+        RememberScope = RememberScope,
+        BatchExecutionPolicy = SelectedBatchExecutionPolicy,
+        BatchConfirmThreshold = BatchConfirmThreshold
     };
+
+    public string[] FolderPolicyOptions { get; } =
+    [
+        "Do not expand folders",
+        "Include top-level files",
+        "Include files recursively"
+    ];
+
+    public string[] BatchPolicyOptions { get; } =
+    [
+        "Open all immediately",
+        "Open sequentially",
+        "Confirm before opening more than the threshold"
+    ];
+
+    public bool RememberChoice
+    {
+        get => _rememberChoice;
+        set => SetProperty(ref _rememberChoice, value);
+    }
+
+    public int FolderPolicySelectedIndex
+    {
+        get => _folderPolicySelectedIndex;
+        set
+        {
+            if (SetProperty(ref _folderPolicySelectedIndex, value))
+            {
+                OnPropertyChanged(nameof(FolderPolicySummaryText));
+                OnPropertyChanged(nameof(UploadNowDescription));
+                OnPropertyChanged(nameof(UploadContentDescription));
+            }
+        }
+    }
+
+    public int BatchPolicySelectedIndex
+    {
+        get => _batchPolicySelectedIndex;
+        set
+        {
+            if (SetProperty(ref _batchPolicySelectedIndex, value))
+            {
+                OnPropertyChanged(nameof(BatchPolicySummaryText));
+                OnPropertyChanged(nameof(ShowBatchThreshold));
+            }
+        }
+    }
+
+    public int BatchConfirmThreshold
+    {
+        get => _batchConfirmThreshold;
+        set
+        {
+            int normalized = SendToPolicyResolver.NormalizeBatchThreshold(value);
+            if (SetProperty(ref _batchConfirmThreshold, normalized))
+            {
+                OnPropertyChanged(nameof(BatchPolicySummaryText));
+            }
+        }
+    }
+
+    public SendToRememberScope RememberScope { get; }
+
+    public SendToFolderPolicy SelectedFolderPolicy => FolderPolicySelectedIndex switch
+    {
+        0 => SendToFolderPolicy.DoNotExpandFolders,
+        2 => SendToFolderPolicy.IncludeFilesRecursively,
+        _ => SendToFolderPolicy.IncludeTopLevelFiles
+    };
+
+    public SendToBatchExecutionPolicy SelectedBatchExecutionPolicy => BatchPolicySelectedIndex switch
+    {
+        0 => SendToBatchExecutionPolicy.OpenAllImmediately,
+        1 => SendToBatchExecutionPolicy.OpenSequentially,
+        _ => SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold
+    };
+
+    public bool HasFolders => _selection.HasFolders;
+
+    public bool ShowBatchPolicy => _selection.CanOpenImageEditor || _selection.CanPinToScreen;
+
+    public bool ShowBatchThreshold => SelectedBatchExecutionPolicy == SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold;
+
+    public string RememberChoiceText => $"Remember this choice for {SendToPolicyResolver.FormatRememberScope(RememberScope)}";
+
+    public string FolderPolicySummaryText => _selection.HasFolders
+        ? SelectedFolderPolicy switch
+        {
+            SendToFolderPolicy.DoNotExpandFolders =>
+                "Folder items will be ignored for Upload now and Upload Content.",
+            SendToFolderPolicy.IncludeFilesRecursively =>
+                "Upload actions will include direct files and all files under sent folders.",
+            _ =>
+                "Upload actions will include direct files and top-level files from sent folders."
+        }
+        : "No folders were sent.";
+
+    public string BatchPolicySummaryText => ShowBatchPolicy
+        ? SendToPolicyResolver.FormatBatchPolicy(SelectedBatchExecutionPolicy, BatchConfirmThreshold)
+        : "Batch image policy applies when every sent file is an image.";
 
     public string SelectionSummaryText => _selection.Kind switch
     {
@@ -68,7 +182,7 @@ public partial class SendToPromptViewModel : ViewModelBase
         SendToSelectionKind.AllFiles =>
             "Only file items were sent. Upload now and Upload Content will use those files directly.",
         SendToSelectionKind.AllFolders =>
-            "Only folder items were sent. Upload and Upload Content use top-level files from those folders; Index folder preserves folder intent.",
+            "Only folder items were sent. Upload and Upload Content use the selected folder policy; Index folder preserves folder intent.",
         _ =>
             "Mixed Send-to batches keep file and folder behavior separate. Index folders only applies to folder items."
     };
@@ -80,17 +194,17 @@ public partial class SendToPromptViewModel : ViewModelBase
         SendToSelectionKind.AllFiles =>
             "This batch supports upload-first and queue-first actions.",
         SendToSelectionKind.AllFolders =>
-            "Upload actions use top-level files from each folder. Index preserves folder intent.",
+            "Upload actions use the selected folder policy. Index preserves folder intent.",
         _ =>
-            "Upload actions use files plus top-level folder files. Index applies only to folders."
+            "Upload actions use direct files plus files allowed by the folder policy. Index applies only to folders."
     };
 
     public string UploadNowDescription => _selection.HasFolders
-        ? "Run the upload workflow for direct files and top-level files resolved from sent folders."
+        ? $"Run the upload workflow using the selected folder policy. {FolderPolicySummaryText}"
         : "Run the current file upload workflow immediately.";
 
     public string UploadContentDescription => _selection.HasFolders
-        ? "Open Upload Content with direct files and top-level files resolved from sent folders."
+        ? $"Open Upload Content using the selected folder policy. {FolderPolicySummaryText}"
         : "Open Upload Content and review the sent items before uploading.";
 
     public string ImageEditorDescription => "Open each sent image in the image editor.";
@@ -135,4 +249,18 @@ public partial class SendToPromptViewModel : ViewModelBase
 
     private static string FormatCount(int count, string singular) =>
         count == 1 ? $"1 {singular}" : $"{count} {singular}s";
+
+    private static int ToFolderPolicyIndex(SendToFolderPolicy policy) => policy switch
+    {
+        SendToFolderPolicy.DoNotExpandFolders => 0,
+        SendToFolderPolicy.IncludeFilesRecursively => 2,
+        _ => 1
+    };
+
+    private static int ToBatchPolicyIndex(SendToBatchExecutionPolicy policy) => policy switch
+    {
+        SendToBatchExecutionPolicy.OpenAllImmediately => 0,
+        SendToBatchExecutionPolicy.OpenSequentially => 1,
+        _ => 2
+    };
 }

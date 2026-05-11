@@ -466,7 +466,7 @@ public class HistoryEditorLaunchTests
 
         public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection) => Task.FromResult(new SendToPromptResult());
 
-        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection) => Task.CompletedTask;
+        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null) => Task.CompletedTask;
 
         public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
 

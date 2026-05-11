@@ -190,7 +190,7 @@ namespace XerahS.CLI.Services
             });
         }
 
-        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection)
+        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null)
         {
             Console.WriteLine($"[INFO] Send-to action '{action}' is not available in CLI mode.");
             return Task.CompletedTask;

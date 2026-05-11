@@ -117,6 +117,11 @@
                                    FontSize="11"
                                    Foreground="{DynamicResource SystemBaseMediumColor}"
                                    TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding ResolvedUploadName, StringFormat='Upload name: {0}'}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"
+                                   IsVisible="{Binding ResolvedUploadName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                   TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding ErrorMessage}"
                                    FontSize="11"
                                    Classes="status-error"

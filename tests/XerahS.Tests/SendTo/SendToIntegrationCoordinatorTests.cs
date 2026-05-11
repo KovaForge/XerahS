@@ -138,6 +138,108 @@ public class SendToIntegrationCoordinatorTests
         }
     }
 
+    [Test]
+    public async Task UploadSelectionAsync_WhenFolderPolicyDoesNotExpand_UploadsDirectFilesOnly()
+    {
+        string rootPath = Path.Combine(Path.GetTempPath(), $"xerahs-sendto-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(rootPath);
+
+        try
+        {
+            string directFile = Path.Combine(rootPath, "direct.txt");
+            string folderPath = Path.Combine(rootPath, "folder");
+            string folderFile = Path.Combine(folderPath, "from-folder.txt");
+
+            Directory.CreateDirectory(folderPath);
+            await File.WriteAllTextAsync(directFile, "direct");
+            await File.WriteAllTextAsync(folderFile, "folder");
+
+            FakeUiService uiService = new();
+            FakeTaskManager taskManager = new();
+            SendToIntegrationCoordinator coordinator = CreateCoordinator(uiService, taskManager);
+            SendToSelection selection = new()
+            {
+                FilePaths = [directFile],
+                FolderPaths = [folderPath],
+                Kind = SendToSelectionKind.Mixed
+            };
+
+            await coordinator.UploadSelectionAsync(
+                selection,
+                "test",
+                new SendToPromptResult
+                {
+                    Action = SendToAction.UploadNow,
+                    FolderPolicy = SendToFolderPolicy.DoNotExpandFolders
+                });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(taskManager.StartFileTaskCalls, Is.EqualTo(1));
+                Assert.That(taskManager.StartedFilePaths, Is.EqualTo(new[] { directFile }));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Test]
+    public async Task UploadSelectionAsync_WhenFolderPolicyIsRecursive_IncludesNestedFiles()
+    {
+        string rootPath = Path.Combine(Path.GetTempPath(), $"xerahs-sendto-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(rootPath);
+
+        try
+        {
+            string folderPath = Path.Combine(rootPath, "folder");
+            string nestedFolderPath = Path.Combine(folderPath, "nested");
+            string folderFile = Path.Combine(folderPath, "from-folder.txt");
+            string nestedFile = Path.Combine(nestedFolderPath, "nested.txt");
+
+            Directory.CreateDirectory(folderPath);
+            Directory.CreateDirectory(nestedFolderPath);
+            await File.WriteAllTextAsync(folderFile, "folder");
+            await File.WriteAllTextAsync(nestedFile, "nested");
+
+            FakeUiService uiService = new();
+            FakeTaskManager taskManager = new();
+            SendToIntegrationCoordinator coordinator = CreateCoordinator(uiService, taskManager);
+            SendToSelection selection = new()
+            {
+                FolderPaths = [folderPath],
+                Kind = SendToSelectionKind.AllFolders
+            };
+
+            await coordinator.UploadSelectionAsync(
+                selection,
+                "test",
+                new SendToPromptResult
+                {
+                    Action = SendToAction.UploadNow,
+                    FolderPolicy = SendToFolderPolicy.IncludeFilesRecursively
+                });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(taskManager.StartFileTaskCalls, Is.EqualTo(2));
+                Assert.That(taskManager.StartedFilePaths, Does.Contain(folderFile));
+                Assert.That(taskManager.StartedFilePaths, Does.Contain(nestedFile));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
     private static SendToIntegrationCoordinator CreateCoordinator(FakeUiService uiService, FakeTaskManager taskManager)
     {
         return new SendToIntegrationCoordinator(
@@ -204,7 +306,7 @@ public class SendToIntegrationCoordinatorTests
 
         public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection) => Task.FromResult(PromptResult);
 
-        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection)
+        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null)
         {
             ExecutedActions.Add(action);
             return Task.CompletedTask;

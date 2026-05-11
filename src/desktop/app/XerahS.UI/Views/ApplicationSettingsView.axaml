@@ -375,6 +375,27 @@
                                               ToolTip.Tip="Adds XerahS to the 'Send To' menu for quick file access"
                                               AutomationProperties.Name="Enable Send To Integration"/>
 
+                                    <Border BorderThickness="1"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                            Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                            CornerRadius="4"
+                                            Padding="12">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Send-to remembered choices"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="12"/>
+                                            <TextBlock Text="{Binding RememberedSendToChoicesSummary}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                            <Button Content="Clear remembered Send-to choices"
+                                                    Command="{Binding ClearRememberedSendToChoicesCommand}"
+                                                    IsEnabled="{Binding HasRememberedSendToChoices}"
+                                                    HorizontalAlignment="Left"
+                                                    AutomationProperties.Name="Clear Remembered Send To Choices"/>
+                                        </StackPanel>
+                                    </Border>
+
                                     <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"/>
 
                                     <CheckBox IsChecked="{Binding EnableClipboardContentViewer}"

@@ -42,6 +42,28 @@ public enum SendToAction
     Cancel
 }
 
+public enum SendToRememberScope
+{
+    AllFiles,
+    AllFolders,
+    MixedFilesAndFolders,
+    ImageOnlyFiles
+}
+
+public enum SendToFolderPolicy
+{
+    DoNotExpandFolders,
+    IncludeTopLevelFiles,
+    IncludeFilesRecursively
+}
+
+public enum SendToBatchExecutionPolicy
+{
+    OpenAllImmediately,
+    OpenSequentially,
+    ConfirmBeforeOpeningMoreThanThreshold
+}
+
 public sealed class SendToSelection
 {
     public IReadOnlyList<string> FilePaths { get; init; } = Array.Empty<string>();
@@ -82,7 +104,49 @@ public sealed class SendToPromptResult
 {
     public SendToAction Action { get; init; } = SendToAction.Cancel;
 
+    public SendToFolderPolicy FolderPolicy { get; init; } = SendToFolderPolicy.IncludeTopLevelFiles;
+
+    public bool RememberChoice { get; init; }
+
+    public SendToRememberScope RememberScope { get; init; } = SendToRememberScope.AllFiles;
+
+    public SendToBatchExecutionPolicy BatchExecutionPolicy { get; init; } = SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold;
+
+    public int BatchConfirmThreshold { get; init; } = 5;
+
+    public bool IsRemembered { get; init; }
+
     public bool IsFallback { get; init; }
 
     public string? Reason { get; init; }
+}
+
+public sealed class SendToRememberedChoice
+{
+    public SendToRememberScope Scope { get; set; }
+
+    public SendToAction Action { get; set; }
+
+    public SendToFolderPolicy FolderPolicy { get; set; } = SendToFolderPolicy.IncludeTopLevelFiles;
+
+    public SendToBatchExecutionPolicy BatchExecutionPolicy { get; set; } = SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold;
+
+    public int BatchConfirmThreshold { get; set; } = 5;
+
+    public DateTime SavedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class SendToResolvedFiles
+{
+    public IReadOnlyList<string> FilePaths { get; init; } = Array.Empty<string>();
+
+    public SendToFolderPolicy FolderPolicy { get; init; }
+
+    public int DirectFileCount { get; init; }
+
+    public int FolderFileCount { get; init; }
+
+    public int FolderCount { get; init; }
+
+    public int FailedFolderCount { get; init; }
 }

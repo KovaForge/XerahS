@@ -101,6 +101,10 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool RunAtStartup = false;
     public bool EnableContextMenuIntegration = false;
     public bool EnableSendToIntegration = false;
+    public SendToFolderPolicy SendToFolderPolicy = SendToFolderPolicy.IncludeTopLevelFiles;
+    public SendToBatchExecutionPolicy SendToBatchExecutionPolicy = SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold;
+    public int SendToBatchConfirmThreshold = 5;
+    public List<SendToRememberedChoice> SendToRememberedChoices = new();
     public WatchFolderDaemonScope WatchFolderDaemonScope = WatchFolderDaemonScope.User;
     public bool WatchFolderDaemonStartAtStartup = true;
 
