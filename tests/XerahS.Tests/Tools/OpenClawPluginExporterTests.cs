@@ -165,6 +165,9 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(cli, Does.Contain("Received JSON shape: ${describeJsonShape(value)}"));
                 Assert.That(cli, Does.Contain("function describeJsonShape(value: unknown): string"));
                 Assert.That(cli, Does.Contain("function describeJsonShapeValue(value: unknown, depth: number): string"));
+                Assert.That(cli, Does.Contain("const maxObjectEntries = 12;"));
+                Assert.That(cli, Does.Contain(".slice(0, maxObjectEntries)"));
+                Assert.That(cli, Does.Contain("entries.push(`...+${allEntries.length - maxObjectEntries} keys`);"));
                 Assert.That(cli, Does.Contain("return `array(${value.length})<${describeJsonShapeValue(value[0], depth + 1)}>`;"));
                 Assert.That(cli, Does.Contain("describeJsonShapeValue(entry, depth + 1)"));
                 Assert.That(cli, Does.Contain("function requireUploadUrl(value: unknown): unknown"));

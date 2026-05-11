@@ -681,9 +681,16 @@ public static class OpenClawPluginExporter
                 return typeof value;
               }
 
-              const entries = Object.entries(value as Record<string, unknown>)
+              const maxObjectEntries = 12;
+              const allEntries = Object.entries(value as Record<string, unknown>);
+              const entries = allEntries
+                .slice(0, maxObjectEntries)
                 .map(([key, entry]) => `${key}:${depth >= 2 ? (Array.isArray(entry) ? "array" : typeof entry) : describeJsonShapeValue(entry, depth + 1)}`)
                 .sort();
+              if (allEntries.length > maxObjectEntries) {
+                entries.push(`...+${allEntries.length - maxObjectEntries} keys`);
+              }
+
               return `object{${entries.join(",")}}`;
             }
 

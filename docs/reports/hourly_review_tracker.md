@@ -866,3 +866,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Origin/develop and upstream/develop were already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated file-upload path handling to trim required paths before invoking `xerahs upload`, reject empty CLI file args, and keep text upload content untrimmed. Bumped version `0.22.265` -> `0.22.266`.
 - Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260512-043646.log`, `/tmp/xerahs-hourly-sweep/test-20260512-044008.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export safe structured diagnostics and any remaining generated CLI/tool parity gaps.
+
+### 2026-05-12 06:33 AWST / completed 2026-05-12 06:40 AWST - OpenClaw generated CLI JSON shape diagnostic bounds
+
+- Area: OpenClaw native plugin export / generated CLI safe structured diagnostics; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop doc status commit `ef0af0bd` via `cd8185d7`; KovaForge origin had no new commits before sync. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated CLI JSON validation shape diagnostics to cap object summaries at 12 keys with an omitted-key count, preventing malformed wide JSON from flooding stderr. Bumped version `0.22.266` -> `0.22.267`.
+- Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260512-063637.log`, `/tmp/xerahs-hourly-sweep/test-20260512-064000.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export safe structured diagnostics and any remaining generated CLI/tool parity gaps around generated command stderr formatting.
