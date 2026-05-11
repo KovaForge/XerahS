@@ -605,7 +605,12 @@ public static class OpenClawPluginExporter
 
               try {
                 const result = await runXerahS(config, args, { expectJson, signal: abortController.signal });
-                process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+                if (expectJson) {
+                  process.stdout.write(`${JSON.stringify(result.json)}\n`);
+                } else {
+                  process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+                }
+
                 process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
               } catch (error) {
                 if (cancellationExitCode !== undefined) {

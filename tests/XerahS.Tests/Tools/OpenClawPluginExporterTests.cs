@@ -141,6 +141,7 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(cli, Does.Contain("process.once(\"SIGINT\", abortSigint);"));
                 Assert.That(cli, Does.Contain("process.once(\"SIGTERM\", abortSigterm);"));
                 Assert.That(cli, Does.Contain("runXerahS(config, args, { expectJson, signal: abortController.signal })"));
+                Assert.That(cli, Does.Contain("process.stdout.write(`${JSON.stringify(result.json)}\\n`);"));
                 Assert.That(cli, Does.Contain("await printRun(config, [\"bootstrap\", \"uploaders\", \"--json\"], true);"));
                 Assert.That(cli, Does.Contain(".command(\"upload-text <text>\")"));
                 Assert.That(cli, Does.Contain("const name = typeof opts.name === \"string\" && opts.name.trim() ? opts.name.trim() : \"upload.txt\";"));
