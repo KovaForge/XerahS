@@ -69,6 +69,26 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private bool _silentRun;
 
+        partial void OnShowTrayChanged(bool value)
+        {
+            if (_isLoading) return;
+
+            if (!value && SilentRun)
+            {
+                SilentRun = false;
+            }
+        }
+
+        partial void OnSilentRunChanged(bool value)
+        {
+            if (_isLoading) return;
+
+            if (value && !ShowTray)
+            {
+                ShowTray = true;
+            }
+        }
+
         [ObservableProperty]
         private int _selectedTheme;
 
@@ -396,6 +416,7 @@ namespace XerahS.UI.ViewModels
 
             SettingsManager.SaveApplicationConfig();
             SettingsManager.SaveWorkflowsConfigAsync();
+            App.ApplyMenuBarOnlyModeFromSettings();
 
             ApplyWatchFolderRuntimePolicy(
                 watchFolderConfigurationChanged,

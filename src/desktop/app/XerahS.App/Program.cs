@@ -792,8 +792,10 @@ namespace XerahS.App
                             mainWindow.WindowState = Avalonia.Controls.WindowState.Normal;
                         }
                         
-                        // Show in taskbar and bring to front
-                        mainWindow.ShowInTaskbar = true;
+                        // Show in taskbar and bring to front. On macOS, SilentRun is also
+                        // the menu-bar-only mode, so the Dock icon should stay hidden.
+                        mainWindow.ShowInTaskbar = !OperatingSystem.IsMacOS() ||
+                            !XerahS.Core.SettingsManager.Settings.SilentRun;
                         mainWindow.Show();
                         mainWindow.Activate();
                         mainWindow.Topmost = true;

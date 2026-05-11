@@ -33,6 +33,13 @@ namespace XerahS.Platform.MacOS.Services
     {
         public bool IsDesktopWallpaperSupported => true;
 
+        public bool IsMenuBarOnlyModeSupported => true;
+
+        public bool SetMenuBarOnlyMode(bool enabled)
+        {
+            return MacOSApplicationActivationPolicy.TryApplyMenuBarOnlyMode(enabled);
+        }
+
         public bool ShowFileInExplorer(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))

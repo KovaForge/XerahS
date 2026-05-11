@@ -640,8 +640,8 @@ public class TrayIconHelper : INotifyPropertyChanged
             var window = desktop.MainWindow;
             if (window != null)
             {
-                // Ensure taskbar visibility is restored
-                window.ShowInTaskbar = true;
+                // On macOS, SilentRun doubles as menu-bar-only mode, so keep the Dock icon hidden.
+                window.ShowInTaskbar = ShouldShowInTaskbar();
                 
                 window.Show();
                 
@@ -665,8 +665,8 @@ public class TrayIconHelper : INotifyPropertyChanged
         if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
             desktop.MainWindow is Views.MainWindow mainWindow)
         {
-            // Ensure visibility before navigating
-            mainWindow.ShowInTaskbar = true;
+            // Ensure visibility before navigating while preserving macOS menu-bar-only mode.
+            mainWindow.ShowInTaskbar = ShouldShowInTaskbar();
             mainWindow.Show();
             
             if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)
@@ -696,6 +696,11 @@ public class TrayIconHelper : INotifyPropertyChanged
     {
         ApplicationConfig settings = SettingsManager.Settings;
         return settings.RememberMainFormSize || settings.RememberMainFormPosition;
+    }
+
+    private static bool ShouldShowInTaskbar()
+    {
+        return !OperatingSystem.IsMacOS() || !SettingsManager.Settings.SilentRun;
     }
 
     public void OnTrayClick()
@@ -768,4 +773,3 @@ public class TrayIconHelper : INotifyPropertyChanged
         }
     }
 }
-
