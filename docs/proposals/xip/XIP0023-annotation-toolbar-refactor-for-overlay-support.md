@@ -1,5 +1,8 @@
 # XIP0023 Annotation Toolbar Refactor for Overlay Support
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0023: XIP0023: Annotation Toolbar Refactor for Overlay Support
 
 

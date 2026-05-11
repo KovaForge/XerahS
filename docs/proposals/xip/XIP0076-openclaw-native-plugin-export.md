@@ -1,6 +1,8 @@
 # XIP0076 OpenClaw Native Plugin Export
 
-**Status**: Draft  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High  
 **Area**: AI Integration | OpenClaw | CLI | Plugin Packaging | Automation  
 **Related**: XIP0063, XIP0064  

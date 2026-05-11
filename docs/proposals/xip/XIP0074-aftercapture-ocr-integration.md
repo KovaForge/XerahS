@@ -1,6 +1,8 @@
 # XIP0074 AfterCapture OCR Integration
 
-**Status**: Implemented
+**Status**: Complete
+**Version**: v0.22.257
+
 **Implemented**: 2026-05-10
 **Related**: XIP0071 (XerahS Spotlight Assistant)
 

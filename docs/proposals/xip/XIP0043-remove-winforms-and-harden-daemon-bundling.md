@@ -1,4 +1,8 @@
 # XIP0043 Remove WinForms and harden daemon bundling
+
+**Status**: Complete
+**Version**: v0.22.257
+
 ## Summary
 
 This plan removes the `System.Windows.Forms` dependency from the Windows platform layer and makes daemon packaging deterministic across all six desktop release combinations:

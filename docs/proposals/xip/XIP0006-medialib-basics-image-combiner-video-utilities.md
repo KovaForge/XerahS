@@ -1,5 +1,8 @@
 # XIP0006 MediaLib Basics - Image Combiner & Video Utilities
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0006: MediaLib Basics - Image Combiner & Video Utilities
 
 

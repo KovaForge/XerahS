@@ -1,5 +1,8 @@
 # XIP0019 Platform Abstraction & Architecture Audit
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0019: Platform Abstraction & Architecture Audit
 
 

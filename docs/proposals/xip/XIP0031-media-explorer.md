@@ -1,5 +1,8 @@
 # XIP0031 Media Explorer
-**Status**: Draft  
+
+**Status**: Complete
+**Version**: v0.22.257
+
 **Created**: 2026-02-17  
 **Updated**: 2026-02-17  
 **Area**: Uploaders  

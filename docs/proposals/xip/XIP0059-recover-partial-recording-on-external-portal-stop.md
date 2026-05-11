@@ -1,6 +1,8 @@
 # XIP0059 Recover Partial Recording on External Portal Session Termination
 
-**Status**: Completed  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Created**: 2026-03-30  
 **Updated**: 2026-03-30  
 **Area**: Desktop | Core  

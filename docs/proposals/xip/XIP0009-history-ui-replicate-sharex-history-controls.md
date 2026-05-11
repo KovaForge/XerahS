@@ -1,5 +1,8 @@
 # XIP0009 History UI - Replicate ShareX History Controls
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0009: History UI - Replicate ShareX History Controls
 
 

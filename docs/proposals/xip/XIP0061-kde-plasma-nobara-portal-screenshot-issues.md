@@ -1,6 +1,8 @@
 # XIP0061 KDE Plasma / Nobara Linux: Portal Issues, Fixes & Version Dependencies
 
-**Status**: Implemented (fixes merged in `v0.21.3`)  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Area**: Linux | Wayland | Screen Capture | Hotkeys  
 **Related**: XIP0044, XIP0046, XIP0029, Issues [#63](https://github.com/ShareX/XerahS/issues/63), [#64](https://github.com/ShareX/XerahS/issues/64)  
 **CEO Mission**: Bug report thread — `#xerahs-kde-plasma-6-2-bug-report-portal-hijack-hotkey-death`

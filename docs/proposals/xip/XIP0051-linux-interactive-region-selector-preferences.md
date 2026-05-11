@@ -1,5 +1,8 @@
 # XIP0051 Linux Interactive Region Selector Preferences
-**Status**: Proposed
+
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High
 **Affected platform**: Linux
 **Related**: XIP0016, XIP0046, XIP0047

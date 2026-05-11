@@ -1,5 +1,8 @@
 # XIP0018 Component Wiring Diagram
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0018: Component Wiring Diagram
 
 ```xml

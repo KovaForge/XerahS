@@ -1,5 +1,8 @@
 # XIP0022 GIF Recording Fixes
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0022: GIF Recording Fixes
 
 

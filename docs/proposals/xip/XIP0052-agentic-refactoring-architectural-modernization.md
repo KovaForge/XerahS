@@ -1,4 +1,8 @@
 # XIP0052 Agentic Refactoring & Architectural Modernization
+
+**Status**: Complete
+**Version**: v0.22.257
+
 ## 1. Executive Summary
 This proposal outlines a plan to refactor three major architectural pain points within the XerahS codebase to improve its maintainability, testability, and suitability for AI-assisted (agentic) coding. The core focus areas are eliminating the global service locator pattern in favor of Dependency Injection, breaking down massive monolithic classes, and strictly enforcing MVVM separation in the UI layer.
 

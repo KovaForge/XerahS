@@ -1,5 +1,8 @@
 # XIP0047 Linux Region Capture: DPI and Performance Issues
-**Status**: Open (major overlay DPI regression fixed; Linux portal/hotkey/input issues still remain)
+
+**Status**: Open
+**Version**: v0.22.257
+
 **Priority**: High
 **Affected platform**: Linux (Wayland, mixed-DPI)
 **Related**: Commit `58283cb13900be85ede524022c5d5dc46877eebd`, KNOWN_ISSUES.md, XIP0046

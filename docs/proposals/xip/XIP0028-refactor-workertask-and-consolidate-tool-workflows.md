@@ -1,5 +1,8 @@
 # XIP0028 Refactor WorkerTask and Consolidate Tool Workflows
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0028: Refactor WorkerTask and Consolidate Tool Workflows
 
 ---

@@ -1,6 +1,8 @@
 # XIP0054 Amazon S3 Multipart Upload
 
-**Status**: PROPOSED  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: High  
 **Related**: XIP0027 (S3 SSO + Auto-Provisioning)
 

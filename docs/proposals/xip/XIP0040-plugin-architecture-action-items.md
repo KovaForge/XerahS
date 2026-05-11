@@ -1,5 +1,8 @@
 # XIP0040 Plugin Architecture Action Items
-**Status:** Fully implemented.  
+
+**Status**: Complete
+**Version**: v0.22.257
+
 **Verified:** LegacySupport consolidated; secret migration provider-driven; Amazon S3 plugin uses plugin-local `S3StorageClass`; solution build 0 errors.
 
 ---

@@ -1,6 +1,8 @@
 # XIP0068 Re-Editing Saved Annotated Screenshots
 
-**Status**: Draft  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Author**: Milena Petrova (KovaForge Researcher)  
 **Co-Authors**: Vladislava Kova (KovaForge COO)  
 **Created**: 2026-04-09  

@@ -1,5 +1,8 @@
 # XIP0063 XerahS CLI OpenClaw Compatibility Enhancement
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0063: XerahS CLI — OpenClaw Integration & Headless Upload Support
 
 ## Priority

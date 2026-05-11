@@ -1,5 +1,8 @@
 # XIP0015 Workflow Configuration - Image Effects
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0015: Workflow Configuration - Image Effects
 
 

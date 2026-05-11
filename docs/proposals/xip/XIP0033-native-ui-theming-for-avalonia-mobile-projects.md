@@ -1,5 +1,8 @@
 # XIP0033 Native UI Theming for Avalonia Mobile Projects
-**Status**: Draft  
+
+**Status**: Superseded
+**Version**: v0.22.257
+
 **Created**: 2026-02-17  
 **Area**: Mobile / UI/UX  
 **Targets**: `XerahS.Mobile.UI`, `XerahS.Mobile.Android`, `XerahS.Mobile.iOS`  

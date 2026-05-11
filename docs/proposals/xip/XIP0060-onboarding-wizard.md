@@ -1,6 +1,8 @@
 # XIP0060 First-Run Onboarding Wizard
 
-**Status**: Complete  
+**Status**: Complete
+**Version**: v0.22.257
+
 **Created**: 2026-04-06  
 **Updated**: 2026-04-06  
 **Area**: Desktop | UX | Core  

@@ -1,6 +1,8 @@
 # XIP0066 Avalonia 12 Composition Engine - Large UI Tree Performance
 
-**Status**: Implemented
+**Status**: Complete
+**Version**: v0.22.257
+
 **Priority**: Medium
 **Area**: Performance | UI Framework
 **Related**: XIP0065 (core upgrade)

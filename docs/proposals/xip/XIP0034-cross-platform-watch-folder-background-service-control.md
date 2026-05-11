@@ -1,4 +1,8 @@
 # XIP0034 Cross-Platform Watch Folder Background Service Control
+
+**Status**: Complete
+**Version**: v0.22.257
+
 ## Summary
 Implement one global Start/Stop control in the **Watch Folders** tab to manage a dedicated headless watcher runtime (not the UI `XerahS` binary), with:
 1. True Windows SCM service.
