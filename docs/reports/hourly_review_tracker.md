@@ -845,3 +845,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Origin/develop and upstream/develop were already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated OpenClaw CLI validator failures to include value-safe JSON shape details while avoiding raw field values, and bumped version `0.22.262` -> `0.22.263`.
 - Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260511-223621.log`, `/tmp/xerahs-hourly-sweep/test-20260511-223939.log`.
 - Follow-up: Continue reviewing OpenClaw plugin export generated CLI presentation around nested JSON shape summaries and upload command parity.
+
+### 2026-05-12 00:33 AWST / completed 2026-05-12 00:42 AWST - OpenClaw generated CLI text upload parity
+
+- Area: OpenClaw native plugin export / generated CLI upload text and JSON shape diagnostics; files: `src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs`, `tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs`, `Directory.Build.props`.
+- Status: Merged upstream/develop commits `b6aa7d55` and `92aaa9bc` via `a76a87f0`, preserving KovaForge version lineage and the fuller May 11 blog draft. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed generated `xerahs upload-text` to send text through stdin with `upload --pipe` instead of exposing text in child process arguments, added bounded nested JSON shape summaries for validator failures, and bumped version `0.22.263` -> `0.22.264`.
+- Verification: Release build passed with 0 warnings/errors; tests passed 893 total. Logs: `/tmp/xerahs-hourly-sweep/build-20260512-003828.log`, `/tmp/xerahs-hourly-sweep/test-20260512-004152.log`.
+- Follow-up: Continue reviewing OpenClaw plugin export generated CLI/file upload parity around filename handling and safe structured diagnostics.

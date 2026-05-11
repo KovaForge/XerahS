@@ -585,7 +585,7 @@ public static class OpenClawPluginExporter
                 .action(async (text, options) => {
                   const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
                   const name = typeof opts.name === "string" && opts.name.trim() ? opts.name.trim() : "upload.txt";
-                  await printRun(config, ["upload", "--text", String(text), "--name", name, "--json"], requireUploadUrl);
+                  await printRun(config, ["upload", "--pipe", "--name", name, "--json"], requireUploadUrl, String(text));
                 });
             }
 
@@ -595,6 +595,7 @@ public static class OpenClawPluginExporter
               config: XerahSPluginConfig,
               args: string[],
               jsonValidator?: JsonValidator,
+              input?: string,
             ): Promise<void> {
               const abortController = new AbortController();
               let cancellationExitCode: number | undefined;
@@ -611,6 +612,7 @@ public static class OpenClawPluginExporter
 
               try {
                 const result = await runXerahS(config, args, {
+                  input,
                   expectJson: jsonValidator !== undefined,
                   signal: abortController.signal,
                 });
@@ -649,8 +651,16 @@ public static class OpenClawPluginExporter
             }
 
             function describeJsonShape(value: unknown): string {
+              return describeJsonShapeValue(value, 0);
+            }
+
+            function describeJsonShapeValue(value: unknown, depth: number): string {
               if (Array.isArray(value)) {
-                return `array(${value.length})`;
+                if (value.length === 0 || depth >= 2) {
+                  return `array(${value.length})`;
+                }
+
+                return `array(${value.length})<${describeJsonShapeValue(value[0], depth + 1)}>`;
               }
 
               if (!value || typeof value !== "object") {
@@ -658,7 +668,7 @@ public static class OpenClawPluginExporter
               }
 
               const entries = Object.entries(value as Record<string, unknown>)
-                .map(([key, entry]) => `${key}:${Array.isArray(entry) ? "array" : typeof entry}`)
+                .map(([key, entry]) => `${key}:${depth >= 2 ? (Array.isArray(entry) ? "array" : typeof entry) : describeJsonShapeValue(entry, depth + 1)}`)
                 .sort();
               return `object{${entries.join(",")}}`;
             }
