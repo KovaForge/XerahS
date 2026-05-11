@@ -548,14 +548,14 @@ public static class OpenClawPluginExporter
                 .command("doctor-uploaders")
                 .description("Inspect XerahS uploader readiness.")
                 .action(async () => {
-                  await printRun(config, ["doctor", "uploaders", "--json"], true);
+                  await printRun(config, ["doctor", "uploaders", "--json"], requireUploaderReport);
                 });
 
               root
                 .command("bootstrap-uploaders")
                 .description("Initialize safe first-use XerahS uploader defaults.")
                 .action(async () => {
-                  await printRun(config, ["bootstrap", "uploaders", "--json"], true);
+                  await printRun(config, ["bootstrap", "uploaders", "--json"], requireUploaderReport);
                 });
 
               root
@@ -575,7 +575,7 @@ public static class OpenClawPluginExporter
                     args.push("--as-file");
                   }
 
-                  await printRun(config, args, true);
+                  await printRun(config, args, requireUploadUrl);
                 });
 
               root
@@ -585,11 +585,17 @@ public static class OpenClawPluginExporter
                 .action(async (text, options) => {
                   const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
                   const name = typeof opts.name === "string" && opts.name.trim() ? opts.name.trim() : "upload.txt";
-                  await printRun(config, ["upload", "--text", String(text), "--name", name, "--json"], true);
+                  await printRun(config, ["upload", "--text", String(text), "--name", name, "--json"], requireUploadUrl);
                 });
             }
 
-            async function printRun(config: XerahSPluginConfig, args: string[], expectJson: boolean): Promise<void> {
+            type JsonValidator = (value: unknown) => unknown;
+
+            async function printRun(
+              config: XerahSPluginConfig,
+              args: string[],
+              jsonValidator?: JsonValidator,
+            ): Promise<void> {
               const abortController = new AbortController();
               let cancellationExitCode: number | undefined;
               const abortSigint = () => {
@@ -604,9 +610,12 @@ public static class OpenClawPluginExporter
               process.once("SIGTERM", abortSigterm);
 
               try {
-                const result = await runXerahS(config, args, { expectJson, signal: abortController.signal });
-                if (expectJson) {
-                  process.stdout.write(`${JSON.stringify(result.json)}\n`);
+                const result = await runXerahS(config, args, {
+                  expectJson: jsonValidator !== undefined,
+                  signal: abortController.signal,
+                });
+                if (jsonValidator) {
+                  process.stdout.write(`${JSON.stringify(jsonValidator(result.json))}\n`);
                 } else {
                   process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
                 }
@@ -624,6 +633,49 @@ public static class OpenClawPluginExporter
                 process.off("SIGINT", abortSigint);
                 process.off("SIGTERM", abortSigterm);
               }
+            }
+
+            function requireUploadUrl(value: unknown): unknown {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("XerahS upload did not return an object.");
+              }
+
+              const url = (value as { url?: unknown }).url;
+              if (typeof url !== "string" || !url.trim()) {
+                throw new Error("XerahS upload did not return a URL.");
+              }
+
+              let parsedUrl: URL;
+              try {
+                parsedUrl = new URL(url);
+              } catch {
+                throw new Error("XerahS upload did not return a valid URL.");
+              }
+
+              if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+                throw new Error("XerahS upload did not return an HTTP URL.");
+              }
+
+              return value;
+            }
+
+            function requireUploaderReport(value: unknown): unknown {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("XerahS uploader command did not return a report object.");
+              }
+
+              const report = value as Record<string, unknown>;
+              for (const property of ["Created", "Repaired", "Skipped", "Diagnostics"]) {
+                if (!Array.isArray(report[property])) {
+                  throw new Error(`XerahS uploader report did not return a ${property} array.`);
+                }
+              }
+
+              if (typeof report.HasBlockingIssues !== "boolean") {
+                throw new Error("XerahS uploader report did not return a HasBlockingIssues boolean.");
+              }
+
+              return value;
             }
             """
         });
