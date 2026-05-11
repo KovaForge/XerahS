@@ -628,11 +628,16 @@ public static class OpenClawPluginExporter
                   return;
                 }
 
-                throw error;
+                process.exitCode = 1;
+                process.stderr.write(`${formatCliError(error)}\n`);
               } finally {
                 process.off("SIGINT", abortSigint);
                 process.off("SIGTERM", abortSigterm);
               }
+            }
+
+            function formatCliError(error: unknown): string {
+              return error instanceof Error ? error.message : String(error);
             }
 
             function requireUploadUrl(value: unknown): unknown {
