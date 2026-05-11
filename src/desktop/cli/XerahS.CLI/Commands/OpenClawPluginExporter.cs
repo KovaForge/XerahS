@@ -479,7 +479,12 @@ public static class OpenClawPluginExporter
 
             function readOptionalString(params: Record<string, unknown>, name: string): string | undefined {
               const value = params[name];
-              return typeof value === "string" && value.trim() ? value : undefined;
+              if (typeof value !== "string") {
+                return undefined;
+              }
+
+              const trimmedValue = value.trim();
+              return trimmedValue ? trimmedValue : undefined;
             }
 
             function requireUploadUrl(value: unknown): unknown {

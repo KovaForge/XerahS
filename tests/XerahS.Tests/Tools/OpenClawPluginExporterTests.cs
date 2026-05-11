@@ -93,6 +93,8 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(tools, Does.Contain("[\"upload\", \"--pipe\", \"--name\", name, \"--json\"]"));
                 Assert.That(tools, Does.Contain("signal,"));
                 Assert.That(tools, Does.Contain("runXerahS(config, [\"bootstrap\", \"uploaders\", \"--json\"], {"));
+                Assert.That(tools, Does.Contain("const trimmedValue = value.trim();"));
+                Assert.That(tools, Does.Contain("return trimmedValue ? trimmedValue : undefined;"));
                 Assert.That(tools, Does.Contain("requireUploadUrl"));
                 Assert.That(tools, Does.Contain("Array.isArray(value)"));
                 Assert.That(tools, Does.Contain("parsedUrl = new URL(url);"));
