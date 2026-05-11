@@ -775,8 +775,6 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             if (config != null)
             {
                 _secretKey = string.IsNullOrWhiteSpace(config.SecretKey) ? Guid.NewGuid().ToString("N") : config.SecretKey;
-                AccessKeyId = _secrets?.GetSecret("amazons3", _secretKey, "accessKeyId") ?? string.Empty;
-                SecretAccessKey = _secrets?.GetSecret("amazons3", _secretKey, "secretAccessKey") ?? string.Empty;
                 AuthModeIndex = config.AuthMode == S3AuthMode.AwsSso ? 1 : 0;
                 BucketName = config.BucketName ?? string.Empty;
 
@@ -802,6 +800,19 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
                     ? 10
                     : ConvertBytesToMiB(config.MultipartPartSizeBytes, 10);
                 MultipartMaxConcurrency = config.MultipartMaxConcurrency <= 0 ? 4 : config.MultipartMaxConcurrency;
+
+                config.SecretKey = _secretKey;
+                if (_secrets != null &&
+                    S3CredentialSecrets.TryGetAccessKeyCredentials(_secrets, config, out string accessKeyId, out string secretAccessKey))
+                {
+                    AccessKeyId = accessKeyId;
+                    SecretAccessKey = secretAccessKey;
+                }
+                else
+                {
+                    AccessKeyId = string.Empty;
+                    SecretAccessKey = string.Empty;
+                }
 
                 if (_secrets != null)
                 {
@@ -891,6 +902,15 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             else
             {
                 _secrets.SetSecret("amazons3", _secretKey, "secretAccessKey", SecretAccessKey);
+            }
+
+            if (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))
+            {
+                S3CredentialSecrets.DeleteAccessKeyCredentials(_secrets, config);
+            }
+            else
+            {
+                S3CredentialSecrets.StoreAccessKeyCredentials(_secrets, config, AccessKeyId, SecretAccessKey);
             }
         }
 
