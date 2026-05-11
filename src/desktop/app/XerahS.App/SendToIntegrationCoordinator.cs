@@ -25,6 +25,7 @@
 
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.SendTo;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 
@@ -61,7 +62,7 @@ namespace XerahS.App
 
                 case SendToAction.UploadNow:
                     DebugHelper.WriteLine($"Shell integration ({source}): Upload explicitly requested from Send-to.");
-                    await UploadSelectionAsync(selection, source);
+                    await UploadSelectionAsync(selection, source, decision);
                     return;
 
                 default:
@@ -69,7 +70,7 @@ namespace XerahS.App
                         $"Shell integration ({source}): Upload skipped because Send-to action '{decision.Action}' was selected.");
                     try
                     {
-                        await _uiService.ExecuteSendToActionAsync(decision.Action, selection);
+                        await _uiService.ExecuteSendToActionAsync(decision.Action, selection, decision);
                     }
                     catch (Exception ex)
                     {
@@ -79,31 +80,60 @@ namespace XerahS.App
             }
         }
 
-        public async Task UploadSelectionAsync(SendToSelection selection, string source)
+        public async Task UploadSelectionAsync(SendToSelection selection, string source, SendToPromptResult? decision = null)
         {
             ArgumentNullException.ThrowIfNull(selection);
 
-            List<string> uploadFiles = ResolveUploadFiles(selection);
-            if (uploadFiles.Count == 0)
+            SendToPromptResult effectiveDecision = decision ?? CreateDefaultDecision(selection);
+            SendToResolvedFiles resolvedFiles = SendToPolicyResolver.ResolveFiles(selection, effectiveDecision.FolderPolicy);
+            if (resolvedFiles.FilePaths.Count == 0)
             {
                 DebugHelper.WriteLine(
-                    $"Shell integration ({source}): Send-to upload requested but no uploadable files were resolved.");
+                    $"Shell integration ({source}): Send-to upload requested but no uploadable files were resolved; " +
+                    $"folderPolicy={effectiveDecision.FolderPolicy}, folders={selection.FolderPaths.Count}.");
                 return;
             }
 
-            foreach (string file in uploadFiles)
+            DebugHelper.WriteLine(
+                $"Shell integration ({source}): Resolved Send-to upload files direct={resolvedFiles.DirectFileCount}, " +
+                $"fromFolders={resolvedFiles.FolderFileCount}, folderPolicy={resolvedFiles.FolderPolicy}, " +
+                $"failedFolders={resolvedFiles.FailedFolderCount}, namingPolicy=task-name-pattern.");
+
+            foreach (string file in resolvedFiles.FilePaths)
             {
                 TaskSettings settings = _createUploadTaskSettings();
                 settings.Job = WorkflowType.FileUpload;
+                DebugHelper.WriteLine(
+                    $"Shell integration ({source}): Starting Send-to upload source=\"{file}\", " +
+                    "staging=false, resolvedUploadName=generated-by-task-manager.");
                 await _taskManager.StartFileTask(settings, file);
             }
         }
 
         private async Task<SendToPromptResult> ResolveDecisionAsync(SendToSelection selection)
         {
+            SendToPromptResult? rememberedDecision = SendToPolicyResolver.TryResolveRememberedDecision(
+                selection,
+                SettingsManager.Settings.SendToRememberedChoices);
+
+            if (rememberedDecision != null)
+            {
+                return rememberedDecision;
+            }
+
             try
             {
-                return await _uiService.ShowSendToPromptAsync(selection);
+                SendToPromptResult decision = await _uiService.ShowSendToPromptAsync(selection);
+                if (decision.RememberChoice && decision.Action != SendToAction.Cancel)
+                {
+                    SendToPolicyResolver.SaveRememberedDecision(SettingsManager.Settings.SendToRememberedChoices, decision);
+                    SettingsManager.SaveApplicationConfigAsync();
+                    DebugHelper.WriteLine(
+                        $"Shell integration: Saved Send-to remembered choice scope={decision.RememberScope}, action={decision.Action}, " +
+                        $"folderPolicy={decision.FolderPolicy}, batchPolicy={decision.BatchExecutionPolicy}.");
+                }
+
+                return decision;
             }
             catch (Exception ex)
             {
@@ -112,6 +142,10 @@ namespace XerahS.App
                 return new SendToPromptResult
                 {
                     Action = SendToAction.UploadNow,
+                    FolderPolicy = SettingsManager.Settings.SendToFolderPolicy,
+                    RememberScope = SendToPolicyResolver.GetRememberScope(selection),
+                    BatchExecutionPolicy = SettingsManager.Settings.SendToBatchExecutionPolicy,
+                    BatchConfirmThreshold = SendToPolicyResolver.NormalizeBatchThreshold(SettingsManager.Settings.SendToBatchConfirmThreshold),
                     IsFallback = true,
                     Reason = "Send-to prompt failed to open."
                 };
@@ -125,61 +159,27 @@ namespace XerahS.App
                 : string.Empty;
 
             DebugHelper.WriteLine(
-                $"Shell integration ({source}): Send-to decision action={decision.Action}, source={(decision.IsFallback ? "fallback" : "prompt")}, " +
+                $"Shell integration ({source}): Send-to decision action={decision.Action}, source={GetDecisionSource(decision)}, " +
                 $"classification={selection.ClassificationLabel}, files={selection.FilePaths.Count}, folders={selection.FolderPaths.Count}, " +
-                $"allImages={selection.AllFilesAreImages}{fallbackSuffix}.");
+                $"allImages={selection.AllFilesAreImages}, rememberedScope={decision.RememberScope}, folderPolicy={decision.FolderPolicy}, " +
+                $"batchPolicy={decision.BatchExecutionPolicy}, batchThreshold={decision.BatchConfirmThreshold}, " +
+                $"namingPolicy=task-name-pattern{fallbackSuffix}.");
         }
 
-        private static List<string> ResolveUploadFiles(SendToSelection selection)
+        private static string GetDecisionSource(SendToPromptResult decision)
         {
-            StringComparer comparer = OperatingSystem.IsWindows()
-                ? StringComparer.OrdinalIgnoreCase
-                : StringComparer.Ordinal;
+            if (decision.IsFallback) return "fallback";
+            if (decision.IsRemembered) return "remembered";
+            return "prompt";
+        }
 
-            HashSet<string> seen = new(comparer);
-            List<string> uploadFiles = [];
-
-            foreach (string filePath in selection.FilePaths)
-            {
-                if (!string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath) && seen.Add(filePath))
-                {
-                    uploadFiles.Add(filePath);
-                }
-            }
-
-            int expandedFolderFileCount = 0;
-
-            foreach (string folderPath in selection.FolderPaths)
-            {
-                if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    foreach (string filePath in Directory.GetFiles(folderPath))
-                    {
-                        if (seen.Add(filePath))
-                        {
-                            uploadFiles.Add(filePath);
-                            expandedFolderFileCount++;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.WriteException(ex, $"Shell integration: Failed to enumerate folder '{folderPath}' for Send-to upload.");
-                }
-            }
-
-            if (selection.FolderPaths.Count > 0)
-            {
-                DebugHelper.WriteLine(
-                    $"Shell integration: Resolved {expandedFolderFileCount} top-level file(s) from {selection.FolderPaths.Count} folder Send-to item(s) for upload.");
-            }
-
-            return uploadFiles;
+        private static SendToPromptResult CreateDefaultDecision(SendToSelection selection)
+        {
+            return SendToPolicyResolver.CreateDefaultDecision(
+                selection,
+                SettingsManager.Settings.SendToFolderPolicy,
+                SettingsManager.Settings.SendToBatchExecutionPolicy,
+                SettingsManager.Settings.SendToBatchConfirmThreshold);
         }
     }
 }

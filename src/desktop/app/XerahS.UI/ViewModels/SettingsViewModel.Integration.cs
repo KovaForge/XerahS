@@ -32,6 +32,7 @@ using XerahS.Assistant.Configuration;
 using XerahS.Assistant.Models;
 using XerahS.Assistant.Providers;
 using XerahS.Core;
+using XerahS.Core.SendTo;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels
@@ -54,6 +55,29 @@ namespace XerahS.UI.ViewModels
         private bool _supportsSendToIntegration;
 
         public bool HasMcpApiKey => !string.IsNullOrWhiteSpace(SettingsManager.Settings.McpApiKey);
+
+        public bool HasRememberedSendToChoices => SettingsManager.Settings.SendToRememberedChoices.Count > 0;
+
+        public string RememberedSendToChoicesSummary
+        {
+            get
+            {
+                var choices = SettingsManager.Settings.SendToRememberedChoices;
+                if (choices.Count == 0)
+                {
+                    return "No remembered Send-to choices.";
+                }
+
+                return string.Join(
+                    Environment.NewLine,
+                    choices
+                        .OrderBy(choice => choice.Scope)
+                        .Select(choice =>
+                            $"{SendToPolicyResolver.FormatRememberScope(choice.Scope)}: {FormatSendToAction(choice.Action)}, " +
+                            $"{SendToPolicyResolver.FormatFolderPolicy(choice.FolderPolicy)}, " +
+                            $"{SendToPolicyResolver.FormatBatchPolicy(choice.BatchExecutionPolicy, choice.BatchConfirmThreshold)}"));
+            }
+        }
 
         public string McpApiKeyDisplay
         {
@@ -327,12 +351,37 @@ namespace XerahS.UI.ViewModels
             NotifyMcpApiKeyChanged();
         }
 
+        [RelayCommand]
+        private void ClearRememberedSendToChoices()
+        {
+            SettingsManager.Settings.SendToRememberedChoices.Clear();
+            SettingsManager.SaveApplicationConfig();
+            NotifyRememberedSendToChoicesChanged();
+        }
+
         private void NotifyMcpApiKeyChanged()
         {
             OnPropertyChanged(nameof(HasMcpApiKey));
             OnPropertyChanged(nameof(McpApiKeyDisplay));
             OnPropertyChanged(nameof(McpApiKeyStatusText));
         }
+
+        private void NotifyRememberedSendToChoicesChanged()
+        {
+            OnPropertyChanged(nameof(HasRememberedSendToChoices));
+            OnPropertyChanged(nameof(RememberedSendToChoicesSummary));
+        }
+
+        private static string FormatSendToAction(SendToAction action) => action switch
+        {
+            SendToAction.UploadNow => "Upload now",
+            SendToAction.OpenUploadContent => "Open in Upload Content",
+            SendToAction.OpenImageEditor => "Open in Image Editor",
+            SendToAction.PinToScreen => "Pin to Screen",
+            SendToAction.IndexFolders => "Index folders",
+            SendToAction.Cancel => "Cancel",
+            _ => action.ToString()
+        };
 
         private static string CreateMcpApiKey()
         {

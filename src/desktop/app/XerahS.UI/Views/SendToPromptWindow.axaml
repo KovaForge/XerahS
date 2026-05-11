@@ -132,6 +132,53 @@
                            AutomationProperties.Name="Selection action scope"/>
               </StackPanel>
             </Border>
+
+            <Border Classes="card"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                    Padding="{StaticResource CardPaddingCompact}"
+                    IsVisible="{Binding HasFolders}">
+              <StackPanel Spacing="{StaticResource SpaceS}">
+                <TextBlock Text="Folder policy"
+                           Classes="caption"
+                           AutomationProperties.Name="Folder policy label"/>
+                <ComboBox ItemsSource="{Binding FolderPolicyOptions}"
+                          SelectedIndex="{Binding FolderPolicySelectedIndex}"
+                          MinHeight="{StaticResource ControlHeight}"
+                          AutomationProperties.Name="Folder policy"/>
+                <TextBlock Text="{Binding FolderPolicySummaryText}"
+                           Classes="caption"
+                           AutomationProperties.Name="Folder policy summary"/>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                    Padding="{StaticResource CardPaddingCompact}"
+                    IsVisible="{Binding ShowBatchPolicy}">
+              <StackPanel Spacing="{StaticResource SpaceS}">
+                <TextBlock Text="Image batch policy"
+                           Classes="caption"
+                           AutomationProperties.Name="Batch policy label"/>
+                <ComboBox ItemsSource="{Binding BatchPolicyOptions}"
+                          SelectedIndex="{Binding BatchPolicySelectedIndex}"
+                          MinHeight="{StaticResource ControlHeight}"
+                          AutomationProperties.Name="Batch policy"/>
+                <NumericUpDown Value="{Binding BatchConfirmThreshold}"
+                               Minimum="1"
+                               Maximum="100"
+                               Increment="1"
+                               MinHeight="{StaticResource ControlHeight}"
+                               IsVisible="{Binding ShowBatchThreshold}"
+                               AutomationProperties.Name="Batch confirm threshold"/>
+                <TextBlock Text="{Binding BatchPolicySummaryText}"
+                           Classes="caption"
+                           AutomationProperties.Name="Batch policy summary"/>
+              </StackPanel>
+            </Border>
+
+            <CheckBox IsChecked="{Binding RememberChoice}"
+                      Content="{Binding RememberChoiceText}"
+                      AutomationProperties.Name="Remember Send-to choice"/>
           </StackPanel>
         </Border>
 

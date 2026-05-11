@@ -537,7 +537,7 @@ namespace XerahS.UI.Services
         {
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                var viewModel = new SendToPromptViewModel(selection);
+                var viewModel = new SendToPromptViewModel(selection, SettingsManager.Settings);
                 var window = new Views.SendToPromptWindow
                 {
                     DataContext = viewModel
@@ -556,14 +556,11 @@ namespace XerahS.UI.Services
                     await closedTcs.Task;
                 }
 
-                return new SendToPromptResult
-                {
-                    Action = viewModel.SelectedAction
-                };
+                return viewModel.Result;
             });
         }
 
-        public async Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection)
+        public async Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null)
         {
             if (action is SendToAction.Cancel or SendToAction.UploadNow)
             {
@@ -571,19 +568,31 @@ namespace XerahS.UI.Services
             }
 
             Window? owner = TryGetDialogOwner();
+            SendToPromptResult effectiveDecision = decision ?? new SendToPromptResult
+            {
+                Action = action,
+                FolderPolicy = SettingsManager.Settings.SendToFolderPolicy,
+                RememberScope = XerahS.Core.SendTo.SendToPolicyResolver.GetRememberScope(selection),
+                BatchExecutionPolicy = SettingsManager.Settings.SendToBatchExecutionPolicy,
+                BatchConfirmThreshold = SettingsManager.Settings.SendToBatchConfirmThreshold
+            };
 
             switch (action)
             {
                 case SendToAction.OpenUploadContent:
-                    await UploadContentToolService.ShowSelectionAsync(selection.FilePaths, selection.FolderPaths, owner);
+                    await UploadContentToolService.ShowSelectionAsync(
+                        selection.FilePaths,
+                        selection.FolderPaths,
+                        owner,
+                        effectiveDecision.FolderPolicy);
                     break;
 
                 case SendToAction.OpenImageEditor:
-                    await OpenSelectedImagesInEditorAsync(selection);
+                    await OpenSelectedImagesInEditorAsync(selection, effectiveDecision);
                     break;
 
                 case SendToAction.PinToScreen:
-                    await PinSelectedImagesAsync(selection);
+                    await PinSelectedImagesAsync(selection, effectiveDecision);
                     break;
 
                 case SendToAction.IndexFolders:
@@ -592,10 +601,38 @@ namespace XerahS.UI.Services
             }
         }
 
-        private async Task OpenSelectedImagesInEditorAsync(SendToSelection selection)
+        private async Task OpenSelectedImagesInEditorAsync(SendToSelection selection, SendToPromptResult decision)
         {
             if (!selection.CanOpenImageEditor)
             {
+                return;
+            }
+
+            if (!ShouldRunImageBatch(selection, decision, "Image Editor"))
+            {
+                return;
+            }
+
+            if (decision.BatchExecutionPolicy == SendToBatchExecutionPolicy.OpenAllImmediately)
+            {
+                List<Task> editorTasks = [];
+                foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
+                {
+                    if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                    {
+                        continue;
+                    }
+
+                    SKBitmap? bitmap = SkiaSharp.SKBitmap.Decode(filePath);
+                    if (bitmap == null)
+                    {
+                        continue;
+                    }
+
+                    editorTasks.Add(ShowEditorAsync(bitmap, sourceFilePath: filePath).ContinueWith(_ => bitmap.Dispose()));
+                }
+
+                await Task.WhenAll(editorTasks);
                 return;
             }
 
@@ -616,14 +653,60 @@ namespace XerahS.UI.Services
             }
         }
 
-        private static Task PinSelectedImagesAsync(SendToSelection selection)
+        private static async Task PinSelectedImagesAsync(SendToSelection selection, SendToPromptResult decision)
         {
             if (!selection.CanPinToScreen)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            return PinToScreenToolService.PinFilesAsync(selection.FilePaths);
+            if (!ShouldRunImageBatch(selection, decision, "Pin to Screen"))
+            {
+                return;
+            }
+
+            await PinToScreenToolService.PinFilesAsync(selection.FilePaths);
+            DebugHelper.WriteLine($"Shell integration: Pin-to-screen Send-to batch requested {selection.FilePaths.Count} image(s).");
+
+            if (PlatformServices.IsInitialized && PlatformServices.IsToastServiceInitialized)
+            {
+                PlatformServices.Toast.ShowToast(new ToastConfig
+                {
+                    Title = "Send-to complete",
+                    Text = $"Pinned {selection.FilePaths.Count} image(s).",
+                    Duration = 3f,
+                    AutoHide = true
+                });
+            }
+        }
+
+        private static bool ShouldRunImageBatch(SendToSelection selection, SendToPromptResult decision, string actionName)
+        {
+            int itemCount = selection.FilePaths.Count;
+            int threshold = XerahS.Core.SendTo.SendToPolicyResolver.NormalizeBatchThreshold(decision.BatchConfirmThreshold);
+
+            if (decision.BatchExecutionPolicy == SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold &&
+                itemCount > threshold &&
+                decision.IsRemembered)
+            {
+                DebugHelper.WriteLine(
+                    $"Shell integration: Skipped remembered Send-to {actionName} batch because {itemCount} item(s) exceed threshold {threshold}.");
+
+                if (PlatformServices.IsInitialized && PlatformServices.IsToastServiceInitialized)
+                {
+                    PlatformServices.Toast.ShowToast(new ToastConfig
+                    {
+                        Title = "Send-to needs confirmation",
+                        Text = $"Open XerahS and choose the action for {itemCount} image(s).",
+                        Duration = 5f,
+                        AutoHide = true
+                    });
+                }
+
+                return false;
+            }
+
+            return true;
         }
 
         private async Task OpenSelectedFoldersInIndexFolderAsync(SendToSelection selection, Window? owner)

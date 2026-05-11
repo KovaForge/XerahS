@@ -28,6 +28,7 @@ using Avalonia.Threading;
 using System.Linq;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.SendTo;
 using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
@@ -57,7 +58,8 @@ public static class UploadContentToolService
     public static async Task ShowSelectionAsync(
         IEnumerable<string>? filePaths,
         IEnumerable<string>? folderPaths,
-        Window? owner)
+        Window? owner,
+        SendToFolderPolicy folderPolicy = SendToFolderPolicy.IncludeTopLevelFiles)
     {
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -72,7 +74,12 @@ public static class UploadContentToolService
             int addedFileCount = 0;
             int addedFolderCount = 0;
 
-            foreach (var filePath in filePaths ?? Enumerable.Empty<string>())
+            SendToSelection selection = SendToSelectionClassifier.Create(
+                filePaths ?? Enumerable.Empty<string>(),
+                folderPaths ?? Enumerable.Empty<string>());
+            SendToResolvedFiles resolvedFiles = SendToPolicyResolver.ResolveFiles(selection, folderPolicy);
+
+            foreach (var filePath in resolvedFiles.FilePaths)
             {
                 var addedItem = viewModel.AddFileItem(filePath);
                 if (addedItem != null)
@@ -82,19 +89,7 @@ public static class UploadContentToolService
                 }
             }
 
-            foreach (var folderPath in folderPaths ?? Enumerable.Empty<string>())
-            {
-                var addedItem = viewModel.AddFolderFiles(folderPath);
-                if (addedItem != null)
-                {
-                    firstAddedItem ??= addedItem;
-                }
-
-                if (!string.IsNullOrWhiteSpace(folderPath))
-                {
-                    addedFolderCount++;
-                }
-            }
+            addedFolderCount = selection.FolderPaths.Count;
 
             if (firstAddedItem != null)
             {
@@ -102,7 +97,9 @@ public static class UploadContentToolService
             }
 
             DebugHelper.WriteLine(
-                $"UploadContent: Seeded Send-to selection with {addedFileCount} direct file(s) and {addedFolderCount} folder item(s).");
+                $"UploadContent: Seeded Send-to selection with {addedFileCount} resolved file(s), " +
+                $"{addedFolderCount} folder item(s), folderPolicy={folderPolicy}, " +
+                $"folderDerivedFiles={resolvedFiles.FolderFileCount}, failedFolders={resolvedFiles.FailedFolderCount}.");
         });
     }
 

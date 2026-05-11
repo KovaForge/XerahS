@@ -1,11 +1,54 @@
 # XIP0057 Send-to Post-v1 Defaults and Folder Policies
 
-**Status**: Open
+**Status**: Complete
 **Version**: v0.22.257
 
 **Priority**: Medium
 **Audit date**: 2026-03-27
 **Related**: XIP0055
+
+---
+
+## Implementation Update (2026-05-12)
+
+XIP0057 has shipped as a production Send-to follow-up on top of XIP0055.
+
+### Shipped behavior
+- The Send-to prompt now supports `Remember this choice` with scoped rules for all files, all folders, mixed selections, and image-only files.
+- Remembered choices are persisted in application settings and are only consumed by `--send-to` handling; `Upload with XerahS` remains separate.
+- Application settings now show the remembered Send-to rules and provide `Clear remembered Send-to choices`.
+- Folder-containing Send-to batches expose an explicit folder policy: do not expand folders, include top-level files, or include files recursively.
+- `Upload now` and `Open in Upload Content` both use the same folder expansion resolver, so they no longer diverge on folder input.
+- Send-to file uploads continue through the normal task name-pattern path, and native file uploader dispatch now passes the generated `TaskInfo.FileName` into stream upload instead of falling back to the source file name.
+- Upload Content shows the resolved upload-name preview for queued files.
+- Image editor and pin-to-screen Send-to batches now carry an explicit batch execution policy; remembered image batch rules that exceed the confirmation threshold are stopped with diagnostics/toast instead of opening an uncontrolled burst.
+- Diagnostics now log decision source, remembered scope, folder policy, batch policy, folder-derived file counts, failed folder enumeration count, and generated-name policy.
+
+### Key files
+- `src/platform/XerahS.Platform.Abstractions/SendToModels.cs`
+- `src/desktop/core/XerahS.Core/SendTo/SendToPolicyResolver.cs`
+- `src/desktop/core/XerahS.Core/Models/ApplicationConfig.cs`
+- `src/desktop/app/XerahS.App/SendToIntegrationCoordinator.cs`
+- `src/desktop/app/XerahS.UI/ViewModels/SendToPromptViewModel.cs`
+- `src/desktop/app/XerahS.UI/Views/SendToPromptWindow.axaml`
+- `src/desktop/app/XerahS.UI/Services/AvaloniaUIService.cs`
+- `src/desktop/app/XerahS.UI/Services/UploadContentToolService.cs`
+- `src/desktop/app/XerahS.UI/ViewModels/UploadContentViewModel.cs`
+- `src/desktop/app/XerahS.UI/Views/UploadContentWindow.axaml`
+- `src/desktop/app/XerahS.UI/ViewModels/SettingsViewModel.Integration.cs`
+- `src/desktop/app/XerahS.UI/Views/ApplicationSettingsView.axaml`
+- `src/desktop/core/XerahS.Core/Tasks/Processors/UploadJobProcessor.cs`
+
+### Tests and verification
+- Added `tests/XerahS.Tests/SendTo/SendToPolicyResolverTests.cs`.
+- Extended `tests/XerahS.Tests/SendTo/SendToIntegrationCoordinatorTests.cs`.
+- `dotnet test tests\XerahS.Tests\XerahS.Tests.csproj --filter SendTo -m:1` passed: 12 tests.
+- `dotnet build src\desktop\XerahS.sln -m:1` passed with 0 warnings and 0 errors.
+- `dotnet test tests\XerahS.Tests\XerahS.Tests.csproj -m:1` compiled and ran, but failed in pre-existing/environment-sensitive coverage outside XIP0057 on this Windows host: SQLite history cleanup locked `history.db`, Linux/macOS clipboard path expectations, and `/bin/sh` notification process tests.
+
+### Remaining hardening
+- A future polish pass can replace the remembered large-image-batch toast stop with an interactive confirmation dialog when the app can safely present one from a remembered/background Send-to invocation.
+- A future UX pass can add editable default folder/batch policies to settings; the shipped settings surface lists and clears remembered rules, while defaults are initialized to safe values.
 
 ---
 
@@ -121,13 +164,13 @@ Extend Send-to diagnostics so one batch decision can always be reconstructed fro
 ---
 
 ## Acceptance Criteria
-1. Users can optionally remember a Send-to choice and clear it later.
-2. Remembered Send-to choices are scoped and never affect `Upload with XerahS`.
-3. Folder-containing Send-to selections show an explicit folder policy for non-index actions.
-4. Send-to uploads use the same effective naming policy as equivalent non-Send-to uploads.
-5. `Upload now` and `Open in Upload Content` do not diverge in generated upload names for the same input and task settings.
-6. Batch image actions offer a predictable execution policy and avoid uncontrolled window bursts.
-7. Logs clearly show the rule, folder policy, and naming policy used for each Send-to batch.
+1. [Implemented] Users can optionally remember a Send-to choice and clear it later.
+2. [Implemented] Remembered Send-to choices are scoped and never affect `Upload with XerahS`.
+3. [Implemented] Folder-containing Send-to selections show an explicit folder policy for non-index actions.
+4. [Implemented] Send-to uploads use the same effective naming policy as equivalent non-Send-to uploads.
+5. [Implemented] `Upload now` and `Open in Upload Content` do not diverge in generated upload names for the same input and task settings.
+6. [Implemented] Batch image actions offer a predictable execution policy and avoid uncontrolled window bursts.
+7. [Implemented] Logs clearly show the rule, folder policy, and naming policy used for each Send-to batch.
 
 ---
 

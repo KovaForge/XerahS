@@ -499,7 +499,7 @@ namespace XerahS.Core.Tasks.Processors
                 {
                     var result = uploader switch
                     {
-                        FileUploader fileUploader => fileUploader.UploadFile(info.FilePath),
+                        FileUploader fileUploader => UploadWithGenericUploader(fileUploader, info),
                         GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
                         _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
                     };

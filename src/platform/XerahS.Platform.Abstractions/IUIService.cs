@@ -105,7 +105,7 @@ namespace XerahS.Platform.Abstractions
         /// <summary>
         /// Executes a non-upload Send-to action against the provided selection.
         /// </summary>
-        Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection);
+        Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null);
 
         /// <summary>
         /// Shows the OCR window with the provided image and runs text recognition.

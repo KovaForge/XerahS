@@ -71,6 +71,9 @@ public partial class UploadQueueItem : ObservableObject
     private string? _errorMessage;
 
     [ObservableProperty]
+    private string? _resolvedUploadName;
+
+    [ObservableProperty]
     private bool _isPending = true;
 
     [ObservableProperty]
@@ -297,7 +300,8 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             DisplayName = Path.GetFileName(filePath),
             Description = FormatFileSize(fileInfo.Length),
             DataType = EDataType.File,
-            FilePath = filePath
+            FilePath = filePath,
+            ResolvedUploadName = ResolveUploadNamePreview(filePath)
         };
 
         Items.Add(item);
@@ -472,6 +476,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
                 item.Status = UploadQueueItemStatus.Completed;
                 item.ProgressPercent = 100;
                 item.ResultURL = capturedTask.Info?.Result?.URL ?? capturedTask.Info?.Metadata?.UploadURL;
+                item.ResolvedUploadName = capturedTask.Info?.FileName ?? item.ResolvedUploadName;
                 DebugHelper.WriteLine($"[UploadContentDebug] UploadItem success: resultUrl=\"{item.ResultURL ?? string.Empty}\"");
             }
             else
@@ -535,6 +540,21 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             $"urlShortenerInstanceId=\"{settings.UrlShortenerDestinationInstanceId ?? string.Empty}\"");
 
         return settings;
+    }
+
+    private static string ResolveUploadNamePreview(string filePath)
+    {
+        try
+        {
+            TaskSettings settings = CreateUploadTaskSettings(EDataType.File);
+            string extension = Path.GetExtension(filePath);
+            return XerahS.Core.TaskHelpers.GetFileName(settings, extension, new TaskMetadata());
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "UploadContent: Failed to resolve Send-to upload name preview.");
+            return Path.GetFileName(filePath);
+        }
     }
 
     private static TaskSettings CloneTaskSettings(TaskSettings source)
@@ -724,4 +744,3 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         Items.Clear();
     }
 }
-

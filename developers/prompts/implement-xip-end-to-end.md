@@ -51,24 +51,32 @@ Tests and verification:
 5. Report exact commands run and whether they passed.
 
 XIP update:
-1. Mark implemented XIPs with `Status: Implemented` and an implementation date.
+1. Mark implemented XIPs with the repository-normalized completed status and an implementation date.
 2. Add an implementation update section listing shipped behavior, key files, tests, and build verification.
 3. Update phase/acceptance criteria with `[Implemented]` markers only for what actually shipped.
 4. Keep future work explicit under a remaining hardening/follow-up section.
 5. If related XIPs overlap, document the compatibility contract in both files.
 
 Git batching:
-1. After verification passes, commit in logical batches if I ask you to commit/push.
+1. Commit and push in logical batches as each implementation batch is completed and verified; do not wait until the entire XIP is finished when a coherent batch is ready.
 2. Good batch examples: implementation + tests, then XIP/docs update.
 3. Use the required version prefix from root `Directory.Build.props` and make sure it is ahead of the latest tag.
-4. Push each batch after committing if I ask for batched pushes.
+4. Push each batch immediately after committing it.
+5. Keep the working tree clean between batches except for the next intentional batch.
+
+GitHub follow-up:
+1. Search GitHub issues, pull requests, and project items for the XIP number and title.
+2. If a matching open item exists, add a concise completion comment linking or naming the shipped commit(s), then close the item once the implementation and XIP update are pushed.
+3. If no matching GitHub item exists, state that explicitly in the final deliverables.
+4. Do not create a new GitHub issue or project item unless the user explicitly asks for one.
 
 Deliverables:
 - What shipped
 - Files changed
 - Tests/build commands and results
 - Remaining hardening/follow-up
-- Commit hashes if commits were requested
+- Commit hashes and pushed branch
+- Matching GitHub item closed, or confirmation that none was found
 ```
 
 Replace bracketed placeholders before sending the prompt.
