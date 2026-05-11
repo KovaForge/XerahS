@@ -1,7 +1,11 @@
 # XIP0039 ImageEditor Refactor Priorities
 
-**Status**: Open
+**Status**: Superseded
 **Version**: v0.22.257
+
+## Superseded Note
+
+This audit is no longer tracked as a standalone implementation XIP. Its ImageEditor refactor findings have been absorbed into later, narrower ImageEditor and architectural modernization work, so this proposal is closed as superseded rather than implemented.
 
 ## Summary
 
