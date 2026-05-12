@@ -305,6 +305,7 @@ public partial class OcrStepViewModel : StepViewModelBase
             .ToDictionary(language => language.LanguageTag, language => language.LanguageTag, StringComparer.OrdinalIgnoreCase);
 
         List<string> normalizedSelectedLanguages = SelectedLanguages
+            .Select(NormalizeLanguageTag)
             .Where(languageTag => supportedLanguageTags.ContainsKey(languageTag))
             .Select(languageTag => supportedLanguageTags[languageTag])
             .Distinct(StringComparer.OrdinalIgnoreCase)

@@ -144,6 +144,24 @@ public sealed class OnboardingOcrStepViewModelTests
     }
 
     [Test]
+    public async Task RefreshAvailableLanguages_TrimsSelectedLanguageTagsBeforeSync()
+    {
+        OcrStepViewModel viewModel = new();
+        viewModel.SelectedLanguages = new ObservableCollection<string>([" fr "]);
+        PlatformServices.Ocr = new StubOcrService(
+        [
+            new("English", "en"),
+            new("French", "fr")
+        ]);
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "fr" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").IsSelected, Is.True);
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.False);
+    }
+
+    [Test]
     public async Task RefreshAvailableLanguages_TrimsDisplayNames_AndFallsBackToLanguageTag()
     {
         OcrStepViewModel viewModel = new();
