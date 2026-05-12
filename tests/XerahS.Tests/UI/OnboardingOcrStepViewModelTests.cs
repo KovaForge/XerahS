@@ -66,6 +66,20 @@ public sealed class OnboardingOcrStepViewModelTests
     }
 
     [Test]
+    public void ReplacingSelectedLanguages_UnsubscribesPreviousCollection()
+    {
+        OcrStepViewModel viewModel = new();
+        ObservableCollection<string> previousSelection = viewModel.SelectedLanguages;
+
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["fr"]);
+        previousSelection.Clear();
+
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "fr" }));
+        Assert.That(viewModel.IsValid, Is.True);
+        Assert.That(viewModel.HasValidationError, Is.False);
+    }
+
+    [Test]
     public async Task RefreshAvailableLanguages_UnsubscribesRemovedOptions()
     {
         OcrStepViewModel viewModel = new();
@@ -98,6 +112,22 @@ public sealed class OnboardingOcrStepViewModelTests
         Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en", "fr" }));
         Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
         Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").IsSelected, Is.True);
+    }
+
+    [Test]
+    public async Task RefreshAvailableLanguages_TrimsDisplayNames_AndFallsBackToLanguageTag()
+    {
+        OcrStepViewModel viewModel = new();
+        PlatformServices.Ocr = new StubOcrService(
+        [
+            new(" English ", "en"),
+            new(" ", "fr")
+        ]);
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").DisplayName, Is.EqualTo("English"));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").DisplayName, Is.EqualTo("fr"));
     }
 
     private sealed class StubOcrService(OcrLanguage[] languages) : IOcrService

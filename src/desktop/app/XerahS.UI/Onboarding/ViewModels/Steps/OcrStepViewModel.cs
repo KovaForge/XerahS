@@ -58,6 +58,7 @@ public partial class OcrLanguageOption : ObservableObject
 public partial class OcrStepViewModel : StepViewModelBase
 {
     private bool _syncingSelections;
+    private ObservableCollection<string>? _subscribedSelectedLanguages;
 
     [ObservableProperty]
     private ObservableCollection<string> _selectedLanguages = new();
@@ -80,7 +81,7 @@ public partial class OcrStepViewModel : StepViewModelBase
         StepDescription = "Select languages for OCR. You can always add more later in Settings.";
         CanSkip = true;
 
-        SelectedLanguages.CollectionChanged += SelectedLanguages_CollectionChanged;
+        SubscribeSelectedLanguages(SelectedLanguages);
         InitializeLanguages();
         UpdateValidationState();
     }
@@ -167,8 +168,8 @@ public partial class OcrStepViewModel : StepViewModelBase
 
                 RegisterLanguage(new OcrLanguageOption(
                     languageTag,
-                    language.DisplayName,
-                    language.DisplayName,
+                    NormalizeDisplayName(language.DisplayName, languageTag),
+                    NormalizeDisplayName(language.DisplayName, languageTag),
                     0));
             }
 
@@ -213,10 +214,25 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     partial void OnSelectedLanguagesChanged(ObservableCollection<string> value)
     {
-        value.CollectionChanged -= SelectedLanguages_CollectionChanged;
-        value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        SubscribeSelectedLanguages(value);
         SyncOptionsFromSelectedLanguages();
         UpdateValidationState();
+    }
+
+    private void SubscribeSelectedLanguages(ObservableCollection<string> value)
+    {
+        if (ReferenceEquals(_subscribedSelectedLanguages, value))
+        {
+            return;
+        }
+
+        if (_subscribedSelectedLanguages != null)
+        {
+            _subscribedSelectedLanguages.CollectionChanged -= SelectedLanguages_CollectionChanged;
+        }
+
+        _subscribedSelectedLanguages = value;
+        value.CollectionChanged += SelectedLanguages_CollectionChanged;
     }
 
     private void SelectedLanguages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -321,4 +337,10 @@ public partial class OcrStepViewModel : StepViewModelBase
     }
 
     private static string NormalizeLanguageTag(string? languageTag) => languageTag?.Trim() ?? string.Empty;
+
+    private static string NormalizeDisplayName(string? displayName, string languageTag)
+    {
+        string normalizedDisplayName = displayName?.Trim() ?? string.Empty;
+        return string.IsNullOrEmpty(normalizedDisplayName) ? languageTag : normalizedDisplayName;
+    }
 }
