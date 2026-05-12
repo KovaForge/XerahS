@@ -216,6 +216,8 @@ public partial class App : Application
 
             if (silentRun)
             {
+                ApplyMenuBarOnlyModeFromSettings();
+
                 // If starting silently, we don't want the last window closing to shut down the app
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             }
@@ -339,6 +341,38 @@ public partial class App : Application
     /// </summary>
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator?.WorkflowManager;
+
+    public static void ApplyMenuBarOnlyModeFromSettings()
+    {
+        try
+        {
+            var systemService = PlatformServices.System;
+            if (!systemService.IsMenuBarOnlyModeSupported)
+            {
+                return;
+            }
+
+            bool enabled = SettingsManager.Settings.SilentRun;
+            if (!systemService.SetMenuBarOnlyMode(enabled))
+            {
+                DebugHelper.WriteLine($"Menu-bar-only mode could not be {(enabled ? "enabled" : "disabled")}.");
+            }
+
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                desktop.MainWindow != null)
+            {
+                desktop.MainWindow.ShowInTaskbar = !enabled;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Platform services are not available during a few settings-unit-test paths.
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to apply menu-bar-only mode.");
+        }
+    }
 
     /// <summary>
     /// Allows the settings UI to start or stop the clipboard monitor at runtime.

@@ -223,7 +223,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             return;
         }
 
-        mainWindow.ShowInTaskbar = true;
+        mainWindow.ShowInTaskbar = !OperatingSystem.IsMacOS() || !SettingsManager.Settings.SilentRun;
 
         if (!mainWindow.IsVisible)
         {
