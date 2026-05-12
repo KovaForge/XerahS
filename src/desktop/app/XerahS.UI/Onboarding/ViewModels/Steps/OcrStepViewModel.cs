@@ -126,9 +126,16 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     public void SetDefaultLanguage(string languageCode)
     {
+        string normalizedLanguageCode = NormalizeLanguageTag(languageCode);
+        if (string.IsNullOrEmpty(normalizedLanguageCode))
+        {
+            return;
+        }
+
         OcrLanguageOption? match = AvailableLanguages.FirstOrDefault(language =>
-            language.LanguageTag.Equals(languageCode, StringComparison.OrdinalIgnoreCase) ||
-            language.LanguageTag.StartsWith(languageCode + "-", StringComparison.OrdinalIgnoreCase));
+            language.LanguageTag.Equals(normalizedLanguageCode, StringComparison.OrdinalIgnoreCase) ||
+            language.LanguageTag.StartsWith(normalizedLanguageCode + "-", StringComparison.OrdinalIgnoreCase) ||
+            normalizedLanguageCode.StartsWith(language.LanguageTag + "-", StringComparison.OrdinalIgnoreCase));
 
         if (match != null)
         {

@@ -95,6 +95,20 @@ public sealed class OnboardingOcrStepViewModelTests
     }
 
     [Test]
+    public void SetDefaultLanguage_WithRegionalLanguageCode_SelectsNeutralLanguage()
+    {
+        OcrStepViewModel viewModel = new();
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["fr"]);
+
+        viewModel.SetDefaultLanguage(" en-US ");
+
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "fr", "en" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").IsSelected, Is.True);
+        Assert.That(viewModel.TotalDownloadSizeMb, Is.EqualTo(45));
+    }
+
+    [Test]
     public async Task RefreshAvailableLanguages_UnsubscribesRemovedOptions()
     {
         OcrStepViewModel viewModel = new();
