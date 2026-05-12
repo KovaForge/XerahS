@@ -232,6 +232,13 @@ wait_for_release() {
   return 1
 }
 
+release_exists() {
+  local tag_name="$1"
+  local gh_repo="$2"
+
+  gh release view "$tag_name" --repo "$gh_repo" --json url >/dev/null 2>&1
+}
+
 standard_release_notes_block() {
   cat <<'EOF'
 Change log:
@@ -477,6 +484,10 @@ if [[ $MONITOR -eq 1 ]]; then
 
   echo "Found run id: $run_id"
   if ! monitor_release_run "$run_id" "$MONITOR_INTERVAL" "$GH_TARGET_REPO"; then
+    if [[ $SET_PRERELEASE -eq 1 ]] && release_exists "$tag_name" "$GH_TARGET_REPO"; then
+      echo "Release workflow failed after release creation; applying pre-release guard before exiting..."
+      set_release_prerelease "$tag_name" "$GH_TARGET_REPO"
+    fi
     echo "Release run failed. Fix the issue, then retry with the next patch release." >&2
     exit 1
   fi

@@ -16,6 +16,7 @@ Use this skill to run release steps in strict order:
 - Step 6: Ensure standard release notes block is present on the GitHub release
 - Step 7: Set the successful release as pre-release by default (opt out only when intentionally publishing stable)
 - Optional Step 8: Generate a Flathub source-build manifest candidate from the successful pre-release tag; do not open or automate a Flathub PR
+- The GitHub Actions release upload steps must also set `prerelease: true` and `make_latest: false`; do not rely only on the post-workflow `gh release edit --prerelease` guard.
 
 Repository target behavior:
 - The automation is repository-agnostic. Git pushes use the local `origin` remote.
@@ -176,6 +177,7 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - `gh release edit v<new-version> --prerelease`
    - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
    - Stable opt-out: skip this step only when intentionally publishing stable.
+   - Workflow guard: `.github/workflows/release-build-all-platforms.yml` must create/upload releases with `prerelease: true` and `make_latest: false` so the release is never briefly published as latest before this post-run verification step.
 
 8. Optional Flathub source-build preparation for manual submission
    - Keep the GitHub release as a pre-release while this validation is ongoing.
@@ -217,6 +219,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 - Always inspect logs on failure and fix root cause before retry.
 - Always ensure the standard release notes block exists on the successful release.
 - Always keep Flathub validation releases as pre-release until source-build, dependency-source, lint, repo-lint, and smoke-test gates pass.
+- Always keep the GitHub Actions release creation step aligned with that policy by setting `prerelease: true` and `make_latest: false` in `softprops/action-gh-release`.
 - Always use a new patch version for retries requiring new commits/tags.
 - Abort on detached HEAD.
 - Abort if version format is not `X.Y.Z`.

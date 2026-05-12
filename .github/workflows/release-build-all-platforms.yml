@@ -397,6 +397,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.validate-version.outputs.release_title }}
+          prerelease: true
+          make_latest: false
           files: |
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.msi
@@ -463,6 +465,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.validate-version.outputs.version }}
+          prerelease: true
+          make_latest: false
           files: dist/chocolatey/xerahs.${{ needs.validate-version.outputs.version }}.nupkg
           fail_on_unmatched_files: true
         env:
