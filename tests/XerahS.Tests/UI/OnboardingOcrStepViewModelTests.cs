@@ -214,6 +214,21 @@ public sealed class OnboardingOcrStepViewModelTests
         Assert.That(viewModel.Validate(), Is.True);
     }
 
+    [Test]
+    public async Task RefreshAvailableLanguages_WhenPlatformEnumerationThrows_KeepsFallbackLanguages()
+    {
+        OcrStepViewModel viewModel = new();
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["xx"]);
+        PlatformServices.Ocr = new ThrowingOcrService();
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.That(viewModel.AvailableLanguages.Select(language => language.LanguageTag), Does.Contain("en"));
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
+        Assert.That(viewModel.Validate(), Is.True);
+    }
+
     private sealed class StubOcrService(OcrLanguage[] languages) : IOcrService
     {
         public bool IsSupported => true;
@@ -222,5 +237,15 @@ public sealed class OnboardingOcrStepViewModelTests
             Task.FromResult(new OcrResult { Success = true });
 
         public OcrLanguage[] GetAvailableLanguages() => languages;
+    }
+
+    private sealed class ThrowingOcrService : IOcrService
+    {
+        public bool IsSupported => true;
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options) =>
+            Task.FromResult(new OcrResult { Success = true });
+
+        public OcrLanguage[] GetAvailableLanguages() => throw new InvalidOperationException("OCR language enumeration failed.");
     }
 }

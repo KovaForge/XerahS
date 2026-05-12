@@ -161,7 +161,17 @@ public partial class OcrStepViewModel : StepViewModelBase
         var ocrService = PlatformServices.Ocr;
         if (ocrService != null && ocrService.IsSupported)
         {
-            IEnumerable<OcrLanguage> platformLanguages = ocrService.GetAvailableLanguages();
+            IEnumerable<OcrLanguage> platformLanguages;
+            try
+            {
+                platformLanguages = ocrService.GetAvailableLanguages();
+            }
+            catch
+            {
+                SyncOptionsFromSelectedLanguages(orderByAvailableLanguages: true);
+                UpdateValidationState();
+                return;
+            }
 
             List<OcrLanguageOption> refreshedLanguages = new();
             HashSet<string> registeredLanguageTags = new(StringComparer.OrdinalIgnoreCase);
