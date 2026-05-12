@@ -320,13 +320,10 @@ public partial class OcrStepViewModel : StepViewModelBase
     {
         _syncingSelections = true;
 
-        Dictionary<string, string> supportedLanguageTags = AvailableLanguages
-            .ToDictionary(language => language.LanguageTag, language => language.LanguageTag, StringComparer.OrdinalIgnoreCase);
-
         List<string> normalizedSelectedLanguages = SelectedLanguages
             .Select(NormalizeLanguageTag)
-            .Where(languageTag => supportedLanguageTags.ContainsKey(languageTag))
-            .Select(languageTag => supportedLanguageTags[languageTag])
+            .Select(ResolveSupportedLanguageTag)
+            .Where(languageTag => !string.IsNullOrEmpty(languageTag))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -378,6 +375,23 @@ public partial class OcrStepViewModel : StepViewModelBase
     }
 
     private static string NormalizeLanguageTag(string? languageTag) => languageTag?.Trim() ?? string.Empty;
+
+    private string ResolveSupportedLanguageTag(string languageTag)
+    {
+        if (string.IsNullOrEmpty(languageTag))
+        {
+            return string.Empty;
+        }
+
+        OcrLanguageOption? match = AvailableLanguages.FirstOrDefault(language =>
+            language.LanguageTag.Equals(languageTag, StringComparison.OrdinalIgnoreCase));
+
+        match ??= AvailableLanguages.FirstOrDefault(language =>
+            language.LanguageTag.StartsWith(languageTag + "-", StringComparison.OrdinalIgnoreCase) ||
+            languageTag.StartsWith(language.LanguageTag + "-", StringComparison.OrdinalIgnoreCase));
+
+        return match?.LanguageTag ?? string.Empty;
+    }
 
     private static string NormalizeDisplayName(string? displayName, string languageTag)
     {

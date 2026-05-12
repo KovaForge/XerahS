@@ -180,6 +180,26 @@ public sealed class OnboardingOcrStepViewModelTests
     }
 
     [Test]
+    public async Task RefreshAvailableLanguages_MatchesNeutralSelectionToRegionalPlatformLanguage()
+    {
+        OcrStepViewModel viewModel = new();
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["en"]);
+        PlatformServices.Ocr = new StubOcrService(
+        [
+            new("English (United States)", "en-US"),
+            new("English (United Kingdom)", "en-GB"),
+            new("French", "fr")
+        ]);
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en-US" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en-US").IsSelected, Is.True);
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en-GB").IsSelected, Is.False);
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").IsSelected, Is.False);
+    }
+
+    [Test]
     public async Task RefreshAvailableLanguages_TrimsDisplayNames_AndFallsBackToLanguageTag()
     {
         OcrStepViewModel viewModel = new();
