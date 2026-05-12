@@ -697,9 +697,10 @@ public static class OpenClawPluginExporter
             function formatJsonShapeKey(key: string): string {
               const sanitizedKey = key.replace(/[\u0000-\u001F\u007F]/gu, "?");
               const maxKeyLength = 48;
-              return sanitizedKey.length > maxKeyLength
+              const boundedKey = sanitizedKey.length > maxKeyLength
                 ? `${sanitizedKey.slice(0, maxKeyLength)}...`
                 : sanitizedKey;
+              return JSON.stringify(boundedKey);
             }
 
             function requireUploadUrl(value: unknown): unknown {

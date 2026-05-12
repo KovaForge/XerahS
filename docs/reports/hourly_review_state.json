@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-02 07:52 AWST",
+  "last_updated": "2026-05-12 10:40 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -124,11 +124,11 @@
     },
     {
       "area": "CLI / command surface",
-      "last_reviewed": "2026-04-29 14:05 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-12 10:40 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed CLI upload to use the direct upload processor/bootstrap readiness path and added uploader doctor/bootstrap commands.",
-      "follow_up": "Continue CLI review around uploader bootstrap provider choices and JSON doctor output contract."
+      "last_outcome": "Fixed generated OpenClaw CLI JSON shape diagnostics to JSON-quote sanitized and bounded object keys, keeping malformed punctuation-heavy keys unambiguous without exposing values; bumped version 0.22.268 -> 0.22.269.",
+      "follow_up": "Continue reviewing OpenClaw plugin export generated CLI/tool parity around safe diagnostic formatting for malformed command output."
     },
     {
       "area": "Notifications/toasts",
@@ -172,6 +172,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-12 10:33 AWST",
+      "area": "OpenClaw native plugin export / generated CLI safe structured diagnostics",
+      "files": [
+        "src/desktop/cli/XerahS.CLI/Commands/OpenClawPluginExporter.cs",
+        "tests/XerahS.Tests/Tools/OpenClawPluginExporterTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed generated CLI JSON shape diagnostics to JSON-quote sanitized/bounded object keys so punctuation-heavy malformed keys cannot make the shape line ambiguous; bumped version 0.22.268 -> 0.22.269.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260512-103635.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260512-104000.log",
+      "result": "build 0 warnings/0 errors; tests 900 passed, 1 skipped, 901 total"
+    },
     {
       "timestamp": "2026-05-01 17:45 AWST",
       "area": "Capture pipeline",
