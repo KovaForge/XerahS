@@ -163,7 +163,7 @@ public partial class OcrStepViewModel : StepViewModelBase
         {
             IEnumerable<OcrLanguage> platformLanguages = ocrService.GetAvailableLanguages();
 
-            ClearAvailableLanguages();
+            List<OcrLanguageOption> refreshedLanguages = new();
             HashSet<string> registeredLanguageTags = new(StringComparer.OrdinalIgnoreCase);
             foreach (OcrLanguage language in platformLanguages)
             {
@@ -173,11 +173,20 @@ public partial class OcrStepViewModel : StepViewModelBase
                     continue;
                 }
 
-                RegisterLanguage(new OcrLanguageOption(
+                refreshedLanguages.Add(new OcrLanguageOption(
                     languageTag,
                     NormalizeDisplayName(language.DisplayName, languageTag),
                     NormalizeDisplayName(language.DisplayName, languageTag),
                     0));
+            }
+
+            if (refreshedLanguages.Count > 0)
+            {
+                ClearAvailableLanguages();
+                foreach (OcrLanguageOption language in refreshedLanguages)
+                {
+                    RegisterLanguage(language);
+                }
             }
 
             SyncOptionsFromSelectedLanguages(orderByAvailableLanguages: true);

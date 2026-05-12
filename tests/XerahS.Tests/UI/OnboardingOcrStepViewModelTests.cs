@@ -195,6 +195,25 @@ public sealed class OnboardingOcrStepViewModelTests
         Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").DisplayName, Is.EqualTo("fr"));
     }
 
+    [Test]
+    public async Task RefreshAvailableLanguages_WithNoValidPlatformLanguages_KeepsFallbackLanguages()
+    {
+        OcrStepViewModel viewModel = new();
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["xx"]);
+        PlatformServices.Ocr = new StubOcrService(
+        [
+            new("Invalid", " "),
+            new("Missing", null!)
+        ]);
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.That(viewModel.AvailableLanguages.Select(language => language.LanguageTag), Does.Contain("en"));
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
+        Assert.That(viewModel.Validate(), Is.True);
+    }
+
     private sealed class StubOcrService(OcrLanguage[] languages) : IOcrService
     {
         public bool IsSupported => true;
