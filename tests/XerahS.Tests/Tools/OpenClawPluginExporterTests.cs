@@ -168,6 +168,11 @@ public sealed class OpenClawPluginExporterTests
                 Assert.That(cli, Does.Contain("const maxObjectEntries = 12;"));
                 Assert.That(cli, Does.Contain(".slice(0, maxObjectEntries)"));
                 Assert.That(cli, Does.Contain("entries.push(`...+${allEntries.length - maxObjectEntries} keys`);"));
+                Assert.That(cli, Does.Contain("formatJsonShapeKey(key)"));
+                Assert.That(cli, Does.Contain("function formatJsonShapeKey(key: string): string"));
+                Assert.That(cli, Does.Contain(@"key.replace(/[\u0000-\u001F\u007F]/gu, ""?"")"));
+                Assert.That(cli, Does.Contain("const maxKeyLength = 48;"));
+                Assert.That(cli, Does.Contain("`${sanitizedKey.slice(0, maxKeyLength)}...`"));
                 Assert.That(cli, Does.Contain("return `array(${value.length})<${describeJsonShapeValue(value[0], depth + 1)}>`;"));
                 Assert.That(cli, Does.Contain("describeJsonShapeValue(entry, depth + 1)"));
                 Assert.That(cli, Does.Contain("function requireUploadUrl(value: unknown): unknown"));

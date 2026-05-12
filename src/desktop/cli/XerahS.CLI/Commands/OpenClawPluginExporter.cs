@@ -685,13 +685,21 @@ public static class OpenClawPluginExporter
               const allEntries = Object.entries(value as Record<string, unknown>);
               const entries = allEntries
                 .slice(0, maxObjectEntries)
-                .map(([key, entry]) => `${key}:${depth >= 2 ? (Array.isArray(entry) ? "array" : typeof entry) : describeJsonShapeValue(entry, depth + 1)}`)
+                .map(([key, entry]) => `${formatJsonShapeKey(key)}:${depth >= 2 ? (Array.isArray(entry) ? "array" : typeof entry) : describeJsonShapeValue(entry, depth + 1)}`)
                 .sort();
               if (allEntries.length > maxObjectEntries) {
                 entries.push(`...+${allEntries.length - maxObjectEntries} keys`);
               }
 
               return `object{${entries.join(",")}}`;
+            }
+
+            function formatJsonShapeKey(key: string): string {
+              const sanitizedKey = key.replace(/[\u0000-\u001F\u007F]/gu, "?");
+              const maxKeyLength = 48;
+              return sanitizedKey.length > maxKeyLength
+                ? `${sanitizedKey.slice(0, maxKeyLength)}...`
+                : sanitizedKey;
             }
 
             function requireUploadUrl(value: unknown): unknown {
