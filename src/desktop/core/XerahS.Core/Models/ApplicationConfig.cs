@@ -63,6 +63,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
         if (OperatingSystem.IsMacOS())
         {
             AssistantHotkey = new HotkeyInfo(Key.Space, KeyModifiers.Meta | KeyModifiers.Shift);
+            CaptureCommandPaletteHotkey = new HotkeyInfo(Key.Space, KeyModifiers.Meta | KeyModifiers.Alt);
         }
     }
 
@@ -92,6 +93,8 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public string McpApiKey { get; set; } = string.Empty;
     public bool AssistantEnabled { get; set; } = true;
     public HotkeyInfo AssistantHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Shift);
+    public bool CaptureCommandPaletteEnabled { get; set; } = true;
+    public HotkeyInfo CaptureCommandPaletteHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Alt);
     public bool AssistantPromptHistoryEnabled { get; set; }
     public bool ScreenshotContentSearchEnabled { get; set; }
     public string AssistantActiveProviderId { get; set; } = string.Empty;

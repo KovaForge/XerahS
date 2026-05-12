@@ -1,0 +1,135 @@
+<views:OverlayWindow xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:views="using:XerahS.UI.Views"
+                     xmlns:vm="using:XerahS.UI.ViewModels"
+                     xmlns:palette="using:XerahS.Core.CaptureCommandPalette"
+                     x:Class="XerahS.UI.Views.CaptureCommandPaletteWindow"
+                     x:DataType="vm:CaptureCommandPaletteViewModel"
+                     Width="620"
+                     Height="430"
+                     MinWidth="520"
+                     MinHeight="320"
+                     CanResize="False"
+                     ShowInTaskbar="False"
+                     Topmost="True"
+                     WindowStartupLocation="Manual"
+                     WindowDecorations="None"
+                     TransparencyLevelHint="Transparent"
+                     Background="Transparent"
+                     AutomationProperties.Name="Capture Command Palette">
+    <Window.Resources>
+        <x:Double x:Key="SpaceS">8</x:Double>
+        <x:Double x:Key="SpaceM">12</x:Double>
+        <x:Double x:Key="SpaceL">16</x:Double>
+        <Thickness x:Key="OuterPadding">18</Thickness>
+        <Thickness x:Key="InnerPadding">14</Thickness>
+        <CornerRadius x:Key="CardCornerRadius">12</CornerRadius>
+        <CornerRadius x:Key="ItemCornerRadius">8</CornerRadius>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="TextBox#SearchTextBox">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="MinHeight" Value="62" />
+        </Style>
+    </Window.Styles>
+
+    <Border Classes="xerahs-surface"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource CardCornerRadius}"
+            Padding="{StaticResource OuterPadding}"
+            BoxShadow="0 20 48 -24 #66000000">
+        <Grid RowDefinitions="Auto, Auto, *"
+              RowSpacing="{StaticResource SpaceL}">
+            <Grid RowDefinitions="Auto, Auto"
+                  RowSpacing="4">
+                <TextBlock Text="Capture"
+                           Classes="title" />
+                <TextBlock Grid.Row="1"
+                           Text="Search configured capture workflows. Enter runs the selected item."
+                           Classes="caption" />
+            </Grid>
+
+            <TextBox Grid.Row="1"
+                     x:Name="SearchTextBox"
+                     Text="{Binding Query}"
+                     PlaceholderText="Search capture workflows"
+                     AutomationProperties.Name="Capture command palette search" />
+
+            <Grid Grid.Row="2"
+                  RowDefinitions="Auto, *"
+                  RowSpacing="{StaticResource SpaceM}">
+                <TextBlock Text="{Binding StatusText}"
+                           Classes="caption" />
+
+                <Border Grid.Row="1"
+                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource ItemCornerRadius}"
+                        Padding="{StaticResource InnerPadding}">
+                    <ListBox x:Name="ResultsListBox"
+                             ItemsSource="{Binding Items}"
+                             SelectedItem="{Binding SelectedItem}"
+                             AutomationProperties.Name="Capture command palette results">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="palette:CaptureCommandPaletteItem">
+                                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource ItemCornerRadius}"
+                                        Padding="12">
+                                    <Grid ColumnDefinitions="*, Auto"
+                                          RowDefinitions="Auto, Auto"
+                                          ColumnSpacing="{StaticResource SpaceM}"
+                                          RowSpacing="3">
+                                        <TextBlock Text="{Binding Label}"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding Description}"
+                                                   Classes="caption"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding HotkeyText}"
+                                                   Classes="caption"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding HotkeyText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</views:OverlayWindow>

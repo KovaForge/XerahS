@@ -101,6 +101,7 @@ namespace XerahS.UI.ViewModels
         public string McpManifestUrl => "https://xerahs.com/.well-known/mcp/manifest.json";
 
         private string _assistantHotkeyStatusText = "Use the assistant shortcut to open the in-app command overlay.";
+        private string _captureCommandPaletteStatusText = "Use the palette shortcut to search configured capture workflows.";
 
         public ObservableCollection<AssistantProviderOptionViewModel> AssistantProviderOptions { get; } = new(
             AssistantProviderCatalog.GetProviders().Select(provider => new AssistantProviderOptionViewModel(provider.Id, provider.DisplayName)));
@@ -152,6 +153,23 @@ namespace XerahS.UI.ViewModels
 
         public string AssistantHotkeyText => SettingsManager.Settings.AssistantHotkey.GetDisplayString();
 
+        public bool CaptureCommandPaletteEnabled
+        {
+            get => SettingsManager.Settings.CaptureCommandPaletteEnabled;
+            set
+            {
+                if (SettingsManager.Settings.CaptureCommandPaletteEnabled == value)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.CaptureCommandPaletteEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string CaptureCommandPaletteHotkeyText => SettingsManager.Settings.CaptureCommandPaletteHotkey.GetDisplayString();
+
         public bool AssistantProviderNeedsApiKey => SelectedAssistantProvider?.Id != "ollama";
 
         public bool AssistantProviderHasApiKey =>
@@ -169,11 +187,25 @@ namespace XerahS.UI.ViewModels
             private set => SetProperty(ref _assistantHotkeyStatusText, value);
         }
 
+        public string CaptureCommandPaletteStatusText
+        {
+            get => _captureCommandPaletteStatusText;
+            private set => SetProperty(ref _captureCommandPaletteStatusText, value);
+        }
+
         [RelayCommand]
         private void TestAssistantShortcut()
         {
             AssistantHotkeyStatusText = PlatformServices.IsInitialized
                 ? $"Current shortcut: {AssistantHotkeyText}"
+                : "Platform services are not initialized yet.";
+        }
+
+        [RelayCommand]
+        private void TestCaptureCommandPaletteShortcut()
+        {
+            CaptureCommandPaletteStatusText = PlatformServices.IsInitialized
+                ? $"Current shortcut: {CaptureCommandPaletteHotkeyText}"
                 : "Platform services are not initialized yet.";
         }
 
