@@ -180,7 +180,7 @@ public partial class OcrStepViewModel : StepViewModelBase
                     0));
             }
 
-            SyncOptionsFromSelectedLanguages();
+            SyncOptionsFromSelectedLanguages(orderByAvailableLanguages: true);
             UpdateValidationState();
         }
 
@@ -297,7 +297,7 @@ public partial class OcrStepViewModel : StepViewModelBase
         UpdateValidationState();
     }
 
-    private void SyncOptionsFromSelectedLanguages()
+    private void SyncOptionsFromSelectedLanguages(bool orderByAvailableLanguages = false)
     {
         _syncingSelections = true;
 
@@ -310,6 +310,14 @@ public partial class OcrStepViewModel : StepViewModelBase
             .Select(languageTag => supportedLanguageTags[languageTag])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        if (orderByAvailableLanguages)
+        {
+            normalizedSelectedLanguages = AvailableLanguages
+                .Select(language => language.LanguageTag)
+                .Where(languageTag => normalizedSelectedLanguages.Contains(languageTag, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+        }
 
         if (normalizedSelectedLanguages.Count != SelectedLanguages.Count ||
             !normalizedSelectedLanguages.SequenceEqual(SelectedLanguages, StringComparer.Ordinal))
