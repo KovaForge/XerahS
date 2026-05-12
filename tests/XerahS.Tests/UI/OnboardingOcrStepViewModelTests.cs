@@ -79,6 +79,27 @@ public sealed class OnboardingOcrStepViewModelTests
         Assert.That(viewModel.AvailableLanguages.Select(language => language.LanguageTag), Is.EqualTo(new[] { "en" }));
     }
 
+    [Test]
+    public async Task RefreshAvailableLanguages_NormalizesAndDeduplicatesPlatformLanguageTags()
+    {
+        OcrStepViewModel viewModel = new();
+        viewModel.SelectedLanguages = new ObservableCollection<string>(["EN", "fr"]);
+        PlatformServices.Ocr = new StubOcrService(
+        [
+            new("English", " en "),
+            new("English duplicate", "EN"),
+            new("French", " fr "),
+            new("Invalid", " ")
+        ]);
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.That(viewModel.AvailableLanguages.Select(language => language.LanguageTag), Is.EqualTo(new[] { "en", "fr" }));
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en", "fr" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "fr").IsSelected, Is.True);
+    }
+
     private sealed class StubOcrService(OcrLanguage[] languages) : IOcrService
     {
         public bool IsSupported => true;

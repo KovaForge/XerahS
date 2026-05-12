@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-12 10:40 AWST",
+  "last_updated": "2026-05-12 12:44 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,11 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "OCR",
     "Tests / test discoverability",
     "Editor integration",
     "Plugin loading/runtime",
-    "MCP server"
+    "MCP server",
+    "Settings/configuration"
   ],
   "areas": [
     {
@@ -28,11 +28,11 @@
     },
     {
       "area": "OCR",
-      "last_reviewed": "2026-04-30 06:41 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-12 12:44 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh.",
-      "follow_up": "Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases."
+      "last_outcome": "Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270.",
+      "follow_up": "Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases."
     },
     {
       "area": "Settings/configuration",
@@ -172,6 +172,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-12 12:33 AWST",
+      "area": "OCR onboarding language refresh",
+      "files": [
+        "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
+        "tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed platform OCR language refresh to normalize language tags, drop blank tags, and de-duplicate duplicate tags before syncing selected onboarding languages; bumped version 0.22.269 -> 0.22.270.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260512-123928.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260512-124352.log",
+      "result": "build 0 warnings/0 errors; tests 901 passed, 1 skipped, 902 total"
+    },
     {
       "timestamp": "2026-05-12 10:33 AWST",
       "area": "OpenClaw native plugin export / generated CLI safe structured diagnostics",
