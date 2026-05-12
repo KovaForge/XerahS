@@ -237,6 +237,12 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     private void SelectedLanguages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
+        if (!_syncingSelections)
+        {
+            SyncOptionsFromSelectedLanguages();
+            return;
+        }
+
         UpdateValidationState();
     }
 
