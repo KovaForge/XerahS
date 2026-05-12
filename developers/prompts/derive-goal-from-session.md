@@ -7,7 +7,7 @@ Use this when an assistant session already contains the discussion, constraints,
 ## Copy-paste prompt
 
 ```text
-Read this repo, analyze deeply the exact intent and goals we are looking to achieve here, then write me the /goal prompt for this.
+Read this repo, analyze deeply the exact intent and goals we are looking to achieve here, then write me the /goal prompt for one of the goals that you believe we must focus on.
 
 Make sure to dig into history and docs we have to be 100% clear.
 
