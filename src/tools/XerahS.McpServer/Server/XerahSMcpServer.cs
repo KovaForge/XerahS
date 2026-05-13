@@ -243,11 +243,11 @@ public sealed class XerahSMcpServer
         {
             return JsonRpcResponse.Success(request.Id, await Runtime.ReadResourceAsync(uri, cancellationToken));
         }
-        catch (ArgumentException ex)
+        catch (ArgumentOutOfRangeException ex)
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
         }
-        catch (ArgumentOutOfRangeException ex)
+        catch (ArgumentException ex)
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
         }
