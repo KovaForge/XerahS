@@ -569,9 +569,24 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         ArgumentNullException.ThrowIfNull(_taskManager);
 
         var tcs = new TaskCompletionSource<WorkerTask>(TaskCreationOptions.RunContinuationsAsynchronously);
+        WorkerTask? expectedTask = null;
+        EventHandler<WorkerTask>? startedHandler = null;
+        startedHandler = (_, task) =>
+        {
+            _taskManager.TaskStarted -= startedHandler;
+            expectedTask = task;
+        };
+
+        _taskManager.TaskStarted += startedHandler;
+
         EventHandler<WorkerTask>? handler = null;
         handler = (_, task) =>
         {
+            if (expectedTask == null || task != expectedTask)
+            {
+                return;
+            }
+
             _taskManager.TaskCompleted -= handler;
             tcs.TrySetResult(task);
         };
@@ -589,6 +604,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         }
         catch
         {
+            _taskManager.TaskStarted -= startedHandler;
             _taskManager.TaskCompleted -= handler;
             throw;
         }
