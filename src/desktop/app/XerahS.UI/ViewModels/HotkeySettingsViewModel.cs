@@ -103,7 +103,7 @@ public partial class HotkeySettingsViewModel : ViewModelBase
         {
             SettingsManager.WorkflowsConfig.Hotkeys = _manager.Workflows;
             // Save to disk
-            SettingsManager.SaveWorkflowsConfigAsync();
+            _ = SettingsManager.SaveWorkflowsConfigAsync();
         }
     }
 

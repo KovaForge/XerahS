@@ -144,17 +144,19 @@ namespace XerahS.Common
             return Save(FilePath);
         }
 
-        public void SaveAsync(string filePath)
+        public Task<bool> SaveAsync(string filePath)
         {
-            Task.Run(() => Save(filePath));
+            return Task.Run(() => Save(filePath));
         }
 
-        public void SaveAsync()
+        public Task<bool> SaveAsync()
         {
-            if (FilePath != null)
+            if (FilePath == null)
             {
-                SaveAsync(FilePath);
+                return Task.FromResult(false);
             }
+
+            return SaveAsync(FilePath);
         }
 
         public MemoryStream SaveToMemoryStream(bool supportDPAPIEncryption = false)

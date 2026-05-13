@@ -417,7 +417,7 @@ namespace XerahS.UI.ViewModels
             _lastSavedWatchFolderSignature = currentWatchFolderSignature;
 
             SettingsManager.SaveApplicationConfig();
-            SettingsManager.SaveWorkflowsConfigAsync();
+            _ = SettingsManager.SaveWorkflowsConfigAsync();
             App.ApplyMenuBarOnlyModeFromSettings();
 
             ApplyWatchFolderRuntimePolicy(

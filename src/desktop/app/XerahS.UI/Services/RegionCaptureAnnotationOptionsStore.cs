@@ -44,7 +44,7 @@ internal static class RegionCaptureAnnotationOptionsStore
 
     public static void Persist()
     {
-        SettingsManager.SaveWorkflowsConfigAsync();
+        _ = SettingsManager.SaveWorkflowsConfigAsync();
     }
 
     private static TaskSettings ResolveTaskSettings(string? workflowId, WorkflowType? workflowType)

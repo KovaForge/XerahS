@@ -127,7 +127,7 @@ namespace XerahS.App
                 if (decision.RememberChoice && decision.Action != SendToAction.Cancel)
                 {
                     SendToPolicyResolver.SaveRememberedDecision(SettingsManager.Settings.SendToRememberedChoices, decision);
-                    SettingsManager.SaveApplicationConfigAsync();
+                    _ = SettingsManager.SaveApplicationConfigAsync();
                     DebugHelper.WriteLine(
                         $"Shell integration: Saved Send-to remembered choice scope={decision.RememberScope}, action={decision.Action}, " +
                         $"folderPolicy={decision.FolderPolicy}, batchPolicy={decision.BatchExecutionPolicy}.");

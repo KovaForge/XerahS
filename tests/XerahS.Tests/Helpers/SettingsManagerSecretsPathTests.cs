@@ -300,22 +300,36 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
-    public void SaveApplicationConfigAsync_RaisesSettingsChangedLikeSynchronousSave()
+    public async Task SaveApplicationConfigAsync_CompletesWriteBeforeRaisingSettingsChanged()
     {
         int raisedCount = 0;
-        EventHandler handler = (_, _) => raisedCount++;
+        bool fileExistsWhenRaised = false;
+        string configPath = SettingsManager.ApplicationConfigFilePath;
+        File.Delete(configPath);
 
-        SettingsManager.SettingsChanged += handler;
+        SettingsManager.SettingsChanged += SettingsChanged;
         try
         {
-            SettingsManager.SaveApplicationConfigAsync();
+            bool saved = await SettingsManager.SaveApplicationConfigAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(saved, Is.True);
+                Assert.That(raisedCount, Is.EqualTo(1));
+                Assert.That(fileExistsWhenRaised, Is.True,
+                    "Async settings change notifications should not fire until the save has completed on disk.");
+            });
         }
         finally
         {
-            SettingsManager.SettingsChanged -= handler;
+            SettingsManager.SettingsChanged -= SettingsChanged;
         }
 
-        Assert.That(raisedCount, Is.EqualTo(1));
+        void SettingsChanged(object? sender, EventArgs e)
+        {
+            raisedCount++;
+            fileExistsWhenRaised = File.Exists(configPath);
+        }
     }
 
     [Test]
