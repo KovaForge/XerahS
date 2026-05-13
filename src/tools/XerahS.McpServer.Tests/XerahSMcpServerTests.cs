@@ -266,6 +266,17 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public void RuntimeHistoryBlobResourceUri_UsesInvariantHistoryId()
+    {
+        var item = new HistoryItem
+        {
+            Id = 12345
+        };
+
+        Assert.Equal("xerahs://history/thumb/12345", XerahSMcpRuntime.CreateHistoryBlobResourceUri(item));
+    }
+
+    [Fact]
     public async Task ResourcesRead_HistorySearch_ExtractsQueryFromQParameter()
     {
         var runtime = new TestHistoryRuntime();

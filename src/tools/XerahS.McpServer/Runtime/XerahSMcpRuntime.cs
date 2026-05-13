@@ -964,6 +964,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["file_path"] = item.FilePath,
             ["file_url"] = CreateFileUrl(item.FilePath),
             ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
+            ["thumbnail_resource"] = CreateHistoryBlobResourceUri(item),
             ["capture_type"] = InferHistoryCaptureType(item),
             ["capture_width"] = width,
             ["capture_height"] = height,
@@ -993,6 +994,11 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         }
 
         throw new FileNotFoundException("History item thumbnail source file was not found.", item.FilePath);
+    }
+
+    internal static string CreateHistoryBlobResourceUri(HistoryItem item)
+    {
+        return $"xerahs://history/thumb/{item.Id.ToString(CultureInfo.InvariantCulture)}";
     }
 
     internal static string? CreateFileUrl(string? filePath)
@@ -1046,6 +1052,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["id"] = item.Id.ToString(CultureInfo.InvariantCulture),
             ["file_path"] = item.FilePath,
             ["thumbnail_url"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
+            ["thumbnail_resource"] = CreateHistoryBlobResourceUri(item),
             ["created_at"] = item.DateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             ["file_size_bytes"] = size,
             ["ocr_text"] = string.IsNullOrWhiteSpace(ocrText) ? null : ocrText,
