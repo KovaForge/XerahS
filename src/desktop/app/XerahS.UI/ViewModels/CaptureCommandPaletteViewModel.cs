@@ -92,7 +92,9 @@ public partial class CaptureCommandPaletteViewModel : ViewModelBase
         }
 
         int currentIndex = SelectedItem == null ? -1 : Items.IndexOf(SelectedItem);
-        int nextIndex = currentIndex < 0 ? 0 : Math.Clamp(currentIndex + delta, 0, Items.Count - 1);
+        int nextIndex = currentIndex < 0
+            ? (delta < 0 ? Items.Count - 1 : 0)
+            : (currentIndex + delta + Items.Count) % Items.Count;
         SelectedItem = Items[nextIndex];
     }
 

@@ -93,6 +93,46 @@ public sealed class CaptureCommandPaletteTests
     }
 
     [Test]
+    public void ViewModel_MoveSelection_WrapsAtListEdges()
+    {
+        WorkflowSettings region = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
+        WorkflowSettings window = CreateWorkflow(WorkflowType.ActiveWindow, "Active window");
+        var items = CaptureCommandPaletteProvider.CreateItems([region, window]);
+        var viewModel = new CaptureCommandPaletteViewModel(
+            () => items,
+            _ => Task.CompletedTask);
+
+        viewModel.MoveSelection(-1);
+        CaptureCommandPaletteItem? wrappedFromFirst = viewModel.SelectedItem;
+        viewModel.MoveSelection(1);
+        CaptureCommandPaletteItem? wrappedFromLast = viewModel.SelectedItem;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrappedFromFirst?.Workflow, Is.SameAs(window));
+            Assert.That(wrappedFromLast?.Workflow, Is.SameAs(region));
+        });
+    }
+
+    [Test]
+    public void ViewModel_MoveSelection_UpFromNoSelection_SelectsLastItem()
+    {
+        WorkflowSettings region = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
+        WorkflowSettings window = CreateWorkflow(WorkflowType.ActiveWindow, "Active window");
+        var items = CaptureCommandPaletteProvider.CreateItems([region, window]);
+        var viewModel = new CaptureCommandPaletteViewModel(
+            () => items,
+            _ => Task.CompletedTask)
+        {
+            SelectedItem = null
+        };
+
+        viewModel.MoveSelection(-1);
+
+        Assert.That(viewModel.SelectedItem?.Workflow, Is.SameAs(window));
+    }
+
+    [Test]
     public void ViewModel_ReloadItems_WhenProviderThrows_KeepsPaletteUsable()
     {
         var viewModel = new CaptureCommandPaletteViewModel(
