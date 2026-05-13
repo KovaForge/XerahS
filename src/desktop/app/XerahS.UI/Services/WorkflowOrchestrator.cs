@@ -33,6 +33,7 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Assistant;
+using XerahS.UI.CaptureCommandPalette;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -46,6 +47,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private Core.Hotkeys.WorkflowManager? _workflowManager;
     private AssistantOverlayCoordinator? _assistantOverlayCoordinator;
+    private CaptureCommandPaletteCoordinator? _captureCommandPaletteCoordinator;
     private int _activeUploadCount;
     private string _baseTitle = AppResources.ProductNameWithVersion;
 
@@ -66,6 +68,11 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         InitializeHotkeys();
         _assistantOverlayCoordinator ??= new AssistantOverlayCoordinator();
         _assistantOverlayCoordinator.Start();
+        if (_workflowManager != null)
+        {
+            _captureCommandPaletteCoordinator ??= new CaptureCommandPaletteCoordinator(_workflowManager, ExecuteWorkflowFromPaletteAsync);
+            _captureCommandPaletteCoordinator.Start();
+        }
 
         _taskManager.TaskCompleted -= OnWorkflowTaskCompleted;
         _taskManager.TaskStarted -= OnWorkflowTaskStarted;
@@ -318,6 +325,28 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
     {
         DebugHelper.WriteLine($"Hotkey triggered: {settings} (ID: {settings?.Id ?? "null"})");
 
+        if (settings == null)
+        {
+            return;
+        }
+
+        await ExecuteWorkflowFromTriggerAsync(settings);
+    }
+
+    private async Task ExecuteWorkflowFromPaletteAsync(Core.Hotkeys.WorkflowSettings settings)
+    {
+        DebugHelper.WriteLine($"Capture command palette selected: {settings} (ID: {settings?.Id ?? "null"})");
+
+        if (settings == null)
+        {
+            return;
+        }
+
+        await ExecuteWorkflowFromTriggerAsync(settings);
+    }
+
+    private async Task ExecuteWorkflowFromTriggerAsync(Core.Hotkeys.WorkflowSettings settings)
+    {
         if (settings == null)
         {
             return;

@@ -150,6 +150,8 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 ## Build & Configuration
 
+- Never keep the existing patch/minor version when implementing a brand-new product feature that did not previously exist; always bump the app minor version in root `Directory.Build.props` first and use that bumped version in the commit prefix because new feature surfaces should start a new minor release line.
+
 ### Windows TFM & CsWinRT Behavior (Net10.0-windows)
 
 **Context**: When implementing modern Windows features using `Microsoft.Windows.CsWinRT` in a project targeting .NET 8/9/10.

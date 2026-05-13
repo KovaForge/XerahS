@@ -419,6 +419,43 @@
                             </Border>
                         </StackPanel>
 
+                        <!-- Capture Command Palette -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Capture Command Palette" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Open a searchable overlay for configured capture and recording workflows."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+
+                                    <CheckBox IsChecked="{Binding CaptureCommandPaletteEnabled}"
+                                              Content="Enable Capture Command Palette"
+                                              AutomationProperties.Name="Enable Capture Command Palette"/>
+
+                                    <Grid ColumnDefinitions="Auto, 16, *, 16, Auto">
+                                        <TextBlock Grid.Column="0" Text="Shortcut:" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="2"
+                                                 Text="{Binding CaptureCommandPaletteHotkeyText}"
+                                                 IsReadOnly="True"
+                                                 AutomationProperties.Name="Capture Command Palette Shortcut"/>
+                                        <Button Grid.Column="4"
+                                                Content="Test Shortcut"
+                                                Command="{Binding TestCaptureCommandPaletteShortcutCommand}"
+                                                AutomationProperties.Name="Test Capture Command Palette Shortcut"/>
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding CaptureCommandPaletteStatusText}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- Assistant -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="Assistant" FontWeight="SemiBold"/>

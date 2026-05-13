@@ -200,6 +200,8 @@ namespace XerahS.UI.ViewModels
             nameof(McpManifestUrl),
             nameof(AssistantHotkeyText),
             nameof(AssistantHotkeyStatusText),
+            nameof(CaptureCommandPaletteHotkeyText),
+            nameof(CaptureCommandPaletteStatusText),
             nameof(AssistantProviderOptions),
             nameof(SelectedAssistantProvider),
             nameof(AssistantProviderModelId),
