@@ -64,6 +64,7 @@ namespace XerahS.Indexer
                 IndexerOutput.Txt => new IndexerTextAsync(settings, progress, cancellationToken),
                 IndexerOutput.Xml => new IndexerSyncAdapter<IndexerXml>(settings, progress, cancellationToken),
                 IndexerOutput.Json => new IndexerSyncAdapter<IndexerJson>(settings, progress, cancellationToken),
+                IndexerOutput.Markdown => new IndexerSyncAdapter<IndexerMarkdown>(settings, progress, cancellationToken),
                 _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
             };
         }

@@ -106,6 +106,7 @@ Other supported file formats:
 xerahscli index ./folder --format txt --output ./folder-index.txt
 xerahscli index ./folder --format xml --output ./folder-index.xml
 xerahscli index ./folder --format json --output ./folder-index.json
+xerahscli index ./folder --format md --output ./folder-index.md
 ```
 
 Useful filters:

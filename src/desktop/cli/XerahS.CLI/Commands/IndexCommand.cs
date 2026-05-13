@@ -41,7 +41,7 @@ public static class IndexCommand
         };
         var formatOption = new Option<string?>("--format")
         {
-            Description = "Output format: html, txt, xml, or json. Defaults to html."
+            Description = "Output format: html, txt, xml, json, or md. Defaults to html."
         };
         var outputOption = new Option<string?>("--output")
         {
@@ -141,7 +141,7 @@ public static class IndexCommand
 
         if (!TryParseFormat(format, out IndexerOutput indexerOutput))
         {
-            Console.Error.WriteLine("Unsupported format. Use html, txt, xml, or json.");
+            Console.Error.WriteLine("Unsupported format. Use html, txt, xml, json, or md.");
             return 1;
         }
 
@@ -333,6 +333,10 @@ public static class IndexCommand
             case "json":
                 output = IndexerOutput.Json;
                 return true;
+            case "md":
+            case "markdown":
+                output = IndexerOutput.Markdown;
+                return true;
             default:
                 return false;
         }
@@ -361,6 +365,7 @@ public static class IndexCommand
             IndexerOutput.Txt => ".txt",
             IndexerOutput.Xml => ".xml",
             IndexerOutput.Json => ".json",
+            IndexerOutput.Markdown => ".md",
             _ => ".html"
         };
     }

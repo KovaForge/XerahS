@@ -47,6 +47,7 @@ namespace XerahS.Indexer
                 IndexerOutput.Txt => new IndexerText(settings),
                 IndexerOutput.Xml => new IndexerXml(settings),
                 IndexerOutput.Json => new IndexerJson(settings),
+                IndexerOutput.Markdown => new IndexerMarkdown(settings),
                 _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
             };
 
