@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-13 20:55 AWST",
+  "last_updated": "2026-05-14 00:42 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -124,11 +124,11 @@
     },
     {
       "area": "MCP server",
-      "last_reviewed": "2026-04-29 11:15 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-14 00:42 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely.",
-      "follow_up": "Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation."
+      "last_outcome": "Fixed RunTaskAsync to subscribe to TaskStarted and filter TaskCompleted by task reference equality, preventing concurrent upload callers from receiving the wrong task result; bumped version 0.23.6 -> 0.23.7.",
+      "follow_up": "Continue MCP review around large-file thumbnail reads in ReadResourceAsync and URI construction robustness for file_url in CreateHistoryDetailsAsync."
     },
     {
       "area": "CLI / command surface",
@@ -180,6 +180,18 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-14 00:33 AWST",
+      "area": "MCP server RunTaskAsync race condition",
+      "files": [
+        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed RunTaskAsync task identity race condition by subscribing to TaskStarted to capture expected WorkerTask and filtering TaskCompleted by reference equality; bumped version 0.23.6 -> 0.23.7.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-235000.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-235200.log",
+      "result": "build 0 warnings/0 errors; tests 911 + 14 = 925 total, 1 skipped"
+    },
     {
       "timestamp": "2026-05-13 20:50 AWST",
       "area": "Tests / test discoverability (McpServer.Tests coverage)",
@@ -305,99 +317,6 @@
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-013752.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-014133.log",
       "follow_up": "Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity."
-    },
-    {
-      "timestamp": "2026-04-30 21:45 AWST",
-      "area": "Media subsystem",
-      "files": [
-        "src/desktop/core/XerahS.Media/VideoThumbnailer.cs",
-        "tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs",
-        "Directory.Build.props"
-      ],
-      "outcome": "Fixed combined thumbnail timestamp alignment after skipped unreadable source images; bumped version 0.22.163 -> 0.22.164.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-213821.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-214203.log"
-    },
-    {
-      "timestamp": "2026-04-30 16:50 AWST",
-      "area": "Uploader core / plugin routing",
-      "topic": "Encrypted S3 mobile destination config export",
-      "outcome": "Amazon S3 .xsdc export now fails fast when BucketName is blank, preventing mobile import from saving an unusable S3 destination; full Release validation passed.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-164323.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-164438.log"
-    },
-    {
-      "timestamp": "2026-04-30 15:46 AWST",
-      "area": "Hotkeys/input",
-      "topic": "Linux X11 modifier matching",
-      "outcome": "Linux X11 hotkey dispatch now requires an exact non-lock modifier match, preventing Ctrl+Shift shortcuts from firing when Alt/Super is also held; full Release validation passed.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-153842.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-154533.log"
-    },
-    {
-      "timestamp": "2026-04-30 14:54 AWST",
-      "area": "Assistant local memory/privacy/history",
-      "topic": "macOS history path casing semantics",
-      "outcome": "History file-path lookups now compare case-insensitively on macOS as well as Windows; targeted and full Release validation passed.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-144539.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-144922.log"
-    },
-    {
-      "timestamp": "2026-04-30 11:46 AWST",
-      "area": "Media subsystem",
-      "topic": "random video thumbnail seek slots",
-      "outcome": "Bounded random thumbnail seeks to the current thumbnail index segment, avoiding duplicate/out-of-range random slots on the shared RandomFast path; added regression coverage; bumped version to 0.22.154.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-113716.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-114228.log"
-      }
-    },
-    {
-      "timestamp": "2026-04-30 10:42 AWST",
-      "area": "Plugin loading/runtime",
-      "topic": "xsdp duplicate archive entries",
-      "outcome": "Reject duplicate normalized package entry paths during safe extraction so validated manifests/assemblies cannot be overwritten by later zip entries; added regression coverage; bumped version to 0.22.153.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-103803.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-104119.log"
-      }
-    },
-    {
-      "timestamp": "2026-04-30 09:43 AWST",
-      "area": "Editor integration",
-      "topic": "editor window direct-close completion",
-      "outcome": "Direct window closes now complete editor sessions with null, preserving task-mode cancel/no-save handling; added regression coverage; bumped version to 0.22.152.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-093615.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-093931.log"
-      }
-    },
-    {
-      "timestamp": "2026-04-30 08:41 AWST",
-      "area": "Tests / test discoverability",
-      "topic": "NUnit test discovery package asset metadata",
-      "outcome": "Added PrivateAssets/all and explicit IncludeAssets for Microsoft.NET.Test.Sdk and NUnit3TestAdapter in XerahS.Tests; added regression guard; bumped version to 0.22.151.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-083931.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-084035.log"
-      }
-    },
-    {
-      "timestamp": "2026-05-02 07:52 AWST",
-      "area": "Hotkeys/input",
-      "files": [
-        "src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs",
-        "tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs",
-        "Directory.Build.props"
-      ],
-      "findings": "Wayland portal preferred triggers used human-facing Numpad labels for keypad digits, which are not GTK/GDK accelerator key names and could prevent compositor binding of keypad shortcuts.",
-      "fix": "Map keypad digits to KP_0..KP_9 in portal accelerator generation and add regression coverage for direct mapping and preferred trigger output.",
-      "version": "0.22.181",
-      "validation": "Release build 0 warnings/0 errors; tests passed 780 total.",
-      "logs": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260502-074515.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260502-074902.log"
-      }
     }
   ]
 }

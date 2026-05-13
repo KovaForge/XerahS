@@ -976,3 +976,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Origin/develop and upstream/develop already contained; ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Added `coverlet.collector` with proper `PrivateAssets`/`IncludeAssets` to McpServer.Tests; added `PrivateAssets`/`IncludeAssets` to `Microsoft.NET.Test.Sdk`; added `McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets` guardrail test; bumped version `0.23.5` -> `0.23.6`.
 - Build/test: Release build 0 warnings/0 errors; tests passed 911 (XerahS.Tests) + 14 (McpServer.Tests) = 925 total, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260513-205000.log`, `/tmp/xerahs-hourly-sweep/test-20260513-205100.log`.
 - Follow-up: Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0, and whether Avalonia.Headless.NUnit needs explicit PrivateAssets parity.
+
+### 2026-05-14 00:33 AWST / completed 2026-05-14 00:42 AWST - MCP server RunTaskAsync race condition
+
+- Area: MCP server (`RunTaskAsync` task identity race condition in upload/capture pipeline); files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `Directory.Build.props`.
+- Findings: `RunTaskAsync` subscribed to the shared `TaskCompleted` event without identifying which `WorkerTask` was started, so concurrent callers or background tasks completing could return the wrong task's result to the wrong caller.
+- Status: Fixed `RunTaskAsync` to subscribe to `TaskStarted` to capture the expected `WorkerTask` reference, then filter `TaskCompleted` to only resolve when the completed task matches the started one; added cleanup for both handlers in error paths; bumped version `0.23.6` -> `0.23.7`.
+- Build/test: Release build 0 warnings/0 errors; tests passed 925 total (911 XerahS + 14 McpServer), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260513-235000.log`, `/tmp/xerahs-hourly-sweep/test-20260513-235200.log`.
+- Follow-up: Continue MCP server review around large-file thumbnail reads in `ReadResourceAsync` and URI construction robustness for `file_url` in `CreateHistoryDetailsAsync`.
