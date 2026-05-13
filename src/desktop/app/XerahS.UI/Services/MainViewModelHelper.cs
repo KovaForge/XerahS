@@ -182,7 +182,7 @@ public static class MainViewModelHelper
             var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
             int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
             using var data = bitmap.Encode(format, quality);
-            using var stream = File.OpenWrite(path);
+            using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
             data.SaveTo(stream);
         }
 
