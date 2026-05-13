@@ -304,14 +304,9 @@ public static class MainViewModelHelper
 
         try
         {
-            // Prefer edited snapshot (with annotations) over base preview image
-            SkiaSharp.SKBitmap? imageToCopy = null;
-            if (getEditedSnapshot != null)
-            {
-                imageToCopy = getEditedSnapshot();
-                if (imageToCopy != null)
-                    DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToCopy.Width}x{imageToCopy.Height} for clipboard");
-            }
+            SkiaSharp.SKBitmap? imageToCopy = getEditedSnapshot?.Invoke();
+            if (imageToCopy != null)
+                DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToCopy.Width}x{imageToCopy.Height} for clipboard");
 
             if (imageToCopy == null && viewModel.PreviewImage != null)
             {
@@ -336,6 +331,8 @@ public static class MainViewModelHelper
             {
                 DebugHelper.WriteLine("MainViewModelHelper: Platform clipboard not initialized");
             }
+
+            imageToCopy.Dispose();
         }
         catch (Exception ex)
         {
