@@ -48,6 +48,7 @@ public class TestProjectBuildPropertiesTests
 
         AssertPackageReferenceIsPrivateBuildAsset(project, "Microsoft.NET.Test.Sdk");
         AssertPackageReferenceIsPrivateBuildAsset(project, "NUnit3TestAdapter");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "Avalonia.Headless.NUnit");
     }
 
     [Test]
