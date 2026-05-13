@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-13 14:42 AWST",
+  "last_updated": "2026-05-13 20:55 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -52,11 +52,11 @@
     },
     {
       "area": "Tests / test discoverability",
-      "last_reviewed": "2026-04-30 08:41 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-13 20:55 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Marked main NUnit test discovery packages as private test/build assets so Microsoft.NET.Test.Sdk and NUnit3TestAdapter do not flow as normal transitive assets; added guardrail coverage.",
-      "follow_up": "Continue tests review around discovery package asset metadata for Avalonia.Headless.NUnit/coverage collectors and cross-target test host behavior."
+      "last_outcome": "Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; added guardrail test McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets; bumped version 0.23.5 -> 0.23.6.",
+      "follow_up": "Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0, and whether Avalonia.Headless.NUnit needs explicit PrivateAssets parity."
     },
     {
       "area": "Editor integration",
@@ -180,6 +180,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-13 20:50 AWST",
+      "area": "Tests / test discoverability (McpServer.Tests coverage)",
+      "files": [
+        "src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj",
+        "tests/XerahS.Tests/Helpers/TestProjectBuildPropertiesTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Added coverlet.collector with proper PrivateAssets to McpServer.Tests so MCP tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; added guardrail test; bumped version 0.23.5 -> 0.23.6.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-205000.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-205100.log",
+      "result": "build 0 warnings/0 errors; tests 911 + 14 = 925 total, 1 skipped"
+    },
     {
       "timestamp": "2026-05-13 14:33 AWST",
       "area": "Settings/configuration backup ZIP fallback",
