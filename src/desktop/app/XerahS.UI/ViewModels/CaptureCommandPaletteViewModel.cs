@@ -100,7 +100,7 @@ public partial class CaptureCommandPaletteViewModel : ViewModelBase
 
     public void HandleEscape()
     {
-        if (!string.IsNullOrEmpty(Query))
+        if (!string.IsNullOrWhiteSpace(Query))
         {
             Query = string.Empty;
             RequestFocusSearch?.Invoke();

@@ -133,6 +133,32 @@ public sealed class CaptureCommandPaletteTests
     }
 
     [Test]
+    public void ViewModel_HandleEscape_WithWhitespaceQuery_RequestsClose()
+    {
+        WorkflowSettings region = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
+        var items = CaptureCommandPaletteProvider.CreateItems([region]);
+        var viewModel = new CaptureCommandPaletteViewModel(
+            () => items,
+            _ => Task.CompletedTask)
+        {
+            Query = "   "
+        };
+        bool closed = false;
+        bool focusedSearch = false;
+        viewModel.RequestClose += () => closed = true;
+        viewModel.RequestFocusSearch += () => focusedSearch = true;
+
+        viewModel.HandleEscape();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(closed, Is.True);
+            Assert.That(focusedSearch, Is.False);
+            Assert.That(viewModel.Query, Is.EqualTo("   "));
+        });
+    }
+
+    [Test]
     public void ViewModel_ReloadItems_WhenProviderThrows_KeepsPaletteUsable()
     {
         var viewModel = new CaptureCommandPaletteViewModel(
