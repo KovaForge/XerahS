@@ -187,7 +187,6 @@ public static class MainViewModelHelper
         }
 
         viewModel.ImageFilePath = path;
-        viewModel.IsDirty = false;
 
         var annotations = viewModel.GetAnnotationSnapshotForPersistence();
         using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
@@ -206,6 +205,7 @@ public static class MainViewModelHelper
         }
 
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
+        viewModel.IsDirty = false;
     }
 
     private static async Task HandleUploadRequestedAsync(MainViewModel viewModel, IDesktopTaskManager taskManager, Func<SKBitmap?>? getEditedSnapshot)

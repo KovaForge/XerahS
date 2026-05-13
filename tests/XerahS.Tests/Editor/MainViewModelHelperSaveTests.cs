@@ -24,6 +24,9 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using ShareX.ImageEditor.Core.Annotations;
+using ShareX.ImageEditor.Core.Editor;
+using ShareX.ImageEditor.Core.Persistence;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
 using System.Reflection;
@@ -67,6 +70,60 @@ public class MainViewModelHelperSaveTests
         }
         finally
         {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
+    public void SaveToPathAsync_KeepsEditorDirty_WhenAnnotationSidecarSaveFails()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.png");
+        string sidecarTempPath = XannProjectFileService.GetDefaultSidecarPath(path) + ".tmp";
+        Directory.CreateDirectory(sidecarTempPath);
+
+        try
+        {
+            using var source = new SKBitmap(4, 4);
+            source.Erase(SKColors.White);
+
+            var editorCore = new EditorCore();
+            editorCore.LoadImage(source.Copy());
+            editorCore.AddAnnotation(new RectangleAnnotation
+            {
+                StartPoint = new SKPoint(0, 0),
+                EndPoint = new SKPoint(2, 2)
+            });
+
+            var viewModel = new MainViewModel
+            {
+                IsDirty = true
+            };
+            viewModel.AttachEditorCore(editorCore);
+
+            Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
+            {
+                await InvokeSaveToPathAsync(viewModel, () =>
+                {
+                    var bitmap = new SKBitmap(1, 1);
+                    bitmap.Erase(SKColors.CadetBlue);
+                    return bitmap;
+                }, path);
+            });
+
+            Assert.That(File.Exists(path), Is.True, "The image write should have completed before sidecar persistence failed.");
+            Assert.That(viewModel.ImageFilePath, Is.EqualTo(path));
+            Assert.That(viewModel.IsDirty, Is.True);
+        }
+        finally
+        {
+            if (Directory.Exists(sidecarTempPath))
+            {
+                Directory.Delete(sidecarTempPath);
+            }
+
             if (File.Exists(path))
             {
                 File.Delete(path);
