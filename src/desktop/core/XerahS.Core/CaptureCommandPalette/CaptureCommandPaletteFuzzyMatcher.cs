@@ -34,8 +34,8 @@ public static class CaptureCommandPaletteFuzzyMatcher
             return 0;
         }
 
-        string normalizedQuery = query.Trim();
-        string normalizedTarget = target.Trim();
+        string normalizedQuery = NormalizeSearchText(query);
+        string normalizedTarget = NormalizeSearchText(target);
 
         if (normalizedTarget.Equals(normalizedQuery, StringComparison.OrdinalIgnoreCase))
         {
@@ -87,5 +87,39 @@ public static class CaptureCommandPaletteFuzzyMatcher
         double prefix = firstMatch == 0 ? 0.1 : 0;
 
         return Math.Min(0.6, 0.25 + compactness * 0.2 + adjacency * 0.05 + prefix);
+    }
+
+    private static string NormalizeSearchText(string value)
+    {
+        string trimmed = value.Trim();
+        if (trimmed.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        Span<char> buffer = trimmed.Length <= 256
+            ? stackalloc char[trimmed.Length]
+            : new char[trimmed.Length];
+        int length = 0;
+        bool previousWasWhitespace = false;
+
+        foreach (char character in trimmed)
+        {
+            if (char.IsWhiteSpace(character))
+            {
+                if (!previousWasWhitespace)
+                {
+                    buffer[length++] = ' ';
+                    previousWasWhitespace = true;
+                }
+
+                continue;
+            }
+
+            buffer[length++] = character;
+            previousWasWhitespace = false;
+        }
+
+        return new string(buffer[..length]);
     }
 }

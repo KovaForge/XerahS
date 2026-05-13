@@ -26,6 +26,14 @@ public sealed class CaptureCommandPaletteTests
     }
 
     [Test]
+    public void FuzzyMatcher_CollapsesRepeatedWhitespace()
+    {
+        double score = CaptureCommandPaletteFuzzyMatcher.Score("region   capture", "Region Capture");
+
+        Assert.That(score, Is.GreaterThan(0));
+    }
+
+    [Test]
     public void CreateItems_IncludesOnlyEnabledCaptureAndRecordingWorkflows()
     {
         WorkflowSettings capture = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
