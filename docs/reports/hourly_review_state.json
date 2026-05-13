@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-14 00:42 AWST",
+  "last_updated": "2026-05-14 03:54 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -60,11 +60,11 @@
     },
     {
       "area": "Editor integration",
-      "last_reviewed": "2026-04-30 09:43 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-14 03:54 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed editor window direct-close handling so ShowEditorSessionAsync completes with null instead of leaving callers awaiting forever; added regression coverage.",
-      "follow_up": "Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing."
+      "last_outcome": "Fixed `HandleCopyRequested` SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version 0.23.10 -> 0.23.11.",
+      "follow_up": "Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting."
     },
     {
       "area": "Uploader core / plugin routing",
@@ -180,6 +180,18 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-14 03:54 AWST",
+      "area": "Editor integration / HandleCopyRequested SKBitmap disposal",
+      "files": [
+        "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed HandleCopyRequested SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version 0.23.10 -> 0.23.11.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-034400.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-034400.log",
+      "result": "build 0 warnings/0 errors; tests 911 + 23 = 934 total, 1 skipped"
+    },
     {
       "timestamp": "2026-05-14 00:33 AWST",
       "area": "MCP server RunTaskAsync race condition",
