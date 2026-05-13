@@ -413,6 +413,31 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
+    public void Load_RestoresFromLatestSettingsBackupZip_WhenPrimaryFileIsCorrupt()
+    {
+        string directory = Path.Combine(TestContext.CurrentContext.WorkDirectory, "settings-backup-tests", Guid.NewGuid().ToString("N"));
+        string backupDirectory = Path.Combine(directory, "Backup");
+        string configPath = Path.Combine(directory, "ApplicationConfig.json");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(configPath, "{\"RecentTasksSave\":true}");
+
+        var config = new ApplicationConfig
+        {
+            BackupFolder = backupDirectory,
+            CreateBackup = true,
+            RecentTasksSave = false
+        };
+
+        Assert.That(config.Save(configPath), Is.True);
+        File.WriteAllText(configPath, "{ invalid json");
+
+        ApplicationConfig restored = ApplicationConfig.Load(configPath, backupDirectory);
+
+        Assert.That(restored.RecentTasksSave, Is.True,
+            "Settings load fallback should read the latest matching entry from the backup ZIPs created by SettingsBase.");
+    }
+
+    [Test]
     public void IsUpgradeFrom_UsesNumericVersionComparison()
     {
         var config = new ApplicationConfig

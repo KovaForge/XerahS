@@ -358,7 +358,7 @@ namespace XerahS.Common
                 }
             }
 
-            T setting = LoadInternal(filePath, fallbackFilePaths);
+            T setting = LoadInternal(filePath, fallbackFilePaths, backupFolder, Path.GetFileName(filePath));
 
             if (setting != null)
             {
@@ -388,7 +388,11 @@ namespace XerahS.Common
                 _ = Save();
         }
 
-        private static T LoadInternal(string filePath, List<string>? fallbackFilePaths = null)
+        private static T LoadInternal(
+            string filePath,
+            List<string>? fallbackFilePaths = null,
+            string? backupFolder = null,
+            string? originalFileName = null)
         {
             string typeName = typeof(T).Name;
 
@@ -418,25 +422,7 @@ namespace XerahS.Common
                         {
                             T settings;
 
-                            using (StreamReader streamReader = new StreamReader(fileStream))
-                            using (JsonTextReader jsonReader = new JsonTextReader(streamReader))
-                            {
-                                JsonSerializer serializer = new JsonSerializer();
-                                // serializer.ContractResolver = ...
-                                serializer.Converters.Add(new SafeStringEnumConverter());
-                                serializer.Converters.Add(new XerahS.Common.Converters.SkColorJsonConverter());
-                                serializer.TypeNameHandling = TypeNameHandling.Auto;
-                                serializer.DateTimeZoneHandling = DateTimeZoneHandling.Local;
-                                serializer.ObjectCreationHandling = ObjectCreationHandling.Replace;
-                                serializer.Error += (sender, args) =>
-                                {
-                                    DebugHelper.WriteLine($"[SettingsBase] JSON Error: {args.ErrorContext.Error.Message} at path: {args.ErrorContext.Path}");
-                                    args.ErrorContext.Handled = true;
-                                };
-                                
-                                // DebugHelper.WriteLine($"[SettingsBase] Starting deserialization for {typeName}");
-                                settings = serializer.Deserialize<T>(jsonReader) ?? throw new Exception($"{typeName} object is null.");
-                            }
+                            settings = DeserializeFromStream(fileStream, typeName);
 
                             System.Diagnostics.Debug.WriteLine($"{typeName} load finished: {filePath}");
                             // DebugHelper.WriteLine($"[SettingsBase] {typeName} load finished successfully");
@@ -472,12 +458,77 @@ namespace XerahS.Common
             {
                 filePath = fallbackFilePaths[0];
                 fallbackFilePaths.RemoveAt(0);
-                return LoadInternal(filePath, fallbackFilePaths);
+                return LoadInternal(filePath, fallbackFilePaths, backupFolder, originalFileName);
+            }
+
+            T? backupSettings = LoadFromBackupArchive(backupFolder, originalFileName);
+            if (backupSettings != null)
+            {
+                return backupSettings;
             }
 
             System.Diagnostics.Debug.WriteLine($"Loading new {typeName} instance.");
 
             return new T();
+        }
+
+        private static T DeserializeFromStream(Stream stream, string typeName)
+        {
+            using (StreamReader streamReader = new StreamReader(stream))
+            using (JsonTextReader jsonReader = new JsonTextReader(streamReader))
+            {
+                JsonSerializer serializer = new JsonSerializer();
+                // serializer.ContractResolver = ...
+                serializer.Converters.Add(new SafeStringEnumConverter());
+                serializer.Converters.Add(new XerahS.Common.Converters.SkColorJsonConverter());
+                serializer.TypeNameHandling = TypeNameHandling.Auto;
+                serializer.DateTimeZoneHandling = DateTimeZoneHandling.Local;
+                serializer.ObjectCreationHandling = ObjectCreationHandling.Replace;
+                serializer.Error += (sender, args) =>
+                {
+                    DebugHelper.WriteLine($"[SettingsBase] JSON Error: {args.ErrorContext.Error.Message} at path: {args.ErrorContext.Path}");
+                    args.ErrorContext.Handled = true;
+                };
+
+                return serializer.Deserialize<T>(jsonReader) ?? throw new Exception($"{typeName} object is null.");
+            }
+        }
+
+        private static T? LoadFromBackupArchive(string? backupFolder, string? fileName)
+        {
+            if (string.IsNullOrEmpty(backupFolder) || string.IsNullOrEmpty(fileName) || !Directory.Exists(backupFolder))
+            {
+                return null;
+            }
+
+            string typeName = typeof(T).Name;
+
+            foreach (string zipFilePath in Directory.EnumerateFiles(backupFolder, "*.zip", SearchOption.AllDirectories)
+                .OrderByDescending(path => File.GetLastWriteTimeUtc(path))
+                .ThenByDescending(path => path, StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using ZipArchive archive = ZipFile.OpenRead(zipFilePath);
+                    ZipArchiveEntry? entry = archive.GetEntry(fileName);
+
+                    if (entry == null || entry.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    using Stream entryStream = entry.Open();
+                    T settings = DeserializeFromStream(entryStream, typeName);
+                    DebugHelper.WriteLine($"[SettingsBase] {typeName} loaded from backup archive: {zipFilePath}");
+                    return settings;
+                }
+                catch (Exception e)
+                {
+                    DebugHelper.WriteLine($"[SettingsBase] Failed to load {typeName} backup archive '{zipFilePath}': {e.Message}");
+                }
+            }
+
+            return null;
         }
 
         private static void Serializer_Error(object? sender, Newtonsoft.Json.Serialization.ErrorEventArgs e)
