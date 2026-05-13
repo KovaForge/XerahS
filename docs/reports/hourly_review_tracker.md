@@ -1027,5 +1027,5 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Switched editor image save writes to `FileMode.Create` so destination files are recreated/truncated, added a regression test for overwriting a larger existing file, and bumped version `0.23.11` -> `0.23.12`.
 - Upstream/submodules: Local `develop` already matched fetched `origin/develop` (`0b5f80f1`); upstream/develop had no new merge work. ShareX.ImageEditor verified clean on `develop` at `417f584`, equal to origin; no parent pointer change.
 - Validation: Release build 0 warnings/0 errors; tests passed 936 total (913 XerahS + 23 McpServer), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-043635.log`, `/tmp/xerahs-hourly-sweep/test-20260514-043635.log`.
-- Commit: pending push.
+- Commit: `e5fc4607` pushed to `origin/develop`.
 - Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting.
