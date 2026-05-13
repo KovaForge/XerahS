@@ -1029,3 +1029,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Validation: Release build 0 warnings/0 errors; tests passed 936 total (913 XerahS + 23 McpServer), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-043635.log`, `/tmp/xerahs-hourly-sweep/test-20260514-043635.log`.
 - Commit: `e5fc4607` pushed to `origin/develop`.
 - Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting.
+
+### 2026-05-14 04:57 AWST / completed 2026-05-14 05:08 AWST - Editor integration sidecar save dirty state
+
+- Area: Editor integration / `MainViewModelHelper.SaveToPathAsync` sidecar save error handling; files: `src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs`, `tests/XerahS.Tests/Editor/MainViewModelHelperSaveTests.cs`, `Directory.Build.props`.
+- Findings: `SaveToPathAsync` marked the editor clean immediately after writing the raster image, before `.xann` sidecar persistence completed. If annotation sidecar save/delete failed, the parent handler only logged the exception and the editor could appear clean even though annotations were not persisted.
+- Status: Moved `IsDirty = false` until after sidecar save/delete succeeds while still preserving the saved image path after raster write; added a regression test that forces sidecar temp-file creation to fail after the image write; bumped version `0.23.12` -> `0.23.13`. Code fix commit: `03a05ca5`.
+- Build: `DOTNET_ROOT=/Users/mike/.dotnet dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/0 errors. Log: `/tmp/xerahs-hourly-sweep/build-20260514-050324.log`.
+- Test: `DOTNET_ROOT=/Users/mike/.dotnet dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 936 total (913 XerahS + 23 McpServer), 0 failed, 1 skipped. Log: `/tmp/xerahs-hourly-sweep/test-20260514-050506.log`.
+- Drift/submodule: Local `develop` matched fetched `origin/develop` and `vladislava/develop`; `upstream/develop` was contained with KovaForge 65 commits ahead. ShareX.ImageEditor verified clean on `develop` at `417f584`, equal to origin and one commit ahead of upstream; no parent pointer change.
+- Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers.
