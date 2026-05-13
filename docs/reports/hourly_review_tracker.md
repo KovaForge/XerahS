@@ -984,3 +984,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed `RunTaskAsync` to subscribe to `TaskStarted` to capture the expected `WorkerTask` reference, then filter `TaskCompleted` to only resolve when the completed task matches the started one; added cleanup for both handlers in error paths; bumped version `0.23.6` -> `0.23.7`.
 - Build/test: Release build 0 warnings/0 errors; tests passed 925 total (911 XerahS + 14 McpServer), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260513-235000.log`, `/tmp/xerahs-hourly-sweep/test-20260513-235200.log`.
 - Follow-up: Continue MCP server review around large-file thumbnail reads in `ReadResourceAsync` and URI construction robustness for `file_url` in `CreateHistoryDetailsAsync`.
+
+### 2026-05-14 00:37 AWST / completed 2026-05-14 00:41 AWST - MCP server history resource blobs
+
+- Area: MCP server history resources (`ReadResourceAsync` thumbnail/blob reads and `CreateHistoryDetailsAsync` file URL construction); files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`, `Directory.Build.props`.
+- Findings: `xerahs://history/thumb/{id}` always read the original history file into an inline base64 blob even when a local thumbnail existed, and `file_url` used `new Uri(item.FilePath)`, which could fault on relative/odd local paths.
+- Status: Prefer local thumbnail files for history blob resources, ignore remote thumbnail URLs for local blob reads, cap inline blobs at 5 MiB, harden file URL creation through resolved local file paths, and bump version `0.23.7` -> `0.23.8`.
+- Build/test: Release build 0 warnings/0 errors; tests passed 929 total (912 XerahS + 17 McpServer), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-003751.log`, `/tmp/xerahs-hourly-sweep/test-20260514-004058.log`.
+- Follow-up: Continue MCP server review around `xerahs://history/search` query parsing for encoded parameters and MCP resource error shape consistency.

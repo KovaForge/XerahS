@@ -22,6 +22,8 @@ namespace XerahS.McpServer.Runtime;
 
 public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 {
+    internal const long MaxInlineHistoryBlobBytes = 5 * 1024 * 1024;
+
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private IServiceProvider? _services;
     private IDesktopTaskManager? _taskManager;
@@ -407,9 +409,12 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         if (uri.StartsWith("xerahs://history/thumb/", StringComparison.OrdinalIgnoreCase))
         {
             var item = FindHistoryItem(uri["xerahs://history/thumb/".Length..]);
-            if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+            var blobPath = ResolveHistoryBlobPath(item);
+            var blobInfo = new FileInfo(blobPath);
+            if (blobInfo.Length > MaxInlineHistoryBlobBytes)
             {
-                throw new FileNotFoundException("History item thumbnail source file was not found.", item.FilePath);
+                throw new InvalidOperationException(
+                    $"History item blob is too large to inline ({blobInfo.Length} bytes, max {MaxInlineHistoryBlobBytes} bytes).");
             }
 
             return new JsonObject
@@ -418,8 +423,8 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                     new JsonObject
                     {
                         ["uri"] = uri,
-                        ["mimeType"] = GuessMimeType(item.FilePath),
-                        ["blob"] = Convert.ToBase64String(await File.ReadAllBytesAsync(item.FilePath, cancellationToken))
+                        ["mimeType"] = GuessMimeType(blobPath),
+                        ["blob"] = Convert.ToBase64String(await File.ReadAllBytesAsync(blobPath, cancellationToken))
                     })
             };
         }
@@ -916,7 +921,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         {
             ["id"] = item.Id.ToString(CultureInfo.InvariantCulture),
             ["file_path"] = item.FilePath,
-            ["file_url"] = string.IsNullOrWhiteSpace(item.FilePath) ? null : new Uri(item.FilePath).AbsoluteUri,
+            ["file_url"] = CreateFileUrl(item.FilePath),
             ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
             ["capture_type"] = InferHistoryCaptureType(item),
             ["capture_width"] = width,
@@ -932,6 +937,59 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["host"] = item.Host,
             ["type"] = item.Type
         };
+    }
+
+    internal static string ResolveHistoryBlobPath(HistoryItem item)
+    {
+        if (TryResolveLocalFilePath(item.ThumbnailURL, out var thumbnailPath) && File.Exists(thumbnailPath))
+        {
+            return thumbnailPath;
+        }
+
+        if (TryResolveLocalFilePath(item.FilePath, out var filePath) && File.Exists(filePath))
+        {
+            return filePath;
+        }
+
+        throw new FileNotFoundException("History item thumbnail source file was not found.", item.FilePath);
+    }
+
+    internal static string? CreateFileUrl(string? filePath)
+    {
+        return TryResolveLocalFilePath(filePath, out var resolvedPath)
+            ? new Uri(Path.GetFullPath(resolvedPath)).AbsoluteUri
+            : null;
+    }
+
+    private static bool TryResolveLocalFilePath(string? value, out string path)
+    {
+        path = string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            if (!uri.IsFile)
+            {
+                return false;
+            }
+
+            path = uri.LocalPath;
+            return !string.IsNullOrWhiteSpace(path);
+        }
+
+        try
+        {
+            path = Path.GetFullPath(trimmed);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
     }
 
     private static JsonObject CreateHistorySummary(HistoryItem item, string? ocrText)

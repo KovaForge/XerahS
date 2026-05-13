@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using XerahS.History;
 using XerahS.McpServer.JsonRpc;
 using XerahS.McpServer.Runtime;
 using XerahS.McpServer.Server;
@@ -206,6 +207,62 @@ public class XerahSMcpServerTests
         var result = await service.ShowEditorAsync(image, taskMode: true);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void RuntimeHistoryBlobPath_PrefersLocalThumbnailFile()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-history-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string sourcePath = Path.Combine(directory, "capture.png");
+            string thumbnailPath = Path.Combine(directory, "thumb.png");
+            File.WriteAllText(sourcePath, "source");
+            File.WriteAllText(thumbnailPath, "thumb");
+
+            var item = new HistoryItem
+            {
+                FilePath = sourcePath,
+                ThumbnailURL = thumbnailPath
+            };
+
+            Assert.Equal(thumbnailPath, XerahSMcpRuntime.ResolveHistoryBlobPath(item));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RuntimeHistoryBlobPath_IgnoresRemoteThumbnailUrl()
+    {
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-history-{Guid.NewGuid():N}.txt");
+        File.WriteAllText(sourcePath, "source");
+        try
+        {
+            var item = new HistoryItem
+            {
+                FilePath = sourcePath,
+                ThumbnailURL = "https://example.test/thumb.png"
+            };
+
+            Assert.Equal(sourcePath, XerahSMcpRuntime.ResolveHistoryBlobPath(item));
+        }
+        finally
+        {
+            File.Delete(sourcePath);
+        }
+    }
+
+    [Fact]
+    public void RuntimeFileUrl_UsesAbsoluteFileUriForRelativePaths()
+    {
+        string relativePath = Path.Combine(".", "capture with spaces.png");
+        string expected = new Uri(Path.GetFullPath(relativePath)).AbsoluteUri;
+
+        Assert.Equal(expected, XerahSMcpRuntime.CreateFileUrl(relativePath));
     }
 
     private sealed class FakeRuntime : IXerahSMcpRuntime
