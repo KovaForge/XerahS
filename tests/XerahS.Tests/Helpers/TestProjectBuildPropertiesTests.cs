@@ -50,6 +50,19 @@ public class TestProjectBuildPropertiesTests
         AssertPackageReferenceIsPrivateBuildAsset(project, "NUnit3TestAdapter");
     }
 
+    [Test]
+    public void McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets()
+    {
+        string testProjectPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "../../../../../src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj"));
+
+        XDocument project = XDocument.Load(testProjectPath);
+
+        AssertPackageReferenceIsPrivateBuildAsset(project, "Microsoft.NET.Test.Sdk");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "xunit.runner.visualstudio");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "coverlet.collector");
+    }
+
     private static void AssertPackageReferenceIsPrivateBuildAsset(XDocument project, string packageName)
     {
         XElement packageReference = project.Descendants("PackageReference")
