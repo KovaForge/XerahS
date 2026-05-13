@@ -247,9 +247,17 @@ public sealed class XerahSMcpServer
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
         }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
+        }
         catch (FileNotFoundException ex)
         {
             return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message);
+        }
+        catch (McpUserCancelledException ex)
+        {
+            return JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.UserCancelled, ex.Message);
         }
         catch (InvalidOperationException ex)
         {

@@ -431,9 +431,50 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 
         if (uri.StartsWith("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
         {
-            var queryIndex = uri.IndexOf("?q=", StringComparison.OrdinalIgnoreCase);
-            var query = queryIndex >= 0 ? Uri.UnescapeDataString(uri[(queryIndex + 3)..]) : null;
-            return CreateJsonResource(uri, await QueryHistoryAsync(query, null, null, "all", 20, cancellationToken));
+            var queryStart = uri.IndexOf('?');
+            if (queryStart < 0)
+            {
+                return CreateJsonResource(uri, await QueryHistoryAsync(null, null, null, "all", 20, cancellationToken));
+            }
+
+            var queryString = uri[(queryStart + 1)..];
+            string? query = null;
+            string? fromDate = null;
+            string? toDate = null;
+            var limit = 20;
+
+            var pairs = queryString.Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var pair in pairs)
+            {
+                var eqIndex = pair.IndexOf('=');
+                if (eqIndex < 0)
+                {
+                    continue;
+                }
+
+                var key = pair[..eqIndex];
+                var rawValue = pair[(eqIndex + 1)..];
+                var value = Uri.UnescapeDataString(rawValue);
+
+                if (string.Equals(key, "q", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = string.IsNullOrWhiteSpace(value) ? null : value;
+                }
+                else if (string.Equals(key, "from", StringComparison.OrdinalIgnoreCase))
+                {
+                    fromDate = value;
+                }
+                else if (string.Equals(key, "to", StringComparison.OrdinalIgnoreCase))
+                {
+                    toDate = value;
+                }
+                else if (string.Equals(key, "limit", StringComparison.OrdinalIgnoreCase) && int.TryParse(value, out var parsedLimit))
+                {
+                    limit = parsedLimit;
+                }
+            }
+
+            return CreateJsonResource(uri, await QueryHistoryAsync(query, fromDate, toDate, "all", limit, cancellationToken));
         }
 
         if (uri.StartsWith("xerahs://history/", StringComparison.OrdinalIgnoreCase))
