@@ -964,7 +964,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["file_path"] = item.FilePath,
             ["file_url"] = CreateFileUrl(item.FilePath),
             ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
-            ["thumbnail_resource"] = CreateHistoryBlobResourceUri(item),
+            ["thumbnail_resource"] = CreateHistoryBlobResourceUriIfLocal(item),
             ["capture_type"] = InferHistoryCaptureType(item),
             ["capture_width"] = width,
             ["capture_height"] = height,
@@ -1039,6 +1039,21 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         }
     }
 
+    private static string? CreateHistoryBlobResourceUriIfLocal(HistoryItem item)
+    {
+        if (TryResolveLocalFilePath(item.ThumbnailURL, out var thumbnailPath) && File.Exists(thumbnailPath))
+        {
+            return CreateHistoryBlobResourceUri(item);
+        }
+
+        if (TryResolveLocalFilePath(item.FilePath, out var filePath) && File.Exists(filePath))
+        {
+            return CreateHistoryBlobResourceUri(item);
+        }
+
+        return null;
+    }
+
     private static JsonObject CreateHistorySummary(HistoryItem item, string? ocrText)
     {
         long size = 0;
@@ -1047,12 +1062,14 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             size = new FileInfo(item.FilePath).Length;
         }
 
+        var thumbnailResource = CreateHistoryBlobResourceUriIfLocal(item);
+
         return new JsonObject
         {
             ["id"] = item.Id.ToString(CultureInfo.InvariantCulture),
             ["file_path"] = item.FilePath,
             ["thumbnail_url"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
-            ["thumbnail_resource"] = CreateHistoryBlobResourceUri(item),
+            ["thumbnail_resource"] = thumbnailResource,
             ["created_at"] = item.DateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             ["file_size_bytes"] = size,
             ["ocr_text"] = string.IsNullOrWhiteSpace(ocrText) ? null : ocrText,
