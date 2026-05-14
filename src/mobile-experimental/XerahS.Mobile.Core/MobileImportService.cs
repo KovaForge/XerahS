@@ -281,7 +281,9 @@ public static class MobileImportService
         };
 
         var instanceManager = InstanceManager.Instance;
-        var existing = instanceManager.GetInstances().FirstOrDefault(i => i.ProviderId == AmazonS3ProviderId);
+        var existing = instanceManager.GetInstances().FirstOrDefault(i =>
+            string.Equals(i.ProviderId, AmazonS3ProviderId, StringComparison.OrdinalIgnoreCase) &&
+            i.Category == UploaderCategory.File);
         if (existing != null)
         {
             existing.DisplayName = destination.Value<string>("DisplayName") ?? "Amazon S3";
