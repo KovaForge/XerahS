@@ -13,23 +13,23 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
-- Uploader core / plugin routing
-- Platform-specific services
-- Region capture / window enumeration
 - Notifications/toasts
 - Indexer subsystem
+- Assistant local memory/privacy/history (re-review)
+- Capture pipeline (re-review)
+- Media subsystem (re-review)
 
 ## Current Coverage
 
 | Area | Last Reviewed | Priority | Last Outcome | Follow-up |
-|---|---|---|---|---|
+|---|---|---|---|---|---|
 | Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
 | OCR | 2026-05-12 12:44 AWST | High | Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270. | Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases. |
 | Settings/configuration | 2026-05-13 14:42 AWST | High | Fixed settings load fallback to read the latest matching JSON entry from monthly backup ZIPs when the primary settings file is corrupt or missing; bumped version 0.23.3 -> 0.23.4. | Continue settings review around async save completion semantics and custom config backup retention. |
 | Assistant local memory/privacy/history | 2026-04-30 14:54 AWST | High | Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes. | Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted. |
 | Tests / test discoverability | 2026-05-13 20:55 AWST | High | Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; bumped version 0.23.5 -> 0.23.6. | Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0. |
 | Editor integration | 2026-05-14 03:54 AWST | High | Fixed `HandleCopyRequested` SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version `0.23.10` -> `0.23.11`. | Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting. |
-| Uploader core / plugin routing | 2026-04-30 16:50 AWST | High | Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage. | Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity. |
+| Uploader core / plugin routing | 2026-05-14 10:39 AWST | High | Fixed stale default-instance mappings on category change, defensive category validation in GetDefaultInstance, and case-insensitive IsDefault comparison; bumped version 0.23.16 -> 0.23.17. | Continue uploader routing review around default-instance resolution when the resolved instance is unavailable, and mobile destination config validation parity for non-S3 providers. |
 | Plugin loading/runtime | 2026-04-30 10:42 AWST | High | Fixed .xsdp package extraction to reject duplicate normalized entry paths, preventing duplicate plugin.json/assembly entries from overwriting files after manifest validation; added regression coverage. | Continue plugin runtime review around package entry canonicalization, duplicate directory/file collisions, and load-context unload diagnostics. |
 | FTP uploader plugin | 2026-05-01 15:35 AWST | Medium | Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values, preserving IPv6 hosts and optional ports; added regression coverage; bumped version `0.22.172` -> `0.22.173`. | Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior. |
 | Hotkeys/input | 2026-05-02 07:52 AWST | Medium | Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (`KP_0`..`KP_9`) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`. | Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization. |
@@ -40,10 +40,19 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Notifications/toasts | 2026-04-30 03:15 AWST | Medium | Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely. | Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next. |
 | File/path handling | 2026-05-14 08:20 AWST | High | Fixed IsFileLocked to return false for missing files/directories and null/empty/whitespace paths instead of misreporting them as locked; added regression coverage; bumped version 0.23.14 -> 0.23.15. | Continue file/path review around CopyFile exception handling when destination is an existing file path, and BackupFileWeekly TOCTOU race condition. |
 | Indexer subsystem | 2026-04-29 18:17 AWST | Medium | Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders. | Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling. |
-| Platform-specific services | 2026-05-01 01:45 AWST | High | Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version `0.22.165` -> `0.22.166`. | Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity. |
+| Platform-specific services | 2026-05-14 14:53 AWST | High | Fixed macOS clipboard pbpaste/pbcopy stderr drain and Linux clipboard/monitor unreachable stderr redirect; bumped version 0.23.19 -> 0.23.20. | Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity. |
 | Region capture / window enumeration | 2026-05-14 12:51 AWST | High | Clean review — no fixable bugs found. GNOME eval rect validation, X11 property conversion edges, Wayland fallback diagnostics all hardened. | Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms. |
 
 ## Recent Runs
+
+### 2026-05-14 14:53 AWST - Platform-specific services clipboard stderr drain
+
+- Area: Platform-specific services (macOS/Linux clipboard process stderr deadlock risk); files: `src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs`, `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs`, `src/platform/XerahS.Platform.Linux/Services/LinuxClipboardMonitorService.cs`, `Directory.Build.props`.
+- Findings: (1) macOS `GetText()` and `SetText()` redirected stderr on `pbpaste`/`pbcopy` processes but never read it — same deadlock pattern previously fixed in `RunOsaScriptCore`. (2) Linux `CreateProcess()` always set `RedirectStandardError = true` but neither `TryPipeAsync` nor `ReadBytesAsync` consumed stderr. (3) Linux `ClipboardMonitorService.TryStartWaylandWatch()` and `RunQuiet()` redirected stderr on `wl-paste`/`xclip` processes but never read it.
+- Status: Fixed macOS `GetText()` to read stdout+stderr asynchronously with timeout fallback; fixed `SetText()` to drain stderr asynchronously alongside stdin write. Removed unreachable `RedirectStandardError` from Linux `CreateProcess()`, `TryStartWaylandWatch()`, and `RunQuiet()`. Bumped version `0.23.19` -> `0.23.20`.
+- Build/test: `dotnet build XerahS.sln -c Release -m:1` 0 warnings/0 errors; `dotnet test XerahS.sln -c Release --no-build` 922 + 24 = 946 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-platform-clipboard.log`, `/tmp/xerahs-hourly-sweep/test-20260514-platform-clipboard.log`.
+- Commit: `7ba6823a` pushed to `origin/develop`.
+- Follow-up: Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity.
 
 ### 2026-05-14 08:20 AWST - File/path handling
 
