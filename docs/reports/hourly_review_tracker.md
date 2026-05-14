@@ -1066,3 +1066,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: `dotnet build XerahS.sln -c Release -m:1` 0 warnings/0 errors; `dotnet test XerahS.sln -c Release --no-build` 921 (XerahS) + 23 (McpServer) = 944 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-sweep.log`, `/tmp/xerahs-hourly-sweep/test-20260514-sweep.log`.
 - Commit: `6fa5e6fe` pushed to `origin/develop`.
 - Follow-up: Continue uploader routing review around default-instance resolution when the resolved instance is unavailable, and mobile destination config validation parity for non-S3 providers.
+
+### 2026-05-14 12:33 AWST / completed 2026-05-14 12:42 AWST - Uploader core unavailable default resolution
+
+- Area: Uploader core / plugin routing (`GetDefaultInstance` unavailable default cleanup); files: `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`, `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`, `Directory.Build.props`.
+- Status: KovaForge origin/develop refreshed to local head after fetch; upstream/develop already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed default-instance resolution to clear missing, category-mismatched, or unavailable mappings instead of returning unavailable defaults to callers; added regression coverage; bumped version `0.23.17` -> `0.23.18`.
+- Verification: focused `InstanceManagerTests` passed 15/15; Release build passed with 0 warnings/errors; Release no-build tests passed 945 total, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/focused-20260514-123641.log`, `/tmp/xerahs-hourly-sweep/build-20260514-124008.log`, `/tmp/xerahs-hourly-sweep/test-20260514-124151.log`.
+- Follow-up: Continue uploader routing review around mobile destination config validation parity for non-S3 providers and whether default cleanup should surface UI/log diagnostics when a saved default becomes unavailable.

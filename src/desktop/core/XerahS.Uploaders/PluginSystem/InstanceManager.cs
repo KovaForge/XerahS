@@ -311,8 +311,8 @@ public class InstanceManager
             {
                 var instance = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
 
-                // Verify category membership; clean up stale mapping if instance moved
-                if (instance != null && instance.Category != category)
+                // Verify the persisted default still resolves to a usable instance.
+                if (instance == null || instance.Category != category || !instance.IsAvailable)
                 {
                     _configuration.DefaultInstances.Remove(category);
                     SaveConfiguration();

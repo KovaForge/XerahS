@@ -427,6 +427,24 @@ public class InstanceManagerTests
         Assert.That(InstanceManager.Instance.GetInstance(instance.InstanceId)?.Category, Is.EqualTo(UploaderCategory.File));
     }
 
+    [Test]
+    public void GetDefaultInstance_ReturnsNullWhenDefaultInstanceIsUnavailable()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable",
+            SettingsJson = "{}",
+            IsAvailable = false
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
+    }
+
     private static void ClearInstances()
     {
         foreach (var instance in InstanceManager.Instance.GetInstances().ToList())
