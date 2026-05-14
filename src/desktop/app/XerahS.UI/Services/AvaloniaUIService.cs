@@ -618,18 +618,7 @@ namespace XerahS.UI.Services
                 List<Task> editorTasks = [];
                 foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
                 {
-                    if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
-                    {
-                        continue;
-                    }
-
-                    SKBitmap? bitmap = SkiaSharp.SKBitmap.Decode(filePath);
-                    if (bitmap == null)
-                    {
-                        continue;
-                    }
-
-                    editorTasks.Add(ShowEditorAsync(bitmap, sourceFilePath: filePath).ContinueWith(_ => bitmap.Dispose()));
+                    editorTasks.Add(OpenImageFileInEditorAsync(filePath, (bitmap, path) => ShowEditorAsync(bitmap, path)));
                 }
 
                 await Task.WhenAll(editorTasks);
@@ -638,19 +627,26 @@ namespace XerahS.UI.Services
 
             foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
             {
-                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
-                {
-                    continue;
-                }
-
-                using var bitmap = SkiaSharp.SKBitmap.Decode(filePath);
-                if (bitmap == null)
-                {
-                    continue;
-                }
-
-                await ShowEditorAsync(bitmap, sourceFilePath: filePath);
+                await OpenImageFileInEditorAsync(filePath, (bitmap, path) => ShowEditorAsync(bitmap, path));
             }
+        }
+
+        private static async Task OpenImageFileInEditorAsync(
+            string? filePath,
+            Func<SKBitmap, string?, Task<SKBitmap?>> showEditorAsync)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                return;
+            }
+
+            using SKBitmap? bitmap = SkiaSharp.SKBitmap.Decode(filePath);
+            if (bitmap == null)
+            {
+                return;
+            }
+
+            using SKBitmap? renderedImage = await showEditorAsync(bitmap, filePath);
         }
 
         private static async Task PinSelectedImagesAsync(SendToSelection selection, SendToPromptResult decision)

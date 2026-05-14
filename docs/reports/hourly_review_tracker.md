@@ -1048,3 +1048,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Test: `DOTNET_ROOT=/Users/mike/.dotnet dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 936 total (913 XerahS + 23 McpServer), 0 failed, 1 skipped. Log: `/tmp/xerahs-hourly-sweep/test-20260514-050506.log`.
 - Drift/submodule: Local `develop` matched fetched `origin/develop` and `vladislava/develop`; `upstream/develop` was contained with KovaForge 65 commits ahead. ShareX.ImageEditor verified clean on `develop` at `417f584`, equal to origin and one commit ahead of upstream; no parent pointer change.
 - Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers.
+
+### 2026-05-14 08:33 AWST / completed 2026-05-14 08:44 AWST - Editor integration Send-to image editor disposal
+
+- Area: Editor integration / Send-to multi-image editor lifecycle; files: `src/desktop/app/XerahS.UI/Services/AvaloniaUIService.cs`, `tests/XerahS.Tests/Editor/AvaloniaUIServiceSendToTests.cs`, `Directory.Build.props`.
+- Findings: Send-to Open Image Editor discarded the rendered `SKBitmap` returned when editor windows closed, leaking native bitmap memory for every opened item; source bitmap disposal was split across sequential and parallel paths.
+- Status: Centralized per-file editor opening so invalid paths are skipped consistently and both decoded source bitmaps and returned rendered bitmaps are disposed in sequential and open-all modes. Bumped version `0.23.15` -> `0.23.16`.
+- Upstream/submodules: Fetched KovaForge origin and upstream; local `develop` matched `origin/develop` at `70d210ae` after integrating origin commits `d27c1f97` and `70d210ae`; upstream/develop had no merge work. ShareX.ImageEditor clean on `develop` at `417f584`, equal to origin and one commit ahead of upstream `d3ef805`; no parent pointer change.
+- Validation: Release build 0 warnings/0 errors; tests passed 943 total (920 XerahS + 23 McpServer), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-083928.log`, `/tmp/xerahs-hourly-sweep/test-20260514-084229.log`.
+- Commit: fix commit pushed to `origin/develop`; see final sweep report for hash.
+- Follow-up: Continue editor integration review around Save/Save As result propagation and sidecar save failure surfacing to UI/log observers.
