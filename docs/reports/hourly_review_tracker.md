@@ -34,7 +34,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | FTP uploader plugin | 2026-05-01 15:35 AWST | Medium | Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values, preserving IPv6 hosts and optional ports; added regression coverage; bumped version `0.22.172` -> `0.22.173`. | Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior. |
 | Hotkeys/input | 2026-05-02 07:52 AWST | Medium | Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (`KP_0`..`KP_9`) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`. | Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization. |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
-| Media subsystem | 2026-04-30 21:45 AWST | High | Fixed combined video thumbnail generation so skipped unreadable source images no longer shift timestamps onto later loaded images. | Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout. |
+| Media subsystem | 2026-05-14 17:30 AWST | High | Fixed malformed trailing double quotes in FFmpegCLIManager.GetVideoInfo FFmpeg probe argument that passed `-i "path"""` instead of `-i "path"`; bumped version 0.23.21 -> 0.23.22. | Continue media review around CombineScreenshots negative Padding/Spacing dimension guards and FFmpegCLIManager.Close() process-tree kill parity. |
 | MCP server | 2026-05-14 00:42 AWST | Medium | Fixed RunTaskAsync to subscribe to TaskStarted and filter TaskCompleted by task reference equality, preventing concurrent upload callers from receiving the wrong task result; bumped version 0.23.6 -> 0.23.7. | Continue MCP review around large-file thumbnail reads in ReadResourceAsync and URI construction robustness for file_url. |
 | CLI / command surface | 2026-05-12 10:40 AWST | Medium | Fixed generated OpenClaw CLI JSON shape diagnostics to JSON-quote sanitized and bounded object keys, keeping malformed punctuation-heavy keys unambiguous without exposing values; bumped version 0.22.268 -> 0.22.269. | Continue reviewing OpenClaw plugin export generated CLI/tool parity around safe diagnostic formatting. |
 | Notifications/toasts | 2026-04-30 03:15 AWST | Medium | Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely. | Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next. |
@@ -44,6 +44,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-05-14 12:51 AWST | High | Clean review — no fixable bugs found. GNOME eval rect validation, X11 property conversion edges, Wayland fallback diagnostics all hardened. | Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms. |
 
 ## Recent Runs
+
+### 2026-05-14 17:30 AWST - Media subsystem / FFmpeg GetVideoInfo malformed argument quoting
+
+- Area: Media subsystem (FFmpegCLIManager.GetVideoInfo malformed FFmpeg probe argument); files: `src/desktop/core/XerahS.Media/FFmpegCLIManager.cs`, `Directory.Build.props`.
+- Findings: `GetVideoInfo` passed `-i "path"""` (three trailing double quotes) to FFmpeg, producing a malformed argument string that could cause FFmpeg to interpret an empty-string input on some platforms. This was a typo — the correct form is `-i "path"`. Other FFmpeg invocations in the codebase use correct quoting.
+- Status: Fixed the interpolated string from `$"-i \"{videoPath}\"\"\""` to `$"-i \"{videoPath}\""`; bumped version 0.23.21 -> 0.23.22.
+- Build/test: `dotnet build XerahS.sln -c Release -m:1` 0 warnings/0 errors; `dotnet test XerahS.sln -c Release --no-build` 927 + 24 = 951 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-media-ffmpeg.log`, `/tmp/xerahs-hourly-sweep/test-20260514-media-ffmpeg.log`.
+- Commit: `3c60ca2d` pushed to `origin/develop`.
+- Follow-up: Continue media review around CombineScreenshots negative Padding/Spacing dimension guards and FFmpegCLIManager.Close() process-tree kill parity.
 
 ### 2026-05-14 14:53 AWST - Platform-specific services clipboard stderr drain
 
