@@ -523,6 +523,11 @@ public static class FileHelpers
 
     public static bool IsFileLocked(string filePath)
     {
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
+            return false;
+        }
+
         try
         {
             using FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);

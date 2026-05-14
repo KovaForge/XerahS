@@ -179,6 +179,68 @@ public class FileHelpersTests
     }
 
     [Test]
+    public void IsFileLocked_MissingFile_ReturnsFalse()
+    {
+        string missingPath = Path.Combine(Path.GetTempPath(), "xerahs-nonexistent-file-" + Guid.NewGuid().ToString("N") + ".tmp");
+
+        bool locked = FileHelpers.IsFileLocked(missingPath);
+
+        Assert.That(locked, Is.False);
+    }
+
+    [Test]
+    public void IsFileLocked_MissingDirectory_ReturnsFalse()
+    {
+        string missingPath = Path.Combine(Path.GetTempPath(), "xerahs-nonexistent-dir-" + Guid.NewGuid().ToString("N"), "file.tmp");
+
+        bool locked = FileHelpers.IsFileLocked(missingPath);
+
+        Assert.That(locked, Is.False);
+    }
+
+    [Test]
+    public void IsFileLocked_NullOrEmptyPath_ReturnsFalse()
+    {
+        Assert.That(FileHelpers.IsFileLocked(null!), Is.False);
+        Assert.That(FileHelpers.IsFileLocked(""), Is.False);
+        Assert.That(FileHelpers.IsFileLocked("  "), Is.False);
+    }
+
+    [Test]
+    public void IsFileLocked_ExistingUnlockedFile_ReturnsFalse()
+    {
+        string tempFile = Path.GetTempFileName();
+        try
+        {
+            bool locked = FileHelpers.IsFileLocked(tempFile);
+
+            Assert.That(locked, Is.False);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
+    public void IsFileLocked_ExistingLockedFile_ReturnsTrue()
+    {
+        string tempFile = Path.GetTempFileName();
+        try
+        {
+            using var fs = new FileStream(tempFile, FileMode.Open, FileAccess.Read, FileShare.None);
+
+            bool locked = FileHelpers.IsFileLocked(tempFile);
+
+            Assert.That(locked, Is.True);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
     public void GetUniqueFilePath_KnownDoubleExtension_PreservesCompoundExtension()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
