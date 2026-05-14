@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-14 08:20 AWST",
+  "last_updated": "2026-05-14 10:39 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -68,11 +68,11 @@
     },
     {
       "area": "Uploader core / plugin routing",
-      "last_reviewed": "2026-04-30 16:50 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-14 10:39 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage.",
-      "follow_up": "Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity."
+      "last_outcome": "Fixed stale default-instance mappings on category change in UpdateInstance, defensive category validation in GetDefaultInstance, and case-insensitive IsDefault comparison in DestinationConfigExportService; added regression tests; bumped version 0.23.16 -> 0.23.17.",
+      "follow_up": "Continue uploader routing review around default-instance resolution when the resolved instance is unavailable, and mobile destination config validation parity for non-S3 providers."
     },
     {
       "area": "Plugin loading/runtime",
@@ -180,6 +180,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-14 10:39 AWST",
+      "area": "Uploader core / plugin routing / stale default-instance mappings, category validation",
+      "files": [
+        "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
+        "src/desktop/app/XerahS.UI/Services/DestinationConfigExportService.cs",
+        "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed UpdateInstance to clean stale DefaultInstances mappings on category change; fixed GetDefaultInstance to verify category membership; fixed DestinationConfigExportService case-sensitive IsDefault comparison; added regression tests; bumped version 0.23.16 -> 0.23.17.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-sweep.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-sweep.log",
+      "result": "build 0 warnings/0 errors; tests 921 + 23 = 944 total, 0 failed, 1 skipped"
+    },
     {
       "timestamp": "2026-05-14 08:20 AWST",
       "area": "File/path handling / IsFileLocked missing-file semantics",
