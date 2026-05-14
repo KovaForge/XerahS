@@ -58,7 +58,7 @@ public sealed class XerahSMcpServer
             "resources/list" => HandleResourcesListAsync(request),
             "resources/read" => HandleResourcesReadAsync(request, cancellationToken),
             "prompts/list" => HandlePromptsListAsync(request),
-            "prompts/get" => HandlePromptsGetAsync(request),
+            "prompts/get" => HandlePromptsGetAsync(request, cancellationToken),
             "shutdown" => HandleShutdownAsync(request),
             _ => Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.MethodNotFound, $"Method not found: {request.Method}"))
         };
@@ -277,7 +277,7 @@ public sealed class XerahSMcpServer
         }));
     }
 
-    private Task<JsonRpcResponse> HandlePromptsGetAsync(JsonRpcRequest request)
+    private Task<JsonRpcResponse> HandlePromptsGetAsync(JsonRpcRequest request, CancellationToken cancellationToken = default)
     {
         var paramsNode = ToParamsObject(request.Params);
         if (paramsNode == null)
@@ -324,9 +324,29 @@ public sealed class XerahSMcpServer
                     })
             }));
         }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message));
+        }
         catch (ArgumentException ex)
         {
             return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message));
+        }
+        catch (FileNotFoundException ex)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message));
+        }
+        catch (McpUserCancelledException ex)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InvalidParams, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(JsonRpcResponse.FromError(request.Id, JsonRpcErrorCodes.InternalError, ex.Message));
         }
     }
 

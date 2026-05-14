@@ -199,6 +199,24 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public async Task PromptsGet_UnknownTemplate_ReturnsInvalidParamsError()
+    {
+        var server = new XerahSMcpServer(new FakeRuntime());
+
+        var response = await server.HandleRequestAsync(new JsonRpcRequest
+        {
+            JsonRpc = "2.0",
+            Id = 99,
+            Method = "prompts/get",
+            Params = JsonNode.Parse(/* lang=json */ """{ "name": "nonexistent_prompt" }""")
+        });
+
+        Assert.NotNull(response.Error);
+        Assert.Equal(JsonRpcErrorCodes.InvalidParams, response.Error!.Code);
+        Assert.Contains("Unknown prompt template", response.Error.Message);
+    }
+
+    [Fact]
     public async Task HeadlessMcpUIService_ShowEditorAsync_ReturnsNullWhenEditorUnavailable()
     {
         var service = new HeadlessMcpUIService();

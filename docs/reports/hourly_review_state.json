@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-14 10:39 AWST",
+  "last_updated": "2026-05-14 12:51 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -172,14 +172,35 @@
     },
     {
       "area": "Region capture / window enumeration",
-      "last_reviewed": "2026-05-01 13:35 AWST",
-      "status": "fixed",
+      "last_reviewed": "2026-05-14 12:51 AWST",
+      "status": "clean",
       "priority": "High",
-      "last_outcome": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
-      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
+      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-14 12:51 AWST",
+      "area": "Region capture / window enumeration",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/LinuxWindowService.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/GnomeShellWindowPointQueryHelper.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/HyprlandWindowPointQueryHelper.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/SwayWindowPointQueryHelper.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WaylandWindowPointQueryCommandRunner.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WaylandWindowPointQueryHelperFactory.cs",
+        "src/platform/XerahS.Platform.Linux/NativeMethods.cs",
+        "src/platform/XerahS.Platform.Linux/Capture/Detection/CompositorDetector.cs",
+        "src/platform/XerahS.Platform.Linux/Capture/Detection/DesktopCaptureInterfaceChecker.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs"
+      ],
+      "summary": "Clean review — no fixable bugs. GNOME eval rect validated in-script; X11 property conversion handles memory/format/count; Wayland compositor helpers degrade with diagnostics; frame extent overflow already hardened in previous sweep.",
+      "build_log": null,
+      "test_log": null,
+      "result": "clean - no code changes, no build/test run"
+    },
     {
       "timestamp": "2026-05-14 10:39 AWST",
       "area": "Uploader core / plugin routing / stale default-instance mappings, category validation",
