@@ -98,6 +98,14 @@ public class UploadCommandPathSanitizationTests
     }
 
     [Test]
+    public void GetReadinessCategories_WhenTextFileIsUploadedAsFile_UsesFileUploader()
+    {
+        UploaderCategory[] categories = CliUploaderBootstrapper.GetReadinessCategories(uploadAsText: false);
+
+        Assert.That(categories, Is.EqualTo(new[] { UploaderCategory.File }));
+    }
+
+    [Test]
     public void CleanupTemporaryUploadDirectories_WhenGivenMultipleDirectories_RemovesEachDirectoryOnce()
     {
         string firstDirectory = UploadCommand.CreateTemporaryUploadDirectory();
@@ -143,6 +151,47 @@ public class UploadCommandPathSanitizationTests
             Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.TextUpload));
             Assert.That(processedTaskInfo.FileName, Is.EqualTo("note"));
         });
+    }
+
+    [Test]
+    public async Task UploadAsync_AsFileWithTextExtension_RequiresFileUploader()
+    {
+        string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
+        bool? checkedAsText = null;
+        TaskInfo? processedTaskInfo = null;
+        typeof(UploadCommand).GetField("_checkUploadReadiness", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<string, bool, UploadReadiness>)((_, uploadAsText) =>
+            {
+                checkedAsText = uploadAsText;
+                return UploadReadiness.Ready(new BootstrapReport(), uploadAsText ? UploaderCategory.Text : UploaderCategory.File);
+            }));
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                processedTaskInfo = taskInfo;
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
+
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "payload");
+
+            int exitCode = await InvokeUploadAsync(new SequencedDesktopTaskManager((_, _) => { }), tempFile, text: null, pipe: false, name: null, asFile: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+                Assert.That(checkedAsText, Is.False);
+                Assert.That(processedTaskInfo, Is.Not.Null);
+                Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.FileUpload));
+                Assert.That(processedTaskInfo.FilePath, Is.EqualTo(tempFile));
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 
     [Test]

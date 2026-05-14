@@ -49,9 +49,7 @@ internal static class CliUploaderBootstrapper
     public static UploadReadiness CheckUploadReadiness(string fileName, bool uploadAsText)
     {
         var report = Bootstrap(true);
-        var categories = uploadAsText || FileHelpers.IsTextFile(fileName)
-            ? new[] { UploaderCategory.Text }
-            : new[] { UploaderCategory.File };
+        var categories = GetReadinessCategories(uploadAsText);
 
         foreach (var category in categories)
         {
@@ -61,6 +59,10 @@ internal static class CliUploaderBootstrapper
         return UploadReadiness.NotReady(report,
             $"No usable uploader is configured for {Path.GetFileName(fileName)}. Run 'xerahscli doctor uploaders --fix' for details.");
     }
+
+    internal static UploaderCategory[] GetReadinessCategories(bool uploadAsText) => uploadAsText
+        ? [UploaderCategory.Text]
+        : [UploaderCategory.File];
 
     public static int DoctorUploaders(bool fix, bool json)
     {
