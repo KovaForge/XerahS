@@ -1091,3 +1091,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version bump: none.
 - Build/test: skipped (no code changes).
 - Follow-up: Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms.
+
+### 2026-05-14 16:33 AWST / completed 2026-05-14 16:40 AWST - macOS window service front-window parsing
+
+- Area: Region capture / macOS AppleScript front-window parsing and process IO; files: `src/platform/XerahS.Platform.MacOS/MacOSWindowService.cs`, `tests/XerahS.Tests/Platform/MacOS/MacOSWindowServiceTests.cs`, `Directory.Build.props`.
+- Status: Synced `develop` with KovaForge origin and upstream; upstream/develop had no new merge work. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor`; no parent pointer change. Fixed macOS front-window parsing to reject zero/negative Accessibility window sizes, preserve legitimate title whitespace while trimming trailing process newlines, and drain `osascript` stderr asynchronously to avoid pipe-buffer hangs. Bumped version `0.23.20` -> `0.23.21`.
+- Build/test: Release build succeeded with 0 warnings/errors; Release no-build tests passed 951 total, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-163657.log`, `/tmp/xerahs-hourly-sweep/test-20260514-164002.log`.
+- Follow-up: Continue region/window enumeration review around Windows window filtering parity and multi-monitor scaled display bounds across platforms.

@@ -233,7 +233,7 @@ namespace XerahS.Platform.MacOS
                 return false;
             }
 
-            var parts = output.Trim().Split(FrontWindowInfoSeparator);
+            var parts = output.TrimEnd('\r', '\n').Split(FrontWindowInfoSeparator);
             if (parts.Length < 7)
             {
                 return false;
@@ -244,6 +244,11 @@ namespace XerahS.Platform.MacOS
                 !int.TryParse(parts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var width) ||
                 !int.TryParse(parts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var height) ||
                 !uint.TryParse(parts[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out var processId))
+            {
+                return false;
+            }
+
+            if (width <= 0 || height <= 0)
             {
                 return false;
             }
@@ -280,8 +285,11 @@ namespace XerahS.Platform.MacOS
                     return null;
                 }
 
-                var output = process.StandardOutput.ReadToEnd();
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
                 process.WaitForExit();
+                string output = outputTask.GetAwaiter().GetResult();
+                _ = errorTask.GetAwaiter().GetResult();
                 return process.ExitCode == 0 ? output : null;
             }
             catch (Exception ex)
