@@ -146,7 +146,7 @@ internal static class DestinationConfigExportService
                 {
                     ["ProviderId"] = "amazons3",
                     ["DisplayName"] = string.IsNullOrWhiteSpace(instance.DisplayName) ? "Amazon S3" : instance.DisplayName,
-                    ["IsDefault"] = InstanceManager.Instance.GetDefaultInstance(instance.Category)?.InstanceId == instance.InstanceId,
+                    ["IsDefault"] = string.Equals(InstanceManager.Instance.GetDefaultInstance(instance.Category)?.InstanceId, instance.InstanceId, StringComparison.OrdinalIgnoreCase),
                     ["Config"] = new JObject
                     {
                         ["AuthMode"] = "AccessKeys",

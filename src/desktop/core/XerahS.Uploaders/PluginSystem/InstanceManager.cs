@@ -188,6 +188,20 @@ public class InstanceManager
                 throw new InvalidOperationException($"Instance with ID {instance.InstanceId} not found");
             }
 
+            // Remove stale default mapping when category changes
+            if (existing.Category != instance.Category)
+            {
+                var staleDefaults = _configuration.DefaultInstances
+                    .Where(kvp => kvp.Key == existing.Category && InstanceIdsEqual(kvp.Value, existing.InstanceId))
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var category in staleDefaults)
+                {
+                    _configuration.DefaultInstances.Remove(category);
+                }
+            }
+
             var index = _configuration.Instances.IndexOf(existing);
             instance.ModifiedAt = DateTime.UtcNow;
             _configuration.Instances[index] = instance;
@@ -295,7 +309,17 @@ public class InstanceManager
         {
             if (_configuration.DefaultInstances.TryGetValue(category, out var instanceId))
             {
-                return _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
+                var instance = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
+
+                // Verify category membership; clean up stale mapping if instance moved
+                if (instance != null && instance.Category != category)
+                {
+                    _configuration.DefaultInstances.Remove(category);
+                    SaveConfiguration();
+                    return null;
+                }
+
+                return instance;
             }
             return null;
         }
