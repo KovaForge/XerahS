@@ -13,37 +13,46 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
-- OCR
-- Tests / test discoverability
-- Editor integration
-- Plugin loading/runtime
-- MCP server
+- Uploader core / plugin routing
+- Platform-specific services
+- Region capture / window enumeration
+- Notifications/toasts
+- Indexer subsystem
 
 ## Current Coverage
 
 | Area | Last Reviewed | Priority | Last Outcome | Follow-up |
 |---|---|---|---|---|
 | Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
-| OCR | 2026-04-30 06:41 AWST | High | Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh. | Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases. |
-| Settings/configuration | 2026-04-30 07:41 AWST | High | Fixed uploader config saves so SettingsChanged observers are notified for destination/provider changes; added regression coverage. | Continue settings review around async save completion semantics and custom config backup paths. |
+| OCR | 2026-05-12 12:44 AWST | High | Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270. | Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases. |
+| Settings/configuration | 2026-05-13 14:42 AWST | High | Fixed settings load fallback to read the latest matching JSON entry from monthly backup ZIPs when the primary settings file is corrupt or missing; bumped version 0.23.3 -> 0.23.4. | Continue settings review around async save completion semantics and custom config backup retention. |
 | Assistant local memory/privacy/history | 2026-04-30 14:54 AWST | High | Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes. | Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted. |
-| Tests / test discoverability | 2026-04-30 08:41 AWST | High | Marked main NUnit test discovery packages as private test/build assets so Microsoft.NET.Test.Sdk and NUnit3TestAdapter do not flow as normal transitive assets; added guardrail coverage. | Continue tests review around discovery package asset metadata for Avalonia.Headless.NUnit/coverage collectors and cross-target test host behavior. |
+| Tests / test discoverability | 2026-05-13 20:55 AWST | High | Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; bumped version 0.23.5 -> 0.23.6. | Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0. |
 | Editor integration | 2026-05-14 03:54 AWST | High | Fixed `HandleCopyRequested` SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version `0.23.10` -> `0.23.11`. | Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting. |
 | Uploader core / plugin routing | 2026-04-30 16:50 AWST | High | Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage. | Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity. |
-| Plugin loading/runtime | 2026-04-29 04:11 AWST | High | Fixed plugin package installation so a missing plugins root is created before installing a .xsdp package instead of failing with DirectoryNotFoundException. |  |
+| Plugin loading/runtime | 2026-04-30 10:42 AWST | High | Fixed .xsdp package extraction to reject duplicate normalized entry paths, preventing duplicate plugin.json/assembly entries from overwriting files after manifest validation; added regression coverage. | Continue plugin runtime review around package entry canonicalization, duplicate directory/file collisions, and load-context unload diagnostics. |
 | FTP uploader plugin | 2026-05-01 15:35 AWST | Medium | Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values, preserving IPv6 hosts and optional ports; added regression coverage; bumped version `0.22.172` -> `0.22.173`. | Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior. |
 | Hotkeys/input | 2026-05-02 07:52 AWST | Medium | Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (`KP_0`..`KP_9`) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`. | Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization. |
 | Imgur uploader plugin | 2026-04-29 07:11 AWST | Medium | Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup. |  |
 | Media subsystem | 2026-04-30 21:45 AWST | High | Fixed combined video thumbnail generation so skipped unreadable source images no longer shift timestamps onto later loaded images. | Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout. |
-| MCP server | 2026-04-29 11:15 AWST | Medium | Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely. | Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation. |
-| CLI / command surface | 2026-04-29 14:05 AWST | Medium | Fixed CLI upload to use the direct upload processor/bootstrap readiness path and added uploader doctor/bootstrap commands. | Continue CLI review around uploader bootstrap provider choices and JSON doctor output contract. |
+| MCP server | 2026-05-14 00:42 AWST | Medium | Fixed RunTaskAsync to subscribe to TaskStarted and filter TaskCompleted by task reference equality, preventing concurrent upload callers from receiving the wrong task result; bumped version 0.23.6 -> 0.23.7. | Continue MCP review around large-file thumbnail reads in ReadResourceAsync and URI construction robustness for file_url. |
+| CLI / command surface | 2026-05-12 10:40 AWST | Medium | Fixed generated OpenClaw CLI JSON shape diagnostics to JSON-quote sanitized and bounded object keys, keeping malformed punctuation-heavy keys unambiguous without exposing values; bumped version 0.22.268 -> 0.22.269. | Continue reviewing OpenClaw plugin export generated CLI/tool parity around safe diagnostic formatting. |
 | Notifications/toasts | 2026-04-30 03:15 AWST | Medium | Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely. | Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next. |
-| File/path handling | 2026-04-30 04:36 AWST | High | Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives. | Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next. |
+| File/path handling | 2026-05-14 08:20 AWST | High | Fixed IsFileLocked to return false for missing files/directories and null/empty/whitespace paths instead of misreporting them as locked; added regression coverage; bumped version 0.23.14 -> 0.23.15. | Continue file/path review around CopyFile exception handling when destination is an existing file path, and BackupFileWeekly TOCTOU race condition. |
 | Indexer subsystem | 2026-04-29 18:17 AWST | Medium | Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders. | Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling. |
 | Platform-specific services | 2026-05-01 01:45 AWST | High | Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version `0.22.165` -> `0.22.166`. | Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity. |
 | Region capture / window enumeration | 2026-05-01 13:35 AWST | High | Fixed Linux X11 frame extent expansion to ignore invalid `_NET_FRAME_EXTENTS` values that would overflow outer window bounds; added regression coverage; bumped version `0.22.171` -> `0.22.172`. | Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics. |
 
 ## Recent Runs
+
+### 2026-05-14 08:20 AWST - File/path handling
+
+- Area: File/path handling / IsFileLocked missing-file semantics; files: `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`, `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`, `Directory.Build.props`.
+- Findings: `IsFileLocked` caught `IOException` which includes `FileNotFoundException` and `DirectoryNotFoundException`, causing it to return `true` (`"locked"`) for missing files and directories. Null, empty, and whitespace paths threw `ArgumentNullException` unhandled. This is semantically wrong — a non-existent file is not "locked."
+- Status: Fixed `IsFileLocked` to gate on `File.Exists` and null/whitespace before the lock probe; added regression coverage for missing file, missing directory, null/empty/whitespace, unlocked file, and locked file; bumped version `0.23.14` -> `0.23.15`.
+- Build/test: `dotnet build` 0 warnings/0 errors, `dotnet test` 918 + 23 = 941 passed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260514-081735.log`, `/tmp/xerahs-hourly-sweep/test-20260514-082041.log`.
+- Commit: `d27c1f97` pushed to `origin/develop`.
+- Follow-up: Continue file/path review around `CopyFile` exception handling when destination is an existing file path, and `BackupFileWeekly` TOCTOU race condition.
 
 ### 2026-05-01 17:45 AWST - Capture pipeline
 

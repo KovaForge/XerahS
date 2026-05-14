@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-14 03:54 AWST",
+  "last_updated": "2026-05-14 08:20 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,11 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Tests / test discoverability",
-    "Editor integration",
-    "Plugin loading/runtime",
-    "MCP server",
-    "Settings/configuration"
+    "Uploader core / plugin routing",
+    "Platform-specific services",
+    "Region capture / window enumeration",
+    "Notifications/toasts",
+    "Indexer subsystem"
   ],
   "areas": [
     {
@@ -148,11 +148,11 @@
     },
     {
       "area": "File/path handling",
-      "last_reviewed": "2026-04-30 04:36 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-14 08:20 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives.",
-      "follow_up": "Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next."
+      "last_outcome": "Fixed IsFileLocked to return false for missing files, missing directories, and null/empty/whitespace paths instead of misreporting them as locked; added regression coverage for missing, null, unlocked, and locked files.",
+      "follow_up": "Continue file/path review around CopyFile exception handling when destination is an existing file path, and BackupFileWeekly TOCTOU race condition."
     },
     {
       "area": "Indexer subsystem",
@@ -180,6 +180,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-14 08:20 AWST",
+      "area": "File/path handling / IsFileLocked missing-file semantics",
+      "files": [
+        "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
+        "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed IsFileLocked to return false for missing files/directories and null/empty/whitespace paths instead of misreporting them as locked; added regression coverage; bumped version 0.23.14 -> 0.23.15.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-081735.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-082041.log",
+      "result": "build 0 warnings/0 errors; tests 918 + 23 = 941 total, 1 skipped"
+    },
     {
       "timestamp": "2026-05-14 03:54 AWST",
       "area": "Editor integration / HandleCopyRequested SKBitmap disposal",
