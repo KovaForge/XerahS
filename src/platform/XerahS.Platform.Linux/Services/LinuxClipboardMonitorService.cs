@@ -123,7 +123,6 @@ public sealed class LinuxClipboardMonitorService : IClipboardMonitorService
                 Arguments = "--watch echo .",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             });
 
@@ -212,7 +211,6 @@ public sealed class LinuxClipboardMonitorService : IClipboardMonitorService
                 Arguments = args,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             });
 
