@@ -301,21 +301,23 @@ namespace XerahS.Media
                     if (images.Count == 0) return null;
 
                     int columnCount = Math.Max(1, Options.ColumnCount);
+                    int padding = Math.Max(0, Options.Padding);
+                    int spacing = Math.Max(0, Options.Spacing);
 
                     int thumbWidth = images.Max(x => x.Image.Width);
 
-                    int width = (Options.Padding * 2) +
+                    int width = (padding * 2) +
                                 (thumbWidth * columnCount) +
-                                ((columnCount - 1) * Options.Spacing);
+                                ((columnCount - 1) * spacing);
 
                     int rowCount = (int)Math.Ceiling(images.Count / (float)columnCount);
 
                     int thumbHeight = images.Max(x => x.Image.Height);
 
-                    int height = (Options.Padding * 3) +
+                    int height = (padding * 3) +
                                  infoStringHeight +
                                  (thumbHeight * rowCount) +
-                                 ((rowCount - 1) * Options.Spacing);
+                                 ((rowCount - 1) * spacing);
 
                     finalImage = new SKBitmap(width, height);
 
@@ -325,12 +327,12 @@ namespace XerahS.Media
 
                         if (!string.IsNullOrEmpty(infoString))
                         {
-                            float infoBaseline = Options.Padding - infoMetrics.Ascent;
-                            g.DrawText(infoString, Options.Padding, infoBaseline, SKTextAlign.Left, infoFont, fontPaint);
+                            float infoBaseline = padding - infoMetrics.Ascent;
+                            g.DrawText(infoString, padding, infoBaseline, SKTextAlign.Left, infoFont, fontPaint);
                         }
 
                         int i = 0;
-                        int offsetY = (Options.Padding * 2) + infoStringHeight;
+                        int offsetY = (padding * 2) + infoStringHeight;
 
                         using (SKPaint shadowPaint = new SKPaint { Color = new SKColor(0, 0, 0, 75) })
                         using (SKPaint borderPaint = new SKPaint { Color = SKColors.Black, IsStroke = true, StrokeWidth = 1 })
@@ -341,7 +343,7 @@ namespace XerahS.Media
 
                             for (int y = 0; y < rowCount; y++)
                             {
-                                int offsetX = Options.Padding;
+                                int offsetX = padding;
 
                                 for (int x = 0; x < columnCount; x++)
                                 {
@@ -375,10 +377,10 @@ namespace XerahS.Media
                                         return finalImage;
                                     }
 
-                                    offsetX += thumbWidth + Options.Spacing;
+                                    offsetX += thumbWidth + spacing;
                                 }
 
-                                offsetY += thumbHeight + Options.Spacing;
+                                offsetY += thumbHeight + spacing;
                             }
                         }
                     }
