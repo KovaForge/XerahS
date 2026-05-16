@@ -84,6 +84,58 @@ public class IndexCommandTests
     }
 
     [Test]
+    public void IndexerSettings_ShouldRecurseIntoLevel_HandlesEdgeCases()
+    {
+        Assert.Multiple(() =>
+        {
+            // 0 = unlimited, always recurse
+            Assert.That(new IndexerSettings { MaxDepthLevel = 0 }.ShouldRecurseIntoLevel(0), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 0 }.ShouldRecurseIntoLevel(5), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 0 }.ShouldRecurseIntoLevel(1000), Is.True);
+
+            // Negative = unlimited (defensive — same as 0)
+            Assert.That(new IndexerSettings { MaxDepthLevel = -1 }.ShouldRecurseIntoLevel(0), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = -5 }.ShouldRecurseIntoLevel(5), Is.True);
+
+            // Positive = bounded
+            Assert.That(new IndexerSettings { MaxDepthLevel = 1 }.ShouldRecurseIntoLevel(0), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 1 }.ShouldRecurseIntoLevel(1), Is.False);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 3 }.ShouldRecurseIntoLevel(2), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 3 }.ShouldRecurseIntoLevel(3), Is.False);
+        });
+    }
+
+    [Test]
+    public void IndexerSettings_ExtensionMatchesFilter_HandlesEdgeCases()
+    {
+        Assert.Multiple(() =>
+        {
+            // Null/empty filter returns false (no filter to match)
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", null), Is.False);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", []), Is.False);
+
+            // With-dot vs without-dot normalization
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", [".cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter("cs", [".cs"]), Is.True);
+
+            // Case-insensitive matching
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".CS", ["cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["CS"]), Is.True);
+
+            // Whitespace in extension
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(" .cs ", ["cs"]), Is.True);
+
+            // Whitespace/null filter entries are ignored
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["", " ", "cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["", " "]), Is.False);
+
+            // Non-matching extensions
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".txt", [".cs", ".md"]), Is.False);
+        });
+    }
+
+    [Test]
     public async Task ExecuteAsync_WithMarkdownFormat_WritesExpectedIndexFile()
     {
         string rootDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-index-cli-md-{Guid.NewGuid():N}");

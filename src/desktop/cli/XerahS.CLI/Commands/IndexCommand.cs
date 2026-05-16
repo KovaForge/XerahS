@@ -251,41 +251,56 @@ public static class IndexCommand
 
         var directoryInfo = new DirectoryInfo(folderPath);
 
-        foreach (DirectoryInfo subdirectory in directoryInfo.EnumerateDirectories())
+        try
         {
-            if (settings.SkipHiddenFolders && subdirectory.Attributes.HasFlag(FileAttributes.Hidden))
+            foreach (DirectoryInfo subdirectory in directoryInfo.EnumerateDirectories())
             {
-                continue;
+                if (settings.SkipHiddenFolders && subdirectory.Attributes.HasFlag(FileAttributes.Hidden))
+                {
+                    continue;
+                }
+
+                var childTotals = CountIndexedContents(subdirectory.FullName, settings, level + 1);
+                if (settings.IgnoreEmptyFolders && childTotals.TotalFiles == 0 && childTotals.TotalFolders <= 1)
+                {
+                    continue;
+                }
+
+                totalFiles += childTotals.TotalFiles;
+                totalFolders += childTotals.TotalFolders;
+                totalBytes += childTotals.TotalBytes;
             }
 
-            var childTotals = CountIndexedContents(subdirectory.FullName, settings, level + 1);
-            if (settings.IgnoreEmptyFolders && childTotals.TotalFiles == 0 && childTotals.TotalFolders <= 1)
+            if (!settings.SkipFiles)
             {
-                continue;
-            }
+                foreach (FileInfo file in directoryInfo.EnumerateFiles())
+                {
+                    if (settings.SkipHiddenFiles && file.Attributes.HasFlag(FileAttributes.Hidden))
+                    {
+                        continue;
+                    }
 
-            totalFiles += childTotals.TotalFiles;
-            totalFolders += childTotals.TotalFolders;
-            totalBytes += childTotals.TotalBytes;
+                    if (ShouldSkipByExtension(file.Extension, settings.IncludedFileExtensions, settings.ExcludedFileExtensions))
+                    {
+                        continue;
+                    }
+
+                    totalFiles++;
+                    totalBytes += file.Length;
+                }
+            }
         }
-
-        if (!settings.SkipFiles)
+        catch (UnauthorizedAccessException)
         {
-            foreach (FileInfo file in directoryInfo.EnumerateFiles())
-            {
-                if (settings.SkipHiddenFiles && file.Attributes.HasFlag(FileAttributes.Hidden))
-                {
-                    continue;
-                }
-
-                if (ShouldSkipByExtension(file.Extension, settings.IncludedFileExtensions, settings.ExcludedFileExtensions))
-                {
-                    continue;
-                }
-
-                totalFiles++;
-                totalBytes += file.Length;
-            }
+            // Skip directories we cannot access — best-effort count
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Directory removed between initial check and enumeration
+        }
+        catch (PathTooLongException)
+        {
+            // Skip paths exceeding system limits
         }
 
         return (totalFiles, totalFolders, totalBytes);
