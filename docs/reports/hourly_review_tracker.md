@@ -1163,3 +1163,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: 0 warnings/0 errors; 934+24=958 total, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260516-132607.log, /tmp/xerahs-hourly-sweep/test-20260516-132607.log
 - Commit: ecf35aae
 - Follow-up: Continue media review around FFmpegCLIManager.Close() process-tree kill parity.
+
+### 2026-05-17 07:36 AWST - Assistant local memory/privacy/history / stale deleted-file OCR search results
+
+- Area: Assistant local memory/privacy/history
+- Files: `src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs`, `tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`, `Directory.Build.props`
+- Findings: `SearchScreenshotsAsync` matched indexed OCR text before checking whether the history file still existed. That could surface deleted/moved capture OCR cache text in assistant screenshot search results even though result projection already hid `OcrText` for missing files. Fixed search matching to only use indexed OCR when `File.Exists(item.FilePath)` is true, and added regression coverage for deleted indexed captures.
+- Status: Fixed; bumped version `0.23.28` -> `0.23.29`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests`: 935 passed, 1 skipped; `XerahS.McpServer.Tests`: 24 passed). Logs: `/tmp/xerahs-hourly-sweep/build-20260517-073057.log`, `/tmp/xerahs-hourly-sweep/test-20260517-073057.log`
+- Commit: `0fb00f89`
+- Follow-up: Continue assistant review around symlink-equivalent history paths and cache cleanup/pruning of orphaned OCR index rows.
