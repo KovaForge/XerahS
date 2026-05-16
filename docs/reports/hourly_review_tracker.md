@@ -1141,3 +1141,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: KovaForge origin/develop already matched local `develop`; upstream/develop already contained. ShareX.ImageEditor verified clean on `develop` at `417f584` with origin `KovaForge/ShareX.ImageEditor` and upstream `ShareX/ShareX.ImageEditor` at `d3ef805`; no parent pointer change. Fixed mobile S3 config load/save to reuse only file-category S3 instances, preventing the mobile config UI from mutating desktop image/text S3 destinations. Added regression coverage and bumped version `0.23.24` -> `0.23.25`.
 - Verification: Focused destination-config tests passed 3/3; Release build passed with 0 warnings/errors; Release no-build tests passed 932 + 24 = 956 total, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/focused-20260515-043651.log`, `/tmp/xerahs-hourly-sweep/build-20260515-043945.log`, `/tmp/xerahs-hourly-sweep/test-20260515-044137.log`.
 - Follow-up: Continue CLI/OpenClaw uploader review around non-S3 mobile destination support and whether default cleanup should surface UI/log diagnostics when a saved default becomes unavailable.
+
+### 2026-05-16 10:22 AWST - Indexer subsystem / enumeration exception handling parity
+
+- Area: Indexer subsystem
+- Files: src/desktop/core/XerahS.Indexer/Indexer.cs, src/desktop/core/XerahS.Indexer/IndexerAsync.cs, src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs, src/desktop/core/XerahS.Indexer/Properties/AssemblyInfo.cs, tests/XerahS.Tests/Tools/IndexCommandTests.cs, Directory.Build.props
+- Findings: GetFolderInfo (sync and async) and CountIndexedContents only caught UnauthorizedAccessException — PathTooLongException, DirectoryNotFoundException, and IOException would crash the entire index.
+- Status: Fixed
+- Fix: Added try-catch for PathTooLongException, DirectoryNotFoundException, and IOException in all three enumeration sites. Added InternalsVisibleTo for XerahS.Indexer project. Added regression tests for ShouldRecurseIntoLevel and ExtensionMatchesFilter edge cases.
+- Build/test: 0 warnings/0 errors; tests 933+24=957 total, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260516-100337.log, /tmp/xerahs-hourly-sweep/test-20260516-100337.log
+- Version bump: 0.23.25 -> 0.23.26
+- Commit: 9c631766
+- Follow-up: Output file collision warning; DirectoryNotFoundException at initial DirectoryInfo construction; consider IOException catch for the initial DirectoryInfo ctor.

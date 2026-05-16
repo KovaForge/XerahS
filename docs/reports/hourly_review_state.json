@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-16 07:00 AWST",
+  "last_updated": "2026-05-16 10:22 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,11 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Notifications/toasts",
-    "Indexer subsystem",
+    "Notifications/toasts (re-review follow-up: fade opacity not reaching zero)",
     "Assistant local memory/privacy/history (re-review)",
     "Capture pipeline (re-review)",
-    "Media subsystem (re-review)"
+    "Media subsystem (re-review)",
+    "Editor integration (follow-up: save result propagation)"
   ],
   "areas": [
     {
@@ -156,11 +156,11 @@
     },
     {
       "area": "Indexer subsystem",
-      "last_reviewed": "2026-04-29 18:17 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-16 10:22 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders.",
-      "follow_up": "Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling."
+      "last_outcome": "Fixed indexer enumeration to catch PathTooLongException, DirectoryNotFoundException, and IOException alongside UnauthorizedAccessException so long paths, deleted directories, and I/O errors don't crash the entire index or its fallback count; added InternalsVisibleTo for Indexer tests; added regression tests for ShouldRecurseIntoLevel and ExtensionMatchesFilter edge cases; bumped version 0.23.25 -> 0.23.26.",
+      "follow_up": "Output file collision warning; DirectoryNotFoundException at initial DirectoryInfo construction; consider IOException catch for the initial DirectoryInfo ctor."
     },
     {
       "area": "Platform-specific services",
@@ -180,6 +180,22 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-16 10:22 AWST",
+      "area": "Indexer subsystem — enumeration exception handling parity (PathTooLongException, DirectoryNotFoundException, IOException)",
+      "files": [
+        "src/desktop/core/XerahS.Indexer/Indexer.cs",
+        "src/desktop/core/XerahS.Indexer/IndexerAsync.cs",
+        "src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs",
+        "src/desktop/core/XerahS.Indexer/Properties/AssemblyInfo.cs",
+        "tests/XerahS.Tests/Tools/IndexCommandTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed GetFolderInfo (sync+async) and CountIndexedContents to catch PathTooLongException, DirectoryNotFoundException, and IOException alongside UnauthorizedAccessException; added InternalsVisibleTo for Indexer tests; added regression tests; bumped version 0.23.25 -> 0.23.26.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260516-100337.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260516-100337.log",
+      "result": "build 0 warnings/0 errors; tests 933+24=957 total, 0 failed, 1 skipped"
+    },
     {
       "timestamp": "2026-05-16 07:00 AWST",
       "area": "Plugin loading/runtime — package entry canonicalization, duplicate collision detection, load-context unload diagnostics (re-review of follow-up items)",
