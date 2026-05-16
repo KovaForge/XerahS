@@ -1153,3 +1153,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version bump: 0.23.25 -> 0.23.26
 - Commit: 9c631766
 - Follow-up: Output file collision warning; DirectoryNotFoundException at initial DirectoryInfo construction; consider IOException catch for the initial DirectoryInfo ctor.
+
+### 2026-05-16 13:47 AWST - Media subsystem / VideoThumbnailer negative Padding/Spacing dimension guards
+
+- Area: Media subsystem
+- Files: src/desktop/core/XerahS.Media/VideoThumbnailer.cs, tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs, Directory.Build.props
+- Findings: CombineScreenshots did not guard against negative Padding/Spacing values, which could produce negative width/height calculations and cause SKBitmap constructor to throw ArgumentException. Now clamps both to zero with Math.Max(0, ...).
+- Status: Fixed
+- Build/test: 0 warnings/0 errors; 934+24=958 total, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260516-132607.log, /tmp/xerahs-hourly-sweep/test-20260516-132607.log
+- Commit: ecf35aae
+- Follow-up: Continue media review around FFmpegCLIManager.Close() process-tree kill parity.
