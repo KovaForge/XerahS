@@ -101,7 +101,7 @@ public sealed class AssistantHistoryService : IAssistantHistoryService
             Dictionary<long, string> indexedTexts = new HistoryOcrIndexStore(historyPath).GetTexts(items.Select(item => item.Id));
 
             return items
-                .Where(item => MatchesSearch(item, needle, indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
+                .Where(item => MatchesSearch(item, needle, File.Exists(item.FilePath) && indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
                 .OrderByDescending(item => item.DateTime)
                 .Take(clampedLimit)
                 .Select(item => ToAssistantHistoryItem(item, indexedTexts))

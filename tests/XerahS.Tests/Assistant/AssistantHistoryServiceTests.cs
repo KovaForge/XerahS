@@ -198,6 +198,28 @@ public sealed class AssistantHistoryServiceTests
         Assert.That(items[0].OcrText, Is.EqualTo("Quarterly roadmap review"));
     }
 
+    [Test]
+    public async Task SearchScreenshotsAsync_WhenIndexedHistoryFileWasDeleted_DoesNotMatchStaleOcrText()
+    {
+        string historyPath = SettingsManager.GetHistoryFilePath();
+        string filePath = Path.Combine(SettingsManager.HistoryFolder, "deleted-indexed-capture.png");
+
+        using (var connection = new SqliteConnection($"Data Source={historyPath}"))
+        {
+            connection.Open();
+            CreateHistoryTable(connection);
+            InsertHistoryItem(connection, filePath, new DateTime(2026, 5, 17, 7, 0, 0, DateTimeKind.Utc));
+        }
+
+        new HistoryOcrIndexStore(historyPath).UpsertText(1, filePath, null, "Private deleted receipt", "test", "en");
+
+        var service = new AssistantHistoryService();
+
+        IReadOnlyList<AssistantHistoryItem> items = await service.SearchScreenshotsAsync("receipt", 10, CancellationToken.None);
+
+        Assert.That(items, Is.Empty);
+    }
+
     private static void CreateHistoryTable(SqliteConnection connection)
     {
         using var create = connection.CreateCommand();
