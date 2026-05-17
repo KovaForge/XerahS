@@ -85,6 +85,32 @@ public sealed class FFmpegCLIManagerTests
         });
     }
 
+    [Test]
+    public void ConcatenateVideos_EscapesApostrophesInConcatListPaths()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), "XerahS-FFmpegCLIManagerTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            var manager = new CapturingFFmpegCLIManager();
+            string inputPath = Path.Combine(tempDirectory, "clip'segment.mp4");
+            string outputPath = Path.Combine(tempDirectory, "combined.mp4");
+
+            manager.ConcatenateVideos(new[] { inputPath }, outputPath);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(manager.CapturedArgs, Is.EqualTo($"-f concat -safe 0 -i {outputPath}.txt -c copy {outputPath}"));
+                Assert.That(manager.CapturedConcatList, Is.EqualTo($"file '{inputPath.Replace("'", "'\\''")}'"));
+            });
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     private sealed class CapturingFFmpegCLIManager : FFmpegCLIManager
     {
         public CapturingFFmpegCLIManager() : base("ffmpeg")
@@ -92,14 +118,34 @@ public sealed class FFmpegCLIManagerTests
         }
 
         public string? CapturedArgs { get; private set; }
+        public string? CapturedConcatList { get; private set; }
 
         public override int Open(string path, string? args = null)
         {
             CapturedArgs = args;
+
+            if (args?.StartsWith("-f concat ", StringComparison.Ordinal) == true)
+            {
+                string listFile = ExtractConcatListFilePath(args);
+                CapturedConcatList = File.ReadAllText(listFile);
+                return 0;
+            }
+
             Output.AppendLine("Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'capture.mp4':");
             Output.AppendLine("  Duration: 00:00:01.00, start: 0.000000, bitrate: 512 kb/s");
             Output.AppendLine("    Stream #0:0: Video: h264 (High), yuv420p, 1920x1080, 30 fps");
             return 0;
+        }
+
+        private static string ExtractConcatListFilePath(string args)
+        {
+            const string prefix = " -i ";
+            int start = args.IndexOf(prefix, StringComparison.Ordinal);
+            Assert.That(start, Is.GreaterThanOrEqualTo(0));
+            start += prefix.Length;
+            int end = args.IndexOf(" -c copy ", start, StringComparison.Ordinal);
+            Assert.That(end, Is.GreaterThan(start));
+            return args[start..end].Trim('"');
         }
     }
 

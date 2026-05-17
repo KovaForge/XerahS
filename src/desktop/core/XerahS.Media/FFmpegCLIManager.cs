@@ -318,15 +318,20 @@ namespace XerahS.Media
             return devices;
         }
 
+        private static string EscapeConcatFilePath(string path)
+        {
+            return path.Replace("'", "'\\''");
+        }
+
         public void ConcatenateVideos(string[] inputFiles, string outputFile, bool autoDeleteInputFiles = false)
         {
             string listFile = outputFile + ".txt";
-            string contents = string.Join(Environment.NewLine, inputFiles.Select(inputFile => $"file '{inputFile}'"));
+            string contents = string.Join(Environment.NewLine, inputFiles.Select(inputFile => $"file '{EscapeConcatFilePath(inputFile)}'"));
             File.WriteAllText(listFile, contents);
 
             try
             {
-                bool result = Run($"-f concat -safe 0 -i \"{listFile}\" -c copy \"{outputFile}\"");
+                bool result = Run($"-f concat -safe 0 -i {QuoteProcessArgument(listFile)} -c copy {QuoteProcessArgument(outputFile)}");
 
                 if (result && autoDeleteInputFiles)
                 {
