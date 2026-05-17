@@ -164,7 +164,7 @@ public partial class DownloaderWindowViewModel : ViewModelBase, IDisposable
             var startInfo = new ProcessStartInfo
             {
                 FileName = DownloadLocation,
-                Arguments = "/UPDATE",
+                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE",
                 UseShellExecute = true
             };
 
