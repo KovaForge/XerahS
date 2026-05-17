@@ -279,4 +279,58 @@ public class FileHelpersTests
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    [Test]
+    public void BackupFileWeekly_ReturnsPath_WhenDestinationDoesNotExist()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "history.json");
+        File.WriteAllText(sourceFile, "{}");
+        string backupFolder = Path.Combine(directory, "backups");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileWeekly(sourceFile, backupFolder);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(File.Exists(result), Is.True);
+            Assert.That(Path.GetFileName(result), Does.StartWith("history-"));
+            Assert.That(Path.GetExtension(result), Is.EqualTo(".json"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileWeekly_ReturnsNullAndNoThrow_WhenConcurrentBackupCreatesSameName()
+    {
+        // Simulates TOCTOU: another process creates the backup between File.Exists and File.Copy
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "history.json");
+        File.WriteAllText(sourceFile, "{}");
+        string backupFolder = Path.Combine(directory, "backups");
+        Directory.CreateDirectory(backupFolder);
+
+        // Pre-create the backup file to simulate a race
+        string fileName = Path.GetFileNameWithoutExtension(sourceFile);
+        string ext = Path.GetExtension(sourceFile);
+        string preExistingBackup = Path.Combine(backupFolder, $"{fileName}-{DateTime.Now:yyyy-MM}-W{FileHelpers.WeekOfYear(DateTime.Now):00}{ext}");
+        File.WriteAllText(preExistingBackup, "already-existed");
+
+        try
+        {
+            // Should return null and not throw, rather than propagating IOException
+            string? result = FileHelpers.BackupFileWeekly(sourceFile, backupFolder);
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

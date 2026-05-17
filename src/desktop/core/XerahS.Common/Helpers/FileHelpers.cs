@@ -429,14 +429,20 @@ public static class FileHelpers
         string newFileName = $"{fileName}-{dateTime:yyyy-MM}-W{WeekOfYear(dateTime):00}{extension}";
         string newFilePath = Path.Combine(destinationFolder, newFileName);
 
-        if (!File.Exists(newFilePath))
+        Directory.CreateDirectory(destinationFolder);
+
+        try
         {
-            Directory.CreateDirectory(destinationFolder);
+            // Use overwrite=false; will throw IOException if destination already exists
+            // (TOCTOU race with the File.Exists check above — catch it and return null)
             File.Copy(filePath, newFilePath, false);
             return newFilePath;
         }
-
-        return null;
+        catch (IOException)
+        {
+            // Backup already exists (race or concurrent backup)
+            return null;
+        }
     }
 
     public static string? BackupFileZip(string filePath, string destinationFolder)
