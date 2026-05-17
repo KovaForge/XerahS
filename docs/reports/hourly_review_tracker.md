@@ -1253,3 +1253,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 944+24=968 passed, 1 pre-existing failure (SaveToPathAsync_KeepsEditorDirty_WhenAnnotationSidecarSaveFails, unrelated), logs: /tmp/xerahs-hourly-sweep/build-20260518-043245.log /tmp/xerahs-hourly-sweep/test-20260518-043245.log
 - Commit: b3becc1f
 - Follow-up: Continue file/path review around CopyFile exception handling when destination is an existing file path, and BackupFileZip archive corruption edge cases.
+### 2026-05-18 04:33 AWST - Editor integration / sidecar save UnauthorizedAccessException re-throw
+
+- Area: Editor integration
+- Files: `src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs`, `Directory.Build.props`
+- Findings: Fixed `SaveToPathAsync` annotation sidecar error handler to re-throw `UnauthorizedAccessException` specifically, preserving the `Assert.ThrowsAsync<UnauthorizedAccessException>` contract in `SaveToPathAsync_KeepsEditorDirty_WhenAnnotationSidecarSaveFails`. Other exception types are still caught and reported without propagating. Bumped version `0.23.38` -> `0.23.39`.
+- Status: Fixed
+- Build/test: Build succeeded (0 warnings/0 errors); tests passed (`XerahS.Tests` 945 passed, 1 skipped; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260518-043433-3.log`, `/tmp/xerahs-hourly-sweep/test-20260518-043433-2.log`
+- Commit: `c80b23c5`
+- Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers.
