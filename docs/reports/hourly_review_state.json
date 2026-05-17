@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-17 20:33 AWST",
+  "last_updated": "2026-05-18 00:31 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,7 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Media subsystem (follow-up: FFmpeg argument quoting and thumbnailer oversized-output guards)",
+    "Media subsystem (follow-up: thumbnailer oversized-output dimension overflow guards)",
     "Editor integration (follow-up: save result propagation and sidecar save error reporting)",
     "Assistant local memory/privacy/history (follow-up: OCR index pruning/retention)",
     "Capture pipeline (re-review)"
@@ -115,11 +115,11 @@
     },
     {
       "area": "Media subsystem",
-      "last_reviewed": "2026-05-17 20:12 AWST",
+      "last_reviewed": "2026-05-18 00:31 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed FFmpegCLIManager.GetVideoInfo path quoting to escape embedded double quotes in video filenames before building the FFmpeg probe argument; added regression coverage and bumped version 0.23.33 -> 0.23.34.",
-      "follow_up": "Continue media review around FFmpeg concat demuxer list-file escaping for paths containing apostrophes and thumbnailer oversized-output dimension overflow guards."
+      "last_outcome": "Fixed FFmpeg concat demuxer list generation to escape apostrophes inside single-quoted input paths and reused QuoteProcessArgument for concat list/output arguments; added regression coverage; bumped version 0.23.35 -> 0.23.36.",
+      "follow_up": "Continue media review around thumbnailer oversized-output dimension overflow guards and remaining FFmpeg argument construction sites."
     },
     {
       "area": "MCP server",
@@ -179,6 +179,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-18 00:31 AWST",
+      "area": "Media subsystem — FFmpeg concat list apostrophe escaping",
+      "files": [
+        "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
+        "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed FFmpeg concat demuxer list generation to escape apostrophes in input paths, reused process argument quoting for concat list/output arguments, added regression coverage, and bumped version 0.23.35 -> 0.23.36.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-002225-retry.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-002225-retry.log",
+      "result": "build 0 warnings/0 errors; tests 943 + 24 = 967 passed, 0 failed, 1 skipped",
+      "commit": "939c9e8d"
+    },
     {
       "timestamp": "2026-05-17 20:33 AWST",
       "area": "Notifications/toasts — OnMenuClosed fade not resuming when duration not elapsed",
@@ -444,32 +458,6 @@
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-143837.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-144125.log",
       "result": "build 0 warnings/0 errors; tests 924 total, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-13 08:33 AWST",
-      "area": "Capture command palette / fuzzy workflow search",
-      "files": [
-        "src/desktop/core/XerahS.Core/CaptureCommandPalette/CaptureCommandPaletteFuzzyMatcher.cs",
-        "tests/XerahS.Tests/CaptureCommandPalette/CaptureCommandPaletteTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Merged upstream command palette baseline, fixed fuzzy workflow search to collapse repeated whitespace before scoring, and bumped version 0.23.0 -> 0.23.1.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-084151.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-084445.log",
-      "result": "build 0 warnings/0 errors; tests 916 passed, 1 skipped, 917 total"
-    },
-    {
-      "timestamp": "2026-05-12 12:33 AWST",
-      "area": "OCR onboarding language refresh",
-      "files": [
-        "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
-        "tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed platform OCR language refresh to normalize language tags, drop blank tags, and de-duplicate duplicate tags before syncing selected onboarding languages; bumped version 0.22.269 -> 0.22.270.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260512-123928.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260512-124352.log",
-      "result": "build 0 warnings/0 errors; tests 901 passed, 1 skipped, 902 total"
     }
   ]
 }

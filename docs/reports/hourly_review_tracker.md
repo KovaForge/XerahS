@@ -1233,3 +1233,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests` 942 passed; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260517-203440.log`, `/tmp/xerahs-hourly-sweep/test-20260517-203440.log`
 - Commit: `c92c3224`
 - Follow-up: None.
+
+### 2026-05-18 00:31 AWST - Media subsystem / FFmpeg concat list apostrophe escaping
+
+- Area: Media subsystem
+- Files: src/desktop/core/XerahS.Media/FFmpegCLIManager.cs; tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs; Directory.Build.props
+- Findings: Fixed FFmpeg concat demuxer list generation to escape apostrophes inside single-quoted input paths, and reused the Windows-compatible process-argument quoting helper for concat list/output arguments. Added regression coverage that captures the generated concat list for an input filename containing an apostrophe. Bumped version 0.23.35 -> 0.23.36.
+- Status: Fixed
+- Build/test: build succeeded (0 warnings, 0 errors); tests passed (943 XerahS.Tests + 24 XerahS.McpServer.Tests, 0 failed, 1 skipped), logs: /tmp/xerahs-hourly-sweep/build-20260518-002225-retry.log, /tmp/xerahs-hourly-sweep/test-20260518-002225-retry.log
+- Commit: 939c9e8d
+- Follow-up: Continue media review around thumbnailer oversized-output dimension overflow guards and remaining FFmpeg argument construction sites.
