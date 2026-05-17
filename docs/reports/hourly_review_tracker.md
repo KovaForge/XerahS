@@ -1262,3 +1262,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded (0 warnings/0 errors); tests passed (`XerahS.Tests` 945 passed, 1 skipped; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260518-043433-3.log`, `/tmp/xerahs-hourly-sweep/test-20260518-043433-2.log`
 - Commit: `c80b23c5`
 - Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers.
+
+### 2026-05-18 04:49 AWST - Media subsystem / CombineScreenshots dimension overflow guards
+
+- Area: Media subsystem
+- Files: `src/desktop/core/XerahS.Media/VideoThumbnailOptions.cs`, `src/desktop/core/XerahS.Media/VideoThumbnailer.cs`, `tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs`, `Directory.Build.props`
+- Findings: Fixed CombineScreenshots to guard against integer overflow or oversized SKBitmap allocation by computing width and height before allocating. Added MaxCombinedWidth (default 4096) and MaxCombinedHeight (default 4096) to VideoThumbnailOptions; when computed dimensions exceed limits, the method returns null and logs a warning after disposing all loaded thumbnail images. Added regression test covering excessive dimensions returning null instead of crashing. Bumped version `0.23.39` -> `0.23.40`.
+- Status: Fixed
+- Build/test: Build succeeded (0 warnings/0 errors); tests passed (`XerahS.Tests` 946 passed, 1 skipped; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260518-044942-2.log`, `/tmp/xerahs-hourly-sweep/test-20260518-044942.log`
+- Commit: `4fba4e73`
+- Follow-up: Continue media review around remaining FFmpeg argument construction sites and thumbnailer edge case handling.
