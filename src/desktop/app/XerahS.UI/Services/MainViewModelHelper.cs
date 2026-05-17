@@ -222,6 +222,12 @@ public static class MainViewModelHelper
                 }
             }
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
+            DebugHelper.WriteException(ex);
+            throw;
+        }
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
