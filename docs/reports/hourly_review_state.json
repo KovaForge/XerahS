@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-17 13:53 AWST",
+  "last_updated": "2026-05-17 17:02 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,20 +11,20 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Assistant local memory/privacy/history (re-review)",
-    "Capture pipeline (re-review)",
-    "Editor integration (follow-up: save result propagation)",
     "Notifications/toasts (follow-up: context-menu/fade pause — OnMenuClosed calling CheckFade vs StartFade)",
-    "Media subsystem (follow-up: FFmpeg argument quoting and thumbnailer oversized-output guards)"
+    "Media subsystem (follow-up: FFmpeg argument quoting and thumbnailer oversized-output guards)",
+    "Editor integration (follow-up: save result propagation and sidecar save error reporting)",
+    "Assistant local memory/privacy/history (follow-up: OCR index pruning/retention)",
+    "Capture pipeline (re-review)"
   ],
   "areas": [
     {
       "area": "Capture pipeline",
-      "last_reviewed": "2026-05-01 17:45 AWST",
+      "last_reviewed": "2026-05-17 16:34 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed Windows GDI fallback region normalization so fractional capture coordinates are preserved outward like DXGI, clamped to virtual desktop bounds, and non-finite coordinates are rejected before integer casts; added regression coverage; bumped version 0.22.173 -> 0.22.174.",
-      "follow_up": "Continue capture pipeline review around DXGI rotated/scaled display bounds and cursor/selection parity between modern and fallback capture paths."
+      "last_outcome": "Re-review of DXGI rotated/scaled display bounds and GDI/DXGI cursor parity: DxgiRotationHelper CreateSourceBox/ApplyRotationToTransform math reviewed (correct); BitmapRotationHelper RotateClockwise math reviewed (correct); GDI ShowCursor path uses system cursor hide/restore with CursorData.IsVisible guard; DXGI path uses DxgiCursorCompositionHelper with PhysicalRectangle containment check; both paths handle cursor visibility options correctly. No fixable bugs found in this pass.",
+      "follow_up": "Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity."
     },
     {
       "area": "OCR",
@@ -44,11 +44,11 @@
     },
     {
       "area": "Assistant local memory/privacy/history",
-      "last_reviewed": "2026-05-17 07:36 AWST",
-      "status": "fixed",
+      "last_reviewed": "2026-05-17 17:02 AWST",
+      "status": "clean",
       "priority": "High",
-      "last_outcome": "Fixed assistant screenshot search so indexed OCR text is only considered when the history file still exists, preventing deleted or moved capture OCR cache text from resurfacing stale/private results; bumped version 0.23.28 -> 0.23.29.",
-      "follow_up": "Continue assistant review around symlink-equivalent history paths and cache cleanup/pruning of orphaned OCR index rows."
+      "last_outcome": "Pivot review: symlink-equivalent history path handling is already covered by HistoryManagerSQLite comparable-path logic (full path plus ResolveLinkTarget) and deleted-file OCR search leakage was already fixed by existing File.Exists guards. No assistant-local fix needed this pass.",
+      "follow_up": "Continue assistant review around explicit OCR index pruning/retention for orphaned rows and privacy/status count semantics."
     },
     {
       "area": "Tests / test discoverability",
@@ -60,11 +60,11 @@
     },
     {
       "area": "Editor integration",
-      "last_reviewed": "2026-05-14 03:54 AWST",
+      "last_reviewed": "2026-05-17 17:02 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed `HandleCopyRequested` SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version 0.23.10 -> 0.23.11.",
-      "follow_up": "Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting."
+      "last_outcome": "Fixed embedded image editor save writes to recreate destination files instead of using File.OpenWrite, preventing stale trailing bytes when overwriting a larger existing image with a smaller encoded image; added regression coverage and bumped version 0.23.32 -> 0.23.33.",
+      "follow_up": "Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers."
     },
     {
       "area": "Uploader core / plugin routing",
@@ -180,6 +180,37 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-17 17:02 AWST",
+      "area": "Assistant local memory/privacy/history pivot + Editor integration save overwrite tail-byte fix",
+      "files": [
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/EditorView.axaml.cs",
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/EditorImageFileWriter.cs",
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Properties/AssemblyInfo.cs",
+        "tests/XerahS.Tests/Editor/EditorImageFileWriterTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Assistant symlink/stale OCR follow-up was already covered, so pivoted. Fixed embedded editor save writes to recreate destination files so shorter saves cannot leave stale trailing bytes; added regression coverage and bumped version 0.23.32 -> 0.23.33.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-165441.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-165441.log",
+      "result": "build 0 warnings/0 errors; tests 938 + 24 = 962 total, 0 failed, 1 skipped"
+    },
+    {
+      "timestamp": "2026-05-17 16:34 AWST",
+      "area": "Capture pipeline — DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
+      "files": [
+        "src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs",
+        "src/desktop/core/XerahS.Common/BitmapRotationHelper.cs",
+        "src/platform/XerahS.Platform.Windows/WindowsModernCaptureService.cs",
+        "src/platform/XerahS.Platform.Windows/Capture/DxgiCaptureStrategy.cs",
+        "src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs",
+        "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs"
+      ],
+      "summary": "Clean re-review — no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-163428.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-163428.log",
+      "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped"
+    },
     {
       "timestamp": "2026-05-17 13:53 AWST",
       "area": "Media subsystem — FFmpeg forced close process-tree kill",

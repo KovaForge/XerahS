@@ -1203,3 +1203,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build succeeded (0 warnings/0 errors); tests passed (961 total, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-20260517-134541.log, /tmp/xerahs-hourly-sweep/test-20260517-134541.log
 - Commit: fa103593
 - Follow-up: Continue media review around FFmpeg argument quoting/escaping for filenames containing quotes and thumbnailer oversized-output dimension overflow guards.
+
+### 2026-05-17 17:02 AWST - Assistant local memory/privacy/history pivot + Editor integration save overwrite tail bytes
+
+- Area: Assistant local memory/privacy/history (pivot) + Editor integration
+- Files: `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/EditorView.axaml.cs`, `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Views/EditorImageFileWriter.cs`, `ShareX.ImageEditor/src/ShareX.ImageEditor/Properties/AssemblyInfo.cs`, `tests/XerahS.Tests/Editor/EditorImageFileWriterTests.cs`, `Directory.Build.props`
+- Findings: Assistant follow-up around symlink-equivalent history paths was already covered by `HistoryManagerSQLite` comparable-path matching (`Path.GetFullPath` plus `ResolveLinkTarget`) and deleted-file OCR cache leakage was already guarded by `File.Exists`, so I pivoted. In editor integration, the embedded editor's fallback save path used `File.OpenWrite()`, which overwrites from byte 0 but does not shorten an existing larger file. Saving a smaller encoded image over a larger destination could leave stale trailing bytes. Added `EditorImageFileWriter.SaveEncodedData()` using `FileMode.Create`, routed `EditorView.SaveSnapshotToFile()` through it, exposed internals to `XerahS.Tests`, and added regression coverage for overwriting a larger destination. Bumped version `0.23.32` -> `0.23.33`.
+- Status: Fixed
+- Build/test: build succeeded (0 warnings/0 errors); tests passed (962 total, 0 failed, 1 skipped), logs: /tmp/xerahs-hourly-sweep/build-20260517-165441.log, /tmp/xerahs-hourly-sweep/test-20260517-165441.log
+- Commits: submodule `218f296`; parent pending at tracker-update time
+- Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers. Continue assistant review around explicit OCR index pruning/retention semantics.
