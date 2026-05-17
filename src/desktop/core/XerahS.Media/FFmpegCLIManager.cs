@@ -100,7 +100,13 @@ namespace XerahS.Media
             {
                 if (closeTryCount >= 2)
                 {
-                    process.Kill();
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
                 }
                 else
                 {
