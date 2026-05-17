@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-17 07:36 AWST",
+  "last_updated": "2026-05-17 10:44 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,11 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Notifications/toasts (re-review follow-up: fade opacity not reaching zero)",
     "Assistant local memory/privacy/history (re-review)",
     "Capture pipeline (re-review)",
     "Media subsystem (re-review)",
-    "Editor integration (follow-up: save result propagation)"
+    "Editor integration (follow-up: save result propagation)",
+    "Continue notifications/toasts review around context-menu/fade pause interactions and window placement bounds on multi-monitor setups."
   ],
   "areas": [
     {
@@ -140,11 +140,11 @@
     },
     {
       "area": "Notifications/toasts",
-      "last_reviewed": "2026-04-30 03:15 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-17 10:44 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely.",
-      "follow_up": "Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next."
+      "last_outcome": "Fixed toast fade completion to emit a final opacity 0 notification before requesting close, so observers/windows can render the fully transparent terminal fade frame instead of closing at the last positive opacity; bumped version 0.23.29 -> 0.23.30.",
+      "follow_up": "Continue notifications/toasts review around context-menu/fade pause interactions and window placement bounds on multi-monitor setups."
     },
     {
       "area": "File/path handling",
@@ -180,6 +180,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-17 10:44 AWST",
+      "area": "Notifications/toasts — terminal fade opacity reaches zero before close",
+      "files": [
+        "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
+        "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed toast fade completion to emit a final opacity 0 notification before requesting close, so observers/windows can render the fully transparent terminal fade frame instead of closing at the last positive opacity; bumped version 0.23.29 -> 0.23.30.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-103823.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-103823.log",
+      "result": "build 0 warnings/0 errors; tests 936+24=960 total, 0 failed, 1 skipped"
+    },
     {
       "timestamp": "2026-05-17 07:36 AWST",
       "area": "Assistant local memory/privacy/history — stale deleted-file OCR search results",

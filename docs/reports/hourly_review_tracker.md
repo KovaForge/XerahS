@@ -1173,3 +1173,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests`: 935 passed, 1 skipped; `XerahS.McpServer.Tests`: 24 passed). Logs: `/tmp/xerahs-hourly-sweep/build-20260517-073057.log`, `/tmp/xerahs-hourly-sweep/test-20260517-073057.log`
 - Commit: `0fb00f89`
 - Follow-up: Continue assistant review around symlink-equivalent history paths and cache cleanup/pruning of orphaned OCR index rows.
+
+### 2026-05-17 10:44 AWST - Notifications/toasts / terminal fade opacity reaches zero before close
+
+- Area: Notifications/toasts
+- Files: `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`, `tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs`, `Directory.Build.props`
+- Findings: Upstream sync merged silent Windows updater fix; submodule was clean/up-to-date but HTTPS push auth prevented a no-op push. Toast fade completion previously requested close while the last published opacity was still positive when the next decrement would cross zero. Fixed fade tick handling to emit opacity `0` before closing and added regression coverage for terminal fade opacity calculation. Bumped version `0.23.29` -> `0.23.30`.
+- Status: Fixed
+- Build/test: Build succeeded (0 warnings, 0 errors); tests passed (936 + 24 = 960 total, 0 failed, 1 skipped), logs: `/tmp/xerahs-hourly-sweep/build-20260517-103823.log`, `/tmp/xerahs-hourly-sweep/test-20260517-103823.log`
+- Commit: `af8aa04a`
+- Follow-up: Continue notifications/toasts review around context-menu/fade pause interactions and window placement bounds on multi-monitor setups.
