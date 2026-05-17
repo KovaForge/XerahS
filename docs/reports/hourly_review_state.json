@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-17 12:33 AWST",
+  "last_updated": "2026-05-17 13:53 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -13,9 +13,9 @@
   "next_candidates": [
     "Assistant local memory/privacy/history (re-review)",
     "Capture pipeline (re-review)",
-    "Media subsystem (re-review)",
     "Editor integration (follow-up: save result propagation)",
-    "Notifications/toasts (follow-up: context-menu/fade pause \u2014 OnMenuClosed calling CheckFade vs StartFade)"
+    "Notifications/toasts (follow-up: context-menu/fade pause — OnMenuClosed calling CheckFade vs StartFade)",
+    "Media subsystem (follow-up: FFmpeg argument quoting and thumbnailer oversized-output guards)"
   ],
   "areas": [
     {
@@ -79,7 +79,7 @@
       "last_reviewed": "2026-05-16 07:00 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. Package entry canonicalization rejects rooted, backslash, '.', '..', empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
+      "last_outcome": "Clean review — no fixable bugs found. Package entry canonicalization rejects rooted, backslash, '.', '..', empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
       "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and orphaned quarantine directory cleanup."
     },
     {
@@ -116,11 +116,11 @@
     },
     {
       "area": "Media subsystem",
-      "last_reviewed": "2026-05-14 17:30 AWST",
+      "last_reviewed": "2026-05-17 13:53 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed malformed trailing double quotes in FFmpegCLIManager.GetVideoInfo FFmpeg probe argument that passed -i \"path\"\"\" instead of -i \"path\"; bumped version 0.23.21 -> 0.23.22.",
-      "follow_up": "Continue media review around CombineScreenshots negative Padding/Spacing dimension guards and FFmpegCLIManager.Close() process-tree kill parity."
+      "last_outcome": "Fixed FFmpegCLIManager forced close escalation to kill the entire process tree after two graceful q attempts, preventing orphaned encoder child processes; added Unix regression coverage; bumped version 0.23.31 -> 0.23.32.",
+      "follow_up": "Continue media review around FFmpeg argument quoting/escaping for filenames containing quotes and thumbnailer oversized-output dimension overflow guards."
     },
     {
       "area": "MCP server",
@@ -175,14 +175,27 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     }
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-17 13:53 AWST",
+      "area": "Media subsystem — FFmpeg forced close process-tree kill",
+      "files": [
+        "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
+        "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed FFmpegCLIManager forced close escalation to kill the entire process tree after two graceful q attempts, preventing orphaned encoder child processes; added Unix regression coverage; bumped version 0.23.31 -> 0.23.32.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-134541.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-134541.log",
+      "result": "build 0 warnings/0 errors; tests 961 total, 0 failed, 1 skipped"
+    },
+    {
       "timestamp": "2026-05-17 12:33 AWST",
-      "area": "Notifications/toasts \u2014 ToastWindow multi-monitor position correction",
+      "area": "Notifications/toasts — ToastWindow multi-monitor position correction",
       "files": [
         "src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs",
         "Directory.Build.props"
@@ -194,7 +207,7 @@
     },
     {
       "timestamp": "2026-05-17 10:44 AWST",
-      "area": "Notifications/toasts \u2014 terminal fade opacity reaches zero before close",
+      "area": "Notifications/toasts — terminal fade opacity reaches zero before close",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -207,7 +220,7 @@
     },
     {
       "timestamp": "2026-05-17 07:36 AWST",
-      "area": "Assistant local memory/privacy/history \u2014 stale deleted-file OCR search results",
+      "area": "Assistant local memory/privacy/history — stale deleted-file OCR search results",
       "files": [
         "src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs",
         "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs",
@@ -220,7 +233,7 @@
     },
     {
       "timestamp": "2026-05-16 10:22 AWST",
-      "area": "Indexer subsystem \u2014 enumeration exception handling parity (PathTooLongException, DirectoryNotFoundException, IOException)",
+      "area": "Indexer subsystem — enumeration exception handling parity (PathTooLongException, DirectoryNotFoundException, IOException)",
       "files": [
         "src/desktop/core/XerahS.Indexer/Indexer.cs",
         "src/desktop/core/XerahS.Indexer/IndexerAsync.cs",
@@ -236,7 +249,7 @@
     },
     {
       "timestamp": "2026-05-16 07:00 AWST",
-      "area": "Plugin loading/runtime \u2014 package entry canonicalization, duplicate collision detection, load-context unload diagnostics (re-review of follow-up items)",
+      "area": "Plugin loading/runtime — package entry canonicalization, duplicate collision detection, load-context unload diagnostics (re-review of follow-up items)",
       "files": [
         "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs",
         "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs",
@@ -247,7 +260,7 @@
         "src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs",
         "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginMetadata.cs"
       ],
-      "summary": "Clean review \u2014 no fixable bugs found. Package canonicalization rejects rooted, backslash, '.', '..', empty segments; both validation/extraction detect duplicate entries and file/directory collisions case-insensitively; unload flow correct (Unload() + ForceUnloadCollection, double-unload idempotent). Minor: orphaned _quarantine dirs never pruned.",
+      "summary": "Clean review — no fixable bugs found. Package canonicalization rejects rooted, backslash, '.', '..', empty segments; both validation/extraction detect duplicate entries and file/directory collisions case-insensitively; unload flow correct (Unload() + ForceUnloadCollection, double-unload idempotent). Minor: orphaned _quarantine dirs never pruned.",
       "build_log": null,
       "test_log": null,
       "result": "clean - no code changes, no build/test run"
@@ -294,7 +307,7 @@
         "src/platform/XerahS.Platform.Linux/Capture/Detection/DesktopCaptureInterfaceChecker.cs",
         "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs"
       ],
-      "summary": "Clean review \u2014 no fixable bugs. GNOME eval rect validated in-script; X11 property conversion handles memory/format/count; Wayland compositor helpers degrade with diagnostics; frame extent overflow already hardened in previous sweep.",
+      "summary": "Clean review — no fixable bugs. GNOME eval rect validated in-script; X11 property conversion handles memory/format/count; Wayland compositor helpers degrade with diagnostics; frame extent overflow already hardened in previous sweep.",
       "build_log": null,
       "test_log": null,
       "result": "clean - no code changes, no build/test run"
@@ -445,21 +458,6 @@
       "build": "pass, 0 warnings/0 errors (/tmp/xerahs-hourly-sweep/build-20260501-155129.log)",
       "tests": "pass, 767 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260501-155226.log)",
       "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
-    },
-    {
-      "timestamp": "2026-05-01 13:35 AWST",
-      "area": "Region capture / window enumeration",
-      "files": [
-        "src/platform/XerahS.Platform.Linux/LinuxWindowService.cs",
-        "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs",
-        "Directory.Build.props"
-      ],
-      "status": "fixed",
-      "version_bump": "0.22.171 -> 0.22.172",
-      "summary": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-133751.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-134116.log",
-      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
     }
   ]
 }

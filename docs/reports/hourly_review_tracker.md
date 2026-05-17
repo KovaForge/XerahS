@@ -1193,3 +1193,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded (0 warnings, 0 errors); tests passed (937 total, 0 failed, 1 skipped), logs: `/tmp/xerahs-hourly-sweep/build-20260517-123500.log`, `/tmp/xerahs-hourly-sweep/test-20260517-123500.log`
 - Commits: `d20dc8b5` (fix), `9dfb3481` (version bump)
 - Follow-up: Continue notifications/toasts review around context-menu/fade pause interactions (OnMenuClosed calling CheckFade vs StartFade) and remaining multi-monitor placement corrections.
+
+### 2026-05-17 13:53 AWST - Media subsystem / FFmpeg forced close process-tree kill
+
+- Area: Media subsystem
+- Files: src/desktop/core/XerahS.Media/FFmpegCLIManager.cs; tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs; Directory.Build.props
+- Findings: `FFmpegCLIManager.Close()` escalated from two graceful `q` attempts to `Process.Kill()` on only the parent ffmpeg process. If ffmpeg spawned helpers/children, forced close could leave orphaned encoder descendants running after the UI considered stop complete. Changed the forced-close path to `Kill(entireProcessTree: true)` with exited-process tolerance and added a regression test that starts a parent shell with a child sleep process and verifies forced close terminates both. Bumped version `0.23.31` -> `0.23.32`.
+- Status: Fixed
+- Build/test: build succeeded (0 warnings/0 errors); tests passed (961 total, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-20260517-134541.log, /tmp/xerahs-hourly-sweep/test-20260517-134541.log
+- Commit: fa103593
+- Follow-up: Continue media review around FFmpeg argument quoting/escaping for filenames containing quotes and thumbnailer oversized-output dimension overflow guards.
