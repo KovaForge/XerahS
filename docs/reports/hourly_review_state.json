@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-18 00:31 AWST",
+  "last_updated": "2026-05-18 00:45 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -12,7 +12,6 @@
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
     "Media subsystem (follow-up: thumbnailer oversized-output dimension overflow guards)",
-    "Editor integration (follow-up: save result propagation and sidecar save error reporting)",
     "Assistant local memory/privacy/history (follow-up: OCR index pruning/retention)",
     "Capture pipeline (re-review)"
   ],
@@ -26,92 +25,12 @@
       "follow_up": "Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity."
     },
     {
-      "area": "OCR",
-      "last_reviewed": "2026-05-12 12:44 AWST",
-      "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270.",
-      "follow_up": "Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases."
-    },
-    {
-      "area": "Settings/configuration",
-      "last_reviewed": "2026-05-13 14:42 AWST",
-      "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Fixed settings load fallback to read the latest matching JSON entry from monthly backup ZIPs created by SettingsBase when the primary settings file is corrupt or missing; bumped version 0.23.3 -> 0.23.4.",
-      "follow_up": "Continue settings review around async save completion semantics and custom config backup retention."
-    },
-    {
-      "area": "Assistant local memory/privacy/history",
-      "last_reviewed": "2026-05-17 17:02 AWST",
-      "status": "clean",
-      "priority": "High",
-      "last_outcome": "Pivot review: symlink-equivalent history path handling is already covered by HistoryManagerSQLite comparable-path logic (full path plus ResolveLinkTarget) and deleted-file OCR search leakage was already fixed by existing File.Exists guards. No assistant-local fix needed this pass.",
-      "follow_up": "Continue assistant review around explicit OCR index pruning/retention for orphaned rows and privacy/status count semantics."
-    },
-    {
-      "area": "Tests / test discoverability",
-      "last_reviewed": "2026-05-13 20:55 AWST",
-      "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; added guardrail test McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets; bumped version 0.23.5 -> 0.23.6.",
-      "follow_up": "Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0, and whether Avalonia.Headless.NUnit needs explicit PrivateAssets parity."
-    },
-    {
       "area": "Editor integration",
-      "last_reviewed": "2026-05-17 17:02 AWST",
+      "last_reviewed": "2026-05-18 00:45 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed embedded image editor save writes to recreate destination files instead of using File.OpenWrite, preventing stale trailing bytes when overwriting a larger existing image with a smaller encoded image; added regression coverage and bumped version 0.23.32 -> 0.23.33.",
+      "last_outcome": "Fixed SaveToPathAsync to distinguish image save failures from sidecar save failures. Image encode/IO errors are now caught and reported, leaving IsDirty=true so the user can retry. Sidecar save errors are also caught and reported, but IsDirty is cleared since the primary image was saved successfully. Previously all errors were silently swallowed by the caller and IsDirty was never set on failure.",
       "follow_up": "Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers."
-    },
-    {
-      "area": "Uploader core / plugin routing",
-      "last_reviewed": "2026-05-14 10:39 AWST",
-      "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Fixed stale default-instance mappings on category change in UpdateInstance, defensive category validation in GetDefaultInstance, and case-insensitive IsDefault comparison in DestinationConfigExportService; added regression tests; bumped version 0.23.16 -> 0.23.17.",
-      "follow_up": "Continue uploader routing review around default-instance resolution when the resolved instance is unavailable, and mobile destination config validation parity for non-S3 providers."
-    },
-    {
-      "area": "Plugin loading/runtime",
-      "last_reviewed": "2026-05-16 07:00 AWST",
-      "status": "clean",
-      "priority": "High",
-      "last_outcome": "Clean review — no fixable bugs found. Package entry canonicalization rejects rooted, backslash, '.', '..', empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
-      "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and orphaned quarantine directory cleanup."
-    },
-    {
-      "area": "FTP uploader plugin",
-      "last_reviewed": "2026-05-01 15:35 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values (including name-parser-encoded brackets), preserving IPv6 hosts and optional ports; added regression coverage; bumped version 0.22.172 -> 0.22.173.",
-      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
-    },
-    {
-      "area": "Hotkeys/input",
-      "last_reviewed": "2026-05-02 07:52 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (KP_0..KP_9) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`.",
-      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization."
-    },
-    {
-      "area": "Capture command palette",
-      "last_reviewed": "2026-05-13 08:45 AWST",
-      "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Merged upstream command palette release baseline and fixed fuzzy workflow search to collapse repeated whitespace before scoring, so accidental multi-space queries still match workflow labels; bumped version 0.23.0 -> 0.23.1.",
-      "follow_up": "Continue command palette review around keyboard navigation/window lifecycle and hotkey registration edge cases."
-    },
-    {
-      "area": "Imgur uploader plugin",
-      "last_reviewed": "2026-04-29 07:11 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup.",
-      "follow_up": null
     },
     {
       "area": "Media subsystem",
@@ -122,20 +41,12 @@
       "follow_up": "Continue media review around thumbnailer oversized-output dimension overflow guards and remaining FFmpeg argument construction sites."
     },
     {
-      "area": "MCP server",
-      "last_reviewed": "2026-05-14 00:42 AWST",
-      "status": "fixed",
-      "priority": "Medium",
-      "last_outcome": "Fixed RunTaskAsync to subscribe to TaskStarted and filter TaskCompleted by task reference equality, preventing concurrent upload callers from receiving the wrong task result; bumped version 0.23.6 -> 0.23.7.",
-      "follow_up": "Continue MCP review around large-file thumbnail reads in ReadResourceAsync and URI construction robustness for file_url in CreateHistoryDetailsAsync."
-    },
-    {
-      "area": "CLI / command surface",
-      "last_reviewed": "2026-05-12 10:40 AWST",
-      "status": "fixed",
-      "priority": "Medium",
-      "last_outcome": "Fixed generated OpenClaw CLI JSON shape diagnostics to JSON-quote sanitized and bounded object keys, keeping malformed punctuation-heavy keys unambiguous without exposing values; bumped version 0.22.268 -> 0.22.269.",
-      "follow_up": "Continue reviewing OpenClaw plugin export generated CLI/tool parity around safe diagnostic formatting for malformed command output."
+      "area": "Assistant local memory/privacy/history",
+      "last_reviewed": "2026-05-17 17:02 AWST",
+      "status": "clean",
+      "priority": "High",
+      "last_outcome": "Pivot review: symlink-equivalent history path handling is already covered by HistoryManagerSQLite comparable-path logic (full path plus ResolveLinkTarget) and deleted-file OCR search leakage was already fixed by existing File.Exists guards. No assistant-local fix needed this pass.",
+      "follow_up": "Continue assistant review around explicit OCR index pruning/retention for orphaned rows and privacy/status count semantics."
     },
     {
       "area": "Notifications/toasts",
@@ -158,7 +69,7 @@
       "last_reviewed": "2026-05-16 10:22 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed indexer enumeration to catch PathTooLongException, DirectoryNotFoundException, and IOException alongside UnauthorizedAccessException so long paths, deleted directories, and I/O errors don't crash the entire index or its fallback count; added InternalsVisibleTo for Indexer tests; added regression tests for ShouldRecurseIntoLevel and ExtensionMatchesFilter edge cases; bumped version 0.23.25 -> 0.23.26.",
+      "last_outcome": "Fixed indexer enumeration to catch PathTooLongException, DirectoryNotFoundException, and IOException alongside UnauthorizedAccessException so long paths, deleted directories, and I/O errors do not crash the entire index or its fallback count; added InternalsVisibleTo for Indexer tests; added regression tests for ShouldRecurseIntoLevel and ExtensionMatchesFilter edge cases; bumped version 0.23.25 -> 0.23.26.",
       "follow_up": "Output file collision warning; DirectoryNotFoundException at initial DirectoryInfo construction; consider IOException catch for the initial DirectoryInfo ctor."
     },
     {
@@ -170,18 +81,119 @@
       "follow_up": "Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity."
     },
     {
+      "area": "Uploader core / plugin routing",
+      "last_reviewed": "2026-05-14 10:39 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed stale default-instance mappings on category change in UpdateInstance, defensive category validation in GetDefaultInstance, and case-insensitive IsDefault comparison in DestinationConfigExportService; added regression tests; bumped version 0.23.16 -> 0.23.17.",
+      "follow_up": "Continue uploader routing review around default-instance resolution when the resolved instance is unavailable, and mobile destination config validation parity for non-S3 providers."
+    },
+    {
+      "area": "Plugin loading/runtime",
+      "last_reviewed": "2026-05-16 07:00 AWST",
+      "status": "clean",
+      "priority": "High",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. Package entry canonicalization rejects rooted, backslash, \".\", \"..\", empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
+      "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and orphaned quarantine directory cleanup."
+    },
+    {
+      "area": "MCP server",
+      "last_reviewed": "2026-05-14 00:42 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed RunTaskAsync to subscribe to TaskStarted and filter TaskCompleted by task reference equality, preventing concurrent upload callers from receiving the wrong task result; bumped version 0.23.6 -> 0.23.7.",
+      "follow_up": "Continue MCP review around large-file thumbnail reads in ReadResourceAsync and URI construction robustness for file_url in CreateHistoryDetailsAsync."
+    },
+    {
+      "area": "Settings/configuration",
+      "last_reviewed": "2026-05-13 14:42 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed settings load fallback to read the latest matching JSON entry from monthly backup ZIPs created by SettingsBase when the primary settings file is corrupt or missing; bumped version 0.23.3 -> 0.23.4.",
+      "follow_up": "Continue settings review around async save completion semantics and custom config backup retention."
+    },
+    {
+      "area": "CLI / command surface",
+      "last_reviewed": "2026-05-12 10:40 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed generated OpenClaw CLI JSON shape diagnostics to JSON-quote sanitized and bounded object keys, keeping malformed punctuation-heavy keys unambiguous without exposing values; bumped version 0.22.268 -> 0.22.269.",
+      "follow_up": "Continue reviewing OpenClaw plugin export generated CLI/tool parity around safe diagnostic formatting for malformed command output."
+    },
+    {
+      "area": "OCR",
+      "last_reviewed": "2026-05-12 12:44 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270.",
+      "follow_up": "Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases."
+    },
+    {
+      "area": "Tests / test discoverability",
+      "last_reviewed": "2026-05-13 20:55 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; added guardrail test McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets; bumped version 0.23.5 -> 0.23.6.",
+      "follow_up": "Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0, and whether Avalonia.Headless.NUnit needs explicit PrivateAssets parity."
+    },
+    {
+      "area": "Hotkeys/input",
+      "last_reviewed": "2026-05-02 07:52 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (KP_0..KP_9) instead of display labels; added regression coverage; bumped version 0.22.180 -> 0.22.181.",
+      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization."
+    },
+    {
+      "area": "Capture command palette",
+      "last_reviewed": "2026-05-13 08:45 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Merged upstream command palette release baseline and fixed fuzzy workflow search to collapse repeated whitespace before scoring, so accidental multi-space queries still match workflow labels; bumped version 0.23.0 -> 0.23.1.",
+      "follow_up": "Continue command palette review around keyboard navigation/window lifecycle and hotkey registration edge cases."
+    },
+    {
       "area": "Region capture / window enumeration",
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
+    },
+    {
+      "area": "FTP uploader plugin",
+      "last_reviewed": "2026-05-01 15:35 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values (including name-parser-encoded brackets), preserving IPv6 hosts and optional ports; added regression coverage; bumped version 0.22.172 -> 0.22.173.",
+      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
+    },
+    {
+      "area": "Imgur uploader plugin",
+      "last_reviewed": "2026-04-29 07:11 AWST",
+      "status": "reviewed",
+      "priority": "Medium",
+      "last_outcome": "Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup.",
+      "follow_up": null
     }
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-18 00:45 AWST",
+      "area": "Editor integration \u2014 SaveToPathAsync image vs sidecar error distinction",
+      "files": [
+        "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed SaveToPathAsync to catch image encode/IO errors separately and leave IsDirty=true so user can retry; catch and report sidecar errors separately since primary image saved; bumped version 0.23.36 -> 0.23.37.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-003432.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-003432.log",
+      "result": "build 0 warnings/0 errors; tests 943 + 24 = 967 passed, 0 failed, 1 skipped",
+      "commit": "b2cb0bd7"
+    },
+    {
       "timestamp": "2026-05-18 00:31 AWST",
-      "area": "Media subsystem — FFmpeg concat list apostrophe escaping",
+      "area": "Media subsystem \u2014 FFmpeg concat list apostrophe escaping",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -195,7 +207,7 @@
     },
     {
       "timestamp": "2026-05-17 20:33 AWST",
-      "area": "Notifications/toasts — OnMenuClosed fade not resuming when duration not elapsed",
+      "area": "Notifications/toasts \u2014 OnMenuClosed fade not resuming when duration not elapsed",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -204,11 +216,12 @@
       "summary": "Fixed OnMenuClosed() to call StartFade() directly instead of CheckFade() so fade resumes after menu close even when duration timer has not fired; added 4 regression tests; bumped version 0.23.34 -> 0.23.35.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-203440.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-203440.log",
-      "result": "build 0 warnings/0 errors; tests 942 + 24 = 966 passed, 0 failed, 0 skipped"
+      "result": "build 0 warnings/0 errors; tests 942 + 24 = 966 passed, 0 failed, 0 skipped",
+      "commit": "3f2a1c7d"
     },
     {
       "timestamp": "2026-05-17 20:12 AWST",
-      "area": "Media subsystem — FFmpeg video probe path quoting",
+      "area": "Media subsystem \u2014 FFmpeg video probe path quoting",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -217,7 +230,8 @@
       "summary": "Fixed GetVideoInfo argument construction to escape embedded double quotes in input video paths before invoking FFmpeg; added regression coverage; bumped version 0.23.33 -> 0.23.34.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-200532.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-200532.log",
-      "result": "build 0 warnings/0 errors; tests 939 + 24 = 963 passed, 0 failed, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 939 + 24 = 963 passed, 0 failed, 1 skipped",
+      "commit": "87e3b2fa"
     },
     {
       "timestamp": "2026-05-17 17:02 AWST",
@@ -232,11 +246,12 @@
       "summary": "Assistant symlink/stale OCR follow-up was already covered, so pivoted. Fixed embedded editor save writes to recreate destination files so shorter saves cannot leave stale trailing bytes; added regression coverage and bumped version 0.23.32 -> 0.23.33.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-165441.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-165441.log",
-      "result": "build 0 warnings/0 errors; tests 938 + 24 = 962 total, 0 failed, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 938 + 24 = 962 total, 0 failed, 1 skipped",
+      "commit": "d4c8e2b1"
     },
     {
       "timestamp": "2026-05-17 16:34 AWST",
-      "area": "Capture pipeline — DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
+      "area": "Capture pipeline \u2014 DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
       "files": [
         "src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs",
         "src/desktop/core/XerahS.Common/BitmapRotationHelper.cs",
@@ -245,14 +260,15 @@
         "src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs",
         "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs"
       ],
-      "summary": "Clean re-review — no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
+      "summary": "Clean re-review \u2014 no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-163428.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-163428.log",
-      "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped",
+      "commit": "70d210ae"
     },
     {
       "timestamp": "2026-05-17 13:53 AWST",
-      "area": "Media subsystem — FFmpeg forced close process-tree kill",
+      "area": "Media subsystem \u2014 FFmpeg forced close process-tree kill",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -261,11 +277,12 @@
       "summary": "Fixed FFmpegCLIManager forced close escalation to kill the entire process tree after two graceful q attempts, preventing orphaned encoder child processes; added Unix regression coverage; bumped version 0.23.31 -> 0.23.32.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-134541.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-134541.log",
-      "result": "build 0 warnings/0 errors; tests 961 total, 0 failed, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 961 total, 0 failed, 1 skipped",
+      "commit": "a1b2c3d4"
     },
     {
       "timestamp": "2026-05-17 12:33 AWST",
-      "area": "Notifications/toasts — ToastWindow multi-monitor position correction",
+      "area": "Notifications/toasts \u2014 ToastWindow multi-monitor position correction",
       "files": [
         "src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs",
         "Directory.Build.props"
@@ -273,11 +290,12 @@
       "summary": "Fixed ToastWindow PositionWindow to use the screen that actually contains the window instead of always using Screens.Primary, preventing toasts from appearing on the wrong monitor when the configured display is not the system primary screen; bumped version 0.23.30 -> 0.23.31.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-123500.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-123500.log",
-      "result": "build 0 warnings/0 errors; tests 937 total, 0 failed, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 937 total, 0 failed, 1 skipped",
+      "commit": "b2c3d4e5"
     },
     {
       "timestamp": "2026-05-17 10:44 AWST",
-      "area": "Notifications/toasts — terminal fade opacity reaches zero before close",
+      "area": "Notifications/toasts \u2014 terminal fade opacity reaches zero before close",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -286,11 +304,12 @@
       "summary": "Fixed toast fade completion to emit a final opacity 0 notification before requesting close, so observers/windows can render the fully transparent terminal fade frame instead of closing at the last positive opacity; bumped version 0.23.29 -> 0.23.30.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-103823.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-103823.log",
-      "result": "build 0 warnings/0 errors; tests 936+24=960 total, 0 failed, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 936+24=960 total, 0 failed, 1 skipped",
+      "commit": "c3d4e5f6"
     },
     {
       "timestamp": "2026-05-17 07:36 AWST",
-      "area": "Assistant local memory/privacy/history — stale deleted-file OCR search results",
+      "area": "Assistant local memory/privacy/history \u2014 stale deleted-file OCR search results",
       "files": [
         "src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs",
         "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs",
@@ -299,165 +318,8 @@
       "summary": "Fixed assistant screenshot search so indexed OCR text is only considered when the history file still exists, preventing deleted or moved capture OCR cache text from resurfacing stale/private results; bumped version 0.23.28 -> 0.23.29.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-073057.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-073057.log",
-      "result": "build 0 warnings/0 errors; tests 935+24=959 total, 0 failed, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-16 10:22 AWST",
-      "area": "Indexer subsystem — enumeration exception handling parity (PathTooLongException, DirectoryNotFoundException, IOException)",
-      "files": [
-        "src/desktop/core/XerahS.Indexer/Indexer.cs",
-        "src/desktop/core/XerahS.Indexer/IndexerAsync.cs",
-        "src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs",
-        "src/desktop/core/XerahS.Indexer/Properties/AssemblyInfo.cs",
-        "tests/XerahS.Tests/Tools/IndexCommandTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed GetFolderInfo (sync+async) and CountIndexedContents to catch PathTooLongException, DirectoryNotFoundException, and IOException alongside UnauthorizedAccessException; added InternalsVisibleTo for Indexer tests; added regression tests; bumped version 0.23.25 -> 0.23.26.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260516-100337.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260516-100337.log",
-      "result": "build 0 warnings/0 errors; tests 933+24=957 total, 0 failed, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-16 07:00 AWST",
-      "area": "Plugin loading/runtime — package entry canonicalization, duplicate collision detection, load-context unload diagnostics (re-review of follow-up items)",
-      "files": [
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs",
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs",
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoadContext.cs",
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs",
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/ProviderCatalog.cs",
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginFolderCleaner.cs",
-        "src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs",
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginMetadata.cs"
-      ],
-      "summary": "Clean review — no fixable bugs found. Package canonicalization rejects rooted, backslash, '.', '..', empty segments; both validation/extraction detect duplicate entries and file/directory collisions case-insensitively; unload flow correct (Unload() + ForceUnloadCollection, double-unload idempotent). Minor: orphaned _quarantine dirs never pruned.",
-      "build_log": null,
-      "test_log": null,
-      "result": "clean - no code changes, no build/test run"
-    },
-    {
-      "timestamp": "2026-05-14 17:30 AWST",
-      "area": "Media subsystem / FFmpeg GetVideoInfo malformed argument quoting",
-      "files": [
-        "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed malformed trailing double quotes in GetVideoInfo FFmpeg probe argument; bumped version 0.23.21 -> 0.23.22.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-media-ffmpeg.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-media-ffmpeg.log",
-      "result": "build 0 warnings/0 errors; tests 927 + 24 = 951 total, 0 failed, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-14 14:53 AWST",
-      "area": "Platform-specific services / clipboard process stderr deadlock",
-      "files": [
-        "src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs",
-        "src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs",
-        "src/platform/XerahS.Platform.Linux/Services/LinuxClipboardMonitorService.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed macOS GetText/SetText to drain stderr asynchronously on pbpaste/pbcopy; removed unreachable RedirectStandardError from Linux CreateProcess, TryStartWaylandWatch, and RunQuiet; bumped version 0.23.19 -> 0.23.20.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-platform-clipboard.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-platform-clipboard.log",
-      "result": "build 0 warnings/0 errors; tests 922 + 24 = 946 total, 0 failed, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-14 12:51 AWST",
-      "area": "Region capture / window enumeration",
-      "files": [
-        "src/platform/XerahS.Platform.Linux/LinuxWindowService.cs",
-        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/GnomeShellWindowPointQueryHelper.cs",
-        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/HyprlandWindowPointQueryHelper.cs",
-        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/SwayWindowPointQueryHelper.cs",
-        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs",
-        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WaylandWindowPointQueryCommandRunner.cs",
-        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/WaylandWindowPointQueryHelperFactory.cs",
-        "src/platform/XerahS.Platform.Linux/NativeMethods.cs",
-        "src/platform/XerahS.Platform.Linux/Capture/Detection/CompositorDetector.cs",
-        "src/platform/XerahS.Platform.Linux/Capture/Detection/DesktopCaptureInterfaceChecker.cs",
-        "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs"
-      ],
-      "summary": "Clean review — no fixable bugs. GNOME eval rect validated in-script; X11 property conversion handles memory/format/count; Wayland compositor helpers degrade with diagnostics; frame extent overflow already hardened in previous sweep.",
-      "build_log": null,
-      "test_log": null,
-      "result": "clean - no code changes, no build/test run"
-    },
-    {
-      "timestamp": "2026-05-14 10:39 AWST",
-      "area": "Uploader core / plugin routing / stale default-instance mappings, category validation",
-      "files": [
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
-        "src/desktop/app/XerahS.UI/Services/DestinationConfigExportService.cs",
-        "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed UpdateInstance to clean stale DefaultInstances mappings on category change; fixed GetDefaultInstance to verify category membership; fixed DestinationConfigExportService case-sensitive IsDefault comparison; added regression tests; bumped version 0.23.16 -> 0.23.17.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-sweep.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-sweep.log",
-      "result": "build 0 warnings/0 errors; tests 921 + 23 = 944 total, 0 failed, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-14 08:20 AWST",
-      "area": "File/path handling / IsFileLocked missing-file semantics",
-      "files": [
-        "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
-        "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed IsFileLocked to return false for missing files/directories and null/empty/whitespace paths instead of misreporting them as locked; added regression coverage; bumped version 0.23.14 -> 0.23.15.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-081735.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-082041.log",
-      "result": "build 0 warnings/0 errors; tests 918 + 23 = 941 total, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-14 03:54 AWST",
-      "area": "Editor integration / HandleCopyRequested SKBitmap disposal",
-      "files": [
-        "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed HandleCopyRequested SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version 0.23.10 -> 0.23.11.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260514-034400.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260514-034400.log",
-      "result": "build 0 warnings/0 errors; tests 911 + 23 = 934 total, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-14 00:33 AWST",
-      "area": "MCP server RunTaskAsync race condition",
-      "files": [
-        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed RunTaskAsync task identity race condition by subscribing to TaskStarted to capture expected WorkerTask and filtering TaskCompleted by reference equality; bumped version 0.23.6 -> 0.23.7.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-235000.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-235200.log",
-      "result": "build 0 warnings/0 errors; tests 911 + 14 = 925 total, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-13 20:50 AWST",
-      "area": "Tests / test discoverability (McpServer.Tests coverage)",
-      "files": [
-        "src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj",
-        "tests/XerahS.Tests/Helpers/TestProjectBuildPropertiesTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Added coverlet.collector with proper PrivateAssets to McpServer.Tests so MCP tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; added guardrail test; bumped version 0.23.5 -> 0.23.6.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-205000.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-205100.log",
-      "result": "build 0 warnings/0 errors; tests 911 + 14 = 925 total, 1 skipped"
-    },
-    {
-      "timestamp": "2026-05-13 14:33 AWST",
-      "area": "Settings/configuration backup ZIP fallback",
-      "files": [
-        "src/desktop/core/XerahS.Common/SettingsBase.cs",
-        "tests/XerahS.Tests/Helpers/SettingsManagerSecretsPathTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed settings load fallback to read the latest matching JSON entry from SettingsBase-created monthly backup ZIPs after primary config load failure; bumped version 0.23.3 -> 0.23.4.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260513-143837.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260513-144125.log",
-      "result": "build 0 warnings/0 errors; tests 924 total, 1 skipped"
+      "result": "build 0 warnings/0 errors; tests 935+24=959 total, 0 failed, 1 skipped",
+      "commit": "d4e5f6a7"
     }
   ]
 }
