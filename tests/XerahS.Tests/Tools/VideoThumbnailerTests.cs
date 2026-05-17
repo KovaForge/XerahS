@@ -355,6 +355,64 @@ public sealed class VideoThumbnailerTests
         data.SaveTo(stream);
     }
 
+    [Test]
+    public void CombineScreenshots_WithExcessiveOutputDimensions_ReturnsNullInsteadOfCrashing()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), "XerahS-VideoThumbnailerTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            // Create thumbnails that will cause combined output to exceed MaxCombinedWidth/Height (4096 default)
+            // With ColumnCount=2, Padding=10, Spacing=10: 
+            //   width = 20 + (2000 * 2) + 10 = 4030 + 20 = 4050 (under 4096)
+            // With 3 thumbnails, rowCount=2, thumbHeight=2000, infoStringHeight=0:
+            //   height = 30 + 0 + (2000 * 2) + 10 = 4040 (under 4096)
+            // We need something that exceeds 4096 on at least one dimension
+            // With ColumnCount=2, Padding=10, Spacing=10, and very large thumbnails:
+            //   width = 20 + (2500 * 2) + 10 = 5030 (over 4096)
+            var thumbnailInfos = new List<VideoThumbnailInfo>();
+            for (int i = 0; i < 6; i++)
+            {
+                string thumbPath = Path.Combine(tempDirectory, $"thumb_{i}.png");
+                using var bitmap = new SKBitmap(2500, 2000);
+                bitmap.Erase(SKColors.CornflowerBlue);
+                using SKImage image = SKImage.FromBitmap(bitmap);
+                using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+                using FileStream stream = File.Create(thumbPath);
+                data.SaveTo(stream);
+                thumbnailInfos.Add(new VideoThumbnailInfo(thumbPath) { Timestamp = TimeSpan.FromSeconds(i * 5) });
+            }
+
+            var thumbnailer = new VideoThumbnailer("ffmpeg", new VideoThumbnailOptions
+            {
+                ColumnCount = 2,
+                Padding = 10,
+                Spacing = 10,
+                AddVideoInfo = false,
+                AddTimestamp = false,
+                DrawBorder = false,
+                DrawShadow = false,
+                MaxThumbnailWidth = 0,
+                MaxCombinedWidth = 4096,
+                MaxCombinedHeight = 4096
+            });
+
+            using SKBitmap? combined = InvokeCombineScreenshots(thumbnailer, thumbnailInfos);
+
+            // With 6 thumbnails at 2500x2000 and ColumnCount=2: rowCount=3
+            // width = 20 + (2500 * 2) + 10 = 5030 > 4096 → returns null
+            Assert.That(combined, Is.Null, "Combined screenshot should be null when dimensions exceed MaxCombinedWidth/Height limits.");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
     private static SKBitmap? InvokeCombineScreenshots(VideoThumbnailer thumbnailer, List<VideoThumbnailInfo> thumbnails)
     {
         MethodInfo? method = typeof(VideoThumbnailer).GetMethod("CombineScreenshots", BindingFlags.Instance | BindingFlags.NonPublic);

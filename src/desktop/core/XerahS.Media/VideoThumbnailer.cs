@@ -310,6 +310,13 @@ namespace XerahS.Media
                                 (thumbWidth * columnCount) +
                                 ((columnCount - 1) * spacing);
 
+                    if (Options.MaxCombinedWidth > 0 && width > Options.MaxCombinedWidth)
+                    {
+                        DebugHelper.WriteLine($"VideoThumbnailer: Combined thumbnail width {width} exceeds limit {Options.MaxCombinedWidth}, returning null.");
+                        foreach (var img in images) img.Image.Dispose();
+                        return null;
+                    }
+
                     int rowCount = (int)Math.Ceiling(images.Count / (float)columnCount);
 
                     int thumbHeight = images.Max(x => x.Image.Height);
@@ -318,6 +325,13 @@ namespace XerahS.Media
                                  infoStringHeight +
                                  (thumbHeight * rowCount) +
                                  ((rowCount - 1) * spacing);
+
+                    if (Options.MaxCombinedHeight > 0 && height > Options.MaxCombinedHeight)
+                    {
+                        DebugHelper.WriteLine($"VideoThumbnailer: Combined thumbnail height {height} exceeds limit {Options.MaxCombinedHeight}, returning null.");
+                        foreach (var img in images) img.Image.Dispose();
+                        return null;
+                    }
 
                     finalImage = new SKBitmap(width, height);
 
