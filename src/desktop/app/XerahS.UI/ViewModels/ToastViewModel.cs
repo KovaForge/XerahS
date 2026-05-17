@@ -267,16 +267,25 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 
     private void OnFadeTick(object? sender, EventArgs e)
     {
-        if (_opacity > _opacityDecrement)
+        var nextOpacity = GetNextFadeOpacity(_opacity, _opacityDecrement);
+
+        if (nextOpacity > 0)
         {
-            _opacity -= _opacityDecrement;
+            _opacity = nextOpacity;
             OpacityChanged?.Invoke(this, _opacity);
         }
         else
         {
+            _opacity = 0;
+            OpacityChanged?.Invoke(this, _opacity);
             _fadeTimer.Stop();
             CloseRequested?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    internal static double GetNextFadeOpacity(double opacity, double opacityDecrement)
+    {
+        return opacity > opacityDecrement ? opacity - opacityDecrement : 0;
     }
 
     private void StartFade()

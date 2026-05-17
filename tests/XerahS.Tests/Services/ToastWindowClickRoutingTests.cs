@@ -140,6 +140,16 @@ public class ToastWindowClickRoutingTests
     }
 
     [Test]
+    public void ToastViewModel_GetNextFadeOpacity_ReachesZeroBeforeClose()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ToastViewModel.GetNextFadeOpacity(1.0, 0.25), Is.EqualTo(0.75));
+            Assert.That(ToastViewModel.GetNextFadeOpacity(0.2, 0.25), Is.EqualTo(0));
+        });
+    }
+
+    [Test]
     public void BuildMarkdownImage_UsesMarkdownImageSyntax_WithEscapedAltText()
     {
         var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/capture.png", "Latest [Capture]");
