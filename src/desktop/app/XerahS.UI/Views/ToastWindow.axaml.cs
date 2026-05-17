@@ -87,12 +87,36 @@ public partial class ToastWindow : OverlayWindow
         // Position window based on placement
         PositionWindow(config.Placement, config.Offset, config.Size);
 
+        // Adjust position to use the screen that actually contains the window (for multi-monitor correctness).
+        // On multi-monitor setups the primary screen working area may not match the screen the toast lands on.
+        AdjustPositionToScreenBounds();
+
         // Create and bind ViewModel
         _viewModel = new ToastViewModel(config, taskManager);
         DataContext = _viewModel;
 
         _viewModel.CloseRequested += OnCloseRequested;
         _viewModel.OpacityChanged += OnOpacityChanged;
+    }
+
+    private void AdjustPositionToScreenBounds()
+    {
+        // Find the screen that contains the largest portion of this window
+        var screen = Screens.ScreenFromPoint(new PixelPoint(Position.X + (int)(Width / 2), Position.Y + (int)(Height / 2)))
+                     ?? Screens.ScreenFromPoint(new PixelPoint(Position.X, Position.Y))
+                     ?? Screens.Primary;
+
+        if (screen == null) return;
+
+        var workingArea = screen.WorkingArea;
+        var w = (int)Width;
+        var h = (int)Height;
+
+        // Clamp so the window stays within the screen's working area
+        int x = Math.Max(workingArea.X, Math.Min(Position.X, workingArea.X + workingArea.Width - w));
+        int y = Math.Max(workingArea.Y, Math.Min(Position.Y, workingArea.Y + workingArea.Height - h));
+
+        Position = new PixelPoint(x, y);
     }
 
     private void PositionWindow(ContentPlacement placement, int offset, SizeI size)
