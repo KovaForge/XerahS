@@ -15,7 +15,7 @@
     "Capture pipeline (re-review)",
     "Media subsystem (re-review)",
     "Editor integration (follow-up: save result propagation)",
-    "Continue notifications/toasts review around context-menu/fade pause interactions and window placement bounds on multi-monitor setups."
+    "Notifications/toasts (follow-up: context-menu/fade pause \u2014 OnMenuClosed calling CheckFade vs StartFade)"
   ],
   "areas": [
     {
