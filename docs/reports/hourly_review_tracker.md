@@ -1213,3 +1213,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build succeeded (0 warnings/0 errors); tests passed (962 total, 0 failed, 1 skipped), logs: /tmp/xerahs-hourly-sweep/build-20260517-165441.log, /tmp/xerahs-hourly-sweep/test-20260517-165441.log
 - Commits: submodule `218f296`; parent `903138a9`
 - Follow-up: Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers. Continue assistant review around explicit OCR index pruning/retention semantics.
+
+### 2026-05-17 20:12 AWST - Media subsystem / FFmpeg video probe path quoting
+
+- Area: Media subsystem
+- Files: `src/desktop/core/XerahS.Media/FFmpegCLIManager.cs`, `tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs`, `Directory.Build.props`
+- Findings: Fixed `GetVideoInfo` argument construction to escape embedded double quotes when quoting the input video path, preventing malformed FFmpeg probe commands for filenames containing quotes; added regression coverage through a capturing FFmpeg manager; bumped version `0.23.33` -> `0.23.34`.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests` 939 passed, 1 skipped; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260517-200532.log`, `/tmp/xerahs-hourly-sweep/test-20260517-200532.log`
+- Commit: `b7a2facf`
+- Follow-up: Continue media review around FFmpeg concat demuxer list-file escaping for paths containing apostrophes and thumbnailer oversized-output dimension overflow guards.
