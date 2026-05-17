@@ -70,6 +70,39 @@ public sealed class FFmpegCLIManagerTests
         }
     }
 
+    [Test]
+    public void GetVideoInfo_EscapesEmbeddedQuotesInInputPath()
+    {
+        var manager = new CapturingFFmpegCLIManager();
+        string videoPath = Path.Combine(Path.GetTempPath(), "capture \"quoted\" name.mp4");
+
+        VideoInfo? info = manager.GetVideoInfo(videoPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(info, Is.Not.Null);
+            Assert.That(manager.CapturedArgs, Is.EqualTo("-i \"" + videoPath.Replace("\"", "\\\"") + "\""));
+        });
+    }
+
+    private sealed class CapturingFFmpegCLIManager : FFmpegCLIManager
+    {
+        public CapturingFFmpegCLIManager() : base("ffmpeg")
+        {
+        }
+
+        public string? CapturedArgs { get; private set; }
+
+        public override int Open(string path, string? args = null)
+        {
+            CapturedArgs = args;
+            Output.AppendLine("Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'capture.mp4':");
+            Output.AppendLine("  Duration: 00:00:01.00, start: 0.000000, bitrate: 512 kb/s");
+            Output.AppendLine("    Stream #0:0: Video: h264 (High), yuv420p, 1920x1080, 30 fps");
+            return 0;
+        }
+    }
+
     private static string QuoteForShell(string value) => "'" + value.Replace("'", "'\\''") + "'";
 
     private static bool TryReadPid(string path, out int pid)

@@ -184,7 +184,7 @@ namespace XerahS.Media
             VideoInfo videoInfo = new VideoInfo();
             videoInfo.FilePath = videoPath;
 
-            Run($"-i \"{videoPath}\"");
+            Run($"-i {QuoteProcessArgument(videoPath)}");
             string output = Output.ToString();
 
             Match matchInput = Regex.Match(output, @"Duration: (?<Duration>\d{2}:\d{2}:\d{2}\.\d{2}),.+?start: (?<Start>\d+\.\d+),.+?bitrate: (?<Bitrate>\d+) kb/s",
@@ -220,6 +220,49 @@ namespace XerahS.Media
             }
 
             return videoInfo;
+        }
+
+        private static string QuoteProcessArgument(string argument)
+        {
+            if (argument.Length == 0)
+            {
+                return "\"\"";
+            }
+
+            if (!argument.Any(c => char.IsWhiteSpace(c) || c == '"'))
+            {
+                return argument;
+            }
+
+            StringBuilder builder = new StringBuilder(argument.Length + 2);
+            builder.Append('"');
+            int backslashCount = 0;
+
+            foreach (char c in argument)
+            {
+                if (c == '\\')
+                {
+                    backslashCount++;
+                    continue;
+                }
+
+                if (c == '"')
+                {
+                    builder.Append('\\', backslashCount * 2 + 1);
+                    builder.Append('"');
+                }
+                else
+                {
+                    builder.Append('\\', backslashCount);
+                    builder.Append(c);
+                }
+
+                backslashCount = 0;
+            }
+
+            builder.Append('\\', backslashCount * 2);
+            builder.Append('"');
+            return builder.ToString();
         }
 
         public DirectShowDevices GetDirectShowDevices()
