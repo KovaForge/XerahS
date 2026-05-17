@@ -34,11 +34,11 @@
     },
     {
       "area": "Media subsystem",
-      "last_reviewed": "2026-05-18 00:31 AWST",
+      "last_reviewed": "2026-05-18 04:49 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed FFmpeg concat demuxer list generation to escape apostrophes inside single-quoted input paths and reused QuoteProcessArgument for concat list/output arguments; added regression coverage; bumped version 0.23.35 -> 0.23.36.",
-      "follow_up": "Continue media review around thumbnailer oversized-output dimension overflow guards and remaining FFmpeg argument construction sites."
+      "last_outcome": "Fixed CombineScreenshots to guard against integer overflow/oversized SKBitmap allocation. Added MaxCombinedWidth (default 4096) and MaxCombinedHeight (default 4096) to VideoThumbnailOptions; returns null and logs when dimensions exceed limits after disposing all loaded images. Added regression test. Bumped version 0.23.39 -> 0.23.40.",
+      "follow_up": "Continue media review around remaining FFmpeg argument construction sites and thumbnailer edge case handling."
     },
     {
       "area": "Assistant local memory/privacy/history",
@@ -178,6 +178,21 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-18 04:49 AWST",
+      "area": "Media subsystem \u2014 CombineScreenshots dimension overflow guards",
+      "files": [
+        "src/desktop/core/XerahS.Media/VideoThumbnailOptions.cs",
+        "src/desktop/core/XerahS.Media/VideoThumbnailer.cs",
+        "tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed CombineScreenshots dimension overflow: Added MaxCombinedWidth/Height (default 4096) to VideoThumbnailOptions; returns null and logs when computed dimensions exceed limits after disposing all loaded images; added regression test; bumped version 0.23.39 -> 0.23.40.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-044942-2.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-044942.log",
+      "result": "build 0 warnings/0 errors; tests 946 + 24 = 970 passed, 0 failed, 1 skipped",
+      "commit": "4fba4e73"
+    },
     {
       "timestamp": "2026-05-18 04:33 AWST",
       "area": "Editor integration \u2014 sidecar save UnauthorizedAccessException re-throw",
