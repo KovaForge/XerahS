@@ -1243,3 +1243,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build succeeded (0 warnings, 0 errors); tests passed (943 XerahS.Tests + 24 XerahS.McpServer.Tests, 0 failed, 1 skipped), logs: /tmp/xerahs-hourly-sweep/build-20260518-002225-retry.log, /tmp/xerahs-hourly-sweep/test-20260518-002225-retry.log
 - Commit: 939c9e8d
 - Follow-up: Continue media review around thumbnailer oversized-output dimension overflow guards and remaining FFmpeg argument construction sites.
+
+### 2026-05-18 04:40 AWST - File/path handling
+
+- Area: File/path handling
+- Files: src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs, src/desktop/core/XerahS.Common/Properties/AssemblyInfo.cs, tests/XerahS.Tests/Helpers/FileHelpersTests.cs, Directory.Build.props
+- Findings: Fixed BackupFileWeekly to catch IOException when File.Copy(overwrite=false) throws because another process created the same weekly backup name between the File.Exists check and the copy call. Previous code propagated IOException upward unhandled. Also created Properties/AssemblyInfo.cs with InternalsVisibleTo for tests.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; tests 944+24=968 passed, 1 pre-existing failure (SaveToPathAsync_KeepsEditorDirty_WhenAnnotationSidecarSaveFails, unrelated), logs: /tmp/xerahs-hourly-sweep/build-20260518-043245.log /tmp/xerahs-hourly-sweep/test-20260518-043245.log
+- Commit: b3becc1f
+- Follow-up: Continue file/path review around CopyFile exception handling when destination is an existing file path, and BackupFileZip archive corruption edge cases.
