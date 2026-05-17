@@ -1223,3 +1223,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests` 939 passed, 1 skipped; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260517-200532.log`, `/tmp/xerahs-hourly-sweep/test-20260517-200532.log`
 - Commit: `b7a2facf`
 - Follow-up: Continue media review around FFmpeg concat demuxer list-file escaping for paths containing apostrophes and thumbnailer oversized-output dimension overflow guards.
+
+### 2026-05-17 20:33 AWST - Notifications (Toast) / context menu close fade bug
+
+- Area: Notifications (Toast system)
+- Files: `src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs`, `tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs`, `Directory.Build.props`
+- Findings: Fixed `OnMenuClosed()` calling `CheckFade()` (requires `_isDurationEnd=true`) instead of `StartFade()` directly. When user opens context menu before the duration timer fires, then closes it, `CheckFade()` was a no-op leaving the toast stuck. Fixed by calling `StartFade()` directly in `OnMenuClosed()` when `AutoHide && !_isMouseInside`. Added 4 regression tests covering menu-close before duration fires, mouse-inside blocking, auto-hide disabled, and menu-close with no prior open.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests` 942 passed; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260517-203440.log`, `/tmp/xerahs-hourly-sweep/test-20260517-203440.log`
+- Commit: `c92c3224`
+- Follow-up: None.

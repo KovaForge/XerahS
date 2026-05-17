@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-17 20:12 AWST",
+  "last_updated": "2026-05-17 20:33 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,6 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Notifications/toasts (follow-up: context-menu/fade pause — OnMenuClosed calling CheckFade vs StartFade)",
     "Media subsystem (follow-up: FFmpeg argument quoting and thumbnailer oversized-output guards)",
     "Editor integration (follow-up: save result propagation and sidecar save error reporting)",
     "Assistant local memory/privacy/history (follow-up: OCR index pruning/retention)",
@@ -140,11 +139,11 @@
     },
     {
       "area": "Notifications/toasts",
-      "last_reviewed": "2026-05-17 12:33 AWST",
+      "last_reviewed": "2026-05-17 20:33 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed ToastWindow PositionWindow to use the screen that actually contains the window instead of always using Screens.Primary, preventing toasts from appearing on the wrong monitor when the configured display is not the system primary screen; bumped version 0.23.30 -> 0.23.31.",
-      "follow_up": "Continue notifications/toasts review around context-menu/fade pause interactions (OnMenuClosed calling CheckFade vs StartFade) and remaining multi-monitor placement corrections."
+      "last_outcome": "Fixed OnMenuClosed() calling CheckFade() (requires _isDurationEnd=true) instead of StartFade() directly. When user opens context menu before duration timer fires, then closes it, CheckFade() was a no-op leaving toast stuck. Fixed by calling StartFade() directly when AutoHide && !_isMouseInside. Added 4 regression tests; bumped version 0.23.34 -> 0.23.35.",
+      "follow_up": null
     },
     {
       "area": "File/path handling",
@@ -180,6 +179,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-17 20:33 AWST",
+      "area": "Notifications/toasts — OnMenuClosed fade not resuming when duration not elapsed",
+      "files": [
+        "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
+        "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed OnMenuClosed() to call StartFade() directly instead of CheckFade() so fade resumes after menu close even when duration timer has not fired; added 4 regression tests; bumped version 0.23.34 -> 0.23.35.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-203440.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-203440.log",
+      "result": "build 0 warnings/0 errors; tests 942 + 24 = 966 passed, 0 failed, 0 skipped"
+    },
     {
       "timestamp": "2026-05-17 20:12 AWST",
       "area": "Media subsystem — FFmpeg video probe path quoting",
