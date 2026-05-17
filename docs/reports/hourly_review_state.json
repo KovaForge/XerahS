@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-17 10:44 AWST",
+  "last_updated": "2026-05-17 12:33 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -79,7 +79,7 @@
       "last_reviewed": "2026-05-16 07:00 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review — no fixable bugs found. Package entry canonicalization rejects rooted, backslash, '.', '..', empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. Package entry canonicalization rejects rooted, backslash, '.', '..', empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
       "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and orphaned quarantine directory cleanup."
     },
     {
@@ -140,11 +140,11 @@
     },
     {
       "area": "Notifications/toasts",
-      "last_reviewed": "2026-05-17 10:44 AWST",
+      "last_reviewed": "2026-05-17 12:33 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed toast fade completion to emit a final opacity 0 notification before requesting close, so observers/windows can render the fully transparent terminal fade frame instead of closing at the last positive opacity; bumped version 0.23.29 -> 0.23.30.",
-      "follow_up": "Continue notifications/toasts review around context-menu/fade pause interactions and window placement bounds on multi-monitor setups."
+      "last_outcome": "Fixed ToastWindow PositionWindow to use the screen that actually contains the window instead of always using Screens.Primary, preventing toasts from appearing on the wrong monitor when the configured display is not the system primary screen; bumped version 0.23.30 -> 0.23.31.",
+      "follow_up": "Continue notifications/toasts review around context-menu/fade pause interactions (OnMenuClosed calling CheckFade vs StartFade) and remaining multi-monitor placement corrections."
     },
     {
       "area": "File/path handling",
@@ -175,14 +175,26 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     }
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-17 12:33 AWST",
+      "area": "Notifications/toasts \u2014 ToastWindow multi-monitor position correction",
+      "files": [
+        "src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed ToastWindow PositionWindow to use the screen that actually contains the window instead of always using Screens.Primary, preventing toasts from appearing on the wrong monitor when the configured display is not the system primary screen; bumped version 0.23.30 -> 0.23.31.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-123500.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-123500.log",
+      "result": "build 0 warnings/0 errors; tests 937 total, 0 failed, 1 skipped"
+    },
+    {
       "timestamp": "2026-05-17 10:44 AWST",
-      "area": "Notifications/toasts — terminal fade opacity reaches zero before close",
+      "area": "Notifications/toasts \u2014 terminal fade opacity reaches zero before close",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -195,7 +207,7 @@
     },
     {
       "timestamp": "2026-05-17 07:36 AWST",
-      "area": "Assistant local memory/privacy/history — stale deleted-file OCR search results",
+      "area": "Assistant local memory/privacy/history \u2014 stale deleted-file OCR search results",
       "files": [
         "src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs",
         "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs",
@@ -208,7 +220,7 @@
     },
     {
       "timestamp": "2026-05-16 10:22 AWST",
-      "area": "Indexer subsystem — enumeration exception handling parity (PathTooLongException, DirectoryNotFoundException, IOException)",
+      "area": "Indexer subsystem \u2014 enumeration exception handling parity (PathTooLongException, DirectoryNotFoundException, IOException)",
       "files": [
         "src/desktop/core/XerahS.Indexer/Indexer.cs",
         "src/desktop/core/XerahS.Indexer/IndexerAsync.cs",
@@ -224,7 +236,7 @@
     },
     {
       "timestamp": "2026-05-16 07:00 AWST",
-      "area": "Plugin loading/runtime — package entry canonicalization, duplicate collision detection, load-context unload diagnostics (re-review of follow-up items)",
+      "area": "Plugin loading/runtime \u2014 package entry canonicalization, duplicate collision detection, load-context unload diagnostics (re-review of follow-up items)",
       "files": [
         "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginPackager.cs",
         "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginLoader.cs",
@@ -235,7 +247,7 @@
         "src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs",
         "src/desktop/core/XerahS.Uploaders/PluginSystem/PluginMetadata.cs"
       ],
-      "summary": "Clean review — no fixable bugs found. Package canonicalization rejects rooted, backslash, '.', '..', empty segments; both validation/extraction detect duplicate entries and file/directory collisions case-insensitively; unload flow correct (Unload() + ForceUnloadCollection, double-unload idempotent). Minor: orphaned _quarantine dirs never pruned.",
+      "summary": "Clean review \u2014 no fixable bugs found. Package canonicalization rejects rooted, backslash, '.', '..', empty segments; both validation/extraction detect duplicate entries and file/directory collisions case-insensitively; unload flow correct (Unload() + ForceUnloadCollection, double-unload idempotent). Minor: orphaned _quarantine dirs never pruned.",
       "build_log": null,
       "test_log": null,
       "result": "clean - no code changes, no build/test run"
@@ -282,7 +294,7 @@
         "src/platform/XerahS.Platform.Linux/Capture/Detection/DesktopCaptureInterfaceChecker.cs",
         "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs"
       ],
-      "summary": "Clean review — no fixable bugs. GNOME eval rect validated in-script; X11 property conversion handles memory/format/count; Wayland compositor helpers degrade with diagnostics; frame extent overflow already hardened in previous sweep.",
+      "summary": "Clean review \u2014 no fixable bugs. GNOME eval rect validated in-script; X11 property conversion handles memory/format/count; Wayland compositor helpers degrade with diagnostics; frame extent overflow already hardened in previous sweep.",
       "build_log": null,
       "test_log": null,
       "result": "clean - no code changes, no build/test run"
@@ -448,21 +460,6 @@
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-133751.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-134116.log",
       "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
-    },
-    {
-      "timestamp": "2026-05-01 01:45 AWST",
-      "area": "Platform-specific services",
-      "files": [
-        "src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs",
-        "tests/XerahS.Tests/Platform/MacOS/MacOSClipboardServiceTests.cs",
-        "Directory.Build.props"
-      ],
-      "status": "fixed",
-      "version_bump": "0.22.165 -> 0.22.166",
-      "summary": "Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version 0.22.165 -> 0.22.166.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-013752.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-014133.log",
-      "follow_up": "Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity."
     }
   ]
 }
