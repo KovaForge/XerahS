@@ -176,32 +176,56 @@ public static class MainViewModelHelper
             return;
         }
 
-        using (bitmap)
+        Exception? imageSaveError = null;
+        try
         {
-            var ext = Path.GetExtension(path).ToLowerInvariant();
-            var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
-            int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
-            using var data = bitmap.Encode(format, quality);
-            using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-            data.SaveTo(stream);
+            using (bitmap)
+            {
+                var ext = Path.GetExtension(path).ToLowerInvariant();
+                var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
+                int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
+                using var data = bitmap.Encode(format, quality);
+                using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+                data.SaveTo(stream);
+            }
+        }
+        catch (Exception ex)
+        {
+            imageSaveError = ex;
+        }
+
+        if (imageSaveError != null)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Image save failed (file may be incomplete): {imageSaveError.Message}");
+            DebugHelper.WriteException(imageSaveError);
+            viewModel.IsDirty = true;
+            return;
         }
 
         viewModel.ImageFilePath = path;
 
-        var annotations = viewModel.GetAnnotationSnapshotForPersistence();
-        using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
-        if (annotations.Count > 0 && sourceImage != null)
+        try
         {
-            string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
-            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
-        }
-        else
-        {
-            bool deleted = XannProjectFileService.TryDeleteSidecar(path);
-            if (deleted)
+            var annotations = viewModel.GetAnnotationSnapshotForPersistence();
+            using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
+            if (annotations.Count > 0 && sourceImage != null)
             {
-                DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");
+                string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
+                DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
             }
+            else
+            {
+                bool deleted = XannProjectFileService.TryDeleteSidecar(path);
+                if (deleted)
+                {
+                    DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
+            DebugHelper.WriteException(ex);
         }
 
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
