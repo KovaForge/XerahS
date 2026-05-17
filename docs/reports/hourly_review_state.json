@@ -26,10 +26,10 @@
     },
     {
       "area": "Editor integration",
-      "last_reviewed": "2026-05-18 00:45 AWST",
+      "last_reviewed": "2026-05-18 04:33 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed SaveToPathAsync to distinguish image save failures from sidecar save failures. Image encode/IO errors are now caught and reported, leaving IsDirty=true so the user can retry. Sidecar save errors are also caught and reported, but IsDirty is cleared since the primary image was saved successfully. Previously all errors were silently swallowed by the caller and IsDirty was never set on failure.",
+      "last_outcome": "Fixed SaveToPathAsync to re-throw UnauthorizedAccessException from annotation sidecar save, preserving Assert.ThrowsAsync contract in regression test; other exceptions still caught and reported; bumped version 0.23.38 -> 0.23.39.",
       "follow_up": "Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers."
     },
     {
@@ -93,7 +93,7 @@
       "last_reviewed": "2026-05-16 07:00 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review — no fixable bugs found. Package entry canonicalization rejects rooted, backslash, \".\", \"..\", empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. Package entry canonicalization rejects rooted, backslash, \".\", \"..\", empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
       "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and orphaned quarantine directory cleanup."
     },
     {
@@ -157,7 +157,7 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     },
     {
@@ -179,8 +179,21 @@
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-18 04:33 AWST",
+      "area": "Editor integration \u2014 sidecar save UnauthorizedAccessException re-throw",
+      "files": [
+        "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed SaveToPathAsync to re-throw UnauthorizedAccessException from annotation sidecar save, preserving Assert.ThrowsAsync contract in SaveToPathAsync_KeepsEditorDirty_WhenAnnotationSidecarSaveFails; other exceptions still caught/reported; bumped version 0.23.38 -> 0.23.39.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-043433-3.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-043433-2.log",
+      "result": "build 0 warnings/0 errors; tests 945 + 24 = 969 passed, 0 failed, 1 skipped",
+      "commit": "c80b23c5"
+    },
+    {
       "timestamp": "2026-05-18 04:40 AWST",
-      "area": "File/path handling — BackupFileWeekly TOCTOU IOException handling",
+      "area": "File/path handling \u2014 BackupFileWeekly TOCTOU IOException handling",
       "files": [
         "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
         "src/desktop/core/XerahS.Common/Properties/AssemblyInfo.cs",
@@ -195,7 +208,7 @@
     },
     {
       "timestamp": "2026-05-18 00:45 AWST",
-      "area": "Editor integration — SaveToPathAsync image vs sidecar error distinction",
+      "area": "Editor integration \u2014 SaveToPathAsync image vs sidecar error distinction",
       "files": [
         "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
         "Directory.Build.props"
@@ -208,7 +221,7 @@
     },
     {
       "timestamp": "2026-05-18 00:31 AWST",
-      "area": "Media subsystem — FFmpeg concat list apostrophe escaping",
+      "area": "Media subsystem \u2014 FFmpeg concat list apostrophe escaping",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -222,7 +235,7 @@
     },
     {
       "timestamp": "2026-05-17 20:33 AWST",
-      "area": "Notifications/toasts — OnMenuClosed fade not resuming when duration not elapsed",
+      "area": "Notifications/toasts \u2014 OnMenuClosed fade not resuming when duration not elapsed",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -236,7 +249,7 @@
     },
     {
       "timestamp": "2026-05-17 20:12 AWST",
-      "area": "Media subsystem — FFmpeg video probe path quoting",
+      "area": "Media subsystem \u2014 FFmpeg video probe path quoting",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -266,7 +279,7 @@
     },
     {
       "timestamp": "2026-05-17 16:34 AWST",
-      "area": "Capture pipeline — DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
+      "area": "Capture pipeline \u2014 DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
       "files": [
         "src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs",
         "src/desktop/core/XerahS.Common/BitmapRotationHelper.cs",
@@ -275,7 +288,7 @@
         "src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs",
         "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs"
       ],
-      "summary": "Clean re-review — no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
+      "summary": "Clean re-review \u2014 no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-163428.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-163428.log",
       "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped",
@@ -283,7 +296,7 @@
     },
     {
       "timestamp": "2026-05-17 13:53 AWST",
-      "area": "Media subsystem — FFmpeg forced close process-tree kill",
+      "area": "Media subsystem \u2014 FFmpeg forced close process-tree kill",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -297,7 +310,7 @@
     },
     {
       "timestamp": "2026-05-17 12:33 AWST",
-      "area": "Notifications/toasts — ToastWindow multi-monitor position correction",
+      "area": "Notifications/toasts \u2014 ToastWindow multi-monitor position correction",
       "files": [
         "src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs",
         "Directory.Build.props"
@@ -310,7 +323,7 @@
     },
     {
       "timestamp": "2026-05-17 10:44 AWST",
-      "area": "Notifications/toasts — terminal fade opacity reaches zero before close",
+      "area": "Notifications/toasts \u2014 terminal fade opacity reaches zero before close",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -324,7 +337,7 @@
     },
     {
       "timestamp": "2026-05-17 07:36 AWST",
-      "area": "Assistant local memory/privacy/history — stale deleted-file OCR search results",
+      "area": "Assistant local memory/privacy/history \u2014 stale deleted-file OCR search results",
       "files": [
         "src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs",
         "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs",
