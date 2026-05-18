@@ -1315,3 +1315,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 952 + 24 = 976 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260518-125831.log`, `/tmp/xerahs-hourly-sweep/test-20260518-125831.log`
 - Commit: `8d74190b`
 - Follow-up: Continue platform-specific review around macOS clipboard helper error surfacing and Linux/Windows clipboard file-list parity.
+
+### 2026-05-18 17:17 AWST - MCP server — preserve local path whitespace in history resources
+
+- Area: MCP server
+- Files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`, `Directory.Build.props`
+- Findings: OCR onboarding and uploader default-instance follow-ups were already covered, so pivoted to MCP URI robustness. `TryResolveLocalFilePath()` trimmed all local paths before `Path.GetFullPath()`, which broke history thumbnails/capture files whose filenames intentionally start or end with spaces; absolute local paths now resolve before URI trimming, and non-URI relative paths also preserve original whitespace. Added regression tests for `file_url` generation and thumbnail blob path selection.
+- Status: Fixed; bumped version `0.23.45` -> `0.23.46`.
+- Build/test: Release build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests`: 958 passed, 0 failed, 1 skipped; `XerahS.McpServer.Tests`: 26 passed, 0 failed). Logs: `/tmp/xerahs-hourly-sweep/build-20260518-170726-retry.log`, `/tmp/xerahs-hourly-sweep/test-20260518-170726-retry.log`.
+- Commit: `a3e40a3a`
+- Follow-up: Continue MCP review around malformed percent-encoding in resource query parsing and large inline blob error ergonomics.
