@@ -25,7 +25,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 |---|---|---|---|---|---|
 | Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
 | OCR | 2026-05-12 12:44 AWST | High | Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270. | Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases. |
-| Settings/configuration | 2026-05-13 14:42 AWST | High | Fixed settings load fallback to read the latest matching JSON entry from monthly backup ZIPs when the primary settings file is corrupt or missing; bumped version 0.23.3 -> 0.23.4. | Continue settings review around async save completion semantics and custom config backup retention. |
+| Settings/configuration | 2026-05-18 16:34 AWST | High | Fixed backup retention by adding BackupRetentionDays property (default 90) and PruneOldBackups method to remove month folders older than retention cutoff after successful saves; bumped version 0.23.44 -> 0.23.45. | Continue settings review around async save completion semantics (fire-and-forget save patterns) and custom config backup archive compression/storage overhead. |
 | Assistant local memory/privacy/history | 2026-05-18 08:42 AWST | High | Fixed HistoryManagerSQLite.Delete to also remove HistoryOcrIndex rows, ensuring the OCR index table exists before cleanup so deletes also no-op safely when OCR has never run; added regression coverage; bumped version 0.23.40 -> 0.23.42. | Continue assistant review around OCR index status-count semantics and periodic pruning of stale status rows. |
 | Tests / test discoverability | 2026-05-13 20:55 AWST | High | Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; bumped version 0.23.5 -> 0.23.6. | Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0. |
 | Editor integration | 2026-05-14 03:54 AWST | High | Fixed `HandleCopyRequested` SKBitmap resource leak so edited-snapshot and preview-fallback bitmaps are disposed after clipboard copy; bumped version `0.23.10` -> `0.23.11`. | Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save error reporting. |
@@ -44,6 +44,16 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 | Region capture / window enumeration | 2026-05-14 12:51 AWST | High | Clean review — no fixable bugs found. GNOME eval rect validation, X11 property conversion edges, Wayland fallback diagnostics all hardened. | Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms. |
 
 ## Recent Runs
+
+### 2026-05-18 16:34 AWST - Settings/configuration — backup retention for monthly backup folders
+
+- Area: Settings/configuration — backup retention (SettingsBase.CreateBackupZip never pruned old backups)
+- Files: `src/desktop/core/XerahS.Common/SettingsBase.cs`, `tests/XerahS.Tests/Helpers/SettingsBaseBackupRetentionTests.cs`, `Directory.Build.props`
+- Findings: `SettingsBase.CreateBackupZip` created backup zip archives on every settings save with no corresponding cleanup mechanism. Month folders (`Backup/yyyy-MM/`) accumulated indefinitely, consuming unbounded disk space.
+- Status: Fixed by adding `BackupRetentionDays` property (default: 90 days) and `PruneOldBackups()` method that removes month folders whose entire month is older than the retention cutoff. Called after successful saves outside the `lock` block so backup cleanup I/O does not block concurrent save callers. Added 6 regression tests: old-month removal, recent-month preservation, zero-retention no-op, null-folder no-op, missing-folder no-op, and non-month folder preservation. Bumped version `0.23.44` → `0.23.45`.
+- Build/test: build 0 warnings/0 errors; tests 958 + 24 = 982 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260518-163451.log`, `/tmp/xerahs-hourly-sweep/test-20260518-163451.log`.
+- Commit: `c2200f7e`
+- Follow-up: Continue settings review around async save completion semantics (fire-and-forget `_ = SaveXxxAsync()` patterns) and custom config backup archive compression/storage overhead.
 
 ### 2026-05-18 08:42 AWST - Assistant local memory/privacy/history — OCR index row cleanup on history item deletion
 

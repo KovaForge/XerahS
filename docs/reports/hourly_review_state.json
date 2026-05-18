@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-18 13:04 AWST",
+  "last_updated": "2026-05-18 16:34 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,9 +11,9 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Capture pipeline (re-review)",
-    "Platform-specific services (follow-up: AppleScript file-list edge cases, Linux/Windows clipboard parity)",
-    "Indexer subsystem (follow-up: output file collision warning)"
+    "OCR (follow-up: selected-language collection replacement, platform OCR language refresh display-name edge cases)",
+    "Uploader core / plugin routing (follow-up: default-instance resolution when unavailable)",
+    "MCP server (large-file thumbnail reads, URI construction robustness)"
   ],
   "areas": [
     {
@@ -106,11 +106,11 @@
     },
     {
       "area": "Settings/configuration",
-      "last_reviewed": "2026-05-13 14:42 AWST",
+      "last_reviewed": "2026-05-18 16:34 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed settings load fallback to read the latest matching JSON entry from monthly backup ZIPs created by SettingsBase when the primary settings file is corrupt or missing; bumped version 0.23.3 -> 0.23.4.",
-      "follow_up": "Continue settings review around async save completion semantics and custom config backup retention."
+      "last_outcome": "Fixed backup retention by adding BackupRetentionDays property (default 90 days) and PruneOldBackups method that removes month folders older than the retention cutoff after successful saves; added 6 regression tests; bumped version 0.23.44 -> 0.23.45.",
+      "follow_up": "Continue settings review around async save completion semantics (fire-and-forget save patterns) and custom config backup archive compression/storage overhead."
     },
     {
       "area": "CLI / command surface",
