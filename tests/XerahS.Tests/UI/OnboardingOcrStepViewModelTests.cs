@@ -80,6 +80,22 @@ public sealed class OnboardingOcrStepViewModelTests
     }
 
     [Test]
+    public void ReplacingSelectedLanguages_WithNullCollection_RecreatesFallbackSelection()
+    {
+        OcrStepViewModel viewModel = new();
+        ObservableCollection<string> previousSelection = viewModel.SelectedLanguages;
+
+        viewModel.SelectedLanguages = null!;
+        previousSelection.Clear();
+
+        Assert.That(viewModel.SelectedLanguages, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguages, Is.EqualTo(new[] { "en" }));
+        Assert.That(viewModel.AvailableLanguages.Single(language => language.LanguageTag == "en").IsSelected, Is.True);
+        Assert.That(viewModel.IsValid, Is.True);
+        Assert.That(viewModel.HasValidationError, Is.False);
+    }
+
+    [Test]
     public void MutatingSelectedLanguages_NormalizesCollection_AndSyncsOptions()
     {
         OcrStepViewModel viewModel = new();

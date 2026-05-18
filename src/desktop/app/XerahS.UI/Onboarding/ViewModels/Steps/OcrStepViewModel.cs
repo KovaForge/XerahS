@@ -240,12 +240,22 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     partial void OnSelectedLanguagesChanged(ObservableCollection<string> value)
     {
-        SubscribeSelectedLanguages(value);
+        if (value is null)
+        {
+            SubscribeSelectedLanguages(null);
+            _selectedLanguages = new ObservableCollection<string>();
+            SubscribeSelectedLanguages(_selectedLanguages);
+        }
+        else
+        {
+            SubscribeSelectedLanguages(value);
+        }
+
         SyncOptionsFromSelectedLanguages();
         UpdateValidationState();
     }
 
-    private void SubscribeSelectedLanguages(ObservableCollection<string> value)
+    private void SubscribeSelectedLanguages(ObservableCollection<string>? value)
     {
         if (ReferenceEquals(_subscribedSelectedLanguages, value))
         {
@@ -258,7 +268,10 @@ public partial class OcrStepViewModel : StepViewModelBase
         }
 
         _subscribedSelectedLanguages = value;
-        value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        if (value != null)
+        {
+            value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        }
     }
 
     private void SelectedLanguages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
