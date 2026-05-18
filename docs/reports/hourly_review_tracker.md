@@ -1294,3 +1294,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version bump: 0.23.42 -> 0.23.43
 - Commit: bd63b227
 - Follow-up: Continue indexer review around output file collision warning.
+
+
+### 2026-05-18 13:04 AWST - Platform-specific services / macOS clipboard file-list path whitespace
+
+- Area: Platform-specific services
+- Files: `src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs`, `tests/XerahS.Tests/Platform/MacOS/MacOSClipboardServiceTests.cs`, `Directory.Build.props`
+- Findings: macOS `BuildPosixFileList` normalized paths after `Trim()`, which silently changed legitimate filenames with leading/trailing whitespace before putting file lists on the clipboard. Fixed it to preserve the exact non-blank path while still skipping blank/invalid entries, added regression coverage, and bumped version `0.23.43` -> `0.23.44`.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; tests 952 + 24 = 976 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260518-125831.log`, `/tmp/xerahs-hourly-sweep/test-20260518-125831.log`
+- Commit: `8d74190b`
+- Follow-up: Continue platform-specific review around macOS clipboard helper error surfacing and Linux/Windows clipboard file-list parity.

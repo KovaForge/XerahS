@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-18 12:34 AWST",
+  "last_updated": "2026-05-18 13:04 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -74,11 +74,11 @@
     },
     {
       "area": "Platform-specific services",
-      "last_reviewed": "2026-05-14 14:53 AWST",
+      "last_reviewed": "2026-05-18 13:04 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed macOS clipboard pbpaste/pbcopy stderr drain and Linux clipboard/monitor unreachable stderr redirect; bumped version 0.23.19 -> 0.23.20.",
-      "follow_up": "Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity."
+      "last_outcome": "Fixed macOS clipboard BuildPosixFileList to preserve significant leading/trailing filename whitespace instead of trimming non-blank paths before Path.GetFullPath; added regression coverage; bumped version 0.23.43 -> 0.23.44.",
+      "follow_up": "Continue platform-specific review around macOS clipboard helper error surfacing and Linux/Windows clipboard file-list parity."
     },
     {
       "area": "Uploader core / plugin routing",
@@ -178,6 +178,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-18 13:04 AWST",
+      "area": "Platform-specific services \u2014 macOS clipboard file-list path whitespace",
+      "files": [
+        "src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs",
+        "tests/XerahS.Tests/Platform/MacOS/MacOSClipboardServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed macOS clipboard file-list AppleScript path generation to preserve significant filename whitespace while still skipping blank/invalid paths; added regression coverage; bumped version 0.23.43 -> 0.23.44.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-125831.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-125831.log",
+      "result": "build 0 warnings/0 errors; tests 952+24=976 passed, 0 failed, 1 skipped",
+      "commit": "8d74190b"
+    },
     {
       "timestamp": "2026-05-18 12:34 AWST",
       "area": "Indexer subsystem \u2014 CountIndexedContents DirectoryInfo ctor outside try-catch",
