@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-18 20:34 AWST",
+  "last_updated": "2026-05-18 21:26 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,7 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "OCR (follow-up: selected-language collection null-guard in SubscribeSelectedLanguages)",
+    "OCR (follow-up: OCR service error surfacing during language refresh and tool/onboarding language-selection parity)",
     "Uploader core / plugin routing (follow-up: default-instance resolution when unavailable)",
     "MCP server (large-file thumbnail reads, URI construction robustness)"
   ],
@@ -122,11 +122,11 @@
     },
     {
       "area": "OCR",
-      "last_reviewed": "2026-05-18 20:34 AWST",
+      "last_reviewed": "2026-05-18 21:26 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed OcrViewModel.LoadAvailableLanguages to normalize platform language tags (trim, dedup case-insensitively, skip blank) and display names (trim, fallback to tag) before populating the language dropdown, matching the normalization already present in the onboarding OCR step; added regression test; bumped version 0.23.46 -> 0.23.47.",
-      "follow_up": "Continue OCR review around selected-language collection null-guard in SubscribeSelectedLanguages."
+      "last_outcome": "Fixed OcrStepViewModel SelectedLanguages null assignment crash by recreating a fallback collection, accepting nullable subscription targets, unsubscribing the old collection, and syncing back to default English; added regression coverage; bumped version 0.23.47 -> 0.23.48.",
+      "follow_up": "Continue OCR review around OCR service error surfacing during language refresh and tool/onboarding language-selection parity."
     },
     {
       "area": "Tests / test discoverability",
@@ -178,6 +178,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-18 21:26 AWST",
+      "area": "OCR — onboarding selected-language null guard",
+      "files": [
+        "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
+        "tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed OcrStepViewModel SelectedLanguages null assignment crash by recreating a fallback collection, accepting nullable subscription targets, unsubscribing the old collection, and syncing back to default English; added regression coverage; bumped version 0.23.47 -> 0.23.48.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-212056.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-212056.log",
+      "result": "build 0 warnings/0 errors; tests 960+26=986 passed, 0 failed, 1 skipped",
+      "commit": "d012848d"
+    },
     {
       "timestamp": "2026-05-18 20:34 AWST",
       "area": "OCR — tool UI language loader normalization",

@@ -1337,3 +1337,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Version bump: 0.23.46 -> 0.23.47
 - Commit: `be5df01f`
 - Follow-up: Continue OCR review around selected-language collection null-guard in SubscribeSelectedLanguages.
+
+### 2026-05-18 21:26 AWST - OCR — onboarding selected-language null guard
+
+- Area: OCR
+- Files: `src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs`, `tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs`, `Directory.Build.props`
+- Findings: `OnSelectedLanguagesChanged` and `SubscribeSelectedLanguages` assumed the generated `SelectedLanguages` collection could never be null. A null assignment from binding/deserialization/test code left the backing collection null and crashed during subscription/sync. Fixed by accepting a nullable collection in the subscription helper, unsubscribing the old collection, recreating a fallback empty collection when the property is set to null, and syncing back to the default English selection. Added regression coverage that verifies the old collection is unsubscribed and validation remains healthy. Bumped version `0.23.47` -> `0.23.48`.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed: XerahS.Tests 960 passed, 0 failed, 1 skipped; XerahS.McpServer.Tests 26 passed, 0 failed. Logs: /tmp/xerahs-hourly-sweep/build-20260518-212056.log, /tmp/xerahs-hourly-sweep/test-20260518-212056.log
+- Commit: `d012848d`
+- Follow-up: Continue OCR review around OCR service error surfacing during language refresh and tool/onboarding language-selection parity.
