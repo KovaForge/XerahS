@@ -4,6 +4,17 @@ Purpose: compact human-readable companion to `docs/reports/hourly_review_state.j
 
 Use `hourly_review_state.json` as the hot machine-readable source. The full historical ledger was preserved at `docs/reports/archive/hourly_review_tracker_2026-04-30.md`.
 
+### 2026-05-19 00:58 AWST - Uploader core / plugin routing — GetDefaultInstance destructive side-effect in read-only callers
+
+- Area: Uploader core / plugin routing
+- Files: src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs, src/desktop/app/XerahS.UI/Services/DestinationConfigExportService.cs, src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs, tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs
+- Findings: `GetDefaultInstance` had a destructive side-effect (removing stale default mappings + saving config) when the default instance was unavailable. Two informational/read-only callers — `DestinationConfigExportService.BuildPayload` (computing `IsDefault` for .xsdc export) and `XerahSMcpRuntime` (computing `is_default` for destination listing) — were calling `GetDefaultInstance` purely to check default status, inadvertently cleaning stale mappings during read operations.
+- Fix: Added non-mutating `IsDefaultInstance(UploaderCategory, string)` method to `InstanceManager` that performs a pure read of `_configuration.DefaultInstances`. Updated both callers to use it. Added 2 regression tests verifying `IsDefaultInstance` correctness and non-mutation guarantee.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; tests 962+26=988 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260519-005434.log /tmp/xerahs-hourly-sweep/test-full-20260519-005858.log
+- Commit: <pending>
+- Follow-up: Continue uploader routing review around Auto-resolved instance fallback chain when no non-auto instances are available in the category.
+
 ## Rules
 
 - Read `docs/reports/hourly_review_state.json` first; use this file only for quick human context.

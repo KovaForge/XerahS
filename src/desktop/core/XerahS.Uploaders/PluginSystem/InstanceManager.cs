@@ -325,6 +325,19 @@ public class InstanceManager
         }
     }
 
+    /// <summary>
+    /// Check whether an instance ID is the current default for a category.
+    /// This is a pure read and does NOT clean stale mappings (unlike GetDefaultInstance).
+    /// </summary>
+    public bool IsDefaultInstance(UploaderCategory category, string instanceId)
+    {
+        lock (_lock)
+        {
+            return _configuration.DefaultInstances.TryGetValue(category, out var defaultId) &&
+                   InstanceIdsEqual(defaultId, instanceId);
+        }
+    }
+
     public static bool IsAutoProvider(string? providerId)
     {
         return string.Equals(providerId, ProviderIds.Auto, StringComparison.OrdinalIgnoreCase);

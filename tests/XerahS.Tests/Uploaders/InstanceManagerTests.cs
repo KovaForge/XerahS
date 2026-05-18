@@ -445,6 +445,49 @@ public class InstanceManagerTests
         Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
     }
 
+    [Test]
+    public void IsDefaultInstance_ReturnsTrueWhenDefault()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Test Default",
+            SettingsJson = "{}",
+            IsAvailable = true
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, instance.InstanceId), Is.True);
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.File, instance.InstanceId), Is.False);
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, "nonexistent"), Is.False);
+    }
+
+    [Test]
+    public void IsDefaultInstance_DoesNotCleanStaleMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "No Clean",
+            SettingsJson = "{}",
+            IsAvailable = false
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        // IsDefaultInstance should report true even for unavailable instances (it's informational)
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, instance.InstanceId), Is.True);
+
+        // It should NOT have cleaned the mapping (unlike GetDefaultInstance)
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null,
+            "GetDefaultInstance still cleans stale mappings (expected)");
+    }
+
     private static void ClearInstances()
     {
         foreach (var instance in InstanceManager.Instance.GetInstances().ToList())

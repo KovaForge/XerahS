@@ -1178,7 +1178,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                 ["name"] = instance.DisplayName,
                 ["category"] = instance.Category.ToString().ToLowerInvariant(),
                 ["is_available"] = instance.IsAvailable,
-                ["is_default"] = manager.GetDefaultInstance(instance.Category)?.InstanceId == instance.InstanceId
+                ["is_default"] = manager.IsDefaultInstance(instance.Category, instance.InstanceId)
             })
             .Cast<JsonNode>()
             .ToArray();
