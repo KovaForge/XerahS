@@ -385,7 +385,7 @@ namespace XerahS.Platform.MacOS
                 string fullPath;
                 try
                 {
-                    fullPath = Path.GetFullPath(file.Trim());
+                    fullPath = Path.GetFullPath(file);
                 }
                 catch
                 {
