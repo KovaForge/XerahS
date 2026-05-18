@@ -284,6 +284,51 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public void RuntimeFileUrl_PreservesLeadingAndTrailingFilePathWhitespace()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-uri-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string path = Path.Combine(directory, " capture trailing space .png ");
+            File.WriteAllText(path, "source");
+            string expected = new Uri(Path.GetFullPath(path)).AbsoluteUri;
+
+            Assert.Equal(expected, XerahSMcpRuntime.CreateFileUrl(path));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RuntimeHistoryBlobPath_PreservesThumbnailPathWhitespace()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-history-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string sourcePath = Path.Combine(directory, "source.png");
+            string thumbnailPath = Path.Combine(directory, " thumb with space .png ");
+            File.WriteAllText(sourcePath, "source");
+            File.WriteAllText(thumbnailPath, "thumb");
+
+            var item = new HistoryItem
+            {
+                FilePath = sourcePath,
+                ThumbnailURL = thumbnailPath
+            };
+
+            Assert.Equal(thumbnailPath, XerahSMcpRuntime.ResolveHistoryBlobPath(item));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RuntimeHistoryBlobResourceUri_UsesInvariantHistoryId()
     {
         var item = new HistoryItem

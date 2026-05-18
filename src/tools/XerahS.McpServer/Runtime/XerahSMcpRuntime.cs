@@ -1016,6 +1016,19 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             return false;
         }
 
+        try
+        {
+            if (Path.IsPathRooted(value))
+            {
+                path = Path.GetFullPath(value);
+                return true;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+
         var trimmed = value.Trim();
         if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
         {
@@ -1030,7 +1043,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 
         try
         {
-            path = Path.GetFullPath(trimmed);
+            path = Path.GetFullPath(value);
             return true;
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
