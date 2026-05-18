@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-18 04:40 AWST",
+  "last_updated": "2026-05-18 08:42 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,9 +11,9 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Media subsystem (follow-up: thumbnailer oversized-output dimension overflow guards)",
-    "Assistant local memory/privacy/history (follow-up: OCR index pruning/retention)",
-    "Capture pipeline (re-review)"
+    "Capture pipeline (re-review)",
+    "Indexer subsystem (follow-up: output file collision warning, DirectoryNotFoundException at constructor)",
+    "Platform-specific services (follow-up: AppleScript file-list edge cases, Linux/Windows clipboard parity)"
   ],
   "areas": [
     {
@@ -42,11 +42,11 @@
     },
     {
       "area": "Assistant local memory/privacy/history",
-      "last_reviewed": "2026-05-17 17:02 AWST",
-      "status": "clean",
+      "last_reviewed": "2026-05-18 08:42 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Pivot review: symlink-equivalent history path handling is already covered by HistoryManagerSQLite comparable-path logic (full path plus ResolveLinkTarget) and deleted-file OCR search leakage was already fixed by existing File.Exists guards. No assistant-local fix needed this pass.",
-      "follow_up": "Continue assistant review around explicit OCR index pruning/retention for orphaned rows and privacy/status count semantics."
+      "last_outcome": "Fixed HistoryManagerSQLite.Delete to also remove HistoryOcrIndex rows, ensuring the OCR index table exists before cleanup so deletes also no-op safely when OCR has never run; added regression coverage; bumped version 0.23.40 -> 0.23.42.",
+      "follow_up": "Continue assistant review around OCR index status-count semantics and periodic pruning of stale status rows."
     },
     {
       "area": "Notifications/toasts",
@@ -93,7 +93,7 @@
       "last_reviewed": "2026-05-16 07:00 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. Package entry canonicalization rejects rooted, backslash, \".\", \"..\", empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
+      "last_outcome": "Clean review — no fixable bugs found. Package entry canonicalization rejects rooted, backslash, \".\", \"..\", empty segments. Both validation and extraction detect duplicate entry paths and file/directory collisions with case-insensitive comparison. Load-context unload flow correctly calls AssemblyLoadContext.Unload() + ForceUnloadCollection(); double-unload is idempotent. Minor note: orphaned _quarantine directories are never pruned (disk accumulation concern, not correctness).",
       "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and orphaned quarantine directory cleanup."
     },
     {
@@ -157,7 +157,7 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     },
     {
@@ -179,8 +179,23 @@
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-18 08:42 AWST",
+      "area": "Assistant local memory/privacy/history — OCR index row cleanup on history item deletion",
+      "files": [
+        "src/desktop/core/XerahS.History/HistoryManagerSQLite.cs",
+        "src/desktop/core/XerahS.History/HistoryOcrIndexStore.cs",
+        "tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed HistoryManagerSQLite.Delete to also remove HistoryOcrIndex rows within the same transaction and share the OCR schema ensure helper so deletion no-ops safely when OCR has never run; added 3 regression tests; bumped version 0.23.40 -> 0.23.42.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260518-084200-v2342.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260518-084200-v2342.log",
+      "result": "build 0 warnings/0 errors; tests 949 + 24 = 973 passed, 0 failed, 1 skipped",
+      "commit": "8d04e49b + d653646d"
+    },
+    {
       "timestamp": "2026-05-18 04:49 AWST",
-      "area": "Media subsystem \u2014 CombineScreenshots dimension overflow guards",
+      "area": "Media subsystem — CombineScreenshots dimension overflow guards",
       "files": [
         "src/desktop/core/XerahS.Media/VideoThumbnailOptions.cs",
         "src/desktop/core/XerahS.Media/VideoThumbnailer.cs",
@@ -195,7 +210,7 @@
     },
     {
       "timestamp": "2026-05-18 04:33 AWST",
-      "area": "Editor integration \u2014 sidecar save UnauthorizedAccessException re-throw",
+      "area": "Editor integration — sidecar save UnauthorizedAccessException re-throw",
       "files": [
         "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
         "Directory.Build.props"
@@ -208,7 +223,7 @@
     },
     {
       "timestamp": "2026-05-18 04:40 AWST",
-      "area": "File/path handling \u2014 BackupFileWeekly TOCTOU IOException handling",
+      "area": "File/path handling — BackupFileWeekly TOCTOU IOException handling",
       "files": [
         "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
         "src/desktop/core/XerahS.Common/Properties/AssemblyInfo.cs",
@@ -223,7 +238,7 @@
     },
     {
       "timestamp": "2026-05-18 00:45 AWST",
-      "area": "Editor integration \u2014 SaveToPathAsync image vs sidecar error distinction",
+      "area": "Editor integration — SaveToPathAsync image vs sidecar error distinction",
       "files": [
         "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
         "Directory.Build.props"
@@ -236,7 +251,7 @@
     },
     {
       "timestamp": "2026-05-18 00:31 AWST",
-      "area": "Media subsystem \u2014 FFmpeg concat list apostrophe escaping",
+      "area": "Media subsystem — FFmpeg concat list apostrophe escaping",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -250,7 +265,7 @@
     },
     {
       "timestamp": "2026-05-17 20:33 AWST",
-      "area": "Notifications/toasts \u2014 OnMenuClosed fade not resuming when duration not elapsed",
+      "area": "Notifications/toasts — OnMenuClosed fade not resuming when duration not elapsed",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -264,7 +279,7 @@
     },
     {
       "timestamp": "2026-05-17 20:12 AWST",
-      "area": "Media subsystem \u2014 FFmpeg video probe path quoting",
+      "area": "Media subsystem — FFmpeg video probe path quoting",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -294,7 +309,7 @@
     },
     {
       "timestamp": "2026-05-17 16:34 AWST",
-      "area": "Capture pipeline \u2014 DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
+      "area": "Capture pipeline — DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
       "files": [
         "src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs",
         "src/desktop/core/XerahS.Common/BitmapRotationHelper.cs",
@@ -303,7 +318,7 @@
         "src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs",
         "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs"
       ],
-      "summary": "Clean re-review \u2014 no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
+      "summary": "Clean re-review — no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-163428.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-163428.log",
       "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped",
@@ -311,7 +326,7 @@
     },
     {
       "timestamp": "2026-05-17 13:53 AWST",
-      "area": "Media subsystem \u2014 FFmpeg forced close process-tree kill",
+      "area": "Media subsystem — FFmpeg forced close process-tree kill",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -325,7 +340,7 @@
     },
     {
       "timestamp": "2026-05-17 12:33 AWST",
-      "area": "Notifications/toasts \u2014 ToastWindow multi-monitor position correction",
+      "area": "Notifications/toasts — ToastWindow multi-monitor position correction",
       "files": [
         "src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs",
         "Directory.Build.props"
@@ -338,7 +353,7 @@
     },
     {
       "timestamp": "2026-05-17 10:44 AWST",
-      "area": "Notifications/toasts \u2014 terminal fade opacity reaches zero before close",
+      "area": "Notifications/toasts — terminal fade opacity reaches zero before close",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -352,7 +367,7 @@
     },
     {
       "timestamp": "2026-05-17 07:36 AWST",
-      "area": "Assistant local memory/privacy/history \u2014 stale deleted-file OCR search results",
+      "area": "Assistant local memory/privacy/history — stale deleted-file OCR search results",
       "files": [
         "src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs",
         "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs",
