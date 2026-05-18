@@ -1325,3 +1325,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Release build succeeded with 0 warnings/0 errors; tests passed (`XerahS.Tests`: 958 passed, 0 failed, 1 skipped; `XerahS.McpServer.Tests`: 26 passed, 0 failed). Logs: `/tmp/xerahs-hourly-sweep/build-20260518-170726-retry.log`, `/tmp/xerahs-hourly-sweep/test-20260518-170726-retry.log`.
 - Commit: `a3e40a3a`
 - Follow-up: Continue MCP review around malformed percent-encoding in resource query parsing and large inline blob error ergonomics.
+
+### 2026-05-18 20:34 AWST - OCR — tool UI language loader normalization
+
+- Area: OCR
+- Files: `src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs`, `tests/XerahS.Tests/Tools/OcrViewModelTests.cs`, `Directory.Build.props`
+- Findings: `OcrViewModel.LoadAvailableLanguages()` passed platform language data straight to `AvailableLanguages` without trimming language tags, deduplicating case-insensitive duplicates, or normalizing display names. This meant untrimmed whitespace or empty display names from the platform could produce misleading dropdown entries or duplicate entries. The onboarding OCR step (`OcrStepViewModel.RefreshAvailableLanguagesAsync`) already had these normalizations, but the tool UI path didn't.
+- Status: Fixed
+- Fix: Added `NormalizeDisplayName` and language-tag trimming/dedup to `OcrViewModel.LoadAvailableLanguages()` — trims tags, skips blank tags, deduplicates case-insensitively, and falls back to the language tag when the display name is null or whitespace-only. Added regression test with messy platform data.
+- Build/test: Build 0 warnings/0 errors; tests 959+26=985 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260518-203451.log`, `/tmp/xerahs-hourly-sweep/test-20260518-203451.log`
+- Version bump: 0.23.46 -> 0.23.47
+- Commit: `be5df01f`
+- Follow-up: Continue OCR review around selected-language collection null-guard in SubscribeSelectedLanguages.
