@@ -233,12 +233,12 @@ public static class IndexCommand
         return resolvedOutputPath;
     }
 
-    private static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings)
+    internal static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings)
     {
         return CountIndexedContents(folderPath, settings, 0);
     }
 
-    private static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings, int level)
+    internal static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings, int level)
     {
         long totalFiles = 0;
         long totalFolders = 1;
@@ -249,10 +249,9 @@ public static class IndexCommand
             return (totalFiles, totalFolders, totalBytes);
         }
 
-        var directoryInfo = new DirectoryInfo(folderPath);
-
         try
         {
+            var directoryInfo = new DirectoryInfo(folderPath);
             foreach (DirectoryInfo subdirectory in directoryInfo.EnumerateDirectories())
             {
                 if (settings.SkipHiddenFolders && subdirectory.Attributes.HasFlag(FileAttributes.Hidden))
@@ -301,6 +300,18 @@ public static class IndexCommand
         catch (PathTooLongException)
         {
             // Skip paths exceeding system limits
+        }
+        catch (ArgumentException)
+        {
+            // Invalid path characters — best-effort count
+        }
+        catch (NotSupportedException)
+        {
+            // Path format not supported (e.g. colon outside volume identifier)
+        }
+        catch (IOException)
+        {
+            // I/O error (disk error, network share unavailable, etc.) — best-effort count
         }
 
         return (totalFiles, totalFolders, totalBytes);

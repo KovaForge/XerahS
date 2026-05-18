@@ -275,6 +275,37 @@ public class IndexCommandTests
     }
 
     [Test]
+    public void CountIndexedContents_InvalidPathCharacters_ReturnsZeroWithoutThrowing()
+    {
+        var settings = new IndexerSettings();
+
+        var result = IndexCommand.CountIndexedContents("invalid|path?chars", settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TotalFiles, Is.EqualTo(0));
+            Assert.That(result.TotalFolders, Is.EqualTo(1));
+            Assert.That(result.TotalBytes, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void CountIndexedContents_NonexistentDirectory_ReturnsZeroWithoutThrowing()
+    {
+        string nonexistentPath = Path.Combine(Path.GetTempPath(), $"xerahs-index-count-{Guid.NewGuid():N}");
+        var settings = new IndexerSettings();
+
+        var result = IndexCommand.CountIndexedContents(nonexistentPath, settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TotalFiles, Is.EqualTo(0));
+            Assert.That(result.TotalFolders, Is.EqualTo(1));
+            Assert.That(result.TotalBytes, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
     public async Task ExecuteAsync_WithJsonOutput_WritesMachineReadableMetadata()
     {
         string rootDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-index-cli-json-{Guid.NewGuid():N}");
