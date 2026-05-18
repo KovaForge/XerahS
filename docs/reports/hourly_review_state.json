@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-19 04:50 AWST",
+  "last_updated": "2026-05-19 05:47 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -189,11 +189,11 @@
     },
     {
       "area": "Build / project configuration",
-      "last_reviewed": "2026-05-19 04:50 AWST",
-      "status": "analyzed",
+      "last_reviewed": "2026-05-19 05:47 AWST",
+      "status": "fixed",
       "priority": "Low",
-      "last_outcome": "TFM false alarm: Common & Platform.Abstractions are cross-platform libs referenced by many projects — net10.0 is correct (only Platform.Windows targets net10.0-windows10.0.26100.0 conditionally). .user props override deferred: still valid low-priority finding, needs import reorder.",
-      "follow_up": "Reorder .user import in Directory.Build.props before Version/TreatWarningsAsErrors to prevent accidental overrides."
+      "last_outcome": "Fixed Directory.Build.props import order so local Directory.Build.props.user is loaded before repository release guardrails; Version and TreatWarningsAsErrors now override local user props. Added regression coverage; bumped version 0.23.51 -> 0.23.52.",
+      "follow_up": "Continue editor integration / annotation review around awaitable RegionCaptureAnnotationOptionsStore persistence, or upload drag-drop OS file collection normalization."
     },
     {
       "area": "Editor integration / annotation",
@@ -215,6 +215,19 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-19 05:47 AWST",
+      "area": "Build / project configuration — user props release guardrails",
+      "files": [
+        "Directory.Build.props",
+        "tests/XerahS.Tests/Helpers/TestProjectBuildPropertiesTests.cs"
+      ],
+      "summary": "Fixed Directory.Build.props import order so repo release guardrails override local Directory.Build.props.user values; added regression coverage; bumped version 0.23.51 -> 0.23.52.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260519-054218.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260519-054218.log",
+      "result": "build 0 warnings/0 errors; tests 969+26=995 passed, 0 failed, 1 skipped",
+      "commit": "0bbaa3b8"
+    },
     {
       "timestamp": "2026-05-19 04:50 AWST",
       "area": "Scrolling capture / workflow — CurrentCapture guard on window close",

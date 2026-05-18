@@ -1391,3 +1391,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: `dotnet build` succeeded with 0 warnings/0 errors; `dotnet test` passed 965 XerahS tests + 26 MCP tests (0 failed, 1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260519-013523.log`, `/tmp/xerahs-hourly-sweep/test-20260519-013523.log`.
 - Commit: `01251cc8`
 - Follow-up: Continue OCR review around tool/onboarding language-selection parity and OCR recognition error message consistency.
+
+### 2026-05-19 05:47 AWST - Build / project configuration — user props release guardrails
+
+- Area: Build / project configuration
+- Files: Directory.Build.props; tests/XerahS.Tests/Helpers/TestProjectBuildPropertiesTests.cs
+- Findings: Fixed Directory.Build.props import order so local Directory.Build.props.user is loaded before repository release guardrails; Version and TreatWarningsAsErrors now win over local overrides. Added regression coverage that asserts the user import remains before the release guardrail property group.
+- Status: Fixed; bumped version `0.23.51` -> `0.23.52`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed 969 + 26, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260519-054218.log; /tmp/xerahs-hourly-sweep/test-20260519-054218.log
+- Commit: 0bbaa3b8
+- Follow-up: Continue editor integration / annotation review around awaitable RegionCaptureAnnotationOptionsStore persistence, or upload drag-drop OS file collection normalization.
