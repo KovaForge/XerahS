@@ -1282,3 +1282,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded (0 warnings/0 errors); tests passed (`XerahS.Tests` 946 passed, 1 skipped; `XerahS.McpServer.Tests` 24 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260518-044942-2.log`, `/tmp/xerahs-hourly-sweep/test-20260518-044942.log`
 - Commit: `4fba4e73`
 - Follow-up: Continue media review around remaining FFmpeg argument construction sites and thumbnailer edge case handling.
+
+### 2026-05-18 12:34 AWST - Indexer subsystem / CountIndexedContents DirectoryInfo ctor outside try-catch
+
+- Area: Indexer subsystem
+- Files: `src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs`, `tests/XerahS.Tests/Tools/IndexCommandTests.cs`, `Directory.Build.props`
+- Findings: CountIndexedContents constructed `new DirectoryInfo(folderPath)` outside the try-catch block, so exceptions from the DirectoryInfo constructor (ArgumentException for invalid path characters, NotSupportedException for unsupported path format, SecurityException on older frameworks) would crash the entire index count instead of being caught as best-effort.
+- Status: Fixed
+- Fix: Moved `new DirectoryInfo(folderPath)` inside the existing try block; added ArgumentException, NotSupportedException, and IOException catches alongside existing UnauthorizedAccessException, DirectoryNotFoundException, PathTooLongException catches. Made CountIndexedContents overloads internal for test access.
+- Build/test: Build 0 warnings/0 errors; tests 951+24=975 passed, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260518-123448.log, /tmp/xerahs-hourly-sweep/test-20260518-123448.log
+- Version bump: 0.23.42 -> 0.23.43
+- Commit: bd63b227
+- Follow-up: Continue indexer review around output file collision warning.
