@@ -28,6 +28,7 @@ using System.Text.Json;
 using Newtonsoft.Json;
 using XerahS.Bootstrap;
 using XerahS.Common;
+using XerahS.Common.Utilities;
 using XerahS.Core;
 using XerahS.Core.Tasks;
 using XerahS.Core.Tasks.Processors;
@@ -109,6 +110,7 @@ public static class UploadCommand
         var jsonOption = new Option<bool>("--json") { Description = "Output JSON result to stdout" };
         var quietOption = new Option<bool>("--quiet") { Description = "Suppress console output except for the URL or errors" };
         var asFileOption = new Option<bool>("--as-file") { Description = "Force file uploader routing even for text-like files such as .html, .md, or .txt" };
+        var noRandomizeOption = new Option<bool>("--no-randomize") { Description = "Disable the default random alphanumeric suffix on the uploaded filename" };
 
         uploadCommand.Add(filePathArgument);
         uploadCommand.Add(textOption);
@@ -117,6 +119,7 @@ public static class UploadCommand
         uploadCommand.Add(jsonOption);
         uploadCommand.Add(quietOption);
         uploadCommand.Add(asFileOption);
+        uploadCommand.Add(noRandomizeOption);
 
         uploadCommand.SetAction(parseResult =>
         {
@@ -128,14 +131,16 @@ public static class UploadCommand
             var pipe = parseResult.GetValue(pipeOption);
             var name = parseResult.GetValue(nameOption);
             var asFile = parseResult.GetValue(asFileOption);
+            var noRandomize = parseResult.GetValue(noRandomizeOption);
+            var randomize = !noRandomize;
 
-            Environment.ExitCode = UploadAsync(taskManager, filePath, text, pipe, name, asFile).GetAwaiter().GetResult();
+            Environment.ExitCode = UploadAsync(taskManager, filePath, text, pipe, name, asFile, randomize).GetAwaiter().GetResult();
         });
 
         return uploadCommand;
     }
 
-    private static async Task<int> UploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name, bool asFile)
+    private static async Task<int> UploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name, bool asFile, bool randomize)
     {
         string? tempFilePath = null;
         var tempDirectories = new List<string>();
@@ -197,6 +202,23 @@ public static class UploadCommand
                 displayName = !string.IsNullOrEmpty(name)
                     ? SanitizeUploadFileName(name, Path.GetFileName(filePath))
                     : Path.GetFileName(filePath);
+
+                // Append random suffix to avoid CDN caching, matching UI's %ra{10} behavior.
+                if (randomize)
+                {
+                    var ext = Path.GetExtension(displayName);
+                    var baseName = Path.GetFileNameWithoutExtension(displayName);
+                    var randomSuffix = RandomGenerator.GetRandomAlphanumericString(10);
+                    displayName = $"{baseName}-{randomSuffix}{ext}";
+
+                    // Always copy to a temp file with the suffixed name so the uploader
+                    // sees the correct filename (uploaders use Path.GetFileName of the file path).
+                    var suffixedDir = CreateTemporaryUploadDirectory();
+                    tempDirectories.Add(suffixedDir);
+                    var suffixedPath = Path.Combine(suffixedDir, displayName);
+                    File.Copy(filePath, suffixedPath, overwrite: true);
+                    filePath = suffixedPath;
+                }
 
                 if (!File.Exists(filePath))
                 {
