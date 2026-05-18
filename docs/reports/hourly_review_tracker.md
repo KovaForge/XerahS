@@ -4,6 +4,17 @@ Purpose: compact human-readable companion to `docs/reports/hourly_review_state.j
 
 Use `hourly_review_state.json` as the hot machine-readable source. The full historical ledger was preserved at `docs/reports/archive/hourly_review_tracker_2026-04-30.md`.
 
+### 2026-05-19 04:50 AWST - Scrolling capture / workflow — CurrentCapture guard on window close
+
+- Area: Scrolling capture / workflow
+- Files: src/desktop/app/XerahS.UI/Services/ScrollingCaptureToolService.cs, tests/XerahS.Tests/Services/ScrollingCaptureToolServiceTests.cs
+- Findings: Every window's Closed handler unconditionally set CurrentCapture = null. When multiple scrolling capture windows were open, closing the oldest window cleared CurrentCapture even though a newer window was still active, breaking StopCurrentCapture and workflow orchestrator checks.
+- Fix: Wrapped the null assignment in a ReferenceEquals guard so only the window that owns the current capture clears it. Added 3 regression tests.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; tests 968+26=994 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260519-043435.log /tmp/xerahs-hourly-sweep/test-20260519-043435.log
+- Commit: ff788638
+- Follow-up: Continue scrolling capture review around multi-window lifecycle and StopCurrentCapture in concurrent scenarios.
+
 ### 2026-05-19 00:58 AWST - Uploader core / plugin routing — GetDefaultInstance destructive side-effect in read-only callers
 
 - Area: Uploader core / plugin routing

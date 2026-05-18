@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-19 01:39 AWST",
+  "last_updated": "2026-05-19 04:50 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,9 +11,7 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Scrolling capture / workflow — static Capture lost on window close (clawpatch medium bug)",
-    "Build / project configuration — wrong TFM in Common + Platform.Abstractions (clawpatch medium)",
-    "Build / project configuration — .user props override release settings (clawpatch low)",
+    "Build / project configuration — .user props override release settings (clawpatch low, analyzed)",
     "Editor integration / annotation — fire-and-forget Persist (clawpatch low)",
     "UI / upload drag-drop — ignores OS file collection API (clawpatch low)",
     "OCR (follow-up: OCR service error surfacing during language refresh and tool/onboarding language-selection parity)",
@@ -183,21 +181,19 @@
     },
     {
       "area": "Scrolling capture / workflow",
-      "last_reviewed": "2026-05-18 19:55 AWST",
-      "status": "queued",
+      "last_reviewed": "2026-05-19 04:50 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "source": "clawpatch fnd_sig-feat-library-01694ab3f9-1319_25c72c2f7c",
-      "last_outcome": "Queued: static CurrentCapture cleared when any window closes, losing active capture in multi-window scenarios. ScrollingCaptureToolService.ShowScrollingCaptureWindowAsync overwrites CurrentCapture statically; every window's Closed handler clears it unconditionally.",
-      "follow_up": "Track owning view model/window pair; only clear CurrentCapture when closing window owns the reference, or prevent multiple scrolling capture windows."
+      "last_outcome": "Fixed: wrapped CurrentCapture = null in ReferenceEquals guard so only the owning window clears it. Added 3 regression tests; bumped version 0.23.50 -> 0.23.51.",
+      "follow_up": "Continue scrolling capture review around multi-window lifecycle and StopCurrentCapture in concurrent scenarios."
     },
     {
       "area": "Build / project configuration",
-      "last_reviewed": "2026-05-18 19:55 AWST",
-      "status": "queued",
-      "priority": "Medium",
-      "source": "clawpatch (2 findings: TFM + .user props)",
-      "last_outcome": "Queued: (1) XerahS.Common.csproj and XerahS.Platform.Abstractions.csproj target plain net10.0 instead of required net10.0-windows10.0.26100.0 — build hazard. (2) Directory.Build.props imports user props AFTER canonical properties, allowing .user overrides of Version/TreatWarningsAsErrors.",
-      "follow_up": "Fix TFM in both projects; reorder .user import before locked properties or constrain overrides."
+      "last_reviewed": "2026-05-19 04:50 AWST",
+      "status": "analyzed",
+      "priority": "Low",
+      "last_outcome": "TFM false alarm: Common & Platform.Abstractions are cross-platform libs referenced by many projects — net10.0 is correct (only Platform.Windows targets net10.0-windows10.0.26100.0 conditionally). .user props override deferred: still valid low-priority finding, needs import reorder.",
+      "follow_up": "Reorder .user import in Directory.Build.props before Version/TreatWarningsAsErrors to prevent accidental overrides."
     },
     {
       "area": "Editor integration / annotation",
@@ -219,6 +215,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-19 04:50 AWST",
+      "area": "Scrolling capture / workflow — CurrentCapture guard on window close",
+      "files": [
+        "src/desktop/app/XerahS.UI/Services/ScrollingCaptureToolService.cs",
+        "tests/XerahS.Tests/Services/ScrollingCaptureToolServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed ScrollingCaptureToolService.CurrentCapture unconditional clear when any window closes. Changed Closed handler to guard with ReferenceEquals so only the owning window clears CurrentCapture; added 3 regression tests; analyzed TFM finding as false alarm (cross-platform libs correctly target net10.0); deferred .user props import reorder; bumped version 0.23.50 -> 0.23.51.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260519-043435.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260519-043435.log",
+      "result": "build 0 warnings/0 errors; tests 968+26=994 passed, 0 failed, 1 skipped",
+      "commit": "ff788638"
+    },
     {
       "timestamp": "2026-05-19 01:39 AWST",
       "area": "OCR — language refresh error surfacing",
