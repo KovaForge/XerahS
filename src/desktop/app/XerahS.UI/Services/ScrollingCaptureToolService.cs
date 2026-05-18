@@ -78,7 +78,11 @@ public static class ScrollingCaptureToolService
         };
 
         CurrentCapture = viewModel;
-        window.Closed += (_, _) => CurrentCapture = null;
+        window.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(CurrentCapture, viewModel))
+                CurrentCapture = null;
+        };
 
         // Wire window selection callback
         viewModel.SelectWindowRequested = async () =>
