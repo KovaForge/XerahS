@@ -24,6 +24,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 ## Next Candidates
 
+### Clawpatch Queue (2026-05-18)
+1. **Medium** — Scrolling capture instance lost on window close (`ScrollingCaptureToolService` static `CurrentCapture`)
+2. **Medium** — Wrong TFM in `XerahS.Common.csproj` + `XerahS.Platform.Abstractions.csproj` (plain `net10.0` vs required `net10.0-windows10.0.26100.0`)
+3. **Low** — `.user` props override release-critical settings (`Directory.Build.props` import ordering)
+4. **Low** — Annotation options persistence fire-and-forget (`RegionCaptureAnnotationOptionsStore.Persist`)
+5. **Low** — Upload drag/drop ignores OS file collection API (`UploadContentWindow.OnDrop`)
+
+### Rotating Areas
 - Notifications/toasts
 - Indexer subsystem
 - Assistant local memory/privacy/history (re-review)
@@ -33,7 +41,11 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 ## Current Coverage
 
 | Area | Last Reviewed | Priority | Last Outcome | Follow-up |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
+| Scrolling capture / workflow | 2026-05-18 19:55 AWST | Medium | **QUEUED (clawpatch):** Static `CurrentCapture` cleared when any window closes, losing active capture in multi-window scenarios. | Track owning VM/window pair; only clear when closing window owns the reference. |
+| Build / project configuration | 2026-05-18 19:55 AWST | Medium | **QUEUED (clawpatch):** (1) Common + Platform.Abstractions target plain `net10.0` instead of required `net10.0-windows10.0.26100.0`. (2) `.user` props import after canonical properties, can override Version/TreatWarningsAsErrors. | Fix TFMs; reorder `.user` import or constrain overrides. |
+| Editor integration / annotation | 2026-05-18 19:55 AWST | Low | **QUEUED (clawpatch):** `RegionCaptureAnnotationOptionsStore.Persist` launches async save without awaiting — process exit or concurrent mutation drops option changes. | Make persistence awaitable or serialize through a save queue. |
+| UI / upload drag-drop | 2026-05-18 19:55 AWST | Low | **QUEUED (clawpatch):** `UploadContentWindow.OnDrop` only reads raw `DataFormat.File` items, ignoring OS-backed file collection API. Copy cursor shown but drop adds nothing. | Normalize from file collection first, fall back to raw items. |---|
 | Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
 | OCR | 2026-05-12 12:44 AWST | High | Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270. | Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases. |
 | Settings/configuration | 2026-05-18 16:34 AWST | High | Fixed backup retention by adding BackupRetentionDays property (default 90) and PruneOldBackups method to remove month folders older than retention cutoff after successful saves; bumped version 0.23.44 -> 0.23.45. | Continue settings review around async save completion semantics (fire-and-forget save patterns) and custom config backup archive compression/storage overhead. |

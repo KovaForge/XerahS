@@ -11,6 +11,11 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
+    "Scrolling capture / workflow — static Capture lost on window close (clawpatch medium bug)",
+    "Build / project configuration — wrong TFM in Common + Platform.Abstractions (clawpatch medium)",
+    "Build / project configuration — .user props override release settings (clawpatch low)",
+    "Editor integration / annotation — fire-and-forget Persist (clawpatch low)",
+    "UI / upload drag-drop — ignores OS file collection API (clawpatch low)",
     "OCR (follow-up: OCR service error surfacing during language refresh and tool/onboarding language-selection parity)",
     "Uploader core / plugin routing (follow-up: default-instance resolution when unavailable)",
     "MCP server (large-file thumbnail reads, URI construction robustness)"
@@ -175,6 +180,42 @@
       "priority": "Medium",
       "last_outcome": "Fixed Imgur Client ID normalization before config save, login URL generation, uploader creation, and explorer auth setup.",
       "follow_up": null
+    },
+    {
+      "area": "Scrolling capture / workflow",
+      "last_reviewed": "2026-05-18 19:55 AWST",
+      "status": "queued",
+      "priority": "Medium",
+      "source": "clawpatch fnd_sig-feat-library-01694ab3f9-1319_25c72c2f7c",
+      "last_outcome": "Queued: static CurrentCapture cleared when any window closes, losing active capture in multi-window scenarios. ScrollingCaptureToolService.ShowScrollingCaptureWindowAsync overwrites CurrentCapture statically; every window's Closed handler clears it unconditionally.",
+      "follow_up": "Track owning view model/window pair; only clear CurrentCapture when closing window owns the reference, or prevent multiple scrolling capture windows."
+    },
+    {
+      "area": "Build / project configuration",
+      "last_reviewed": "2026-05-18 19:55 AWST",
+      "status": "queued",
+      "priority": "Medium",
+      "source": "clawpatch (2 findings: TFM + .user props)",
+      "last_outcome": "Queued: (1) XerahS.Common.csproj and XerahS.Platform.Abstractions.csproj target plain net10.0 instead of required net10.0-windows10.0.26100.0 — build hazard. (2) Directory.Build.props imports user props AFTER canonical properties, allowing .user overrides of Version/TreatWarningsAsErrors.",
+      "follow_up": "Fix TFM in both projects; reorder .user import before locked properties or constrain overrides."
+    },
+    {
+      "area": "Editor integration / annotation",
+      "last_reviewed": "2026-05-18 19:55 AWST",
+      "status": "queued",
+      "priority": "Low",
+      "source": "clawpatch fnd_sig-feat-library-01694ab3f9-895a_ba52aa9596",
+      "last_outcome": "Queued: RegionCaptureAnnotationOptionsStore.Persist launches async config save without awaiting; process exit or concurrent mutation can drop option changes silently.",
+      "follow_up": "Make persistence awaitable, return Task<bool>, have callers await from finally blocks; or serialize through a save queue that logs failures."
+    },
+    {
+      "area": "UI / upload drag-drop",
+      "last_reviewed": "2026-05-18 19:55 AWST",
+      "status": "queued",
+      "priority": "Low",
+      "source": "clawpatch fnd_sig-feat-library-01180d6e7d-f619_b74caa0f59",
+      "last_outcome": "Queued: UploadContentWindow.OnDragOver accepts files but OnDrop only reads raw DataFormat.File items, ignoring OS-backed file collection API. User sees copy cursor but drop adds nothing.",
+      "follow_up": "Normalize dropped files from transfer file collection first, then fall back to raw DataFormat.File items."
     }
   ],
   "last_runs": [
