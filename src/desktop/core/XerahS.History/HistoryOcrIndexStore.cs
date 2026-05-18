@@ -274,7 +274,7 @@ public sealed class HistoryOcrIndexStore
         return connection;
     }
 
-    private static void EnsureDatabase(SqliteConnection connection)
+    internal static void EnsureDatabase(SqliteConnection connection)
     {
         using SqliteCommand cmd = connection.CreateCommand();
         cmd.CommandText = """
