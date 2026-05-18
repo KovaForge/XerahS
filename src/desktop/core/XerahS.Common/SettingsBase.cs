@@ -62,6 +62,9 @@ namespace XerahS.Common
         public bool CreateWeeklyBackup { get; set; }
 
         [Browsable(false), JsonIgnore]
+        public int BackupRetentionDays { get; set; } = 90;
+
+        [Browsable(false), JsonIgnore]
         public bool SupportDPAPIEncryption { get; set; }
 
         public bool IsUpgradeFrom(string version)
@@ -228,6 +231,13 @@ namespace XerahS.Common
                         isSuccess = true;
                     }
                 }
+
+                // Prune old backup folders outside the lock to avoid blocking
+                // concurrent save callers on backup cleanup I/O.
+                if (isSuccess)
+                {
+                    PruneOldBackups();
+                }
             }
             catch (Exception e)
             {
@@ -318,6 +328,52 @@ namespace XerahS.Common
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to create backup: {e}");
+            }
+        }
+
+        /// <summary>
+        /// Removes backup month folders older than <see cref="BackupRetentionDays"/> days.
+        /// Does nothing when BackupFolder is not set or BackupRetentionDays is zero or negative.
+        /// </summary>
+        internal void PruneOldBackups()
+        {
+            if (string.IsNullOrEmpty(BackupFolder) || !Directory.Exists(BackupFolder) || BackupRetentionDays <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                DateTime cutoff = DateTime.Now.AddDays(-BackupRetentionDays);
+
+                foreach (string monthDir in Directory.GetDirectories(BackupFolder))
+                {
+                    string dirName = Path.GetFileName(monthDir);
+
+                    // Month folders are named yyyy-MM; parse the first-of-month date.
+                    if (DateTime.TryParseExact(dirName, "yyyy-MM", null,
+                        System.Globalization.DateTimeStyles.AssumeLocal | System.Globalization.DateTimeStyles.AllowWhiteSpaces,
+                        out DateTime dirDate))
+                    {
+                        // Delete only when the entire month is older than the cutoff.
+                        if (dirDate.AddMonths(1) < cutoff)
+                        {
+                            try
+                            {
+                                Directory.Delete(monthDir, recursive: true);
+                                System.Diagnostics.Debug.WriteLine($"Pruned old backup folder: {monthDir}");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Failed to prune backup folder '{monthDir}': {ex.Message}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to prune old backups: {e}");
             }
         }
 
