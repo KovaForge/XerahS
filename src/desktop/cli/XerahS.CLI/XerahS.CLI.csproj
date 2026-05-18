@@ -120,6 +120,29 @@
           SkipUnchangedFiles="true" />
   </Target>
 
+  <!-- Build and copy plugins into the publish output so the deployed CLI has uploader plugins. -->
+  <Target Name="BundlePluginsForPublish" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true'">
+    <Message Text="[CLI Publish] Building and bundling plugins into publish output..." Importance="High" />
+
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
+
+    <PropertyGroup>
+      <_PluginPublishSourceDir>$(RepoRoot)src\desktop\plugins\AmazonS3.Plugin\bin\$(Configuration)\$(TargetFramework)</_PluginPublishSourceDir>
+      <_PluginPublishSourceDir Condition="'$(RuntimeIdentifier)' != ''">$(_PluginPublishSourceDir)\$(RuntimeIdentifier)</_PluginPublishSourceDir>
+      <_PluginPublishSourceDir>$(_PluginPublishSourceDir)\</_PluginPublishSourceDir>
+      <_PluginPublishDestDir>$(PublishDir)Plugins\amazons3\</_PluginPublishDestDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_PluginFilesForPublish Include="$(_PluginPublishSourceDir)*.dll" />
+      <_PluginFilesForPublish Include="$(_PluginPublishSourceDir)plugin.json" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(_PluginPublishDestDir)" Condition="'@(_PluginFilesForPublish)' != ''" />
+    <Copy SourceFiles="@(_PluginFilesForPublish)" DestinationFolder="$(_PluginPublishDestDir)" Condition="'@(_PluginFilesForPublish)' != ''" />
+    <Message Text="[CLI Publish] Copied @(_PluginFilesForPublish->Count()) plugin files to $(_PluginPublishDestDir)" Importance="High" />
+  </Target>
+
   <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
     <PropertyGroup>
       <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>

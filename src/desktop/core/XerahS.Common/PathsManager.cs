@@ -76,13 +76,10 @@ namespace XerahS.Common
 
         private static string GetDocumentsFolder()
         {
-            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            if (!string.IsNullOrWhiteSpace(documents) && Path.IsPathRooted(documents))
-            {
-                return documents;
-            }
-
-            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            // On macOS, the canonical Documents folder is always /Users/{username}/Documents.
+            // Environment.GetFolderPath(SpecialFolder.MyDocuments) can return incorrect
+            // paths under certain hosting environments (launchd agents, sandboxed processes,
+            // custom HOME overrides). Prefer the native macOS path when it exists.
             if (OperatingSystem.IsMacOS())
             {
                 string macOSDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
@@ -91,6 +88,14 @@ namespace XerahS.Common
                     return macOSDocuments;
                 }
             }
+
+            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (!string.IsNullOrWhiteSpace(documents) && Path.IsPathRooted(documents))
+            {
+                return documents;
+            }
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
             string userProfileDocuments = Path.Combine(userProfile ?? string.Empty, "Documents");
             if (!string.IsNullOrWhiteSpace(userProfile) && Path.IsPathRooted(userProfileDocuments))
