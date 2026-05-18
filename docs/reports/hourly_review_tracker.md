@@ -1358,3 +1358,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed: XerahS.Tests 960 passed, 0 failed, 1 skipped; XerahS.McpServer.Tests 26 passed, 0 failed. Logs: /tmp/xerahs-hourly-sweep/build-20260518-212056.log, /tmp/xerahs-hourly-sweep/test-20260518-212056.log
 - Commit: `d012848d`
 - Follow-up: Continue OCR review around OCR service error surfacing during language refresh and tool/onboarding language-selection parity.
+
+### 2026-05-19 01:39 AWST - OCR / Language refresh error surfacing
+
+- Area: OCR
+- Files: `src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs`, `src/desktop/app/XerahS.UI/Onboarding/Steps/OcrStepView.axaml`, `src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs`, `tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs`, `tests/XerahS.Tests/Tools/OcrViewModelTests.cs`, `Directory.Build.props`
+- Findings: OCR language enumeration failures were handled inconsistently: onboarding refresh swallowed `GetAvailableLanguages()` exceptions without surfacing why platform languages were unavailable, while the OCR tool constructed from a failing platform service could throw before showing a user-facing status. Fixed onboarding to persist `LanguageRefreshError`, expose `HasLanguageRefreshError`, and render a warning card while preserving fallback selections; fixed the OCR tool to catch/log language enumeration exceptions and show the failure in `StatusText`. Added regression coverage for onboarding error surfacing/clearing and OCR tool constructor resilience.
+- Status: Fixed; bumped version `0.23.49` -> `0.23.50`.
+- Build/test: `dotnet build` succeeded with 0 warnings/0 errors; `dotnet test` passed 965 XerahS tests + 26 MCP tests (0 failed, 1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260519-013523.log`, `/tmp/xerahs-hourly-sweep/test-20260519-013523.log`.
+- Commit: `01251cc8`
+- Follow-up: Continue OCR review around tool/onboarding language-selection parity and OCR recognition error message consistency.
