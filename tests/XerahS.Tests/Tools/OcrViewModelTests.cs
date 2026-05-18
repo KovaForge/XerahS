@@ -199,6 +199,22 @@ public sealed class OcrViewModelTests
         Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("en"));
     }
 
+    [Test]
+    public void LoadAvailableLanguages_WhenPlatformEnumerationThrows_SurfacesStatusInsteadOfThrowing()
+    {
+        PlatformServices.Ocr = new ThrowingLanguageOcrService();
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.AvailableLanguages, Is.Empty);
+            Assert.That(viewModel.SelectedLanguage, Is.Null);
+            Assert.That(viewModel.StatusText, Does.Contain("OCR language enumeration failed."));
+        });
+    }
+
     private sealed class RecordingOcrService : IOcrService
     {
         private readonly Queue<string> _responses;
@@ -241,5 +257,15 @@ public sealed class OcrViewModelTests
         }
 
         public OcrLanguage[] GetAvailableLanguages() => AvailableLanguages;
+    }
+
+    private sealed class ThrowingLanguageOcrService : IOcrService
+    {
+        public bool IsSupported => true;
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options) =>
+            Task.FromResult(new OcrResult { Success = true });
+
+        public OcrLanguage[] GetAvailableLanguages() => throw new InvalidOperationException("OCR language enumeration failed.");
     }
 }

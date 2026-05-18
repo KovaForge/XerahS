@@ -66,6 +66,12 @@ public partial class OcrStepViewModel : StepViewModelBase
     [ObservableProperty]
     private bool _downloadInBackground = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLanguageRefreshError))]
+    private string? _languageRefreshError;
+
+    public bool HasLanguageRefreshError => !string.IsNullOrWhiteSpace(LanguageRefreshError);
+
     public ObservableCollection<OcrLanguageOption> AvailableLanguages { get; } = new();
 
     public long TotalDownloadSizeMb => AvailableLanguages
@@ -164,10 +170,12 @@ public partial class OcrStepViewModel : StepViewModelBase
             IEnumerable<OcrLanguage> platformLanguages;
             try
             {
+                LanguageRefreshError = null;
                 platformLanguages = ocrService.GetAvailableLanguages();
             }
-            catch
+            catch (Exception ex)
             {
+                LanguageRefreshError = $"Could not refresh OCR languages: {ex.Message}";
                 SyncOptionsFromSelectedLanguages(orderByAvailableLanguages: true);
                 UpdateValidationState();
                 return;

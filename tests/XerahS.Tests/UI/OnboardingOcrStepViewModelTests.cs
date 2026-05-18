@@ -265,6 +265,38 @@ public sealed class OnboardingOcrStepViewModelTests
         Assert.That(viewModel.Validate(), Is.True);
     }
 
+    [Test]
+    public async Task RefreshAvailableLanguages_WhenPlatformEnumerationThrows_SurfacesRefreshError()
+    {
+        OcrStepViewModel viewModel = new();
+        PlatformServices.Ocr = new ThrowingOcrService();
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.HasLanguageRefreshError, Is.True);
+            Assert.That(viewModel.LanguageRefreshError, Does.Contain("OCR language enumeration failed."));
+        });
+    }
+
+    [Test]
+    public async Task RefreshAvailableLanguages_AfterFailureClearsRefreshError()
+    {
+        OcrStepViewModel viewModel = new();
+        PlatformServices.Ocr = new ThrowingOcrService();
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+        PlatformServices.Ocr = new StubOcrService([new("English", "en")]);
+
+        await viewModel.RefreshAvailableLanguagesCommand.ExecuteAsync(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.HasLanguageRefreshError, Is.False);
+            Assert.That(viewModel.LanguageRefreshError, Is.Null);
+        });
+    }
+
     private sealed class StubOcrService(OcrLanguage[] languages) : IOcrService
     {
         public bool IsSupported => true;

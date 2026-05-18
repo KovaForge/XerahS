@@ -81,7 +81,18 @@ public partial class OcrViewModel : ViewModelBase
             return;
         }
 
-        var languages = ocrService.GetAvailableLanguages();
+        OcrLanguage[] languages;
+        try
+        {
+            languages = ocrService.GetAvailableLanguages();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "OCR language loading");
+            StatusText = $"Could not load OCR languages: {ex.Message}";
+            return;
+        }
+
         var seenTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var lang in languages)
