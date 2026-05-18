@@ -12,7 +12,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Fix: Added non-mutating `IsDefaultInstance(UploaderCategory, string)` method to `InstanceManager` that performs a pure read of `_configuration.DefaultInstances`. Updated both callers to use it. Added 2 regression tests verifying `IsDefaultInstance` correctness and non-mutation guarantee.
 - Status: Fixed
 - Build/test: build 0 warnings/0 errors; tests 962+26=988 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260519-005434.log /tmp/xerahs-hourly-sweep/test-full-20260519-005858.log
-- Commit: <pending>
+- Commit: 57007555
 - Follow-up: Continue uploader routing review around Auto-resolved instance fallback chain when no non-auto instances are available in the category.
 
 ## Rules
