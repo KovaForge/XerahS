@@ -16,6 +16,22 @@ namespace XerahS.Tests.Helpers;
 public class TestProjectBuildPropertiesTests
 {
     [Test]
+    public void DirectoryBuildProps_UserImport_CannotOverrideReleaseGuardrails()
+    {
+        string propsPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "../../../../../Directory.Build.props"));
+
+        XDocument props = XDocument.Load(propsPath);
+        XElement project = props.Root ?? throw new InvalidOperationException("Directory.Build.props has no root element.");
+        XElement userImport = project.Elements("Import")
+            .Single(element => string.Equals((string?)element.Attribute("Project"), "Directory.Build.props.user", StringComparison.OrdinalIgnoreCase));
+        XElement releaseGuardrailGroup = project.Elements("PropertyGroup")
+            .First(element => element.Element("Version") is not null && element.Element("TreatWarningsAsErrors") is not null);
+
+        Assert.That(project.Elements().ToList().IndexOf(userImport), Is.LessThan(project.Elements().ToList().IndexOf(releaseGuardrailGroup)));
+    }
+
+    [Test]
     public void XerahSTests_AppAndCliProjectReferences_DisableAppDrivenPluginBuild()
     {
         string testProjectPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,

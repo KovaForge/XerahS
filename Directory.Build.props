@@ -1,6 +1,7 @@
 <Project>
+  <Import Project="Directory.Build.props.user" Condition="Exists('Directory.Build.props.user')" />
   <PropertyGroup>
-    <Version>0.23.51</Version>
+    <Version>0.23.52</Version>
     <Product>XerahS</Product>
     <Authors>ShareX Team</Authors>
     <Company>ShareX Team</Company>
@@ -14,5 +15,4 @@
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
     <CrossCompile>true</CrossCompile>
   </PropertyGroup>
-  <Import Project="Directory.Build.props.user" Condition="Exists('Directory.Build.props.user')" />
 </Project>
