@@ -318,10 +318,24 @@ WHERE Id = @Id;";
         {
             if (items != null && items.Length > 0)
             {
+                HistoryOcrIndexStore.EnsureDatabase(EnsureConnection());
+
                 using (SqliteTransaction transaction = EnsureConnection().BeginTransaction())
                 using (SqliteCommand cmd = EnsureConnection().CreateCommand())
                 {
                     cmd.CommandText = "DELETE FROM History WHERE Id = @Id;";
+
+                    foreach (HistoryItem item in items)
+                    {
+                        SqliteParameter idParam = cmd.CreateParameter();
+                        idParam.ParameterName = "@Id";
+                        idParam.Value = item.Id;
+                        cmd.Parameters.Add(idParam);
+                        cmd.ExecuteNonQuery();
+                        cmd.Parameters.Clear();
+                    }
+
+                    cmd.CommandText = "DELETE FROM HistoryOcrIndex WHERE HistoryItemId = @Id;";
 
                     foreach (HistoryItem item in items)
                     {
