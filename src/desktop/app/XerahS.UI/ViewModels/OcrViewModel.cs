@@ -82,15 +82,30 @@ public partial class OcrViewModel : ViewModelBase
         }
 
         var languages = ocrService.GetAvailableLanguages();
+        var seenTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var lang in languages)
         {
-            AvailableLanguages.Add(lang);
+            string languageTag = lang.LanguageTag?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(languageTag) || !seenTags.Add(languageTag))
+            {
+                continue;
+            }
+
+            string displayName = NormalizeDisplayName(lang.DisplayName, languageTag);
+            AvailableLanguages.Add(new OcrLanguage(displayName, languageTag));
         }
 
         // Default to English if available, otherwise first language
         SelectedLanguage = AvailableLanguages.FirstOrDefault(l =>
             l.LanguageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             ?? AvailableLanguages.FirstOrDefault();
+    }
+
+    private static string NormalizeDisplayName(string? displayName, string languageTag)
+    {
+        string normalized = displayName?.Trim() ?? string.Empty;
+        return string.IsNullOrEmpty(normalized) ? languageTag : normalized;
     }
 
     [RelayCommand]

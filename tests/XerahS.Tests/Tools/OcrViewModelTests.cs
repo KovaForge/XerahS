@@ -172,6 +172,33 @@ public sealed class OcrViewModelTests
         ];
     }
 
+    [Test]
+    public void LoadAvailableLanguages_NormalizesPlatformTagsAndDisplayNames()
+    {
+        var ocr = new RecordingOcrService(["first"])
+        {
+            AvailableLanguages =
+            [
+                new(" English ", " en "),
+                new(" English dup ", "En"),
+                new(" ", " fr "),
+                new("Japanese", ""),
+                new("German", "de")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.AvailableLanguages.Count, Is.EqualTo(3));
+        Assert.That(viewModel.AvailableLanguages.Select(l => l.LanguageTag), Is.EqualTo(new[] { "en", "fr", "de" }));
+        Assert.That(viewModel.AvailableLanguages.First(l => l.LanguageTag == "en").DisplayName, Is.EqualTo("English"));
+        Assert.That(viewModel.AvailableLanguages.First(l => l.LanguageTag == "fr").DisplayName, Is.EqualTo("fr"));
+        Assert.That(viewModel.AvailableLanguages.First(l => l.LanguageTag == "de").DisplayName, Is.EqualTo("German"));
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("en"));
+    }
+
     private sealed class RecordingOcrService : IOcrService
     {
         private readonly Queue<string> _responses;
@@ -188,6 +215,12 @@ public sealed class OcrViewModelTests
         public List<string> RequestedLanguages { get; } = new();
 
         public OcrOptions? LastOptions { get; private set; }
+
+        public OcrLanguage[] AvailableLanguages { get; set; } =
+        [
+            new("English", "en"),
+            new("French", "fr")
+        ];
 
         public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options)
         {
@@ -207,10 +240,6 @@ public sealed class OcrViewModelTests
             });
         }
 
-        public OcrLanguage[] GetAvailableLanguages() =>
-        [
-            new("English", "en"),
-            new("French", "fr")
-        ];
+        public OcrLanguage[] GetAvailableLanguages() => AvailableLanguages;
     }
 }
