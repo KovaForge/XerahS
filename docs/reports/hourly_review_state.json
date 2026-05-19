@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-19 22:30 AWST",
+  "last_updated": "2026-05-20 02:39 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -84,11 +84,11 @@
     },
     {
       "area": "Uploader core / plugin routing",
-      "last_reviewed": "2026-05-19 14:11 AWST",
+      "last_reviewed": "2026-05-20 02:39 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed ResolveAutoInstance to require a persisted default instance category match before returning it for Auto routing, preventing stale category-mismatched defaults from routing uploads across categories. Added regression coverage; bumped version 0.23.55 -> 0.23.56.",
-      "follow_up": "Continue uploader routing review around Auto destination fallback behavior when no non-auto instances are available, and UI/log diagnostics for stale default cleanup."
+      "last_outcome": "Fixed file-type routing conflict/reporting helpers to ignore unavailable peer instances, matching destination resolution so missing providers do not block replacement file-type routes; added regression coverage; bumped version 0.23.58 -> 0.23.59.",
+      "follow_up": "Continue uploader routing review around UI/log diagnostics for stale default cleanup and unavailable provider replacement flows."
     },
     {
       "area": "Plugin loading/runtime",
@@ -214,6 +214,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-20 02:39 AWST",
+      "area": "Uploader core / plugin routing \u2014 unavailable file-routing conflicts",
+      "files": [
+        "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
+        "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed CanAddFileType, CanSetAllFileTypes, GetBlockedFileTypes, and ValidateFileTypeConfiguration to ignore unavailable peer instances when detecting file-type conflicts; added regression coverage; bumped version 0.23.58 -> 0.23.59.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260520-023530.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260520-023530.log",
+      "result": "build 0 warnings/0 errors; tests 983+27=1010 passed, 0 failed, 1 skipped",
+      "commit": "248b4160"
+    },
     {
       "timestamp": "2026-05-19 22:30 AWST",
       "area": "MCP server — malformed history search query parameters",

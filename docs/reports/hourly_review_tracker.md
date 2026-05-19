@@ -1463,3 +1463,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 982 passed, 1 skipped; XerahS.McpServer.Tests 27 passed), logs: /tmp/xerahs-hourly-sweep/build-20260519-222201.log, /tmp/xerahs-hourly-sweep/test-20260519-222201.log
 - Commit: 16d0cae0
 - Follow-up: Continue MCP review around large inline blob error ergonomics and remaining resource URI construction/encoding edge cases.
+
+### 2026-05-20 02:39 AWST - Uploader core / unavailable file-routing conflicts
+
+- Area: Uploader core / plugin routing
+- Files: `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`, `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`, `Directory.Build.props`
+- Findings: File-type routing configuration already skipped unavailable instances when resolving an upload destination, but conflict/reporting helpers (`CanAddFileType`, `CanSetAllFileTypes`, `GetBlockedFileTypes`, `ValidateFileTypeConfiguration`) still treated unavailable provider instances as active blockers. This could prevent users from replacing a missing/unavailable PNG/all-file uploader. Fixed these helpers to consider only available peer instances and added regression coverage.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (983 desktop + 27 MCP, 1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260520-023530.log`, `/tmp/xerahs-hourly-sweep/test-20260520-023530.log`
+- Commit: `248b4160`
+- Follow-up: Continue uploader routing review around UI/log diagnostics for stale default cleanup and unavailable provider replacement flows.
