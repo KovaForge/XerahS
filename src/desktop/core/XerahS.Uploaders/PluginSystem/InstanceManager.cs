@@ -353,6 +353,7 @@ public class InstanceManager
                     string.Equals(i.InstanceId, defaultId, StringComparison.OrdinalIgnoreCase));
 
                 if (defaultInstance != null &&
+                    defaultInstance.Category == category &&
                     defaultInstance.IsAvailable &&
                     !IsAutoProvider(defaultInstance.ProviderId) &&
                     !string.Equals(defaultInstance.InstanceId, autoInstanceId, StringComparison.OrdinalIgnoreCase))

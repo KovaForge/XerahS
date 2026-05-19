@@ -382,6 +382,48 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void ResolveAutoInstance_SkipsCategoryMismatchedDefault()
+    {
+        var staleDefault = new UploaderInstance
+        {
+            ProviderId = "image-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Stale Image Default",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        var fileFallback = new UploaderInstance
+        {
+            ProviderId = "file-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "File Fallback",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(staleDefault);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, staleDefault.InstanceId);
+        staleDefault.Category = UploaderCategory.File;
+        InstanceManager.Instance.AddInstance(fileFallback);
+
+        var resolved = InstanceManager.Instance.ResolveAutoInstance(UploaderCategory.Image);
+
+        Assert.That(resolved, Is.Null);
+        Assert.That(InstanceManager.Instance.ResolveAutoInstance(UploaderCategory.File)?.InstanceId, Is.EqualTo(staleDefault.InstanceId));
+    }
+
+    [Test]
     public void UpdateInstance_CategoryChange_RemovesStaleDefaultMapping()
     {
         var instance = new UploaderInstance
