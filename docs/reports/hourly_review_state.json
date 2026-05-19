@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-19 05:47 AWST",
+  "last_updated": "2026-05-19 08:34 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,9 +11,8 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Build / project configuration — .user props override release settings (clawpatch low, analyzed)",
-    "Editor integration / annotation — fire-and-forget Persist (clawpatch low)",
-    "UI / upload drag-drop — ignores OS file collection API (clawpatch low)",
+    "Build / project configuration \u2014 .user props override release settings (clawpatch low, analyzed)",
+    "UI / upload drag-drop \u2014 ignores OS file collection API (clawpatch low)",
     "OCR (follow-up: OCR service error surfacing during language refresh and tool/onboarding language-selection parity)",
     "Uploader core / plugin routing (follow-up: default-instance resolution when unavailable)",
     "MCP server (large-file thumbnail reads, URI construction robustness)"
@@ -29,11 +28,11 @@
     },
     {
       "area": "Editor integration",
-      "last_reviewed": "2026-05-18 04:33 AWST",
+      "last_reviewed": "2026-05-19 08:34 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed SaveToPathAsync to re-throw UnauthorizedAccessException from annotation sidecar save, preserving Assert.ThrowsAsync contract in regression test; other exceptions still caught and reported; bumped version 0.23.38 -> 0.23.39.",
-      "follow_up": "Continue editor integration review around Save/Save As result propagation, multi-image send-to sequencing, and sidecar save failure surfacing to UI/log observers."
+      "last_outcome": "Made Persist() awaitable (PersistAsync()), properly awaits SaveWorkflowsConfigAsync(), updated all 4 call sites in OverlayRegionCaptureSession (x2), ColorPickerToolService, and RulerToolService. Added regression test. Also fixed pre-existing UploadCommandPathSanitizationTests reflection helper for new UploadAsync(bool randomize) signature. Bumped version 0.23.52 -> 0.23.53.",
+      "follow_up": "Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing."
     },
     {
       "area": "Media subsystem",
@@ -216,8 +215,26 @@
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-19 08:34 AWST",
+      "area": "Editor integration / annotation \u2014 fire-and-forget Persist made awaitable",
+      "files": [
+        "src/desktop/app/XerahS.UI/Services/RegionCaptureAnnotationOptionsStore.cs",
+        "src/desktop/app/XerahS.UI/Services/Capture/OverlayRegionCaptureSession.cs",
+        "src/desktop/app/XerahS.UI/Services/ColorPickerToolService.cs",
+        "src/desktop/app/XerahS.UI/Services/RulerToolService.cs",
+        "tests/XerahS.Tests/Services/RegionCaptureAnnotationOptionsStoreTests.cs",
+        "tests/XerahS.Tests/Tools/UploadCommandPathSanitizationTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Renamed Persist() to PersistAsync(), returns Task<bool>, properly awaits SaveWorkflowsConfigAsync(). Updated all 4 call sites to await in finally blocks. Fixed UploadCommandPathSanitizationTests to pass randomize=false to match new UploadAsync signature. Added regression test. Bumped version 0.23.52 -> 0.23.53.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260519-083505.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260519-083505.log",
+      "result": "build 0 warnings/0 errors; tests 971+26=997 passed, 0 failed, 1 skipped",
+      "commit": "91eaa4b3"
+    },
+    {
       "timestamp": "2026-05-19 05:47 AWST",
-      "area": "Build / project configuration — user props release guardrails",
+      "area": "Build / project configuration \u2014 user props release guardrails",
       "files": [
         "Directory.Build.props",
         "tests/XerahS.Tests/Helpers/TestProjectBuildPropertiesTests.cs"
@@ -230,7 +247,7 @@
     },
     {
       "timestamp": "2026-05-19 04:50 AWST",
-      "area": "Scrolling capture / workflow — CurrentCapture guard on window close",
+      "area": "Scrolling capture / workflow \u2014 CurrentCapture guard on window close",
       "files": [
         "src/desktop/app/XerahS.UI/Services/ScrollingCaptureToolService.cs",
         "tests/XerahS.Tests/Services/ScrollingCaptureToolServiceTests.cs",
@@ -244,7 +261,7 @@
     },
     {
       "timestamp": "2026-05-19 01:39 AWST",
-      "area": "OCR — language refresh error surfacing",
+      "area": "OCR \u2014 language refresh error surfacing",
       "files": [
         "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
         "src/desktop/app/XerahS.UI/Onboarding/Steps/OcrStepView.axaml",
@@ -261,7 +278,7 @@
     },
     {
       "timestamp": "2026-05-19 00:58 AWST",
-      "area": "Uploader core / plugin routing — GetDefaultInstance destructive side-effect in read-only callers",
+      "area": "Uploader core / plugin routing \u2014 GetDefaultInstance destructive side-effect in read-only callers",
       "files": [
         "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
         "src/desktop/app/XerahS.UI/Services/DestinationConfigExportService.cs",
@@ -277,7 +294,7 @@
     },
     {
       "timestamp": "2026-05-18 21:26 AWST",
-      "area": "OCR — onboarding selected-language null guard",
+      "area": "OCR \u2014 onboarding selected-language null guard",
       "files": [
         "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
         "tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs",
@@ -291,7 +308,7 @@
     },
     {
       "timestamp": "2026-05-18 20:34 AWST",
-      "area": "OCR — tool UI language loader normalization",
+      "area": "OCR \u2014 tool UI language loader normalization",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs",
         "tests/XerahS.Tests/Tools/OcrViewModelTests.cs",
@@ -305,7 +322,7 @@
     },
     {
       "timestamp": "2026-05-18 17:17 AWST",
-      "area": "MCP server — local history path whitespace preservation",
+      "area": "MCP server \u2014 local history path whitespace preservation",
       "files": [
         "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
         "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
@@ -490,61 +507,6 @@
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-163428.log",
       "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped",
       "commit": "70d210ae"
-    },
-    {
-      "timestamp": "2026-05-17 13:53 AWST",
-      "area": "Media subsystem \u2014 FFmpeg forced close process-tree kill",
-      "files": [
-        "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
-        "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed FFmpegCLIManager forced close escalation to kill the entire process tree after two graceful q attempts, preventing orphaned encoder child processes; added Unix regression coverage; bumped version 0.23.31 -> 0.23.32.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-134541.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-134541.log",
-      "result": "build 0 warnings/0 errors; tests 961 total, 0 failed, 1 skipped",
-      "commit": "a1b2c3d4"
-    },
-    {
-      "timestamp": "2026-05-17 12:33 AWST",
-      "area": "Notifications/toasts \u2014 ToastWindow multi-monitor position correction",
-      "files": [
-        "src/desktop/app/XerahS.UI/Views/ToastWindow.axaml.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed ToastWindow PositionWindow to use the screen that actually contains the window instead of always using Screens.Primary, preventing toasts from appearing on the wrong monitor when the configured display is not the system primary screen; bumped version 0.23.30 -> 0.23.31.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-123500.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-123500.log",
-      "result": "build 0 warnings/0 errors; tests 937 total, 0 failed, 1 skipped",
-      "commit": "b2c3d4e5"
-    },
-    {
-      "timestamp": "2026-05-17 10:44 AWST",
-      "area": "Notifications/toasts \u2014 terminal fade opacity reaches zero before close",
-      "files": [
-        "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
-        "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed toast fade completion to emit a final opacity 0 notification before requesting close, so observers/windows can render the fully transparent terminal fade frame instead of closing at the last positive opacity; bumped version 0.23.29 -> 0.23.30.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-103823.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-103823.log",
-      "result": "build 0 warnings/0 errors; tests 936+24=960 total, 0 failed, 1 skipped",
-      "commit": "c3d4e5f6"
-    },
-    {
-      "timestamp": "2026-05-17 07:36 AWST",
-      "area": "Assistant local memory/privacy/history \u2014 stale deleted-file OCR search results",
-      "files": [
-        "src/desktop/app/XerahS.Assistant/Services/AssistantHistoryService.cs",
-        "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed assistant screenshot search so indexed OCR text is only considered when the history file still exists, preventing deleted or moved capture OCR cache text from resurfacing stale/private results; bumped version 0.23.28 -> 0.23.29.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-073057.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-073057.log",
-      "result": "build 0 warnings/0 errors; tests 935+24=959 total, 0 failed, 1 skipped",
-      "commit": "d4e5f6a7"
     }
   ]
 }

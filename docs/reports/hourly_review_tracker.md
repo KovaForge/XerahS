@@ -4,6 +4,17 @@ Purpose: compact human-readable companion to `docs/reports/hourly_review_state.j
 
 Use `hourly_review_state.json` as the hot machine-readable source. The full historical ledger was preserved at `docs/reports/archive/hourly_review_tracker_2026-04-30.md`.
 
+### 2026-05-19 08:34 AWST - Editor integration / annotation — fire-and-forget Persist made awaitable
+
+- Area: Editor integration / annotation
+- Files: src/desktop/app/XerahS.UI/Services/RegionCaptureAnnotationOptionsStore.cs, src/desktop/app/XerahS.UI/Services/Capture/OverlayRegionCaptureSession.cs, src/desktop/app/XerahS.UI/Services/ColorPickerToolService.cs, src/desktop/app/XerahS.UI/Services/RulerToolService.cs, tests/XerahS.Tests/Services/RegionCaptureAnnotationOptionsStoreTests.cs
+- Findings: `RegionCaptureAnnotationOptionsStore.Persist()` launched `SaveWorkflowsConfigAsync()` without awaiting, causing fire-and-forget config save data loss on process exit or concurrent mutation.
+- Fix: Renamed `Persist()` to `PersistAsync()`, returns `Task<bool>`, properly awaits `SaveWorkflowsConfigAsync()`. Updated all 4 call sites in `finally` blocks to `await PersistAsync()`. Also fixed pre-existing `UploadCommandPathSanitizationTests` reflection helper to match new `UploadAsync(bool randomize)` signature from commit `6315a90c`. Added regression test `RegionCaptureAnnotationOptionsStoreTests`.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; tests 971+26=997 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260519-083505.log /tmp/xerahs-hourly-sweep/test-20260519-083505.log
+- Commit: 91eaa4b3
+- Follow-up: Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing.
+
 ### 2026-05-19 04:50 AWST - Scrolling capture / workflow — CurrentCapture guard on window close
 
 - Area: Scrolling capture / workflow
@@ -55,7 +66,7 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 |---|---|---|---|---|
 | Scrolling capture / workflow | 2026-05-18 19:55 AWST | Medium | **QUEUED (clawpatch):** Static `CurrentCapture` cleared when any window closes, losing active capture in multi-window scenarios. | Track owning VM/window pair; only clear when closing window owns the reference. |
 | Build / project configuration | 2026-05-18 19:55 AWST | Medium | **QUEUED (clawpatch):** (1) Common + Platform.Abstractions target plain `net10.0` instead of required `net10.0-windows10.0.26100.0`. (2) `.user` props import after canonical properties, can override Version/TreatWarningsAsErrors. | Fix TFMs; reorder `.user` import or constrain overrides. |
-| Editor integration / annotation | 2026-05-18 19:55 AWST | Low | **QUEUED (clawpatch):** `RegionCaptureAnnotationOptionsStore.Persist` launches async save without awaiting — process exit or concurrent mutation drops option changes. | Make persistence awaitable or serialize through a save queue. |
+| Editor integration / annotation | 2026-05-19 08:34 AWST | High | **FIXED:** Made `Persist()` awaitable (`PersistAsync()`), properly awaits `SaveWorkflowsConfigAsync()`, updated all 4 call sites. Fixed pre-existing UploadCommand test reflection. | Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing. |
 | UI / upload drag-drop | 2026-05-18 19:55 AWST | Low | **QUEUED (clawpatch):** `UploadContentWindow.OnDrop` only reads raw `DataFormat.File` items, ignoring OS-backed file collection API. Copy cursor shown but drop adds nothing. | Normalize from file collection first, fall back to raw items. |---|
 | Capture pipeline | 2026-05-01 17:45 AWST | High | Fixed GDI fallback region normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before integer casts; added regression coverage; bumped version `0.22.173` -> `0.22.174`. | Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity. |
 | OCR | 2026-05-12 12:44 AWST | High | Fixed onboarding OCR language refresh to trim platform language tags, skip blank tags, and de-duplicate duplicate platform languages case-insensitively before syncing selections; bumped version 0.22.269 -> 0.22.270. | Continue OCR review around selected-language collection replacement/unsubscription and platform OCR language refresh display-name edge cases. |
