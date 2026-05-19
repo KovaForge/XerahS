@@ -485,6 +485,32 @@ public class FileHelpersTests
     }
 
     [Test]
+    public void BackupFileZip_DeletesTempFile_WhenFinalMoveFails()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "data.db");
+        string backupFolder = Path.Combine(directory, "backups");
+        string monthFolder = Path.Combine(backupFolder, DateTime.Now.ToString("yyyy-MM"));
+        string zipPathAsDirectory = Path.Combine(monthFolder, $"backup-{DateTime.Now:yyyy-MM-dd}.zip");
+        File.WriteAllText(sourceFile, "database-content");
+        Directory.CreateDirectory(zipPathAsDirectory);
+
+        try
+        {
+            string? result = FileHelpers.BackupFileZip(sourceFile, backupFolder);
+
+            Assert.That(result, Is.Null);
+            Assert.That(Directory.EnumerateFiles(monthFolder, "*.tmp"), Is.Empty);
+            Assert.That(Directory.Exists(zipPathAsDirectory), Is.True);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public void BackupFileZip_DoesNotThrow_WhenWalShmEphemeral()
     {
         // WAL/SHM files may disappear between Exists and OpenRead (TOCTOU).

@@ -463,6 +463,8 @@ public static class FileHelpers
             return null;
         }
 
+        string? tempPath = null;
+
         try
         {
             // Create yyyy-MM subfolder
@@ -478,7 +480,7 @@ public static class FileHelpers
             // Write to a temp file first; only replace the existing backup after
             // the new archive is fully written, so a crash/disk-full midway does
             // not destroy the last good backup.
-            string tempPath = Path.Combine(monthFolder, $"backup-{DateTime.Now:yyyy-MM-dd}-{Guid.NewGuid():N}.tmp");
+            tempPath = Path.Combine(monthFolder, $"backup-{DateTime.Now:yyyy-MM-dd}-{Guid.NewGuid():N}.tmp");
 
             using (var archive = System.IO.Compression.ZipFile.Open(tempPath, System.IO.Compression.ZipArchiveMode.Create))
             {
@@ -502,19 +504,31 @@ public static class FileHelpers
                 TryAddToArchive(archive, shmFile);
             }
 
-            // Replace old backup with the new one
-            if (File.Exists(zipFilePath))
-            {
-                File.Delete(zipFilePath);
-            }
-            File.Move(tempPath, zipFilePath);
+            File.Move(tempPath, zipFilePath, overwrite: true);
+            tempPath = null;
 
             return zipFilePath;
         }
         catch (Exception e)
         {
             Debug.WriteLine($"Failed to create backup: {e}");
+            DeleteBackupTempFile(tempPath);
             return null;
+        }
+    }
+
+    private static void DeleteBackupTempFile(string? tempPath)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(tempPath) && File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to delete temporary backup file: {ex}");
         }
     }
 
