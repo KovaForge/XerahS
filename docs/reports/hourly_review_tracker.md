@@ -1453,3 +1453,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests: 982 passed, 0 failed, 1 skipped; XerahS.McpServer.Tests: 26 passed, 0 failed). Logs: `/tmp/xerahs-hourly-sweep/build-20260519-181307.log`, `/tmp/xerahs-hourly-sweep/test-20260519-181307.log`
 - Commit: `a1206525`
 - Follow-up: Continue file/path review around `BackupFileZip` directory creation/permission failures and any remaining backup callers that ignore null return values.
+
+### 2026-05-19 22:30 AWST - MCP server / malformed history search query parameters
+
+- Area: MCP server
+- Files: src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs; src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs; Directory.Build.props
+- Findings: Fixed MCP history search resource query parsing so malformed percent-encoded key/value pairs are skipped instead of leaving undecoded junk in query filters or risking parser failures. Added regression coverage proving a malformed q parameter is ignored while valid limit/from parameters still apply. Bumped version 0.23.57 -> 0.23.58.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 982 passed, 1 skipped; XerahS.McpServer.Tests 27 passed), logs: /tmp/xerahs-hourly-sweep/build-20260519-222201.log, /tmp/xerahs-hourly-sweep/test-20260519-222201.log
+- Commit: 16d0cae0
+- Follow-up: Continue MCP review around large inline blob error ergonomics and remaining resource URI construction/encoding edge cases.
