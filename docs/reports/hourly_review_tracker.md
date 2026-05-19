@@ -1433,3 +1433,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests: 980 XerahS.Tests + 26 McpServer = 1006 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260519-123512.log`, `/tmp/xerahs-hourly-sweep/test-20260519-123512.log`.
 - Commit: a54d2bea
 - Follow-up: Continue file/path review around remaining CopyFile call sites that don't check null returns, and BackupFileZip temp-file cleanup on failure.
+
+### 2026-05-19 14:11 AWST - Uploader core / auto uploader category fallback
+
+- Area: Uploader core / plugin routing
+- Files: `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`, `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`, `Directory.Build.props`
+- Findings: `ResolveAutoInstance()` skipped unavailable and auto defaults, but did not verify that the persisted default still belonged to the requested category before returning it. A stale category-mismatched default mapping could route an Auto image upload to a file-category instance instead of falling back within the image category. Added the category guard and regression coverage.
+- Status: Fixed; bumped version `0.23.55` -> `0.23.56`.
+- Build/test: build 0 warnings/0 errors; tests 981+26=1007 passed, 0 failed, 1 skipped; logs: `/tmp/xerahs-hourly-sweep/build-20260519-140735.log`, `/tmp/xerahs-hourly-sweep/test-20260519-140735.log`
+- Commit: `cd8135a8`
+- Follow-up: Continue uploader routing review around Auto destination fallback behavior when no non-auto instances are available, and UI/log diagnostics for stale default cleanup.
