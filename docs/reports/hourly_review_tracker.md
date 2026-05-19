@@ -1443,3 +1443,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 981+26=1007 passed, 0 failed, 1 skipped; logs: `/tmp/xerahs-hourly-sweep/build-20260519-140735.log`, `/tmp/xerahs-hourly-sweep/test-20260519-140735.log`
 - Commit: `cd8135a8`
 - Follow-up: Continue uploader routing review around Auto destination fallback behavior when no non-auto instances are available, and UI/log diagnostics for stale default cleanup.
+
+### 2026-05-19 18:19 AWST - File/path handling / BackupFileZip temp-file cleanup
+
+- Area: File/path handling
+- Files: `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`, `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`, `Directory.Build.props`
+- Findings: `BackupFileZip` wrote the replacement archive to a `*.tmp` file but left that temp file behind if final replacement failed after archive creation (for example, when the target backup path is blocked by an unexpected directory). Changed final replacement to `File.Move(..., overwrite: true)` to avoid the delete-then-move gap, tracks the temp path until successful move, and best-effort deletes the temp file on failures. Added regression coverage for final move failure leaving no `*.tmp` files. Bumped version `0.23.56` -> `0.23.57`.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests: 982 passed, 0 failed, 1 skipped; XerahS.McpServer.Tests: 26 passed, 0 failed). Logs: `/tmp/xerahs-hourly-sweep/build-20260519-181307.log`, `/tmp/xerahs-hourly-sweep/test-20260519-181307.log`
+- Commit: `a1206525`
+- Follow-up: Continue file/path review around `BackupFileZip` directory creation/permission failures and any remaining backup callers that ignore null return values.
