@@ -99,7 +99,7 @@ public static class RulerToolService
             }
             finally
             {
-                RegionCaptureAnnotationOptionsStore.Persist();
+                await RegionCaptureAnnotationOptionsStore.PersistAsync();
             }
 
             // Result contains the measured region if user confirmed

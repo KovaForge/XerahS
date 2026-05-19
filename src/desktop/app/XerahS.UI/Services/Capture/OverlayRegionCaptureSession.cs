@@ -102,7 +102,7 @@ internal static class OverlayRegionCaptureSession
                 }
                 finally
                 {
-                    RegionCaptureAnnotationOptionsStore.Persist();
+                    await RegionCaptureAnnotationOptionsStore.PersistAsync();
                 }
 
                 if (result is not null)
@@ -154,7 +154,7 @@ internal static class OverlayRegionCaptureSession
                 }
                 finally
                 {
-                    RegionCaptureAnnotationOptionsStore.Persist();
+                    await RegionCaptureAnnotationOptionsStore.PersistAsync();
                 }
 
                 if (result is not null)
