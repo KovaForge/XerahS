@@ -452,9 +452,12 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                     continue;
                 }
 
-                var key = pair[..eqIndex];
-                var rawValue = pair[(eqIndex + 1)..];
-                var value = Uri.UnescapeDataString(rawValue);
+                var key = DecodeResourceQueryComponent(pair[..eqIndex]);
+                var value = DecodeResourceQueryComponent(pair[(eqIndex + 1)..]);
+                if (key == null || value == null)
+                {
+                    continue;
+                }
 
                 if (string.Equals(key, "q", StringComparison.OrdinalIgnoreCase))
                 {
@@ -544,6 +547,43 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         }
 
         throw new ArgumentException($"Unknown resource URI: {uri}");
+    }
+
+    internal static string? DecodeResourceQueryComponent(string value)
+    {
+        if (!HasValidPercentEncoding(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch (UriFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static bool HasValidPercentEncoding(string value)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (value[i] != '%')
+            {
+                continue;
+            }
+
+            if (i + 2 >= value.Length || !Uri.IsHexDigit(value[i + 1]) || !Uri.IsHexDigit(value[i + 2]))
+            {
+                return false;
+            }
+
+            i += 2;
+        }
+
+        return true;
     }
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)

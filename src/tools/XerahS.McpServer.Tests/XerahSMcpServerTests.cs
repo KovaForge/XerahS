@@ -425,6 +425,35 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public async Task ResourcesRead_HistorySearch_IgnoresMalformedPercentEncodedPairs()
+    {
+        var runtime = new TestHistoryRuntime();
+        var server = new XerahSMcpServer(runtime);
+
+        var response = await server.HandleRequestAsync(new JsonRpcRequest
+        {
+            JsonRpc = "2.0",
+            Id = 15,
+            Method = "resources/read",
+            Params = new JsonObject
+            {
+                ["uri"] = "xerahs://history/search?q=%E0%A4%A&limit=7&from=2026-02-03"
+            }
+        });
+
+        Assert.Null(response.Error);
+        var result = Assert.IsType<JsonObject>(response.Result);
+        var contents = Assert.IsType<JsonArray>(result["contents"]);
+        var textContent = contents[0]?["text"]?.GetValue<string>();
+        Assert.NotNull(textContent);
+        var inner = JsonNode.Parse(textContent!) as JsonObject;
+        Assert.NotNull(inner);
+        Assert.Null(inner["lastQuery"]);
+        Assert.Equal(7, inner["lastLimit"]?.GetValue<int>());
+        Assert.Equal("2026-02-03", inner["lastFromDate"]?.GetValue<string>());
+    }
+
+    [Fact]
     public async Task ResourcesRead_MapsUserCancelledToUserCancelledCode()
     {
         var runtime = new UserCancelledRuntime();
@@ -533,8 +562,9 @@ public class XerahSMcpServerTests
                     {
                         var eqIndex = pair.IndexOf('=');
                         if (eqIndex < 0) continue;
-                        var key = pair[..eqIndex];
-                        var value = Uri.UnescapeDataString(pair[(eqIndex + 1)..]);
+                        var key = XerahSMcpRuntime.DecodeResourceQueryComponent(pair[..eqIndex]);
+                        var value = XerahSMcpRuntime.DecodeResourceQueryComponent(pair[(eqIndex + 1)..]);
+                        if (key == null || value == null) continue;
                         if (string.Equals(key, "q", StringComparison.OrdinalIgnoreCase))
                             query = string.IsNullOrWhiteSpace(value) ? null : value;
                         else if (string.Equals(key, "from", StringComparison.OrdinalIgnoreCase))
