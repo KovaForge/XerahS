@@ -411,9 +411,20 @@ public static class FileHelpers
 
         string fileName = Path.GetFileName(filePath);
         string destinationFilePath = Path.Combine(destinationFolder, fileName);
-        Directory.CreateDirectory(destinationFolder);
-        File.Copy(filePath, destinationFilePath, overwrite);
-        return destinationFilePath;
+
+        try
+        {
+            Directory.CreateDirectory(destinationFolder);
+            File.Copy(filePath, destinationFilePath, overwrite);
+            return destinationFilePath;
+        }
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException)
+        {
+            // Destination already exists with overwrite=false, or destination is
+            // locked/read-only, or the destination folder was deleted between
+            // CreateDirectory and Copy — return null so callers can handle gracefully.
+            return null;
+        }
     }
 
     public static string? BackupFileWeekly(string filePath, string destinationFolder)
@@ -461,18 +472,15 @@ public static class FileHelpers
                 Directory.CreateDirectory(monthFolder);
             }
 
-            // Create zip file with date stamp: yyyy-MM-dd format
             string zipFileName = $"backup-{DateTime.Now:yyyy-MM-dd}.zip";
             string zipFilePath = Path.Combine(monthFolder, zipFileName);
 
-            // If a backup for today already exists, delete it (we're updating with latest)
-            if (File.Exists(zipFilePath))
-            {
-                File.Delete(zipFilePath);
-            }
+            // Write to a temp file first; only replace the existing backup after
+            // the new archive is fully written, so a crash/disk-full midway does
+            // not destroy the last good backup.
+            string tempPath = Path.Combine(monthFolder, $"backup-{DateTime.Now:yyyy-MM-dd}-{Guid.NewGuid():N}.tmp");
 
-            // Create zip file containing the database file and its associated files
-            using (var archive = System.IO.Compression.ZipFile.Open(zipFilePath, System.IO.Compression.ZipArchiveMode.Create))
+            using (var archive = System.IO.Compression.ZipFile.Open(tempPath, System.IO.Compression.ZipArchiveMode.Create))
             {
                 string fileName = Path.GetFileName(filePath);
                 using (var fileStream = File.OpenRead(filePath))
@@ -484,34 +492,22 @@ public static class FileHelpers
                     }
                 }
 
-                // For SQLite databases, also backup WAL and SHM files if they exist
+                // For SQLite databases, also backup WAL and SHM files if they exist.
+                // These files are ephemeral — guard against TOCTOU races where the
+                // file disappears between Exists and OpenRead.
                 string walFile = filePath + "-wal";
                 string shmFile = filePath + "-shm";
 
-                if (File.Exists(walFile))
-                {
-                    using (var fileStream = File.OpenRead(walFile))
-                    {
-                        var entry = archive.CreateEntry(Path.GetFileName(walFile));
-                        using (var entryStream = entry.Open())
-                        {
-                            fileStream.CopyTo(entryStream);
-                        }
-                    }
-                }
-
-                if (File.Exists(shmFile))
-                {
-                    using (var fileStream = File.OpenRead(shmFile))
-                    {
-                        var entry = archive.CreateEntry(Path.GetFileName(shmFile));
-                        using (var entryStream = entry.Open())
-                        {
-                            fileStream.CopyTo(entryStream);
-                        }
-                    }
-                }
+                TryAddToArchive(archive, walFile);
+                TryAddToArchive(archive, shmFile);
             }
+
+            // Replace old backup with the new one
+            if (File.Exists(zipFilePath))
+            {
+                File.Delete(zipFilePath);
+            }
+            File.Move(tempPath, zipFilePath);
 
             return zipFilePath;
         }
@@ -519,6 +515,33 @@ public static class FileHelpers
         {
             Debug.WriteLine($"Failed to create backup: {e}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Best-effort add of a file to a zip archive. Silently skips when the file
+    /// does not exist, has been deleted (TOCTOU), or cannot be read.
+    /// </summary>
+    private static void TryAddToArchive(System.IO.Compression.ZipArchive archive, string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+                return;
+
+            using (var fileStream = File.OpenRead(filePath))
+            {
+                var entry = archive.CreateEntry(Path.GetFileName(filePath));
+                using (var entryStream = entry.Open())
+                {
+                    fileStream.CopyTo(entryStream);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException ||
+                                     ex is FileNotFoundException || ex is DirectoryNotFoundException)
+        {
+            // Ephemeral file — silently skip
         }
     }
 

@@ -333,4 +333,187 @@ public class FileHelpersTests
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    [Test]
+    public void CopyFile_OverwriteFalse_ReturnsNull_WhenDestinationExists()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "source.txt");
+        string destFolder = Path.Combine(directory, "dest");
+        Directory.CreateDirectory(destFolder);
+        File.WriteAllText(sourceFile, "source");
+        File.WriteAllText(Path.Combine(destFolder, "source.txt"), "existing");
+
+        try
+        {
+            string? result = FileHelpers.CopyFile(sourceFile, destFolder, overwrite: false);
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void CopyFile_ReturnsPath_WhenCopySucceeds()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "source.txt");
+        string destFolder = Path.Combine(directory, "dest");
+        File.WriteAllText(sourceFile, "source");
+
+        try
+        {
+            string? result = FileHelpers.CopyFile(sourceFile, destFolder);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(File.Exists(result), Is.True);
+            Assert.That(File.ReadAllText(result), Is.EqualTo("source"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void CopyFile_ReturnsNull_WhenSourceMissing()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string missingFile = Path.Combine(directory, "missing.txt");
+
+        try
+        {
+            string? result = FileHelpers.CopyFile(missingFile, Path.Combine(directory, "dest"));
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileZip_ReturnsPath_WhenBackupSucceeds()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "data.db");
+        string backupFolder = Path.Combine(directory, "backups");
+        File.WriteAllText(sourceFile, "database-content");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileZip(sourceFile, backupFolder);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(File.Exists(result), Is.True);
+            Assert.That(Path.GetExtension(result), Is.EqualTo(".zip"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileZip_ReturnsNull_WhenSourceMissing()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string missingFile = Path.Combine(directory, "missing.db");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileZip(missingFile, Path.Combine(directory, "backups"));
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileZip_ReplacesExistingBackup_WithoutCorrupting()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "data.db");
+        string backupFolder = Path.Combine(directory, "backups");
+        File.WriteAllText(sourceFile, "v1-content");
+
+        try
+        {
+            // First backup
+            string? first = FileHelpers.BackupFileZip(sourceFile, backupFolder);
+            Assert.That(first, Is.Not.Null);
+            Assert.That(File.Exists(first), Is.True);
+
+            // Second backup with different content
+            File.WriteAllText(sourceFile, "v2-content-longer");
+            string? second = FileHelpers.BackupFileZip(sourceFile, backupFolder);
+            Assert.That(second, Is.Not.Null);
+            Assert.That(File.Exists(second), Is.True);
+
+            // Both should point to the same filename (same day)
+            Assert.That(second, Is.EqualTo(first));
+
+            // The backup should contain the updated content, not stale v1
+            using (var archive = System.IO.Compression.ZipFile.OpenRead(second))
+            {
+                var entry = archive.GetEntry("data.db");
+                Assert.That(entry, Is.Not.Null);
+                using (var reader = new StreamReader(entry!.Open()))
+                {
+                    string content = reader.ReadToEnd();
+                    Assert.That(content, Is.EqualTo("v2-content-longer"));
+                }
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileZip_DoesNotThrow_WhenWalShmEphemeral()
+    {
+        // WAL/SHM files may disappear between Exists and OpenRead (TOCTOU).
+        // The backup should succeed even when they can't be read.
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "data.db");
+        string backupFolder = Path.Combine(directory, "backups");
+        File.WriteAllText(sourceFile, "content");
+
+        // Create a WAL file that we lock to trigger IOException on read
+        string walFile = sourceFile + "-wal";
+        File.WriteAllText(walFile, "wal-content");
+
+        try
+        {
+            // Open and lock the WAL file so OpenRead in backup fails
+            using (var lockStream = new FileStream(walFile, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                string? result = FileHelpers.BackupFileZip(sourceFile, backupFolder);
+
+                // Backup should still succeed for the main file; WAL is skipped
+                Assert.That(result, Is.Not.Null);
+                Assert.That(File.Exists(result), Is.True);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }
