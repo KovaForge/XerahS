@@ -424,9 +424,9 @@ public class InstanceManager
             }
 
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
+                .Where(i => i.Category == category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
 
-            // Cannot add if any other instance has "All File Types"
+            // Cannot add if any available other instance has "All File Types"
             if (otherInstances.Any(i => GetFileTypeRouting(i).AllFileTypes))
                 return false;
 
@@ -447,9 +447,9 @@ public class InstanceManager
         lock (_lock)
         {
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, currentInstanceId));
+                .Where(i => i.Category == category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, currentInstanceId));
 
-            // Can only set "All File Types" if no other instances exist in this category
+            // Can only set "All File Types" if no other available instances exist in this category
             return !otherInstances.Any();
         }
     }
@@ -467,7 +467,7 @@ public class InstanceManager
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
+                .Where(i => i.Category == category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
 
             foreach (var instance in otherInstances)
             {
@@ -499,7 +499,7 @@ public class InstanceManager
         lock (_lock)
         {
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == instance.Category && !InstanceIdsEqual(i.InstanceId, instance.InstanceId));
+                .Where(i => i.Category == instance.Category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, instance.InstanceId));
 
             var instanceRouting = GetFileTypeRouting(instance);
 

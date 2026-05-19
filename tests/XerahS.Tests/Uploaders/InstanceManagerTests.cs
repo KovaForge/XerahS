@@ -303,6 +303,47 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void FileTypeRouting_IgnoresUnavailableInstancesWhenReportingConflicts()
+    {
+        var unavailablePng = new UploaderInstance
+        {
+            InstanceId = "unavailable-png",
+            ProviderId = "missing-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable PNG",
+            SettingsJson = "{}",
+            IsAvailable = false,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(unavailablePng);
+
+        var candidate = new UploaderInstance
+        {
+            InstanceId = "candidate",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Replacement PNG",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, candidate.InstanceId, ".png"), Is.True);
+        Assert.That(InstanceManager.Instance.GetBlockedFileTypes(UploaderCategory.Image, candidate.InstanceId), Is.Empty);
+        Assert.That(InstanceManager.Instance.ValidateFileTypeConfiguration(candidate), Is.Null);
+        Assert.That(InstanceManager.Instance.CanSetAllFileTypes(UploaderCategory.Image, candidate.InstanceId), Is.True);
+    }
+
+    [Test]
     public void GetDestinationForFile_SkipsUnavailableExtensionSpecificInstanceAndFallsBackToAvailableAllTypes()
     {
         var unavailablePng = new UploaderInstance
