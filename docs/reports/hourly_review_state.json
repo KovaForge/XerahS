@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-19 08:34 AWST",
+  "last_updated": "2026-05-19 10:02 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -12,7 +12,7 @@
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
     "Build / project configuration \u2014 .user props override release settings (clawpatch low, analyzed)",
-    "UI / upload drag-drop \u2014 ignores OS file collection API (clawpatch low)",
+    "File/path handling \u2014 CopyFile destination exception handling / BackupFileZip archive edge cases",
     "OCR (follow-up: OCR service error surfacing during language refresh and tool/onboarding language-selection parity)",
     "Uploader core / plugin routing (follow-up: default-instance resolution when unavailable)",
     "MCP server (large-file thumbnail reads, URI construction robustness)"
@@ -205,15 +205,29 @@
     },
     {
       "area": "UI / upload drag-drop",
-      "last_reviewed": "2026-05-18 19:55 AWST",
-      "status": "queued",
+      "last_reviewed": "2026-05-19 10:02 AWST",
+      "status": "fixed",
       "priority": "Low",
       "source": "clawpatch fnd_sig-feat-library-01180d6e7d-f619_b74caa0f59",
-      "last_outcome": "Queued: UploadContentWindow.OnDragOver accepts files but OnDrop only reads raw DataFormat.File items, ignoring OS-backed file collection API. User sees copy cursor but drop adds nothing.",
-      "follow_up": "Normalize dropped files from transfer file collection first, then fall back to raw DataFormat.File items."
+      "last_outcome": "Fixed UploadContentWindow drag/drop to read IDataTransfer.TryGetFiles() OS-backed file collections first, then fall back to raw DataFormat.File items; DragOver now uses the same detection path. Added regression coverage for data-transfer file collections and raw fallback; bumped version 0.23.53 -> 0.23.54.",
+      "follow_up": "Continue UI/upload review around folder recursion feedback, duplicate dropped path handling, and upload item validation."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-19 10:02 AWST",
+      "area": "UI / upload drag-drop \u2014 OS-backed file collection handling",
+      "files": [
+        "src/desktop/app/XerahS.UI/Views/UploadContentWindow.axaml.cs",
+        "tests/XerahS.Tests/Views/UploadContentWindowDragDropTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Normalized UploadContentWindow drop handling to consume IDataTransfer.TryGetFiles() first, preserving OS-backed file/folder collections, with raw DataFormat.File fallback for provider parity. DragOver now uses the same detection path. Bumped version 0.23.53 -> 0.23.54.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260519-094958-2.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260519-094958.log",
+      "result": "build 0 warnings/0 errors; tests 973+26=999 passed, 0 failed, 1 skipped",
+      "commit": "04fe3eb2"
+    },
     {
       "timestamp": "2026-05-19 08:34 AWST",
       "area": "Editor integration / annotation \u2014 fire-and-forget Persist made awaitable",

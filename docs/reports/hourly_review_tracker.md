@@ -1412,3 +1412,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed 969 + 26, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260519-054218.log; /tmp/xerahs-hourly-sweep/test-20260519-054218.log
 - Commit: 0bbaa3b8
 - Follow-up: Continue editor integration / annotation review around awaitable RegionCaptureAnnotationOptionsStore persistence, or upload drag-drop OS file collection normalization.
+
+### 2026-05-19 10:02 AWST - UI / upload drag-drop OS file collection handling
+
+- Area: UI / upload drag-drop
+- Files: `src/desktop/app/XerahS.UI/Views/UploadContentWindow.axaml.cs`, `tests/XerahS.Tests/Views/UploadContentWindowDragDropTests.cs`, `Directory.Build.props`, `docs/reports/hourly_review_state.json`
+- Findings: `UploadContentWindow.OnDragOver()` accepted file drops based on `DataFormat.File`, but `OnDrop()` only walked raw `DataTransfer.Items`, so OS-backed file/folder collections exposed through `IDataTransfer.TryGetFiles()` could show the copy cursor and then add nothing. Fixed drop handling to consume `TryGetFiles()` first, with raw `DataFormat.File` fallback for provider parity, and made drag-over use the same detection path. Added regression coverage for data-transfer file collections and raw fallback. Bumped version `0.23.53` -> `0.23.54`.
+- Status: Fixed
+- Build/test: Final solution build succeeded with 0 warnings/0 errors; solution tests passed 999 total (973 XerahS.Tests + 26 McpServer), 0 failed, 1 skipped. Logs: build `/tmp/xerahs-hourly-sweep/build-20260519-094958-2.log`, test `/tmp/xerahs-hourly-sweep/test-20260519-094958.log`. Initial solution build hit transient generated-artifact/source-link errors and was retried after project build; initial log `/tmp/xerahs-hourly-sweep/build-20260519-094958.log`.
+- Commit: `04fe3eb2`
+- Follow-up: Continue UI/upload review around folder recursion feedback, duplicate dropped path handling, and upload item validation.
