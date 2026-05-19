@@ -1422,3 +1422,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Final solution build succeeded with 0 warnings/0 errors; solution tests passed 999 total (973 XerahS.Tests + 26 McpServer), 0 failed, 1 skipped. Logs: build `/tmp/xerahs-hourly-sweep/build-20260519-094958-2.log`, test `/tmp/xerahs-hourly-sweep/test-20260519-094958.log`. Initial solution build hit transient generated-artifact/source-link errors and was retried after project build; initial log `/tmp/xerahs-hourly-sweep/build-20260519-094958.log`.
 - Commit: `04fe3eb2`
 - Follow-up: Continue UI/upload review around folder recursion feedback, duplicate dropped path handling, and upload item validation.
+
+### 2026-05-19 12:34 AWST - File/path handling / CopyFile exception handling and BackupFileZip atomic replacement
+
+- Area: File/path handling
+- Files: `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`, `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`, `Directory.Build.props`
+- Findings: CopyFile propagated raw IOException/UnauthorizedAccessException to callers when destination existed (overwrite=false), source was locked, or the target folder had been deleted. BackupFileZip deleted the previous day's zip before writing the new archive, so a crash or disk-full mid-write destroyed the last good backup. BackupFileZip WAL/SHM reads also had a TOCTOU race (ephemeral files disappearing between Exists and OpenRead). 
+- Fix: Wrapped CopyFile File.Copy + Directory.CreateDirectory in try-catch for IOException/UnauthorizedAccessException/DirectoryNotFoundException so non-overwrite destination conflicts and IO errors return null gracefully. Rewrote BackupFileZip to write to a temp file first and atomically File.Move into place after the archive is complete; extracted TryAddToArchive helper that catches ephemeral-file exceptions (FileNotFound/DirectoryNotFound/IO) on WAL/SHM reads. Added 7 regression tests covering: CopyFile overwrite=false destination-exists, CopyFile success, CopyFile missing source, BackupFileZip success, BackupFileZip missing source, BackupFileZip replace-without-corruption verification, BackupFileZip locked-WAL-skipped.
+- Status: Fixed; bumped version `0.23.54` -> `0.23.55`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests: 980 XerahS.Tests + 26 McpServer = 1006 passed, 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260519-123512.log`, `/tmp/xerahs-hourly-sweep/test-20260519-123512.log`.
+- Commit: a54d2bea
+- Follow-up: Continue file/path review around remaining CopyFile call sites that don't check null returns, and BackupFileZip temp-file cleanup on failure.
