@@ -1473,3 +1473,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (983 desktop + 27 MCP, 1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260520-023530.log`, `/tmp/xerahs-hourly-sweep/test-20260520-023530.log`
 - Commit: `248b4160`
 - Follow-up: Continue uploader routing review around UI/log diagnostics for stale default cleanup and unavailable provider replacement flows.
+
+### 2026-05-20 11:55 AWST - File/path handling / weekly backup destination failures
+
+- Area: File/path handling
+- Files: Directory.Build.props; src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs; tests/XerahS.Tests/Helpers/FileHelpersTests.cs
+- Findings: BackupFileWeekly created the destination directory outside its failure-handling block, so a blocked or inaccessible backup folder could throw during history backup even though backup helpers are expected to return null for recoverable destination failures. Moved directory creation into the guarded block and return null for IOException, UnauthorizedAccessException, and DirectoryNotFoundException; added regression coverage for a destination path that is an existing file.
+- Status: Fixed
+- Build/test: Release build succeeded with 0 warnings/0 errors; Release tests passed (XerahS.Tests 988 passed/1 skipped, XerahS.McpServer.Tests 27 passed). Logs: /tmp/xerahs-hourly-sweep/build-20260520-114854.log, /tmp/xerahs-hourly-sweep/test-20260520-114854.log
+- Commit: f609d6e9
+- Follow-up: Continue file/path review around backup callers that ignore null return values and remaining path helper exception parity.
