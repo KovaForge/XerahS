@@ -1493,3 +1493,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (990 XerahS.Tests + 27 MCP tests, 0 failed, 1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260520-180245.log`, `/tmp/xerahs-hourly-sweep/test-20260520-180245.log`.
 - Commit: `b453a38d`
 - Follow-up: Continue plugin runtime review around load-context unload post-verification diagnostics and package cleanup resilience for partially failed quarantines.
+
+### 2026-05-21 00:13 AWST - MCP server / plus-encoded history search queries
+
+- Area: MCP server resource query parsing.
+- Files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`, `Directory.Build.props`, `docs/reports/hourly_review_state.json`.
+- Findings: `xerahs://history/search` query decoding used `Uri.UnescapeDataString()` directly, so common form-style `+` space encoding stayed literal and searches like `q=window+capture` looked for a plus sign instead of a phrase. Fixed decoding to normalize `+` to space before percent-unescaping and added MCP regression coverage.
+- Status: Fixed; bumped version `0.23.61` -> `0.23.62`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests: 990 passed, 1 skipped; XerahS.McpServer.Tests: 28 passed). Logs: `/tmp/xerahs-hourly-sweep/build-20260521-001003.log`, `/tmp/xerahs-hourly-sweep/test-20260521-001003.log`.
+- Commit: `cac58f31`
+- Follow-up: Continue MCP review around large inline blob error ergonomics and remaining resource URI construction/encoding edge cases.
