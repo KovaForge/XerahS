@@ -335,6 +335,29 @@ public class FileHelpersTests
     }
 
     [Test]
+    public void BackupFileWeekly_ReturnsNull_WhenDestinationPathIsFile()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "history.json");
+        string backupFolderAsFile = Path.Combine(directory, "backups");
+        File.WriteAllText(sourceFile, "{}");
+        File.WriteAllText(backupFolderAsFile, "not-a-directory");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileWeekly(sourceFile, backupFolderAsFile);
+
+            Assert.That(result, Is.Null);
+            Assert.That(File.Exists(backupFolderAsFile), Is.True);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public void CopyFile_OverwriteFalse_ReturnsNull_WhenDestinationExists()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");

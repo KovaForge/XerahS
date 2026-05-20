@@ -440,18 +440,19 @@ public static class FileHelpers
         string newFileName = $"{fileName}-{dateTime:yyyy-MM}-W{WeekOfYear(dateTime):00}{extension}";
         string newFilePath = Path.Combine(destinationFolder, newFileName);
 
-        Directory.CreateDirectory(destinationFolder);
-
         try
         {
+            Directory.CreateDirectory(destinationFolder);
+
             // Use overwrite=false; will throw IOException if destination already exists
             // (TOCTOU race with the File.Exists check above — catch it and return null)
             File.Copy(filePath, newFilePath, false);
             return newFilePath;
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException)
         {
-            // Backup already exists (race or concurrent backup)
+            // Backup folder cannot be created/accessed, or backup already exists
+            // (race/concurrent backup). Return null so callers can continue safely.
             return null;
         }
     }
