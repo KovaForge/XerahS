@@ -174,6 +174,11 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
     private async Task<string?> ShowOpenFileDialogAsync()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            return await MacOSUploadFilePicker.PickFileAsync().ConfigureAwait(false);
+        }
+
         var tcs = new TaskCompletionSource<string?>();
 
         await Dispatcher.UIThread.InvokeAsync(async () =>

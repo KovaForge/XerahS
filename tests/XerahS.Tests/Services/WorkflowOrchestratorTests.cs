@@ -90,6 +90,30 @@ public class WorkflowOrchestratorTests
         Assert.That(coordinator.SignalStopCalls, Is.EqualTo(1));
     }
 
+    [Test]
+    public void MacOSUploadFilePicker_StartInfo_UsesArgumentListForAppleScript()
+    {
+        var startInfo = MacOSUploadFilePicker.CreateStartInfo();
+
+        Assert.That(startInfo.FileName, Is.EqualTo("osascript"));
+        Assert.That(startInfo.UseShellExecute, Is.False);
+        Assert.That(startInfo.RedirectStandardOutput, Is.True);
+        Assert.That(startInfo.RedirectStandardError, Is.True);
+        Assert.That(startInfo.ArgumentList, Has.Count.EqualTo(4));
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("-e"));
+        Assert.That(startInfo.ArgumentList[1], Does.Contain("choose file"));
+        Assert.That(startInfo.ArgumentList[2], Is.EqualTo("-e"));
+        Assert.That(startInfo.ArgumentList[3], Is.EqualTo("POSIX path of selectedFile"));
+    }
+
+    [TestCase("User canceled.", true)]
+    [TestCase("execution error: User canceled. (-128)", true)]
+    [TestCase("execution error: File some object wasn't found.", false)]
+    public void MacOSUploadFilePicker_IsUserCanceled_DetectsCancellationOnly(string stderr, bool expected)
+    {
+        Assert.That(MacOSUploadFilePicker.IsUserCanceled(stderr), Is.EqualTo(expected));
+    }
+
     private static void InvokeHotkey(WorkflowOrchestrator orchestrator, WorkflowType workflowType)
     {
         var method = typeof(WorkflowOrchestrator).GetMethod("HotkeyManager_HotkeyTriggered", BindingFlags.Instance | BindingFlags.NonPublic)
