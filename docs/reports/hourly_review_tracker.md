@@ -1483,3 +1483,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Release build succeeded with 0 warnings/0 errors; Release tests passed (XerahS.Tests 988 passed/1 skipped, XerahS.McpServer.Tests 27 passed). Logs: /tmp/xerahs-hourly-sweep/build-20260520-114854.log, /tmp/xerahs-hourly-sweep/test-20260520-114854.log
 - Commit: f609d6e9
 - Follow-up: Continue file/path review around backup callers that ignore null return values and remaining path helper exception parity.
+
+### 2026-05-20 18:05 AWST - Plugin loading/runtime / empty quarantine folder pruning
+
+- Area: Plugin loading/runtime
+- Files: `src/desktop/core/XerahS.Uploaders/PluginSystem/PluginFolderCleaner.cs`, `tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs`, `Directory.Build.props`
+- Findings: Plugin cleanup skipped files already under `_quarantine` but never removed empty quarantine run folders/root directories, allowing failed or no-op cleanup runs to leave orphaned empty folders forever. Added conservative empty-directory pruning before each plugin cleanup while preserving quarantined files, plus regression coverage for both empty-only and non-empty quarantine trees.
+- Status: Fixed; bumped version `0.23.60` -> `0.23.61`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (990 XerahS.Tests + 27 MCP tests, 0 failed, 1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260520-180245.log`, `/tmp/xerahs-hourly-sweep/test-20260520-180245.log`.
+- Commit: `b453a38d`
+- Follow-up: Continue plugin runtime review around load-context unload post-verification diagnostics and package cleanup resilience for partially failed quarantines.
