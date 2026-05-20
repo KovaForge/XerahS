@@ -522,6 +522,37 @@ public sealed class FtpConfigViewModelTests
         });
     }
 
+    [Test]
+    public void CreateSftpClient_ReportsInvalidKeyFile_WhenNoPasswordFallbackExists()
+    {
+        string keyPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"invalid-sftp-key-no-fallback-{Guid.NewGuid():N}.key");
+        File.WriteAllText(keyPath, "not a private key");
+
+        try
+        {
+            var uploader = new FtpUploader(new FTPAccount
+            {
+                Host = "example.com",
+                Port = 22,
+                Protocol = FTPProtocol.SFTP,
+                Username = "alice",
+                Keypath = keyPath
+            });
+
+            SftpClient? client = InvokeCreateSftpClient(uploader);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(client, Is.Null);
+                Assert.That(uploader.Errors.Errors.Select(error => error.Text), Contains.Item("SFTP key file could not be loaded: " + keyPath));
+            });
+        }
+        finally
+        {
+            File.Delete(keyPath);
+        }
+    }
+
     private static FTPAccount GetAccount(FtpUploader uploader)
     {
         FieldInfo? field = typeof(FtpUploader).GetField("_account", BindingFlags.Instance | BindingFlags.NonPublic);
