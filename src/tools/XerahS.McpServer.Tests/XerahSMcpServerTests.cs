@@ -396,6 +396,34 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public async Task ResourcesRead_HistorySearch_DecodesPlusAsSpace()
+    {
+        var runtime = new TestHistoryRuntime();
+        var server = new XerahSMcpServer(runtime);
+
+        var response = await server.HandleRequestAsync(new JsonRpcRequest
+        {
+            JsonRpc = "2.0",
+            Id = 16,
+            Method = "resources/read",
+            Params = new JsonObject
+            {
+                ["uri"] = "xerahs://history/search?q=window+capture&limit=5"
+            }
+        });
+
+        Assert.Null(response.Error);
+        var result = Assert.IsType<JsonObject>(response.Result);
+        var contents = Assert.IsType<JsonArray>(result["contents"]);
+        var textContent = contents[0]?["text"]?.GetValue<string>();
+        Assert.NotNull(textContent);
+        var inner = JsonNode.Parse(textContent!) as JsonObject;
+        Assert.NotNull(inner);
+        Assert.Equal("window capture", inner["lastQuery"]?.GetValue<string>());
+        Assert.Equal(5, inner["lastLimit"]?.GetValue<int>());
+    }
+
+    [Fact]
     public async Task ResourcesRead_HistorySearch_HandlesQAfterOtherParams()
     {
         var runtime = new TestHistoryRuntime();

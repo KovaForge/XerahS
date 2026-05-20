@@ -558,7 +558,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 
         try
         {
-            return Uri.UnescapeDataString(value);
+            return Uri.UnescapeDataString(value.Replace('+', ' '));
         }
         catch (UriFormatException)
         {
