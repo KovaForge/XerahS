@@ -1503,3 +1503,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests: 990 passed, 1 skipped; XerahS.McpServer.Tests: 28 passed). Logs: `/tmp/xerahs-hourly-sweep/build-20260521-001003.log`, `/tmp/xerahs-hourly-sweep/test-20260521-001003.log`.
 - Commit: `cac58f31`
 - Follow-up: Continue MCP review around large inline blob error ergonomics and remaining resource URI construction/encoding edge cases.
+
+### 2026-05-21 06:22 AWST - FTP uploader plugin / invalid SFTP key files
+
+- Area: FTP uploader plugin
+- Files: `src/desktop/plugins/Ftp.Plugin/FtpUploader.cs`, `tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs`, `Directory.Build.props`
+- Findings: Pivoted from already-addressed build/user-props and uploader routing follow-ups; reviewed stale FTP/SFTP key handling. `CreateSftpClient()` only caught invalid private-key load failures when a password fallback existed, so an invalid configured key with no password escaped through reflection/direct construction instead of producing the intended user-visible uploader error. Fixed by catching key-load exceptions, falling back only when a password is present, otherwise adding `SFTP key file could not be loaded: <path>` and returning null. Added regression coverage for invalid key/no-password behavior. Bumped version `0.23.62` -> `0.23.63`.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 991 passed, 1 skipped; XerahS.McpServer.Tests 28 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260521-061814.log`, `/tmp/xerahs-hourly-sweep/test-20260521-061814.log`
+- Commit: `d3d94864`
+- Follow-up: Continue FTP uploader review around remote path normalization, SFTP directory creation for absolute paths, and cancellation/error-message parity across FTP/FTPS/SFTP.
