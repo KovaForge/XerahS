@@ -66,22 +66,37 @@
 
   <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
     <Message Text="[CLI Plugins] Auto-building discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
-    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=" />
   </Target>
 
-  <PropertyGroup>
-    <_PluginSourceDir>$(RepoRoot)src\desktop\plugins\AmazonS3.Plugin\bin\$(Configuration)\$(TargetFramework)</_PluginSourceDir>
-    <_PluginSourceDir Condition="'$(RuntimeIdentifier)' != ''">$(_PluginSourceDir)\$(RuntimeIdentifier)</_PluginSourceDir>
-    <_PluginSourceDir>$(_PluginSourceDir)\</_PluginSourceDir>
-  </PropertyGroup>
+  <Target Name="CopyPluginsToOutput" AfterTargets="BuildPlugins" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true' And '@(_DiscoveredPluginProjects)' != ''">
+    <Message Text="[CLI Plugins] Copying discovered plugins to CLI output..." Importance="High" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="_CopyPluginFiles"
+             Properties="PluginProject=%(_DiscoveredPluginProjects.FullPath);PluginDestinationRoot=$(OutDir)Plugins" />
+  </Target>
 
-  <Target Name="CopyPluginsToOutput" AfterTargets="BuildPlugins" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
-    <Message Text="[CLI Plugins] Copying built plugins to CLI output from $(_PluginSourceDir)..." Importance="High" />
+  <Target Name="_CopyPluginFiles" Condition="'$(PluginProject)' != '' And '$(PluginDestinationRoot)' != ''">
+    <PropertyGroup>
+      <_PluginProjectDirectory>$([System.IO.Path]::GetDirectoryName('$(PluginProject)'))</_PluginProjectDirectory>
+      <_PluginBundleName>$([System.IO.Path]::GetFileName('$(_PluginProjectDirectory)'))</_PluginBundleName>
+      <_PluginSourceDir>$(_PluginProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\</_PluginSourceDir>
+      <_PluginDestDir>$(PluginDestinationRoot)\$(_PluginBundleName)\</_PluginDestDir>
+    </PropertyGroup>
+
     <ItemGroup>
-      <_PluginFilesToCopy Include="$(_PluginSourceDir)*.dll" />
-      <_PluginFilesToCopy Include="$(_PluginSourceDir)plugin.json" />
+      <_PluginFilesToCopy Include="$(_PluginSourceDir)*.*"
+                          Exclude="$(_PluginSourceDir)*.pdb;$(_PluginSourceDir)*.xml" />
+      <_PluginFilesToCopy Include="$(_PluginSourceDir)runtimes\**\*.*"
+                          Exclude="$(_PluginSourceDir)runtimes\**\*.pdb;$(_PluginSourceDir)runtimes\**\*.xml" />
     </ItemGroup>
-    <Copy SourceFiles="@(_PluginFilesToCopy)" DestinationFolder="$(OutDir)Plugins\amazons3" Condition="'@(_PluginFilesToCopy)' != ''" />
+
+    <MakeDir Directories="$(_PluginDestDir)" Condition="'@(_PluginFilesToCopy)' != ''" />
+    <Copy SourceFiles="@(_PluginFilesToCopy)"
+          DestinationFiles="@(_PluginFilesToCopy->'$(_PluginDestDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_PluginFilesToCopy)' != ''" />
+    <Message Text="[CLI Plugins] Copied @(_PluginFilesToCopy->Count()) files for $(_PluginBundleName) to $(_PluginDestDir)" Importance="High" Condition="'@(_PluginFilesToCopy)' != ''" />
   </Target>
 
   <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build">
@@ -121,26 +136,13 @@
   </Target>
 
   <!-- Build and copy plugins into the publish output so the deployed CLI has uploader plugins. -->
-  <Target Name="BundlePluginsForPublish" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true'">
-    <Message Text="[CLI Publish] Building and bundling plugins into publish output..." Importance="High" />
+  <Target Name="BundlePluginsForPublish" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true' And '@(_DiscoveredPluginProjects)' != ''">
+    <Message Text="[CLI Publish] Building and bundling discovered plugins into publish output..." Importance="High" />
 
-    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
-
-    <PropertyGroup>
-      <_PluginPublishSourceDir>$(RepoRoot)src\desktop\plugins\AmazonS3.Plugin\bin\$(Configuration)\$(TargetFramework)</_PluginPublishSourceDir>
-      <_PluginPublishSourceDir Condition="'$(RuntimeIdentifier)' != ''">$(_PluginPublishSourceDir)\$(RuntimeIdentifier)</_PluginPublishSourceDir>
-      <_PluginPublishSourceDir>$(_PluginPublishSourceDir)\</_PluginPublishSourceDir>
-      <_PluginPublishDestDir>$(PublishDir)Plugins\amazons3\</_PluginPublishDestDir>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <_PluginFilesForPublish Include="$(_PluginPublishSourceDir)*.dll" />
-      <_PluginFilesForPublish Include="$(_PluginPublishSourceDir)plugin.json" />
-    </ItemGroup>
-
-    <MakeDir Directories="$(_PluginPublishDestDir)" Condition="'@(_PluginFilesForPublish)' != ''" />
-    <Copy SourceFiles="@(_PluginFilesForPublish)" DestinationFolder="$(_PluginPublishDestDir)" Condition="'@(_PluginFilesForPublish)' != ''" />
-    <Message Text="[CLI Publish] Copied @(_PluginFilesForPublish->Count()) plugin files to $(_PluginPublishDestDir)" Importance="High" />
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="_CopyPluginFiles"
+             Properties="PluginProject=%(_DiscoveredPluginProjects.FullPath);PluginDestinationRoot=$(PublishDir)Plugins" />
   </Target>
 
   <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">

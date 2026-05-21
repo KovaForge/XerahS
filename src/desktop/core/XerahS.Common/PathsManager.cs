@@ -76,16 +76,28 @@ namespace XerahS.Common
 
         private static string GetDocumentsFolder()
         {
-            // On macOS, the canonical Documents folder is always /Users/{username}/Documents.
-            // Environment.GetFolderPath(SpecialFolder.MyDocuments) can return incorrect
-            // paths under certain hosting environments (launchd agents, sandboxed processes,
-            // custom HOME overrides). Prefer the native macOS path when it exists.
+            // On macOS, launchd/agent hosts can override HOME to an agent profile
+            // directory (for example ~/.hermes/profiles/<agent>/home). The CLR then
+            // resolves SpecialFolder.MyDocuments inside that profile, causing CLI
+            // plugin discovery to look in the wrong XerahS/Plugins folder. Resolve
+            // the real login account home through libc before falling back to the
+            // environment-sensitive .NET special folders.
             if (OperatingSystem.IsMacOS())
             {
-                string macOSDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
-                if (Directory.Exists(macOSDocuments))
+                string? nativeHome = GetNativeUserHomeDirectory();
+                if (!string.IsNullOrWhiteSpace(nativeHome))
                 {
-                    return macOSDocuments;
+                    string nativeDocuments = Path.Combine(nativeHome, "Documents");
+                    if (Directory.Exists(nativeDocuments))
+                    {
+                        return nativeDocuments;
+                    }
+                }
+
+                string userNameDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
+                if (Directory.Exists(userNameDocuments))
+                {
+                    return userNameDocuments;
                 }
             }
 
@@ -104,6 +116,47 @@ namespace XerahS.Common
             }
 
             return string.IsNullOrWhiteSpace(documents) ? Environment.CurrentDirectory : documents;
+        }
+
+        private static string? GetNativeUserHomeDirectory()
+        {
+            try
+            {
+                IntPtr passwdPointer = getpwuid(getuid());
+                if (passwdPointer == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                Passwd passwd = Marshal.PtrToStructure<Passwd>(passwdPointer);
+                return Marshal.PtrToStringUTF8(passwd.HomeDirectory);
+            }
+            catch (Exception ex) when (ex is EntryPointNotFoundException || ex is DllNotFoundException || ex is MarshalDirectiveException)
+            {
+                DebugHelper.WriteLine($"Unable to resolve native user home directory: {ex.Message}");
+                return null;
+            }
+        }
+
+        [DllImport("libc")]
+        private static extern uint getuid();
+
+        [DllImport("libc")]
+        private static extern IntPtr getpwuid(uint uid);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Passwd
+        {
+            public IntPtr Name;
+            public IntPtr Password;
+            public uint Uid;
+            public uint Gid;
+            public long Change;
+            public IntPtr Class;
+            public IntPtr Gecos;
+            public IntPtr HomeDirectory;
+            public IntPtr Shell;
+            public long Expire;
         }
 
         public static string ScreenshotsFolder => UseLinuxXdgLayout
