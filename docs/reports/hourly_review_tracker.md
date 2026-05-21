@@ -1513,3 +1513,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 991 passed, 1 skipped; XerahS.McpServer.Tests 28 passed), logs: `/tmp/xerahs-hourly-sweep/build-20260521-061814.log`, `/tmp/xerahs-hourly-sweep/test-20260521-061814.log`
 - Commit: `d3d94864`
 - Follow-up: Continue FTP uploader review around remote path normalization, SFTP directory creation for absolute paths, and cancellation/error-message parity across FTP/FTPS/SFTP.
+
+### 2026-05-21 12:30 AWST - File/path handling / invalid backup and copy destination paths
+
+- Area: File/path handling
+- Files: `src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs`, `tests/XerahS.Tests/Helpers/FileHelpersTests.cs`, `Directory.Build.props`
+- Findings: `CopyFile` and `BackupFileWeekly` built destination paths before entering their handled IO failure paths, so invalid destination folder strings such as embedded null characters could throw `ArgumentException` instead of returning `null` like other destination failures. Moved destination path construction inside the guarded blocks and added `ArgumentException`/`NotSupportedException` parity to both helpers.
+- Status: Fixed; bumped version `0.23.63` -> `0.23.64`.
+- Build/test: `dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/0 errors; `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 1021 tests (993 XerahS.Tests + 28 MCP), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260521-122404.log`, `/tmp/xerahs-hourly-sweep/test-20260521-122404.log`.
+- Commit: `993bbf90`
+- Follow-up: Continue file/path review around backup callers that ignore null return values and remaining path helper exception parity.
