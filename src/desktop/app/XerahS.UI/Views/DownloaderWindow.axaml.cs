@@ -51,6 +51,24 @@ public partial class DownloaderWindow : SurfaceWindow
         };
     }
 
+    public async Task<bool?> ShowDetachedAsync()
+    {
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
+        var completionSource = new TaskCompletionSource<bool?>();
+
+        void OnClosed(object? sender, EventArgs args)
+        {
+            Closed -= OnClosed;
+            completionSource.TrySetResult(_viewModel?.DialogResult);
+        }
+
+        Closed += OnClosed;
+        Show();
+
+        return await completionSource.Task;
+    }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);

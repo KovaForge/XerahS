@@ -26,6 +26,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using System.Linq;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.Views;
@@ -39,8 +40,6 @@ public class UpdateService : IDisposable
 {
     private static UpdateService? _instance;
     private static readonly object _lock = new();
-    private static readonly TimeSpan DialogOwnerRetryInterval = TimeSpan.FromMilliseconds(200);
-    private const int DialogOwnerRetryCount = 25;
     private const string DefaultReleaseOwner = "ShareX";
     private const string DefaultPreReleaseOwner = "KovaForge";
     private const string DefaultRepo = "XerahS";
@@ -61,8 +60,6 @@ public class UpdateService : IDisposable
     }
 
     private GitHubUpdateManager? _updateManager;
-    private DispatcherTimer? _pendingUpdateDialogTimer;
-    private UpdateChecker? _pendingUpdateChecker;
     private bool _disposed;
 
     public bool IsUpdateDialogOpen { get; private set; }
@@ -79,6 +76,7 @@ public class UpdateService : IDisposable
         if (_updateManager != null)
         {
             DebugHelper.WriteLine("UpdateService already initialized.");
+            RefreshConfigurationFromSettings();
             return;
         }
 
@@ -105,6 +103,24 @@ public class UpdateService : IDisposable
         {
             DebugHelper.WriteLine("UpdateService: Auto-update is disabled.");
         }
+    }
+
+    public void RefreshConfigurationFromSettings()
+    {
+        if (_updateManager == null)
+        {
+            return;
+        }
+
+        var settings = SettingsManager.Settings;
+        var updateRepository = ResolveUpdateRepository(settings);
+        bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
+
+        _updateManager.GitHubOwner = updateRepository.Owner;
+        _updateManager.GitHubRepo = updateRepository.Repo;
+        _updateManager.IncludePreRelease = includePreRelease;
+        _updateManager.AllowAutoUpdate = settings.AutoCheckUpdate;
+        _updateManager.ConfigureAutoUpdate();
     }
 
     public static (string Owner, string Repo) ResolveUpdateRepository(ApplicationConfig settings)
@@ -177,20 +193,11 @@ public class UpdateService : IDisposable
         {
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                var owner = await WaitForDialogOwnerAsync();
-                if (!CanUseDialogOwner(owner))
-                {
-                    // Defer this prompt if the main window is not ready/visible yet.
-                    // Returning true prevents auto-update from being disabled as if user declined.
-                    DeferUpdateDialog(updateChecker);
-                    return true;
-                }
-
                 var dialog = new UpdateMessageBox(updateChecker);
                 bool? result;
                 try
                 {
-                    result = await dialog.ShowDialog<bool?>(owner!);
+                    result = await ShowUpdateDialogWindowAsync(dialog);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -248,23 +255,11 @@ public class UpdateService : IDisposable
     {
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            var owner = await WaitForDialogOwnerAsync();
-            if (!CanUseDialogOwner(owner))
-            {
-                DebugHelper.WriteLine("Cannot show downloader: Main window is not visible.");
-                // Fallback to opening URL in browser
-                if (!string.IsNullOrEmpty(updateChecker.DownloadURL))
-                {
-                    URLHelpers.OpenURL(updateChecker.DownloadURL);
-                }
-                return;
-            }
-
             var dialog = new DownloaderWindow(updateChecker);
             bool? result;
             try
             {
-                result = await dialog.ShowDialog<bool?>(owner!);
+                result = await ShowDownloaderWindowAsync(dialog, updateChecker);
             }
             catch (InvalidOperationException ex)
             {
@@ -285,47 +280,6 @@ public class UpdateService : IDisposable
         });
     }
 
-    private void DeferUpdateDialog(UpdateChecker updateChecker)
-    {
-        _pendingUpdateChecker = updateChecker;
-
-        if (_pendingUpdateDialogTimer == null)
-        {
-            _pendingUpdateDialogTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            _pendingUpdateDialogTimer.Tick += PendingUpdateDialogTimer_Tick;
-        }
-
-        if (!_pendingUpdateDialogTimer.IsEnabled)
-        {
-            _pendingUpdateDialogTimer.Start();
-        }
-
-        DebugHelper.WriteLine("Update dialog deferred until main window is visible.");
-    }
-
-    private async void PendingUpdateDialogTimer_Tick(object? sender, EventArgs e)
-    {
-        if (IsUpdateDialogOpen || _pendingUpdateChecker == null)
-        {
-            return;
-        }
-
-        var owner = GetMainWindow();
-        if (!CanUseDialogOwner(owner))
-        {
-            return;
-        }
-
-        var updateChecker = _pendingUpdateChecker;
-        _pendingUpdateChecker = null;
-        _pendingUpdateDialogTimer?.Stop();
-
-        await ShowUpdateDialogAsync(updateChecker);
-    }
-
     private static void ShutdownApplication()
     {
         if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -335,35 +289,52 @@ public class UpdateService : IDisposable
         }
     }
 
-    private static Window? GetMainWindow()
+    private static Window? GetPreferredDialogOwner()
     {
-        return Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
+        if (Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return null;
+        }
+
+        return desktop.Windows.FirstOrDefault(window => CanUseDialogOwner(window) && window.IsActive)
+            ?? desktop.Windows.LastOrDefault(CanUseDialogOwner)
+            ?? desktop.MainWindow;
     }
 
     private static bool CanUseDialogOwner(Window? owner)
     {
         return owner != null &&
                owner.IsVisible &&
-               owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
-               owner.ShowInTaskbar;
+               owner.WindowState != Avalonia.Controls.WindowState.Minimized;
     }
 
-    private static async Task<Window?> WaitForDialogOwnerAsync()
+    private static async Task<bool?> ShowUpdateDialogWindowAsync(UpdateMessageBox dialog)
     {
-        for (int i = 0; i < DialogOwnerRetryCount; i++)
+        var owner = GetPreferredDialogOwner();
+        if (CanUseDialogOwner(owner))
         {
-            var owner = GetMainWindow();
-            if (CanUseDialogOwner(owner))
-            {
-                return owner;
-            }
-
-            await Task.Delay(DialogOwnerRetryInterval);
+            return await dialog.ShowDialog<bool?>(owner!);
         }
 
-        return null;
+        DebugHelper.WriteLine("Showing update dialog without a visible owner window.");
+        return await dialog.ShowDetachedAsync();
+    }
+
+    private static async Task<bool?> ShowDownloaderWindowAsync(DownloaderWindow dialog, UpdateChecker updateChecker)
+    {
+        var owner = GetPreferredDialogOwner();
+        if (CanUseDialogOwner(owner))
+        {
+            return await dialog.ShowDialog<bool?>(owner!);
+        }
+
+        DebugHelper.WriteLine("Showing updater downloader without a visible owner window.");
+        if (string.IsNullOrEmpty(updateChecker.DownloadURL))
+        {
+            return false;
+        }
+
+        return await dialog.ShowDetachedAsync();
     }
 
     private static bool IsPortableBuild()
@@ -376,13 +347,15 @@ public class UpdateService : IDisposable
     /// <summary>
     /// Manually trigger an update check.
     /// </summary>
-    public async Task CheckForUpdatesAsync()
+    public async Task<UpdateStatus> CheckForUpdatesAsync()
     {
         if (_updateManager == null)
         {
             DebugHelper.WriteLine("UpdateService not initialized. Call Initialize() first.");
-            return;
+            return UpdateStatus.UpdateCheckFailed;
         }
+
+        RefreshConfigurationFromSettings();
 
         var updateChecker = _updateManager.CreateUpdateChecker();
         await updateChecker.CheckUpdateAsync();
@@ -399,20 +372,14 @@ public class UpdateService : IDisposable
         {
             DebugHelper.WriteLine($"Update check failed. Status: {updateChecker.Status}");
         }
+
+        return updateChecker.Status;
     }
 
     public void Dispose()
     {
         if (!_disposed)
         {
-            if (_pendingUpdateDialogTimer != null)
-            {
-                _pendingUpdateDialogTimer.Stop();
-                _pendingUpdateDialogTimer.Tick -= PendingUpdateDialogTimer_Tick;
-                _pendingUpdateDialogTimer = null;
-            }
-
-            _pendingUpdateChecker = null;
             _updateManager?.Dispose();
             _updateManager = null;
             _disposed = true;
