@@ -335,7 +335,7 @@ public class FileHelpersTests
     }
 
     [Test]
-    public void BackupFileWeekly_ReturnsNull_WhenDestinationPathIsFile()
+    public void BackupFileWeekly_ReturnsNull_WhenBackupFolderPathIsFile()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -350,6 +350,26 @@ public class FileHelpersTests
 
             Assert.That(result, Is.Null);
             Assert.That(File.Exists(backupFolderAsFile), Is.True);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileWeekly_ReturnsNull_WhenBackupFolderPathIsInvalid()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "history.json");
+        File.WriteAllText(sourceFile, "{}");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileWeekly(sourceFile, "bad\0destination");
+
+            Assert.That(result, Is.Null);
         }
         finally
         {
@@ -396,6 +416,26 @@ public class FileHelpersTests
             Assert.That(result, Is.Not.Null);
             Assert.That(File.Exists(result), Is.True);
             Assert.That(File.ReadAllText(result), Is.EqualTo("source"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void CopyFile_ReturnsNull_WhenDestinationPathIsInvalid()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "source.txt");
+        File.WriteAllText(sourceFile, "source");
+
+        try
+        {
+            string? result = FileHelpers.CopyFile(sourceFile, "bad\0destination");
+
+            Assert.That(result, Is.Null);
         }
         finally
         {

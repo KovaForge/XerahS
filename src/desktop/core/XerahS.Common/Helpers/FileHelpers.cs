@@ -409,20 +409,21 @@ public static class FileHelpers
             return null;
         }
 
-        string fileName = Path.GetFileName(filePath);
-        string destinationFilePath = Path.Combine(destinationFolder, fileName);
-
         try
         {
+            string fileName = Path.GetFileName(filePath);
+            string destinationFilePath = Path.Combine(destinationFolder, fileName);
+
             Directory.CreateDirectory(destinationFolder);
             File.Copy(filePath, destinationFilePath, overwrite);
             return destinationFilePath;
         }
-        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException)
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException ||
+                                     e is ArgumentException || e is NotSupportedException)
         {
-            // Destination already exists with overwrite=false, or destination is
-            // locked/read-only, or the destination folder was deleted between
-            // CreateDirectory and Copy — return null so callers can handle gracefully.
+            // Destination already exists with overwrite=false, contains an invalid path,
+            // is locked/read-only, or was deleted between CreateDirectory and Copy —
+            // return null so callers can handle gracefully.
             return null;
         }
     }
@@ -434,14 +435,14 @@ public static class FileHelpers
             return null;
         }
 
-        string fileName = Path.GetFileNameWithoutExtension(filePath);
-        DateTime dateTime = DateTime.Now;
-        string extension = Path.GetExtension(filePath);
-        string newFileName = $"{fileName}-{dateTime:yyyy-MM}-W{WeekOfYear(dateTime):00}{extension}";
-        string newFilePath = Path.Combine(destinationFolder, newFileName);
-
         try
         {
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            DateTime dateTime = DateTime.Now;
+            string extension = Path.GetExtension(filePath);
+            string newFileName = $"{fileName}-{dateTime:yyyy-MM}-W{WeekOfYear(dateTime):00}{extension}";
+            string newFilePath = Path.Combine(destinationFolder, newFileName);
+
             Directory.CreateDirectory(destinationFolder);
 
             // Use overwrite=false; will throw IOException if destination already exists
@@ -449,10 +450,11 @@ public static class FileHelpers
             File.Copy(filePath, newFilePath, false);
             return newFilePath;
         }
-        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException)
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException ||
+                                     e is ArgumentException || e is NotSupportedException)
         {
-            // Backup folder cannot be created/accessed, or backup already exists
-            // (race/concurrent backup). Return null so callers can continue safely.
+            // Backup folder cannot be created/accessed, contains an invalid path,
+            // or backup already exists (race/concurrent backup). Return null so callers can continue safely.
             return null;
         }
     }
