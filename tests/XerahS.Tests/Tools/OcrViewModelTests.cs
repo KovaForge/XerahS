@@ -111,6 +111,43 @@ public sealed class OcrViewModelTests
 
 
     [Test]
+    public async Task RunOcrAsync_WhenRecognitionFailsWithoutMessage_ShowsDefaultFailureStatus()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new FailureOcrService("   ");
+        PlatformServices.Ocr = ocr;
+
+        var viewModel = new OcrViewModel(bitmap);
+
+        await viewModel.RunOcrAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.StatusText, Is.EqualTo("OCR failed."));
+            Assert.That(viewModel.HasResult, Is.False);
+            Assert.That(viewModel.ResultText, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task RunOcrAsync_WhenRecognitionFailsWithMessage_TrimsFailureStatus()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new FailureOcrService("  language pack missing  ");
+        PlatformServices.Ocr = ocr;
+
+        var viewModel = new OcrViewModel(bitmap);
+
+        await viewModel.RunOcrAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.StatusText, Is.EqualTo("language pack missing"));
+            Assert.That(viewModel.HasResult, Is.False);
+        });
+    }
+
+    [Test]
     public async Task RunOcrAsync_ClearsPreviousResultStateWhileProcessing()
     {
         using var bitmap = new SKBitmap(8, 8);
@@ -142,6 +179,30 @@ public sealed class OcrViewModelTests
             Assert.That(viewModel.ResultText, Is.EqualTo("new text"));
             Assert.That(viewModel.HasResult, Is.True);
         });
+    }
+
+    private sealed class FailureOcrService : IOcrService
+    {
+        private readonly string? _errorMessage;
+
+        public FailureOcrService(string? errorMessage)
+        {
+            _errorMessage = errorMessage;
+        }
+
+        public bool IsSupported => true;
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options) =>
+            Task.FromResult(new OcrResult
+            {
+                Success = false,
+                ErrorMessage = _errorMessage
+            });
+
+        public OcrLanguage[] GetAvailableLanguages() =>
+        [
+            new("English", "en")
+        ];
     }
 
     private sealed class WaitingOcrService : IOcrService

@@ -168,7 +168,9 @@ public partial class OcrViewModel : ViewModelBase
             }
             else
             {
-                StatusText = result.ErrorMessage ?? "OCR failed.";
+                StatusText = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                    ? "OCR failed."
+                    : result.ErrorMessage.Trim();
                 HasResult = false;
             }
         }
