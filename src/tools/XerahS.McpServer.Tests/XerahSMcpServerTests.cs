@@ -340,6 +340,30 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public void RuntimeHistoryBlobTooLargeResponse_ReturnsActionableJsonTextContent()
+    {
+        const string uri = "xerahs://history/thumb/12345";
+        const string blobPath = "/tmp/oversized-capture.png";
+        const long blobSize = XerahSMcpRuntime.MaxInlineHistoryBlobBytes + 1;
+
+        var response = XerahSMcpRuntime.CreateHistoryBlobTooLargeResponse(uri, blobPath, blobSize);
+
+        var contents = Assert.IsType<JsonArray>(response["contents"]);
+        var content = Assert.IsType<JsonObject>(contents[0]);
+        Assert.Equal(uri, content["uri"]?.GetValue<string>());
+        Assert.Equal("application/json", content["mimeType"]?.GetValue<string>());
+        Assert.Null(content["blob"]);
+
+        var details = JsonNode.Parse(content["text"]!.GetValue<string>()) as JsonObject;
+        Assert.NotNull(details);
+        Assert.Equal("history_blob_too_large", details["error"]?.GetValue<string>());
+        Assert.Equal(blobPath, details["file_path"]?.GetValue<string>());
+        Assert.Equal(blobSize, details["file_size_bytes"]?.GetValue<long>());
+        Assert.Equal(XerahSMcpRuntime.MaxInlineHistoryBlobBytes, details["max_inline_bytes"]?.GetValue<long>());
+        Assert.Contains("Open the local file path", details["message"]?.GetValue<string>());
+    }
+
+    [Fact]
     public async Task ResourcesRead_HistorySearch_ExtractsQueryFromQParameter()
     {
         var runtime = new TestHistoryRuntime();

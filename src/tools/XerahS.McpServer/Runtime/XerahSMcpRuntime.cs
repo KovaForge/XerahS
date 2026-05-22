@@ -413,8 +413,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             var blobInfo = new FileInfo(blobPath);
             if (blobInfo.Length > MaxInlineHistoryBlobBytes)
             {
-                throw new InvalidOperationException(
-                    $"History item blob is too large to inline ({blobInfo.Length} bytes, max {MaxInlineHistoryBlobBytes} bytes).");
+                return CreateHistoryBlobTooLargeResponse(uri, blobPath, blobInfo.Length);
             }
 
             return new JsonObject
@@ -1039,6 +1038,30 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
     internal static string CreateHistoryBlobResourceUri(HistoryItem item)
     {
         return $"xerahs://history/thumb/{item.Id.ToString(CultureInfo.InvariantCulture)}";
+    }
+
+    internal static JsonObject CreateHistoryBlobTooLargeResponse(string uri, string blobPath, long byteLength)
+    {
+        var details = new JsonObject
+        {
+            ["error"] = "history_blob_too_large",
+            ["message"] = "History item blob is too large to inline. Open the local file path directly or reduce the capture/thumbnail size.",
+            ["resource_uri"] = uri,
+            ["file_path"] = blobPath,
+            ["file_size_bytes"] = byteLength,
+            ["max_inline_bytes"] = MaxInlineHistoryBlobBytes
+        };
+
+        return new JsonObject
+        {
+            ["contents"] = new JsonArray(
+                new JsonObject
+                {
+                    ["uri"] = uri,
+                    ["mimeType"] = "application/json",
+                    ["text"] = details.ToJsonString()
+                })
+        };
     }
 
     internal static string? CreateFileUrl(string? filePath)
