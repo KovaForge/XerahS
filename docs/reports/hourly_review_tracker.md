@@ -1533,3 +1533,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (995 XerahS.Tests + 29 MCP tests, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-20260522-183558.log, /tmp/xerahs-hourly-sweep/test-20260522-183558.log
 - Commit: bc403d6f
 - Follow-up: Continue MCP review around remaining resource URI construction/encoding edge cases and history thumbnail/file-path diagnostics for missing or moved local files.
+
+### 2026-05-23 00:58 AWST - File/path handling / history backup failure surfacing
+
+- Area: File/path handling / history backup callers
+- Files: `src/desktop/core/XerahS.History/HistoryManager.cs`, `src/desktop/core/XerahS.History/HistoryManagerJSON.cs`, `src/desktop/core/XerahS.History/HistoryManagerXML.cs`, `src/desktop/core/XerahS.History/HistoryManagerSQLite.cs`, `tests/XerahS.Tests/History/HistoryManagerBackupTests.cs`, `Directory.Build.props`
+- Findings: History append callers ignored backup helper `null` results, so configured zip/weekly backup creation failures were silently hidden while append reported success. Fixed `Backup()` to return a success flag, log failed zip/weekly backup creation, and propagate false through JSON/XML/SQLite append paths. Preserved the intentional weekly-backup already-exists behavior as success.
+- Status: Fixed; bumped version `0.23.65` -> `0.23.66`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 998 passed, 1 skipped; XerahS.McpServer.Tests 29 passed), logs: /tmp/xerahs-hourly-sweep/build-20260523-004535.log, /tmp/xerahs-hourly-sweep/test-20260523-004535.log
+- Commit: `0200f3e1`
+- Follow-up: Continue file/path review around remaining path helper exception parity, and review history backup UI/log diagnostics so users can see repeated backup failures outside debug logs.
