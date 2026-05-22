@@ -1523,3 +1523,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: `dotnet build XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false` passed with 0 warnings/0 errors; `dotnet test XerahS.sln --configuration Release -m:1 /p:UseSharedCompilation=false /nr:false --no-build` passed 1021 tests (993 XerahS.Tests + 28 MCP), 0 failed, 1 skipped. Logs: `/tmp/xerahs-hourly-sweep/build-20260521-122404.log`, `/tmp/xerahs-hourly-sweep/test-20260521-122404.log`.
 - Commit: `993bbf90`
 - Follow-up: Continue file/path review around backup callers that ignore null return values and remaining path helper exception parity.
+
+### 2026-05-22 18:42 AWST - MCP server / oversized history blob resource ergonomics
+
+- Area: MCP server
+- Files: src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs; src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs; Directory.Build.props
+- Findings: Replaced the hard JSON-RPC exception for oversized history thumbnail/blob reads with an MCP text resource containing actionable JSON (`history_blob_too_large`, local file path, observed size, and max inline size), so clients still receive structured guidance instead of a failed resource read. Added regression coverage for the response shape and bumped version `0.23.64` -> `0.23.65`.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (995 XerahS.Tests + 29 MCP tests, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-20260522-183558.log, /tmp/xerahs-hourly-sweep/test-20260522-183558.log
+- Commit: bc403d6f
+- Follow-up: Continue MCP review around remaining resource URI construction/encoding edge cases and history thumbnail/file-path diagnostics for missing or moved local files.
