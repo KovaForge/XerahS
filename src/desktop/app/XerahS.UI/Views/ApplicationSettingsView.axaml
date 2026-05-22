@@ -102,6 +102,20 @@
                                                      AutomationProperties.Name="Custom Pre-release Source"/>
                                         </Grid>
                                     </Grid>
+
+                                    <Grid ColumnDefinitions="Auto, 16, *">
+                                        <Button Grid.Column="0"
+                                                Content="{Binding ManualUpdateButtonText}"
+                                                Command="{Binding ManualUpdateCommand}"
+                                                IsEnabled="{Binding CanTriggerManualUpdate}"
+                                                MinWidth="120"
+                                                AutomationProperties.Name="Update Now"/>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding ManualUpdateStatusText}"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

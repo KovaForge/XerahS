@@ -46,6 +46,8 @@ public partial class UpdateMessageBoxViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isDev;
 
+    public bool? DialogResult { get; private set; }
+
     public Action<bool?>? RequestClose { get; set; }
 
     public string TitleText => $"Update available for {AppResources.AppName}";
@@ -70,12 +72,14 @@ public partial class UpdateMessageBoxViewModel : ViewModelBase
     [RelayCommand]
     private void Yes()
     {
+        DialogResult = true;
         RequestClose?.Invoke(true);
     }
 
     [RelayCommand]
     private void No()
     {
+        DialogResult = false;
         RequestClose?.Invoke(false);
     }
 }

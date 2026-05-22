@@ -61,6 +61,8 @@ public partial class DownloaderWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string _fileName = string.Empty;
 
+    public bool? DialogResult { get; private set; }
+
     public Action<bool?>? RequestClose { get; set; }
 
     public string DownloadLocation { get; private set; } = string.Empty;
@@ -171,6 +173,7 @@ public partial class DownloaderWindowViewModel : ViewModelBase, IDisposable
             Process.Start(startInfo);
 
             // Close the downloader window - the app will be shut down by UpdateService
+            DialogResult = true;
             RequestClose?.Invoke(true);
         }
         catch (Exception ex)
@@ -189,6 +192,7 @@ public partial class DownloaderWindowViewModel : ViewModelBase, IDisposable
             _downloader.StopDownload();
         }
 
+        DialogResult = false;
         RequestClose?.Invoke(false);
     }
 

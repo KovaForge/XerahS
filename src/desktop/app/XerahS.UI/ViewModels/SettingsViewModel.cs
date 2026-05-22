@@ -130,6 +130,16 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private string _customPreReleaseUpdateSource = string.Empty;
 
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ManualUpdateCommand))]
+        private bool _isManualUpdateInProgress;
+
+        [ObservableProperty]
+        private string _manualUpdateStatusText = "Use Update Now to check and install the latest release for your selected channel.";
+
+        public string ManualUpdateButtonText => IsManualUpdateInProgress ? "Checking..." : "Update Now";
+        public bool CanTriggerManualUpdate => !IsManualUpdateInProgress;
+
         public bool ShowPreReleaseSourceSettings => UpdateChannel == UpdateChannel.PreRelease;
         public bool ShowCustomPreReleaseSource => ShowPreReleaseSourceSettings && PreReleaseUpdateSource == PreReleaseUpdateSource.Custom;
 
@@ -148,6 +158,12 @@ namespace XerahS.UI.ViewModels
         partial void OnPreReleaseUpdateSourceChanged(PreReleaseUpdateSource value)
         {
             OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        partial void OnIsManualUpdateInProgressChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ManualUpdateButtonText));
+            OnPropertyChanged(nameof(CanTriggerManualUpdate));
         }
 
         [ObservableProperty]
@@ -224,6 +240,8 @@ namespace XerahS.UI.ViewModels
             nameof(LinuxRegionSelectorAvailableText),
             nameof(LinuxRegionSelectorAutomaticText),
             nameof(LinuxRegionSelectorLastDecisionText),
+            nameof(IsManualUpdateInProgress),
+            nameof(ManualUpdateStatusText),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -419,10 +437,42 @@ namespace XerahS.UI.ViewModels
             SettingsManager.SaveApplicationConfig();
             _ = SettingsManager.SaveWorkflowsConfigAsync();
             App.ApplyMenuBarOnlyModeFromSettings();
+            Services.UpdateService.Instance.RefreshConfigurationFromSettings();
 
             ApplyWatchFolderRuntimePolicy(
                 watchFolderConfigurationChanged,
                 refreshDaemonStatus: watchFolderConfigurationChanged);
+        }
+
+        private bool CanManualUpdate() => !IsManualUpdateInProgress;
+
+        [RelayCommand(CanExecute = nameof(CanManualUpdate))]
+        private async Task ManualUpdate()
+        {
+            IsManualUpdateInProgress = true;
+            ManualUpdateStatusText = "Checking for updates...";
+
+            try
+            {
+                Services.UpdateService.Instance.Initialize();
+                UpdateStatus status = await Services.UpdateService.Instance.CheckForUpdatesAsync();
+
+                ManualUpdateStatusText = status switch
+                {
+                    UpdateStatus.UpdateAvailable => "Update available. Review the prompt to continue.",
+                    UpdateStatus.UpToDate => "XerahS is already up to date.",
+                    _ => "Update check failed. Check the debug log for details."
+                };
+            }
+            catch (Exception ex)
+            {
+                ManualUpdateStatusText = $"Update check failed: {ex.Message}";
+                DebugHelper.WriteException(ex, "Manual update check failed.");
+            }
+            finally
+            {
+                IsManualUpdateInProgress = false;
+            }
         }
 
         [RelayCommand]
