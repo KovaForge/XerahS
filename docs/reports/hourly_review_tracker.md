@@ -1543,3 +1543,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 998 passed, 1 skipped; XerahS.McpServer.Tests 29 passed), logs: /tmp/xerahs-hourly-sweep/build-20260523-004535.log, /tmp/xerahs-hourly-sweep/test-20260523-004535.log
 - Commit: `0200f3e1`
 - Follow-up: Continue file/path review around remaining path helper exception parity, and review history backup UI/log diagnostics so users can see repeated backup failures outside debug logs.
+
+### 2026-05-23 07:09 AWST - OCR / recognition failure status normalization
+
+- Area: OCR
+- Files: `src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs`, `tests/XerahS.Tests/Tools/OcrViewModelTests.cs`, `Directory.Build.props`
+- Findings: `RunOcrAsync()` surfaced `OcrResult.ErrorMessage` directly when recognition failed. A platform/service result with a blank or whitespace error could leave the OCR tool status blank, and padded platform messages were displayed with raw whitespace. Normalized failure status to use `OCR failed.` for blank messages and trim real messages before display; added regression coverage for both paths.
+- Status: Fixed; bumped version `0.23.66` -> `0.23.67`.
+- Build/test: build succeeded with 0 warnings/0 errors; tests passed (1000 XerahS.Tests + 29 XerahS.McpServer.Tests, 1 skipped); logs: `/tmp/xerahs-hourly-sweep/build-20260523-070401.log`, `/tmp/xerahs-hourly-sweep/test-20260523-070401.log`
+- Commit: `dcadd89d`
+- Follow-up: Continue OCR review around tool/onboarding language-selection parity, language refresh lifecycle edge cases, and OCR recognition exception consistency.

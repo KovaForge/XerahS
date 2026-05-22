@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-23 00:58 AWST",
+  "last_updated": "2026-05-23 07:09 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -124,11 +124,11 @@
     },
     {
       "area": "OCR",
-      "last_reviewed": "2026-05-19 01:39 AWST",
+      "last_reviewed": "2026-05-23 07:09 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed OCR language enumeration failures to surface actionable UI errors instead of failing silently/crashing. Onboarding language refresh now stores LanguageRefreshError and displays a warning card while preserving fallback language selection; OCR tool construction catches GetAvailableLanguages exceptions, logs them, and shows the message in StatusText. Added 3 regression tests; bumped version 0.23.49 -> 0.23.50.",
-      "follow_up": "Continue OCR review around tool/onboarding language-selection parity and OCR recognition error message consistency."
+      "last_outcome": "Fixed OCR tool recognition failure status normalization so blank/whitespace ErrorMessage values show the default OCR failed message and non-blank platform messages are trimmed before display. Added regression coverage; bumped version 0.23.66 -> 0.23.67.",
+      "follow_up": "Continue OCR review around tool/onboarding language-selection parity, language refresh lifecycle edge cases, and OCR recognition exception consistency."
     },
     {
       "area": "Tests / test discoverability",
@@ -214,6 +214,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-23 07:09 AWST",
+      "area": "OCR — recognition failure status normalization",
+      "files": [
+        "src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs",
+        "tests/XerahS.Tests/Tools/OcrViewModelTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed OCR tool failure status handling to avoid blank UI status text for whitespace ErrorMessage values and trim real platform error messages; added regression coverage; bumped version 0.23.66 -> 0.23.67.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260523-070401.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260523-070401.log",
+      "result": "build 0 warnings/0 errors; tests 1000+29=1029 passed, 0 failed, 1 skipped",
+      "commit": "dcadd89d"
+    },
     {
       "timestamp": "2026-05-23 00:58 AWST",
       "area": "File/path handling — history backup failure surfacing",
