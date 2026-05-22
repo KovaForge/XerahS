@@ -174,7 +174,12 @@ namespace XerahS.History
                             writer.WriteWhitespace(Environment.NewLine);
                         }
 
-                        Backup(FilePath);
+                        if (!Backup(FilePath))
+                        {
+                            DebugHelper.WriteLine("Trace: HistoryManagerXML - Append failed because history backup failed.");
+                            return false;
+                        }
+
                         DebugHelper.WriteLine("Trace: HistoryManagerXML - Append successful.");
                         return true;
                     }

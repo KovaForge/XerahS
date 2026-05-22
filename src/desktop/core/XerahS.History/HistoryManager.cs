@@ -97,19 +97,51 @@ namespace XerahS.History
 
         protected abstract bool Append(string filePath, IEnumerable<HistoryItem> historyItems);
 
-        protected void Backup(string filePath)
+        protected bool Backup(string filePath)
         {
             if (!string.IsNullOrEmpty(BackupFolder))
             {
                 if (CreateBackup)
                 {
-                    FileHelpers.BackupFileZip(filePath, BackupFolder);
+                    string? backupPath = FileHelpers.BackupFileZip(filePath, BackupFolder);
+
+                    if (backupPath == null)
+                    {
+                        DebugHelper.WriteLine($"History backup failed: Could not create zipped backup for '{filePath}' in '{BackupFolder}'.");
+                        return false;
+                    }
                 }
 
                 if (CreateWeeklyBackup)
                 {
-                    FileHelpers.BackupFileWeekly(filePath, BackupFolder);
+                    string? backupPath = FileHelpers.BackupFileWeekly(filePath, BackupFolder);
+
+                    if (backupPath == null && !WeeklyBackupAlreadyExists(filePath))
+                    {
+                        DebugHelper.WriteLine($"History backup failed: Could not create weekly backup for '{filePath}' in '{BackupFolder}'.");
+                        return false;
+                    }
                 }
+            }
+
+            return true;
+        }
+
+        private bool WeeklyBackupAlreadyExists(string filePath)
+        {
+            try
+            {
+                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                DateTime dateTime = DateTime.Now;
+                string extension = Path.GetExtension(filePath);
+                string backupFileName = $"{fileName}-{dateTime:yyyy-MM}-W{FileHelpers.WeekOfYear(dateTime):00}{extension}";
+                string backupFilePath = Path.Combine(BackupFolder, backupFileName);
+
+                return File.Exists(backupFilePath);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                return false;
             }
         }
 

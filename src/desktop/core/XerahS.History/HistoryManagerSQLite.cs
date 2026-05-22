@@ -266,7 +266,10 @@ SELECT last_insert_rowid();";
                     transaction.Commit();
 
                     // Backup database after successful write
-                    Backup(FilePath);
+                    if (!Backup(FilePath))
+                    {
+                        return false;
+                    }
 
                     return true;
                 }
