@@ -1553,3 +1553,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build succeeded with 0 warnings/0 errors; tests passed (1000 XerahS.Tests + 29 XerahS.McpServer.Tests, 1 skipped); logs: `/tmp/xerahs-hourly-sweep/build-20260523-070401.log`, `/tmp/xerahs-hourly-sweep/test-20260523-070401.log`
 - Commit: `dcadd89d`
 - Follow-up: Continue OCR review around tool/onboarding language-selection parity, language refresh lifecycle edge cases, and OCR recognition exception consistency.
+
+### 2026-05-23 13:26 AWST - MCP server / missing history blob diagnostics
+
+- Area: MCP server
+- Files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`, `Directory.Build.props`
+- Findings: History thumbnail resource reads for moved/deleted local files previously propagated `FileNotFoundException`, causing MCP `resources/read` failures with poor diagnostics. Added an actionable JSON text resource (`history_blob_missing`) that preserves the history id, file path, and thumbnail path, while keeping oversized-blob behavior intact.
+- Status: Fixed; bumped version `0.23.67` -> `0.23.68`.
+- Build/test: Release build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 1000 passed/1 skipped; XerahS.McpServer.Tests 30 passed). Logs: `/tmp/xerahs-hourly-sweep/build-20260523-132231.log`, `/tmp/xerahs-hourly-sweep/test-20260523-132231.log`
+- Commit: `dd99a07e`
+- Follow-up: Continue MCP review around remaining resource URI construction/encoding edge cases and history resource diagnostics for stale local paths.
