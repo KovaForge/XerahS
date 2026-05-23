@@ -1573,3 +1573,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Not run; blocker occurred during Declan remote sync before code-review work. Logs: n/a
 - Commit: 99d10695 local upstream merge; tracker/state commit pending locally until auth is restored.
 - Follow-up: Restore Declan SSH auth, fetch `declan/develop`, verify local HEAD against fresh `declan/develop`, push the local upstream merge/tracker commit if still appropriate, then resume the next candidate review (OCR/uploader/MCP per hot state).
+
+### 2026-05-24 07:41 AWST - Sweep blocker / Declan SSH auth unavailable
+
+- Area: Pre-sync / Declan remote access
+- Files: none (no source review started)
+- Findings: `git-declan fetch declan develop` failed with `git@github.com: Permission denied (publickey)` before Declan remote sync. Per sweep guardrails, no upstream merge, submodule sync, code review, build/test, or push was attempted after the auth failure.
+- Status: Blocked
+- Build/test: Not run; blocked before safe sync. Logs: n/a
+- Commit: local HEAD 1a740850; stale declan/develop ref 5698e4b1
+- Follow-up: Restore Declan SSH auth, fetch `declan/develop`, verify local HEAD against fresh `declan/develop`, push any local tracker/doc-only blocker commit if still appropriate, then resume the next candidate review (OCR/uploader/MCP per hot state).
