@@ -1563,3 +1563,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Release build succeeded with 0 warnings/0 errors; tests passed (XerahS.Tests 1000 passed/1 skipped; XerahS.McpServer.Tests 30 passed). Logs: `/tmp/xerahs-hourly-sweep/build-20260523-132231.log`, `/tmp/xerahs-hourly-sweep/test-20260523-132231.log`
 - Commit: `dd99a07e`
 - Follow-up: Continue MCP review around remaining resource URI construction/encoding edge cases and history resource diagnostics for stale local paths.
+
+### 2026-05-24 01:38 AWST - Sweep blocker / Declan SSH auth unavailable
+
+- Area: Sweep infrastructure / fork sync
+- Files: docs/blog/2026/2026-05/blog-20260522.md; docs/blog/2026/2026-05/blog-20260523.md; docs/reports/hourly_review_tracker.md; docs/reports/hourly_review_state.json
+- Findings: Upstream daily blog docs were merged locally via existing remote-tracking state, but Declan remote fetch/push failed with `git@github.com: Permission denied (publickey)`. Per Declan auth hard-blocker policy, no code review fix was attempted because push verification cannot be trusted while Declan SSH auth is unavailable.
+- Status: Blocked
+- Build/test: Not run; blocker occurred during Declan remote sync before code-review work. Logs: n/a
+- Commit: 99d10695 local upstream merge; tracker/state commit pending locally until auth is restored.
+- Follow-up: Restore Declan SSH auth, fetch `declan/develop`, verify local HEAD against fresh `declan/develop`, push the local upstream merge/tracker commit if still appropriate, then resume the next candidate review (OCR/uploader/MCP per hot state).
