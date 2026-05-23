@@ -364,6 +364,34 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public void RuntimeHistoryBlobMissingResponse_ReturnsActionableJsonTextContent()
+    {
+        const string uri = "xerahs://history/thumb/12345";
+        var item = new HistoryItem
+        {
+            Id = 12345,
+            FilePath = "/tmp/moved-capture.png",
+            ThumbnailURL = "/tmp/moved-thumbnail.png"
+        };
+
+        var response = XerahSMcpRuntime.CreateHistoryBlobMissingResponse(uri, item);
+
+        var contents = Assert.IsType<JsonArray>(response["contents"]);
+        var content = Assert.IsType<JsonObject>(contents[0]);
+        Assert.Equal(uri, content["uri"]?.GetValue<string>());
+        Assert.Equal("application/json", content["mimeType"]?.GetValue<string>());
+        Assert.Null(content["blob"]);
+
+        var details = JsonNode.Parse(content["text"]!.GetValue<string>()) as JsonObject;
+        Assert.NotNull(details);
+        Assert.Equal("history_blob_missing", details["error"]?.GetValue<string>());
+        Assert.Equal("12345", details["history_id"]?.GetValue<string>());
+        Assert.Equal(item.FilePath, details["file_path"]?.GetValue<string>());
+        Assert.Equal(item.ThumbnailURL, details["thumbnail_path"]?.GetValue<string>());
+        Assert.Contains("moved", details["message"]?.GetValue<string>());
+    }
+
+    [Fact]
     public async Task ResourcesRead_HistorySearch_ExtractsQueryFromQParameter()
     {
         var runtime = new TestHistoryRuntime();

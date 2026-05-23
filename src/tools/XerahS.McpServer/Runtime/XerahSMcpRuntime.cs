@@ -409,7 +409,16 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         if (uri.StartsWith("xerahs://history/thumb/", StringComparison.OrdinalIgnoreCase))
         {
             var item = FindHistoryItem(uri["xerahs://history/thumb/".Length..]);
-            var blobPath = ResolveHistoryBlobPath(item);
+            string blobPath;
+            try
+            {
+                blobPath = ResolveHistoryBlobPath(item);
+            }
+            catch (FileNotFoundException)
+            {
+                return CreateHistoryBlobMissingResponse(uri, item);
+            }
+
             var blobInfo = new FileInfo(blobPath);
             if (blobInfo.Length > MaxInlineHistoryBlobBytes)
             {
@@ -1050,6 +1059,30 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["file_path"] = blobPath,
             ["file_size_bytes"] = byteLength,
             ["max_inline_bytes"] = MaxInlineHistoryBlobBytes
+        };
+
+        return new JsonObject
+        {
+            ["contents"] = new JsonArray(
+                new JsonObject
+                {
+                    ["uri"] = uri,
+                    ["mimeType"] = "application/json",
+                    ["text"] = details.ToJsonString()
+                })
+        };
+    }
+
+    internal static JsonObject CreateHistoryBlobMissingResponse(string uri, HistoryItem item)
+    {
+        var details = new JsonObject
+        {
+            ["error"] = "history_blob_missing",
+            ["message"] = "History item thumbnail/source file is no longer available locally. The capture may have been moved, deleted, or the thumbnail cache may have been cleaned.",
+            ["resource_uri"] = uri,
+            ["history_id"] = item.Id.ToString(CultureInfo.InvariantCulture),
+            ["file_path"] = string.IsNullOrWhiteSpace(item.FilePath) ? null : item.FilePath,
+            ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL
         };
 
         return new JsonObject
