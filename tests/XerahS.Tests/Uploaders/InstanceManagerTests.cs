@@ -529,6 +529,40 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void GetDefaultInstance_LogsWhenCleaningStaleDefaultMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            InstanceId = "stale-default",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable Default",
+            SettingsJson = "{}",
+            IsAvailable = false
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        string logPath = Path.Combine(_rootPath, "stale-default.log");
+        DebugHelper.Init(logPath);
+
+        try
+        {
+            Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
+
+            DebugHelper.Flush();
+            string log = File.ReadAllText(logPath);
+            Assert.That(log, Does.Contain("Removed stale default Image uploader 'stale-default'"));
+            Assert.That(log, Does.Contain("instance is unavailable"));
+        }
+        finally
+        {
+            DebugHelper.Shutdown();
+        }
+    }
+
+    [Test]
     public void IsDefaultInstance_ReturnsTrueWhenDefault()
     {
         var instance = new UploaderInstance

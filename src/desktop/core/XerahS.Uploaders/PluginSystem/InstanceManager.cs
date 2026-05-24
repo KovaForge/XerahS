@@ -199,6 +199,7 @@ public class InstanceManager
                 foreach (var category in staleDefaults)
                 {
                     _configuration.DefaultInstances.Remove(category);
+                    LogStaleDefaultRemoved(category, existing.InstanceId, $"category changed from {existing.Category} to {instance.Category}");
                 }
             }
 
@@ -315,6 +316,7 @@ public class InstanceManager
                 if (instance == null || instance.Category != category || !instance.IsAvailable)
                 {
                     _configuration.DefaultInstances.Remove(category);
+                    LogStaleDefaultRemoved(category, instanceId, GetStaleDefaultReason(instance, category));
                     SaveConfiguration();
                     return null;
                 }
@@ -609,6 +611,31 @@ public class InstanceManager
 
     private static bool InstanceIdsEqual(string? left, string? right) =>
         string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    private static string GetStaleDefaultReason(UploaderInstance? instance, UploaderCategory category)
+    {
+        if (instance == null)
+        {
+            return "instance no longer exists";
+        }
+
+        if (instance.Category != category)
+        {
+            return $"category is {instance.Category}";
+        }
+
+        if (!instance.IsAvailable)
+        {
+            return "instance is unavailable";
+        }
+
+        return "instance is not usable";
+    }
+
+    private static void LogStaleDefaultRemoved(UploaderCategory category, string instanceId, string reason)
+    {
+        DebugHelper.WriteLine($"[Uploaders] Removed stale default {category} uploader '{instanceId}': {reason}.");
+    }
 
     private void SaveConfiguration()
     {
