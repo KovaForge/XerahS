@@ -1593,3 +1593,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (1000 desktop + 31 MCP, 0 failed, 1 skipped), logs: `/tmp/xerahs-hourly-sweep/build-20260524-080322.log`, `/tmp/xerahs-hourly-sweep/test-20260524-080322.log`
 - Commit: `660cbf1a`
 - Follow-up: Continue MCP review around remaining resource URI construction/encoding edge cases and history resource diagnostics for stale local paths.
+
+### 2026-05-24 14:27 AWST - Uploader core / stale default cleanup diagnostics
+
+- Area: Uploader core / plugin routing
+- Files: `src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs`, `tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs`, `Directory.Build.props`
+- Findings: `GetDefaultInstance()` and category-change cleanup removed stale default uploader mappings silently, leaving users/support without a log breadcrumb when defaults were cleared because an instance was unavailable, missing, or category-mismatched. Added uploader diagnostics for stale default removal and regression coverage asserting unavailable default cleanup is logged.
+- Status: Fixed; bumped version `0.23.69` -> `0.23.70`.
+- Build/test: `dotnet build` Release passed with 0 warnings/0 errors; `dotnet test --no-build` passed 1032/1033 tests (1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260524-142212.log`, `/tmp/xerahs-hourly-sweep/test-20260524-142212.log`.
+- Commit: `cb2edffd`
+- Follow-up: Continue uploader routing review around UI-facing diagnostics for unavailable provider replacement flows, and verify whether stale default cleanup should also surface non-blocking toast/status messages in configuration screens.
