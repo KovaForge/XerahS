@@ -1583,3 +1583,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Not run; blocked before safe sync. Logs: n/a
 - Commit: local HEAD 1a740850; stale declan/develop ref 5698e4b1
 - Follow-up: Restore Declan SSH auth, fetch `declan/develop`, verify local HEAD against fresh `declan/develop`, push any local tracker/doc-only blocker commit if still appropriate, then resume the next candidate review (OCR/uploader/MCP per hot state).
+
+### 2026-05-24 08:08 AWST - MCP server / strict history search resource URI matching
+
+- Area: MCP server
+- Files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs`, `Directory.Build.props`
+- Findings: Fixed history resource dispatch so only `xerahs://history/search` and `xerahs://history/search?...` are treated as search resources; prefix-only paths such as `xerahs://history/searchfoo?limit=5` no longer get misparsed as all-history search queries. Added regression coverage and bumped version `0.23.68` -> `0.23.69`.
+- Status: Fixed
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (1000 desktop + 31 MCP, 0 failed, 1 skipped), logs: `/tmp/xerahs-hourly-sweep/build-20260524-080322.log`, `/tmp/xerahs-hourly-sweep/test-20260524-080322.log`
+- Commit: `660cbf1a`
+- Follow-up: Continue MCP review around remaining resource URI construction/encoding edge cases and history resource diagnostics for stale local paths.

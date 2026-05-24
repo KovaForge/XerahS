@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-24 07:41 AWST",
+  "last_updated": "2026-05-24 08:08 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -14,8 +14,8 @@
     "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
-    "CLI / command surface \u2014 OpenClaw plugin export generated CLI/tool parity",
-    "File/path handling \u2014 remaining path helper exception parity and history backup user-visible diagnostics"
+    "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
+    "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics"
   ],
   "areas": [
     {
@@ -100,10 +100,10 @@
     },
     {
       "area": "MCP server",
-      "last_reviewed": "2026-05-23 13:26 AWST",
+      "last_reviewed": "2026-05-24 08:08 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed missing/moved local history blob resource reads to return an actionable MCP JSON text resource instead of failing with FileNotFoundException; includes history id, file path, and thumbnail path. Added regression coverage; bumped version 0.23.67 -> 0.23.68.",
+      "last_outcome": "Fixed history resource dispatch to require an exact xerahs://history/search resource or query delimiter before invoking search parsing, preventing prefix-only history IDs/paths from being misparsed as all-history search queries; added regression coverage; bumped version 0.23.68 -> 0.23.69.",
       "follow_up": "Continue MCP review around remaining resource URI construction/encoding edge cases and history resource diagnostics for stale local paths."
     },
     {
@@ -159,7 +159,7 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     },
     {
@@ -215,8 +215,22 @@
   ],
   "last_runs": [
     {
+      "timestamp": "2026-05-24 08:08 AWST",
+      "area": "MCP server — strict history search resource URI matching",
+      "files": [
+        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
+        "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed MCP history search resource dispatch to avoid prefix-only URI matches being parsed as search queries; bumped version 0.23.68 -> 0.23.69.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260524-080322.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260524-080322.log",
+      "result": "build 0 warnings/0 errors; tests 1000+31=1031 passed, 0 failed, 1 skipped",
+      "commit": "660cbf1a"
+    },
+    {
       "timestamp": "2026-05-24 07:41 AWST",
-      "area": "Sweep blocker \u2014 Declan SSH auth unavailable",
+      "area": "Sweep blocker — Declan SSH auth unavailable",
       "files": [],
       "summary": "Blocked before Declan remote sync because git-declan fetch declan develop failed with publickey auth; no source review/build/test/push attempted.",
       "result": "blocked: git@github.com Permission denied (publickey)",
@@ -227,7 +241,7 @@
     },
     {
       "timestamp": "2026-05-23 13:26 AWST",
-      "area": "MCP server \u2014 missing history blob diagnostics",
+      "area": "MCP server — missing history blob diagnostics",
       "files": [
         "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
         "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
@@ -343,7 +357,7 @@
     },
     {
       "timestamp": "2026-05-20 11:55 AWST",
-      "area": "File/path handling \u2014 weekly backup destination failures",
+      "area": "File/path handling — weekly backup destination failures",
       "files": [
         "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
         "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
@@ -357,7 +371,7 @@
     },
     {
       "timestamp": "2026-05-20 02:39 AWST",
-      "area": "Uploader core / plugin routing \u2014 unavailable file-routing conflicts",
+      "area": "Uploader core / plugin routing — unavailable file-routing conflicts",
       "files": [
         "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
         "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
@@ -385,7 +399,7 @@
     },
     {
       "timestamp": "2026-05-19 18:19 AWST",
-      "area": "File/path handling \u2014 BackupFileZip temp-file cleanup",
+      "area": "File/path handling — BackupFileZip temp-file cleanup",
       "files": [
         "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
         "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
@@ -399,7 +413,7 @@
     },
     {
       "timestamp": "2026-05-19 14:11 AWST",
-      "area": "Uploader core / plugin routing \u2014 Auto fallback category guard",
+      "area": "Uploader core / plugin routing — Auto fallback category guard",
       "files": [
         "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
         "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
@@ -413,7 +427,7 @@
     },
     {
       "timestamp": "2026-05-19 12:34 AWST",
-      "area": "File/path handling \u2014 CopyFile exception handling and BackupFileZip atomic replacement",
+      "area": "File/path handling — CopyFile exception handling and BackupFileZip atomic replacement",
       "files": [
         "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
         "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
@@ -427,7 +441,7 @@
     },
     {
       "timestamp": "2026-05-19 10:02 AWST",
-      "area": "UI / upload drag-drop \u2014 OS-backed file collection handling",
+      "area": "UI / upload drag-drop — OS-backed file collection handling",
       "files": [
         "src/desktop/app/XerahS.UI/Views/UploadContentWindow.axaml.cs",
         "tests/XerahS.Tests/Views/UploadContentWindowDragDropTests.cs",
@@ -441,7 +455,7 @@
     },
     {
       "timestamp": "2026-05-19 08:34 AWST",
-      "area": "Editor integration / annotation \u2014 fire-and-forget Persist made awaitable",
+      "area": "Editor integration / annotation — fire-and-forget Persist made awaitable",
       "files": [
         "src/desktop/app/XerahS.UI/Services/RegionCaptureAnnotationOptionsStore.cs",
         "src/desktop/app/XerahS.UI/Services/Capture/OverlayRegionCaptureSession.cs",
@@ -459,7 +473,7 @@
     },
     {
       "timestamp": "2026-05-19 05:47 AWST",
-      "area": "Build / project configuration \u2014 user props release guardrails",
+      "area": "Build / project configuration — user props release guardrails",
       "files": [
         "Directory.Build.props",
         "tests/XerahS.Tests/Helpers/TestProjectBuildPropertiesTests.cs"
@@ -472,7 +486,7 @@
     },
     {
       "timestamp": "2026-05-19 04:50 AWST",
-      "area": "Scrolling capture / workflow \u2014 CurrentCapture guard on window close",
+      "area": "Scrolling capture / workflow — CurrentCapture guard on window close",
       "files": [
         "src/desktop/app/XerahS.UI/Services/ScrollingCaptureToolService.cs",
         "tests/XerahS.Tests/Services/ScrollingCaptureToolServiceTests.cs",
@@ -486,7 +500,7 @@
     },
     {
       "timestamp": "2026-05-19 01:39 AWST",
-      "area": "OCR \u2014 language refresh error surfacing",
+      "area": "OCR — language refresh error surfacing",
       "files": [
         "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
         "src/desktop/app/XerahS.UI/Onboarding/Steps/OcrStepView.axaml",
@@ -503,7 +517,7 @@
     },
     {
       "timestamp": "2026-05-19 00:58 AWST",
-      "area": "Uploader core / plugin routing \u2014 GetDefaultInstance destructive side-effect in read-only callers",
+      "area": "Uploader core / plugin routing — GetDefaultInstance destructive side-effect in read-only callers",
       "files": [
         "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
         "src/desktop/app/XerahS.UI/Services/DestinationConfigExportService.cs",
@@ -519,7 +533,7 @@
     },
     {
       "timestamp": "2026-05-18 21:26 AWST",
-      "area": "OCR \u2014 onboarding selected-language null guard",
+      "area": "OCR — onboarding selected-language null guard",
       "files": [
         "src/desktop/app/XerahS.UI/Onboarding/ViewModels/Steps/OcrStepViewModel.cs",
         "tests/XerahS.Tests/UI/OnboardingOcrStepViewModelTests.cs",
@@ -533,7 +547,7 @@
     },
     {
       "timestamp": "2026-05-18 20:34 AWST",
-      "area": "OCR \u2014 tool UI language loader normalization",
+      "area": "OCR — tool UI language loader normalization",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs",
         "tests/XerahS.Tests/Tools/OcrViewModelTests.cs",
@@ -547,7 +561,7 @@
     },
     {
       "timestamp": "2026-05-18 17:17 AWST",
-      "area": "MCP server \u2014 local history path whitespace preservation",
+      "area": "MCP server — local history path whitespace preservation",
       "files": [
         "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
         "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
@@ -561,7 +575,7 @@
     },
     {
       "timestamp": "2026-05-18 13:04 AWST",
-      "area": "Platform-specific services \u2014 macOS clipboard file-list path whitespace",
+      "area": "Platform-specific services — macOS clipboard file-list path whitespace",
       "files": [
         "src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs",
         "tests/XerahS.Tests/Platform/MacOS/MacOSClipboardServiceTests.cs",
@@ -575,7 +589,7 @@
     },
     {
       "timestamp": "2026-05-18 12:34 AWST",
-      "area": "Indexer subsystem \u2014 CountIndexedContents DirectoryInfo ctor outside try-catch",
+      "area": "Indexer subsystem — CountIndexedContents DirectoryInfo ctor outside try-catch",
       "files": [
         "src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs",
         "tests/XerahS.Tests/Tools/IndexCommandTests.cs",
@@ -589,7 +603,7 @@
     },
     {
       "timestamp": "2026-05-18 08:42 AWST",
-      "area": "Assistant local memory/privacy/history \u2014 OCR index row cleanup on history item deletion",
+      "area": "Assistant local memory/privacy/history — OCR index row cleanup on history item deletion",
       "files": [
         "src/desktop/core/XerahS.History/HistoryManagerSQLite.cs",
         "src/desktop/core/XerahS.History/HistoryOcrIndexStore.cs",
@@ -604,7 +618,7 @@
     },
     {
       "timestamp": "2026-05-18 04:49 AWST",
-      "area": "Media subsystem \u2014 CombineScreenshots dimension overflow guards",
+      "area": "Media subsystem — CombineScreenshots dimension overflow guards",
       "files": [
         "src/desktop/core/XerahS.Media/VideoThumbnailOptions.cs",
         "src/desktop/core/XerahS.Media/VideoThumbnailer.cs",
@@ -619,7 +633,7 @@
     },
     {
       "timestamp": "2026-05-18 04:33 AWST",
-      "area": "Editor integration \u2014 sidecar save UnauthorizedAccessException re-throw",
+      "area": "Editor integration — sidecar save UnauthorizedAccessException re-throw",
       "files": [
         "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
         "Directory.Build.props"
@@ -632,7 +646,7 @@
     },
     {
       "timestamp": "2026-05-18 04:40 AWST",
-      "area": "File/path handling \u2014 BackupFileWeekly TOCTOU IOException handling",
+      "area": "File/path handling — BackupFileWeekly TOCTOU IOException handling",
       "files": [
         "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
         "src/desktop/core/XerahS.Common/Properties/AssemblyInfo.cs",
@@ -647,7 +661,7 @@
     },
     {
       "timestamp": "2026-05-18 00:45 AWST",
-      "area": "Editor integration \u2014 SaveToPathAsync image vs sidecar error distinction",
+      "area": "Editor integration — SaveToPathAsync image vs sidecar error distinction",
       "files": [
         "src/desktop/app/XerahS.UI/Services/MainViewModelHelper.cs",
         "Directory.Build.props"
@@ -660,7 +674,7 @@
     },
     {
       "timestamp": "2026-05-18 00:31 AWST",
-      "area": "Media subsystem \u2014 FFmpeg concat list apostrophe escaping",
+      "area": "Media subsystem — FFmpeg concat list apostrophe escaping",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -674,7 +688,7 @@
     },
     {
       "timestamp": "2026-05-17 20:33 AWST",
-      "area": "Notifications/toasts \u2014 OnMenuClosed fade not resuming when duration not elapsed",
+      "area": "Notifications/toasts — OnMenuClosed fade not resuming when duration not elapsed",
       "files": [
         "src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs",
         "tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs",
@@ -688,7 +702,7 @@
     },
     {
       "timestamp": "2026-05-17 20:12 AWST",
-      "area": "Media subsystem \u2014 FFmpeg video probe path quoting",
+      "area": "Media subsystem — FFmpeg video probe path quoting",
       "files": [
         "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
         "tests/XerahS.Tests/Tools/FFmpegCLIManagerTests.cs",
@@ -718,7 +732,7 @@
     },
     {
       "timestamp": "2026-05-17 16:34 AWST",
-      "area": "Capture pipeline \u2014 DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
+      "area": "Capture pipeline — DXGI rotated display bounds + GDI/DXGI cursor parity re-review",
       "files": [
         "src/platform/XerahS.Platform.Windows/Capture/DxgiRotationHelper.cs",
         "src/desktop/core/XerahS.Common/BitmapRotationHelper.cs",
@@ -727,7 +741,7 @@
         "src/platform/XerahS.Platform.Windows/Capture/DxgiCursorCompositionHelper.cs",
         "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureStrategy.cs"
       ],
-      "summary": "Clean re-review \u2014 no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
+      "summary": "Clean re-review — no fixable bugs found. DxgiRotationHelper and BitmapRotationHelper rotation math correct; GDI and DXGI cursor paths both correctly guard on ShowCursor/IncludeCursor options with proper system cursor hide/restore and PhysicalRectangle containment checks.",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260517-163428.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260517-163428.log",
       "result": "build 0 warnings/0 errors; tests 937 + 24 = 961 total, 0 failed, 1 skipped",
