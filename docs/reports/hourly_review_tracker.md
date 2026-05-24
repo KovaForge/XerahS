@@ -1618,3 +1618,10 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Findings: `ShortcutKeyNames` in `WaylandPortalHotkeyService` and `SpecialKeyNames` in `LinuxHotkeyService` were missing `Key.Oem102` (the non-US backslash/pipe key, keysym `0xDE`, labeled `<>` on many European keyboards). Without this mapping, Oem102 hotkeys fell through to `MapKeyName`'s final `key.ToString()` fallback producing `"Oem102"` which is not a valid GTK/X11 keysym name, preventing portal registration and failing X11 fallback registration. Added `{ Key.Oem102, "backslash" }` to both dictionaries and added regression coverage. Bumped version `0.23.70` -> `0.23.71`.
 - Build/test: Build succeeded with 0 warnings/0 errors; tests passed (1003 desktop + 31 MCP, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-.log, /tmp/xerahs-hourly-sweep/test-.log
 - Follow-up: Continue hotkeys/input review around modifier normalization parity, Wayland portal shortcut-changed signal edge cases, and additional non-US layout key coverage.
+### 2026-05-25 02:49 AWST - Sweep / no-area (sync-only run)
+- Area: Sweep
+- Files: none
+- Findings: No unmerged upstream changes; ShareX.ImageEditor submodule already current. Previous sweep completed Oem102 hotkey fix (v0.23.71). All areas recent (last 6 days). Declan remote and local HEAD already in sync.
+- Status: No-fix
+- Follow-up: Continue hotkeys/input review around modifier normalization parity, Wayland portal shortcut-changed signal edge cases, and additional non-US layout key coverage.
+
