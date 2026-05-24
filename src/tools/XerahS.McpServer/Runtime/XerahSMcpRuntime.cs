@@ -437,7 +437,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             };
         }
 
-        if (uri.StartsWith("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
+        if (IsHistorySearchResourceUri(uri))
         {
             var queryStart = uri.IndexOf('?');
             if (queryStart < 0)
@@ -555,6 +555,12 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         }
 
         throw new ArgumentException($"Unknown resource URI: {uri}");
+    }
+
+    internal static bool IsHistorySearchResourceUri(string uri)
+    {
+        return uri.Equals("xerahs://history/search", StringComparison.OrdinalIgnoreCase) ||
+               uri.StartsWith("xerahs://history/search?", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static string? DecodeResourceQueryComponent(string value)

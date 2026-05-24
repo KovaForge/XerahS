@@ -534,6 +534,31 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public async Task ResourcesRead_HistorySearch_DoesNotMatchPrefixOnlyPaths()
+    {
+        var runtime = new TestHistoryRuntime();
+        var server = new XerahSMcpServer(runtime);
+
+        var response = await server.HandleRequestAsync(new JsonRpcRequest
+        {
+            JsonRpc = "2.0",
+            Id = 17,
+            Method = "resources/read",
+            Params = new JsonObject
+            {
+                ["uri"] = "xerahs://history/searchfoo?limit=5"
+            }
+        });
+
+        Assert.Null(response.Error);
+        var result = Assert.IsType<JsonObject>(response.Result);
+        var contents = Assert.IsType<JsonArray>(result["contents"]);
+        Assert.Equal("{}", contents[0]?["text"]?.GetValue<string>());
+        Assert.False(XerahSMcpRuntime.IsHistorySearchResourceUri("xerahs://history/searchfoo?limit=5"));
+        Assert.True(XerahSMcpRuntime.IsHistorySearchResourceUri("xerahs://history/search?limit=5"));
+    }
+
+    [Fact]
     public async Task ResourcesRead_MapsUserCancelledToUserCancelledCode()
     {
         var runtime = new UserCancelledRuntime();
@@ -626,7 +651,7 @@ public class XerahSMcpServerTests
         public Task<JsonObject> ReadResourceAsync(string uri, CancellationToken cancellationToken = default)
         {
             // Delegate to the real runtime's query parsing for history/search
-            if (uri.StartsWith("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
+            if (XerahSMcpRuntime.IsHistorySearchResourceUri(uri))
             {
                 var queryStart = uri.IndexOf('?');
                 string? query = null;
