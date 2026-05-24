@@ -1603,3 +1603,18 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: `dotnet build` Release passed with 0 warnings/0 errors; `dotnet test --no-build` passed 1032/1033 tests (1 skipped). Logs: `/tmp/xerahs-hourly-sweep/build-20260524-142212.log`, `/tmp/xerahs-hourly-sweep/test-20260524-142212.log`.
 - Commit: `cb2edffd`
 - Follow-up: Continue uploader routing review around UI-facing diagnostics for unavailable provider replacement flows, and verify whether stale default cleanup should also surface non-blocking toast/status messages in configuration screens.
+
+### 2026-05-24 20:47 AWST - Hotkeys/input / Oem102 key mapping gap
+- Area: Hotkeys/input
+- Files: , , , .
+- Findings:  in  and  in  were missing  (the non-US backslash/pipe key, keysym , labeled  on ANSI keyboards). Without this mapping, Oem102 hotkeys fell through to 's final  fallback producing  which is not a valid GTK/X11 keysym name, preventing portal registration and failing X11 fallback registration on layouts that use this key (Swedish/Finnish/Norwegian/Danekbd). Added  to both dictionaries and added regression coverage for both the Wayland portal  and X11 fallback  paths. Bumped version  -> .
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (1003 desktop + 31 MCP, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-20260524-204706.log, /tmp/xerahs-hourly-sweep/test-20260524-204706.log
+- Follow-up: Continue hotkeys/input review around modifier normalization parity, Wayland portal shortcut-changed signal edge cases, and additional non-US layout key coverage.
+
+
+###  - Hotkeys/input / Oem102 key mapping gap
+- Area: Hotkeys/input
+- Files: `src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs`, `src/platform/XerahS.Platform.Linux/Services/LinuxHotkeyService.cs`, `tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs`, `Directory.Build.props`.
+- Findings: `ShortcutKeyNames` in `WaylandPortalHotkeyService` and `SpecialKeyNames` in `LinuxHotkeyService` were missing `Key.Oem102` (the non-US backslash/pipe key, keysym `0xDE`, labeled `<>` on many European keyboards). Without this mapping, Oem102 hotkeys fell through to `MapKeyName`'s final `key.ToString()` fallback producing `"Oem102"` which is not a valid GTK/X11 keysym name, preventing portal registration and failing X11 fallback registration. Added `{ Key.Oem102, "backslash" }` to both dictionaries and added regression coverage. Bumped version `0.23.70` -> `0.23.71`.
+- Build/test: Build succeeded with 0 warnings/0 errors; tests passed (1003 desktop + 31 MCP, 0 failed, 1 skipped); logs: /tmp/xerahs-hourly-sweep/build-.log, /tmp/xerahs-hourly-sweep/test-.log
+- Follow-up: Continue hotkeys/input review around modifier normalization parity, Wayland portal shortcut-changed signal edge cases, and additional non-US layout key coverage.
