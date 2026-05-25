@@ -43,6 +43,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
 {
     private static readonly IReadOnlyList<string> _availableFontFamilies = ["Segoe UI", "Arial", "Calibri", "Consolas", "Times New Roman"];
     private static readonly IReadOnlyList<ArrowStyle> _availableArrowStyles = Enum.GetValues<ArrowStyle>();
+    private static readonly IReadOnlyList<CursorType> _availableCursorTypes = Enum.GetValues<CursorType>();
+    private static readonly IReadOnlyList<int> _availableStepStartNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     private const float MinEffectStrength = 1;
     private const float MaxBlurStrength = 200;
@@ -70,6 +72,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         RecentImageMenuItems = new ReadOnlyObservableCollection<MenuItem>(_recentImageMenuItems);
         RecentImageFiles = new ReadOnlyObservableCollection<string>(_recentImageFiles);
         OpenRecentImageCommand = new RelayCommand<string?>(_ => { });
+        OpenOptionsPanelCommand = new RelayCommand(() => { });
     }
 
     public EditorCore EditorCore => _editorCore;
@@ -83,6 +86,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     public bool HasRecentImageFiles => false;
 
     public ICommand OpenRecentImageCommand { get; }
+
+    public ICommand OpenOptionsPanelCommand { get; }
 
     public event Action? InvalidateRequested;
 
@@ -309,9 +314,43 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ApplySelectedArrowStyle(normalizedArrowStyle);
     }
 
+    [ObservableProperty]
+    private CursorType _selectedCursorType = CursorType.Default;
+
+    partial void OnSelectedCursorTypeChanged(CursorType value)
+    {
+        CursorType normalizedCursorType = NormalizeCursorType(value);
+        if (normalizedCursorType != value)
+        {
+            SelectedCursorType = normalizedCursorType;
+            return;
+        }
+
+        ApplySelectedCursorType(normalizedCursorType);
+    }
+
     public IReadOnlyList<string> AvailableFontFamilies => _availableFontFamilies;
 
     public IReadOnlyList<ArrowStyle> AvailableArrowStyles => _availableArrowStyles;
+
+    public IReadOnlyList<CursorType> AvailableCursorTypes => _availableCursorTypes;
+
+    public IReadOnlyList<int> AvailableStepStartNumbers => _availableStepStartNumbers;
+
+    [ObservableProperty]
+    private int _stepStartNumber = 1;
+
+    partial void OnStepStartNumberChanged(int value)
+    {
+        int clamped = Math.Clamp(value, 1, 10);
+        if (clamped != value)
+        {
+            StepStartNumber = clamped;
+            return;
+        }
+
+        _editorCore.NumberCounter = clamped;
+    }
 
     [ObservableProperty]
     private float _effectStrength = 15;
@@ -433,6 +472,15 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         _ => false
     };
 
+    public bool ShowCursorType => GetToolOptionsContext() switch
+    {
+        EditorTool.Cursor => true,
+        EditorTool.Select => SelectedAnnotation is CursorAnnotation,
+        _ => false
+    };
+
+    public bool ShowStepStartNumber => ActiveTool == EditorTool.Step;
+
     public bool ShowCornerRadius => GetToolOptionsContext() switch
     {
         EditorTool.Rectangle or EditorTool.SpeechBalloon => true,
@@ -470,8 +518,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ShowTextColor ||
         ShowThickness ||
         ShowFontSize ||
+        ShowStepStartNumber ||
         ShowFontFamily ||
         ShowArrowStyle ||
+        ShowCursorType ||
         ShowCornerRadius ||
         ShowStrength ||
         ShowTextStyle ||
@@ -479,6 +529,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ShowTailStyle;
 
     public bool ShowToolOptions => ShowToolOptionsSeparator;
+
+    public bool ShowOptionsButton => false;
+
+    public bool IsEffectsButtonActive => false;
 
     public string ActiveToolIcon => EditorIcons.ForTool(GetEffectiveDisplayTool());
 
@@ -493,6 +547,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         EditorTool.Text => "Text",
         EditorTool.SpeechBalloon => "Speech Balloon",
         EditorTool.Step => "Step",
+        EditorTool.Cursor => "Cursor",
         EditorTool.Blur => "Blur",
         EditorTool.Pixelate => "Pixelate",
         EditorTool.Magnify => "Magnify",
@@ -577,6 +632,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private void ClearAnnotations()
     {
         _editorCore.ClearAll();
+        _editorCore.NumberCounter = StepStartNumber;
         SelectedAnnotation = null;
         HasAnnotations = false;
         HasSelectedAnnotation = false;
@@ -928,6 +984,26 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         }
     }
 
+    private void ApplySelectedCursorType(CursorType cursorType)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation is CursorAnnotation cursorAnnotation)
+        {
+            cursorAnnotation.CursorType = cursorType;
+            RequestCanvasRefresh();
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Cursor)
+        {
+            _options.CursorType = cursorType;
+        }
+    }
+
     private void ApplyEffectStrength(float value)
     {
         if (_isLoadingToolOptions)
@@ -1056,6 +1132,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                     SelectedArrowStyle = NormalizeArrowStyle(_options.ArrowStyle);
                 }
                 break;
+            case EditorTool.Cursor:
+                SelectedCursorType = NormalizeCursorType(_options.CursorType);
+                break;
             case EditorTool.Text:
                 SelectedColor = ColorToHex(_options.TextBorderColor);
                 TextColor = ColorToHex(_options.TextTextColor);
@@ -1161,6 +1240,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             case ArrowAnnotation arrow:
                 SelectedArrowStyle = NormalizeArrowStyle(arrow.Style);
                 break;
+            case CursorAnnotation cursorAnnotation:
+                SelectedCursorType = NormalizeCursorType(cursorAnnotation.CursorType);
+                break;
             case SpotlightAnnotation spotlight:
                 EffectStrength = ConvertSpotlightOpacityToStrength(spotlight.DarkenOpacity);
                 break;
@@ -1181,8 +1263,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         OnPropertyChanged(nameof(ShowTextColor));
         OnPropertyChanged(nameof(ShowThickness));
         OnPropertyChanged(nameof(ShowFontSize));
+        OnPropertyChanged(nameof(ShowStepStartNumber));
         OnPropertyChanged(nameof(ShowFontFamily));
         OnPropertyChanged(nameof(ShowArrowStyle));
+        OnPropertyChanged(nameof(ShowCursorType));
         OnPropertyChanged(nameof(ShowCornerRadius));
         OnPropertyChanged(nameof(ShowStrength));
         OnPropertyChanged(nameof(ShowShadow));
@@ -1256,6 +1340,11 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private static ArrowStyle NormalizeArrowStyle(ArrowStyle arrowStyle)
     {
         return Enum.IsDefined(arrowStyle) ? arrowStyle : ArrowStyle.Classic;
+    }
+
+    private static CursorType NormalizeCursorType(CursorType cursorType)
+    {
+        return Enum.IsDefined(cursorType) ? cursorType : CursorType.Default;
     }
 
     private enum TextStyle

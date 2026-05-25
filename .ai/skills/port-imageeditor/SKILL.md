@@ -10,7 +10,7 @@ metadata:
     - submodule
     - avalonia
     - skia
-  last_updated: 2026-05-08
+  last_updated: 2026-05-26
 ---
 
 # Port ImageEditor: Local ShareX -> XerahS
@@ -52,6 +52,41 @@ Hardcoded local paths are intentional here. They make this workflow faster and m
 16. If verification passes and the user did not ask to pause, push the submodule commits and then commit and push the XerahS root pointer update.
 
 ## Step 0 - Resolve the upstream commit range
+
+### 0a0 - Align the XerahS root and submodule safely
+
+Before resolving the ShareX range, make sure the XerahS root branch and the
+`ShareX.ImageEditor` submodule are in a predictable state.
+
+```powershell
+git -C "C:\Users\liveu\source\repos\ShareX Team\XerahS" status --short --branch
+git -C "C:\Users\liveu\source\repos\ShareX Team\XerahS" submodule status
+git -C "C:\Users\liveu\source\repos\ShareX Team\XerahS\ShareX.ImageEditor" status --short --branch
+```
+
+If the root branch is behind and there are no conflicting local changes, prefer a
+fast-forward pull that does not recurse into submodules:
+
+```powershell
+$env:GIT_TERMINAL_PROMPT = '0'
+git -C "C:\Users\liveu\source\repos\ShareX Team\XerahS" pull --ff-only --no-recurse-submodules
+```
+
+This avoids a root pull hanging on nested submodule fetches. If a previous pull or
+fetch stalls with no lock held, stop only the stale `git` processes and retry the
+root fast-forward with `--no-recurse-submodules`.
+
+After the root is current, align the submodule branch with its remote before
+porting. If a local submodule commit is a cherry-pick duplicate, let `git pull
+--rebase` skip it rather than preserving a duplicate patch:
+
+```powershell
+$env:GIT_TERMINAL_PROMPT = '0'
+git -C "C:\Users\liveu\source\repos\ShareX Team\XerahS\ShareX.ImageEditor" pull --rebase
+```
+
+Do not stage the root submodule pointer update that results from this housekeeping
+until after the port build gates pass.
 
 ### 0a - Confirm the local ShareX checkout is current
 
@@ -264,6 +299,33 @@ Manual porting usually means:
 - add or update tests for bugs where the upstream fix differs from the XerahS implementation
 - rebuild after behavior-critical controller, view model, rendering, or view changes
 - only replace the whole file when the diff is layout-only and no XerahS adaptation would be lost
+
+When a transformed upstream patch cannot apply because of expected XerahS
+divergence, a mapped final-state sync is acceptable as an implementation aid, but
+only after the manifest has been posted. After such a sync, immediately re-apply
+and verify these known XerahS adaptations before building:
+
+- `Annotation.cs`: keep `JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")`,
+  `JsonIgnore` on computed/runtime state, and XerahS `StepTailStyle`; add any new
+  upstream `JsonDerivedType` entries such as cursor annotations.
+- `EditorCore.cs`: keep `GetAnnotationsSnapshotForPersistence()`,
+  `RestoreAnnotations(...)`, and number-counter resync after restore/renumbering.
+- `MainViewModel.cs`: keep `ApplicationName` and `EditorTitle` because XerahS host
+  windows bind to that title contract.
+- `AvaloniaIntegration.cs`: preserve XerahS task-mode behavior, especially
+  `ShowFileMenu = !taskMode` and start-screen suppression, while adding new
+  upstream event wiring.
+- `EditorIcons.cs`: preserve XerahS-only icon constants such as tail-style icons
+  when upstream icon syncs replace the file.
+- Root integration: when `IAnnotationToolbarAdapter` gains members, update
+  `src\desktop\app\XerahS.RegionCapture\ViewModels\RegionCaptureAnnotationViewModel.cs`
+  in the same session. RegionCapture is not in the submodule, but the full XerahS
+  build depends on that adapter matching the submodule interface.
+
+PowerShell versions in this repo may not support `Set-Content -Encoding
+utf8NoBOM`. For mechanical header normalization during mapped syncs, use
+`[System.Text.UTF8Encoding]::new($false)` with `[System.IO.File]::WriteAllText(...)`
+instead of relying on that encoding name.
 
 ### 3c - When to write a custom implementation
 
