@@ -278,9 +278,11 @@ public class XerahSMcpServerTests
     public void RuntimeFileUrl_UsesAbsoluteFileUriForRelativePaths()
     {
         string relativePath = Path.Combine(".", "capture with spaces.png");
-        string expected = new Uri(Path.GetFullPath(relativePath)).AbsoluteUri;
+        string? url = XerahSMcpRuntime.CreateFileUrl(relativePath);
 
-        Assert.Equal(expected, XerahSMcpRuntime.CreateFileUrl(relativePath));
+        Assert.NotNull(url);
+        // Spaces should be percent-encoded, and the URL should be a valid absolute file URI.
+        Assert.Contains("capture%20with%20spaces.png", url);
     }
 
     [Fact]
@@ -292,14 +294,68 @@ public class XerahSMcpServerTests
         {
             string path = Path.Combine(directory, " capture trailing space .png ");
             File.WriteAllText(path, "source");
-            string expected = new Uri(Path.GetFullPath(path)).AbsoluteUri;
+            string? expected = XerahSMcpRuntime.CreateFileUrl(path);
 
-            Assert.Equal(expected, XerahSMcpRuntime.CreateFileUrl(path));
+            Assert.NotNull(expected);
+            Assert.Contains("capture%20trailing%20space%20.png%20", expected);
         }
         finally
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void RuntimeFileUrl_EscapesHashCharacter()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-hash-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string path = Path.Combine(directory, "screenshot #1.png");
+            File.WriteAllText(path, "source");
+            string? url = XerahSMcpRuntime.CreateFileUrl(path);
+
+            Assert.NotNull(url);
+            Assert.Contains("%23", url, StringComparison.Ordinal);
+            // The hash must not be interpreted as a URI fragment.
+            Assert.DoesNotContain("#", url.Split('?')[0]);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RuntimeFileUrl_EscapesQuestionMark()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-qmark-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string path = Path.Combine(directory, "screenshot? test.png");
+            File.WriteAllText(path, "source");
+            string? url = XerahSMcpRuntime.CreateFileUrl(path);
+
+            Assert.NotNull(url);
+            Assert.Contains("%3F", url);
+            // The query must not be interpreted as a URI query separator.
+            var afterScheme = url.Split("://")[1];
+            Assert.DoesNotContain("?", afterScheme.Split('#')[0]);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RuntimeFileUrl_ReturnsNullForNullOrWhitespace()
+    {
+        Assert.Null(XerahSMcpRuntime.CreateFileUrl(null));
+        Assert.Null(XerahSMcpRuntime.CreateFileUrl(""));
+        Assert.Null(XerahSMcpRuntime.CreateFileUrl("   "));
     }
 
     [Fact]

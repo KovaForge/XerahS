@@ -1105,9 +1105,18 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 
     internal static string? CreateFileUrl(string? filePath)
     {
-        return TryResolveLocalFilePath(filePath, out var resolvedPath)
-            ? new Uri(Path.GetFullPath(resolvedPath)).AbsoluteUri
-            : null;
+        if (!TryResolveLocalFilePath(filePath, out var resolvedPath))
+        {
+            return null;
+        }
+
+        string fullPath = Path.GetFullPath(resolvedPath);
+        // Escape special URI characters (e.g. #, ?) that would break URI parsing.
+        // new Uri(string) does not escape these, producing invalid URIs for paths
+        // containing characters outside the reserved set.
+        string escapedPath = Uri.EscapeDataString(fullPath)
+            .Replace("%5C", "/"); // Uri.EscapeDataString escapes backslash; restore for file URIs.
+        return new Uri("file:///" + escapedPath.Replace("//", "/")).AbsoluteUri;
     }
 
     private static bool TryResolveLocalFilePath(string? value, out string path)
