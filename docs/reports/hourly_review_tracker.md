@@ -4,6 +4,17 @@ Purpose: compact human-readable companion to `docs/reports/hourly_review_state.j
 
 Use `hourly_review_state.json` as the hot machine-readable source. The full historical ledger was preserved at `docs/reports/archive/hourly_review_tracker_2026-04-30.md`.
 
+### 2026-05-25 14:51 UTC - MCP server — CreateFileUrl special URI character escaping
+
+- Area: MCP server
+- Files: src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs, src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs, Directory.Build.props, docs/reports/hourly_review_state.json
+- Findings: `CreateFileUrl` used `new Uri(Path.GetFullPath(resolvedPath)).AbsoluteUri` which does not escape special URI characters like `#` (fragment) or `?` (query). Paths containing these characters produced malformed file URIs.
+- Fix: Escaped path using `Uri.EscapeDataString` before constructing the file URI, restored unescaped `/` (escaped as `%2F`), and normalized `//` to `/`. Added 4 regression tests: hash escaping, question-mark escaping, whitespace preservation, null/empty returns null.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; MCP tests 34 passed, 0 failed
+- Commit: eeccf40f
+- Follow-up: Continue MCP review around history resource diagnostics for stale local paths and remaining URI construction edge cases.
+
 ### 2026-05-19 08:34 AWST - Editor integration / annotation — fire-and-forget Persist made awaitable
 
 - Area: Editor integration / annotation
