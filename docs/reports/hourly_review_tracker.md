@@ -1636,3 +1636,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: No-fix
 - Follow-up: Continue hotkeys/input review around modifier normalization parity, Wayland portal shortcut-changed signal edge cases, and additional non-US layout key coverage.
 
+
+### 2026-05-26 03:25 AWST - OCR / tool and onboarding language refresh error handling parity
+
+- Area: OCR
+- Files reviewed: OcrViewModel.cs, OcrStepViewModel.cs, IOcrService.cs, OnboardingOcrStepViewModelTests.cs, OcrViewModelTests.cs
+- Findings: Both tool UI (OcrViewModel.LoadAvailableLanguages) and onboarding (OcrStepViewModel.RefreshAvailableLanguagesAsync) handle GetAvailableLanguages() throwing with try-catch blocks. Tool surfaces error via StatusText with exception message; onboarding surfaces via LanguageRefreshError property and HasLanguageRefreshError computed bool. Onboarding also keeps fallback languages intact after refresh failure, and tool test coverage (ThrowingLanguageOcrService) verifies AvailableLanguages stays empty, SelectedLanguage null, and StatusText contains error message. No parity gaps found.
+- Status: Reviewed (clean); no fixable bugs found.
+- Build/test: build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260526-032114.log /tmp/xerahs-hourly-sweep/test-20260526-032114.log
+- Commit: 042d9c86 (prior tracker sync, no code change this run)
+- Follow-up: Continue OCR review around selected-language persistence across sessions and multi-language OCR merging behavior.
+
