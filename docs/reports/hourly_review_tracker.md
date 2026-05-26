@@ -1657,3 +1657,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped
 - Commit: none (no code changes)
 - Follow-up: Continue CLI review around reclip command surface, doctor uploaders JSON output consistency, and bootstrap uploaders dry-run safety.
+### 2026-05-26 15:38 AWST - Sweep / sync-only (CLI review continued)
+
+- Area: CLI / command surface (continued from 2026-05-26 09:36 AWST)
+- Files: (none - review only)
+- Findings: Reviewed `ReClipCommand.cs` for CLI surface consistency. `reclip status --json` and `reclip use-default-watch-folder --json` commands present and functional. Bootstrap/doctor CLI (`CliUploaderBootstrapper`) reviewed for `BootstrapUploaders` and `DoctorUploaders` JSON output consistency. No fixable bugs found in this pass.
+- Status: Reviewed (clean)
+- Build/test: build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260526-153750.log /tmp/xerahs-hourly-sweep/test-20260526-153750.log
+- Commit: (sync-only, no fix)
+- Follow-up: Continue CLI review around CLI error exit code consistency, command help text formatting, and `xerahscli upload --pipe` edge cases.
