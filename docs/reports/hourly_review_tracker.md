@@ -1647,3 +1647,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Commit: 042d9c86 (prior tracker sync, no code change this run)
 - Follow-up: Continue OCR review around selected-language persistence across sessions and multi-language OCR merging behavior.
 
+
+### 2026-05-26 09:36 AWST - CLI / OpenClaw plugin export generated CLI/tool parity
+
+- Area: CLI / command surface
+- Files: (none — clean review, no changes)
+- Findings: Reviewed OpenClawPluginExporter and OpenClawCommand for generated CLI/tool parity. Templates use structured JSON output, TypeScript helpers use redactDiagnostics() for secrets, TypeBox schemas are well-formed, runner handles timeout/signal/abort correctly, tool implementations are clean, and manifest JSON serialization uses JsonNamingPolicy.CamelCase with consistent command descriptions. No fixable bugs found.
+- Status: Reviewed (clean)
+- Build/test: build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped
+- Commit: none (no code changes)
+- Follow-up: Continue CLI review around reclip command surface, doctor uploaders JSON output consistency, and bootstrap uploaders dry-run safety.

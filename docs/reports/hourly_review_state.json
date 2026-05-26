@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-25 19:25 UTC",
+  "last_updated": "2026-05-26 09:36 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -116,11 +116,11 @@
     },
     {
       "area": "CLI / command surface",
-      "last_reviewed": "2026-05-12 10:40 AWST",
-      "status": "fixed",
+      "last_reviewed": "2026-05-26 09:36 AWST",
+      "status": "reviewed",
       "priority": "Medium",
-      "last_outcome": "Fixed generated OpenClaw CLI JSON shape diagnostics to JSON-quote sanitized and bounded object keys, keeping malformed punctuation-heavy keys unambiguous without exposing values; bumped version 0.22.268 -> 0.22.269.",
-      "follow_up": "Continue reviewing OpenClaw plugin export generated CLI/tool parity around safe diagnostic formatting for malformed command output."
+      "last_outcome": "Reviewed OpenClawPluginExporter and OpenClawCommand for generated CLI/tool parity. Templates use structured JSON, TypeScript helpers use redactDiagnostics() for secrets, TypeBox schemas are well-formed, runner handles timeout/signal/abort correctly, tool implementations are clean, manifest JSON uses JsonNamingPolicy.CamelCase. No fixable bugs found.",
+      "follow_up": "Continue CLI review around reclip command surface, doctor uploaders JSON output consistency, and bootstrap uploaders dry-run safety."
     },
     {
       "area": "OCR",
@@ -214,6 +214,17 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-26 09:36 AWST",
+      "area": "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
+      "files": [],
+      "summary": "Clean review — no fixable bugs found. OpenClawPluginExporter templates, TypeScript runner, TypeBox schemas, and manifest JSON are all well-formed and handle secrets/timeout/abort correctly.",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260526-093320.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260526-093621.log",
+      "result": "build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped",
+      "commit": null,
+      "status": "reviewed"
+    },
     {
       "timestamp": "2026-05-25 19:25 UTC",
       "area": "OCR / tool and onboarding language refresh error handling parity",
