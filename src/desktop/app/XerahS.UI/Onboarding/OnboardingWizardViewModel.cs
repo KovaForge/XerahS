@@ -305,6 +305,13 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
             }
 
+            if (state.SelectedOcrLanguages.Count > 0 && !state.SkippedSteps.Contains(4))
+            {
+                string primaryOcrLanguage = state.SelectedOcrLanguages[0];
+                SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = primaryOcrLanguage;
+                DebugHelper.WriteLine($"[OnboardingWizard] Setting primary OCR language: {primaryOcrLanguage}");
+            }
+
             SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
             SettingsManager.SaveAllSettings();
 
