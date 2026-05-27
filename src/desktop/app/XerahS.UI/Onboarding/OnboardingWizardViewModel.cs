@@ -83,6 +83,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         Steps.Add(new SaveLocationStepViewModel());
         Steps.Add(new HotkeyStepViewModel());
         Steps.Add(new UploadStepViewModel());
+        Steps.Add(new OcrStepViewModel());
         Steps.Add(new CompleteStepViewModel());
 
         for (int i = 0; i < Steps.Count; i++)
