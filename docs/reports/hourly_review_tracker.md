@@ -1666,3 +1666,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260526-153750.log /tmp/xerahs-hourly-sweep/test-20260526-153750.log
 - Commit: (sync-only, no fix)
 - Follow-up: Continue CLI review around CLI error exit code consistency, command help text formatting, and `xerahscli upload --pipe` edge cases.
+### 2026-05-27 16:22 AWST - Onboarding wizard / dead code detection
+
+- Area: Onboarding wizard dead-code detection
+- Files: OnboardingWizardViewModel.cs, OnboardingWizardWindow.axaml, OnboardingWizardOcrStepIntegrationTests.cs, Directory.Build.props
+- Findings: OcrStepViewModel and its XAML view were implemented previously but never wired into OnboardingWizardViewModel.InitializeSteps() or OnboardingWizardWindow.axaml DataTemplates, making them dead code. Added the step at position 4 (before Complete), added the DataTemplate binding to all relevant properties, and added integration tests verifying step count/positioning and language persistence on wizard completion.
+- Status: Fixed
+- Build/test: 0 warnings/0 errors; tests 1012+34=1046 passed, 0 failed, 1 skipped; logs: /tmp/xerahs-hourly-sweep/build-20260527-161624.log, /tmp/xerahs-hourly-sweep/test-20260527-161624.log
+- Commit: 92773c76
+- Follow-up: Continue onboarding review around other unwired steps, async save completion semantics, and first-run flow edge cases.
