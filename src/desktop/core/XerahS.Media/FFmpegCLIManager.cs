@@ -318,10 +318,15 @@ namespace XerahS.Media
             return devices;
         }
 
-        private static string EscapeConcatFilePath(string path)
-        {
-            return path.Replace("'", "'\\''");
-        }
+internal static class TestAccessor
+    {
+        internal static string EscapeConcatFilePath(string path) => FFmpegCLIManager.EscapeConcatFilePath(path);
+    }
+
+    private static string EscapeConcatFilePath(string path)
+    {
+        return path.Replace("'", "'\\''");
+    }
 
         public void ConcatenateVideos(string[] inputFiles, string outputFile, bool autoDeleteInputFiles = false)
         {
