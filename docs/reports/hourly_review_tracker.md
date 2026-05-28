@@ -1723,3 +1723,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1023+34=1057 passed, 0 failed, 1 skipped
 - Commit: `a0472ad5`
 - Follow-up: Continue FileDownloader review — clawpatch also flagged "refuses downloads without Content-Length" (chunked/streaming bypass) and "cancellation token not propagated to network calls". Also HSB equality/hash contract violation and plugin version pinning remain from clawpatch queue.
+
+### 2026-05-29 05:29 AWST - HSB struct / equality hash contract violation
+
+- Area: Common / HSB struct (clawpatch finding, medium severity)
+- Files: `src/desktop/core/XerahS.Common/HSB.cs`, `tests/XerahS.Tests/Common/HSBTests.cs`, `Directory.Build.props`
+- Findings: `HSB.operator ==` compared Hue, Saturation, Brightness but not Alpha, while `GetHashCode` included Alpha via `HashCode.Combine`. This violates the .NET equality/hash contract: equal objects must have equal hash codes, but two HSB instances with identical H/S/B but different alpha returned `true` for `==` yet had different hash codes.
+- Fix: Added `&& (left.Alpha == right.Alpha)` to `operator ==`. Also added `internal static class TestAccessor` in HSB for test access, and added 8 regression tests covering equality, operator, and hash code contract assertions for all four fields.
+- Status: Fixed; bumped version `0.23.76` -> `0.23.77`.
+- Build/test: build 0 warnings/0 errors; tests 1031+34=1065 passed, 0 failed, 1 skipped
+- Commit: `dc08334a`
+- Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass, cancellation token propagation; HSB equality follow-up items (GetHashCode optimization); Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions.

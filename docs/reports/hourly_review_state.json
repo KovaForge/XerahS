@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-28 10:51 AWST",
+  "last_updated": "2026-05-29 05:23 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -18,6 +18,14 @@
     "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics"
   ],
   "areas": [
+    {
+      "area": "HSB struct",
+      "last_reviewed": "2026-05-29 05:23 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed HSB.operator== to include Alpha comparison, satisfying the .NET equality/hash contract. Added TestAccessor and 8 regression tests. Bumped version 0.23.76 -> 0.23.77.",
+      "follow_up": "Continue clawpatch queue review: FileDownloader chunked/streaming bypass, cancellation token propagation; Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions."
+    },
     {
       "area": "Capture pipeline",
       "last_reviewed": "2026-05-17 16:34 AWST",
@@ -214,6 +222,20 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-29 05:23 AWST",
+      "area": "HSB struct / equality hash contract violation",
+      "files": [
+        "src/desktop/core/XerahS.Common/HSB.cs",
+        "tests/XerahS.Tests/Common/HSBTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed HSB.operator== to include Alpha comparison, satisfying the .NET equality/hash contract. GetHashCode() already included Alpha via HashCode.Combine, but == only compared H/S/B — violating the rule that equal objects must have equal hash codes. Added TestAccessor class for internal test access and 8 regression tests covering equality, operators, and hash code contract. Bumped version 0.23.76 -> 0.23.77.",
+      "result": "build 0 warnings/0 errors; tests 1031+34=1065 passed, 0 failed, 1 skipped",
+      "commit": "dc08334a",
+      "status": "fixed",
+      "version": "0.23.77"
+    },
     {
       "timestamp": "2026-05-28 10:51 AWST",
       "area": "Media subsystem / FFmpeg concat demuxer file-path escaping regression tests",
