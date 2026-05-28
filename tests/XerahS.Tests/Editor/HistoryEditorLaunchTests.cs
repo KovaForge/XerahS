@@ -236,6 +236,79 @@ public class HistoryEditorLaunchTests
         }
     }
 
+    [Test]
+    public async Task EditAnnotations_PersistsUpdatedSidecar_WhenEditorReturnsModifiedAnnotations()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-history-editor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string imagePath = Path.Combine(directory, "annotated.png");
+
+        using var bitmap = new SKBitmap(8, 8);
+        bitmap.Erase(SKColors.Red);
+        SaveBitmap(imagePath, bitmap);
+
+        string? sidecarPath = await XannProjectFileService.SaveAsync(
+            imagePath,
+            bitmap,
+            new Annotation[]
+            {
+                new RectangleAnnotation
+                {
+                    StartPoint = new SKPoint(1, 1),
+                    EndPoint = new SKPoint(6, 6)
+                }
+            });
+
+        var uiService = new TrackingUiService
+        {
+            ShowEditorSessionResultFactory = (image, _, _, _) =>
+            {
+                var updatedAnnotation = new RectangleAnnotation
+                {
+                    StartPoint = new SKPoint(2, 2),
+                    EndPoint = new SKPoint(7, 5)
+                };
+
+                return new ImageEditorSessionResult(
+                    image.Copy()!,
+                    image.Copy(),
+                    new[] { updatedAnnotation });
+            }
+        };
+        PlatformServices.RegisterUIService(uiService);
+
+        try
+        {
+            var viewModel = new HistoryViewModel(new FakeDesktopTaskManager(), new FakeDialogService(), false);
+            var item = new HistoryItem
+            {
+                FilePath = imagePath,
+                AnnotationSidecarPath = sidecarPath
+            };
+
+            await viewModel.EditAnnotationsCommand.ExecuteAsync(item);
+
+            string resolvedSidecarPath = XannProjectFileService.GetDefaultSidecarPath(imagePath);
+            Assert.That(File.Exists(resolvedSidecarPath), Is.True);
+
+            var savedProject = await XannProjectFileService.LoadAsync(resolvedSidecarPath, imagePath);
+            using (savedProject.SourceImage)
+            {
+                Assert.That(savedProject.Project.Annotations, Has.Count.EqualTo(1));
+                Assert.That(savedProject.Project.Annotations[0], Is.TypeOf<RectangleAnnotation>());
+
+                var savedRectangle = (RectangleAnnotation)savedProject.Project.Annotations[0];
+                Assert.That(savedRectangle.StartPoint, Is.EqualTo(new SKPoint(2, 2)));
+                Assert.That(savedRectangle.EndPoint, Is.EqualTo(new SKPoint(7, 5)));
+            }
+        }
+        finally
+        {
+            PlatformServices.Reset();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
 
     [Test]
     public async Task EditImage_ClosesSourceFileBeforeLaunchingEditor()
@@ -413,6 +486,7 @@ public class HistoryEditorLaunchTests
         public SKBitmap? LastEditorInputImage { get; private set; }
         public Action<string?>? ShowEditorCallback { get; init; }
         public Action<string?>? ShowEditorSessionCallback { get; init; }
+        public Func<SKBitmap, string?, IReadOnlyList<Annotation>?, bool, ImageEditorSessionResult?>? ShowEditorSessionResultFactory { get; init; }
 
         public Task HideMainWindowAsync() => Task.CompletedTask;
 
@@ -449,6 +523,13 @@ public class HistoryEditorLaunchTests
             LastRestoredAnnotations = restoredAnnotations;
             LastSessionImageSize = new SKSizeI(image.Width, image.Height);
             ShowEditorSessionCallback?.Invoke(sourceFilePath);
+
+            if (ShowEditorSessionResultFactory != null)
+            {
+                return Task.FromResult<ImageEditorSessionResult?>(
+                    ShowEditorSessionResultFactory(image, sourceFilePath, annotations, restoredAnnotations));
+            }
+
             return Task.FromResult<ImageEditorSessionResult?>(new ImageEditorSessionResult(
                 image.Copy()!,
                 image.Copy(),
