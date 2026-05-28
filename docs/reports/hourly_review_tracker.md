@@ -1685,3 +1685,32 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1018+34=1052 passed, 0 failed, 1 skipped
 - Commit: ca499b00
 - Follow-up: Continue media review around remaining FFmpeg argument construction sites and thumbnailer edge case handling.
+### 2026-05-28 17:04 AWST - Uploader core / plugin routing — unavailable provider replacement flows review
+
+- Area: Uploader core / plugin routing
+- Files: (none changed)
+- Findings: Reviewed ResolveAutoInstance category-mismatch check vs GetDestinationForFile's IsAvailable-only filter. GetDestinationForFile (line 395-408) correctly filters unavailable instances and falls back to all-types when no exact match; CanAddFileType, CanSetAllFileTypes, GetBlockedFileTypes, and ValidateFileTypeConfiguration all correctly consider only available peers. AutoUploader.ResolveTargetInstance (line 97) also validates category match before returning. All routing paths are consistent. No fixable bugs found.
+- Status: Reviewed (clean); no fixable bugs found.
+- Build/test: build 0 warnings/0 errors; tests 1018+34=1052 passed, 0 failed, 1 skipped
+- Commit: (none — clean review)
+- Follow-up: Continue uploader routing review around UI-facing diagnostics for unavailable provider replacement flows, and whether stale default cleanup should surface toast/status messages in config screens.
+
+
+### 2026-05-28 - Clawpatch initial review (5 features, 10 findings)
+
+- Area: Multi (FileDownloader, HSB, Wayland capture, Plugin versioning, UITypeEditors, FFmpegDownloader)
+- Source: clawpatch report `.clawpatch/reports/20260528T122646-04ea11.md`
+- Findings (all open, queued for hourly sweep resolution):
+  1. 🔴 **medium/FileDownloader hang on early EOF** — `FileDownloader.DoWork` spins forever when server closes connection before Content-Length is reached; bytesRead=0 never exits loop. Evidence: `FileDownloader.cs:112-140`. Repro: serve truncated HTTP response.
+  2. 🔴 **medium/HSB equality ignores alpha but hash includes it** — Equals compares H/S/B but GetHashCode includes Alpha, violating .NET equality/hash contract. Evidence: `HSB.cs:163-166, 183-190`. Repro: `new HSB(0.1,0.2,0.3,10).Equals(new HSB(0.1,0.2,0.3,20))` returns true but hash codes differ.
+  3. 🔴 **medium/Wayland active-window falls back to region selection on non-Hyprland wlroots** — `CaptureActiveWindowAsync` routes to grim+slurp which does region selection, not active window. Evidence: `WaylandCliCapture.cs:176-188, 218-255`.
+  4. 🔴 **medium/Plugin assembly version pinned to 0.23.28 while app is 0.23.75** — `src/desktop/plugins/Directory.Build.props` overrides plugin version to an old value. Evidence: `Directory.Build.props` vs `plugins/Directory.Build.props`. Release hazard.
+  5. 🔴 **medium/Common projects target net10.0 instead of required net10.0-windows10.0.26100.0** — `XerahS.Common.csproj` and `XerahS.Platform.Abstractions.csproj` use plain net10.0. Evidence: `XerahS.Common.csproj:2-8, Platform.Abstractions.csproj:2-7`. Build hazard.
+  6. 🟡 **medium/FileDownloader refuses downloads without Content-Length** — Chunked/streaming responses have no Content-Length; body is skipped and StartDownload returns false. Evidence: `FileDownloader.cs:108-191`.
+  7. 🟡 **medium/Stderr can block CLI capture helpers before timeout** — Redirected stderr on grim/slurp/etc. can fill pipe and hang capture until hard timeout. Evidence: `WaylandCliCapture.cs:70-97, 224-237, 402-417`.
+  8. 🟡 **low/FFmpegDownloader cancellation token is not propagated** — `CancellationToken` accepted but not passed to network/FileDownloader calls. Evidence: `FFmpegDownloader.cs:60-65, 93-96, 134-213`.
+  9. 🟡 **low/TFM mismatch (same as #5, duplicate entry via UITypeEditors feature)** — Same net10.0 vs net10.0-windows10.0.26100.0 issue found via UITypeEditors feature context.
+  10. 🟡 **low/StringCollectionToStringTypeConverter silently erases non-List<string> collections** — `ConvertTo` returns string.Empty for unsupported collection types instead of delegating to base. Evidence: `StringCollectionToStringTypeConverter.cs:33-45`.
+- Status: Open (queued)
+- Next: Hourly sweep picks from top of queue. Follow-up areas: continue FileDownloader review, HSB equality, Wayland compositor-specific helpers.
+

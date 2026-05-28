@@ -27,6 +27,26 @@ using System.Diagnostics;
 
 namespace XerahS.Common
 {
+    internal static class FileDownloaderTestAccessor
+    {
+        public static async Task<(long downloadedSize, bool completed)> SimulateDownloadWithEarlyEOF(
+            long fileSize, byte[] receiveSequence)
+        {
+            // Simulates the loop behavior when a server closes the connection early.
+            // Returns (DownloadedSize, completed) matching what DoWork() would produce.
+            long downloadedSize = 0;
+            int idx = 0;
+            while (downloadedSize < fileSize)
+            {
+                if (idx >= receiveSequence.Length)
+                    break; // early EOF — same as bytesRead <= 0
+                downloadedSize += receiveSequence[idx++];
+            }
+            bool completed = downloadedSize >= fileSize;
+            return (downloadedSize, completed);
+        }
+    }
+
     public class FileDownloader
     {
         public event Action? FileSizeReceived;
@@ -134,6 +154,13 @@ namespace XerahS.Common
                                     }
 
                                     bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length);
+
+                                    if (bytesRead <= 0)
+                                    {
+                                        // Server closed connection before reaching Content-Length — exit gracefully.
+                                        break;
+                                    }
+
                                     await fileStream.WriteAsync(buffer, 0, bytesRead);
 
                                     DownloadedSize += bytesRead;
