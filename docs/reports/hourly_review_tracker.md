@@ -1675,3 +1675,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: 0 warnings/0 errors; tests 1012+34=1046 passed, 0 failed, 1 skipped; logs: /tmp/xerahs-hourly-sweep/build-20260527-161624.log, /tmp/xerahs-hourly-sweep/test-20260527-161624.log
 - Commit: 92773c76
 - Follow-up: Continue onboarding review around other unwired steps, async save completion semantics, and first-run flow edge cases.
+
+### 2026-05-28 10:51 AWST - Media subsystem / FFmpeg concat demuxer file-path escaping regression tests
+
+- Area: Media subsystem
+- Files: src/desktop/core/XerahS.Media/FFmpegCLIManager.cs, src/desktop/core/XerahS.Media/Properties/AssemblyInfo.cs, tests/XerahS.Tests/Media/FFmpegCLIManagerEscapeConcatFilePathTests.cs, Directory.Build.props
+- Findings: EscapeConcatFilePath (private static method used by ConcatenateVideos) had no regression tests. FFmpeg concat format uses `file 'path'` syntax where raw apostrophes in filenames break parsing. The escape converts `'` to `'` so FFmpeg parses the list correctly.
+- Status: Fixed; bumped version `0.23.74` -> `0.23.75`.
+- Build/test: build 0 warnings/0 errors; tests 1018+34=1052 passed, 0 failed, 1 skipped
+- Commit: ca499b00
+- Follow-up: Continue media review around remaining FFmpeg argument construction sites and thumbnailer edge case handling.
