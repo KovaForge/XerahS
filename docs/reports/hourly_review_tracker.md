@@ -1714,3 +1714,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Open (queued)
 - Next: Hourly sweep picks from top of queue. Follow-up areas: continue FileDownloader review, HSB equality, Wayland compositor-specific helpers.
 
+### 2026-05-28 23:22 AWST - FileDownloader / early EOF hang on Content-Length mismatch
+
+- Area: FileDownloader (clawpatch finding, medium severity)
+- Files: `src/desktop/core/XerahS.Common/FileDownloader.cs`, `tests/XerahS.Tests/Common/FileDownloaderTests.cs`, `Directory.Build.props`
+- Findings: `FileDownloader.DoWork` spins forever when server closes connection before reaching `Content-Length` — `bytesRead=0` was never checked, so the while-loop condition `DownloadedSize < FileSize` stayed true indefinitely. Added `if (bytesRead <= 0) break;` after the read, with comment. Added `FileDownloaderTestAccessor.SimulateDownloadWithEarlyEOF` for regression coverage (5 tests: partial, complete, empty, excess, exact). Note: HTTP-level early EOF is distinguishable from chunked encoding by `Content-Length` presence — when `Content-Length` is set, a 0-byte read before reaching it means premature close.
+- Status: Fixed; bumped version `0.23.75` -> `0.23.76`.
+- Build/test: build 0 warnings/0 errors; tests 1023+34=1057 passed, 0 failed, 1 skipped
+- Commit: `a0472ad5`
+- Follow-up: Continue FileDownloader review — clawpatch also flagged "refuses downloads without Content-Length" (chunked/streaming bypass) and "cancellation token not propagated to network calls". Also HSB equality/hash contract violation and plugin version pinning remain from clawpatch queue.
