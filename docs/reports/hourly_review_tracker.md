@@ -1734,3 +1734,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1031+34=1065 passed, 0 failed, 1 skipped
 - Commit: `dc08334a`
 - Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass, cancellation token propagation; HSB equality follow-up items (GetHashCode optimization); Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions.
+### 2026-05-29 17:45 AWST - FileDownloader / cancellation token propagation and InvalidOperationException handling
+- Area: FileDownloader
+- Files: src/desktop/core/XerahS.Common/FileDownloader.cs, tests/XerahS.Tests/Common/FileDownloaderTests.cs, Directory.Build.props
+- Findings: FileDownloader cancellation token was not propagated to HttpClient requests or stream operations, so StopDownload() could not reliably interrupt in-progress downloads. Also, invalid URI strings (e.g. "x") threw unhandled InvalidOperationException from HttpClient instead of returning false. Additionally, the early-exit EOF fix from prior run left IsDownloading=true when returning false early.
+- Status: Fixed; bumped version `0.23.77` -> `0.23.78`.
+- Build/test: build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped
+- Commit: 15f5e784
+- Build log: /tmp/xerahs-hourly-sweep/build-20260529-173500.log
+- Test log: /tmp/xerahs-hourly-sweep/test-20260529-173500.log
+- Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions. Also HSB equality follow-up items (GetHashCode optimization).
