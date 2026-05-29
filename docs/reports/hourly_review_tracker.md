@@ -1744,3 +1744,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build log: /tmp/xerahs-hourly-sweep/build-20260529-173500.log
 - Test log: /tmp/xerahs-hourly-sweep/test-20260529-173500.log
 - Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions. Also HSB equality follow-up items (GetHashCode optimization).
+
+### 2026-05-29 23:47 AWST - MCP server / resource URI dispatch and uploader plugin routing review
+
+- Area: MCP server + Uploader core / plugin routing
+- Files: None (review-only pass)
+- Findings: Reviewed MCP server URI dispatch: IsHistorySearchResourceUri, DecodeResourceQueryComponent (plus-encoded recovery, valid percent-encoding validation), and CreateFileUrl. All correctly implemented per prior fixes. Reviewed uploader plugin routing: ResolveAutoInstance, GetDestinationForFile, CanAddFileType, CanSetAllFileTypes, GetBlockedFileTypes, ValidateFileTypeConfiguration — all filter by IsAvailable only, matching GetDestinationForFile behavior. No fixable bugs found in either area.
+- Status: Reviewed (clean)
+- Build/test: build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped, logs: build-20260529-234721.log, test-20260529-234721.log
+- Commit: ffd1dc65
+- Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass (refuses downloads without Content-Length); Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions.
