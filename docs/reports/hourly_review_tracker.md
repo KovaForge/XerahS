@@ -1754,3 +1754,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped, logs: build-20260529-234721.log, test-20260529-234721.log
 - Commit: ffd1dc65
 - Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass (refuses downloads without Content-Length); Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions.
+### 2026-05-30 13:58 AWST - Build/configuration / plugin assembly version alignment
+
+- Area: Build / project configuration (clawpatch finding)
+- Files: src/desktop/plugins/Directory.Build.props, Directory.Build.props
+- Findings: Plugin projects (e.g. XerahS.Imgur.Plugin) were stamped with assembly version 0.23.28 while the root app is at 0.23.78, creating release metadata drift. Plugins should carry the same version as the app they ship with.
+- Status: Fixed; bumped version 0.23.79 (plugins) to match root 0.23.78.
+- Build/test: build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped
+- Commit: 79eaffb0
+- Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; StringCollectionToStringTypeConverter unsupported input handling; TFM mismatch in Common/Platform.Abstractions.
