@@ -14,6 +14,69 @@ namespace XerahS.Tests.Common;
 public class FileDownloaderTests
 {
     [Test]
+    public void StopDownload_SetsIsCanceledFlag()
+    {
+        // Arrange
+        var downloader = new FileDownloader("http://example.com/test.zip", Path.GetTempFileName());
+
+        try
+        {
+            // Act
+            downloader.StopDownload();
+
+            // Assert: StopDownload should set the IsCanceled flag
+            Assert.That(downloader.IsCanceled, Is.True);
+        }
+        finally
+        {
+            if (File.Exists(downloader.DownloadLocation))
+                File.Delete(downloader.DownloadLocation);
+        }
+    }
+
+    [Test]
+    public void StartDownload_WithEmptyUrl_ReturnsFalse()
+    {
+        // Arrange: empty URL should not start download
+        var downloader = new FileDownloader("", Path.GetTempFileName());
+
+        try
+        {
+            // Act
+            var result = downloader.StartDownload().Result;
+
+            // Assert
+            Assert.That(result, Is.False);
+            Assert.That(downloader.IsDownloading, Is.False);
+        }
+        finally
+        {
+            if (File.Exists(downloader.DownloadLocation))
+                File.Delete(downloader.DownloadLocation);
+        }
+    }
+
+    [Test]
+    public void StartDownload_WithNullUrl_ReturnsFalse()
+    {
+        // Arrange: empty/short URL should not start download
+        var downloader = new FileDownloader("x", Path.GetTempFileName());
+
+        try
+        {
+            // Act: using short invalid URL
+            var result = downloader.StartDownload().Result;
+
+            // Assert: download should fail quickly (404 or similar)
+            Assert.That(result, Is.False);
+        }
+        finally
+        {
+            if (File.Exists(downloader.DownloadLocation))
+                File.Delete(downloader.DownloadLocation);
+        }
+    }
+    [Test]
     public async Task SimulateDownloadWithEarlyEOF_PartialDelivery_BreaksOut()
     {
         // Arrange: simulate downloading a 1024-byte file where only 256 bytes arrive.

@@ -62,6 +62,8 @@ namespace XerahS.Common
         public long DownloadedSize { get; private set; }
         public double DownloadSpeed { get; private set; }
 
+        private CancellationTokenSource? _cts;
+
         public double DownloadPercentage
         {
             get
@@ -87,7 +89,7 @@ namespace XerahS.Common
             DownloadLocation = downloadLocation;
         }
 
-        public async Task<bool> StartDownload()
+        public async Task<bool> StartDownload(CancellationToken cancellationToken = default)
         {
             if (!IsDownloading && !string.IsNullOrEmpty(URL))
             {
@@ -97,7 +99,13 @@ namespace XerahS.Common
                 DownloadedSize = 0;
                 DownloadSpeed = 0;
 
-                return await DoWork();
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                bool result = await DoWork(_cts.Token);
+
+                // Reset IsDownloading on early exit (e.g., canceled token)
+                IsDownloading = false;
+                return result;
             }
 
             return false;
@@ -106,10 +114,18 @@ namespace XerahS.Common
         public void StopDownload()
         {
             IsCanceled = true;
+            _cts?.Cancel();
         }
 
-        private async Task<bool> DoWork()
+        private async Task<bool> DoWork(CancellationToken cancellationToken)
         {
+            // Check cancellation before starting any network operations
+            if (cancellationToken.IsCancellationRequested)
+            {
+                IsCanceled = true;
+                return false;
+            }
+
             try
             {
                 HttpClient client = HttpClientFactory.Create();
@@ -121,7 +137,7 @@ namespace XerahS.Common
                         requestMessage.Headers.Accept.ParseAdd(AcceptHeader);
                     }
 
-                    using (HttpResponseMessage responseMessage = await client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead))
+                    using (HttpResponseMessage responseMessage = await client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                     {
                         responseMessage.EnsureSuccessStatusCode();
 
@@ -138,7 +154,7 @@ namespace XerahS.Common
                             byte[] buffer = new byte[(int)Math.Min(bufferSize, FileSize)];
                             int bytesRead;
 
-                            using (Stream responseStream = await responseMessage.Content.ReadAsStreamAsync())
+                            using (Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(cancellationToken))
                             using (FileStream fileStream = new FileStream(DownloadLocation, FileMode.Create, FileAccess.Write, FileShare.Read))
                             {
                                 while (DownloadedSize < FileSize && !IsCanceled)
@@ -153,7 +169,7 @@ namespace XerahS.Common
                                         progressEventTimer.Start();
                                     }
 
-                                    bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length);
+                                    bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
 
                                     if (bytesRead <= 0)
                                     {
@@ -161,7 +177,7 @@ namespace XerahS.Common
                                         break;
                                     }
 
-                                    await fileStream.WriteAsync(buffer, 0, bytesRead);
+                                    await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
 
                                     DownloadedSize += bytesRead;
                                     speedTest += bytesRead;
@@ -188,6 +204,16 @@ namespace XerahS.Common
                         }
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested - set IsCanceled flag
+                IsCanceled = true;
+            }
+            catch (InvalidOperationException)
+            {
+                // Invalid URI (e.g. "x" is not a valid absolute URI)
+                // This is a user/configuration error, not a network error
             }
             catch
             {
