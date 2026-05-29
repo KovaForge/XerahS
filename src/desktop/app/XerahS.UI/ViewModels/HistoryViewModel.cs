@@ -506,8 +506,16 @@ namespace XerahS.UI.ViewModels
                                     item.FilePath,
                                     annotations: project.Project.Annotations,
                                     restoredAnnotations: true);
-                                sessionResult?.RenderedImage.Dispose();
-                                sessionResult?.SourceImage?.Dispose();
+
+                                try
+                                {
+                                    await PersistAnnotationSessionResultAsync(item.FilePath, sessionResult);
+                                }
+                                finally
+                                {
+                                    sessionResult?.RenderedImage.Dispose();
+                                    sessionResult?.SourceImage?.Dispose();
+                                }
                             }
                             finally
                             {
@@ -565,6 +573,37 @@ namespace XerahS.UI.ViewModels
 
             string defaultSidecarPath = XannProjectFileService.GetDefaultSidecarPath(item.FilePath);
             return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
+        }
+
+        private static async Task PersistAnnotationSessionResultAsync(string imagePath, ShareX.ImageEditor.Hosting.ImageEditorSessionResult? sessionResult)
+        {
+            if (sessionResult == null || string.IsNullOrWhiteSpace(imagePath))
+            {
+                return;
+            }
+
+            if (sessionResult.Annotations.Count == 0)
+            {
+                bool deleted = XannProjectFileService.TryDeleteSidecar(imagePath);
+                if (deleted)
+                {
+                    DebugHelper.WriteLine($"Deleted annotation sidecar for '{imagePath}' because the session returned no annotations.");
+                }
+
+                return;
+            }
+
+            if (sessionResult.SourceImage == null)
+            {
+                DebugHelper.WriteLine($"Skipped saving annotation sidecar for '{imagePath}' because the editor returned annotations without a source image.");
+                return;
+            }
+
+            string? sidecarPath = await XannProjectFileService.SaveAsync(
+                imagePath,
+                sessionResult.SourceImage,
+                sessionResult.Annotations);
+            DebugHelper.WriteLine($"Saved annotation sidecar after editor continue: {sidecarPath}");
         }
 
         private async Task RefreshHistoryItemAfterEditorSessionAsync(
