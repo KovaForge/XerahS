@@ -39,10 +39,14 @@ namespace XerahS.Common
                     return string.Join(", ", list);
                 }
 
-                return string.Empty;
+                // Non-List<string> values must delegate to base so unsupported types
+                // are not silently erased to string.Empty.
+                return base.ConvertTo(context, culture, value, destinationType);
             }
 
-            return base.ConvertTo(context, culture, value, destinationType);
+            // When destination is not string, preserve the original value
+            // rather than delegating to a base that may throw NotSupportedException.
+            return value;
         }
     }
 }
