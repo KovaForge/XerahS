@@ -1773,3 +1773,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped; build_log=/tmp/xerahs-hourly-sweep/build-20260530-181232.log, test_log=/tmp/xerahs-hourly-sweep/test-20260530-181232.log
 - Commit: 7ac362a5
 - Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; TFM mismatch in Common/Platform.Abstractions.
+### 2026-05-31 00:27 AWST - CLI / bootstrap uploaders exit code parity
+
+- Area: CLI / command surface
+- Files: src/desktop/cli/XerahS.CLI/Commands/BootstrapCommand.cs, src/desktop/cli/XerahS.CLI/Services/CliUploaderBootstrapper.cs, Directory.Build.props
+- Findings: bootstrap uploaders --json always exited 0 even when blocking issues were present (no usable uploader in a category). doctor uploaders correctly exits 1 on HasBlockingIssues, but bootstrap didn't propagate that. Fixed by calling Bootstrap directly and using report.HasBlockingIssues for exit code.
+- Status: Fixed; bumped version 0.23.80 -> 0.23.81.
+- Build/test: Build succeeded (0 warnings, 0 errors); tests 1040+34=1074 passed, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260531-001752.log, /tmp/xerahs-hourly-sweep/test-20260531-001752.log
+- Commit: b5163200
+- Follow-up: Continue CLI review around reclip command surface, doctor uploaders --fix dry-run safety, and xerahscli upload --pipe edge cases.

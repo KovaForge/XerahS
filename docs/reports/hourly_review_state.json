@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-30 18:16 AWST",
+  "last_updated": "2026-05-31 00:27 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -124,11 +124,11 @@
     },
     {
       "area": "CLI / command surface",
-      "last_reviewed": "2026-05-26 15:38 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-31 00:27 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Reviewed OpenClawPluginExporter and OpenClawCommand for generated CLI/tool parity. Templates use structured JSON, TypeScript helpers use redactDiagnostics() for secrets, TypeBox schemas are well-formed, runner handles timeout/signal/abort correctly, tool implementations are clean, manifest JSON uses JsonNamingPolicy.CamelCase. No fixable bugs found.",
-      "follow_up": "Continue CLI review around reclip command surface, doctor uploaders JSON output consistency, and bootstrap uploaders dry-run safety."
+      "last_outcome": "Fixed bootstrap uploaders to use report.HasBlockingIssues for exit code instead of always returning 0. Also made WriteJson internal so BootstrapCommand can call it directly instead of using the removed BootstrapUploaders method. Bumped version 0.23.80 -> 0.23.81.",
+      "follow_up": "Continue CLI review around reclip command surface, doctor uploaders --fix dry-run safety, and xerahscli upload --pipe edge cases."
     },
     {
       "area": "OCR",
@@ -222,6 +222,22 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-05-31 00:27 AWST",
+      "area": "CLI / bootstrap uploaders exit code parity",
+      "files": [
+        "src/desktop/cli/XerahS.CLI/Commands/BootstrapCommand.cs",
+        "src/desktop/cli/XerahS.CLI/Services/CliUploaderBootstrapper.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed bootstrap uploaders to use report.HasBlockingIssues for exit code instead of always returning 0. Also made WriteJson internal so BootstrapCommand can call it directly. Bumped version 0.23.80 -> 0.23.81.",
+      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
+      "commit": "b5163200",
+      "status": "fixed",
+      "version": "0.23.81",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260531-001752.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260531-001752.log"
+    },
     {
       "timestamp": "2026-05-30 18:16 AWST",
       "area": "TypeConverter / StringCollectionToStringTypeConverter silent type erasure",
