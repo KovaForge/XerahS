@@ -146,6 +146,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 - Never forget a mojibake normalization pass after a PowerShell `WriteAllText` to a changelog; always run `$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)` before writing because mojibake text for the section-sign character can slip through even when the source text looked correct.
 - Never leave raw `\n{3,}` runs in CHANGELOG.md after regex block removal; always normalize with `-replace "\n{3,}", "\n\n"` (on LF-normalized content) because removing multi-line sections leaves stray blank lines that accumulate across consolidations.
 - Never create separate changelog headings for each prerelease tag between two stable releases; always consolidate all prerelease sections into a single heading for the stable tag, using `git log <prev_stable>..<latest_stable> --oneline --no-decorate` to enumerate commits that belong under that heading.
+- Never audit a `ShareX.ImageEditor` gitlink target from a separately assumed upstream clone alone; always initialize the workspace submodule and inspect its configured remote first because XerahS can pin commits that are reachable from the actual submodule remote even when a different GitHub mirror or fork does not advertise them.
 
 ---
 
