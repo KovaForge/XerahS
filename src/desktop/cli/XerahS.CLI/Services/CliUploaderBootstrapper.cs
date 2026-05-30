@@ -78,7 +78,7 @@ internal static class CliUploaderBootstrapper
         return report.HasBlockingIssues ? 1 : 0;
     }
 
-    private static void WriteJson(BootstrapReport report)
+    internal static void WriteJson(BootstrapReport report)
     {
         Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
     }

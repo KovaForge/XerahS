@@ -13,8 +13,13 @@ public static class BootstrapCommand
         uploadersCommand.Add(jsonOption);
         uploadersCommand.SetAction(parseResult =>
         {
-            CliUploaderBootstrapper.BootstrapUploaders(parseResult.GetValue(jsonOption));
-            Environment.ExitCode = 0;
+            bool json = parseResult.GetValue(jsonOption);
+            var report = CliUploaderBootstrapper.Bootstrap(quiet: json);
+            if (json)
+            {
+                CliUploaderBootstrapper.WriteJson(report);
+            }
+            Environment.ExitCode = report.HasBlockingIssues ? 1 : 0;
         });
         command.Add(uploadersCommand);
         return command;
