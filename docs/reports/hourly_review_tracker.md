@@ -1763,3 +1763,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped
 - Commit: 79eaffb0
 - Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; StringCollectionToStringTypeConverter unsupported input handling; TFM mismatch in Common/Platform.Abstractions.
+
+### 2026-05-30 18:16 AWST - TypeConverter / StringCollectionToStringTypeConverter silent type erasure
+
+- Area: TypeConverter / StringCollectionToStringTypeConverter
+- Files: src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs, tests/XerahS.Tests/Common/StringCollectionToStringTypeConverterTests.cs, Directory.Build.props
+- Findings: ConvertTo silently returned string.Empty for any non-List<string> value (including string[], StringCollection, Dictionary), erasing supported types instead of delegating to base. Also returned string.Empty when destination was non-string, hiding real conversion failures.
+- Status: Fixed; bumped version 0.23.79 (already staged).
+- Build/test: 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped; build_log=/tmp/xerahs-hourly-sweep/build-20260530-181232.log, test_log=/tmp/xerahs-hourly-sweep/test-20260530-181232.log
+- Commit: 7ac362a5
+- Follow-up: Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; TFM mismatch in Common/Platform.Abstractions.
