@@ -141,6 +141,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 ## Changelog & Documentation Tooling
 
+- Never document distro-default FFmpeg capabilities or GUI setting locations from assumption; always verify the shipped code path and the current upstream/package reality first because FFmpeg device support and XerahS settings entry points drift independently and user-facing docs can become false even when the feature itself exists.
 - Never use `git tag -l | Sort-Object -Descending` to find the latest release tag; always use `git tag -l --sort=-version:refname` or (preferred) `mcp_io_github_git_list_releases` filtering for `prerelease:false, draft:false` because plain lexicographic sort puts `v0.7.7` after `v0.20.5`.
 - Never attempt `replace_string_in_file` on multi-line changelog blocks; always use PowerShell `[System.IO.File]::ReadAllText` + `[System.Text.RegularExpressions.Regex]::Replace` with `(?s)` dotall mode because the changelog can contain multi-byte UTF-8 sequences such as `§` that get rewritten into mojibake text during a bad encode/decode round-trip, breaking exact-text matching.
 - Never forget a mojibake normalization pass after a PowerShell `WriteAllText` to a changelog; always run `$c = $c.Replace([char]0x00C2 + [char]0x00A7, [char]0x00A7)` before writing because mojibake text for the section-sign character can slip through even when the source text looked correct.
