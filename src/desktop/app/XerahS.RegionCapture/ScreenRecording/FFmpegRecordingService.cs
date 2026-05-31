@@ -238,7 +238,19 @@ public class FFmpegRecordingService : IRecordingService
             DebugHelper.WriteLine($"[FFmpeg] FFmpeg not found at explicitly set path.");
         }
 
-        // 2. Check if Options has path override
+        // 2. Check workflow recording options for a configured override path
+        if (!string.IsNullOrEmpty(_currentOptions?.FFmpegOverridePath))
+        {
+            DebugHelper.WriteLine($"[FFmpeg] Checking RecordingOptions.FFmpegOverridePath: {_currentOptions.FFmpegOverridePath}");
+            if (File.Exists(_currentOptions.FFmpegOverridePath))
+            {
+                DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at RecordingOptions.FFmpegOverridePath: {_currentOptions.FFmpegOverridePath}");
+                return _currentOptions.FFmpegOverridePath;
+            }
+            DebugHelper.WriteLine("[FFmpeg] FFmpeg not found at RecordingOptions.FFmpegOverridePath.");
+        }
+
+        // 3. Check service-level options for a configured override path
         if (Options?.OverrideCLIPath == true && !string.IsNullOrEmpty(Options.CLIPath))
         {
             DebugHelper.WriteLine($"[FFmpeg] Checking Options.CLIPath: {Options.CLIPath}");
@@ -250,7 +262,7 @@ public class FFmpegRecordingService : IRecordingService
             DebugHelper.WriteLine($"[FFmpeg] FFmpeg not found at Options.CLIPath.");
         }
 
-        // 3. Use Centralized PathsManager
+        // 4. Use Centralized PathsManager
         return PathsManager.GetFFmpegPath();
     }
 

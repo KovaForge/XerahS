@@ -147,12 +147,8 @@ namespace XerahS.Platform.Linux
         }
 
         /// <summary>
-        /// Initialize screen recording for Linux using FFmpeg-based recording
-        /// Stage 7: Cross-platform recording support
-        ///
-        /// Note: This uses FFmpegRecordingService as the primary recording method.
-        /// Future enhancement: Implement native PipeWire/XDG Portal capture source
-        /// with GStreamer or FFmpeg pipe encoder for better performance.
+        /// Initialize screen recording for Linux.
+        /// Uses the Wayland ScreenCast portal path when available and falls back to FFmpeg x11grab on X11.
         /// </summary>
         public static void InitializeRecording()
         {
@@ -201,8 +197,8 @@ namespace XerahS.Platform.Linux
 
                 DebugHelper.WriteLine("Linux: Screen recording initialized successfully");
                 DebugHelper.WriteLine(hasScreenCastPortal
-                    ? "  - Recording backend: XDG ScreenCast Portal (PipeWire) with FFmpeg encoding"
-                    : "  - Recording backend: FFmpeg (x11grab/Wayland)");
+                    ? "  - Recording backend: XDG ScreenCast Portal with wf-recorder, FFmpeg(pipewire), or GStreamer(pipewiresrc)"
+                    : "  - Recording backend: FFmpeg x11grab fallback");
                 DebugHelper.WriteLine("  - Supported modes: Screen, Window, Region");
                 DebugHelper.WriteLine("  - Codecs: H.264, HEVC, VP9, AV1 (depends on FFmpeg build)");
             }
