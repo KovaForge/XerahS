@@ -80,6 +80,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
     private void InitializeSteps()
     {
+        Steps.Add(new WelcomeStepViewModel());
         Steps.Add(new SaveLocationStepViewModel());
         Steps.Add(new HotkeyStepViewModel());
         Steps.Add(new UploadStepViewModel());

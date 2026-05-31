@@ -32,7 +32,32 @@ namespace XerahS.UI.Onboarding.ViewModels.Steps;
 /// <summary>
 /// Language option for the welcome step.
 /// </summary>
-public record LanguageOption(string Code, string DisplayName, string NativeName);
+public record LanguageOption(string Code, string DisplayName, string NativeName)
+{
+    private static LanguageSelectionConverter? _isSelectedConverter;
+
+    public static Avalonia.Data.Converters.IValueConverter IsSelectedConverter => _isSelectedConverter ??= new LanguageSelectionConverter();
+}
+
+/// <summary>
+/// Compares a language code against the selected language to drive RadioButton.IsChecked.
+/// </summary>
+public sealed class LanguageSelectionConverter : Avalonia.Data.Converters.IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+    {
+        if (value is string selectedCode && parameter is string itemCode)
+        {
+            return string.Equals(selectedCode, itemCode, StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new System.NotSupportedException();
+    }
+}
 
 /// <summary>
 /// Step 1: Welcome and Language Selection
@@ -82,6 +107,8 @@ public partial class WelcomeStepViewModel : StepViewModelBase
 
     public ObservableCollection<LanguageOption> AvailableLanguages { get; } = new();
 
+    public CommunityToolkit.Mvvm.Input.IRelayCommand<LanguageOption> SelectLanguageCommand { get; }
+
     public WelcomeStepViewModel()
     {
         StepTitle = "Welcome to XerahS";
@@ -89,8 +116,18 @@ public partial class WelcomeStepViewModel : StepViewModelBase
         StepDescription = "Choose your preferred language to continue.";
         CanSkip = false;
 
+        SelectLanguageCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<LanguageOption>(SelectLanguage);
+
         LoadAvailableLanguages();
         SetValidationState(true);
+    }
+
+    private void SelectLanguage(LanguageOption? option)
+    {
+        if (option != null)
+        {
+            SelectedLanguageOption = option;
+        }
     }
 
     private void LoadAvailableLanguages()

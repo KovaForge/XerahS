@@ -38,7 +38,7 @@ public class OnboardingWizardOcrStepIntegrationTests
     {
         var wizard = new OnboardingWizardViewModel();
 
-        Assert.That(wizard.Steps, Has.Count.EqualTo(5));
+        Assert.That(wizard.Steps, Has.Count.EqualTo(6));
         Assert.That(wizard.Steps.OfType<OcrStepViewModel>(), Has.Exactly(1).Items);
     }
 
@@ -47,8 +47,16 @@ public class OnboardingWizardOcrStepIntegrationTests
     {
         var wizard = new OnboardingWizardViewModel();
 
-        // Step indices: 0=SaveLocation, 1=Hotkey, 2=Upload, 3=OCR, 4=Complete
-        Assert.That(wizard.Steps[3], Is.InstanceOf<OcrStepViewModel>());
+        // Step indices: 0=Welcome, 1=SaveLocation, 2=Hotkey, 3=Upload, 4=OCR, 5=Complete
+        Assert.That(wizard.Steps[4], Is.InstanceOf<OcrStepViewModel>());
+    }
+
+    [Test]
+    public void InitializeSteps_WelcomeStepIsFirst()
+    {
+        var wizard = new OnboardingWizardViewModel();
+
+        Assert.That(wizard.Steps[0], Is.InstanceOf<WelcomeStepViewModel>());
     }
 
     [Test]
@@ -56,28 +64,32 @@ public class OnboardingWizardOcrStepIntegrationTests
     {
         var wizard = new OnboardingWizardViewModel();
 
-        // Step 0: SaveLocation - auto-advances since it's valid by default
+        // Step 0: Welcome - auto-advances since language is selected by default
         wizard.NextCommand.Execute(null);
         Assert.That(wizard.CurrentStepIndex, Is.EqualTo(1));
 
-        // Step 1: Hotkey - auto-advances since no hotkey is set
+        // Step 1: SaveLocation - auto-advances since it's valid by default
         wizard.NextCommand.Execute(null);
         Assert.That(wizard.CurrentStepIndex, Is.EqualTo(2));
 
-        // Step 2: Upload - auto-advances since no uploader is selected
+        // Step 2: Hotkey - auto-advances since no hotkey is set
         wizard.NextCommand.Execute(null);
         Assert.That(wizard.CurrentStepIndex, Is.EqualTo(3));
+
+        // Step 3: Upload - auto-advances since no uploader is selected
+        wizard.NextCommand.Execute(null);
+        Assert.That(wizard.CurrentStepIndex, Is.EqualTo(4));
         Assert.That(wizard.CurrentStep, Is.InstanceOf<OcrStepViewModel>());
     }
 
     [Test]
     public void CompleteWizard_SkipsOcrStep_DoesNotOverwriteExistingLanguage()
     {
-        // Set up a state where OCR step is skipped (step index 3)
+        // Set up a state where OCR step is skipped (step index 4)
         OnboardingState state = new()
         {
             SelectedOcrLanguages = ["fr"],
-            SkippedSteps = [3] // OCR step skipped
+            SkippedSteps = [4] // OCR step skipped
         };
 
         var wizard = new OnboardingWizardViewModel();
@@ -92,7 +104,7 @@ public class OnboardingWizardOcrStepIntegrationTests
         ocrStep.SaveToState(state);
 
         // Now skip OCR step in state (simulating user skip)
-        state.SkippedSteps.Add(3);
+        state.SkippedSteps.Add(4);
 
         // Clear OCR languages in state (as if user never touched it)
         state.SelectedOcrLanguages = [];
@@ -106,7 +118,7 @@ public class OnboardingWizardOcrStepIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(state.SelectedOcrLanguages.Count, Is.EqualTo(0));
-            Assert.That(state.SkippedSteps.Contains(3), Is.True);
+            Assert.That(state.SkippedSteps.Contains(4), Is.True);
         });
     }
 
@@ -116,8 +128,8 @@ public class OnboardingWizardOcrStepIntegrationTests
         var wizard = new OnboardingWizardViewModel();
         var ocrStep = wizard.Steps.OfType<OcrStepViewModel>().Single();
 
-        // Advance to OCR step and load state
-        wizard.CurrentStepIndex = 3;
+        // Advance to OCR step (index 4) and load state
+        wizard.CurrentStepIndex = 4;
         wizard.CurrentStep?.LoadFromState(wizard.State);
 
         // Verify we are on the OCR step
@@ -141,7 +153,7 @@ public class OnboardingWizardOcrStepIntegrationTests
         wizard2.LoadFromState(wizard.State);
 
         var ocrStep2 = wizard2.Steps.OfType<OcrStepViewModel>().Single();
-        wizard2.CurrentStepIndex = 3;
+        wizard2.CurrentStepIndex = 4;
         wizard2.CurrentStep?.LoadFromState(wizard2.State);
 
         // Verify fr and de are preserved

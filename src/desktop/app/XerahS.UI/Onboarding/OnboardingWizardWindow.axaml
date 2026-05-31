@@ -70,6 +70,61 @@
                           AutomationProperties.LandmarkType="Form"
                           AutomationProperties.AccessibilityView="Control">
             <ContentControl.DataTemplates>
+              <DataTemplate DataType="steps:WelcomeStepViewModel"
+                            x:DataType="steps:WelcomeStepViewModel">
+                <ScrollViewer>
+                  <StackPanel Spacing="20" Margin="0,8,0,0">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center" Margin="0,8,0,0">
+                      <TextBlock Text="Welcome to XerahS"
+                                 FontSize="22" FontWeight="SemiBold"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                      <TextBlock Text="Choose your preferred language to continue."
+                                 FontSize="13"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding AvailableLanguages}"
+                                  HorizontalAlignment="Stretch">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="steps:LanguageOption">
+                          <Button Classes="WizardRadioCard"
+                                  Margin="0,4" Padding="12,8"
+                                  Command="{Binding $parent[ItemsControl].DataContext.SelectLanguageCommand}"
+                                  CommandParameter="{Binding}">
+                            <Grid ColumnDefinitions="Auto,*" MinWidth="200">
+                              <Border Grid.Column="0" Width="20" Height="20" CornerRadius="10" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <Ellipse Width="10" Height="10" Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                         IsVisible="{Binding Code, Converter={x:Static steps:LanguageOption.IsSelectedConverter}, ConverterParameter={Binding $parent[ItemsControl].DataContext.SelectedLanguage}}" />
+                              </Border>
+                              <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontSize="14" FontWeight="Medium"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="{Binding NativeName}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                              </StackPanel>
+                            </Grid>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Classes="status-info"
+                            Padding="12"
+                            IsVisible="{Binding HasFallbackHint}">
+                      <TextBlock Text="{Binding FallbackHint}"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                 TextWrapping="Wrap"
+                                 FontSize="12" />
+                    </Border>
+                  </StackPanel>
+                </ScrollViewer>
+              </DataTemplate>
+
               <DataTemplate DataType="steps:SaveLocationStepViewModel"
                             x:DataType="steps:SaveLocationStepViewModel">
                 <StackPanel Spacing="16">
