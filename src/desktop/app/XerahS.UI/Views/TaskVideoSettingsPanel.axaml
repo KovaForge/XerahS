@@ -71,7 +71,7 @@
                 <TextBlock Text="FFmpeg Tools" FontWeight="SemiBold"/>
                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                     <StackPanel Spacing="16">
-                        <TextBlock Text="Configure FFmpeg fallback options for screen recording and audio capture."
+                        <TextBlock Text="Configure per-workflow FFmpeg options for recording and GIF conversion, including an override path for a custom FFmpeg binary."
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    FontSize="12"
                                    TextWrapping="Wrap"/>
@@ -87,7 +87,7 @@
                                     IsVisible="{Binding ShowDownloadFFmpeg}"
                                     IsEnabled="{Binding CanDownloadFFmpeg}"/>
 
-                            <Button Grid.Column="2" Content="Configure FFmpeg..."
+                            <Button Grid.Column="2" Content="Configure FFmpeg / Override Path..."
                                     Command="{Binding OpenFFmpegOptionsCommand}"/>
                         </Grid>
                         

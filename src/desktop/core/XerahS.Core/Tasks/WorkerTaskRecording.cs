@@ -67,6 +67,7 @@ namespace XerahS.Core.Tasks
                 {
                     Mode = mode,
                     Settings = captureSettings.ScreenRecordingSettings,
+                    FFmpegOverridePath = ResolveRecordingFFmpegOverridePath(captureSettings.FFmpegOptions),
                     TargetWindowHandle = windowHandle,
                     UseModernCapture = captureSettings.UseModernCapture,
                     LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(captureSettings)
@@ -344,7 +345,7 @@ namespace XerahS.Core.Tasks
                     FileNotFoundException => "FFmpeg not found. Please install FFmpeg to enable screen recording.",
                     PlatformNotSupportedException => "Screen recording is not supported on this system.",
                     InvalidOperationException when ex.Message.Contains("not available") =>
-                        "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support and PipeWire are installed.",
+                        "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support is available, PipeWire is running, and either FFmpeg pipewire, GStreamer pipewiresrc, or wf-recorder is installed.",
                     InvalidOperationException when ex.Message.Contains("initialization") =>
                         "Screen recording initialization failed. Check that required services are running.",
                     _ => $"Failed to start recording: {ex.Message}"
@@ -410,6 +411,29 @@ namespace XerahS.Core.Tasks
 
             string detectedPath = PathsManager.GetFFmpegPath();
             return string.IsNullOrWhiteSpace(detectedPath) ? null : detectedPath;
+        }
+
+        private static string? ResolveRecordingFFmpegOverridePath(FFmpegOptions? ffmpegOptions)
+        {
+            if (ffmpegOptions?.OverrideCLIPath == true && !string.IsNullOrWhiteSpace(ffmpegOptions.CLIPath))
+            {
+                string configuredPath = ffmpegOptions.CLIPath.Trim().Trim('"', '\'');
+                if (!string.IsNullOrWhiteSpace(configuredPath))
+                {
+                    try
+                    {
+                        configuredPath = FileHelpers.GetAbsolutePath(configuredPath);
+                    }
+                    catch
+                    {
+                        // Keep the user-provided value if normalization fails.
+                    }
+
+                    return configuredPath;
+                }
+            }
+
+            return null;
         }
 
         internal static HistoryItem CreateRecordingHistoryItem(TaskInfo info, string outputPath)

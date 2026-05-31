@@ -224,7 +224,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
         if (!hasNativeFactory && !hasFallbackFactory && !hasCaptureSourceFactory)
         {
             string message = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support and PipeWire are installed and running."
+                ? "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support is available, PipeWire is running, and either FFmpeg pipewire, GStreamer pipewiresrc, or wf-recorder is installed."
                 : "Screen recording is not available. Ensure platform recording has been initialized.";
             throw new InvalidOperationException(message);
         }
@@ -1021,6 +1021,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
             Region = source.Region,
             OutputPath = outputPath ?? source.OutputPath,
             Settings = source.Settings,
+            FFmpegOverridePath = source.FFmpegOverridePath,
             UseModernCapture = source.UseModernCapture,
             LinuxRecordingBackendPreference = source.LinuxRecordingBackendPreference
         };

@@ -37,7 +37,7 @@ using XerahS.RegionCapture.ScreenRecording;
 namespace XerahS.Platform.Linux.Recording;
 
 /// <summary>
-/// Wayland screen recording via XDG ScreenCast portal + FFmpeg pipewire input.
+/// Wayland screen recording via XDG ScreenCast portal with wf-recorder, FFmpeg, or GStreamer.
 /// Falls back to FFmpegRecordingService if portal negotiation fails.
 /// </summary>
 public sealed class WaylandPortalRecordingService : IRecordingService
@@ -154,13 +154,12 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             else
             {
                 // Use FFmpeg via FFmpegCLIManager
-                string ffmpegPath = PathsManager.GetFFmpegPath();
-                if (string.IsNullOrEmpty(ffmpegPath) || !File.Exists(ffmpegPath))
+                if (string.IsNullOrEmpty(executable) || (!string.Equals(executable, "ffmpeg", StringComparison.Ordinal) && !File.Exists(executable)))
                 {
-                    throw new FileNotFoundException("FFmpeg not found for Wayland portal recording.", ffmpegPath);
+                    throw new FileNotFoundException("FFmpeg not found for Wayland portal recording.", executable);
                 }
 
-                _ffmpeg = new FFmpegCLIManager(ffmpegPath)
+                _ffmpeg = new FFmpegCLIManager(executable)
                 {
                     ShowError = true,
                     TrackEncodeProgress = true
@@ -792,16 +791,30 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         return current ?? value;
     }
 
-    private static bool HasFFmpegPipewireSupport()
+    private static string ResolveConfiguredFFmpegPath(RecordingOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.FFmpegOverridePath))
+        {
+            string configuredPath = options.FFmpegOverridePath.Trim().Trim('"', '\'');
+            if (File.Exists(configuredPath))
+            {
+                return configuredPath;
+            }
+        }
+
+        string detectedPath = PathsManager.GetFFmpegPath();
+        if (!string.IsNullOrWhiteSpace(detectedPath))
+        {
+            return detectedPath;
+        }
+
+        return "ffmpeg";
+    }
+
+    private static bool HasFFmpegPipewireSupport(string ffmpegPath)
     {
         try
         {
-            string ffmpegPath = PathsManager.GetFFmpegPath();
-            if (string.IsNullOrEmpty(ffmpegPath) || !File.Exists(ffmpegPath))
-            {
-                ffmpegPath = "ffmpeg";
-            }
-
             var startInfo = new ProcessStartInfo
             {
                 FileName = ffmpegPath,
@@ -949,11 +962,12 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     {
         var settings = options.Settings ?? new ScreenRecordingSettings();
         string outputPath = options.OutputPath ?? GetDefaultOutputPath();
+        string ffmpegPath = ResolveConfiguredFFmpegPath(options);
 
         // Check if FFmpeg has pipewire support
-        if (HasFFmpegPipewireSupport())
+        if (HasFFmpegPipewireSupport(ffmpegPath))
         {
-            return ("ffmpeg", BuildFFmpegArguments(options, pipeWireNodeId, outputPath), false);
+            return (ffmpegPath, BuildFFmpegArguments(options, pipeWireNodeId, outputPath), false);
         }
 
         // Fall back to GStreamer if available
@@ -981,7 +995,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
 
         // Last resort: try FFmpeg anyway (will likely fail)
         DebugHelper.WriteLine("[WaylandPortalRecording] WARNING: Neither FFmpeg pipewire nor GStreamer available");
-        return ("ffmpeg", BuildFFmpegArguments(options, pipeWireNodeId, outputPath), false);
+        return (ffmpegPath, BuildFFmpegArguments(options, pipeWireNodeId, outputPath), false);
     }
 
     private static string BuildFFmpegArguments(RecordingOptions options, uint pipeWireNodeId, string outputPath)

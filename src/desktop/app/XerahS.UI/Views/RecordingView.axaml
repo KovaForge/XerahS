@@ -136,7 +136,7 @@
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding CodecAvailabilityMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 
-                        <TextBlock Text="Note: Higher bitrates and frame rates will result in larger file sizes. Hardware encoding may be used automatically if available. Audio capture requires FFmpeg and appropriate system audio devices."
+                        <TextBlock Text="Note: Higher bitrates and frame rates will result in larger file sizes. Hardware encoding may be used automatically if available. Audio capture depends on the active recording backend and appropriate system audio devices."
                                    Theme="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap"/>

@@ -8,7 +8,9 @@ XerahS uses FFmpeg as a recording backend across all supported platforms. The ro
 
 ### Installation
 
-XerahS can download FFmpeg automatically via **Settings > FFmpeg > Download FFmpeg**. It fetches the latest build from the [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) GitHub release and extracts it to the app's `Tools` folder. You can also install FFmpeg manually and point XerahS to it via **Settings > FFmpeg > Override path**.
+XerahS can download FFmpeg automatically from **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Download FFmpeg...**. It fetches the latest build from the [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) GitHub release and extracts it to the app's `Tools` folder.
+
+To use your own binary, open **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Configure FFmpeg...**, enable **Override FFmpeg executable path**, and choose the binary there.
 
 ### Capture devices
 
@@ -53,7 +55,7 @@ FFmpeg is not bundled. Install it via Homebrew:
 brew install ffmpeg
 ```
 
-XerahS searches `PATH` and common locations automatically. You can also set a custom path in **Settings > FFmpeg > Override path**.
+XerahS searches `PATH` and common locations automatically. You can also set a custom path from **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Configure FFmpeg...** by enabling **Override FFmpeg executable path**.
 
 ### Recording backends
 
@@ -92,13 +94,22 @@ ffmpeg -f avfoundation -framerate 30 -capture_cursor 1 -i "1" -f avfoundation -i
 
 ### Installation
 
-FFmpeg must be installed with **PipeWire input support** compiled in. Most modern distro packages include it by default. Check what you already have:
+Wayland recording support is backend-dependent. XerahS currently tries these Linux paths in order:
+
+| Session / condition | Backend |
+|---|---|
+| wlroots compositor with `wf-recorder` installed | `wf-recorder` |
+| Wayland portal session and FFmpeg build that exposes a `pipewire` input | XDG ScreenCast portal + FFmpeg |
+| Wayland portal session and GStreamer with `pipewiresrc` installed | XDG ScreenCast portal + GStreamer |
+| X11 session | FFmpeg `x11grab` |
+
+If you want to use the FFmpeg Wayland path specifically, verify the actual binary first:
 
 ```sh
 ffmpeg -devices 2>&1 | grep pipewire
 ```
 
-If a `pipewire` line appears in the output, you are good. If not, use one of the following:
+If a `pipewire` line appears in the output, your FFmpeg binary exposes that input. If not, do not assume a newer distro release will add it automatically. XerahS can still work through GStreamer on Wayland, or through `wf-recorder` on wlroots compositors.
 
 **Fedora / RHEL (RPM Fusion)**
 
@@ -111,7 +122,7 @@ sudo dnf install ffmpeg
 
 **Ubuntu / Debian**
 
-On recent Ubuntu (22.04+) and Debian (12+) releases, the **default** `ffmpeg` package usually includes PipeWire input support:
+The default `ffmpeg` package does **not** provide a reliable PipeWire guarantee across current Ubuntu and Debian releases. Install it if you need FFmpeg generally, but always verify the actual binary:
 
 ```sh
 sudo apt update
@@ -124,10 +135,11 @@ After installing, verify PipeWire support again:
 ffmpeg -devices 2>&1 | grep pipewire
 ```
 
-- If you now see a `pipewire` device, you are done.
-- If you still do **not** see `pipewire`, your distro build of FFmpeg is missing PipeWire support. In that case:
-  - Prefer upgrading to a newer Ubuntu/Debian release or enabling your distro's official PipeWire / FFmpeg backports if available.
-  - Avoid relying on specific third‑party PPAs (such as older `savoury1/ffmpeg4`), as they change over time, can return 404s on newer Ubuntu versions, and may break upgrades.
+- If you now see a `pipewire` device, you can use the FFmpeg Wayland path.
+- If you still do **not** see `pipewire`, use one of these supported alternatives instead:
+  - Install GStreamer PipeWire support and let XerahS use the portal + `pipewiresrc` fallback.
+  - On wlroots compositors, install `wf-recorder`.
+  - Point XerahS at a custom FFmpeg binary that actually exposes the `pipewire` input device.
 
 On Ubuntu, if you are only missing some codecs (e.g. H.264/MP3 playback) rather than PipeWire itself, you can optionally install:
 
@@ -137,7 +149,7 @@ sudo apt install ubuntu-restricted-extras
 
 **Arch Linux**
 
-The official `ffmpeg` package in the Arch repos includes PipeWire:
+Package contents change over time, so verify the actual binary instead of assuming support from the repo name alone:
 
 ```sh
 sudo pacman -S ffmpeg
@@ -145,7 +157,7 @@ sudo pacman -S ffmpeg
 
 **NixOS**
 
-Use `ffmpeg-full` which enables all inputs including PipeWire:
+Use `ffmpeg-full`, then verify the binary:
 
 ```nix
 environment.systemPackages = [ pkgs.ffmpeg-full ];
@@ -153,7 +165,7 @@ environment.systemPackages = [ pkgs.ffmpeg-full ];
 
 **Static builds**
 
-Static builds (e.g. from johnvansickle.com) do **not** include PipeWire. PipeWire requires runtime linking to system libraries and cannot be statically bundled. You must use a dynamically linked package from your distro.
+Do not assume a static FFmpeg build will provide Wayland portal capture support. Verify the binary with `ffmpeg -devices` before using it in XerahS.
 
 GStreamer with PipeWire plugins is used as a fallback if FFmpeg lacks PipeWire support:
 
@@ -166,14 +178,14 @@ sudo pacman -S gst-plugin-pipewire              # Arch
 
 ### How screen recording works on Linux
 
-XerahS uses the **XDG ScreenCast portal** (`org.freedesktop.portal.ScreenCast`) to obtain a PipeWire stream from the compositor. This works on all Wayland compositors that support the portal (GNOME, KDE Plasma, wlroots-based, etc.).
+When XerahS uses a portal-backed Wayland recorder, it talks to the **XDG ScreenCast portal** (`org.freedesktop.portal.ScreenCast`) to obtain a PipeWire stream from the compositor.
 
 The flow is fully automatic:
 
 1. XerahS opens a D-Bus session with the portal.
 2. The compositor displays its own native source picker — the user selects a monitor or window.
 3. The portal returns a PipeWire node ID for the selected source.
-4. XerahS passes that node ID directly to FFmpeg as `-i <node_id>`.
+4. XerahS passes that node ID to the selected recorder integration.
 
 **The user never needs to know or configure a PipeWire node ID.** It is resolved automatically per recording session.
 
@@ -189,7 +201,7 @@ On X11, the fallback is `x11grab`.
 
 ### Verify your setup
 
-Run the built-in diagnostic from the app: **Help > Diagnostics** (Linux). It reports:
+Run the built-in diagnostic from the app: **Workflows > Edit workflow > Video Settings > Linux Recording Diagnostics**. It reports:
 
 - Whether FFmpeg has PipeWire input
 - Whether GStreamer has PipeWire plugins
@@ -207,6 +219,8 @@ Both are passed to FFmpeg as a second input:
 ```
 
 ### Example command (Wayland, FFmpeg + PipeWire)
+
+Use this only when your FFmpeg build actually lists a `pipewire` input device:
 
 ```sh
 ffmpeg \
@@ -261,7 +275,7 @@ All codecs use `-pix_fmt yuv420p` for broad player compatibility.
 
 ## Custom FFmpeg path
 
-If XerahS cannot find FFmpeg automatically, set a custom path in **Settings > FFmpeg > Override CLI path**. The app checks (in order):
+If XerahS cannot find FFmpeg automatically, open **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Configure FFmpeg...**, enable **Override FFmpeg executable path**, and set the binary path there. The app checks (in order):
 
 1. Explicitly configured path
 2. `Options.CLIPath` if override is enabled
