@@ -1782,3 +1782,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded (0 warnings, 0 errors); tests 1040+34=1074 passed, 0 failed, 1 skipped. Logs: /tmp/xerahs-hourly-sweep/build-20260531-001752.log, /tmp/xerahs-hourly-sweep/test-20260531-001752.log
 - Commit: b5163200
 - Follow-up: Continue CLI review around reclip command surface, doctor uploaders --fix dry-run safety, and xerahscli upload --pipe edge cases.
+
+### 2026-06-01 10:48 AWST - FFmpegDownloader / cancellation token propagation
+
+- Area: FFmpegDownloader (clawpatch finding, low severity — https://github.com/KovaForge/XerahS/blob/develop/.clawpatch/reports/20260528T122646-04ea11.md fnd_sig-feat-library-0584088912-df87_78427a1c1b)
+- Files: src/desktop/core/XerahS.Common/FFmpegDownloader.cs, tests/XerahS.Tests/Common/FFmpegDownloaderCancellationTests.cs, Directory.Build.props
+- Findings: DownloadLatestAsync and DownloadFFprobeFallbackAsync accepted a CancellationToken parameter but did not pass it to FileDownloader.StartDownload (which supports it since v0.23.78) and only checked the token in the finally block — so cancellation was effectively a no-op. Canceled downloads would also be reported as a generic "FFmpeg download failed." message.
+- Status: Fixed
+- Fix: Added early IsCancellationRequested check before Directory.CreateDirectory and after the network discovery call, passed cancellationToken through to downloader.StartDownload, added post-download cancellation check, and converted OperationCanceledException + cancellation-after-exception into the user-visible "FFmpeg download was canceled." message (or null for the FFprobe fallback).
+- Build/test: build 0 warnings/0 errors; tests 1046+34=1080 passed, 0 failed, 1 skipped (5 new FFmpegDownloaderCancellation tests)
+- Commit: b777ea5d
+- Follow-up: Continue clawpatch queue review: Wayland active-window fallback (grim+slurp does not implement active-window contract for wlroots/null desktops); Wayland stderr drainage so redirect fills don't block CLI capture; FileDownloader chunked/streaming-encoding support for responses without Content-Length.

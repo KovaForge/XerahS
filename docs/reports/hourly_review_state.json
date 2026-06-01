@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-31 00:27 AWST",
+  "last_updated": "2026-06-01 10:48 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,13 +11,25 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
+    "FFmpegDownloader (DONE v0.23.83)",
     "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
+    "Wayland / Linux CLI capture (open: active-window fallback for wlroots/null desktops; stderr drainage so redirected pipe fills don't block before timeout)",
+    "FileDownloader (open: chunked/streaming-encoding support for responses without Content-Length; cancellation in FFmpegDownloader now wired)",
     "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
     "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics"
   ],
   "areas": [
+    {
+      "area": "FFmpegDownloader",
+      "last_reviewed": "2026-06-01 10:48 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "clawpatch fnd_sig-feat-library-0584088912-df87_78427a1c1b",
+      "last_outcome": "Fixed FFmpegDownloader.DownloadLatestAsync and DownloadFFprobeFallbackAsync to honour their CancellationToken parameter: early-exit before Directory.CreateDirectory, pass token to FileDownloader.StartDownload (which already accepted it since v0.23.78), and convert OperationCanceledException / cancellation-after-exception into user-visible 'FFmpeg download was canceled.' messages (or null for the FFprobe fallback). Added 5 regression tests in FFmpegDownloaderCancellationTests; bumped version 0.23.82 -> 0.23.83.",
+      "follow_up": "Continue clawpatch queue: Wayland active-window fallback (grim+slurp on wlroots/null desktops does not implement active-window contract); Wayland stderr drainage so redirected stream fills don't block CLI capture helpers before timeout; FileDownloader chunked/streaming-encoding support for responses without Content-Length."
+    },
     {
       "area": "HSB struct",
       "last_reviewed": "2026-05-29 05:23 AWST",
@@ -222,6 +234,23 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-01 10:48 AWST",
+      "area": "FFmpegDownloader / cancellation token propagation",
+      "files": [
+        "src/desktop/core/XerahS.Common/FFmpegDownloader.cs",
+        "tests/XerahS.Tests/Common/FFmpegDownloaderCancellationTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed FFmpegDownloader.DownloadLatestAsync and DownloadFFprobeFallbackAsync to honour their CancellationToken parameter: early-exit before Directory.CreateDirectory, pass token to FileDownloader.StartDownload (which accepted it since v0.23.78), and convert OperationCanceledException/cancellation-after-exception into user-visible 'FFmpeg download was canceled.' messages (or null for the FFprobe fallback). Added 5 regression tests; bumped version 0.23.82 -> 0.23.83.",
+      "result": "build 0 warnings/0 errors; tests 1046+34=1080 passed, 0 failed, 1 skipped (5 new FFmpegDownloaderCancellation tests)",
+      "commit": "b777ea5d",
+      "status": "fixed",
+      "version": "0.23.83",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260601-104340.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260601-104340.log"
+    },
     {
       "timestamp": "2026-05-31 00:27 AWST",
       "area": "CLI / bootstrap uploaders exit code parity",
@@ -484,20 +513,6 @@
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260521-122404.log",
       "result": "build 0 warnings/0 errors; tests 993+28=1021 passed, 0 failed, 1 skipped",
       "commit": "993bbf90"
-    },
-    {
-      "timestamp": "2026-05-21 06:22 AWST",
-      "area": "FTP uploader plugin — invalid SFTP key files",
-      "files": [
-        "src/desktop/plugins/Ftp.Plugin/FtpUploader.cs",
-        "tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed invalid SFTP private-key files with no password fallback to report a user-visible uploader error and return null instead of letting key-load exceptions escape; added regression coverage; bumped version 0.23.62 -> 0.23.63.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260521-061814.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260521-061814.log",
-      "result": "build 0 warnings/0 errors; tests 991+28=1019 passed, 0 failed, 1 skipped",
-      "commit": "d3d94864"
     }
   ]
 }
