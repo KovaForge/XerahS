@@ -70,6 +70,102 @@ internal sealed class SwayWindowPointQueryHelper : IWaylandWindowPointQueryHelpe
         }
     }
 
+    /// <summary>
+    /// Walks the Sway tree following the focused child at each level and returns
+    /// the rect of the deepest focused window. Used to drive a single-window
+    /// <c>grim -g</c> capture on wlroots compositors that lack a dedicated
+    /// "active window" tool (e.g. SWAY itself, RiverWM, Hyprland fallback).
+    /// </summary>
+    internal static bool TryGetFocusedWindowRectFromTreeJson(string json, out Rectangle rect)
+    {
+        rect = Rectangle.Empty;
+        if (string.IsNullOrWhiteSpace(json))
+            return false;
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement focused = FindFocusedLeaf(document.RootElement);
+            return focused.ValueKind == JsonValueKind.Object
+                && TryGetRectangle(focused, "rect", out rect)
+                && rect.Width > 0
+                && rect.Height > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Same focus-following walk as <see cref="TryGetFocusedWindowRectFromTreeJson"/>,
+    /// but formats the result as a grim geometry expression
+    /// (<c>x,y WIDTHxHEIGHT</c>). Returns false when no usable rect can be
+    /// produced.
+    /// </summary>
+    internal static bool TryGetFocusedWindowGeometryExpression(string json, out string? geometry)
+    {
+        geometry = null;
+        if (!TryGetFocusedWindowRectFromTreeJson(json, out Rectangle rect))
+            return false;
+
+        geometry = $"{rect.X},{rect.Y} {rect.Width}x{rect.Height}";
+        return true;
+    }
+
+    private static JsonElement FindFocusedLeaf(JsonElement node)
+    {
+        // Recurse into the focused child first, then fall back to walking
+        // floating_nodes / nodes in the existing topmost-first order. Sway's
+        // tree places the focused child at index 0 of the parent container's
+        // "focus" array; following that chain leads to the active window.
+        long? focusedId = TryGetFirstFocusId(node);
+        if (focusedId.HasValue)
+        {
+            JsonElement focusedChild = FindChildById(node, focusedId.Value);
+            if (focusedChild.ValueKind == JsonValueKind.Object)
+            {
+                JsonElement deeper = FindFocusedLeaf(focusedChild);
+                if (deeper.ValueKind == JsonValueKind.Object)
+                    return deeper;
+            }
+        }
+
+        foreach (JsonElement child in EnumerateChildrenTopmostFirst(node))
+        {
+            JsonElement deeper = FindFocusedLeaf(child);
+            if (deeper.ValueKind == JsonValueKind.Object)
+                return deeper;
+        }
+
+        return node;
+    }
+
+    private static long? TryGetFirstFocusId(JsonElement node)
+    {
+        if (!node.TryGetProperty("focus", out JsonElement focus) || focus.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (JsonElement element in focus.EnumerateArray())
+        {
+            if (element.TryGetInt64(out long id))
+                return id;
+        }
+
+        return null;
+    }
+
+    private static JsonElement FindChildById(JsonElement node, long id)
+    {
+        foreach (JsonElement child in EnumerateChildrenTopmostFirst(node))
+        {
+            if (GetInt64(child, "id") == id)
+                return child;
+        }
+
+        return default;
+    }
+
     private static WindowInfo? FindWindow(JsonElement node, Point logicalPoint)
     {
         foreach (JsonElement child in EnumerateChildrenTopmostFirst(node))

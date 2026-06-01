@@ -24,9 +24,12 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
+using System.Drawing;
+using System.Text.Json;
 using SkiaSharp;
 using XerahS.Common;
 using XerahS.Platform.Linux.Capture.Contracts;
+using XerahS.Platform.Linux.Wayland.WindowQuery;
 
 namespace XerahS.Platform.Linux.Capture.Wayland;
 
@@ -184,7 +187,16 @@ internal static class WaylandCliCapture
         }
         if (IsWlrootsDesktop(desktop) || desktop == null)
         {
-            return await CaptureWithGrimSlurpAsync().ConfigureAwait(false);
+            // grimblast "save active" works on SWAY/wlroots in addition to Hyprland.
+            // Fall back to a focused-window geometry query so we still get a single
+            // window capture when grimblast is missing. The previous implementation
+            // fell through to CaptureWithGrimSlurpAsync which runs `slurp` with no
+            // arguments, prompting the user to draw a region with the mouse — the
+            // wrong UX for an active-window capture.
+            var r = await CaptureWithGrimblastActiveWindowAsync().ConfigureAwait(false);
+            if (r != null) return r;
+            r = await CaptureWithSwayFocusedWindowAsync().ConfigureAwait(false);
+            if (r != null) return r;
         }
         return null;
     }
@@ -334,6 +346,81 @@ internal static class WaylandCliCapture
         }
         catch { return null; }
         finally { TryDelete(tempFile); }
+    }
+
+    /// <summary>
+    /// Active-window capture fallback for wlroots compositors without grimblast
+    /// active support. Queries swaymsg for the focused window geometry, then
+    /// runs grim with the geometry expression. Returns null if swaymsg or grim
+    /// are unavailable, or if the focused window cannot be determined.
+    /// </summary>
+    private static async Task<SKBitmap?> CaptureWithSwayFocusedWindowAsync()
+    {
+        string? geometry = await TryGetFocusedWindowGeometryAsync().ConfigureAwait(false);
+        if (string.IsNullOrEmpty(geometry))
+        {
+            DebugHelper.WriteLine("LinuxScreenCaptureService: swaymsg focused window query returned no geometry");
+            return null;
+        }
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "grim",
+                Arguments = $"-g \"{geometry}\" \"{tempFile}\"",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+            if (process == null) return null;
+            var completed = await Task.Run(() => process.WaitForExit(10000)).ConfigureAwait(false);
+            if (!completed) { try { process.Kill(); } catch { } return null; }
+            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: Screenshot captured with grim -g {geometry}");
+            using var stream = File.OpenRead(tempFile);
+            return SKBitmap.Decode(stream);
+        }
+        catch { return null; }
+        finally { TryDelete(tempFile); }
+    }
+
+    private static async Task<string?> TryGetFocusedWindowGeometryAsync()
+    {
+        // Reuse the same swaymsg invocation pattern as SwayWindowPointQueryHelper.
+        // The two -r/-t get_tree modes are equivalent on modern Sway, but the
+        // readable variant is preferred when supported.
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "swaymsg",
+                Arguments = "-t get_tree -r",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var process = Process.Start(startInfo);
+            if (process == null) return null;
+            var completed = await Task.Run(() => process.WaitForExit(10000)).ConfigureAwait(false);
+            if (!completed)
+            {
+                try { process.Kill(); } catch { }
+                return null;
+            }
+            if (process.ExitCode != 0) return null;
+            string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            return SwayWindowPointQueryHelper.TryGetFocusedWindowGeometryExpression(output, out string? geometry)
+                ? geometry
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static async Task<SKBitmap?> CaptureWithSpectacleRegionAsync()
