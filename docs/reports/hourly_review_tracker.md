@@ -1793,3 +1793,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1046+34=1080 passed, 0 failed, 1 skipped (5 new FFmpegDownloaderCancellation tests)
 - Commit: b777ea5d
 - Follow-up: Continue clawpatch queue review: Wayland active-window fallback (grim+slurp does not implement active-window contract for wlroots/null desktops); Wayland stderr drainage so redirect fills don't block CLI capture; FileDownloader chunked/streaming-encoding support for responses without Content-Length.
+
+### 2026-06-01 23:19 AWST - WaylandCliCapture / SWAY active-window fallback uses grim+focused geometry
+
+- Area: Wayland / Linux CLI capture
+- Files: src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs, src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/SwayWindowPointQueryHelper.cs, tests/XerahS.Tests/Platform/Linux/WaylandWindowPointQueryHelperTests.cs, Directory.Build.props
+- Findings: WaylandCliCapture.CaptureActiveWindowAsync on SWAY/null-desktop (wlroots) fell through to CaptureWithGrimSlurpAsync, which runs `slurp` with no arguments and asks the user to draw a region with the mouse — wrong UX for an "active window" capture. grimblast supports `save active` on SWAY too, but if grimblast is missing there was no focused-window fallback. On top of that, the existing SwayWindowPointQueryHelper could parse windows at a point but had no API to fetch the focused window rect.
+- Fix: Added SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson (walks the Sway tree following the first `focus` child at each level until reaching a leaf) and TryGetFocusedWindowGeometryExpression (formats the rect as `grim -g` geometry `x,y WxH`). Routed the SWAY/null branch to first try grimblast `save active`, then fall back to CaptureWithSwayFocusedWindowAsync (swaymsg `-t get_tree -r` + grim `-g`). 7 regression tests covering deepest-leaf traversal, floating-node preference, malformed-rect rejection, invalid JSON, empty input, and grim geometry formatting.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; tests 1057+34=1091 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260601-231528.log /tmp/xerahs-hourly-sweep/test-20260601-231528.log
+- Commit: 688a78ba
+- Follow-up: Continue clawpatch queue review: stderr drainage for CLI capture helpers (redirected pipe fills block before timeout), remaining FileDownloader/Wayland/Hotkey edge cases.
