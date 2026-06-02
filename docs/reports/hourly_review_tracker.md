@@ -1835,3 +1835,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1065 passed, 0 failed, 1 skipped; logs: /tmp/xerahs-hourly-sweep/build-20260603-000330.log /tmp/xerahs-hourly-sweep/test-20260603-000330.log
 - Commit: f30c3846 (merge commit: upstream blog conflict resolution + this fix; Declan-authored; pushed to declan/develop)
 - Follow-up: Continue OCR review around the remaining onboarding-step persistence parity (SelectedOcrLanguages list -> OCROptions.PreferredLanguages design — only first language is currently carried to the runtime; document the limitation in OcrStepViewModel.StepDescription). Resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader/Wayland/Hotkey edge cases, ReClip command surface polish.
+
+### 2026-06-03 06:18 AWST - Uploader core / InstanceManager.RemoveInstance stale default cleanup logging
+
+- Area: Uploader core / plugin routing
+- Files: src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs, tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs, Directory.Build.props
+- Findings: RemoveInstance removed default-instance mappings but did not call LogStaleDefaultRemoved, while the parallel GetDefaultInstance stale-cleanup path and UpdateInstance category-change path both did. Users removing an instance had no diagnostic trail in the debug log for the implicitly-cleaned default mapping, making stale-default removal harder to audit. Fix: call LogStaleDefaultRemoved(category, instanceId, "instance was removed") inside the defaults-removal loop in RemoveInstance so the diagnostic surfaces for every cleanup site. Pattern: stale-default removal logging parity across all three entry points.
+- Status: Fixed; bumped version 0.23.87 -> 0.23.88.
+- Build/test: 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped, XerahS.McpServer.Tests 34 passed/0 failed. Log paths: /tmp/xerahs-hourly-sweep/build-20260603-061438.log and /tmp/xerahs-hourly-sweep/test-20260603-061438.log.
+- Commit: 6705b0e9
+- Follow-up: Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (still outstanding from prior sweeps), Wayland active-window compositor routing edge cases, TFM mismatch in Common/Platform.Abstractions, plugin version pinning review. Resume OCR follow-up: SelectedOcrLanguages list -> OCROptions.PreferredLanguages design (only first language carries over to runtime; document the limitation in OcrStepViewModel.StepDescription).
