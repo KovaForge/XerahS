@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-01 23:20 AWST",
+  "last_updated": "2026-06-02 11:42 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,6 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Wayland / Linux CLI capture (open: stderr drainage so redirected pipe fills don't block before timeout)",
     "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
@@ -232,14 +231,28 @@
     },
     {
       "area": "Wayland / Linux CLI capture",
-      "last_reviewed": "2026-06-01 23:20 AWST",
+      "last_reviewed": "2026-06-02 11:42 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed WaylandCliCapture.CaptureActiveWindowAsync SWAY/null-desktop path. Previously fell through to CaptureWithGrimSlurpAsync (slurp with no args prompts user to draw a region with the mouse) — wrong UX for an active-window capture. Routed the wlroots branch to first try grimblast 'save active' (works on SWAY too), then fall back to CaptureWithSwayFocusedWindowAsync which runs swaymsg '-t get_tree -r', parses the focused window rect via the new SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson, and feeds it to grim -g. Added TryGetFocusedWindowGeometryExpression helper that formats the rect as 'x,y WxH'. Added 7 regression tests: deepest-leaf traversal, focused-floating-node preference, malformed-rect rejection, invalid JSON, empty input, geometry expression formatting, geometry null on failure. Bumped version 0.23.84 -> 0.23.85.",
-      "follow_up": "Continue Wayland stderr drainage review: redirected pipe fills block CLI capture helpers before timeout (grim/slurp/grimblast/swaymsg subprocesses). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
+      "last_outcome": "Fixed LinuxCliToolRunner.RunAsync pipe-drain deadlock. Spawned child process had RedirectStandardError/Output=true but the pipes were never drained, so the OS pipe buffer (~64KB on POSIX) could fill and block the child on its next write, causing WaitForExit to time out and the capture to return a misleading null/failure even though the tool was healthy. Same anti-pattern previously fixed in MacOSClipboardService, LinuxClipboardService, and the MacOS AppleScript helpers. Fix: extracted RunCoreAsync that drains stderr via process.BeginErrorReadLine and stdout via a fire-and-forget ReadToEndAsync continuation; added a bounded process.WaitForExit(1000) after Kill so the async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync so tests can exercise the run helper without producing a real PNG. Added 4 regression tests: happy path, large-stderr 0-exit, large-stderr non-zero exit, and timeout. Bumped version 0.23.85 -> 0.23.86.",
+      "follow_up": "Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length read/write loop wrapped the entire download and dropped 0-byte response bodies on chunked transfers — fixed locally in v0.23.84 commit 15a5773a but push deferred from prior run). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-02 11:42 AWST",
+      "area": "Wayland / Linux CLI capture / LinuxCliToolRunner pipe-drain deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Capture/Helpers/LinuxCliToolRunner.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxCliToolRunnerTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed LinuxCliToolRunner.RunAsync pipe-drain deadlock: spawned child process with RedirectStandardError/Output=true but pipes were never drained, so OS pipe buffer could fill and block the child on its next write. Extracted RunCoreAsync with BeginErrorReadLine + fire-and-forget ReadToEndAsync; added bounded process.WaitForExit(1000) after Kill so async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync; added 4 regression tests (happy path, large-stderr 0-exit, large-stderr non-zero exit, timeout). Bumped version 0.23.85 -> 0.23.86.",
+      "result": "build 0 warnings/0 errors; tests 1061+34=1095 passed, 0 failed, 1 skipped",
+      "result_status": "success",
+      "commit": "b23cb6ba"
+    },
     {
       "timestamp": "2026-06-01 23:20 AWST",
       "area": "Wayland / Linux CLI capture / SWAY active-window fallback",
@@ -509,20 +522,6 @@
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260523-004535.log",
       "result": "build 0 warnings/0 errors; tests 998+29=1027 passed, 0 failed, 1 skipped",
       "commit": "0200f3e1"
-    },
-    {
-      "timestamp": "2026-05-22 18:42 AWST",
-      "area": "MCP server — oversized history blob resource ergonomics",
-      "files": [
-        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
-        "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed oversized history thumbnail/blob resource reads to return actionable JSON text content instead of a JSON-RPC error when the blob exceeds the inline byte cap; added regression coverage; bumped version 0.23.64 -> 0.23.65.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260522-183558.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260522-183558.log",
-      "result": "build 0 warnings/0 errors; tests 995+29=1024 passed, 0 failed, 1 skipped",
-      "commit": "bc403d6f"
     }
   ]
 }

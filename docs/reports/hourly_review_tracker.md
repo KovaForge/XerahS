@@ -1804,3 +1804,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1057+34=1091 passed, 0 failed, 1 skipped, logs: /tmp/xerahs-hourly-sweep/build-20260601-231528.log /tmp/xerahs-hourly-sweep/test-20260601-231528.log
 - Commit: 688a78ba
 - Follow-up: Continue clawpatch queue review: stderr drainage for CLI capture helpers (redirected pipe fills block before timeout), remaining FileDownloader/Wayland/Hotkey edge cases.
+
+### 2026-06-02 11:42 AWST - LinuxCliToolRunner / pipe-drain deadlock (clawpatch finding)
+
+- Area: Linux CLI capture (clawpatch finding — wayland cli capture helpers redirect-fill)
+- Files: src/platform/XerahS.Platform.Linux/Capture/Helpers/LinuxCliToolRunner.cs, tests/XerahS.Tests/Platform/Linux/LinuxCliToolRunnerTests.cs, Directory.Build.props
+- Findings: LinuxCliToolRunner.RunAsync spawned a child process with RedirectStandardError=true and RedirectStandardOutput=true but never drained the pipes. The OS pipe buffer (~64KB on POSIX) could fill if the tool wrote verbose stderr/stdout, causing the child to block on the next write, the parent's WaitForExit to time out, and the capture to return a misleading null/failure even though the tool was healthy. Same anti-pattern previously fixed in MacOSClipboardService, LinuxClipboardService, and the MacOS AppleScript helpers.
+- Fix: Extracted RunCoreAsync that drains stderr via process.BeginErrorReadLine and stdout via a fire-and-forget ReadToEndAsync continuation; added a bounded process.WaitForExit(1000) after Kill so the async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync so tests can exercise the run helper without producing a real PNG.
+- Status: Fixed; bumped version 0.23.85 -> 0.23.86.
+- Build/test: Build succeeded (0 warnings, 0 errors); tests 1061+34=1095 passed, 0 failed, 1 skipped (4 new LinuxCliToolRunnerTests: happy path, large-stderr 0-exit, large-stderr non-zero exit, timeout). Logs: /tmp/xerahs-hourly-sweep/build-20260602-113710.log, /tmp/xerahs-hourly-sweep/test-20260602-114023.log
+- Commit: b23cb6ba
+- Follow-up: Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length loop wrapped the entire read/write and dropped 0-byte response bodies on chunked transfers).
