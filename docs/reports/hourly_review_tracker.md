@@ -1824,3 +1824,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; tests 1061+34=1095 passed, 0 failed, 1 skipped; logs: build-20260602-123841.log, test-20260602-114023.log
 - Commit: (none — HEAD already at declan/develop = 7e20351a)
 - Follow-up: Continue sweep queue: ReClip command surface polish, doctor uploaders --fix dry-run safety, xerahscli upload --pipe edge cases, and remaining clawpatch finding edge cases as they surface.
+
+### 2026-06-03 00:10 AWST - OCR / OcrViewModel onboarding language-selection parity (recovered from interrupted prior session)
+
+- Area: OCR (tool/onboarding language-selection parity)
+- Files: src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs, tests/XerahS.Tests/Tools/OcrViewModelTests.cs, Directory.Build.props
+- Findings: OcrViewModel.LoadAvailableLanguages always defaulted to English even when the onboarding wizard had committed a different language to SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language. The Onboarding wizard persists the user's choice (e.g. fr) but the OCR tool's startup read-site ignored it, silently overriding the user's preference. Pattern: write-to-settings/never-read persistence parity gap.
+- Fix: Read OCROptions.Language at the read site via a new private static ResolvePersistedLanguageTag() helper, trimmed once at the helper boundary (not scattered at every comparison site). Selection order: persisted (trimmed) -> English -> first available. Added 4 regression tests: PersistedOnboardingLanguage, FallsBackToEnglish_WhenPersistedLanguageUnavailable, FallsBackToFirst_WhenPersistedEmptyAndNoEnglish, TrimsPersistedWhitespaceBeforeMatching.
+- Status: Fixed; bumped version 0.23.86 -> 0.23.87.
+- Build/test: build 0 warnings/0 errors; tests 1065 passed, 0 failed, 1 skipped; logs: /tmp/xerahs-hourly-sweep/build-20260603-000330.log /tmp/xerahs-hourly-sweep/test-20260603-000330.log
+- Commit: f30c3846 (merge commit: upstream blog conflict resolution + this fix; Declan-authored; pushed to declan/develop)
+- Follow-up: Continue OCR review around the remaining onboarding-step persistence parity (SelectedOcrLanguages list -> OCROptions.PreferredLanguages design — only first language is currently carried to the runtime; document the limitation in OcrStepViewModel.StepDescription). Resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader/Wayland/Hotkey edge cases, ReClip command surface polish.
