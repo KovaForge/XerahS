@@ -231,6 +231,7 @@ public class InstanceManager
                 foreach (var category in defaultsToRemove)
                 {
                     _configuration.DefaultInstances.Remove(category);
+                    LogStaleDefaultRemoved(category, instanceId, "instance was removed");
                 }
 
                 SaveConfiguration();

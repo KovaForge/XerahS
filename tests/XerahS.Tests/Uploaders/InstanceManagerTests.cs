@@ -563,6 +563,39 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void RemoveInstance_LogsWhenRemovingStaleDefaultMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            InstanceId = "removable-default",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Removable Default",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        string logPath = Path.Combine(_rootPath, "remove-default.log");
+        DebugHelper.Init(logPath);
+
+        try
+        {
+            InstanceManager.Instance.RemoveInstance(instance.InstanceId);
+
+            DebugHelper.Flush();
+            string log = File.ReadAllText(logPath);
+            Assert.That(log, Does.Contain("Removed stale default Image uploader 'removable-default'"));
+            Assert.That(log, Does.Contain("instance was removed"));
+        }
+        finally
+        {
+            DebugHelper.Shutdown();
+        }
+    }
+
+    [Test]
     public void IsDefaultInstance_ReturnsTrueWhenDefault()
     {
         var instance = new UploaderInstance
