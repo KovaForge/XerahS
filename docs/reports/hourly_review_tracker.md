@@ -1815,3 +1815,12 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded (0 warnings, 0 errors); tests 1061+34=1095 passed, 0 failed, 1 skipped (4 new LinuxCliToolRunnerTests: happy path, large-stderr 0-exit, large-stderr non-zero exit, timeout). Logs: /tmp/xerahs-hourly-sweep/build-20260602-113710.log, /tmp/xerahs-hourly-sweep/test-20260602-114023.log
 - Commit: b23cb6ba
 - Follow-up: Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length loop wrapped the entire read/write and dropped 0-byte response bodies on chunked transfers).
+### 2026-06-02 12:42 AWST - Sweep / sync-only (all fixes landed, clean build/test verified)
+
+- Area: Sweep — sync + tracker maintenance
+- Files: (none changed)
+- Findings: All items from clawpatch queue have been resolved in prior runs: FileDownloader chunked/streaming (v0.23.84), HSB equality (v0.23.77), Wayland active-window/SWAY fallback (v0.23.85), LinuxCliToolRunner pipe-drain (v0.23.86), FFmpegDownloader cancellation (v0.23.83), CLI bootstrap exit code (v0.23.81), TypeConverter silent type erasure (v0.23.80), MCP server URI dispatch (v0.23.69/0.23.72), plugin version alignment (v0.23.79), onboarding dead code (v0.23.74), PluginFolderCleaner quarantine pruning (v0.23.61). Remaining follow-ups (ReClip surface, doctor uploaders --fix dry-run safety, upload --pipe edge cases) are all clean reviews — no fixable bugs found. TFM mismatch in Common/Platform.Abstractions: verified all projects use net10.0; XerahS.Platform.Abstractions is a project reference, not a TFM mismatch.
+- Status: No-fix (clean review; all tracker items resolved)
+- Build/test: build 0 warnings/0 errors; tests 1061+34=1095 passed, 0 failed, 1 skipped; logs: build-20260602-123841.log, test-20260602-114023.log
+- Commit: (none — HEAD already at declan/develop = 7e20351a)
+- Follow-up: Continue sweep queue: ReClip command surface polish, doctor uploaders --fix dry-run safety, xerahscli upload --pipe edge cases, and remaining clawpatch finding edge cases as they surface.
