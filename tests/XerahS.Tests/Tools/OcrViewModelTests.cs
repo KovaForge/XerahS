@@ -25,24 +25,28 @@
 
 using NUnit.Framework;
 using SkiaSharp;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.Tests.Tools;
 
 [TestFixture]
+[NonParallelizable]
 public sealed class OcrViewModelTests
 {
     [SetUp]
     public void SetUp()
     {
         PlatformServices.Reset();
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "en";
     }
 
     [TearDown]
     public void TearDown()
     {
         PlatformServices.Reset();
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "en";
     }
 
     [Test]
@@ -274,6 +278,95 @@ public sealed class OcrViewModelTests
             Assert.That(viewModel.SelectedLanguage, Is.Null);
             Assert.That(viewModel.StatusText, Does.Contain("OCR language enumeration failed."));
         });
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_PrefersPersistedOnboardingLanguage()
+    {
+        // Onboarding wizard writes SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language.
+        // The OCR tool should honor that selection when it matches an available language.
+        var ocr = new RecordingOcrService(["fr-text"])
+        {
+            AvailableLanguages =
+            [
+                new("English", "en"),
+                new("French", "fr"),
+                new("German", "de")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "fr";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("fr"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_FallsBackToEnglish_WhenPersistedLanguageUnavailable()
+    {
+        var ocr = new RecordingOcrService(["en-text"])
+        {
+            AvailableLanguages =
+            [
+                new("English", "en"),
+                new("French", "fr")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        // Persisted language (ja) is not in the platform's available set; expect fallback to English.
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "ja";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("en"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_FallsBackToFirst_WhenPersistedEmptyAndNoEnglish()
+    {
+        var ocr = new RecordingOcrService(["ja-text"])
+        {
+            AvailableLanguages =
+            [
+                new("Japanese", "ja"),
+                new("French", "fr")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        // Empty persisted value (e.g. onboarding skipped) and English unavailable; expect first language.
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "   ";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("ja"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_TrimsPersistedWhitespaceBeforeMatching()
+    {
+        var ocr = new RecordingOcrService(["de-text"])
+        {
+            AvailableLanguages =
+            [
+                new("English", "en"),
+                new("German", "de")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "  de  ";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("de"));
     }
 
     private sealed class RecordingOcrService : IOcrService
