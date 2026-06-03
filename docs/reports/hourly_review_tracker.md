@@ -1868,3 +1868,16 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 40 passed/0 failed (was 37, +3 new). Logs: /tmp/xerahs-hourly-sweep/build-20260604-004334.log, /tmp/xerahs-hourly-sweep/test-20260604-004334.log
 - Commit: 27f8216c
 - Follow-up: Continue MCP review around history search resource URI edge cases (already covered by the clawpatch parity pass) and resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, TFM mismatch in Common/Platform.Abstractions, OCR onboarding list->OCROptions.PreferredLanguages design (only first language carries over; document the limitation in OcrStepViewModel.StepDescription).
+### 2026-06-04 07:18 AWST - LinuxScreenService / xrandr capture pipe-fill + timeout-stretching deadlock
+
+- Area: Linux platform / LinuxScreenService
+- Files:
+  - src/platform/XerahS.Platform.Linux/Services/LinuxScreenService.cs
+  - tests/XerahS.Tests/Platform/Linux/LinuxScreenServiceTests.cs
+  - Directory.Build.props
+- Findings: LinuxScreenService.ParseScreens had the same ProcessStartInfo anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86): RedirectStandardError=true but stderr was never drained, so a chatty xrandr (noisy EDID parsing or warnings) could fill the 64KB POSIX pipe buffer and block on its next write, hanging the parent's sync ReadToEnd. A second related bug was that stdout was read synchronously, so a child that sleeps without producing output (e.g. `sleep 5` with a 1s timeout) would stretch the call to 5 seconds before the timeout could fire. Both bugs share the same root: synchronous reads with no async drainer and no bounded wait.
+- Status: Fixed; bumped version 0.23.90 -> 0.23.91.
+- Build/test: build 0 warnings/0 errors. XerahS.Tests 1070 passed (was 1066, +4 new LinuxScreenServiceTests), 0 failed, 1 skipped. New tests cover happy path, 200KB stderr pipe-fill (would have hung pre-fix), sleep-with-timeout (would have stretched to 5s pre-fix), and non-zero exit code propagation. 3 pre-existing MCP server CreateHistoryDetailsAsync_* tests fail with SQLite 'disk I/O error' on this host — verified on pristine 0.23.90 HEAD without my changes, environmental, not a regression.
+- Commit: 2a8c7d4a
+- Logs: /tmp/xerahs-hourly-sweep/build-20260604-070552.log, /tmp/xerahs-hourly-sweep/test-full-20260604-070552.log
+- Follow-up: Continue stderr-drainage audit on the remaining helpers found by the same grep: LinuxThemeService (TryReadFromGSettings, TryReadGtkThemeDark), PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. All share the RedirectStandardError=true + sync stdout read + WaitForExit anti-pattern. The LinuxScreenService fix is the template; same TestAccessor + RunXxxxCapture pattern applies. Resume clawpatch queue: TFM mismatch in Common/Platform.Abstractions, remaining OCR onboarding list->OCROptions.PreferredLanguages design (doc-only). Investigate the 3 pre-existing MCP SQLite 'disk I/O error' failures (likely tmp-dir file lock from a prior test run not being released).
