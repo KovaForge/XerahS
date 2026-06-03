@@ -1047,7 +1047,20 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             return filePath;
         }
 
-        throw new FileNotFoundException("History item thumbnail source file was not found.", item.FilePath);
+        // Both checks failed: surface which file was actually missing so debug logs and direct
+        // callers can tell whether the thumbnail cache was cleaned or the original capture was
+        // moved/deleted. Callers that convert the exception into a structured response
+        // (e.g. CreateHistoryBlobMissingResponse) use item.FilePath / item.ThumbnailURL
+        // directly, so this message is mainly for debug logs and direct callers. FileName is
+        // always item.FilePath to preserve the prior contract for existing consumers.
+        bool hasThumbnail = !string.IsNullOrWhiteSpace(item.ThumbnailURL);
+        bool hasFilePath = !string.IsNullOrWhiteSpace(item.FilePath);
+        string message = (hasThumbnail && hasFilePath)
+            ? "History item thumbnail and source files were not found."
+            : hasFilePath
+                ? "History item source file was not found."
+                : "History item thumbnail source file was not found.";
+        throw new FileNotFoundException(message, item.FilePath);
     }
 
     internal static string CreateHistoryBlobResourceUri(HistoryItem item)

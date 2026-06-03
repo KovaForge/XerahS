@@ -275,6 +275,80 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public void RuntimeHistoryBlobPath_MissingThumbnailOnly_FallsBackToSourceFile()
+    {
+        // If the thumbnail file is gone but the source capture is still on disk, the helper
+        // must transparently fall back to the source path so the user can still read the
+        // capture. This test pins that fallback behavior (not an exception).
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-history-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string sourcePath = Path.Combine(directory, "capture.png");
+            string thumbnailPath = Path.Combine(directory, "thumb.png");
+            File.WriteAllText(sourcePath, "source");
+            // Thumbnail is NOT written — only the source file exists locally.
+
+            var item = new HistoryItem
+            {
+                FilePath = sourcePath,
+                ThumbnailURL = thumbnailPath
+            };
+
+            Assert.Equal(sourcePath, XerahSMcpRuntime.ResolveHistoryBlobPath(item));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RuntimeHistoryBlobPath_MissingBothFiles_MentionsThumbnailAndSource()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-mcp-history-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string sourcePath = Path.Combine(directory, "capture.png");
+            string thumbnailPath = Path.Combine(directory, "thumb.png");
+            // Neither file is created on disk.
+
+            var item = new HistoryItem
+            {
+                FilePath = sourcePath,
+                ThumbnailURL = thumbnailPath
+            };
+
+            var ex = Assert.Throws<FileNotFoundException>(() => XerahSMcpRuntime.ResolveHistoryBlobPath(item));
+            // FileName is the user's original capture (item.FilePath) — matches the prior
+            // contract so existing debug-log consumers do not break.
+            Assert.Equal(sourcePath, ex.FileName);
+            Assert.Equal("History item thumbnail and source files were not found.", ex.Message);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RuntimeHistoryBlobPath_OnlyThumbnailConfiguredMissing_KeepsThumbnailOnlyMessage()
+    {
+        // Item has only a ThumbnailURL; the original capture is unknown. The helper falls
+        // through both checks and should fall back to the original "thumbnail source file"
+        // wording rather than the "source file" wording (which would be misleading here).
+        var item = new HistoryItem
+        {
+            FilePath = string.Empty,
+            ThumbnailURL = "/definitely/does/not/exist/thumb.png"
+        };
+
+        var ex = Assert.Throws<FileNotFoundException>(() => XerahSMcpRuntime.ResolveHistoryBlobPath(item));
+        Assert.Equal("History item thumbnail source file was not found.", ex.Message);
+    }
+
+    [Fact]
     public void RuntimeFileUrl_UsesAbsoluteFileUriForRelativePaths()
     {
         string relativePath = Path.Combine(".", "capture with spaces.png");
