@@ -1858,3 +1858,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: 0 warnings, 0 errors; XerahS.Tests 1066 passed (1 skipped); XerahS.McpServer.Tests 37 passed (was 34, +3 new)
 - Commit: e8c9fb14
 - Follow-up: Continue clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, and TFM mismatch in Common/Platform.Abstractions. Resume OCR follow-up to document SelectedOcrLanguages -> OCROptions.PreferredLanguages limitation in OcrStepViewModel.StepDescription (doc-only, defer to next run as a separate decision).
+
+### 2026-06-04 00:47 AWST - MCP server / CreateHistoryDetailsAsync stale local path diagnostic
+
+- Area: MCP server (history resource diagnostics for stale local paths)
+- Files: src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs, src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs, Directory.Build.props
+- Findings: CreateHistoryDetailsAsync silently produced null width/height, null MD5 hash, and a 0-byte file_size when item.FilePath was set but the file was not on disk (moved, deleted, or stored from a different machine). MCP clients had no way to distinguish "image is being processed" from "the stored capture path is stale", and the upload_url fallback was hidden behind a null-typed response. Made CreateHistoryDetailsAsync internal (test access via existing InternalsVisibleTo) and added explicit file_exists (bool), file_missing_path (string|null), and thumbnail_exists (bool) fields. file_exists is computed once up front; the hash/size/dimension block only runs when the source file is genuinely on disk. file_missing_path is null when FilePath is empty (no missing path to surface) and equals item.FilePath otherwise. The thumbnail_exists flag uses the same TryResolveLocalFilePath check as CreateHistoryBlobResourceUriIfLocal, keeping the two paths consistent.
+- Status: Fixed; bumped version 0.23.89 -> 0.23.90.
+- Build/test: build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 40 passed/0 failed (was 37, +3 new). Logs: /tmp/xerahs-hourly-sweep/build-20260604-004334.log, /tmp/xerahs-hourly-sweep/test-20260604-004334.log
+- Commit: 27f8216c
+- Follow-up: Continue MCP review around history search resource URI edge cases (already covered by the clawpatch parity pass) and resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, TFM mismatch in Common/Platform.Abstractions, OCR onboarding list->OCROptions.PreferredLanguages design (only first language carries over; document the limitation in OcrStepViewModel.StepDescription).

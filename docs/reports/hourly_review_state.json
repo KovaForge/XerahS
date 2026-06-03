@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-03 18:36 AWST",
+  "last_updated": "2026-06-04 00:47 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -117,11 +117,11 @@
     },
     {
       "area": "MCP server",
-      "last_reviewed": "2026-06-03 18:36 AWST",
+      "last_reviewed": "2026-06-04 00:47 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed ResolveHistoryBlobPath misleading error message: the helper always threw 'History item thumbnail source file was not found.' with item.FilePath as FileName, even when both files were missing or only the source was configured. Fix: branch the message on which fields are populated — 'thumbnail and source files' when both present, 'source file' when only FilePath is set, original 'thumbnail source file' when only ThumbnailURL is set. FileName preserved as item.FilePath to keep the prior contract. Added 3 regression tests. Bumped version 0.23.88 -> 0.23.89.",
-      "follow_up": "Continue MCP review around history resource diagnostics for stale local paths and remaining URI construction edge cases. Resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, and TFM mismatch in Common/Platform.Abstractions."
+      "last_outcome": "Fixed CreateHistoryDetailsAsync silent stale-path gap: when item.FilePath was set but the file was not on disk, the response silently returned null width/height, null MD5 hash, and a 0-byte file_size with no indication that the file was missing. Made CreateHistoryDetailsAsync internal (InternalsVisibleTo already in place) and added explicit file_exists (bool), file_missing_path (string|null), and thumbnail_exists (bool) fields. file_exists is computed once up front; hash/size/dimension block only runs when the source file is genuinely on disk. file_missing_path is null when FilePath is empty (no missing path to surface) and equals item.FilePath otherwise. Added 3 regression tests (MissingSourceFile_SurfacesStalePathDiagnostic, ExistingSourceFile_ReportsFileExistsTrueAndHash, EmptyFilePath_ReportsFileExistsFalseWithoutMissingPath). Bumped version 0.23.89 -> 0.23.90.",
+      "follow_up": "Continue MCP review around history search resource URI edge cases and resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, TFM mismatch in Common/Platform.Abstractions, OCR onboarding list->OCROptions.PreferredLanguages design (only first language carries over; document the limitation in OcrStepViewModel.StepDescription)."
     },
     {
       "area": "Settings/configuration",
@@ -239,6 +239,23 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-04 00:47 AWST",
+      "area": "MCP server / CreateHistoryDetailsAsync stale local path diagnostic",
+      "files": [
+        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
+        "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed CreateHistoryDetailsAsync silent stale-path gap: when item.FilePath was set but the file was not on disk, the response silently returned null width/height, null MD5 hash, and a 0-byte file_size with no indication that the file was missing. MCP clients could not distinguish 'image is being processed' from 'the stored capture path is stale'. Made CreateHistoryDetailsAsync internal (InternalsVisibleTo already in place) and added explicit file_exists (bool), file_missing_path (string|null), and thumbnail_exists (bool) fields. file_exists is computed once up front; hash/size/dimension block only runs when the source file is genuinely on disk. file_missing_path is null when FilePath is empty (no missing path to surface) and equals item.FilePath otherwise. thumbnail_exists uses the same TryResolveLocalFilePath check as CreateHistoryBlobResourceUriIfLocal. Added 3 regression tests. Bumped version 0.23.89 -> 0.23.90.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 40 passed/0 failed (was 37, +3 new)",
+      "result_status": "success",
+      "commit": "27f8216c",
+      "status": "fixed",
+      "version": "0.23.90",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260604-004334.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260604-004334.log"
+    },
     {
       "timestamp": "2026-06-03 18:36 AWST",
       "area": "MCP server / ResolveHistoryBlobPath misleading error message",
@@ -518,17 +535,6 @@
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260524-080322.log",
       "result": "build 0 warnings/0 errors; tests 1000+31=1031 passed, 0 failed, 1 skipped",
       "commit": "660cbf1a"
-    },
-    {
-      "timestamp": "2026-05-24 07:41 AWST",
-      "area": "Sweep blocker — Declan SSH auth unavailable",
-      "files": [],
-      "summary": "Blocked before Declan remote sync because git-declan fetch declan develop failed with publickey auth; no source review/build/test/push attempted.",
-      "result": "blocked: git@github.com Permission denied (publickey)",
-      "commit": "1a740850",
-      "declan_ref": "5698e4b1",
-      "build_log": null,
-      "test_log": null
     }
   ]
 }
