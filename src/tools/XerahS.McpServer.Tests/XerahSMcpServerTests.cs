@@ -459,6 +459,111 @@ public class XerahSMcpServerTests
     }
 
     [Fact]
+    public async Task CreateHistoryDetailsAsync_MissingSourceFile_SurfacesStalePathDiagnostic()
+    {
+        // The source capture file path is configured but the file is not on disk.
+        // The response must surface a clear file_exists=false / file_missing_path
+        // diagnostic so MCP clients can prompt the user to relocate the capture
+        // or fall back to the upload_url, instead of silently returning null
+        // dimensions and a 0-byte file size (the prior behaviour).
+        var runtime = new XerahSMcpRuntime();
+        string missingPath = Path.Combine(
+            Path.GetTempPath(),
+            $"xerahs-mcp-details-missing-{Guid.NewGuid():N}.png");
+
+        var item = new HistoryItem
+        {
+            Id = 7777,
+            FilePath = missingPath,
+            ThumbnailURL = string.Empty,
+            URL = "https://share.example.test/abc123"
+        };
+
+        var details = await runtime.CreateHistoryDetailsAsync(item, CancellationToken.None);
+
+        Assert.Equal(missingPath, details["file_path"]?.GetValue<string>());
+        Assert.False(details["file_exists"]?.GetValue<bool>());
+        Assert.Equal(missingPath, details["file_missing_path"]?.GetValue<string>());
+        Assert.Equal(0L, details["file_size_bytes"]?.GetValue<long>());
+        Assert.Null(details["file_hash_md5"]?.GetValue<string?>());
+        Assert.Null(details["capture_width"]?.GetValue<int?>());
+        Assert.Null(details["capture_height"]?.GetValue<int?>());
+        // upload_url remains populated so the caller can offer the hosted link.
+        Assert.Equal("https://share.example.test/abc123", details["upload_url"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task CreateHistoryDetailsAsync_ExistingSourceFile_ReportsFileExistsTrueAndHash()
+    {
+        // When the source capture file IS on disk, the response should report
+        // file_exists=true, file_missing_path=null, and populate size/hash
+        // from the real file. The new diagnostic fields must not regress the
+        // happy path.
+        var runtime = new XerahSMcpRuntime();
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"xerahs-mcp-details-present-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string sourcePath = Path.Combine(directory, "capture.png");
+            // 16 deterministic bytes so the MD5 hash is stable.
+            byte[] payload = new byte[]
+            {
+                0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52
+            };
+            File.WriteAllBytes(sourcePath, payload);
+
+            var item = new HistoryItem
+            {
+                Id = 8888,
+                FilePath = sourcePath,
+                ThumbnailURL = string.Empty
+            };
+
+            var details = await runtime.CreateHistoryDetailsAsync(item, CancellationToken.None);
+
+            Assert.True(details["file_exists"]?.GetValue<bool>());
+            Assert.Null(details["file_missing_path"]?.GetValue<string?>());
+            Assert.Equal(payload.Length, details["file_size_bytes"]?.GetValue<long>());
+            string? hash = details["file_hash_md5"]?.GetValue<string?>();
+            Assert.NotNull(hash);
+            Assert.Equal(32, hash!.Length); // MD5 hex length.
+            Assert.Equal(hash, hash.ToLowerInvariant());
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task CreateHistoryDetailsAsync_EmptyFilePath_ReportsFileExistsFalseWithoutMissingPath()
+    {
+        // When item.FilePath is empty/whitespace (e.g. an upload-only history row
+        // where the source was never persisted), the response must report
+        // file_exists=false but file_missing_path should be null — there is no
+        // missing path to surface, just a known-absent local file.
+        var runtime = new XerahSMcpRuntime();
+
+        var item = new HistoryItem
+        {
+            Id = 9999,
+            FilePath = string.Empty,
+            ThumbnailURL = string.Empty,
+            URL = "https://share.example.test/xyz"
+        };
+
+        var details = await runtime.CreateHistoryDetailsAsync(item, CancellationToken.None);
+
+        Assert.False(details["file_exists"]?.GetValue<bool>());
+        Assert.Null(details["file_missing_path"]?.GetValue<string?>());
+        Assert.Null(details["file_url"]?.GetValue<string?>());
+        Assert.Equal(0L, details["file_size_bytes"]?.GetValue<long>());
+    }
+
+    [Fact]
     public void RuntimeHistoryBlobResourceUri_UsesInvariantHistoryId()
     {
         var item = new HistoryItem

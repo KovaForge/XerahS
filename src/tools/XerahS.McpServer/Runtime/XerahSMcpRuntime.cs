@@ -974,7 +974,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         return item ?? throw new InvalidOperationException($"History item '{id}' was not found.");
     }
 
-    private async Task<JsonObject> CreateHistoryDetailsAsync(HistoryItem item, CancellationToken cancellationToken)
+    internal async Task<JsonObject> CreateHistoryDetailsAsync(HistoryItem item, CancellationToken cancellationToken)
     {
         long fileSize = 0;
         string? fileHash = null;
@@ -982,7 +982,21 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         int? height = null;
         string? ocrText = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).GetText(item.Id);
 
-        if (!string.IsNullOrWhiteSpace(item.FilePath) && File.Exists(item.FilePath))
+        // Track whether the source capture file is on disk so the MCP response can surface
+        // a clear stale-path diagnostic. The previous implementation silently produced null
+        // width/height, null hash, and a 0-byte file_size when the file was missing, leaving
+        // callers no way to distinguish "image is being processed" from "the stored file was
+        // moved or deleted". The new file_exists + file_missing_path fields make the cause
+        // explicit so MCP clients can prompt the user to relocate the capture or open the
+        // upload_url instead of waiting for content that will never arrive.
+        bool sourcePathConfigured = !string.IsNullOrWhiteSpace(item.FilePath);
+        bool sourceFileExists = sourcePathConfigured && File.Exists(item.FilePath);
+        bool thumbnailPathConfigured = !string.IsNullOrWhiteSpace(item.ThumbnailURL);
+        bool thumbnailFileExists = thumbnailPathConfigured &&
+            TryResolveLocalFilePath(item.ThumbnailURL, out var resolvedThumb) &&
+            File.Exists(resolvedThumb);
+
+        if (sourceFileExists)
         {
             var fileInfo = new FileInfo(item.FilePath);
             fileSize = fileInfo.Length;
@@ -1017,8 +1031,11 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["id"] = item.Id.ToString(CultureInfo.InvariantCulture),
             ["file_path"] = item.FilePath,
             ["file_url"] = CreateFileUrl(item.FilePath),
+            ["file_exists"] = sourceFileExists,
+            ["file_missing_path"] = sourcePathConfigured && !sourceFileExists ? item.FilePath : null,
             ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
             ["thumbnail_resource"] = CreateHistoryBlobResourceUriIfLocal(item),
+            ["thumbnail_exists"] = thumbnailFileExists,
             ["capture_type"] = InferHistoryCaptureType(item),
             ["capture_width"] = width,
             ["capture_height"] = height,
