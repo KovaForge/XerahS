@@ -1845,3 +1845,16 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped, XerahS.McpServer.Tests 34 passed/0 failed. Log paths: /tmp/xerahs-hourly-sweep/build-20260603-061438.log and /tmp/xerahs-hourly-sweep/test-20260603-061438.log.
 - Commit: 6705b0e9
 - Follow-up: Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (still outstanding from prior sweeps), Wayland active-window compositor routing edge cases, TFM mismatch in Common/Platform.Abstractions, plugin version pinning review. Resume OCR follow-up: SelectedOcrLanguages list -> OCROptions.PreferredLanguages design (only first language carries over to runtime; document the limitation in OcrStepViewModel.StepDescription).
+
+### 2026-06-03 18:36 AWST - MCP server / ResolveHistoryBlobPath misleading error message
+
+- Area: MCP server
+- Files:
+  - src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs
+  - src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs
+  - Directory.Build.props
+- Findings: ResolveHistoryBlobPath threw "History item thumbnail source file was not found." with item.FilePath as FileName, even when both the thumbnail and the source were missing, or when only the source was configured. The message was always "thumbnail source" which is misleading for the both-missing and source-only-missing cases. Fix: branch the message on which fields are populated — "thumbnail and source" when both are present, "source file" when only FilePath is configured, "thumbnail source file" (the original wording) when only ThumbnailURL is configured. FileName is preserved as item.FilePath to keep the prior contract for existing debug-log consumers. Callers that convert the exception to a structured response (CreateHistoryBlobMissingResponse) use item.FilePath / item.ThumbnailURL directly and are unaffected.
+- Status: Fixed
+- Build/test: 0 warnings, 0 errors; XerahS.Tests 1066 passed (1 skipped); XerahS.McpServer.Tests 37 passed (was 34, +3 new)
+- Commit: e8c9fb14
+- Follow-up: Continue clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, and TFM mismatch in Common/Platform.Abstractions. Resume OCR follow-up to document SelectedOcrLanguages -> OCROptions.PreferredLanguages limitation in OcrStepViewModel.StepDescription (doc-only, defer to next run as a separate decision).
