@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-04 07:18 AWST",
+  "last_updated": "2026-06-04 13:29 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -16,7 +16,7 @@
     "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
     "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
     "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics",
-    "Linux platform / stderr-drainage audit (LinuxScreenService xrandr fixed in v0.23.91; remaining: LinuxThemeService, PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, WaylandCliCapture grim/slurp/grimblast paths)",
+    "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92 fixed; remaining: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, WaylandCliCapture grim/slurp/grimblast paths)",
     "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
   ],
   "areas": [
@@ -247,9 +247,33 @@
       "source": "follow-up from LinuxCliToolRunner v0.23.86 stderr-drain fix",
       "last_outcome": "Fixed LinuxScreenService.ParseScreens pipe-fill and timeout-stretching deadlocks. RedirectStandardError=true with sync stdout read was the same anti-pattern previously fixed in LinuxCliToolRunner. Extracted RunXrandrCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)) so a child that sleeps without producing output cannot stretch the call. Added internal TestAccessor exposing RunXrandrCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit code). Bumped version 0.23.90 -> 0.23.91.",
       "follow_up": "Continue stderr-drainage audit on the remaining helpers found by the same grep: LinuxThemeService (TryReadFromGSettings, TryReadGtkThemeDark), PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService fix is the template. Also investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures (likely tmp-dir file lock)."
+    },
+    {
+      "area": "Linux platform / LinuxThemeService / gsettings capture pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-04 13:29 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "follow-up from LinuxScreenService v0.23.91 stderr-drain fix",
+      "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) — the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
+      "follow_up": "Continue stderr-drainage audit on remaining helpers found by the same grep: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91) and LinuxThemeService (v0.23.92) fixes are the templates. Investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures on CreateHistoryDetailsAsync_* tests (environmental, not a regression)."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-04 13:29 AWST",
+      "area": "Linux platform / LinuxThemeService / gsettings capture pipe-fill + timeout-stretching deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Services/LinuxThemeService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxThemeServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) — the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1074 passed (was 1070, +4 new LinuxThemeServiceTests) / 0 failed / 1 skipped; XerahS.McpServer.Tests 37 passed / 3 failed (pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests — environmental, not a regression)",
+      "result_status": "success",
+      "commit": "74652cf4",
+      "status": "fixed",
+      "version": "0.23.92"
+    },
     {
       "timestamp": "2026-06-04 07:18 AWST",
       "area": "Linux platform / LinuxScreenService / xrandr capture pipe-fill + timeout-stretching deadlock",
@@ -534,21 +558,6 @@
       "area": "Hotkeys/input",
       "outcome": "fixed",
       "commit": "013112ec"
-    },
-    {
-      "timestamp": "2026-05-24 14:27 AWST",
-      "area": "Uploader core / stale default cleanup diagnostics",
-      "files": [
-        "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
-        "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
-        "Directory.Build.props"
-      ],
-      "outcome": "fixed",
-      "summary": "Logged stale default uploader mapping removal and added regression coverage.",
-      "version": "0.23.70",
-      "commit": "cb2edffd",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260524-142212.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260524-142212.log"
     }
   ]
 }
