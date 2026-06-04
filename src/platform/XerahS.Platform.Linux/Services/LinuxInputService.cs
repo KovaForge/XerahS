@@ -47,43 +47,103 @@ public sealed class LinuxInputService : IInputService
     {
         point = Point.Empty;
 
+        var (output, exitCode) = RunXdotoolCapture("xdotool", "getmouselocation --shell", 500);
+        if (exitCode == null || exitCode != 0 || string.IsNullOrWhiteSpace(output))
+            return false;
+
+        int x = 0, y = 0;
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (line.StartsWith("X=", StringComparison.OrdinalIgnoreCase))
+                int.TryParse(line.Substring(2), out x);
+            else if (line.StartsWith("Y=", StringComparison.OrdinalIgnoreCase))
+                int.TryParse(line.Substring(2), out y);
+        }
+
+        point = new Point(x, y);
+        return true;
+    }
+
+    /// <summary>
+    /// Spawns an xdotool (or other POSIX CLI) child process and captures stdout
+    /// safely, draining stderr asynchronously and bounding the stdout read
+    /// with <see cref="Task.WaitAny(Task[])"/> so a chatty child cannot fill
+    /// the 64KB OS pipe buffer (pipe-fill deadlock) and a sleeping child
+    /// cannot stretch the call past the configured timeout. Returns
+    /// <c>(string.Empty, null)</c> on timeout or spawn failure.
+    /// Mirrors the LinuxScreenService v0.23.91, LinuxThemeService v0.23.92,
+    /// and PulseAudioHelper v0.23.93 templates.
+    /// </summary>
+    internal static (string Output, int? ExitCode) RunXdotoolCapture(
+        string fileName, string arguments, int timeoutMs)
+    {
+        Process? process = null;
         try
         {
             var startInfo = new ProcessStartInfo
             {
-                FileName = "xdotool",
-                Arguments = "getmouselocation --shell",
+                FileName = fileName,
+                Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process == null)
-                return false;
+            process = Process.Start(startInfo);
+            if (process == null) return (string.Empty, null);
 
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(500);
+            // Drain stderr asynchronously so a chatty child cannot block on
+            // its own write to a full pipe. Discard the text — caller can
+            // surface it via the log if needed.
+            var stderrDrain = process.StandardError.ReadToEndAsync()
+                .ContinueWith(_ => { }, TaskScheduler.Default);
 
-            if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
-                return false;
+            // Read stdout ASYNCHRONOUSLY so a child that sleeps without
+            // producing output (anti-pattern B) cannot stretch the call
+            // beyond the timeout.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var timeoutTask = Task.Delay(timeoutMs);
 
-            int x = 0, y = 0;
-            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            if (Task.WaitAny(stdoutTask, timeoutTask) != 0)
             {
-                if (line.StartsWith("X=", StringComparison.OrdinalIgnoreCase))
-                    int.TryParse(line.Substring(2), out x);
-                else if (line.StartsWith("Y=", StringComparison.OrdinalIgnoreCase))
-                    int.TryParse(line.Substring(2), out y);
+                try { process.Kill(); } catch { /* best effort */ }
+                try { Task.WaitAll(new Task[] { stdoutTask, stderrDrain }, 1000); }
+                catch { /* drainer may have faulted on a closed stream */ }
+                return (string.Empty, null);
             }
 
-            point = new Point(x, y);
-            return true;
+            if (!process.WaitForExit(timeoutMs))
+            {
+                try { process.Kill(); } catch { /* best effort */ }
+                process.WaitForExit(1000);
+                return (stdoutTask.Result, null);
+            }
+
+            try { Task.WaitAll(new Task[] { stderrDrain }, 1000); }
+            catch { /* ignore */ }
+
+            return (stdoutTask.Result, process.ExitCode);
         }
         catch
         {
-            return false;
+            return (string.Empty, null);
         }
+        finally
+        {
+            process?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Test accessor exposing the run helper to the XerahS.Tests assembly
+    /// so regression tests can drive synthetic <c>/bin/sh</c> commands
+    /// without requiring a real <c>xdotool</c> binary.
+    /// </summary>
+    internal static class TestAccessor
+    {
+        public static (string Output, int? ExitCode) RunXdotoolCapture(
+            string fileName, string arguments, int timeoutMs)
+            => LinuxInputService.RunXdotoolCapture(fileName, arguments, timeoutMs);
     }
 }
