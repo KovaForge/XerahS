@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-04 13:29 AWST",
+  "last_updated": "2026-06-04 19:38 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,12 +11,12 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
+    "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93 fixed; remaining: LinuxInputService.TryGetWithXdotool, MacOSInputService, WaylandCliCapture grim/slurp/grimblast paths)",
     "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
     "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
     "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics",
-    "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92 fixed; remaining: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, WaylandCliCapture grim/slurp/grimblast paths)",
     "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
   ],
   "areas": [
@@ -256,24 +256,18 @@
       "source": "follow-up from LinuxScreenService v0.23.91 stderr-drain fix",
       "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) — the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
       "follow_up": "Continue stderr-drainage audit on remaining helpers found by the same grep: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91) and LinuxThemeService (v0.23.92) fixes are the templates. Investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures on CreateHistoryDetailsAsync_* tests (environmental, not a regression)."
+    },
+    {
+      "area": "Linux platform / PulseAudioHelper / RunPactl pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-04 19:38 AWST",
+      "status": "Fixed",
+      "priority": "medium",
+      "source": "sweep 2026-06-04 (v0.23.93)",
+      "last_outcome": "Fixed PulseAudioHelper.RunPactl pipe-fill + timeout-stretching deadlock. Extracted RunPactlCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously and bounds the stdout read with Task.WaitAny. b4e23a9f",
+      "follow_up": "Continue stderr-drainage audit on remaining helpers: LinuxInputService.TryGetWithXdotool, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91), LinuxThemeService (v0.23.92) and PulseAudioHelper (v0.23.93) fixes are the templates. Also investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures."
     }
   ],
   "last_runs": [
-    {
-      "timestamp": "2026-06-04 13:29 AWST",
-      "area": "Linux platform / LinuxThemeService / gsettings capture pipe-fill + timeout-stretching deadlock",
-      "files": [
-        "src/platform/XerahS.Platform.Linux/Services/LinuxThemeService.cs",
-        "tests/XerahS.Tests/Platform/Linux/LinuxThemeServiceTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) — the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
-      "result": "build 0 warnings/0 errors; XerahS.Tests 1074 passed (was 1070, +4 new LinuxThemeServiceTests) / 0 failed / 1 skipped; XerahS.McpServer.Tests 37 passed / 3 failed (pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests — environmental, not a regression)",
-      "result_status": "success",
-      "commit": "74652cf4",
-      "status": "fixed",
-      "version": "0.23.92"
-    },
     {
       "timestamp": "2026-06-04 07:18 AWST",
       "area": "Linux platform / LinuxScreenService / xrandr capture pipe-fill + timeout-stretching deadlock",
@@ -558,6 +552,13 @@
       "area": "Hotkeys/input",
       "outcome": "fixed",
       "commit": "013112ec"
+    },
+    {
+      "timestamp": "2026-06-04 19:38 AWST",
+      "area": "Linux platform / PulseAudioHelper / RunPactl pipe-fill + timeout-stretching deadlock",
+      "commit": "b4e23a9f",
+      "outcome": "Fixed",
+      "version_bump": "0.23.92 -> 0.23.93"
     }
   ]
 }
