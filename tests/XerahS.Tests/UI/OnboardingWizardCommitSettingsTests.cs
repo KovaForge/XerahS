@@ -60,12 +60,14 @@ public class OnboardingWizardCommitSettingsTests
     public void SetUp()
     {
         SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "en";
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.PreferredLanguages = new List<string>();
     }
 
     [TearDown]
     public void TearDown()
     {
         SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "en";
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.PreferredLanguages = new List<string>();
     }
 
     [Test]
@@ -127,5 +129,81 @@ public class OnboardingWizardCommitSettingsTests
         await viewModel.CommitSettingsAsync(state);
 
         Assert.That(SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language, Is.EqualTo("en"));
+    }
+
+    [Test]
+    public async Task CommitSettingsAsync_MultipleSelectedOcrLanguages_PersistsPreferredLanguagesList()
+    {
+        // Today the OCR runtime only supports a single language per call,
+        // so OCROptions.Language carries the first selection as the primary.
+        // The full list must still be persisted to PreferredLanguages so
+        // the user's onboarding choice is not silently dropped.
+        OnboardingState state = new()
+        {
+            SelectedOcrLanguages = ["fr", "de", "es"]
+        };
+
+        var viewModel = new OnboardingWizardViewModel();
+        await viewModel.CommitSettingsAsync(state);
+
+        var ocrOptions = SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions;
+        Assert.That(ocrOptions.Language, Is.EqualTo("fr"));
+        Assert.That(ocrOptions.PreferredLanguages, Is.EquivalentTo(new[] { "fr", "de", "es" }));
+    }
+
+    [Test]
+    public async Task CommitSettingsAsync_SingleSelectedLanguage_PersistsPreferredLanguagesListWithOneEntry()
+    {
+        // A one-entry selection must still round-trip through PreferredLanguages
+        // so consumers reading the list (vs the scalar Language) see a consistent
+        // view of the user's onboarding choice.
+        OnboardingState state = new()
+        {
+            SelectedOcrLanguages = ["de"]
+        };
+
+        var viewModel = new OnboardingWizardViewModel();
+        await viewModel.CommitSettingsAsync(state);
+
+        var ocrOptions = SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions;
+        Assert.That(ocrOptions.Language, Is.EqualTo("de"));
+        Assert.That(ocrOptions.PreferredLanguages, Is.EquivalentTo(new[] { "de" }));
+    }
+
+    [Test]
+    public async Task CommitSettingsAsync_SkippedOcrStep_DoesNotOverwritePreferredLanguages()
+    {
+        // Skipping the OCR step must not clobber an existing PreferredLanguages
+        // list (mirrors the existing Language non-overwrite behavior).
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.PreferredLanguages = new List<string> { "ja" };
+
+        OnboardingState state = new()
+        {
+            SelectedOcrLanguages = ["fr"],
+            SkippedSteps = [4]
+        };
+
+        var viewModel = new OnboardingWizardViewModel();
+        await viewModel.CommitSettingsAsync(state);
+
+        var ocrOptions = SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions;
+        Assert.That(ocrOptions.PreferredLanguages, Is.EquivalentTo(new[] { "ja" }));
+    }
+
+    [Test]
+    public async Task CommitSettingsAsync_EmptyOcrLanguages_DoesNotChangePreferredLanguages()
+    {
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.PreferredLanguages = new List<string> { "es", "it" };
+
+        OnboardingState state = new()
+        {
+            SelectedOcrLanguages = []
+        };
+
+        var viewModel = new OnboardingWizardViewModel();
+        await viewModel.CommitSettingsAsync(state);
+
+        var ocrOptions = SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions;
+        Assert.That(ocrOptions.PreferredLanguages, Is.EquivalentTo(new[] { "es", "it" }));
     }
 }

@@ -310,8 +310,15 @@ public partial class OnboardingWizardViewModel : ViewModelBase
             if (state.SelectedOcrLanguages.Count > 0 && !state.SkippedSteps.Contains(4))
             {
                 string primaryOcrLanguage = state.SelectedOcrLanguages[0];
-                SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = primaryOcrLanguage;
-                DebugHelper.WriteLine($"[OnboardingWizard] Setting primary OCR language: {primaryOcrLanguage}");
+                var ocrOptions = SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions;
+                ocrOptions.Language = primaryOcrLanguage;
+                // Persist the full selection so it survives for a future
+                // multi-language picker. Today the OCR runtime is single-
+                // language per RecognizeAsync call, so the tool uses
+                // OCROptions.Language; the full list is metadata that must
+                // not be silently dropped.
+                ocrOptions.PreferredLanguages = new List<string>(state.SelectedOcrLanguages);
+                DebugHelper.WriteLine($"[OnboardingWizard] Setting primary OCR language: {primaryOcrLanguage} (preferred: {state.SelectedOcrLanguages.Count})");
             }
 
             SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
