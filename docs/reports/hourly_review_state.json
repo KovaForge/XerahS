@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-05 01:49 AWST",
+  "last_updated": "2026-06-05 14:01 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,7 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94 fixed; remaining: MacOSInputService, WaylandCliCapture grim/slurp/grimblast paths)",
+    "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94, MacOSInputService v0.23.95 fixed; remaining: WaylandCliCapture grim/slurp/grimblast paths)",
     "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
@@ -27,7 +27,7 @@
       "priority": "High",
       "source": "xerahs-hourly-sweep (continuation of stderr-drainage audit)",
       "last_outcome": "Extracted RunXdotoolCapture(fileName, arguments, timeoutMs) internal helper from TryGetWithXdotool, mirroring the v0.23.91/0.23.92/0.23.93 template. Drains stderr asynchronously (StandardError.ReadToEndAsync().ContinueWith), reads stdout asynchronously, bounds the wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). After Kill() on timeout, bounded Task.WaitAll for the drainers. Manual process?.Dispose() in finally. TryGetWithXdotool now delegates to RunXdotoolCapture(\"xdotool\", \"getmouselocation --shell\", 500) and consumes the (string, int?) tuple. Added internal TestAccessor exposing RunXdotoolCapture so tests can drive synthetic /bin/sh commands. Added 4 regression tests in tests/XerahS.Tests/Platform/Linux/LinuxInputServiceTests.cs (happy path, 200KB stderr pipe-fill, sleep-with-timeout asserting null exit code, non-zero exit code propagation). Bumped version 0.23.93 -> 0.23.94.",
-      "follow_up": "Continue Linux platform stderr-drainage audit — remaining: MacOSInputService (AppleScript helpers), WaylandCliCapture grim/slurp/grimblast paths (multiple Process.Start sites with RedirectStandardError/Output and sync ReadToEndAsync().Result/await without async stderr drainer). The same v0.23.91 template applies to each."
+      "follow_up": "Continue stderr-drainage audit on remaining helper: WaylandCliCapture grim/slurp/grimblast paths (multiple Process.Start sites with RedirectStandardError/Output and sync ReadToEndAsync().Result/await without async stderr drainer). MacOSInputService fixed in v0.23.95 (this run). The LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94, and MacOSInputService v0.23.95 fixes are the templates."
     },
     {
       "area": "FFmpegDownloader",
@@ -274,9 +274,45 @@
       "source": "sweep 2026-06-04 (v0.23.93)",
       "last_outcome": "Fixed PulseAudioHelper.RunPactl pipe-fill + timeout-stretching deadlock. Extracted RunPactlCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously and bounds the stdout read with Task.WaitAny. b4e23a9f",
       "follow_up": "Continue stderr-drainage audit on remaining helpers: LinuxInputService.TryGetWithXdotool, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91), LinuxThemeService (v0.23.92) and PulseAudioHelper (v0.23.93) fixes are the templates. Also investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures."
+    },
+    {
+      "area": "macOS platform / MacOSInputService / osascript capture pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-05 14:01 AWST",
+      "status": "Fixed",
+      "priority": "Medium",
+      "source": "follow-up from LinuxInputService v0.23.94 stderr-drain fix (continuation of stderr-drainage audit)",
+      "last_outcome": "Fixed MacOSInputService.GetCursorPosition pipe-fill and timeout-stretching deadlocks. Extracted RunOsaScriptCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds the stdout read with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). GetCursorPosition now delegates to RunOsaScriptCapture(\"osascript\", args, 1000) and consumes the (string, int?) tuple. Added internal TestAccessor + 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit code). Bumped version 0.23.94 -> 0.23.95.",
+      "follow_up": "Continue stderr-drainage audit on remaining helper: WaylandCliCapture grim/slurp/grimblast paths (multiple Process.Start sites with RedirectStandardError/Output and sync ReadToEndAsync().Result/await without async stderr drainer). The LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94, and MacOSInputService v0.23.95 fixes are the templates. Investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures on CreateHistoryDetailsAsync_* tests (environmental, not a regression)."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-05 14:01 AWST",
+      "area": "macOS platform / MacOSInputService / osascript capture pipe-fill + timeout-stretching deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.MacOS/MacOSInputService.cs",
+        "tests/XerahS.Tests/Platform/MacOS/MacOSInputServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "outcome": "fixed",
+      "commit": "aee46cb7",
+      "version_bump": "0.23.94 -> 0.23.95",
+      "build": "0 warnings / 0 errors",
+      "tests": "XerahS.Tests 1086 passed (+4 new MacOSInputServiceTests) / 0 failed / 1 skipped; McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates).",
+      "logs": [
+        "/tmp/xerahs-hourly-sweep/build-20260605-135543.log",
+        "/tmp/xerahs-hourly-sweep/test-20260605-135543.log"
+      ],
+      "next_candidates_after": [
+        "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94, MacOSInputService v0.23.95 fixed; remaining: WaylandCliCapture grim/slurp/grimblast paths)",
+        "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
+        "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
+        "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
+        "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
+        "File/path handling - remaining path helper exception parity and history backup user-visible diagnostics",
+        "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
+      ]
+    },
     {
       "timestamp": "2026-06-05 01:49 AWST",
       "area": "Linux platform / LinuxInputService / xdotool capture pipe-fill + timeout-stretching deadlock",
@@ -583,11 +619,6 @@
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260525-145005.log",
       "result": "build 0 warnings/0 errors; MCP tests 34 passed, 0 failed",
       "commit": "eeccf40f"
-    },
-    {
-      "area": "Hotkeys/input",
-      "outcome": "fixed",
-      "commit": "013112ec"
     }
   ]
 }
