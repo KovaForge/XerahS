@@ -40,6 +40,15 @@ namespace XerahS.Common
         public delegate void SettingsSaveFailedEventHandler(Exception e);
         public event SettingsSaveFailedEventHandler? SettingsSaveFailed;
 
+        /// <summary>
+        /// Phase tag for <see cref="SettingsBackupFailed"/>: "create" when
+        /// <c>CreateBackupZip</c> fails, "prune" when the outer
+        /// <c>PruneOldBackups</c> scan fails, "pruneFolder" when an individual
+        /// month folder cannot be deleted during pruning.
+        /// </summary>
+        public delegate void SettingsBackupFailedEventHandler(T settings, string phase, string? backupFolder, Exception e);
+        public event SettingsBackupFailedEventHandler? SettingsBackupFailed;
+
         [Browsable(false), JsonIgnore]
         public string? FilePath { get; protected set; }
 
@@ -127,6 +136,11 @@ namespace XerahS.Common
         protected virtual void OnSettingsSaveFailed(Exception e)
         {
             SettingsSaveFailed?.Invoke(e);
+        }
+
+        protected virtual void OnSettingsBackupFailed(string phase, Exception e)
+        {
+            SettingsBackupFailed?.Invoke((T)this, phase, BackupFolder, e);
         }
 
         public bool Save(string filePath)
@@ -328,6 +342,7 @@ namespace XerahS.Common
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to create backup: {e}");
+                OnSettingsBackupFailed("create", e);
             }
         }
 
@@ -366,6 +381,7 @@ namespace XerahS.Common
                             catch (Exception ex)
                             {
                                 System.Diagnostics.Debug.WriteLine($"Failed to prune backup folder '{monthDir}': {ex.Message}");
+                                OnSettingsBackupFailed("pruneFolder", ex);
                             }
                         }
                     }
@@ -374,6 +390,7 @@ namespace XerahS.Common
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to prune old backups: {e}");
+                OnSettingsBackupFailed("prune", e);
             }
         }
 
