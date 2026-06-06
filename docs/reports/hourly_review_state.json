@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-06 02:23 AWST",
+  "last_updated": "2026-06-06 14:46 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -15,7 +15,7 @@
     "OCR (follow-up: document single-runtime-language limitation in OcrStepViewModel.StepDescription; integrate PreferredLanguages into a multi-language picker when the runtime supports it)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
-    "File/path handling - remaining path helper exception parity and history backup user-visible diagnostics",
+    "File/path handling - history backup user-visible diagnostics (path helper exception parity RESOLVED by v0.23.98)",
     "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
   ],
   "areas": [
@@ -87,11 +87,11 @@
     },
     {
       "area": "File/path handling",
-      "last_reviewed": "2026-05-23 00:58 AWST",
+      "last_reviewed": "2026-06-06 14:46 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed HistoryManager backup callers to stop silently ignoring backup helper null results: Backup now returns a success flag, logs failed zip/weekly backup creation, propagates false through JSON/XML/SQLite append paths, and treats existing weekly backups as expected success. Added regression coverage; bumped version 0.23.65 -> 0.23.66.",
-      "follow_up": "Continue file/path review around remaining path helper exception parity, and review history backup UI/log diagnostics so users can see repeated backup failures outside debug logs."
+      "last_outcome": "Fixed BackupFileZip and BackupFileWeekly to guard against empty/whitespace destinationFolder in their early-return paths, matching the existing CopyFile pattern. BackupFileZip previously lacked the guard entirely, so empty string fell through to Path.Combine(\"\", \"yyyy-MM\") which silently created a \"yyyy-MM\" folder in the CWD and wrote the backup there. BackupFileWeekly accidentally worked because Directory.CreateDirectory(\"\") throws ArgumentException that the catch block already handles. The new explicit string.IsNullOrWhiteSpace(destinationFolder) guard makes the contract clear. Added 4 regression tests (BackupFileWeekly empty + whitespace, BackupFileZip empty + whitespace; the empty test also asserts no \"yyyy-MM\" folder is left in the CWD). Bumped version 0.23.97 -> 0.23.98.",
+      "follow_up": "Partial-resolution split: the \"path helper exception parity\" half of the prior next_candidates entry is RESOLVED (v0.23.98). The \"history backup user-visible diagnostics\" half remains. Next run should pick up history backup UI/log diagnostics so users can see repeated backup failures outside debug logs."
     },
     {
       "area": "Indexer subsystem",
@@ -294,6 +294,24 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-06 14:46 AWST",
+      "area": "File/path handling / BackupFileZip+BackupFileWeekly empty/whitespace destination guards",
+      "files": [
+        "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
+        "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed BackupFileZip and BackupFileWeekly to guard against empty/whitespace destinationFolder in their early-return paths. BackupFileZip previously lacked the guard entirely and silently created a 'yyyy-MM' folder in the CWD when passed empty string. Added 4 regression tests (BackupFileWeekly empty + whitespace, BackupFileZip empty + whitespace; the empty test asserts no 'yyyy-MM' folder is left in CWD). Bumped 0.23.97 -> 0.23.98. This run also recovered the prior-session deferred state: the fix had been committed locally as c5236d5a but tracker/state push was deferred. Build/test re-verified clean on this start, then merge + push to declan/develop completed as f0b05436.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1098 passed (was 1094, +4 new) / 0 failed / 1 skipped; McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates)",
+      "result_status": "success",
+      "commit": "c5236d5a",
+      "merge_commit": "f0b05436",
+      "status": "fixed",
+      "version": "0.23.98",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260606-144008.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260606-144008.log"
+    },
     {
       "timestamp": "2026-06-06 02:23 AWST",
       "area": "OCR / OCROptions.PreferredLanguages multi-language persistence",
@@ -634,17 +652,6 @@
       "result": "build 0 warnings/0 errors; tests 1012+34=1046 passed, 0 failed, 1 skipped",
       "commit": "92773c76",
       "status": "fixed"
-    },
-    {
-      "timestamp": "2026-05-26 09:36 AWST",
-      "area": "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
-      "files": [],
-      "summary": "Clean review — no fixable bugs found. OpenClawPluginExporter templates, TypeScript runner, TypeBox schemas, and manifest JSON are all well-formed and handle secrets/timeout/abort correctly.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260526-093320.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260526-093621.log",
-      "result": "build 0 warnings/0 errors; tests 1003+34=1037 passed, 0 failed, 1 skipped",
-      "commit": null,
-      "status": "reviewed"
     }
   ]
 }

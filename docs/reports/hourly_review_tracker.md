@@ -1942,3 +1942,17 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings/0 errors; XerahS.Tests 1094 passed, 0 failed, 1 skipped (MCP server 3 CreateHistoryDetailsAsync_* failures are the pre-existing environmental SQLite 'disk I/O error' on this machine, verified unrelated), logs: build-20260606-021430.log, test-20260606-021430.log
 - Commit: 3fc75695
 - Follow-up: Resume clawpatch queue: stderr-drainage audit is complete, file/path backup UI diagnostics, ReClip command surface polish. Note: OcrStepViewModel.StepDescription still says 'You can always add more later in Settings' — document the single-runtime-language limitation there when a multi-language picker is added.
+
+### 2026-06-06 14:46 AWST - File/path handling / BackupFileZip+BackupFileWeekly empty/whitespace destination guards
+
+- Area: File/path handling
+- Files:
+  - src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs
+  - tests/XerahS.Tests/Helpers/FileHelpersTests.cs
+  - Directory.Build.props
+- Findings: BackupFileZip previously lacked a destinationFolder guard in its early return, so passing an empty string fell through to Path.Combine("", "yyyy-MM") which silently created a 'yyyy-MM' folder in the CWD and wrote the backup there. BackupFileWeekly had the same gap (it accidentally worked because Directory.CreateDirectory("") throws ArgumentException that the catch block already handles, but the explicit guard makes the contract clear and matches the existing CopyFile pattern).
+- Fix: add string.IsNullOrWhiteSpace(destinationFolder) to the early-return guard in both helpers, matching CopyFile's parity. Added 4 regression tests: BackupFileWeekly_ReturnsNull_WhenDestinationIsEmpty, BackupFileWeekly_ReturnsNull_WhenDestinationIsWhitespace, BackupFileZip_ReturnsNull_WhenDestinationIsEmpty (also asserts no 'yyyy-MM' folder is left in the CWD), BackupFileZip_ReturnsNull_WhenDestinationIsWhitespace.
+- Status: Fixed
+- Build/test: 0 warnings / 0 errors; XerahS.Tests 1098 passed / 0 failed / 1 skipped (was 1094, +4 new); McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates).
+- Commit: c5236d5a (v0.23.98 fix), f0b05436 (merge commit landing the v0.23.98 fix alongside declan/develop blog drafts)
+- Follow-up: Partial-resolution split per the next_candidates pitfall: 'path helper exception parity' half of 'File/path handling - remaining path helper exception parity and history backup user-visible diagnostics' is RESOLVED. The 'history backup user-visible diagnostics' half remains.
