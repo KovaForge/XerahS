@@ -605,4 +605,91 @@ public class FileHelpersTests
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    [Test]
+    public void BackupFileWeekly_ReturnsNull_WhenDestinationIsEmpty()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "history.json");
+        File.WriteAllText(sourceFile, "{}");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileWeekly(sourceFile, "");
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileWeekly_ReturnsNull_WhenDestinationIsWhitespace()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "history.json");
+        File.WriteAllText(sourceFile, "{}");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileWeekly(sourceFile, "   ");
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileZip_ReturnsNull_WhenDestinationIsEmpty()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "data.db");
+        File.WriteAllText(sourceFile, "database-content");
+
+        try
+        {
+            // Guard against silent CWD pollution: an empty destination would otherwise
+            // create a "yyyy-MM" folder in the current working directory and write
+            // the backup there.
+            string? cwdBefore = Directory.GetCurrentDirectory();
+            string? result = FileHelpers.BackupFileZip(sourceFile, "");
+
+            Assert.That(result, Is.Null);
+            Assert.That(Directory.GetCurrentDirectory(), Is.EqualTo(cwdBefore));
+            Assert.That(Directory.Exists(Path.Combine(cwdBefore, "2026-06")), Is.False,
+                "Empty destination must not create a yyyy-MM folder in the current working directory.");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void BackupFileZip_ReturnsNull_WhenDestinationIsWhitespace()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"xerahs-filehelpers-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string sourceFile = Path.Combine(directory, "data.db");
+        File.WriteAllText(sourceFile, "database-content");
+
+        try
+        {
+            string? result = FileHelpers.BackupFileZip(sourceFile, "   ");
+
+            Assert.That(result, Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

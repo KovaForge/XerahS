@@ -430,7 +430,7 @@ public static class FileHelpers
 
     public static string? BackupFileWeekly(string filePath, string destinationFolder)
     {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) || string.IsNullOrWhiteSpace(destinationFolder))
         {
             return null;
         }
@@ -461,7 +461,7 @@ public static class FileHelpers
 
     public static string? BackupFileZip(string filePath, string destinationFolder)
     {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) || string.IsNullOrWhiteSpace(destinationFolder))
         {
             return null;
         }
