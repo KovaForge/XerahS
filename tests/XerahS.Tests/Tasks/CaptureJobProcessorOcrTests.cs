@@ -52,9 +52,11 @@ public sealed class CaptureJobProcessorOcrTests
         using var bitmap = new SKBitmap(8, 8);
         var ocr = new RecordingOcrService();
         PlatformServices.Ocr = ocr;
+        var clipboard = new RecordingClipboardService();
+        PlatformServices.Clipboard = clipboard;
 
         var taskSettings = new TaskSettings();
-        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR;
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR | AfterCaptureTasks.CopyOcrTextToClipboard;
         taskSettings.CaptureSettings.OCROptions.Language = "fr";
         taskSettings.CaptureSettings.OCROptions.ScaleFactor = 3.5f;
         taskSettings.CaptureSettings.OCROptions.SingleLine = true;
@@ -75,6 +77,7 @@ public sealed class CaptureJobProcessorOcrTests
             Assert.That(ocr.LastOptions.ScaleFactor, Is.EqualTo(3.5f));
             Assert.That(ocr.LastOptions.SingleLine, Is.True);
             Assert.That(info.Metadata.OcrText, Is.EqualTo("bonjour"));
+            Assert.That(clipboard.Text, Is.EqualTo("bonjour"));
         });
     }
 
@@ -172,9 +175,11 @@ public sealed class CaptureJobProcessorOcrTests
         using var bitmap = new SKBitmap(8, 8);
         var ocr = new RecordingOcrService("   \n\t");
         PlatformServices.Ocr = ocr;
+        var clipboard = new RecordingClipboardService { Text = "keep me" };
+        PlatformServices.Clipboard = clipboard;
 
         var taskSettings = new TaskSettings();
-        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR;
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR | AfterCaptureTasks.CopyOcrTextToClipboard;
 
         var info = new TaskInfo(taskSettings)
         {
@@ -186,6 +191,52 @@ public sealed class CaptureJobProcessorOcrTests
 
         Assert.That(shouldContinue, Is.True);
         Assert.That(info.Metadata.OcrText, Is.Null);
+        Assert.That(clipboard.Text, Is.EqualTo("keep me"));
+    }
+
+    [Test]
+    public async Task ProcessAsync_CopyOcrTextToClipboard_WithoutDoOcr_DoesNotOverwriteClipboard()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var clipboard = new RecordingClipboardService { Text = "existing" };
+        PlatformServices.Clipboard = clipboard;
+
+        var taskSettings = new TaskSettings();
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.CopyOcrTextToClipboard;
+
+        var info = new TaskInfo(taskSettings)
+        {
+            Metadata = new TaskMetadata(bitmap)
+        };
+
+        var processor = new CaptureJobProcessor();
+        bool shouldContinue = await processor.ProcessAsync(info, CancellationToken.None);
+
+        Assert.That(shouldContinue, Is.True);
+        Assert.That(info.Metadata.OcrText, Is.Null);
+        Assert.That(clipboard.Text, Is.EqualTo("existing"));
+    }
+
+    [Test]
+    public async Task ProcessAsync_DoOcr_CopyOcrTextToClipboard_WithoutClipboard_DoesNotThrow()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new RecordingOcrService();
+        PlatformServices.Ocr = ocr;
+
+        var taskSettings = new TaskSettings();
+        taskSettings.AfterCaptureJob = AfterCaptureTasks.DoOCR | AfterCaptureTasks.CopyOcrTextToClipboard;
+
+        var info = new TaskInfo(taskSettings)
+        {
+            Metadata = new TaskMetadata(bitmap)
+        };
+
+        var processor = new CaptureJobProcessor();
+        bool shouldContinue = await processor.ProcessAsync(info, CancellationToken.None);
+
+        Assert.That(shouldContinue, Is.True);
+        Assert.That(info.Metadata.OcrText, Is.EqualTo("bonjour"));
     }
 
     private sealed class RecordingOcrService : IOcrService
@@ -218,5 +269,30 @@ public sealed class CaptureJobProcessorOcrTests
         }
 
         public OcrLanguage[] GetAvailableLanguages() => [new("French", "fr")];
+    }
+
+    private sealed class RecordingClipboardService : IClipboardService
+    {
+        public string? Text { get; set; }
+
+        public void Clear() => Text = null;
+        public bool ContainsText() => !string.IsNullOrEmpty(Text);
+        public bool ContainsImage() => false;
+        public bool ContainsFileDropList() => false;
+        public string? GetText() => Text;
+        public void SetText(string text) => Text = text;
+        public SKBitmap? GetImage() => null;
+        public void SetImage(SKBitmap image) { }
+        public string[]? GetFileDropList() => null;
+        public void SetFileDropList(string[] files) { }
+        public object? GetData(string format) => null;
+        public void SetData(string format, object data) { }
+        public bool ContainsData(string format) => false;
+        public Task<string?> GetTextAsync() => Task.FromResult(Text);
+        public Task SetTextAsync(string text)
+        {
+            Text = text;
+            return Task.CompletedTask;
+        }
     }
 }

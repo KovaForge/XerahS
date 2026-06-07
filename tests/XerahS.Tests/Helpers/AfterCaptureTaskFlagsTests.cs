@@ -51,6 +51,16 @@ public class AfterCaptureTaskFlagsTests
     }
 
     [Test]
+    public void CopyOcrTextToClipboard_IsDefinedAsBitFlag()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That((int)AfterCaptureTasks.CopyOcrTextToClipboard, Is.EqualTo(1 << 21));
+            Assert.That((int)(AfterCaptureTasks.CopyOcrTextToClipboard & (AfterCaptureTasks.CopyOcrTextToClipboard - 1)), Is.EqualTo(0), "CopyOcrTextToClipboard must be a single bit");
+        });
+    }
+
+    [Test]
     public void ScanQRCode_IsDefinedAsBitFlag()
     {
         Assert.Multiple(() =>
@@ -87,12 +97,14 @@ public class AfterCaptureTaskFlagsTests
     {
         // Verify flags can be safely combined without collision
         var combined = AfterCaptureTasks.DoOCR
+                             | AfterCaptureTasks.CopyOcrTextToClipboard
                              | AfterCaptureTasks.ScanQRCode
                              | AfterCaptureTasks.ShowAfterCaptureWindow;
 
         Assert.Multiple(() =>
         {
             Assert.That(combined.HasFlag(AfterCaptureTasks.DoOCR), Is.True);
+            Assert.That(combined.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard), Is.True);
             Assert.That(combined.HasFlag(AfterCaptureTasks.ScanQRCode), Is.True);
             Assert.That(combined.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow), Is.True);
         });

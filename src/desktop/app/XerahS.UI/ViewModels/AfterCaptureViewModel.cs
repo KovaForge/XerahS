@@ -107,6 +107,16 @@ public partial class AfterCaptureViewModel : ViewModelBase
         }
     }
 
+    public bool CopyOcrTextToClipboard
+    {
+        get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard);
+        set
+        {
+            SetAfterCaptureFlag(AfterCaptureTasks.CopyOcrTextToClipboard, value);
+            OnPropertyChanged();
+        }
+    }
+
     public bool CopyURLToClipboard
     {
         get => AfterUploadTasks.HasFlag(AfterUploadTasks.CopyURLToClipboard);
@@ -168,6 +178,7 @@ public partial class AfterCaptureViewModel : ViewModelBase
         OnPropertyChanged(nameof(CopyFilePathToClipboard));
         OnPropertyChanged(nameof(AnnotateMedia));
         OnPropertyChanged(nameof(UploadImageToHost));
+        OnPropertyChanged(nameof(CopyOcrTextToClipboard));
     }
 
     partial void OnAfterUploadTasksChanged(AfterUploadTasks value)
@@ -188,4 +199,3 @@ public partial class AfterCaptureViewModel : ViewModelBase
         AfterUploadTasks = enabled ? AfterUploadTasks | flag : AfterUploadTasks & ~flag;
     }
 }
-

@@ -167,6 +167,9 @@
               <CheckBox Content="Upload image to host"
                         IsChecked="{Binding UploadImageToHost}"
                         AutomationProperties.Name="Upload Image to Host"/>
+              <CheckBox Content="Copy OCR text to clipboard"
+                        IsChecked="{Binding CopyOcrTextToClipboard}"
+                        AutomationProperties.Name="Copy OCR Text to Clipboard"/>
             </StackPanel>
           </Border>
 

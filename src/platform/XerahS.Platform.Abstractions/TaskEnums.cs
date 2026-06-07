@@ -50,7 +50,8 @@ public enum AfterCaptureTasks // Localized
     DoOCR = 1 << 17,
     ShowBeforeUploadWindow = 1 << 18,
     UploadImageToHost = 1 << 19,
-    DeleteFile = 1 << 20
+    DeleteFile = 1 << 20,
+    CopyOcrTextToClipboard = 1 << 21
 }
 
 [Flags]

@@ -121,6 +121,19 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool CopyOcrTextToClipboard
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard);
+            set
+            {
+                if (CopyOcrTextToClipboard != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.CopyOcrTextToClipboard, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
 
         private void UpdateAfterCaptureTask(AfterCaptureTasks task, bool enabled)
         {

@@ -167,6 +167,11 @@ namespace XerahS.Core.Tasks.Processors
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
             {
                 await PerformOCRAsync(info);
+
+                if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard))
+                {
+                    TryCopyOcrTextToClipboard(info.Metadata?.OcrText);
+                }
             }
 
             // ScanQRCode
@@ -543,6 +548,42 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             await Task.CompletedTask;
+        }
+
+        private static void TryCopyOcrTextToClipboard(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                DebugHelper.WriteLine("CopyOcrTextToClipboard skipped: OCR text is empty.");
+                return;
+            }
+
+            XerahS.Platform.Abstractions.IClipboardService? clipboardService;
+            try
+            {
+                clipboardService = PlatformServices.Clipboard;
+            }
+            catch (InvalidOperationException)
+            {
+                DebugHelper.WriteLine("CopyOcrTextToClipboard skipped: clipboard service unavailable.");
+                return;
+            }
+
+            if (clipboardService == null)
+            {
+                DebugHelper.WriteLine("CopyOcrTextToClipboard skipped: clipboard service unavailable.");
+                return;
+            }
+
+            try
+            {
+                clipboardService.SetText(text);
+                DebugHelper.WriteLine($"CopyOcrTextToClipboard: copied {text.Length} chars.");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "CopyOcrTextToClipboard");
+            }
         }
 
         private static string NormalizeOcrLanguage(string? language)
