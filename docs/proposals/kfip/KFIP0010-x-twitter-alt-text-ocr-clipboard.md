@@ -215,3 +215,47 @@ The feature is successful if users who already enable OCR can turn on one extra 
 - X Help: image descriptions / accessibility for photos
 - X Help: posting photos and image constraints on X
 - Existing XerahS OCR capture pipeline and clipboard services
+
+---
+
+## Phase 2 Review Notes
+
+### Product Review
+
+1. The proposal must stay brutally honest about what ships.
+   `Copy OCR text to clipboard` is a draft aid, not alt-text generation. The UI and docs should never imply that raw OCR output is automatically a good accessibility description.
+
+2. Opt-in is the correct default for v1.
+   Clipboard overwrite is user-visible. Do not auto-enable this globally or tie it to generic OCR without explicit user choice.
+
+3. The first release should be generic in implementation and social-specific only in framing.
+   Hard-coding X/Twitter behavior into the task pipeline now would create unnecessary coupling before social-preset orchestration from KFIP0005/KFIP0009 is ready.
+
+### Implementation Review
+
+1. Keep the change at the capture-pipeline layer.
+   Do not build a second OCR execution path. Reuse the existing OCR result in `TaskMetadata.OcrText`.
+
+2. The flag must be inert without `DoOCR`.
+   If users toggle clipboard copy without OCR, the processor should no-op safely rather than guessing or running OCR implicitly.
+
+3. Clipboard writes must not fail the capture.
+   If clipboard service is unavailable or throws, log and continue. This is convenience behavior, not a correctness boundary.
+
+4. Add regression tests for the "do not clobber" cases.
+   The most important negative cases are whitespace OCR output and clipboard-unavailable environments.
+
+### Approved v1 Scope
+
+- New `AfterCaptureTasks.CopyOcrTextToClipboard` bit flag
+- Processor support using existing OCR results
+- Task settings checkbox
+- After-capture dialog checkbox
+- Regression tests
+
+### Explicitly Deferred
+
+- AI-generated alt text
+- OCR summarization or cleanup
+- X/Twitter-context auto-enable
+- success toasts or richer UX polish
