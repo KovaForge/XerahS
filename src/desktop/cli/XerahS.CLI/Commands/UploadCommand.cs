@@ -47,6 +47,7 @@ public static class UploadCommand
         var uploadProcessor = new UploadJobProcessor();
         return uploadProcessor.ProcessAsync(taskInfo, cancellationToken);
     };
+    private static int _tempDirectoryCount;  // test-only instrumentation; reset by tests via SetUp
 
     internal static string SanitizeUploadFileName(string? name, string fallbackFileName)
     {
@@ -69,8 +70,19 @@ public static class UploadCommand
     {
         var uploadDirectory = Path.Combine(Path.GetTempPath(), "xerahs-upload", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(uploadDirectory);
+        System.Threading.Interlocked.Increment(ref _tempDirectoryCount);
         return uploadDirectory;
     }
+
+    // Test-only accessor: returns the cumulative number of temp directories created by
+    // CreateTemporaryUploadDirectory since the last reset. Used to assert that a single
+    // UploadAsync call creates the expected number of unique temp directories, without
+    // counting the global xerahs-upload directory itself. Tests must reset this counter
+    // in SetUp to avoid cross-test contamination; UploadCommandPathSanitizationTests
+    // already does so.
+    internal static int GetTempDirectoryCount() => System.Threading.Volatile.Read(ref _tempDirectoryCount);
+
+    internal static void ResetTempDirectoryCount() => System.Threading.Interlocked.Exchange(ref _tempDirectoryCount, 0);
 
     internal static void CleanupTemporaryUploadDirectories(IEnumerable<string?> directories)
     {
@@ -184,15 +196,24 @@ public static class UploadCommand
                 return 1;
             }
 
+            // Track whether the source was synthesized by --text/--pipe so the redundant
+            // named-copy step below can be skipped: CreateTemporaryUploadFilePath(name, ...)
+            // already gave the temp file the sanitized name, so copying it again into a
+            // second unique temp directory just duplicates content on disk and leaves the
+            // first temp directory as the only thing the file content actually lives in.
+            bool sourceIsTemporaryFromTextOrPipe = tempFilePath != null;
+
             string displayName = Path.GetFileName(filePath);
 
             if (!string.IsNullOrEmpty(filePath))
             {
                 string? namedFilePath = null;
-                if (!string.IsNullOrEmpty(name) && File.Exists(filePath))
+                if (!string.IsNullOrEmpty(name) && File.Exists(filePath) && !sourceIsTemporaryFromTextOrPipe)
                 {
                     // Copy to a unique temp file with the requested name so uploaders see the right filename.
                     // Avoid reusing shared temp paths, which can clobber concurrent uploads and leave stale files behind.
+                    // For --text/--pipe input the temp file above already carries the sanitized name; skip the
+                    // redundant copy to avoid an extra temp directory and an extra disk write.
                     namedFilePath = CreateTemporaryUploadFilePath(name, Path.GetFileName(filePath));
                     tempDirectories.Add(Path.GetDirectoryName(namedFilePath)!);
                     File.Copy(filePath, namedFilePath, overwrite: true);
