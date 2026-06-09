@@ -559,8 +559,15 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 
     internal static bool IsHistorySearchResourceUri(string uri)
     {
-        return uri.Equals("xerahs://history/search", StringComparison.OrdinalIgnoreCase) ||
-               uri.StartsWith("xerahs://history/search?", StringComparison.OrdinalIgnoreCase);
+        if (uri.Equals("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!uri.StartsWith("xerahs://history/search?", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Ensure nothing comes between "search" and "?" (prevents prefix attacks like searchfoo?)
+        var searchPart = uri.Substring("xerahs://history/search".Length);
+        return searchPart.StartsWith("?");
     }
 
     internal static string? DecodeResourceQueryComponent(string value)

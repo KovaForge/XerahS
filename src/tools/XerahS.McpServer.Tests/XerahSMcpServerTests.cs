@@ -1084,4 +1084,24 @@ public class XerahSMcpServerTests
             return result;
         }
     }
+
+        [Theory]
+        [InlineData("xerahs://history/search")]
+        [InlineData("xerahs://history/search?q=test")]
+        [InlineData("xerahs://history/search?q=hello&limit=5")]
+        public void IsHistorySearchResourceUri_ValidUris_ReturnsTrue(string uri)
+        {
+            Assert.True(XerahSMcpRuntime.IsHistorySearchResourceUri(uri));
+        }
+
+        [Theory]
+        [InlineData("xerahs://history/searchfoo")]
+        [InlineData("xerahs://history/searchfoo?q=test")]
+        [InlineData("xerahs://history/search?")]
+        [InlineData("xerahs://history/search?q=%E0%A4%A")]
+        public void IsHistorySearchResourceUri_InvalidOrMalformedUris_ReturnsFalse(string uri)
+        {
+            Assert.False(XerahSMcpRuntime.IsHistorySearchResourceUri(uri));
+        }
+
 }

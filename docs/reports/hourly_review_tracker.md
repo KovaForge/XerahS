@@ -1956,3 +1956,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: 0 warnings / 0 errors; XerahS.Tests 1098 passed / 0 failed / 1 skipped (was 1094, +4 new); McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates).
 - Commit: c5236d5a (v0.23.98 fix), f0b05436 (merge commit landing the v0.23.98 fix alongside declan/develop blog drafts)
 - Follow-up: Partial-resolution split per the next_candidates pitfall: 'path helper exception parity' half of 'File/path handling - remaining path helper exception parity and history backup user-visible diagnostics' is RESOLVED. The 'history backup user-visible diagnostics' half remains.
+
+### 2026-06-09 20:25 AWST - MCP server / history search URI validation
+
+- Area: MCP server resource URI handling
+- Files: src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs, tests/XerahS.McpServer.Tests/XerahSMcpServerTests.cs, Directory.Build.props
+- Findings: IsHistorySearchResourceUri was too permissive with StartsWith, allowing prefix attacks (searchfoo) and malformed queries. Hardened to require exact "search?" boundary.
+- Status: Fixed
+- Build/test: dotnet build Release succeeded; new tests for valid/invalid URIs added.
+- Commit: (pending)
+- Follow-up: Monitor for additional MCP resource URI edge cases.
