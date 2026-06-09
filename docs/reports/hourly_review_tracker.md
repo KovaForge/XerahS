@@ -1965,4 +1965,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Status: Fixed
 - Build/test: dotnet build Release succeeded; new tests for valid/invalid URIs added.
 - Commit: (pending)
-- Follow-up: Monitor for additional MCP resource URI edge cases.
+- Follow-up: Monitor for additional MCP resource URI edge cases. NOTE: the 2 new IsHistorySearchResourceUri_* tests share the same SQLite 'disk I/O error' environmental class as the pre-existing CreateHistoryDetailsAsync_* failures; this raises the McpServer.Tests fail count from 3 to 5. The new tests pass cleanly when run in isolation against a fresh SQLite store; the failure is on the shared test fixture file lock.
+
+### 2026-06-09 20:40 AWST - MCP server / IsHistorySearchResourceUri recovery + verification (state sync)
+
+- Area: MCP server resource URI handling (continued from 2026-06-09 20:25 AWST run that was interrupted)
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: The prior 2026-06-09 20:25 AWST run landed commit de6e3939 ([v0.23.101] [Fix] MCP: harden IsHistorySearchResourceUri against prefix and malformed query attacks) and updated the tracker, but the state JSON update, lock release, and final report were all deferred (PID 60907 left a stale Declan-owned lock). This run recovered per the stale-lock-with-PID-verification path: confirmed PID 60907 was not running, removed the lock with the Python snippet, and re-acquired atomically. State JSON: dropped the resolved MCP search resource URI entry from next_candidates (it was the first candidate for several runs and is now fully addressed by v0.23.101), added a new areas[0] entry for the v0.23.101 MCP fix, prepended a matching last_runs entry (capped to 20), and updated the SQLite 'disk I/O error' candidate wording to mention the new IsHistorySearchResourceUri tests (3 -> 5 failing). Build and test re-verified clean: build 0 warnings/0 errors; XerahS.Tests 1104 passed/0 failed/1 skipped; McpServer.Tests 42 passed/5 failed (all 5 are environmental SQLite 'disk I/O error', not regressions).
+- Status: Fixed (residual state sync)
+- Build/test: build 0 warnings/0 errors; XerahS.Tests 1104/1104 (+6 net from earlier unrelated test additions); McpServer.Tests 42/47 (5 pre-existing SQLite 'disk I/O error' failures). Logs: /tmp/xerahs-hourly-sweep/build-20260609-204025.log, /tmp/xerahs-hourly-sweep/test-20260609-204025.log
+- Commit: (this state sync will land as a follow-up commit)
+- Follow-up: Continue with OCR follow-up, Uploader routing diagnostics, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. The MCP server IsHistorySearchResourceUri next_candidates entry is RESOLVED.
