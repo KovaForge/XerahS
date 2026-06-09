@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-09 20:40 AWST",
+  "last_updated": "2026-06-10 06:09 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,10 +11,10 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
+    "File/path handling - history backup UI surface: HistoryViewModel does not yet consume HistoryManager.LastBackupFailureReason — surface the diagnostic as a toast notification (PlatformServices.Toast.ShowToast) when a history append returns false but LastBackupFailureReason is non-null",
     "OCR (follow-up: document single-runtime-language limitation in OcrStepViewModel.StepDescription; integrate PreferredLanguages into a multi-language picker when the runtime supports it)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
-    "File/path handling - history backup user-visible diagnostics (path helper exception parity RESOLVED by v0.23.98)",
     "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* and IsHistorySearchResourceUri_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released; now affects 5 tests after v0.23.101 added 2 new IsHistorySearchResourceUri fixtures)"
   ],
   "areas": [
@@ -95,11 +95,12 @@
     },
     {
       "area": "File/path handling",
-      "last_reviewed": "2026-06-06 14:46 AWST",
+      "last_reviewed": "2026-06-10 06:09 AWST",
       "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed BackupFileZip and BackupFileWeekly to guard against empty/whitespace destinationFolder in their early-return paths, matching the existing CopyFile pattern. BackupFileZip previously lacked the guard entirely, so empty string fell through to Path.Combine(\"\", \"yyyy-MM\") which silently created a \"yyyy-MM\" folder in the CWD and wrote the backup there. BackupFileWeekly accidentally worked because Directory.CreateDirectory(\"\") throws ArgumentException that the catch block already handles. The new explicit string.IsNullOrWhiteSpace(destinationFolder) guard makes the contract clear. Added 4 regression tests (BackupFileWeekly empty + whitespace, BackupFileZip empty + whitespace; the empty test also asserts no \"yyyy-MM\" folder is left in the CWD). Bumped version 0.23.97 -> 0.23.98.",
-      "follow_up": "Partial-resolution split: the \"path helper exception parity\" half of the prior next_candidates entry is RESOLVED (v0.23.98). The \"history backup user-visible diagnostics\" half remains. Next run should pick up history backup UI/log diagnostics so users can see repeated backup failures outside debug logs."
+      "source": "follow-up from v0.23.98 path helper exception parity",
+      "last_outcome": "Fixed HistoryManager.Backup to populate a public LastBackupFailureReason (string?) property with a user-friendly diagnostic when a backup step fails. The message names the configured BackupFolder and explicitly clarifies that the history file itself was updated, so callers can distinguish 'data was saved but backup did not write' from 'data was lost'. The property is cleared at the start of every Backup() call so a subsequent successful backup resets the diagnostic. The boolean return contract is preserved. Added 4 regression tests (zip-backup failure, weekly-backup failure, diagnostic cleared on subsequent success, diagnostic null when no backup folder configured). Bumped 0.23.102 -> 0.23.103.",
+      "follow_up": "UI surface: HistoryViewModel does not yet consume LastBackupFailureReason — follow-up sweep should surface the diagnostic as a toast notification (PlatformServices.Toast.ShowToast) when a history append returns false but LastBackupFailureReason is non-null. Continue other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Audit chain on file/path: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103."
     },
     {
       "area": "Indexer subsystem",
@@ -302,6 +303,23 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-10 06:09 AWST",
+      "area": "File/path handling / History backup user-visible diagnostic",
+      "files": [
+        "src/desktop/core/XerahS.History/HistoryManager.cs",
+        "tests/XerahS.Tests/History/HistoryManagerBackupTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Added HistoryManager.LastBackupFailureReason (string?) so callers can distinguish 'data was saved but backup did not write' from 'data was lost' when a history backup step fails. Backup() populates the property with a user-friendly message naming the configured BackupFolder and clarifying that the history file itself was updated, then clears it on the next call so a successful backup resets the diagnostic. Boolean return contract preserved. Added 4 regression tests (zip failure, weekly failure, cleared-on-success, null-when-not-configured). Bumped 0.23.102 -> 0.23.103.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1111 passed / 0 failed / 1 skipped (+7 vs prior run: 4 new + 3 prior-delayed); McpServer.Tests 42 passed / 5 failed (pre-existing SQLite 'disk I/O error' on this machine, environmental, not a regression).",
+      "result_status": "success",
+      "commit": "e0f91f93",
+      "status": "fixed",
+      "version": "0.23.103",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260610-060036.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260610-060036.log"
+    },
     {
       "timestamp": "2026-06-09 20:31 AWST",
       "area": "MCP server / IsHistorySearchResourceUri prefix and malformed query hardening",
@@ -645,23 +663,6 @@
       "commit": "dc08334a",
       "status": "fixed",
       "version": "0.23.77"
-    },
-    {
-      "timestamp": "2026-05-28 10:51 AWST",
-      "area": "Media subsystem / FFmpeg concat demuxer file-path escaping regression tests",
-      "files": [
-        "src/desktop/core/XerahS.Media/FFmpegCLIManager.cs",
-        "src/desktop/core/XerahS.Media/Properties/AssemblyInfo.cs",
-        "tests/XerahS.Tests/Media/FFmpegCLIManagerEscapeConcatFilePathTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Added regression tests for EscapeConcatFilePath (private static method used by ConcatenateVideos). FFmpeg concat format uses file 'path' syntax where raw apostrophes in filenames break parsing; the escape converts ' to \\'. Added 5 unit tests covering single/multiple/no quotes, empty string, leading/trailing quotes. Added TestAccessor class for test access without reflection. Added InternalsVisibleTo to XerahS.Media. Bumped version 0.23.74 -> 0.23.75.",
-      "build_log": null,
-      "test_log": null,
-      "result": "build 0 warnings/0 errors; tests 1018+34=1052 passed, 0 failed, 1 skipped",
-      "commit": "ca499b00",
-      "status": "fixed",
-      "version": "0.23.75"
     }
   ]
 }
