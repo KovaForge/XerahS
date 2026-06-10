@@ -949,6 +949,7 @@ namespace XerahS.UI.ViewModels
                 if (!_historyManager.AppendHistoryItem(combinedHistoryItem))
                 {
                     DebugHelper.WriteLine($"HistoryViewModel - Failed to append combined history item: {combinedHistoryItem.FilePath}");
+                    ShowHistoryBackupFailureToastIfPresent(_historyManager.LastBackupFailureReason);
                     return;
                 }
 
@@ -1081,6 +1082,39 @@ namespace XerahS.UI.ViewModels
 
             var extension = Path.GetExtension(item.FilePath);
             return !string.IsNullOrWhiteSpace(extension) && CombinableImageExtensions.Contains(extension);
+        }
+
+        /// <summary>
+        /// Surfaces a user-visible toast when a history append failure was caused by the
+        /// backup step rather than the data write itself. The history file write can succeed
+        /// even when the backup step fails, so this helper gives the user actionable context
+        /// (folder path, free space, permissions) instead of a silent DebugHelper line.
+        /// </summary>
+        /// <param name="reason">User-friendly description set by HistoryManager.LastBackupFailureReason,
+        /// or null when the failure was unrelated to backup.</param>
+        internal static void ShowHistoryBackupFailureToastIfPresent(string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                return;
+            }
+
+            try
+            {
+                PlatformServices.Toast?.ShowToast(new ToastConfig
+                {
+                    Title = "History Backup Failed",
+                    Text = reason,
+                    Duration = 6f,
+                    Size = new SizeI(420, 140),
+                    AutoHide = true,
+                    LeftClickAction = ToastClickAction.CloseNotification
+                });
+            }
+            catch
+            {
+                // Ignore toast errors (platform not ready, headless mode, etc.)
+            }
         }
 
         public void Dispose()
