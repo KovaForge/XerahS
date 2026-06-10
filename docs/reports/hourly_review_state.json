@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-10 06:09 AWST",
+  "last_updated": "2026-06-10 18:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,6 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "File/path handling - history backup UI surface: HistoryViewModel does not yet consume HistoryManager.LastBackupFailureReason — surface the diagnostic as a toast notification (PlatformServices.Toast.ShowToast) when a history append returns false but LastBackupFailureReason is non-null",
     "OCR (follow-up: document single-runtime-language limitation in OcrStepViewModel.StepDescription; integrate PreferredLanguages into a multi-language picker when the runtime supports it)",
     "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
     "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
@@ -95,12 +94,12 @@
     },
     {
       "area": "File/path handling",
-      "last_reviewed": "2026-06-10 06:09 AWST",
+      "last_reviewed": "2026-06-10 18:05 AWST",
       "status": "fixed",
       "priority": "High",
-      "source": "follow-up from v0.23.98 path helper exception parity",
-      "last_outcome": "Fixed HistoryManager.Backup to populate a public LastBackupFailureReason (string?) property with a user-friendly diagnostic when a backup step fails. The message names the configured BackupFolder and explicitly clarifies that the history file itself was updated, so callers can distinguish 'data was saved but backup did not write' from 'data was lost'. The property is cleared at the start of every Backup() call so a subsequent successful backup resets the diagnostic. The boolean return contract is preserved. Added 4 regression tests (zip-backup failure, weekly-backup failure, diagnostic cleared on subsequent success, diagnostic null when no backup folder configured). Bumped 0.23.102 -> 0.23.103.",
-      "follow_up": "UI surface: HistoryViewModel does not yet consume LastBackupFailureReason — follow-up sweep should surface the diagnostic as a toast notification (PlatformServices.Toast.ShowToast) when a history append returns false but LastBackupFailureReason is non-null. Continue other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Audit chain on file/path: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103."
+      "source": "follow-up from v0.23.103 history backup user-visible diagnostic",
+      "last_outcome": "Surfaced the v0.23.103 HistoryManager.LastBackupFailureReason diagnostic to the user via a platform toast. Added internal static HistoryViewModel.ShowHistoryBackupFailureToastIfPresent(string? reason) — null/empty/whitespace short-circuits silently, exception-safe try/catch so headless/unit-test environments do not throw, and the null-conditional PlatformServices.Toast?.ShowToast short-circuits when the platform toast service is uninitialized. Wired into the CombineSelectedImagesAsync `!_historyManager.AppendHistoryItem(combinedHistoryItem)` failure path so a toast fires whenever the append returned false AND the backup layer set a user-friendly reason. 4 regression tests in tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs (null/empty/whitespace/non-empty reason — all assert DoesNotThrow). Pre-staged work from a prior session: version bump 0.23.103 -> 0.23.104, source change, test file all in working tree at sweep start; recovered via the standard pre-staged-work pattern (verify, build/test, commit, push).",
+      "follow_up": "File/path handling audit chain complete on the two follow-ups tracked here: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103 (data layer) + v0.23.104 (UI consumption). Continue other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
     },
     {
       "area": "Indexer subsystem",
@@ -303,6 +302,21 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-10 18:05 AWST",
+      "area": "File/path handling / HistoryViewModel user-visible toast consuming v0.23.103 LastBackupFailureReason",
+      "files": [
+        "src/desktop/app/XerahS.UI/ViewModels/HistoryViewModel.cs",
+        "tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs",
+        "Directory.Build.props"
+      ],
+      "version_bump": "0.23.103 -> 0.23.104",
+      "commit": "4ccf08b8",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests filter HistoryViewModelBackupToastTests 4 passed/0 failed",
+      "log_path": "/tmp/xerahs-hourly-sweep/build-20260610-180133.log",
+      "notes": "Pre-staged from prior session; recovered via standard pre-staged-work pattern. UI consumption of v0.23.103 data-layer diagnostic. Audit chain: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103 (data) + v0.23.104 (UI). next_candidates entry 'File/path handling - history backup UI surface' RESOLVED and dropped from next_candidates."
+    },
     {
       "timestamp": "2026-06-10 06:09 AWST",
       "area": "File/path handling / History backup user-visible diagnostic",
@@ -649,20 +663,6 @@
       "version": "0.23.78",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260529-173500.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260529-173500.log"
-    },
-    {
-      "timestamp": "2026-05-29 05:23 AWST",
-      "area": "HSB struct / equality hash contract violation",
-      "files": [
-        "src/desktop/core/XerahS.Common/HSB.cs",
-        "tests/XerahS.Tests/Common/HSBTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed HSB.operator== to include Alpha comparison, satisfying the .NET equality/hash contract. GetHashCode() already included Alpha via HashCode.Combine, but == only compared H/S/B — violating the rule that equal objects must have equal hash codes. Added TestAccessor class for internal test access and 8 regression tests covering equality, operators, and hash code contract. Bumped version 0.23.76 -> 0.23.77.",
-      "result": "build 0 warnings/0 errors; tests 1031+34=1065 passed, 0 failed, 1 skipped",
-      "commit": "dc08334a",
-      "status": "fixed",
-      "version": "0.23.77"
     }
   ]
 }
