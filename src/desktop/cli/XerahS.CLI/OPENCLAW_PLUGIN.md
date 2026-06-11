@@ -11,7 +11,7 @@ The exported plugin registers these OpenClaw tools:
 - `xerahs_upload_file` uploads a local file and returns XerahS upload JSON with a `url`.
 - `xerahs_upload_text` uploads generated text through stdin and returns XerahS upload JSON with a `url`.
 - `xerahs_doctor_uploaders` checks uploader readiness with `xerahscli doctor uploaders --json`.
-- `xerahs_bootstrap_uploaders` initializes safe first-use uploader defaults with `xerahscli bootstrap uploaders`.
+- `xerahs_bootstrap_uploaders` initializes safe first-use uploader defaults with `xerahscli bootstrap uploaders --json`.
 
 The initial scope is intentionally upload-focused. Capture, recording, ReClip, and directory-index tools remain direct `xerahscli` CLI capabilities until a later plugin expansion.
 
@@ -22,7 +22,7 @@ The initial scope is intentionally upload-focused. Capture, recording, ReClip, a
 3. Run the uploader bootstrap once:
 
 ```powershell
-xerahscli bootstrap uploaders
+xerahscli bootstrap uploaders --json
 xerahscli doctor uploaders --json
 ```
 
