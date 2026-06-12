@@ -423,3 +423,135 @@ release log, `/tmp/xerahs-*` logs that accumulate without rotation — all on a
   unrecoverable (hence the human confirmation in step 2).
 
 ---
+
+## 4. Simulated failure scenarios (walked against the upgraded design)
+
+### S1 — Network blip mid-upload (URL publishing, ReClip Trigger B)
+
+Setup: ReClip finishes downloading `clip.mp4`, hands off via
+`run_xerahs_bridge()`. U2, U5, U6 are in place. The network drops 60% into the
+first upload and recovers 40 s later.
+
+1. **Preflight (U2):** disk gate passes (file fits in free space). Proceed.
+2. **Attempt 1:** `xerahs upload clip.mp4 --name clip-a1b2c3d4.mp4 --json
+   --as-file` — connection reset mid-transfer. CLI exits non-zero; stderr
+   captured into the job log. The orphaned partial on the host is inert (the
+   host only publishes completed objects; even if it published a truncated
+   one, the next step's verification would catch it because the retried name
+   differs and only the verified URL is recorded).
+3. **Checkpoint (U5 rule):** job JSON updated — `attempt: 1, status: retrying,
+   stderr: "connection reset…"`. No pending-forever state exists at any point.
+4. **Attempt 2 (after 5 s backoff):** network still down → same handling,
+   `attempt: 2` checkpointed.
+5. **Attempt 3 (after 20 s backoff):** network is back. Upload completes. JSON
+   parsed strictly (U6): `url` present, https, host `mike.getsharex.com`,
+   filename ends `.mp4`. `curl -sI` returns HTTP 200.
+6. Job JSON gets the verified URL; ReClip pipeline continues normally.
+
+**Outcome: recovered.** Total delay ≈ 65 s + transfer time, within the 12-min
+retry envelope.
+
+Counterfactual branch — network stays down: attempt 3 fails, the `else` branch
+marks the job `status=failed` with exit code + last stderr, raises the
+RuntimeError that ReClip already knows how to surface, and the U3 watchdog's
+daily pass plus the job JSON give the operator the exact diagnostic.
+**Outcome: failed safely + diagnostic emitted.** Under today's design, by
+contrast, the single attempt fails and the skill's own pitfall notes the
+result can be misread as partial success.
+
+### S2 — Upstream API contract change (issue monitor)
+
+Setup: GitHub changes the issues list payload — `labels` entries no longer
+carry a top-level `name` (hypothetical rename to `label_name`). U3, U4, U6 are
+in place. The weekly run fires Sunday.
+
+1. **Preflight (U4):** token resolves; rate limit OK; state file loads (seen
+   map = 9 issues).
+2. **Fetch:** HTTP 200 — nothing transport-level is wrong. This is the
+   dangerous case: without U6 the classifier would either crash with a raw
+   `KeyError` *after* partial processing, or silently classify every issue's
+   labels as empty → wrong severities → wrong digest (and state written, so
+   the error compounds silently week over week).
+3. **Contract validation (U6):** the per-issue validator checks
+   `labels[].name` before any classification. First issue fails →
+   `ContractError("issue 246: labels[0] missing 'name'; got keys
+   ['label_name', 'color']")`.
+4. **Fail-closed handling (U6 step 2):** script prints
+   `XERAHS_ISSUE_MONITOR_FAILED: contract issue 246: labels[0] missing 'name'…`
+   and exits non-zero. **The state file is not written** — `seen` still holds
+   the pre-failure baseline; rotations (U4) are untouched.
+5. **Alerting:** the OpenClaw job captures the `XERAHS_ISSUE_MONITOR_FAILED`
+   token (the skill already mandates this reporting contract) and the run
+   report reaches `#xerahs`. Even if that delivery layer is itself broken —
+   the O3/O5 lesson — the U3 watchdog independently alerts within 8 days
+   because the state file's `last_run_at` goes stale.
+6. **Repair + resume:** a human (or a queued fix run) updates the field
+   mapping; the next run validates clean, classifies against the *preserved*
+   `seen` map, and emits a normal digest — no mass re-escalation burst,
+   because state was never reset.
+
+**Outcome: failed safely + diagnostic emitted**, with bounded
+time-to-detection (≤ 8 days via watchdog even under total notification
+failure) and clean resume semantics.
+
+---
+
+## 5. Needs human sign-off (surface, don't act)
+
+Per the run contract, nothing below was changed; each item alters shared
+protocol, published-URL behavior, or release cadence and needs Mike's (or the
+named agent owner's) explicit approval:
+
+1. **U1 lock-protocol change** — the lock is a shared contract with Mikhail's
+   manual-review workflow. The proposed rule never auto-clears a non-declan or
+   file-form lock, but Mikhail should confirm the 8-hour expiry and the
+   quarantine-rename semantics.
+2. **U5 ReClip `app.py` retry/verify change** — touches the automated upload
+   path that produces published URLs. Retries add new HEAD requests against
+   `mike.getsharex.com` and can re-upload after ambiguous failures (new URL
+   each time). No URL format changes, but it is publish-adjacent.
+3. **Immediate manual action: the live stale lock (O1).** The sweep is blocked
+   *right now*. Per the current protocol only a human should remove another
+   run's lock: `rm -rf /Users/mike/Projects/KovaForge/xerahs/.xerahs-workspace.lock`
+   after confirming pid 47912 is dead (verified dead 2026-06-12 14:30 AWST).
+4. **Immediate manual action: disk cleanup (O4).** 387 MiB free is below safe
+   operating floor for every workflow here. Deleting the repo-root binlogs and
+   pruning `~/.openclaw/tmp` are candidates; both delete data and need a human.
+5. **Release/publish cadence** — no changes proposed; listed to confirm the
+   boundary was honored. Weekly pre-release (Wed 20:00 per SKILL.md vs Sat
+   18:00 per the cron backup — see drift note D5) should be reconciled by a
+   human since it *is* release cadence.
+
+## 6. Drift findings (skill vs repo/scheduler — repo trusted)
+
+- **D1 (observed):** `xerahs-issue-monitor/SKILL.md` step 2 runs the script
+  from `skills/vladislava-xerahs-issue-monitor/scripts/…` — path does not
+  exist; the script lives in `skills/xerahs-issue-monitor/scripts/`. → U4/U9.
+- **D2 (observed):** `xerahs-hourly-sweep/SKILL.md` workspace is
+  `…/KovaForge/XerahS` (capital X); on-disk dir is `…/KovaForge/xerahs`. Works
+  only because APFS is case-insensitive. → U9.
+- **D3 (observed):** `xerahs-hourly-sweep/SKILL.md` contains two identical
+  "Step 9: Generate run summary" blocks plus orphaned list fragments — a
+  paste-over defect that also breaks the "steps 1 through 10" completeness
+  rule's numbering. → U9.
+- **D4 (observed):** the skill is named "hourly sweep" but declares and runs a
+  4-hour cadence. Cosmetic, but staleness thresholds (U3) must key off the real
+  cadence. → U9.
+- **D5 (observed):** pre-release SKILL.md says "Weekly Wednesday 20:00 Perth";
+  the scheduler backup (`jobs.json.bak`, 2026-06-06) has the job at
+  `0 18 * * 6` (Saturday 18:00 Perth). Release-cadence question → human, §5.5.
+- **D6 (observed):** pre-release SKILL.md numbers build/test (steps 2–3)
+  *before* upstream sync (step 4), so a green build does not attest to the
+  merged tree it then pushes. Reorder when next editing the skill (fold into
+  U6's bounded-retry edit).
+
+## 7. Sequencing summary
+
+Week 1 (unblock + see): human actions §5.3 and §5.4, then U1, U2, U3.
+Week 2 (stop the silent class): U4, U5, U6.
+Week 3+ (harden + tidy): U7, U8, U9, U10.
+
+The dependency edges that matter: U3's thresholds depend on D4/D5 cadence
+truth; U5's verification depends on U6's JSON contract; U9 lands fastest by
+extending the existing skill-sustainer rather than new tooling.
+
