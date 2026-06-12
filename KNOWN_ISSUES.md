@@ -21,4 +21,15 @@
 
 ## macOS
 
-- **No macOS-specific known issues documented yet.**
+> Prioritized fixes and the current macOS state assessment are tracked in
+> [docs/MACOS-IMPROVEMENT-PLAN.md](docs/MACOS-IMPROVEMENT-PLAN.md).
+
+### Distribution
+- **"XerahS is damaged and can't be opened" on downloaded builds:** release archives are unsigned and not notarized, so Gatekeeper rejects quarantined downloads until the user runs `xattr -cr` (workaround documented in README). Unsigned builds also have an unstable TCC identity, so Screen Recording / Accessibility grants can reset after updates. Tracked as P1/P2 in the improvement plan.
+
+### Permissions
+- **Missing Screen Recording permission yields wallpaper-only screenshots instead of a prompt:** there is no `CGPreflightScreenCaptureAccess` preflight; the native capture path silently falls back to the `screencapture` CLI, which renders only the desktop wallpaper when permission is missing. Tracked as P3.
+- **Global hotkeys require Accessibility permission:** hotkeys are powered by a SharpHook event tap, which needs Accessibility (see FAQ). A Carbon `RegisterEventHotKey` path that needs no permission is tracked as P4.
+
+### Window capture
+- **Window list shows only the frontmost window:** window enumeration uses AppleScript and returns a single window; background-window capture falls back to the interactive CLI. Tracked as P5.
