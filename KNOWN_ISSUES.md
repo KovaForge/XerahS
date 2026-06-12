@@ -7,6 +7,9 @@
 
 ## Linux
 
+> Prioritized fixes and the current Linux state assessment are tracked in
+> [docs/LINUX-IMPROVEMENT-PLAN.md](docs/LINUX-IMPROVEMENT-PLAN.md).
+
 ### Region Capture / Screenshot
 - **XDG Portal vs in-app overlay (commit 58283cb13900be85ede524022c5d5dc46877eebd):** Up to and including commit `58283cb13900be85ede524022c5d5dc46877eebd`, region capture on Linux used the XDG Portal to take a screenshot (system dialog). After that commit, XerahS uses its own overlay with crosshair for region selection by default. The overlay path can be sluggish (e.g. delay before the crosshair receives pointer events on Wayland) and may exhibit DPI/positioning issues in mixed-DPI setups. **Option:** Check **Use modern capture** in capture settings to use the XDG Portal / system dialog for region capture (old behaviour). Uncheck it to use the in-app overlay with crosshair.
 - **Fedora GNOME mixed-DPI routing:** On Fedora GNOME mixed-DPI setups, region selection/capture may misalign unless `UseTransparentOverlay` is enabled. Runtime now forces transparent overlay on this platform combination. KDE/Plasma sessions (including EndeavourOS logs with `Routing hint: kde`) keep Windows-parity overlay behavior from commit `4688c1331739b7568b0cb9ad9270a961a965de0d`.
