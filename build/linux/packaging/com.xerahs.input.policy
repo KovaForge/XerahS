@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+    Licensed under GPL-3.0-or-later.
+
+    PolicyKit policy for the optional XerahS input-access helper (XIP0080).
+
+    The default global-hotkey path relies on 'input' group membership plus the
+    shipped udev rule and does NOT require polkit. This policy exists for
+    sandboxed/daemon-backed deployments that grant temporary input-device access
+    through a privileged helper instead of permanent group membership.
+-->
+<policyconfig>
+  <vendor>ShareX Team</vendor>
+  <vendor_url>https://github.com/ShareX/XerahS</vendor_url>
+
+  <action id="com.xerahs.input.grant-device-access">
+    <description>Grant XerahS read access to keyboard input devices</description>
+    <message>Authentication is required to allow XerahS to read keyboard input devices for global hotkeys</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>
