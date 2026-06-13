@@ -114,7 +114,7 @@ internal static class OpenClawJsonOptions
     };
 }
 
-internal sealed record OpenClawManifest(
+public sealed record OpenClawManifest(
     string Schema,
     string Name,
     string DisplayName,
@@ -126,7 +126,7 @@ internal sealed record OpenClawManifest(
     string[] Principles,
     OpenClawManifestCommand[] Commands);
 
-internal sealed record OpenClawManifestCommand(
+public sealed record OpenClawManifestCommand(
     string Command,
     string Description,
     bool JsonOutput,
