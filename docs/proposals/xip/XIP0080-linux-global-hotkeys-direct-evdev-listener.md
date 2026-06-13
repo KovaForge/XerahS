@@ -1,6 +1,6 @@
 # XIP0080: Linux Global Hotkeys via Direct evdev Input Device Listening
 
-**Status:** Draft  
+**Status:** In Progress (branch: `linux-hotkey-rewrite`)  
 **Authors:** McoreD, Aoife Brennan  
 **Date:** 2026-06-14
 
@@ -88,6 +88,27 @@ The implementation is considered successful when:
 - Permission model complexity → mitigated by diagnostics + automated setup
 - Sandboxed distribution support → handled via daemon socket + polkit paths
 - Potential to swallow hotkeys intended for other applications → mitigated by conservative hotkey scope
+
+## Implementation
+
+Initial end-to-end implementation lives on the `linux-hotkey-rewrite` branch:
+
+- Native interop and device handling: `src/platform/XerahS.Platform.Linux/Input/Evdev/`
+  (`EvdevNative`, `InputEventCodes`, `EvdevReader`, `InputDeviceEnumerator`, `InputDeviceInfo`).
+- Matching engine: `src/platform/XerahS.Platform.Linux/Input/`
+  (`EvdevKeyMap`, `ModifierStateTracker`, `EvdevHotkeyMatcher`).
+- Hotkey provider: `src/platform/XerahS.Platform.Linux/Services/EvdevGlobalHotkeyService.cs`,
+  implementing `IHotkeyService`.
+- Backend selection with portal/X11 fallback and `XERAHS_LINUX_HOTKEY_BACKEND`
+  override: `LinuxPlatform.CreateHotkeyService`.
+- Diagnostics: `LinuxInputDiagnostics` powering `xerahs doctor --linux-input`.
+- Packaging: `build/linux/packaging/99-xerahs-input.rules`,
+  `build/linux/packaging/com.xerahs.input.policy`, integrated into the deb/rpm
+  packaging tool. Setup guide: `docs/linux/global-hotkeys-evdev.md`.
+- Tests: `tests/XerahS.Tests/Platform/Linux/EvdevHotkeyTests.cs`.
+
+Sandboxed (Flatpak) sessions intentionally retain the portal path because raw
+`/dev/input` access is not granted there.
 
 ## References
 
