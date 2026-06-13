@@ -1,9 +1,16 @@
-# XerahS macOS Improvement Plan
+# XIP0078 macOS Improvement Plan
 
-**Date:** 2026-06-13
-**Targets:** macOS 15 Sequoia / 14 Sonoma (primary), 12.3 Monterey (floor for ScreenCaptureKit)
-**Scope:** Desktop app (`XerahS.App` + `XerahS.Platform.MacOS`). iOS/mobile out of scope.
-**Status of every claim below:** verified by repo inspection on 2026-06-13. File:line references are to `develop` @ `6eac1277`.
+**Status**: Proposed  
+**Priority**: High  
+**Area**: macOS | Platform | Packaging | Screen Capture | Hotkeys  
+**Related**: XIP0013, XIP0033  
+**Created**: 2026-06-13  
+**Targets**: macOS 15 Sequoia / 14 Sonoma (primary), 12.3 Monterey (floor for ScreenCaptureKit)  
+**Scope**: Desktop app (`XerahS.App` + `XerahS.Platform.MacOS`). iOS/mobile out of scope.
+
+## Summary
+
+macOS support in XerahS is substantial (28 source files, ~5,400 lines, triple-stack capture, native SCK bridge, hotkeys, tray, watch-folder daemon, CI packaging) but rated **6/10** for end users due to unsigned distribution, minimal Info.plist, silent permission failures, Accessibility-gated hotkeys, and unwired native window capture. This XIP proposes a prioritized backlog (P1–P10) to reach **8.5/10**, with detailed implementation outlines for the top five items. Every claim below was verified by repo inspection on 2026-06-13. File:line references are to `develop` @ `6eac1277`.
 
 ---
 

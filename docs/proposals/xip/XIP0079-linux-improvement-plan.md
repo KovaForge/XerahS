@@ -1,9 +1,11 @@
-# XerahS Linux Improvement Plan
+# XIP0079 Linux Improvement Plan
 
-**Created**: 2026-06-12
-**Status**: Proposed
-**Targets**: Ubuntu 24.04+, Fedora (current), Arch — X11 and Wayland (GNOME, KDE Plasma, wlroots)
-**Related**: XIP0014 (complete), XIP0044, XIP0046, XIP0047, XIP0051 (complete), XIP0058 (complete), XIP0075 (complete), KNOWN_ISSUES.md, `developers/linux/INSTALL.md`, `docs/linux/`
+**Status**: Proposed  
+**Priority**: High  
+**Area**: Linux | Platform | Hotkeys | Notifications | Clipboard | Packaging  
+**Targets**: Ubuntu 24.04+, Fedora (current), Arch — X11 and Wayland (GNOME, KDE Plasma, wlroots)  
+**Related**: XIP0014 (complete), XIP0044, XIP0046, XIP0047, XIP0051 (complete), XIP0058 (complete), XIP0075 (complete), KNOWN_ISSUES.md, `developers/linux/INSTALL.md`, `docs/linux/`  
+**Created**: 2026-06-12  
 
 This plan is grounded entirely in repo inspection (file paths cited inline). It supersedes the backlog sections of XIP0014 and consolidates the open ends of XIP0044/0046/0047 into a single prioritized, executable backlog.
 

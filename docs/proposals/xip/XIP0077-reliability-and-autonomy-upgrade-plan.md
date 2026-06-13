@@ -1,11 +1,15 @@
-# XerahS Reliability & Autonomy Upgrade Plan
+# XIP0077 Reliability & Autonomy Upgrade Plan
 
-Date: 2026-06-12 (all evidence verified on this date)
-Author: Fable 5 (one-shot run, BriarForge queue)
-Scope: the four XerahS operational workflows — pre-release pipeline, URL
-publishing, issue monitoring, hourly sweep — plus the scheduler layer they all
-depend on. This document plans upgrades; **no changes were applied in this run**.
-Illustrative patches appear as diffs only.
+**Status**: Proposed  
+**Priority**: High  
+**Area**: DevOps | Automation | OpenClaw | CI/CD | Operational Reliability  
+**Related**: XIP0063, XIP0076  
+**Created**: 2026-06-12  
+**Author**: Fable 5 (one-shot run, BriarForge queue)
+
+## Summary
+
+This XIP plans upgrades to the four XerahS operational workflows — pre-release pipeline, URL publishing, issue monitoring, hourly sweep — plus the scheduler layer they all depend on. The plan is based on an evidence snapshot verified 2026-06-12; **no changes were applied in the authoring run**. Illustrative patches appear as diffs only.
 
 Workflow sources of truth (verified 2026-06-12):
 
@@ -554,4 +558,3 @@ Week 3+ (harden + tidy): U7, U8, U9, U10.
 The dependency edges that matter: U3's thresholds depend on D4/D5 cadence
 truth; U5's verification depends on U6's JSON contract; U9 lands fastest by
 extending the existing skill-sustainer rather than new tooling.
-
