@@ -1,3 +1,52 @@
+## v0.23.105
+
+### Features
+- **Core**: add after-capture OCR clipboard task (2ac82fab)
+
+### Fixes
+- **CLI**: skip redundant named-copy for --text/--pipe when --name provided (3c55fcb6)
+- **Core**: CLI/OpenClaw wrapper manifest-vs-runtime parity (requireUploaderReport, --json) (6b08fc97)
+- **Core**: Surface history backup failures as user-visible toast in HistoryViewModel (4ccf08b8)
+- **History**: surface user-visible backup failure diagnostic via LastBackupFailureReason (e0f91f93)
+- **Linux Deb Packaging**: add Recommends wl-clipboard, xclip so clipboard CLI fallback works out-of-box on stock Ubuntu (LINUX-IMPROVEMENT-PLAN P3) (6eac1277)
+- **MCP**: harden IsHistorySearchResourceUri against prefix and malformed query attacks (de6e3939)
+- **SettingsBase**: surface SettingsBackupFailed event with phase tag for backup create/prune/pruneFolder failures (f756d368)
+
+### Build
+- **Core**: Add macOS Info.plist template and hardened-runtime entitlements (MACOS-IMPROVEMENT-PLAN P1/P2; plutil-lint clean, not yet wired into packaging) (9cebcf0a)
+
+### Documentation
+- **Add Linux Improvement Plan**: evidence-based state assessment, prioritized P1-P8 backlog, top-5 implementation outlines with verification and rollback (2737d319)
+- **Add MacOS Improvement Plan**: evidence-based state assessment, prioritized P1-P10 backlog, top-5 implementation outlines with verification and rollback (27e23488)
+- **Core**: Add 2026-06-06 OCR onboarding persistence blog draft. (c6038164)
+- **Core**: Add 2026-06-06 no-activity blog draft. (7f4e321c)
+- **Core**: Add 2026-06-07 no-activity blog draft. (36a5d295, f1057f09)
+- **Core**: Add 2026-06-08 blog draft. (22a55a9c)
+- **Core**: Add 2026-06-09 no-activity blog draft. (e9c4b79f)
+- **Core**: Add 2026-06-10 blog draft. (8d490d9b)
+- **Core**: Add 2026-06-11 blog draft. (dbf26515)
+- **Core**: Add 2026-06-11 no-activity blog draft. (5d205ed9)
+- **Core**: Add 2026-06-12 no-activity blog draft. (f20c1a94)
+- **Core**: KNOWN_ISSUES: document macOS distribution, permission, and window-capture issues; link improvement plan (dd519426)
+- **Core**: RELIABILITY-PLAN — failure simulations, sign-off list, drift findings, sequencing (sections 4-7) (a8a10c70)
+- **Core**: RELIABILITY-PLAN — observed-state snapshot + failure-mode table (sections 1-2) (a44df371)
+- **Core**: RELIABILITY-PLAN — prioritized upgrades U1-U10 with steps/criteria/owners/rollbacks (section 3) (9bc0dcd1)
+- **Core**: Record HistoryViewModel backup-toast fix in tracker and state (be4fdcba)
+- **Core**: Record MCP IsHistorySearchResourceUri hardening in state and tracker (0392f2e2)
+- **Core**: Record history backup user-visible diagnostic in state and tracker (96e62d2b)
+- **Core**: Refresh 2026-06-05 blog draft. (3744bfee)
+- **Core**: Refresh 2026-06-06 blog draft. (387df544)
+- **Core**: Refresh 2026-06-07 blog draft. (95377e08)
+- **Core**: Refresh 2026-06-08 blog draft. (36d5acff)
+- **Core**: Refresh 2026-06-09 blog draft. (eb95c4c3)
+- **Core**: Refresh 2026-06-10 blog draft. (ee2114d4)
+- **Core**: add AGENTS wrapper policy (e0e75d9c, eb3e0fe7)
+- **Core**: add KFIP0010 for X/Twitter OCR clipboard accessibility drafts (64047239)
+- **Core**: review and narrow KFIP0010 implementation scope (8fc3398b)
+
+### Changed
+- **Core**: [KFIP] Add KFIP0010 for X/Twitter compression-resilient capture and format optimization (fa236405)
+
 ## v0.23.98
 
 ### Features
