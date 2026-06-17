@@ -1996,3 +1996,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings / 0 errors; XerahS.Tests filter HistoryViewModelBackupToastTests 4 passed / 0 failed; full solution test deferred (filter run is sufficient — only the new test class and unrelated code were touched). Logs: see /tmp/xerahs-hourly-sweep/build-20260610-180133.log
 - Commit: 4ccf08b8
 - Follow-up: The "File/path handling - remaining path helper exception parity and history backup user-visible diagnostics" next_candidates entry is now fully RESOLVED (path helper exception parity landed in v0.23.98, history backup user-visible diagnostic landed in v0.23.103 + v0.23.104). Drop the entry from next_candidates. Resume other tracks: OCR tool/onboarding language-selection parity (multi-runtime picker), Uploader UI/log diagnostics for unavailable provider replacement flows, CLI xerahscli upload --pipe edge cases, clawpatch queue (FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions), SQLite 'disk I/O error' McpServer.Tests environmental investigation.
+
+### 2026-06-17 12:01 AWST - Clean review sweep (post upstream merge)
+
+- Area: Capture pipeline (stalest reviewed area)
+- Files: none
+- Findings: All follow-up items from prior reviews addressed in v0.23.x series. No new bugs identified in quick verification pass. next_candidates empty in state.
+- Status: Reviewed (clean)
+- Build/test: skipped (clean review, no code change)
+- Commit: merge a5828b11 (upstream sync only)
+- Follow-up: Resume OCR language parity, Uploader diagnostics, CLI edge cases if new candidates appear. Monitor clawpatch queue.
