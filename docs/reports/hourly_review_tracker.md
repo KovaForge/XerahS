@@ -1,5 +1,16 @@
 # XerahS Hourly Review Current Tracker
 
+### 2026-06-21 18:51 UTC - ShareX.ImageEditor csproj resource paths
+
+- Area: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+- Files: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj, Directory.Build.props
+- Findings: Resource paths used Windows-style backslashes; normalized to forward slashes for cross-platform builds.
+- Fix: Minimal path normalization fix + version bump to 0.23.109. (Test coverage via existing resource loading in editor tests.)
+- Status: Fixed
+- Build/test: dotnet build/test completed successfully
+- Commit: 7b7f8eb8
+- Follow-up: None (minimal area fix)
+
 Purpose: compact human-readable companion to `docs/reports/hourly_review_state.json` for the recurring XerahS review.
 
 Use `hourly_review_state.json` as the hot machine-readable source. The full historical ledger was preserved at `docs/reports/archive/hourly_review_tracker_2026-04-30.md`.
