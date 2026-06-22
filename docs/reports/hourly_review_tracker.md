@@ -1,5 +1,17 @@
 # XerahS Hourly Review Current Tracker
 
+### 2026-06-23 07:23 UTC - ShareX.ImageEditor / EmojiCatalogEntry.GetSearchScore case-variant search regression
+
+- Area: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+- Files: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Emoji/EmojiCatalogEntry.cs, tests/XerahS.Tests/Editor/EmojiCatalogEntrySearchTests.cs, Directory.Build.props
+- Findings: EmojiCatalogEntry.GetSearchScore used StringComparison.Ordinal for the SearchIndex.Contains check at score 3, while the search term had already been lowercased and SearchIndex is built lowercase. Case-variant search terms (e.g. 'OBJECTS', 'Smile') that failed exact/prefix/keyword paths fell through to int.MaxValue instead of reaching score 3 via the SearchIndex fallback.
+- Fix: Changed SearchIndex.Contains(search, StringComparison.Ordinal) to StringComparison.OrdinalIgnoreCase. Added 7 regression tests covering score 0 (exact), 1 (name prefix), 2 (keyword prefix), 3 (ordinal-ignore-case group/keyword via SearchIndex), and int.MaxValue (no match). Version bump 0.23.110 -> 0.23.111.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; EmojiCatalogEntrySearchTests 7 passed/0 failed
+- Commit: e50c8e0f
+- Follow-up: None
+
+
 ### 2026-06-21 18:51 UTC - ShareX.ImageEditor csproj resource paths
 
 - Area: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4

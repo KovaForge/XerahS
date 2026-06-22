@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-21 18:51 AWST",
+  "last_updated": "2026-06-23 07:23 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,6 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
     "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)",
     "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
     "src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)",
@@ -23,7 +22,6 @@
     "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
     "Directory.Build.props:3-4",
     "src/desktop/plugins/Directory.Build.props:5-7",
-    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
     "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)",
     "Directory.Packages.props:39-40",
     "src/desktop/core/XerahS.Core/XerahS.Core.csproj:24-27",
@@ -61,7 +59,6 @@
     "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
     "Directory.Build.props:3-4",
     "src/desktop/plugins/Directory.Build.props:5-7",
-    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
     "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)",
     "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
     "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
@@ -393,6 +390,21 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-06-23 07:23 AWST",
+      "area": "ShareX.ImageEditor / EmojiCatalogEntry.GetSearchScore case-variant search regression",
+      "files": [
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Emoji/EmojiCatalogEntry.cs",
+        "tests/XerahS.Tests/Editor/EmojiCatalogEntrySearchTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_state.json"
+      ],
+      "version_bump": "0.23.110 -> 0.23.111",
+      "commit": "e50c8e0f",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests EmojiCatalogEntrySearchTests 7 passed/0 failed",
+      "notes": "Fixed SearchIndex.Contains using Ordinal instead of OrdinalIgnoreCase; case-variant search terms (e.g. uppercase) that matched group/keyword via substring fell through to int.MaxValue. Added 7 regression tests. ShareX.ImageEditor.csproj:2-4 area resolved."
+    },
     {
       "ts": "2026-06-17 12:01 AWST",
       "outcome": "clean",
