@@ -1,5 +1,17 @@
 # XerahS Hourly Review Current Tracker
 
+### 2026-06-24 16:51 UTC - Linux platform / WaylandCliCapture / slurpOutput null guard in CaptureWithGrimSlurpAsync
+
+- Area: `src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:333-345 (CaptureWithGrimSlurpAsync)`
+- Files: src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs, tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs, Directory.Build.props
+- Findings: `CaptureWithGrimSlurpAsync` called `slurpOutput.Trim()` before checking for null. If `slurp` ever exited 0 with no stdout (pipe race, compositor glitch, or future contract change in `RunCliCapture`), this would throw `NullReferenceException` instead of gracefully returning null.
+- Fix: Added `if (slurpOutput == null) return null;` guard immediately after the exit-code check, before the `Trim()` call. Added `CaptureWithGrimSlurpParsingTest` to `TestAccessor` and 5 regression tests covering: valid geometry passthrough, null output (no throw), empty string output, whitespace-only output, and non-zero exit code.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; XerahS.Tests 1134 passed (+5 new) / 3 pre-existing failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite 'disk I/O error' failures (environmental, documented)
+- Commit: a68b633f
+- Version bump: 0.23.112 -> 0.23.113
+- Follow-up: None
+
 ### 2026-06-23 07:23 UTC - ShareX.ImageEditor / EmojiCatalogEntry.GetSearchScore case-variant search regression
 
 - Area: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
