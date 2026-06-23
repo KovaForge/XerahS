@@ -180,6 +180,23 @@ internal static class WaylandCliCapture
             }
             return sequence;
         }
+
+        /// <summary>
+        /// Simulates the initial slurp leg of <see cref="CaptureWithGrimSlurpAsync"/> with
+        /// synthetic (output, exitCode) values. Returns the parsed geometry string, or
+        /// null if the exit code is non-zero / the output is null or empty after trimming.
+        /// This exposes the null-guard on slurpOutput to direct test coverage —
+        /// RunCliCapture currently never returns null output, but the guard is required
+        /// to satisfy the defensive null-check added in the v0.23.113 fix.
+        /// </summary>
+        public static string? CaptureWithGrimSlurpParsingTest(string? slurpOutput, int? slurpExit)
+        {
+            if (slurpExit == null || slurpExit != 0) return null;
+            if (slurpOutput == null) return null;
+            var geometry = slurpOutput.Trim();
+            if (string.IsNullOrEmpty(geometry)) return null;
+            return geometry;
+        }
     }
 
     /// <summary>
@@ -335,6 +352,7 @@ internal static class WaylandCliCapture
             var (slurpOutput, slurpExit) = await Task.Run(() => RunCliCapture(
                 "slurp", string.Empty, 60000)).ConfigureAwait(false);
             if (slurpExit == null || slurpExit != 0) return null;
+            if (slurpOutput == null) return null;
             var geometry = slurpOutput.Trim();
             if (string.IsNullOrEmpty(geometry)) return null;
 

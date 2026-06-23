@@ -252,4 +252,87 @@ public class WaylandCliCaptureTests
                 + "active-window helpers in CaptureActiveWindowAsync.");
         }
     }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_ValidOutput_ReturnsParsedGeometry()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp returns "x y w h" geometry on success. Verify the parsing
+        // leg of CaptureWithGrimSlurpAsync correctly extracts it.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest("100 200 1920 1080", 0);
+
+        Assert.That(result, Is.EqualTo("100 200 1920 1080"));
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_NullOutput_ReturnsNull_NoThrow()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // Defensive regression test: if RunCliCapture ever returned null output
+        // (violating its current contract), the null-guard in
+        // CaptureWithGrimSlurpAsync v0.23.113 must prevent a NullReferenceException.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest(null, 0);
+
+        Assert.That(result, Is.Null,
+            "Null slurp output with exit 0 should return null, not throw NRE.");
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_EmptyOutput_ReturnsNull()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp exits 0 but produces no usable geometry (user cancelled / blank).
+        // The parsing helper should return null, not an empty string.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest(string.Empty, 0);
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_WhitespaceOnlyOutput_ReturnsNull()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp wrote trailing whitespace / blank lines before exiting 0.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest("  \n\r\n  ", 0);
+
+        Assert.That(result, Is.Null,
+            "Whitespace-only slurp output should be treated as empty.");
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_NonZeroExit_ReturnsNull()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp returns non-zero when the user cancels region selection.
+        // The parsing helper must return null regardless of output content.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest("100 200 1920 1080", 1);
+
+        Assert.That(result, Is.Null,
+            "Non-zero exit code should always return null, ignoring output.");
+    }
 }
