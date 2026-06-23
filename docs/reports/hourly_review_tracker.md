@@ -2029,3 +2029,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: skipped (clean review, no code change)
 - Commit: merge a5828b11 (upstream sync only)
 - Follow-up: Resume OCR language parity, Uploader diagnostics, CLI edge cases if new candidates appear. Monitor clawpatch queue.
+
+### 2026-06-23 19:10 AWST - Linux platform / WaylandCliCapture active-window routing correctness
+
+- Area: Linux platform / WaylandCliCapture / CaptureActiveWindowAsync routing (wayland-cli-capture-6)
+- Files: src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs, tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs, Directory.Build.props
+- Findings: Exposed `CaptureActiveWindowRoutingTest(string? desktop)` via `TestAccessor` to verify the ordered sequence of helper names without a real compositor. Bug: previously `CaptureActiveWindowAsync` used `IsWlrootsDesktop(desktop)` (returns true for both Hyprland and Sway) in the second routing block. This caused Hyprland to enter both the first block (grimblast -> hyprshot) AND the second block (grimblast -> sway-focused-window) after the first fell through — making the second block's grimblast call dead code for Hyprland. Fix: second block now uses `desktop is \"SWAY\" || desktop == null` explicitly, excluding Hyprland which was already handled above. 4 regression tests covering Hyprland, Sway, null desktop, and non-wlroots (KDE/GNOME/XFCE/i3/LXDE all return empty sequence).
+- Status: Fixed
+- Build/test: build 0 warnings / 0 errors (Release, -m:1); XerahS.Tests 1130 passed / 0 failed / 1 skipped (McpServer 5 SQLite disk-I/O environmental failures pre-existing and unrelated).
+- Commit: e2b103f8
+- Follow-up: Continue WaylandCliCapture follow-ups: CaptureWithGrimSlurpAsync area capture (218-255), remaining CLI capture helpers stderr-drainage audit, CLI xerahscli upload --pipe edge cases, clawpatch queue (FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions).
