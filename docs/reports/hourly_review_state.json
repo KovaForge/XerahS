@@ -102,7 +102,10 @@
     "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:210-213 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
     "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
     "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
-    "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp"
+    "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4"
   ],
   "areas": [
     {

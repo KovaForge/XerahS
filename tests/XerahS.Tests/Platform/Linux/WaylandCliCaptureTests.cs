@@ -162,4 +162,94 @@ public class WaylandCliCaptureTests
         Assert.That(elapsedMs, Is.LessThan(2000),
             $"Helper took longer than 2s for a trivial non-zero-exit command. Elapsed: {elapsedMs:F0}ms.");
     }
+
+    [Test]
+    public void CaptureActiveWindowRouting_Hyprland_GrimblastThenHyprshot()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // Hyprland should be handled by the first block only: grimblast ->
+        // hyprshot. The second block (swaymsg fallback) must NOT be reached
+        // because IsWlrootsDesktop("HYPRLAND") is true -- the previous
+        // implementation would enter the second block after the first fell
+        // through, making the second block's grimblast call dead code.
+        var seq = WaylandCliCapture.TestAccessor
+            .CaptureActiveWindowRoutingTest("HYPRLAND");
+
+        Assert.That(seq, Is.EqualTo(new[]
+        {
+            "CaptureWithGrimblastActiveWindowAsync",
+            "CaptureWithHyprshotWindowAsync"
+        }));
+        Assert.That(seq.Count, Is.EqualTo(2),
+            "Hyprland should take exactly 2 steps; the swaymsg fallback is not applicable.");
+    }
+
+    [Test]
+    public void CaptureActiveWindowRouting_Sway_GrimblastThenSwayFocused()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // Sway is wlroots but not Hyprland, so it bypasses the first block
+        // and goes straight to the second: grimblast -> sway-focused-window.
+        var seq = WaylandCliCapture.TestAccessor
+            .CaptureActiveWindowRoutingTest("SWAY");
+
+        Assert.That(seq, Is.EqualTo(new[]
+        {
+            "CaptureWithGrimblastActiveWindowAsync",
+            "CaptureWithSwayFocusedWindowAsync"
+        }));
+        Assert.That(seq.Count, Is.EqualTo(2),
+            "Sway should take exactly 2 steps: grimblast then sway-focused-window.");
+    }
+
+    [Test]
+    public void CaptureActiveWindowRouting_NullDesktop_GrimblastThenSwayFocused()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // When DESKTOP_SESSION is unset (null), we treat it as an unknown
+        // wlroots environment and attempt grimblast -> sway-focused-window
+        // (swaymsg will fail fast on non-sway compositors, giving null, and
+        // the caller gets null).
+        var seq = WaylandCliCapture.TestAccessor
+            .CaptureActiveWindowRoutingTest(null);
+
+        Assert.That(seq, Is.EqualTo(new[]
+        {
+            "CaptureWithGrimblastActiveWindowAsync",
+            "CaptureWithSwayFocusedWindowAsync"
+        }));
+        Assert.That(seq.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void CaptureActiveWindowRouting_NonWlroots_ReturnsEmpty()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // KDE/GNOME/XFCE etc. should not be routed to any active-window
+        // helper from this method (they have their own capture paths).
+        foreach (var desktop in new[] { "KDE", "GNOME", "XFCE", "i3", "LXDE" })
+        {
+            var seq = WaylandCliCapture.TestAccessor
+                .CaptureActiveWindowRoutingTest(desktop);
+            Assert.That(seq, Is.Empty,
+                $"Desktop '{desktop}' should not be routed through the wlroots "
+                + "active-window helpers in CaptureActiveWindowAsync.");
+        }
+    }
 }
