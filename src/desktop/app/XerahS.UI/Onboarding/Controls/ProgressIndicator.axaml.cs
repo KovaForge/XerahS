@@ -121,7 +121,7 @@ public partial class ProgressIndicator : UserControl
             nameof(StepItems), new ObservableCollection<StepItem>());
 
     public static readonly StyledProperty<string?> StepLabel1Property =
-        AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel1), "Language");
+        AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel1), "Welcome");
 
     public static readonly StyledProperty<string?> StepLabel2Property =
         AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel2), "Save Location");
@@ -217,7 +217,7 @@ public partial class ProgressIndicator : UserControl
     {
         return new[]
         {
-            StepLabel1 ?? "Language",
+            StepLabel1 ?? "Welcome",
             StepLabel2 ?? "Save Location",
             StepLabel3 ?? "Hotkeys",
             StepLabel4 ?? "Upload",

@@ -33,10 +33,7 @@ namespace XerahS.UI.Onboarding;
 /// </summary>
 public sealed class OnboardingState
 {
-    // Step 1: Language
-    public string SelectedLanguage { get; set; } = "en";
-
-    // Step 2: Save Location
+    // Step 1: Save Location
     public string ScreenshotsFolder { get; set; } = "";
     public bool CreateDateSubfolders { get; set; } = true;
 

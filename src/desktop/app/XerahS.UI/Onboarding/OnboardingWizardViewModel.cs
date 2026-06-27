@@ -194,7 +194,6 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
     public void LoadFromState(OnboardingState state)
     {
-        State.SelectedLanguage = state.SelectedLanguage;
         State.ScreenshotsFolder = state.ScreenshotsFolder;
         State.CreateDateSubfolders = state.CreateDateSubfolders;
         State.PrimaryCaptureHotkey = state.PrimaryCaptureHotkey;

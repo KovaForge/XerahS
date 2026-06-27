@@ -79,48 +79,37 @@
                                  FontSize="22" FontWeight="SemiBold"
                                  HorizontalAlignment="Center"
                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                      <TextBlock Text="Choose your preferred language to continue."
+                      <TextBlock Text="A few quick steps to get started."
                                  FontSize="13"
                                  HorizontalAlignment="Center"
                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                  TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <ItemsControl ItemsSource="{Binding AvailableLanguages}"
-                                  HorizontalAlignment="Stretch">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="steps:LanguageOption">
-                          <Button Classes="WizardRadioCard"
-                                  Margin="0,4" Padding="12,8"
-                                  Command="{Binding $parent[ItemsControl].DataContext.SelectLanguageCommand}"
-                                  CommandParameter="{Binding}">
-                            <Grid ColumnDefinitions="Auto,*" MinWidth="200">
-                              <Border Grid.Column="0" Width="20" Height="20" CornerRadius="10" Margin="0,0,12,0" VerticalAlignment="Center">
-                                <Ellipse Width="10" Height="10" Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                                         IsVisible="{Binding Code, Converter={x:Static steps:LanguageOption.IsSelectedConverter}, ConverterParameter={Binding $parent[ItemsControl].DataContext.SelectedLanguage}}" />
-                              </Border>
-                              <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding DisplayName}"
-                                           FontSize="14" FontWeight="Medium"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="{Binding NativeName}"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                              </StackPanel>
-                            </Grid>
-                          </Button>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <StackPanel Spacing="6" Margin="0,8,0,0">
+                      <TextBlock Text="We'll walk you through:"
+                                 FontSize="13"
+                                 FontWeight="Medium"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                      <TextBlock Text="• Where screenshots are saved"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• Capture hotkeys"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• Upload destination"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• OCR languages"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
 
-                    <Border Classes="status-info"
-                            Padding="12"
-                            IsVisible="{Binding HasFallbackHint}">
-                      <TextBlock Text="{Binding FallbackHint}"
-                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                 TextWrapping="Wrap"
-                                 FontSize="12" />
-                    </Border>
+                    <TextBlock Text="You can change any of these later in Settings."
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               TextWrapping="Wrap" />
                   </StackPanel>
                 </ScrollViewer>
               </DataTemplate>

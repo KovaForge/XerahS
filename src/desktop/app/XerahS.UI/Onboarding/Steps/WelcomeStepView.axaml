@@ -14,43 +14,50 @@
   </UserControl.Styles>
 
   <StackPanel Spacing="0">
-    <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,0,0,32">
+    <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,0,0,24">
       <Border Width="48" Height="48"
               Background="{DynamicResource WizAccentSubtle}"
               CornerRadius="24"
               HorizontalAlignment="Left">
-        <TextBlock Text="🌍" FontSize="22"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Text="📸"
+                   FontSize="22"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
       </Border>
-      <StackPanel VerticalAlignment="Center">
-        <TextBlock Text="Language &amp; Region" Classes="WizardStepTitle" />
-        <TextBlock Text="Set your preferred language" Classes="WizardStepSubtitle" />
+      <StackPanel VerticalAlignment="Center" Spacing="4">
+        <TextBlock Text="Welcome to XerahS"
+                   Classes="WizardStepTitle" />
+        <TextBlock Text="A few quick steps to get started"
+                   Classes="WizardStepSubtitle" />
       </StackPanel>
     </StackPanel>
 
-    <StackPanel Spacing="6">
-      <TextBlock Text="Display Language"
-                 FontSize="13" FontWeight="Medium"
-                 Foreground="{DynamicResource WizTextPrimary}" />
-      <ComboBox x:Name="LanguageCombo"
-                Classes="WizardComboBox"
-                ItemsSource="{Binding AvailableLanguages}"
-                HorizontalAlignment="Stretch" Height="48"
-                SelectionChanged="OnLanguageComboSelectionChanged">
-        <ComboBox.ItemTemplate>
-          <DataTemplate x:DataType="vm:LanguageOption">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="{Binding DisplayName}" FontSize="15" />
-              <TextBlock Text="{Binding NativeName}" FontSize="12"
-                         Foreground="{DynamicResource WizTextSecondary}" />
-            </StackPanel>
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
+    <TextBlock Text="We'll walk you through:"
+               FontSize="13"
+               FontWeight="Medium"
+               Foreground="{DynamicResource WizTextPrimary}"
+               Margin="0,0,0,8" />
+
+    <StackPanel Spacing="6" Margin="4,0,0,0">
+      <TextBlock Text="• Where screenshots are saved"
+                 FontSize="13"
+                 Foreground="{DynamicResource WizTextSecondary}" />
+      <TextBlock Text="• Capture hotkeys"
+                 FontSize="13"
+                 Foreground="{DynamicResource WizTextSecondary}" />
+      <TextBlock Text="• Upload destination"
+                 FontSize="13"
+                 Foreground="{DynamicResource WizTextSecondary}" />
+      <TextBlock Text="• OCR languages"
+                 FontSize="13"
+                 Foreground="{DynamicResource WizTextSecondary}" />
     </StackPanel>
 
-    <TextBlock Text="Showing all available languages"
-               FontSize="12" Foreground="{DynamicResource WizTextSecondary}" Margin="0,6,0,0" />
+    <TextBlock Text="You can change any of these later in Settings."
+               FontSize="12"
+               Foreground="{DynamicResource WizTextSecondary}"
+               Margin="0,16,0,0"
+               TextWrapping="Wrap" />
   </StackPanel>
 
 </UserControl>
