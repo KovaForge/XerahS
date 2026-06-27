@@ -114,7 +114,7 @@ public partial class ProgressIndicator : UserControl
         AvaloniaProperty.Register<ProgressIndicator, int>(nameof(CurrentStepIndex), 0);
 
     public static readonly StyledProperty<int> TotalStepsProperty =
-        AvaloniaProperty.Register<ProgressIndicator, int>(nameof(TotalSteps), 6);
+        AvaloniaProperty.Register<ProgressIndicator, int>(nameof(TotalSteps), 5);
 
     public static readonly StyledProperty<ObservableCollection<StepItem>> StepItemsProperty =
         AvaloniaProperty.Register<ProgressIndicator, ObservableCollection<StepItem>>(
@@ -133,7 +133,7 @@ public partial class ProgressIndicator : UserControl
         AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel4), "Upload");
 
     public static readonly StyledProperty<string?> StepLabel5Property =
-        AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel5), "OCR");
+        AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel5), "Done");
 
     public static readonly StyledProperty<string?> StepLabel6Property =
         AvaloniaProperty.Register<ProgressIndicator, string?>(nameof(StepLabel6), "Done");
@@ -221,8 +221,7 @@ public partial class ProgressIndicator : UserControl
             StepLabel2 ?? "Save Location",
             StepLabel3 ?? "Hotkeys",
             StepLabel4 ?? "Upload",
-            StepLabel5 ?? "OCR",
-            StepLabel6 ?? "Done"
+            StepLabel5 ?? "Done"
         };
     }
 

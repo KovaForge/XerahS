@@ -218,26 +218,14 @@ public partial class OcrStepViewModel : StepViewModelBase
     {
         _syncingSelections = true;
         SelectedLanguages.Clear();
-
-        List<string> languagesToSelect = state.SelectedOcrLanguages.Count > 0
-            ? state.SelectedOcrLanguages
-            : ["en"];
-
-        foreach (string language in languagesToSelect)
-        {
-            SelectedLanguages.Add(language);
-        }
-
+        SelectedLanguages.Add("en");
         _syncingSelections = false;
         SyncOptionsFromSelectedLanguages();
-        DownloadInBackground = state.DownloadOcrInBackground;
         UpdateValidationState();
     }
 
     public override void SaveToState(OnboardingState state)
     {
-        state.SelectedOcrLanguages = SelectedLanguages.ToList();
-        state.DownloadOcrInBackground = DownloadInBackground;
     }
 
     public override bool Validate()

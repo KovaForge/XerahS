@@ -24,13 +24,10 @@ public sealed class OnboardingOcrStepViewModelTests
     }
 
     [Test]
-    public void LoadFromState_WithUnsupportedLanguages_FallsBackToEnglish()
+    public void LoadFromState_UsesEnglishDefault()
     {
         OcrStepViewModel viewModel = new();
-        OnboardingState state = new()
-        {
-            SelectedOcrLanguages = ["xx", "yy"]
-        };
+        OnboardingState state = new();
 
         viewModel.LoadFromState(state);
 

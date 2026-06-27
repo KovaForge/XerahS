@@ -84,7 +84,6 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         Steps.Add(new SaveLocationStepViewModel());
         Steps.Add(new HotkeyStepViewModel());
         Steps.Add(new UploadStepViewModel());
-        Steps.Add(new OcrStepViewModel());
         Steps.Add(new CompleteStepViewModel());
 
         for (int i = 0; i < Steps.Count; i++)
@@ -199,8 +198,6 @@ public partial class OnboardingWizardViewModel : ViewModelBase
         State.PrimaryCaptureHotkey = state.PrimaryCaptureHotkey;
         State.AdditionalHotkeys = new List<HotkeyInfo>(state.AdditionalHotkeys);
         State.SelectedUploaderId = state.SelectedUploaderId;
-        State.SelectedOcrLanguages = new List<string>(state.SelectedOcrLanguages);
-        State.DownloadOcrInBackground = state.DownloadOcrInBackground;
         State.SkippedSteps = new HashSet<int>(state.SkippedSteps);
         State.LastCompletedStepIndex = state.LastCompletedStepIndex;
 
@@ -244,13 +241,13 @@ public partial class OnboardingWizardViewModel : ViewModelBase
             IReadOnlyDictionary<UploaderCategory, UploaderInstance>? selectedUploaderInstances = null;
 
             if (!string.IsNullOrEmpty(state.SelectedUploaderId) &&
-                !state.SkippedSteps.Contains(2) &&
+                !state.SkippedSteps.Contains(OnboardingStepIndices.Upload) &&
                 !string.Equals(state.SelectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
             {
                 selectedUploaderInstances = OnboardingFileUploaderHelper.EnsureFileUploaderInstances(state.SelectedUploaderId);
             }
 
-            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(0))
+            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(OnboardingStepIndices.SaveLocation))
             {
                 SettingsManager.Settings.CustomScreenshotsPath = state.ScreenshotsFolder;
                 SettingsManager.Settings.UseCustomScreenshotsPath = true;
@@ -258,7 +255,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting screenshots folder: {state.ScreenshotsFolder}");
             }
 
-            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(1))
+            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(OnboardingStepIndices.Hotkeys))
             {
                 WorkflowManager? workflowManager = GetWorkflowManager();
                 if (workflowManager != null)
@@ -301,23 +298,9 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                 }
             }
 
-            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(2))
+            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(OnboardingStepIndices.Upload))
             {
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
-            }
-
-            if (state.SelectedOcrLanguages.Count > 0 && !state.SkippedSteps.Contains(4))
-            {
-                string primaryOcrLanguage = state.SelectedOcrLanguages[0];
-                var ocrOptions = SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions;
-                ocrOptions.Language = primaryOcrLanguage;
-                // Persist the full selection so it survives for a future
-                // multi-language picker. Today the OCR runtime is single-
-                // language per RecognizeAsync call, so the tool uses
-                // OCROptions.Language; the full list is metadata that must
-                // not be silently dropped.
-                ocrOptions.PreferredLanguages = new List<string>(state.SelectedOcrLanguages);
-                DebugHelper.WriteLine($"[OnboardingWizard] Setting primary OCR language: {primaryOcrLanguage} (preferred: {state.SelectedOcrLanguages.Count})");
             }
 
             SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);

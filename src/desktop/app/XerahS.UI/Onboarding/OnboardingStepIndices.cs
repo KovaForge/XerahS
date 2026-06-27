@@ -23,28 +23,16 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Platform.Abstractions;
-
 namespace XerahS.UI.Onboarding;
 
 /// <summary>
-/// Transient state holder for the onboarding wizard.
-/// Collects user preferences across all steps before committing to settings.
+/// Stable step indices for the onboarding wizard state machine.
 /// </summary>
-public sealed class OnboardingState
+internal static class OnboardingStepIndices
 {
-    // Step 1: Save Location
-    public string ScreenshotsFolder { get; set; } = "";
-    public bool CreateDateSubfolders { get; set; } = true;
-
-    // Step 3: Hotkeys
-    public HotkeyInfo? PrimaryCaptureHotkey { get; set; }
-    public List<HotkeyInfo> AdditionalHotkeys { get; set; } = new();
-
-    // Step 4: Upload
-    public string? SelectedUploaderId { get; set; }
-
-    // Tracking
-    public HashSet<int> SkippedSteps { get; set; } = new();
-    public int LastCompletedStepIndex { get; set; } = -1;
+    public const int Welcome = 0;
+    public const int SaveLocation = 1;
+    public const int Hotkeys = 2;
+    public const int Upload = 3;
+    public const int Complete = 4;
 }

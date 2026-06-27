@@ -55,7 +55,6 @@ public partial class OnboardingWizardWindow : Window
         InitializeComponent();
         DataContext = ViewModel;
 
-        // Set up callbacks for steps that need them
         SetupStepCallbacks();
     }
 
@@ -64,79 +63,27 @@ public partial class OnboardingWizardWindow : Window
         AvaloniaXamlLoader.Load(this);
     }
 
+    private T? GetStep<T>() where T : StepViewModelBase =>
+        ViewModel.Steps.OfType<T>().FirstOrDefault();
+
     private void SetupStepCallbacks()
     {
-        // Save location step - folder browser using Avalonia StorageProvider
-        if (ViewModel.Steps.ElementAtOrDefault(0) is SaveLocationStepViewModel saveStep)
+        if (GetStep<SaveLocationStepViewModel>() is { } saveStep)
         {
-            saveStep.BrowseFolderCallback = async () =>
-            {
-                var storageProvider = StorageProvider;
-                if (storageProvider == null) return null;
-
-                var folders = await storageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions
-                {
-                    Title = "Select Screenshots Folder",
-                    AllowMultiple = false
-                });
-
-                return folders.FirstOrDefault()?.TryGetLocalPath();
-            };
+            saveStep.BrowseFolderCallback = PickFolderAsync;
         }
 
-        // Hotkey step - test capture
-        if (ViewModel.Steps.ElementAtOrDefault(1) is HotkeyStepViewModel hotkeyStep)
+        if (GetStep<HotkeyStepViewModel>() is { } hotkeyStep)
         {
-            hotkeyStep.TestCaptureCallback = async () =>
-            {
-                try
-                {
-                    DebugHelper.WriteLine("[Onboarding] Triggering test region capture");
-                    await ExecuteRegionCaptureAsync();
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.WriteException(ex, "[Onboarding] Failed to trigger test capture");
-                }
-            };
+            hotkeyStep.TestCaptureCallback = ExecuteRegionCaptureAsync;
         }
 
-        // Upload step - ShareX import
-        if (ViewModel.Steps.ElementAtOrDefault(2) is UploadStepViewModel uploadStep)
+        if (GetStep<UploadStepViewModel>() is { } uploadStep)
         {
             uploadStep.ConfigureUploaderCallback = ConfigureUploaderAsync;
-
-            uploadStep.ImportShareXCallback = async () =>
-            {
-                try
-                {
-                    // Detect ShareX config in standard location
-                    var shareXPath = System.IO.Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        "ShareX",
-                        "ApplicationConfig.json");
-
-                    if (System.IO.File.Exists(shareXPath))
-                    {
-                        DebugHelper.WriteLine($"[Onboarding] ShareX config found at {shareXPath}, import not yet implemented");
-                        // ShareX import would be implemented here using the ShareXImporter
-                        // For now, return false to indicate import wasn't done
-                        return false;
-                    }
-
-                    DebugHelper.WriteLine("[Onboarding] No ShareX config found");
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.WriteException(ex, "[Onboarding] Failed to import ShareX config");
-                    return false;
-                }
-            };
         }
 
-        // Complete step - take first screenshot and open settings
-        if (ViewModel.Steps.ElementAtOrDefault(3) is CompleteStepViewModel completeStep)
+        if (GetStep<CompleteStepViewModel>() is { } completeStep)
         {
             completeStep.TakeFirstScreenshotCallback = async () =>
             {
@@ -165,6 +112,37 @@ public partial class OnboardingWizardWindow : Window
                     DebugHelper.WriteException(ex, "[Onboarding] Failed to open settings");
                 }
             };
+        }
+    }
+
+    private async Task<string?> PickFolderAsync()
+    {
+        IStorageProvider? storageProvider = StorageProvider;
+        if (storageProvider == null)
+        {
+            return null;
+        }
+
+        IReadOnlyList<IStorageFolder> folders = await storageProvider.OpenFolderPickerAsync(
+            new FolderPickerOpenOptions
+            {
+                Title = "Select Screenshots Folder",
+                AllowMultiple = false,
+            });
+
+        if (folders.Count == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return folders[0].TryGetLocalPath();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Onboarding] Failed to resolve selected folder path");
+            return null;
         }
     }
 
@@ -259,10 +237,7 @@ public partial class OnboardingWizardWindow : Window
         Task<OnboardingResult> completionTask = ViewModel.CompletionTask;
         _ = completionTask.ContinueWith(task =>
         {
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                Close();
-            });
+            Avalonia.Threading.Dispatcher.UIThread.Post(Close);
         }, TaskScheduler.Default);
 
         Closing += (sender, e) =>

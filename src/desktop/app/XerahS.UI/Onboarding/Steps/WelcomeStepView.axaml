@@ -48,9 +48,6 @@
       <TextBlock Text="• Upload destination"
                  FontSize="13"
                  Foreground="{DynamicResource WizTextSecondary}" />
-      <TextBlock Text="• OCR languages"
-                 FontSize="13"
-                 Foreground="{DynamicResource WizTextSecondary}" />
     </StackPanel>
 
     <TextBlock Text="You can change any of these later in Settings."

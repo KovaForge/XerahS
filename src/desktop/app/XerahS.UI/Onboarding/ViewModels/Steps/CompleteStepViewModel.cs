@@ -66,7 +66,7 @@ public partial class CompleteStepViewModel : StepViewModelBase
         List<string> parts = [];
         int configuredCount = 0;
 
-        if (!state.SkippedSteps.Contains(0))
+        if (!state.SkippedSteps.Contains(OnboardingStepIndices.SaveLocation))
         {
             parts.Add($"- Screenshots saved to: {state.ScreenshotsFolder}");
             if (state.CreateDateSubfolders)
@@ -77,7 +77,7 @@ public partial class CompleteStepViewModel : StepViewModelBase
             configuredCount++;
         }
 
-        if (!state.SkippedSteps.Contains(1) && state.PrimaryCaptureHotkey != null)
+        if (!state.SkippedSteps.Contains(OnboardingStepIndices.Hotkeys) && state.PrimaryCaptureHotkey != null)
         {
             parts.Add($"- Primary hotkey: {state.PrimaryCaptureHotkey}");
             if (state.AdditionalHotkeys.Count > 0)
@@ -88,7 +88,7 @@ public partial class CompleteStepViewModel : StepViewModelBase
             configuredCount++;
         }
 
-        if (!state.SkippedSteps.Contains(2))
+        if (!state.SkippedSteps.Contains(OnboardingStepIndices.Upload))
         {
             string uploadText = GetUploadDestinationDisplayName(state.SelectedUploaderId);
             parts.Add($"- Upload destination: {uploadText}");

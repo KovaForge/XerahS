@@ -34,7 +34,7 @@ public partial class WelcomeStepViewModel : StepViewModelBase
     {
         StepTitle = "Welcome to XerahS";
         StepSubtitle = "Let's get you set up";
-        StepDescription = "This quick wizard will help you configure save location, hotkeys, upload, and OCR.";
+        StepDescription = "This quick wizard will help you configure save location, hotkeys, and upload.";
         CanSkip = false;
         SetValidationState(true);
     }
