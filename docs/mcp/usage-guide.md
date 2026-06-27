@@ -410,7 +410,7 @@ Supported resource URIs:
 - `xerahs://destinations`
 - `xerahs://monitors`
 
-`xerahs://history/thumb/{id}` currently returns a base64 blob of the stored history item file. It is not a separate thumbnail-rendering pipeline.
+History summary/detail payloads include `thumbnail_resource` when clients need the MCP blob URI for an item. `xerahs://history/thumb/{id}` currently returns a base64 blob of the local thumbnail file when one exists, otherwise the stored history item file. It is not a separate thumbnail-rendering pipeline.
 
 ## Prompts
 

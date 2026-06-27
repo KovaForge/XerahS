@@ -308,6 +308,12 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
             // so it does not auto-install on non-GNOME desktops (KDE, XFCE, etc.) where tray works
             // natively without this package.
             sb.AppendLine("Suggests: gnome-shell-extension-appindicator");
+            // wl-clipboard (Wayland) and xclip (X11) back the CLI clipboard fallback used by
+            // non-UI contexts (CLI tool, watch-folder daemon, pre-window startup). Neither is
+            // installed on stock Ubuntu GNOME, and LinuxClipboardService degrades silently
+            // without them. apt installs Recommends by default, so this fixes out-of-box
+            // clipboard for background workflows while staying removable for minimal installs.
+            sb.AppendLine("Recommends: wl-clipboard, xclip");
             sb.AppendLine("Description: XerahS - Cross-platform screen capture tool");
             sb.AppendLine(" A modern, cross-platform successor to ShareX.");
             sb.AppendLine(" .");

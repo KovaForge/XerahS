@@ -70,6 +70,47 @@
                           AutomationProperties.LandmarkType="Form"
                           AutomationProperties.AccessibilityView="Control">
             <ContentControl.DataTemplates>
+              <DataTemplate DataType="steps:WelcomeStepViewModel"
+                            x:DataType="steps:WelcomeStepViewModel">
+                <ScrollViewer>
+                  <StackPanel Spacing="20" Margin="0,8,0,0">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center" Margin="0,8,0,0">
+                      <TextBlock Text="Welcome to XerahS"
+                                 FontSize="22" FontWeight="SemiBold"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                      <TextBlock Text="A few quick steps to get started."
+                                 FontSize="13"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6" Margin="0,8,0,0">
+                      <TextBlock Text="We'll walk you through:"
+                                 FontSize="13"
+                                 FontWeight="Medium"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                      <TextBlock Text="• Where screenshots are saved"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• Capture hotkeys"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• Upload destination"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <TextBlock Text="You can change any of these later in Settings."
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+                </ScrollViewer>
+              </DataTemplate>
+
               <DataTemplate DataType="steps:SaveLocationStepViewModel"
                             x:DataType="steps:SaveLocationStepViewModel">
                 <StackPanel Spacing="16">
@@ -201,13 +242,6 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </StackPanel>
-
-                  <Button Content="Import from ShareX..."
-                          Command="{Binding ImportFromShareXCommand}"
-                          IsVisible="{Binding HasShareXConfig}"
-                          Classes="WizardGhostButton"
-                          HorizontalAlignment="Left"
-                          Margin="0,8,0,0" />
 
                   <Border Classes="section-card"
                           Padding="12"

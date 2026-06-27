@@ -275,7 +275,8 @@ The server supports the following resource families:
 
 Important notes:
 
-- `xerahs://history/thumb/{id}` currently returns a base64 blob of the stored file for that history item. It is not a separately rendered thumbnail pipeline.
+- History summary/detail payloads include `thumbnail_resource` when clients need the MCP blob URI for an item.
+- `xerahs://history/thumb/{id}` currently returns a base64 blob of the local thumbnail file when one exists, otherwise the stored file for that history item. It is not a separately rendered thumbnail pipeline.
 - Settings resources expose summaries and safe metadata only.
 
 ## Prompt Contract

@@ -148,6 +148,60 @@ public class PluginManifestSecurityTests
     }
 
     [Test]
+    public void PluginFolderCleaner_PrunesEmptyQuarantineDirectoriesWithoutDeletingKeptFiles()
+    {
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        string pluginDirectory = Path.Combine(pluginsRoot, "sample-plugin");
+        Directory.CreateDirectory(pluginDirectory);
+
+        string manifestPath = Path.Combine(pluginDirectory, "plugin.json");
+        string assemblyPath = Path.Combine(pluginDirectory, "sample-plugin.dll");
+        string emptyQuarantineDirectory = Path.Combine(pluginDirectory, "_quarantine", "20260520_000000", "nested");
+
+        File.WriteAllText(manifestPath, CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+        File.WriteAllText(assemblyPath, "not really an assembly");
+        Directory.CreateDirectory(emptyQuarantineDirectory);
+
+        InvokePluginFolderCleanup(pluginDirectory, manifestPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(manifestPath), Is.True);
+            Assert.That(File.Exists(assemblyPath), Is.True);
+            Assert.That(Directory.Exists(Path.Combine(pluginDirectory, "_quarantine")), Is.False);
+        });
+    }
+
+    [Test]
+    public void PluginFolderCleaner_KeepsQuarantinedFilesWhenPruningEmptyDirectories()
+    {
+        string pluginsRoot = Path.Combine(_tempRoot, "Plugins");
+        string pluginDirectory = Path.Combine(pluginsRoot, "sample-plugin");
+        Directory.CreateDirectory(pluginDirectory);
+
+        string manifestPath = Path.Combine(pluginDirectory, "plugin.json");
+        string assemblyPath = Path.Combine(pluginDirectory, "sample-plugin.dll");
+        string nonEmptyQuarantineDirectory = Path.Combine(pluginDirectory, "_quarantine", "20260520_000000");
+        string quarantinedFile = Path.Combine(nonEmptyQuarantineDirectory, "old.dll");
+        string emptyQuarantineDirectory = Path.Combine(pluginDirectory, "_quarantine", "20260520_010000", "nested");
+
+        File.WriteAllText(manifestPath, CreateManifestJson("sample-plugin", "sample-plugin.dll"));
+        File.WriteAllText(assemblyPath, "not really an assembly");
+        Directory.CreateDirectory(nonEmptyQuarantineDirectory);
+        File.WriteAllText(quarantinedFile, "old quarantined file");
+        Directory.CreateDirectory(emptyQuarantineDirectory);
+
+        InvokePluginFolderCleanup(pluginDirectory, manifestPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(quarantinedFile), Is.True);
+            Assert.That(Directory.Exists(emptyQuarantineDirectory), Is.False);
+            Assert.That(Directory.Exists(Path.GetDirectoryName(emptyQuarantineDirectory)!), Is.False);
+        });
+    }
+
+    [Test]
     public void InstallPackage_RejectsManifestWithPluginIdPathTraversal()
     {
         string packagePath = Path.Combine(_tempRoot, "malicious.xsdp");

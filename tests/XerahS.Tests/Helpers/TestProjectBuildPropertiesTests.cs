@@ -16,6 +16,22 @@ namespace XerahS.Tests.Helpers;
 public class TestProjectBuildPropertiesTests
 {
     [Test]
+    public void DirectoryBuildProps_UserImport_CannotOverrideReleaseGuardrails()
+    {
+        string propsPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "../../../../../Directory.Build.props"));
+
+        XDocument props = XDocument.Load(propsPath);
+        XElement project = props.Root ?? throw new InvalidOperationException("Directory.Build.props has no root element.");
+        XElement userImport = project.Elements("Import")
+            .Single(element => string.Equals((string?)element.Attribute("Project"), "Directory.Build.props.user", StringComparison.OrdinalIgnoreCase));
+        XElement releaseGuardrailGroup = project.Elements("PropertyGroup")
+            .First(element => element.Element("Version") is not null && element.Element("TreatWarningsAsErrors") is not null);
+
+        Assert.That(project.Elements().ToList().IndexOf(userImport), Is.LessThan(project.Elements().ToList().IndexOf(releaseGuardrailGroup)));
+    }
+
+    [Test]
     public void XerahSTests_AppAndCliProjectReferences_DisableAppDrivenPluginBuild()
     {
         string testProjectPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
@@ -48,6 +64,20 @@ public class TestProjectBuildPropertiesTests
 
         AssertPackageReferenceIsPrivateBuildAsset(project, "Microsoft.NET.Test.Sdk");
         AssertPackageReferenceIsPrivateBuildAsset(project, "NUnit3TestAdapter");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "Avalonia.Headless.NUnit");
+    }
+
+    [Test]
+    public void McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets()
+    {
+        string testProjectPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "../../../../../src/tools/XerahS.McpServer.Tests/XerahS.McpServer.Tests.csproj"));
+
+        XDocument project = XDocument.Load(testProjectPath);
+
+        AssertPackageReferenceIsPrivateBuildAsset(project, "Microsoft.NET.Test.Sdk");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "xunit.runner.visualstudio");
+        AssertPackageReferenceIsPrivateBuildAsset(project, "coverlet.collector");
     }
 
     private static void AssertPackageReferenceIsPrivateBuildAsset(XDocument project, string packageName)

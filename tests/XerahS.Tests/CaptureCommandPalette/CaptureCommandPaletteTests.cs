@@ -26,6 +26,14 @@ public sealed class CaptureCommandPaletteTests
     }
 
     [Test]
+    public void FuzzyMatcher_CollapsesRepeatedWhitespace()
+    {
+        double score = CaptureCommandPaletteFuzzyMatcher.Score("region   capture", "Region Capture");
+
+        Assert.That(score, Is.GreaterThan(0));
+    }
+
+    [Test]
     public void CreateItems_IncludesOnlyEnabledCaptureAndRecordingWorkflows()
     {
         WorkflowSettings capture = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
@@ -81,6 +89,72 @@ public sealed class CaptureCommandPaletteTests
         {
             Assert.That(executedWorkflowId, Is.EqualTo(region.Id));
             Assert.That(closed, Is.True);
+        });
+    }
+
+    [Test]
+    public void ViewModel_MoveSelection_WrapsAtListEdges()
+    {
+        WorkflowSettings region = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
+        WorkflowSettings window = CreateWorkflow(WorkflowType.ActiveWindow, "Active window");
+        var items = CaptureCommandPaletteProvider.CreateItems([region, window]);
+        var viewModel = new CaptureCommandPaletteViewModel(
+            () => items,
+            _ => Task.CompletedTask);
+
+        viewModel.MoveSelection(-1);
+        CaptureCommandPaletteItem? wrappedFromFirst = viewModel.SelectedItem;
+        viewModel.MoveSelection(1);
+        CaptureCommandPaletteItem? wrappedFromLast = viewModel.SelectedItem;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrappedFromFirst?.Workflow, Is.SameAs(window));
+            Assert.That(wrappedFromLast?.Workflow, Is.SameAs(region));
+        });
+    }
+
+    [Test]
+    public void ViewModel_MoveSelection_UpFromNoSelection_SelectsLastItem()
+    {
+        WorkflowSettings region = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
+        WorkflowSettings window = CreateWorkflow(WorkflowType.ActiveWindow, "Active window");
+        var items = CaptureCommandPaletteProvider.CreateItems([region, window]);
+        var viewModel = new CaptureCommandPaletteViewModel(
+            () => items,
+            _ => Task.CompletedTask)
+        {
+            SelectedItem = null
+        };
+
+        viewModel.MoveSelection(-1);
+
+        Assert.That(viewModel.SelectedItem?.Workflow, Is.SameAs(window));
+    }
+
+    [Test]
+    public void ViewModel_HandleEscape_WithWhitespaceQuery_RequestsClose()
+    {
+        WorkflowSettings region = CreateWorkflow(WorkflowType.RectangleRegion, "Region capture");
+        var items = CaptureCommandPaletteProvider.CreateItems([region]);
+        var viewModel = new CaptureCommandPaletteViewModel(
+            () => items,
+            _ => Task.CompletedTask)
+        {
+            Query = "   "
+        };
+        bool closed = false;
+        bool focusedSearch = false;
+        viewModel.RequestClose += () => closed = true;
+        viewModel.RequestFocusSearch += () => focusedSearch = true;
+
+        viewModel.HandleEscape();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(closed, Is.True);
+            Assert.That(focusedSearch, Is.False);
+            Assert.That(viewModel.Query, Is.EqualTo("   "));
         });
     }
 

@@ -188,6 +188,21 @@ public class InstanceManager
                 throw new InvalidOperationException($"Instance with ID {instance.InstanceId} not found");
             }
 
+            // Remove stale default mapping when category changes
+            if (existing.Category != instance.Category)
+            {
+                var staleDefaults = _configuration.DefaultInstances
+                    .Where(kvp => kvp.Key == existing.Category && InstanceIdsEqual(kvp.Value, existing.InstanceId))
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var category in staleDefaults)
+                {
+                    _configuration.DefaultInstances.Remove(category);
+                    LogStaleDefaultRemoved(category, existing.InstanceId, $"category changed from {existing.Category} to {instance.Category}");
+                }
+            }
+
             var index = _configuration.Instances.IndexOf(existing);
             instance.ModifiedAt = DateTime.UtcNow;
             _configuration.Instances[index] = instance;
@@ -216,6 +231,7 @@ public class InstanceManager
                 foreach (var category in defaultsToRemove)
                 {
                     _configuration.DefaultInstances.Remove(category);
+                    LogStaleDefaultRemoved(category, instanceId, "instance was removed");
                 }
 
                 SaveConfiguration();
@@ -295,9 +311,33 @@ public class InstanceManager
         {
             if (_configuration.DefaultInstances.TryGetValue(category, out var instanceId))
             {
-                return _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
+                var instance = _configuration.Instances.FirstOrDefault(i => InstanceIdsEqual(i.InstanceId, instanceId));
+
+                // Verify the persisted default still resolves to a usable instance.
+                if (instance == null || instance.Category != category || !instance.IsAvailable)
+                {
+                    _configuration.DefaultInstances.Remove(category);
+                    LogStaleDefaultRemoved(category, instanceId, GetStaleDefaultReason(instance, category));
+                    SaveConfiguration();
+                    return null;
+                }
+
+                return instance;
             }
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Check whether an instance ID is the current default for a category.
+    /// This is a pure read and does NOT clean stale mappings (unlike GetDefaultInstance).
+    /// </summary>
+    public bool IsDefaultInstance(UploaderCategory category, string instanceId)
+    {
+        lock (_lock)
+        {
+            return _configuration.DefaultInstances.TryGetValue(category, out var defaultId) &&
+                   InstanceIdsEqual(defaultId, instanceId);
         }
     }
 
@@ -316,6 +356,7 @@ public class InstanceManager
                     string.Equals(i.InstanceId, defaultId, StringComparison.OrdinalIgnoreCase));
 
                 if (defaultInstance != null &&
+                    defaultInstance.Category == category &&
                     defaultInstance.IsAvailable &&
                     !IsAutoProvider(defaultInstance.ProviderId) &&
                     !string.Equals(defaultInstance.InstanceId, autoInstanceId, StringComparison.OrdinalIgnoreCase))
@@ -386,9 +427,9 @@ public class InstanceManager
             }
 
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
+                .Where(i => i.Category == category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
 
-            // Cannot add if any other instance has "All File Types"
+            // Cannot add if any available other instance has "All File Types"
             if (otherInstances.Any(i => GetFileTypeRouting(i).AllFileTypes))
                 return false;
 
@@ -409,9 +450,9 @@ public class InstanceManager
         lock (_lock)
         {
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, currentInstanceId));
+                .Where(i => i.Category == category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, currentInstanceId));
 
-            // Can only set "All File Types" if no other instances exist in this category
+            // Can only set "All File Types" if no other available instances exist in this category
             return !otherInstances.Any();
         }
     }
@@ -429,7 +470,7 @@ public class InstanceManager
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == category && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
+                .Where(i => i.Category == category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, excludeInstanceId));
 
             foreach (var instance in otherInstances)
             {
@@ -461,7 +502,7 @@ public class InstanceManager
         lock (_lock)
         {
             var otherInstances = _configuration.Instances
-                .Where(i => i.Category == instance.Category && !InstanceIdsEqual(i.InstanceId, instance.InstanceId));
+                .Where(i => i.Category == instance.Category && i.IsAvailable && !InstanceIdsEqual(i.InstanceId, instance.InstanceId));
 
             var instanceRouting = GetFileTypeRouting(instance);
 
@@ -571,6 +612,31 @@ public class InstanceManager
 
     private static bool InstanceIdsEqual(string? left, string? right) =>
         string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    private static string GetStaleDefaultReason(UploaderInstance? instance, UploaderCategory category)
+    {
+        if (instance == null)
+        {
+            return "instance no longer exists";
+        }
+
+        if (instance.Category != category)
+        {
+            return $"category is {instance.Category}";
+        }
+
+        if (!instance.IsAvailable)
+        {
+            return "instance is unavailable";
+        }
+
+        return "instance is not usable";
+    }
+
+    private static void LogStaleDefaultRemoved(UploaderCategory category, string instanceId, string reason)
+    {
+        DebugHelper.WriteLine($"[Uploaders] Removed stale default {category} uploader '{instanceId}': {reason}.");
+    }
 
     private void SaveConfiguration()
     {

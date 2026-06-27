@@ -212,7 +212,15 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public void OnMenuClosed()
     {
         _isMenuOpen = false;
-        CheckFade();
+
+        // When the user dismisses the menu, resume fade immediately regardless of duration state.
+        // CheckFade() gates on _isDurationEnd which is only set when the duration timer fires.
+        // If the user opens the context menu during the visible-duration window (before _isDurationEnd
+        // is set), CheckFade() does nothing on close and the toast appears stuck.
+        if (_config.AutoHide && !_isMouseInside)
+        {
+            StartFade();
+        }
     }
 
     public void OnMouseEnter()
@@ -267,16 +275,25 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 
     private void OnFadeTick(object? sender, EventArgs e)
     {
-        if (_opacity > _opacityDecrement)
+        var nextOpacity = GetNextFadeOpacity(_opacity, _opacityDecrement);
+
+        if (nextOpacity > 0)
         {
-            _opacity -= _opacityDecrement;
+            _opacity = nextOpacity;
             OpacityChanged?.Invoke(this, _opacity);
         }
         else
         {
+            _opacity = 0;
+            OpacityChanged?.Invoke(this, _opacity);
             _fadeTimer.Stop();
             CloseRequested?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    internal static double GetNextFadeOpacity(double opacity, double opacityDecrement)
+    {
+        return opacity > opacityDecrement ? opacity - opacityDecrement : 0;
     }
 
     private void StartFade()

@@ -162,7 +162,7 @@ namespace XerahS.Common
 
         public static bool operator ==(HSB left, HSB right)
         {
-            return (left.Hue == right.Hue) && (left.Saturation == right.Saturation) && (left.Brightness == right.Brightness);
+            return (left.Hue == right.Hue) && (left.Saturation == right.Saturation) && (left.Brightness == right.Brightness) && (left.Alpha == right.Alpha);
         }
 
         public static bool operator !=(HSB left, HSB right)
@@ -188,6 +188,14 @@ namespace XerahS.Common
         public override bool Equals(object? obj)
         {
             return obj is HSB other && this == other;
+        }
+
+        internal static class TestAccessor
+        {
+            public static HSB Create(double hue, double saturation, double brightness, int alpha)
+            {
+                return new HSB(hue, saturation, brightness, alpha);
+            }
         }
     }
 }

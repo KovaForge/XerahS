@@ -76,6 +76,31 @@ namespace XerahS.Common
 
         private static string GetDocumentsFolder()
         {
+            // On macOS, launchd/agent hosts can override HOME to an agent profile
+            // directory (for example ~/.hermes/profiles/<agent>/home). The CLR then
+            // resolves SpecialFolder.MyDocuments inside that profile, causing CLI
+            // plugin discovery to look in the wrong XerahS/Plugins folder. Resolve
+            // the real login account home through libc before falling back to the
+            // environment-sensitive .NET special folders.
+            if (OperatingSystem.IsMacOS())
+            {
+                string? nativeHome = GetNativeUserHomeDirectory();
+                if (!string.IsNullOrWhiteSpace(nativeHome))
+                {
+                    string nativeDocuments = Path.Combine(nativeHome, "Documents");
+                    if (Directory.Exists(nativeDocuments))
+                    {
+                        return nativeDocuments;
+                    }
+                }
+
+                string userNameDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
+                if (Directory.Exists(userNameDocuments))
+                {
+                    return userNameDocuments;
+                }
+            }
+
             string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             if (!string.IsNullOrWhiteSpace(documents) && Path.IsPathRooted(documents))
             {
@@ -83,14 +108,6 @@ namespace XerahS.Common
             }
 
             string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            if (OperatingSystem.IsMacOS())
-            {
-                string macOSDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
-                if (Directory.Exists(macOSDocuments))
-                {
-                    return macOSDocuments;
-                }
-            }
 
             string userProfileDocuments = Path.Combine(userProfile ?? string.Empty, "Documents");
             if (!string.IsNullOrWhiteSpace(userProfile) && Path.IsPathRooted(userProfileDocuments))
@@ -99,6 +116,47 @@ namespace XerahS.Common
             }
 
             return string.IsNullOrWhiteSpace(documents) ? Environment.CurrentDirectory : documents;
+        }
+
+        private static string? GetNativeUserHomeDirectory()
+        {
+            try
+            {
+                IntPtr passwdPointer = getpwuid(getuid());
+                if (passwdPointer == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                Passwd passwd = Marshal.PtrToStructure<Passwd>(passwdPointer);
+                return Marshal.PtrToStringUTF8(passwd.HomeDirectory);
+            }
+            catch (Exception ex) when (ex is EntryPointNotFoundException || ex is DllNotFoundException || ex is MarshalDirectiveException)
+            {
+                DebugHelper.WriteLine($"Unable to resolve native user home directory: {ex.Message}");
+                return null;
+            }
+        }
+
+        [DllImport("libc")]
+        private static extern uint getuid();
+
+        [DllImport("libc")]
+        private static extern IntPtr getpwuid(uint uid);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Passwd
+        {
+            public IntPtr Name;
+            public IntPtr Password;
+            public uint Uid;
+            public uint Gid;
+            public long Change;
+            public IntPtr Class;
+            public IntPtr Gecos;
+            public IntPtr HomeDirectory;
+            public IntPtr Shell;
+            public long Expire;
         }
 
         public static string ScreenshotsFolder => UseLinuxXdgLayout

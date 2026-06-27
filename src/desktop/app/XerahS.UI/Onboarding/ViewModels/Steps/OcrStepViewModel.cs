@@ -58,12 +58,19 @@ public partial class OcrLanguageOption : ObservableObject
 public partial class OcrStepViewModel : StepViewModelBase
 {
     private bool _syncingSelections;
+    private ObservableCollection<string>? _subscribedSelectedLanguages;
 
     [ObservableProperty]
     private ObservableCollection<string> _selectedLanguages = new();
 
     [ObservableProperty]
     private bool _downloadInBackground = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLanguageRefreshError))]
+    private string? _languageRefreshError;
+
+    public bool HasLanguageRefreshError => !string.IsNullOrWhiteSpace(LanguageRefreshError);
 
     public ObservableCollection<OcrLanguageOption> AvailableLanguages { get; } = new();
 
@@ -80,7 +87,7 @@ public partial class OcrStepViewModel : StepViewModelBase
         StepDescription = "Select languages for OCR. You can always add more later in Settings.";
         CanSkip = true;
 
-        SelectedLanguages.CollectionChanged += SelectedLanguages_CollectionChanged;
+        SubscribeSelectedLanguages(SelectedLanguages);
         InitializeLanguages();
         UpdateValidationState();
     }
@@ -125,9 +132,16 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     public void SetDefaultLanguage(string languageCode)
     {
+        string normalizedLanguageCode = NormalizeLanguageTag(languageCode);
+        if (string.IsNullOrEmpty(normalizedLanguageCode))
+        {
+            return;
+        }
+
         OcrLanguageOption? match = AvailableLanguages.FirstOrDefault(language =>
-            language.LanguageTag.Equals(languageCode, StringComparison.OrdinalIgnoreCase) ||
-            language.LanguageTag.StartsWith(languageCode + "-", StringComparison.OrdinalIgnoreCase));
+            language.LanguageTag.Equals(normalizedLanguageCode, StringComparison.OrdinalIgnoreCase) ||
+            language.LanguageTag.StartsWith(normalizedLanguageCode + "-", StringComparison.OrdinalIgnoreCase) ||
+            normalizedLanguageCode.StartsWith(language.LanguageTag + "-", StringComparison.OrdinalIgnoreCase));
 
         if (match != null)
         {
@@ -153,19 +167,47 @@ public partial class OcrStepViewModel : StepViewModelBase
         var ocrService = PlatformServices.Ocr;
         if (ocrService != null && ocrService.IsSupported)
         {
-            IEnumerable<OcrLanguage> platformLanguages = ocrService.GetAvailableLanguages();
+            IEnumerable<OcrLanguage> platformLanguages;
+            try
+            {
+                LanguageRefreshError = null;
+                platformLanguages = ocrService.GetAvailableLanguages();
+            }
+            catch (Exception ex)
+            {
+                LanguageRefreshError = $"Could not refresh OCR languages: {ex.Message}";
+                SyncOptionsFromSelectedLanguages(orderByAvailableLanguages: true);
+                UpdateValidationState();
+                return;
+            }
 
-            ClearAvailableLanguages();
+            List<OcrLanguageOption> refreshedLanguages = new();
+            HashSet<string> registeredLanguageTags = new(StringComparer.OrdinalIgnoreCase);
             foreach (OcrLanguage language in platformLanguages)
             {
-                RegisterLanguage(new OcrLanguageOption(
-                    language.LanguageTag,
-                    language.DisplayName,
-                    language.DisplayName,
+                string languageTag = NormalizeLanguageTag(language.LanguageTag);
+                if (string.IsNullOrEmpty(languageTag) || !registeredLanguageTags.Add(languageTag))
+                {
+                    continue;
+                }
+
+                refreshedLanguages.Add(new OcrLanguageOption(
+                    languageTag,
+                    NormalizeDisplayName(language.DisplayName, languageTag),
+                    NormalizeDisplayName(language.DisplayName, languageTag),
                     0));
             }
 
-            SyncOptionsFromSelectedLanguages();
+            if (refreshedLanguages.Count > 0)
+            {
+                ClearAvailableLanguages();
+                foreach (OcrLanguageOption language in refreshedLanguages)
+                {
+                    RegisterLanguage(language);
+                }
+            }
+
+            SyncOptionsFromSelectedLanguages(orderByAvailableLanguages: true);
             UpdateValidationState();
         }
 
@@ -176,26 +218,14 @@ public partial class OcrStepViewModel : StepViewModelBase
     {
         _syncingSelections = true;
         SelectedLanguages.Clear();
-
-        List<string> languagesToSelect = state.SelectedOcrLanguages.Count > 0
-            ? state.SelectedOcrLanguages
-            : ["en"];
-
-        foreach (string language in languagesToSelect)
-        {
-            SelectedLanguages.Add(language);
-        }
-
+        SelectedLanguages.Add("en");
         _syncingSelections = false;
         SyncOptionsFromSelectedLanguages();
-        DownloadInBackground = state.DownloadOcrInBackground;
         UpdateValidationState();
     }
 
     public override void SaveToState(OnboardingState state)
     {
-        state.SelectedOcrLanguages = SelectedLanguages.ToList();
-        state.DownloadOcrInBackground = DownloadInBackground;
     }
 
     public override bool Validate()
@@ -206,14 +236,48 @@ public partial class OcrStepViewModel : StepViewModelBase
 
     partial void OnSelectedLanguagesChanged(ObservableCollection<string> value)
     {
-        value.CollectionChanged -= SelectedLanguages_CollectionChanged;
-        value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        if (value is null)
+        {
+            SubscribeSelectedLanguages(null);
+            _selectedLanguages = new ObservableCollection<string>();
+            SubscribeSelectedLanguages(_selectedLanguages);
+        }
+        else
+        {
+            SubscribeSelectedLanguages(value);
+        }
+
         SyncOptionsFromSelectedLanguages();
         UpdateValidationState();
     }
 
+    private void SubscribeSelectedLanguages(ObservableCollection<string>? value)
+    {
+        if (ReferenceEquals(_subscribedSelectedLanguages, value))
+        {
+            return;
+        }
+
+        if (_subscribedSelectedLanguages != null)
+        {
+            _subscribedSelectedLanguages.CollectionChanged -= SelectedLanguages_CollectionChanged;
+        }
+
+        _subscribedSelectedLanguages = value;
+        if (value != null)
+        {
+            value.CollectionChanged += SelectedLanguages_CollectionChanged;
+        }
+    }
+
     private void SelectedLanguages_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
+        if (!_syncingSelections)
+        {
+            SyncOptionsFromSelectedLanguages();
+            return;
+        }
+
         UpdateValidationState();
     }
 
@@ -261,18 +325,24 @@ public partial class OcrStepViewModel : StepViewModelBase
         UpdateValidationState();
     }
 
-    private void SyncOptionsFromSelectedLanguages()
+    private void SyncOptionsFromSelectedLanguages(bool orderByAvailableLanguages = false)
     {
         _syncingSelections = true;
 
-        Dictionary<string, string> supportedLanguageTags = AvailableLanguages
-            .ToDictionary(language => language.LanguageTag, language => language.LanguageTag, StringComparer.OrdinalIgnoreCase);
-
         List<string> normalizedSelectedLanguages = SelectedLanguages
-            .Where(languageTag => supportedLanguageTags.ContainsKey(languageTag))
-            .Select(languageTag => supportedLanguageTags[languageTag])
+            .Select(NormalizeLanguageTag)
+            .Select(ResolveSupportedLanguageTag)
+            .Where(languageTag => !string.IsNullOrEmpty(languageTag))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        if (orderByAvailableLanguages)
+        {
+            normalizedSelectedLanguages = AvailableLanguages
+                .Select(language => language.LanguageTag)
+                .Where(languageTag => normalizedSelectedLanguages.Contains(languageTag, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+        }
 
         if (normalizedSelectedLanguages.Count != SelectedLanguages.Count ||
             !normalizedSelectedLanguages.SequenceEqual(SelectedLanguages, StringComparer.Ordinal))
@@ -311,5 +381,30 @@ public partial class OcrStepViewModel : StepViewModelBase
         OnPropertyChanged(nameof(TotalDownloadSizeMb));
         OnPropertyChanged(nameof(ExceedsRecommendedSize));
         SetValidationState(SelectedLanguages.Count > 0, SelectedLanguages.Count > 0 ? null : "Select at least one OCR language.");
+    }
+
+    private static string NormalizeLanguageTag(string? languageTag) => languageTag?.Trim() ?? string.Empty;
+
+    private string ResolveSupportedLanguageTag(string languageTag)
+    {
+        if (string.IsNullOrEmpty(languageTag))
+        {
+            return string.Empty;
+        }
+
+        OcrLanguageOption? match = AvailableLanguages.FirstOrDefault(language =>
+            language.LanguageTag.Equals(languageTag, StringComparison.OrdinalIgnoreCase));
+
+        match ??= AvailableLanguages.FirstOrDefault(language =>
+            language.LanguageTag.StartsWith(languageTag + "-", StringComparison.OrdinalIgnoreCase) ||
+            languageTag.StartsWith(language.LanguageTag + "-", StringComparison.OrdinalIgnoreCase));
+
+        return match?.LanguageTag ?? string.Empty;
+    }
+
+    private static string NormalizeDisplayName(string? displayName, string languageTag)
+    {
+        string normalizedDisplayName = displayName?.Trim() ?? string.Empty;
+        return string.IsNullOrEmpty(normalizedDisplayName) ? languageTag : normalizedDisplayName;
     }
 }

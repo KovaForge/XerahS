@@ -25,24 +25,28 @@
 
 using NUnit.Framework;
 using SkiaSharp;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.Tests.Tools;
 
 [TestFixture]
+[NonParallelizable]
 public sealed class OcrViewModelTests
 {
     [SetUp]
     public void SetUp()
     {
         PlatformServices.Reset();
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "en";
     }
 
     [TearDown]
     public void TearDown()
     {
         PlatformServices.Reset();
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "en";
     }
 
     [Test]
@@ -111,6 +115,43 @@ public sealed class OcrViewModelTests
 
 
     [Test]
+    public async Task RunOcrAsync_WhenRecognitionFailsWithoutMessage_ShowsDefaultFailureStatus()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new FailureOcrService("   ");
+        PlatformServices.Ocr = ocr;
+
+        var viewModel = new OcrViewModel(bitmap);
+
+        await viewModel.RunOcrAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.StatusText, Is.EqualTo("OCR failed."));
+            Assert.That(viewModel.HasResult, Is.False);
+            Assert.That(viewModel.ResultText, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task RunOcrAsync_WhenRecognitionFailsWithMessage_TrimsFailureStatus()
+    {
+        using var bitmap = new SKBitmap(8, 8);
+        var ocr = new FailureOcrService("  language pack missing  ");
+        PlatformServices.Ocr = ocr;
+
+        var viewModel = new OcrViewModel(bitmap);
+
+        await viewModel.RunOcrAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.StatusText, Is.EqualTo("language pack missing"));
+            Assert.That(viewModel.HasResult, Is.False);
+        });
+    }
+
+    [Test]
     public async Task RunOcrAsync_ClearsPreviousResultStateWhileProcessing()
     {
         using var bitmap = new SKBitmap(8, 8);
@@ -144,6 +185,30 @@ public sealed class OcrViewModelTests
         });
     }
 
+    private sealed class FailureOcrService : IOcrService
+    {
+        private readonly string? _errorMessage;
+
+        public FailureOcrService(string? errorMessage)
+        {
+            _errorMessage = errorMessage;
+        }
+
+        public bool IsSupported => true;
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options) =>
+            Task.FromResult(new OcrResult
+            {
+                Success = false,
+                ErrorMessage = _errorMessage
+            });
+
+        public OcrLanguage[] GetAvailableLanguages() =>
+        [
+            new("English", "en")
+        ];
+    }
+
     private sealed class WaitingOcrService : IOcrService
     {
         private readonly TaskCompletionSource _callStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -172,6 +237,138 @@ public sealed class OcrViewModelTests
         ];
     }
 
+    [Test]
+    public void LoadAvailableLanguages_NormalizesPlatformTagsAndDisplayNames()
+    {
+        var ocr = new RecordingOcrService(["first"])
+        {
+            AvailableLanguages =
+            [
+                new(" English ", " en "),
+                new(" English dup ", "En"),
+                new(" ", " fr "),
+                new("Japanese", ""),
+                new("German", "de")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.AvailableLanguages.Count, Is.EqualTo(3));
+        Assert.That(viewModel.AvailableLanguages.Select(l => l.LanguageTag), Is.EqualTo(new[] { "en", "fr", "de" }));
+        Assert.That(viewModel.AvailableLanguages.First(l => l.LanguageTag == "en").DisplayName, Is.EqualTo("English"));
+        Assert.That(viewModel.AvailableLanguages.First(l => l.LanguageTag == "fr").DisplayName, Is.EqualTo("fr"));
+        Assert.That(viewModel.AvailableLanguages.First(l => l.LanguageTag == "de").DisplayName, Is.EqualTo("German"));
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("en"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_WhenPlatformEnumerationThrows_SurfacesStatusInsteadOfThrowing()
+    {
+        PlatformServices.Ocr = new ThrowingLanguageOcrService();
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.AvailableLanguages, Is.Empty);
+            Assert.That(viewModel.SelectedLanguage, Is.Null);
+            Assert.That(viewModel.StatusText, Does.Contain("OCR language enumeration failed."));
+        });
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_PrefersPersistedOnboardingLanguage()
+    {
+        // Onboarding wizard writes SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language.
+        // The OCR tool should honor that selection when it matches an available language.
+        var ocr = new RecordingOcrService(["fr-text"])
+        {
+            AvailableLanguages =
+            [
+                new("English", "en"),
+                new("French", "fr"),
+                new("German", "de")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "fr";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("fr"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_FallsBackToEnglish_WhenPersistedLanguageUnavailable()
+    {
+        var ocr = new RecordingOcrService(["en-text"])
+        {
+            AvailableLanguages =
+            [
+                new("English", "en"),
+                new("French", "fr")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        // Persisted language (ja) is not in the platform's available set; expect fallback to English.
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "ja";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("en"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_FallsBackToFirst_WhenPersistedEmptyAndNoEnglish()
+    {
+        var ocr = new RecordingOcrService(["ja-text"])
+        {
+            AvailableLanguages =
+            [
+                new("Japanese", "ja"),
+                new("French", "fr")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        // Empty persisted value (e.g. onboarding skipped) and English unavailable; expect first language.
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "   ";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("ja"));
+    }
+
+    [Test]
+    public void LoadAvailableLanguages_TrimsPersistedWhitespaceBeforeMatching()
+    {
+        var ocr = new RecordingOcrService(["de-text"])
+        {
+            AvailableLanguages =
+            [
+                new("English", "en"),
+                new("German", "de")
+            ]
+        };
+        PlatformServices.Ocr = ocr;
+        SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language = "  de  ";
+
+        using var bitmap = new SKBitmap(8, 8);
+        var viewModel = new OcrViewModel(bitmap);
+
+        Assert.That(viewModel.SelectedLanguage, Is.Not.Null);
+        Assert.That(viewModel.SelectedLanguage!.LanguageTag, Is.EqualTo("de"));
+    }
+
     private sealed class RecordingOcrService : IOcrService
     {
         private readonly Queue<string> _responses;
@@ -188,6 +385,12 @@ public sealed class OcrViewModelTests
         public List<string> RequestedLanguages { get; } = new();
 
         public OcrOptions? LastOptions { get; private set; }
+
+        public OcrLanguage[] AvailableLanguages { get; set; } =
+        [
+            new("English", "en"),
+            new("French", "fr")
+        ];
 
         public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options)
         {
@@ -207,10 +410,16 @@ public sealed class OcrViewModelTests
             });
         }
 
-        public OcrLanguage[] GetAvailableLanguages() =>
-        [
-            new("English", "en"),
-            new("French", "fr")
-        ];
+        public OcrLanguage[] GetAvailableLanguages() => AvailableLanguages;
+    }
+
+    private sealed class ThrowingLanguageOcrService : IOcrService
+    {
+        public bool IsSupported => true;
+
+        public Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options) =>
+            Task.FromResult(new OcrResult { Success = true });
+
+        public OcrLanguage[] GetAvailableLanguages() => throw new InvalidOperationException("OCR language enumeration failed.");
     }
 }

@@ -41,7 +41,7 @@ public static class IndexCommand
         };
         var formatOption = new Option<string?>("--format")
         {
-            Description = "Output format: html, txt, xml, or json. Defaults to html."
+            Description = "Output format: html, txt, xml, json, or md. Defaults to html."
         };
         var outputOption = new Option<string?>("--output")
         {
@@ -141,7 +141,7 @@ public static class IndexCommand
 
         if (!TryParseFormat(format, out IndexerOutput indexerOutput))
         {
-            Console.Error.WriteLine("Unsupported format. Use html, txt, xml, or json.");
+            Console.Error.WriteLine("Unsupported format. Use html, txt, xml, json, or md.");
             return 1;
         }
 
@@ -233,12 +233,12 @@ public static class IndexCommand
         return resolvedOutputPath;
     }
 
-    private static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings)
+    internal static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings)
     {
         return CountIndexedContents(folderPath, settings, 0);
     }
 
-    private static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings, int level)
+    internal static (long TotalFiles, long TotalFolders, long TotalBytes) CountIndexedContents(string folderPath, IndexerSettings settings, int level)
     {
         long totalFiles = 0;
         long totalFolders = 1;
@@ -249,43 +249,69 @@ public static class IndexCommand
             return (totalFiles, totalFolders, totalBytes);
         }
 
-        var directoryInfo = new DirectoryInfo(folderPath);
-
-        foreach (DirectoryInfo subdirectory in directoryInfo.EnumerateDirectories())
+        try
         {
-            if (settings.SkipHiddenFolders && subdirectory.Attributes.HasFlag(FileAttributes.Hidden))
+            var directoryInfo = new DirectoryInfo(folderPath);
+            foreach (DirectoryInfo subdirectory in directoryInfo.EnumerateDirectories())
             {
-                continue;
+                if (settings.SkipHiddenFolders && subdirectory.Attributes.HasFlag(FileAttributes.Hidden))
+                {
+                    continue;
+                }
+
+                var childTotals = CountIndexedContents(subdirectory.FullName, settings, level + 1);
+                if (settings.IgnoreEmptyFolders && childTotals.TotalFiles == 0 && childTotals.TotalFolders <= 1)
+                {
+                    continue;
+                }
+
+                totalFiles += childTotals.TotalFiles;
+                totalFolders += childTotals.TotalFolders;
+                totalBytes += childTotals.TotalBytes;
             }
 
-            var childTotals = CountIndexedContents(subdirectory.FullName, settings, level + 1);
-            if (settings.IgnoreEmptyFolders && childTotals.TotalFiles == 0 && childTotals.TotalFolders <= 1)
+            if (!settings.SkipFiles)
             {
-                continue;
-            }
+                foreach (FileInfo file in directoryInfo.EnumerateFiles())
+                {
+                    if (settings.SkipHiddenFiles && file.Attributes.HasFlag(FileAttributes.Hidden))
+                    {
+                        continue;
+                    }
 
-            totalFiles += childTotals.TotalFiles;
-            totalFolders += childTotals.TotalFolders;
-            totalBytes += childTotals.TotalBytes;
+                    if (ShouldSkipByExtension(file.Extension, settings.IncludedFileExtensions, settings.ExcludedFileExtensions))
+                    {
+                        continue;
+                    }
+
+                    totalFiles++;
+                    totalBytes += file.Length;
+                }
+            }
         }
-
-        if (!settings.SkipFiles)
+        catch (UnauthorizedAccessException)
         {
-            foreach (FileInfo file in directoryInfo.EnumerateFiles())
-            {
-                if (settings.SkipHiddenFiles && file.Attributes.HasFlag(FileAttributes.Hidden))
-                {
-                    continue;
-                }
-
-                if (ShouldSkipByExtension(file.Extension, settings.IncludedFileExtensions, settings.ExcludedFileExtensions))
-                {
-                    continue;
-                }
-
-                totalFiles++;
-                totalBytes += file.Length;
-            }
+            // Skip directories we cannot access — best-effort count
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Directory removed between initial check and enumeration
+        }
+        catch (PathTooLongException)
+        {
+            // Skip paths exceeding system limits
+        }
+        catch (ArgumentException)
+        {
+            // Invalid path characters — best-effort count
+        }
+        catch (NotSupportedException)
+        {
+            // Path format not supported (e.g. colon outside volume identifier)
+        }
+        catch (IOException)
+        {
+            // I/O error (disk error, network share unavailable, etc.) — best-effort count
         }
 
         return (totalFiles, totalFolders, totalBytes);
@@ -333,6 +359,10 @@ public static class IndexCommand
             case "json":
                 output = IndexerOutput.Json;
                 return true;
+            case "md":
+            case "markdown":
+                output = IndexerOutput.Markdown;
+                return true;
             default:
                 return false;
         }
@@ -361,6 +391,7 @@ public static class IndexCommand
             IndexerOutput.Txt => ".txt",
             IndexerOutput.Xml => ".xml",
             IndexerOutput.Json => ".json",
+            IndexerOutput.Markdown => ".md",
             _ => ".html"
         };
     }

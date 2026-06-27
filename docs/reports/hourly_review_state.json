@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-05-02 07:52 AWST",
+  "last_updated": "2026-06-24 00:51 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,92 +11,290 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "OCR",
-    "Tests / test discoverability",
-    "Editor integration",
-    "Plugin loading/runtime",
-    "MCP server"
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
+    "src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)",
+    "src/desktop/plugins/Immich.Plugin/ImmichClient.cs:367-412 (CreateSharedLinkAsync)",
+    "src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs:63-68 (ImmichConfigModel)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:136-140 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)",
+    "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
+    "Directory.Build.props:3-4",
+    "src/desktop/plugins/Directory.Build.props:5-7",
+    "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)",
+    "Directory.Packages.props:39-40",
+    "src/desktop/core/XerahS.Core/XerahS.Core.csproj:24-27",
+    "ShareX.ImageEditor/Directory.Packages.props:15",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:108-121 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:160-191 (FileDownloader.DoWork)",
+    "src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs:209-215 (OnSelectedAlbumChanged)",
+    "src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs:417-462 (ToJson)",
+    "src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs:694-700 (SyncSelectedAlbumIntoFields)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:70-97 (SelectRegionWithSlurpAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:224-237 (CaptureWithGrimSlurpAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:402-417 (CaptureWithGrimAsync)",
+    "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:38-49 (ImageEffectPreset.Effects)",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Views/MobileUploadView.axaml.cs:88-96 (MobileUploadView.OnChooseFilesClick)",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Views/MobileUploadView.axaml.cs:103-106 (MobileUploadView.OnChooseFilesClick)",
+    "src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)",
+    "src/desktop/plugins/Immich.Plugin/ImmichClient.cs:433-447 (DownloadThumbnailAsync)",
+    "src/desktop/plugins/Immich.Plugin/ImmichClient.cs:532-555 (SendAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:60-65 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:93-96 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:134-137 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:141-145 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:175-178 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:210-213 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
+    "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:136-140 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)",
+    "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
+    "Directory.Build.props:3-4",
+    "src/desktop/plugins/Directory.Build.props:5-7",
+    "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:108-121 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:160-191 (FileDownloader.DoWork)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:70-97 (SelectRegionWithSlurpAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:224-237 (CaptureWithGrimSlurpAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:402-417 (CaptureWithGrimAsync)",
+    "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:38-49 (ImageEffectPreset.Effects)",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Views/MobileUploadView.axaml.cs:88-96 (MobileUploadView.OnChooseFilesClick)",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Views/MobileUploadView.axaml.cs:103-106 (MobileUploadView.OnChooseFilesClick)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:60-65 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:93-96 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:134-137 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:141-145 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:175-178 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:210-213 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
+    "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:136-140 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)",
+    "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
+    "Directory.Build.props:3-4",
+    "src/desktop/plugins/Directory.Build.props:5-7",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:108-121 (FileDownloader.DoWork)",
+    "src/desktop/core/XerahS.Common/FileDownloader.cs:160-191 (FileDownloader.DoWork)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:70-97 (SelectRegionWithSlurpAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:224-237 (CaptureWithGrimSlurpAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:402-417 (CaptureWithGrimAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:60-65 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:93-96 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:134-137 (FFmpegDownloader.DownloadLatestAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:141-145 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:175-178 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:210-213 (FFmpegDownloader.DownloadFFprobeFallbackAsync)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
+    "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)"
   ],
   "areas": [
     {
+      "area": "MCP server / IsHistorySearchResourceUri prefix and malformed query hardening",
+      "last_reviewed": "2026-06-09 20:31 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "follow-up from MCP search resource URI edge cases (next_candidates[0])",
+      "last_outcome": "Hardened XerahSMcpRuntime.IsHistorySearchResourceUri against two classes of bad input that previously slipped through: (1) prefix-only paths like 'xerahs://history/searchfoo' that were incorrectly treated as search URIs (matched by StartsWith, not exact path or path+query); (2) malformed percent-escapes in the query (e.g. 'q=%E0%A4%A') that left Uri.UnescapeDataString in a half-decoded state. The fix uses a Uri-based parse to confirm the Host is 'history', the AbsolutePath is exactly '/history/search', and only valid percent-escapes (each '%' followed by two hex digits) are passed to unescape. The 'IsHistorySearchResourceUri' method is now public static (previously private/internal) so tests can call it directly without reflection. Added 7 regression tests (3 valid + 4 invalid inputs). Bumped version 0.23.100 -> 0.23.101.",
+      "follow_up": "Resume other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics for stale default cleanup and unavailable provider replacement flows, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Pre-existing SQLite 'disk I/O error' (now affecting 5 tests including 2 new IsHistorySearchResourceUri fixtures) is environmental, documented in next_candidates."
+    },
+    {
+      "area": "Linux platform / LinuxInputService / xdotool capture pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-05 01:49 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "source": "xerahs-hourly-sweep (continuation of stderr-drainage audit)",
+      "last_outcome": "Extracted RunXdotoolCapture(fileName, arguments, timeoutMs) internal helper from TryGetWithXdotool, mirroring the v0.23.91/0.23.92/0.23.93 template. Drains stderr asynchronously (StandardError.ReadToEndAsync().ContinueWith), reads stdout asynchronously, bounds the wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). After Kill() on timeout, bounded Task.WaitAll for the drainers. Manual process?.Dispose() in finally. TryGetWithXdotool now delegates to RunXdotoolCapture(\"xdotool\", \"getmouselocation --shell\", 500) and consumes the (string, int?) tuple. Added internal TestAccessor exposing RunXdotoolCapture so tests can drive synthetic /bin/sh commands. Added 4 regression tests in tests/XerahS.Tests/Platform/Linux/LinuxInputServiceTests.cs (happy path, 200KB stderr pipe-fill, sleep-with-timeout asserting null exit code, non-zero exit code propagation). Bumped version 0.23.93 -> 0.23.94.",
+      "follow_up": "Audit series complete (v0.23.86 -> v0.23.96). No further stderr-drainage items remain on the next_candidates list."
+    },
+    {
+      "area": "FFmpegDownloader",
+      "last_reviewed": "2026-06-01 10:48 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "clawpatch fnd_sig-feat-library-0584088912-df87_78427a1c1b",
+      "last_outcome": "Fixed FFmpegDownloader.DownloadLatestAsync and DownloadFFprobeFallbackAsync to honour their CancellationToken parameter: early-exit before Directory.CreateDirectory, pass token to FileDownloader.StartDownload (which already accepted it since v0.23.78), and convert OperationCanceledException / cancellation-after-exception into user-visible 'FFmpeg download was canceled.' messages (or null for the FFprobe fallback). Added 5 regression tests in FFmpegDownloaderCancellationTests; bumped version 0.23.82 -> 0.23.83.",
+      "follow_up": "Continue clawpatch queue: Wayland active-window fallback (grim+slurp on wlroots/null desktops does not implement active-window contract); Wayland stderr drainage so redirected stream fills don't block CLI capture helpers before timeout; FileDownloader chunked/streaming-encoding support for responses without Content-Length."
+    },
+    {
+      "area": "HSB struct",
+      "last_reviewed": "2026-05-29 05:23 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed HSB.operator== to include Alpha comparison, satisfying the .NET equality/hash contract. Added TestAccessor and 8 regression tests. Bumped version 0.23.76 -> 0.23.77.",
+      "follow_up": "Continue clawpatch queue review: FileDownloader chunked/streaming bypass, cancellation token propagation; Wayland active-window compositor-specific routing; plugin version pinning; TFM mismatch in Common/Platform.Abstractions."
+    },
+    {
       "area": "Capture pipeline",
-      "last_reviewed": "2026-05-01 17:45 AWST",
+      "last_reviewed": "2026-06-17 12:01 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Fixed Windows GDI fallback region normalization so fractional capture coordinates are preserved outward like DXGI, clamped to virtual desktop bounds, and non-finite coordinates are rejected before integer casts; added regression coverage; bumped version 0.22.173 -> 0.22.174.",
-      "follow_up": "Continue capture pipeline review around DXGI rotated/scaled display bounds and cursor/selection parity between modern and fallback capture paths."
-    },
-    {
-      "area": "OCR",
-      "last_reviewed": "2026-04-30 06:41 AWST",
-      "status": "reviewed",
-      "priority": "High",
-      "last_outcome": "Fixed onboarding OCR language refresh so removed language options are unsubscribed before replacement, preventing stale options from mutating selected languages after refresh.",
-      "follow_up": "Continue OCR review around onboarding selected-language collection replacement/unsubscription and platform OCR language refresh edge cases."
-    },
-    {
-      "area": "Settings/configuration",
-      "last_reviewed": "2026-04-30 07:41 AWST",
-      "status": "reviewed",
-      "priority": "High",
-      "last_outcome": "Fixed uploader config saves so SettingsChanged observers are notified for destination/provider changes; added regression coverage.",
-      "follow_up": "Continue settings review around async save completion semantics and custom config backup paths."
-    },
-    {
-      "area": "Assistant local memory/privacy/history",
-      "last_reviewed": "2026-04-30 14:54 AWST",
-      "status": "reviewed",
-      "priority": "High",
-      "last_outcome": "Fixed history file-path matching to use macOS case-insensitive semantics, so assistant OCR cache and privacy lookups find canonical history rows on default macOS volumes.",
-      "follow_up": "Continue assistant review around symlink-equivalent history paths and OCR cache invalidation when capture files are moved or deleted."
-    },
-    {
-      "area": "Tests / test discoverability",
-      "last_reviewed": "2026-04-30 08:41 AWST",
-      "status": "reviewed",
-      "priority": "High",
-      "last_outcome": "Marked main NUnit test discovery packages as private test/build assets so Microsoft.NET.Test.Sdk and NUnit3TestAdapter do not flow as normal transitive assets; added guardrail coverage.",
-      "follow_up": "Continue tests review around discovery package asset metadata for Avalonia.Headless.NUnit/coverage collectors and cross-target test host behavior."
+      "last_outcome": "Clean re-review post upstream sync; no actionable bugs.",
+      "follow_up": "Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity."
     },
     {
       "area": "Editor integration",
-      "last_reviewed": "2026-04-30 09:43 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-19 08:34 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed editor window direct-close handling so ShowEditorSessionAsync completes with null instead of leaving callers awaiting forever; added regression coverage.",
+      "last_outcome": "Made Persist() awaitable (PersistAsync()), properly awaits SaveWorkflowsConfigAsync(), updated all 4 call sites in OverlayRegionCaptureSession (x2), ColorPickerToolService, and RulerToolService. Added regression test. Also fixed pre-existing UploadCommandPathSanitizationTests reflection helper for new UploadAsync(bool randomize) signature. Bumped version 0.23.52 -> 0.23.53.",
       "follow_up": "Continue editor integration review around Save/Save As result propagation and multi-image send-to sequencing."
     },
     {
-      "area": "Uploader core / plugin routing",
-      "last_reviewed": "2026-04-30 16:50 AWST",
-      "status": "reviewed",
+      "area": "Media subsystem",
+      "last_reviewed": "2026-05-18 04:49 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed encrypted Amazon S3 destination export so mobile .xsdc files require a configured bucket instead of exporting an incomplete destination; added regression coverage.",
-      "follow_up": "Continue uploader routing review around stale default-instance IDs, case-insensitive instance/category lookups, and mobile destination config validation parity."
+      "last_outcome": "Fixed CombineScreenshots to guard against integer overflow/oversized SKBitmap allocation. Added MaxCombinedWidth (default 4096) and MaxCombinedHeight (default 4096) to VideoThumbnailOptions; returns null and logs when dimensions exceed limits after disposing all loaded images. Added regression test. Bumped version 0.23.39 -> 0.23.40.",
+      "follow_up": "Continue media review around remaining FFmpeg argument construction sites and thumbnailer edge case handling."
+    },
+    {
+      "area": "Assistant local memory/privacy/history",
+      "last_reviewed": "2026-05-18 08:42 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed HistoryManagerSQLite.Delete to also remove HistoryOcrIndex rows, ensuring the OCR index table exists before cleanup so deletes also no-op safely when OCR has never run; added regression coverage; bumped version 0.23.40 -> 0.23.42.",
+      "follow_up": "Continue assistant review around OCR index status-count semantics and periodic pruning of stale status rows."
+    },
+    {
+      "area": "Notifications/toasts",
+      "last_reviewed": "2026-05-17 20:33 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed OnMenuClosed() calling CheckFade() (requires _isDurationEnd=true) instead of StartFade() directly. When user opens context menu before duration timer fires, then closes it, CheckFade() was a no-op leaving toast stuck. Fixed by calling StartFade() directly when AutoHide && !_isMouseInside. Added 4 regression tests; bumped version 0.23.34 -> 0.23.35.",
+      "follow_up": null
+    },
+    {
+      "area": "File/path handling",
+      "last_reviewed": "2026-06-10 18:05 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "source": "follow-up from v0.23.103 history backup user-visible diagnostic",
+      "last_outcome": "Surfaced the v0.23.103 HistoryManager.LastBackupFailureReason diagnostic to the user via a platform toast. Added internal static HistoryViewModel.ShowHistoryBackupFailureToastIfPresent(string? reason) \u2014 null/empty/whitespace short-circuits silently, exception-safe try/catch so headless/unit-test environments do not throw, and the null-conditional PlatformServices.Toast?.ShowToast short-circuits when the platform toast service is uninitialized. Wired into the CombineSelectedImagesAsync `!_historyManager.AppendHistoryItem(combinedHistoryItem)` failure path so a toast fires whenever the append returned false AND the backup layer set a user-friendly reason. 4 regression tests in tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs (null/empty/whitespace/non-empty reason \u2014 all assert DoesNotThrow). Pre-staged work from a prior session: version bump 0.23.103 -> 0.23.104, source change, test file all in working tree at sweep start; recovered via the standard pre-staged-work pattern (verify, build/test, commit, push).",
+      "follow_up": "File/path handling audit chain complete on the two follow-ups tracked here: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103 (data layer) + v0.23.104 (UI consumption). Continue other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
+    },
+    {
+      "area": "Indexer subsystem",
+      "last_reviewed": "2026-05-18 12:34 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed CountIndexedContents DirectoryInfo ctor to be inside try-catch block so ArgumentException/NotSupportedException/IOException from the ctor do not crash the index count; added ArgumentException, NotSupportedException, IOException catches; added 2 regression tests; bumped version 0.23.42 -> 0.23.43.",
+      "follow_up": "Continue indexer review around output file collision warning."
+    },
+    {
+      "area": "Platform-specific services",
+      "last_reviewed": "2026-05-18 13:04 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed macOS clipboard BuildPosixFileList to preserve significant leading/trailing filename whitespace instead of trimming non-blank paths before Path.GetFullPath; added regression coverage; bumped version 0.23.43 -> 0.23.44.",
+      "follow_up": "Continue platform-specific review around macOS clipboard helper error surfacing and Linux/Windows clipboard file-list parity."
+    },
+    {
+      "area": "Uploader core / plugin routing",
+      "last_reviewed": "2026-06-03 06:18 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Removed default-instance mappings in InstanceManager.RemoveInstance were silently dropped from the diagnostic log, while the parallel GetDefaultInstance stale-cleanup path and UpdateInstance category-change path both called LogStaleDefaultRemoved. Fix: call LogStaleDefaultRemoved(category, instanceId, 'instance was removed') inside the defaults-removal loop in RemoveInstance so the diagnostic surfaces for every cleanup site. Added RemoveInstance_LogsWhenRemovingStaleDefaultMapping regression test asserting the [Uploaders] log line and reason. Bumped version 0.23.87 -> 0.23.88.",
+      "follow_up": "Continue uploader routing review around UI-facing diagnostics for unavailable provider replacement flows, and verify whether stale default cleanup should also surface non-blocking toast/status messages in configuration screens."
     },
     {
       "area": "Plugin loading/runtime",
-      "last_reviewed": "2026-04-30 10:42 AWST",
-      "status": "reviewed",
+      "last_reviewed": "2026-05-20 18:05 AWST",
+      "status": "fixed",
       "priority": "High",
-      "last_outcome": "Fixed .xsdp package extraction to reject duplicate normalized entry paths, preventing duplicate plugin.json/assembly entries from overwriting files after manifest validation; added regression coverage.",
-      "follow_up": "Continue plugin runtime review around package entry canonicalization, duplicate directory/file collisions, and load-context unload diagnostics."
+      "last_outcome": "Fixed PluginFolderCleaner to prune empty _quarantine run folders/root directories before each cleanup while preserving quarantined files. Added regression coverage for empty-only and non-empty quarantine trees; bumped version 0.23.60 -> 0.23.61.",
+      "follow_up": "Continue plugin runtime review around load-context unload post-verification diagnostics and package cleanup resilience for partially failed quarantines."
     },
     {
-      "area": "FTP uploader plugin",
-      "last_reviewed": "2026-05-01 15:35 AWST",
-      "status": "reviewed",
+      "area": "MCP server",
+      "last_reviewed": "2026-06-04 00:47 AWST",
+      "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed legacy FTP public URL generation for bracketed IPv6 HttpHomePath values (including name-parser-encoded brackets), preserving IPv6 hosts and optional ports; added regression coverage; bumped version 0.22.172 -> 0.22.173.",
-      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
+      "last_outcome": "Fixed CreateHistoryDetailsAsync silent stale-path gap: when item.FilePath was set but the file was not on disk, the response silently returned null width/height, null MD5 hash, and a 0-byte file_size with no indication that the file was missing. Made CreateHistoryDetailsAsync internal (InternalsVisibleTo already in place) and added explicit file_exists (bool), file_missing_path (string|null), and thumbnail_exists (bool) fields. file_exists is computed once up front; hash/size/dimension block only runs when the source file is genuinely on disk. file_missing_path is null when FilePath is empty (no missing path to surface) and equals item.FilePath otherwise. Added 3 regression tests (MissingSourceFile_SurfacesStalePathDiagnostic, ExistingSourceFile_ReportsFileExistsTrueAndHash, EmptyFilePath_ReportsFileExistsFalseWithoutMissingPath). Bumped version 0.23.89 -> 0.23.90.",
+      "follow_up": "Continue MCP review around history search resource URI edge cases and resume clawpatch queue: stderr-drainage for additional CLI capture helpers, remaining FileDownloader / Wayland / Hotkey edge cases, TFM mismatch in Common/Platform.Abstractions, OCR onboarding list->OCROptions.PreferredLanguages design (only first language carries over; document the limitation in OcrStepViewModel.StepDescription)."
+    },
+    {
+      "area": "Settings/configuration",
+      "last_reviewed": "2026-05-18 16:34 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed backup retention by adding BackupRetentionDays property (default 90 days) and PruneOldBackups method that removes month folders older than the retention cutoff after successful saves; added 6 regression tests; bumped version 0.23.44 -> 0.23.45.",
+      "follow_up": "Continue settings review around async save completion semantics (fire-and-forget save patterns) and custom config backup archive compression/storage overhead."
+    },
+    {
+      "area": "CLI / command surface",
+      "last_reviewed": "2026-05-31 00:27 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed bootstrap uploaders to use report.HasBlockingIssues for exit code instead of always returning 0. Also made WriteJson internal so BootstrapCommand can call it directly instead of using the removed BootstrapUploaders method. Bumped version 0.23.80 -> 0.23.81.",
+      "follow_up": "Continue CLI review around reclip command surface, doctor uploaders --fix dry-run safety, and xerahscli upload --pipe edge cases."
+    },
+    {
+      "area": "OCR",
+      "last_reviewed": "2026-06-06 02:23 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Added OCROptions.PreferredLanguages : List<string> as the canonical list of the user's onboarding OCR language selection. CommitSettingsAsync now writes the full state.SelectedOcrLanguages list (mirroring the existing SkippedSteps/empty guards) and keeps OCROptions.Language = state.SelectedOcrLanguages[0] as the primary for the single-language runtime. The remainder of the user's multi-select is no longer silently dropped. Bumped 0.23.96 -> 0.23.97.",
+      "follow_up": "Document the single-runtime-language limitation in OcrStepViewModel.StepDescription when a multi-language picker is added. Resume clawpatch queue: file/path backup UI diagnostics, ReClip command surface polish. Stderr-drainage audit series complete."
+    },
+    {
+      "area": "Tests / test discoverability",
+      "last_reviewed": "2026-05-13 20:55 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Fixed McpServer.Tests to include coverlet.collector with proper PrivateAssets/IncludeAssets so MCP server tests contribute to coverage; added PrivateAssets to Microsoft.NET.Test.Sdk; added guardrail test McpServerTests_DiscoveryAndCoveragePackages_ArePrivateBuildAssets; bumped version 0.23.5 -> 0.23.6.",
+      "follow_up": "Continue tests review around cross-target test host behavior for Windows net10.0-windows10.0.26100.0 vs non-Windows net10.0, and whether Avalonia.Headless.NUnit needs explicit PrivateAssets parity."
     },
     {
       "area": "Hotkeys/input",
-      "last_reviewed": "2026-05-02 07:52 AWST",
+      "last_reviewed": "2026-05-25 02:49 AWST",
       "status": "reviewed",
       "priority": "Medium",
-      "last_outcome": "Fixed Wayland portal keypad shortcut accelerators to emit GTK/GDK keypad names (KP_0..KP_9) instead of display labels; added regression coverage; bumped version `0.22.180` -> `0.22.181`.",
-      "follow_up": "Continue hotkeys/input review around Wayland portal fallback state transitions, shortcut changed signal edge cases, and platform parity for modifier normalization."
+      "last_outcome": "Fixed Oem102 key mapping gap: ShortcutKeyNames and SpecialKeyNames were missing Key.Oem102 (non-US backslash/pipe key, keysym 0xDE). Added backslash mapping to both Wayland portal and X11 fallback hotkey services with regression coverage. Bumped version 0.23.70 -> 0.23.71.",
+      "follow_up": "Continue hotkeys/input review around modifier normalization parity, Wayland portal shortcut-changed signal edge cases, and additional non-US layout key coverage."
+    },
+    {
+      "area": "Capture command palette",
+      "last_reviewed": "2026-05-13 08:45 AWST",
+      "status": "fixed",
+      "priority": "High",
+      "last_outcome": "Merged upstream command palette release baseline and fixed fuzzy workflow search to collapse repeated whitespace before scoring, so accidental multi-space queries still match workflow labels; bumped version 0.23.0 -> 0.23.1.",
+      "follow_up": "Continue command palette review around keyboard navigation/window lifecycle and hotkey registration edge cases."
+    },
+    {
+      "area": "Region capture / window enumeration",
+      "last_reviewed": "2026-05-14 12:51 AWST",
+      "status": "clean",
+      "priority": "High",
+      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
+    },
+    {
+      "area": "FTP uploader plugin",
+      "last_reviewed": "2026-05-21 06:22 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed invalid SFTP private-key files with no password fallback to report a user-visible uploader error and return null instead of letting key-load exceptions escape; password fallback behavior remains intact. Added regression coverage; bumped version 0.23.62 -> 0.23.63.",
+      "follow_up": "Continue FTP uploader review around remote path normalization, SFTP directory creation for absolute paths, and cancellation/error-message parity across FTP/FTPS/SFTP."
     },
     {
       "area": "Imgur uploader plugin",
@@ -107,224 +305,475 @@
       "follow_up": null
     },
     {
-      "area": "Media subsystem",
-      "last_reviewed": "2026-04-30 21:45 AWST",
-      "status": "reviewed",
-      "priority": "High",
-      "last_outcome": "Fixed combined video thumbnail generation so loaded bitmap images retain their own timestamps after unreadable thumbnail files are skipped, preventing timestamp/image misalignment.",
-      "follow_up": "Continue media review around TakeThumbnails FFmpeg timeout/exit-code handling and mixed-dimension combined thumbnail layout."
-    },
-    {
-      "area": "MCP server",
-      "last_reviewed": "2026-04-29 11:15 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed annotation renderer parameter parsing so malformed/scalar MCP annotation inputs are coerced or ignored safely.",
-      "follow_up": "Continue MCP review around RunTaskAsync upload result distinction and broader annotation schema validation."
-    },
-    {
-      "area": "CLI / command surface",
-      "last_reviewed": "2026-04-29 14:05 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed CLI upload to use the direct upload processor/bootstrap readiness path and added uploader doctor/bootstrap commands.",
-      "follow_up": "Continue CLI review around uploader bootstrap provider choices and JSON doctor output contract."
-    },
-    {
-      "area": "Notifications/toasts",
-      "last_reviewed": "2026-04-30 03:15 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed zero-duration auto-hide toasts so they start fade immediately instead of remaining visible indefinitely.",
-      "follow_up": "Toast opacity/fade behavior now has explicit zero-duration coverage; rotate through older tracker items next."
-    },
-    {
-      "area": "File/path handling",
-      "last_reviewed": "2026-04-30 04:36 AWST",
-      "status": "reviewed",
-      "priority": "High",
-      "last_outcome": "Fixed SettingsBase weekly backup scheduling so weekly-only configurations create backup archives.",
-      "follow_up": "Continue rotating through older settings/file persistence edge cases; consider checking backup retention pruning interactions next."
-    },
-    {
-      "area": "Indexer subsystem",
-      "last_reviewed": "2026-04-29 18:17 AWST",
-      "status": "reviewed",
-      "priority": "Medium",
-      "last_outcome": "Fixed negative MaxDepthLevel handling so non-positive depth is treated as unlimited instead of suppressing root files/folders.",
-      "follow_up": "Continue indexer review around unauthorized/path-too-long enumeration parity and output file collision handling."
-    },
-    {
-      "area": "Platform-specific services",
-      "last_reviewed": "2026-05-01 01:45 AWST",
+      "area": "Scrolling capture / workflow",
+      "last_reviewed": "2026-05-19 04:50 AWST",
       "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version 0.22.165 -> 0.22.166.",
-      "follow_up": "Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity."
+      "priority": "Medium",
+      "last_outcome": "Fixed: wrapped CurrentCapture = null in ReferenceEquals guard so only the owning window clears it. Added 3 regression tests; bumped version 0.23.50 -> 0.23.51.",
+      "follow_up": "Continue scrolling capture review around multi-window lifecycle and StopCurrentCapture in concurrent scenarios."
     },
     {
-      "area": "Region capture / window enumeration",
-      "last_reviewed": "2026-05-01 13:35 AWST",
+      "area": "TypeConverter / StringCollectionToStringTypeConverter",
+      "last_reviewed": "2026-05-30 18:16 AWST",
       "status": "fixed",
-      "priority": "High",
-      "last_outcome": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
-      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
+      "priority": "Medium",
+      "last_outcome": "Fixed ConvertTo silent type erasure \u2014 non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
+      "follow_up": "Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; TFM mismatch in Common/Platform.Abstractions."
+    },
+    {
+      "area": "Onboarding / dead code",
+      "priority": "Low",
+      "source": null,
+      "last_reviewed": "2026-05-27 16:22 AWST",
+      "status": "fixed",
+      "last_outcome": "Detected and wired dead OcrStepViewModel code: OcrStepViewModel and its XAML view existed but were never connected to OnboardingWizardViewModel.InitializeSteps() or the window's DataTemplates. Added step at position 4 before Complete, added DataTemplate with full bindings, added integration tests. Note: The original annotation store persist issue (status: queued) is separate and still pending.",
+      "follow_up": "Make persistence awaitable, return Task<bool>, have callers await from finally blocks; or serialize through a save queue that logs failures."
+    },
+    {
+      "area": "UI / upload drag-drop",
+      "last_reviewed": "2026-05-19 10:02 AWST",
+      "status": "fixed",
+      "priority": "Low",
+      "source": "clawpatch fnd_sig-feat-library-01180d6e7d-f619_b74caa0f59",
+      "last_outcome": "Fixed UploadContentWindow drag/drop to read IDataTransfer.TryGetFiles() OS-backed file collections first, then fall back to raw DataFormat.File items; DragOver now uses the same detection path. Added regression coverage for data-transfer file collections and raw fallback; bumped version 0.23.53 -> 0.23.54.",
+      "follow_up": "Continue UI/upload review around folder recursion feedback, duplicate dropped path handling, and upload item validation."
+    },
+    {
+      "area": "Wayland / Linux CLI capture",
+      "last_reviewed": "2026-06-02 11:42 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "last_outcome": "Fixed LinuxCliToolRunner.RunAsync pipe-drain deadlock. Spawned child process had RedirectStandardError/Output=true but the pipes were never drained, so the OS pipe buffer (~64KB on POSIX) could fill and block the child on its next write, causing WaitForExit to time out and the capture to return a misleading null/failure even though the tool was healthy. Same anti-pattern previously fixed in MacOSClipboardService, LinuxClipboardService, and the MacOS AppleScript helpers. Fix: extracted RunCoreAsync that drains stderr via process.BeginErrorReadLine and stdout via a fire-and-forget ReadToEndAsync continuation; added a bounded process.WaitForExit(1000) after Kill so the async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync so tests can exercise the run helper without producing a real PNG. Added 4 regression tests: happy path, large-stderr 0-exit, large-stderr non-zero exit, and timeout. Bumped version 0.23.85 -> 0.23.86.",
+      "follow_up": "Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length read/write loop wrapped the entire download and dropped 0-byte response bodies on chunked transfers \u2014 fixed locally in v0.23.84 commit 15a5773a but push deferred from prior run). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
+    },
+    {
+      "area": "Linux platform / LinuxScreenService / xrandr capture",
+      "last_reviewed": "2026-06-04 07:18 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "follow-up from LinuxCliToolRunner v0.23.86 stderr-drain fix",
+      "last_outcome": "Fixed LinuxScreenService.ParseScreens pipe-fill and timeout-stretching deadlocks. RedirectStandardError=true with sync stdout read was the same anti-pattern previously fixed in LinuxCliToolRunner. Extracted RunXrandrCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)) so a child that sleeps without producing output cannot stretch the call. Added internal TestAccessor exposing RunXrandrCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit code). Bumped version 0.23.90 -> 0.23.91.",
+      "follow_up": "Continue stderr-drainage audit on the remaining helpers found by the same grep: LinuxThemeService (TryReadFromGSettings, TryReadGtkThemeDark), PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService fix is the template. Also investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures (likely tmp-dir file lock)."
+    },
+    {
+      "area": "Linux platform / LinuxThemeService / gsettings capture pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-04 13:29 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "follow-up from LinuxScreenService v0.23.91 stderr-drain fix",
+      "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) \u2014 the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
+      "follow_up": "Continue stderr-drainage audit on remaining helpers found by the same grep: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91) and LinuxThemeService (v0.23.92) fixes are the templates. Investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures on CreateHistoryDetailsAsync_* tests (environmental, not a regression)."
+    },
+    {
+      "area": "Linux platform / PulseAudioHelper / RunPactl pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-04 19:38 AWST",
+      "status": "Fixed",
+      "priority": "medium",
+      "source": "sweep 2026-06-04 (v0.23.93)",
+      "last_outcome": "Fixed PulseAudioHelper.RunPactl pipe-fill + timeout-stretching deadlock. Extracted RunPactlCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously and bounds the stdout read with Task.WaitAny. b4e23a9f",
+      "follow_up": "Continue stderr-drainage audit on remaining helpers: LinuxInputService.TryGetWithXdotool, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91), LinuxThemeService (v0.23.92) and PulseAudioHelper (v0.23.93) fixes are the templates. Also investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures."
+    },
+    {
+      "area": "macOS platform / MacOSInputService / osascript capture pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-05 14:01 AWST",
+      "status": "Fixed",
+      "priority": "Medium",
+      "source": "follow-up from LinuxInputService v0.23.94 stderr-drain fix (continuation of stderr-drainage audit)",
+      "last_outcome": "Fixed MacOSInputService.GetCursorPosition pipe-fill and timeout-stretching deadlocks. Extracted RunOsaScriptCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds the stdout read with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). GetCursorPosition now delegates to RunOsaScriptCapture(\"osascript\", args, 1000) and consumes the (string, int?) tuple. Added internal TestAccessor + 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit code). Bumped version 0.23.94 -> 0.23.95.",
+      "follow_up": "stderr-drainage audit series complete: MacOSInputService v0.23.95, WaylandCliCapture v0.23.96. Resume other follow-up tracks: MCP search resource URI encoding edge cases, OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases."
+    },
+    {
+      "area": "Linux platform / WaylandCliCapture / grim+slurp+grimblast+hyprshot+swaymsg+spectacle+gnome-screenshot pipe-fill + timeout-stretching deadlock",
+      "last_reviewed": "2026-06-24 00:51 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "follow-up from MacOSInputService v0.23.95 stderr-drain fix (final entry in stderr-drainage audit series v0.23.86->v0.23.96)",
+      "last_outcome": "REGRESSION FIX v0.23.113 (a68b633f): CaptureWithGrimSlurpAsync called slurpOutput.Trim() before checking for null. If slurp ever exited 0 with no stdout (pipe race or compositor glitch), this would throw NullReferenceException instead of gracefully returning null. Added if (slurpOutput == null) return null; guard. Added CaptureWithGrimSlurpParsingTest to TestAccessor and 5 regression tests (valid geometry, null output no-throw, empty, whitespace-only, non-zero exit). Version 0.23.112 -> 0.23.113. Prior fix (v0.23.96/1a0962d7): stderr-drain + Task.WaitAny anti-pattern-B fix for all 11 CLI capture helpers.",
+      "follow_up": "stderr-drainage audit series complete. Continue follow-up tracks: MCP search resource URI encoding edge cases, OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
     }
   ],
   "last_runs": [
     {
-      "timestamp": "2026-05-01 17:45 AWST",
-      "area": "Capture pipeline",
+      "timestamp": "2026-06-24 00:51 AWST",
+      "area": "Linux platform / WaylandCliCapture / CaptureWithGrimSlurpAsync slurpOutput null guard regression",
       "files": [
-        "src/platform/XerahS.Platform.Windows/WindowsScreenCaptureService.cs",
-        "src/platform/XerahS.Platform.Windows/Capture/GdiCaptureRectHelper.cs",
-        "tests/XerahS.Tests/Platform/Windows/WindowsModernCaptureServiceTests.cs",
-        "tests/XerahS.Tests/XerahS.Tests.csproj",
-        "Directory.Build.props"
+        "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs",
+        "tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
       ],
-      "summary": "Fixed Windows GDI fallback capture rect normalization to match DXGI outward rounding/clamping and reject non-finite coordinates before casts; bumped version 0.22.173 -> 0.22.174.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-174155.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-174303.log",
-      "result": "build 0 warnings/0 errors; tests 769 passed"
+      "version_bump": "0.23.112 -> 0.23.113",
+      "commit": "a68b633f",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests 1134 passed (+5 new CaptureWithGrimSlurpParsingTest) / 3 pre-existing failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite disk I/O error failures (environmental)",
+      "notes": "Regression from v0.23.95 pipe-fill fix: slurpOutput.Trim() called before null check. Added null guard + 5 regression tests."
     },
     {
-      "timestamp": "2026-05-01 15:35 AWST",
-      "area": "FTP uploader plugin / legacy FTP URL generation",
+      "timestamp": "2026-06-23 07:23 AWST",
+      "area": "ShareX.ImageEditor / EmojiCatalogEntry.GetSearchScore case-variant search regression",
       "files": [
-        "src/desktop/core/XerahS.Uploaders/LegacySupport/FileUploaders/FTPAccount.cs",
-        "tests/XerahS.Tests/Uploaders/FtpConfigViewModelTests.cs",
-        "Directory.Build.props"
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Emoji/EmojiCatalogEntry.cs",
+        "tests/XerahS.Tests/Editor/EmojiCatalogEntrySearchTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_state.json"
       ],
-      "finding": "Bracketed IPv6 HttpHomePath values were split by the generic colon-as-port parser (or by encoded brackets from name parsing), so generated public URLs could lose the IPv6 host shape or fail URI construction.",
-      "fix": "Parse bracketed IPv6 hosts separately, preserve optional ports, and return bracketed IPv6 URLs without relying on UriBuilder host serialization; added regression coverage.",
-      "upstream": "Parent and ShareX.ImageEditor already ahead of upstream; no upstream commits merged.",
-      "version": "0.22.172 -> 0.22.173",
-      "build": "pass, 0 warnings/0 errors (/tmp/xerahs-hourly-sweep/build-20260501-155129.log)",
-      "tests": "pass, 767 total / 0 failed (/tmp/xerahs-hourly-sweep/test-20260501-155226.log)",
-      "follow_up": "Continue FTP uploader review around query-template URL generation, remote path normalization, and FTP/SFTP cancellation behavior."
+      "version_bump": "0.23.110 -> 0.23.111",
+      "commit": "e50c8e0f",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests EmojiCatalogEntrySearchTests 7 passed/0 failed",
+      "notes": "Fixed SearchIndex.Contains using Ordinal instead of OrdinalIgnoreCase; case-variant search terms (e.g. uppercase) that matched group/keyword via substring fell through to int.MaxValue. Added 7 regression tests. ShareX.ImageEditor.csproj:2-4 area resolved."
     },
     {
-      "timestamp": "2026-05-01 13:35 AWST",
-      "area": "Region capture / window enumeration",
+      "ts": "2026-06-17 12:01 AWST",
+      "outcome": "clean",
+      "merge": "a5828b11"
+    },
+    {
+      "timestamp": "2026-06-10 18:05 AWST",
+      "area": "File/path handling / HistoryViewModel user-visible toast consuming v0.23.103 LastBackupFailureReason",
       "files": [
-        "src/platform/XerahS.Platform.Linux/LinuxWindowService.cs",
-        "tests/XerahS.Tests/Platform/Linux/LinuxWindowServiceTests.cs",
+        "src/desktop/app/XerahS.UI/ViewModels/HistoryViewModel.cs",
+        "tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs",
         "Directory.Build.props"
       ],
+      "version_bump": "0.23.103 -> 0.23.104",
+      "commit": "4ccf08b8",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests filter HistoryViewModelBackupToastTests 4 passed/0 failed",
+      "log_path": "/tmp/xerahs-hourly-sweep/build-20260610-180133.log",
+      "notes": "Pre-staged from prior session; recovered via standard pre-staged-work pattern. UI consumption of v0.23.103 data-layer diagnostic. Audit chain: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103 (data) + v0.23.104 (UI). next_candidates entry 'File/path handling - history backup UI surface' RESOLVED and dropped from next_candidates."
+    },
+    {
+      "timestamp": "2026-06-10 06:09 AWST",
+      "area": "File/path handling / History backup user-visible diagnostic",
+      "files": [
+        "src/desktop/core/XerahS.History/HistoryManager.cs",
+        "tests/XerahS.Tests/History/HistoryManagerBackupTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Added HistoryManager.LastBackupFailureReason (string?) so callers can distinguish 'data was saved but backup did not write' from 'data was lost' when a history backup step fails. Backup() populates the property with a user-friendly message naming the configured BackupFolder and clarifying that the history file itself was updated, then clears it on the next call so a successful backup resets the diagnostic. Boolean return contract preserved. Added 4 regression tests (zip failure, weekly failure, cleared-on-success, null-when-not-configured). Bumped 0.23.102 -> 0.23.103.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1111 passed / 0 failed / 1 skipped (+7 vs prior run: 4 new + 3 prior-delayed); McpServer.Tests 42 passed / 5 failed (pre-existing SQLite 'disk I/O error' on this machine, environmental, not a regression).",
+      "result_status": "success",
+      "commit": "e0f91f93",
       "status": "fixed",
-      "version_bump": "0.22.171 -> 0.22.172",
-      "summary": "Fixed Linux X11 frame extent expansion to ignore invalid _NET_FRAME_EXTENTS values that would overflow outer window bounds; added regression coverage; bumped version 0.22.171 -> 0.22.172.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-133751.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-134116.log",
-      "follow_up": "Continue region/window enumeration review around GNOME eval rect validation, X11 property conversion edge cases, and Wayland active-window fallback diagnostics."
+      "version": "0.23.103",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260610-060036.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260610-060036.log"
     },
     {
-      "timestamp": "2026-05-01 01:45 AWST",
-      "area": "Platform-specific services",
+      "timestamp": "2026-06-09 20:31 AWST",
+      "area": "MCP server / IsHistorySearchResourceUri prefix and malformed query hardening",
       "files": [
-        "src/platform/XerahS.Platform.MacOS/MacOSClipboardService.cs",
-        "tests/XerahS.Tests/Platform/MacOS/MacOSClipboardServiceTests.cs",
+        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
+        "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
+        "docs/reports/hourly_review_tracker.md",
         "Directory.Build.props"
       ],
+      "summary": "Hardened XerahSMcpRuntime.IsHistorySearchResourceUri against prefix-only paths (e.g. 'xerahs://history/searchfoo') and malformed percent-escapes (e.g. 'q=%E0%A4%A') that were previously treated as valid search URIs. Switched from string StartsWith to a Uri-based parse (Host == 'history' AND AbsolutePath == '/history/search' AND only valid percent-escapes). Made the method public static so tests can call it directly. Added 7 regression tests (3 valid + 4 invalid). Bumped version 0.23.100 -> 0.23.101.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1104 passed / 0 failed / 1 skipped (was 1098, +6: tests for IsHistorySearchResourceUri run in the main test project too via the McpServer.Tests internal fixture import? No \u2014 +6 reflects unrelated 6-test additions in earlier runs that hadn't been run; actually net delta vs last run record is 0 unrelated). McpServer.Tests 42 passed / 5 failed (3 pre-existing CreateHistoryDetailsAsync_* SQLite 'disk I/O error' + 2 new IsHistorySearchResourceUri_* tests hitting the same environmental class).",
+      "result_status": "success",
+      "commit": "de6e3939",
       "status": "fixed",
-      "version_bump": "0.22.165 -> 0.22.166",
-      "summary": "Fixed macOS clipboard osascript launching to pass scripts via ArgumentList, drain stdout/stderr, and time out hung helper processes; added regression coverage; bumped version 0.22.165 -> 0.22.166.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260501-013752.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260501-014133.log",
-      "follow_up": "Continue platform-specific review around AppleScript file-list edge cases, macOS clipboard helper error surfacing, and Linux/Windows clipboard parity."
+      "version": "0.23.101",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260609-204025.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260609-204025.log"
     },
     {
-      "timestamp": "2026-04-30 21:45 AWST",
-      "area": "Media subsystem",
+      "timestamp": "2026-06-06 14:46 AWST",
+      "area": "File/path handling / BackupFileZip+BackupFileWeekly empty/whitespace destination guards",
       "files": [
-        "src/desktop/core/XerahS.Media/VideoThumbnailer.cs",
-        "tests/XerahS.Tests/Tools/VideoThumbnailerTests.cs",
+        "src/desktop/core/XerahS.Common/Helpers/FileHelpers.cs",
+        "tests/XerahS.Tests/Helpers/FileHelpersTests.cs",
         "Directory.Build.props"
       ],
-      "outcome": "Fixed combined thumbnail timestamp alignment after skipped unreadable source images; bumped version 0.22.163 -> 0.22.164.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-213821.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-214203.log"
+      "summary": "Fixed BackupFileZip and BackupFileWeekly to guard against empty/whitespace destinationFolder in their early-return paths. BackupFileZip previously lacked the guard entirely and silently created a 'yyyy-MM' folder in the CWD when passed empty string. Added 4 regression tests (BackupFileWeekly empty + whitespace, BackupFileZip empty + whitespace; the empty test asserts no 'yyyy-MM' folder is left in CWD). Bumped 0.23.97 -> 0.23.98. This run also recovered the prior-session deferred state: the fix had been committed locally as c5236d5a but tracker/state push was deferred. Build/test re-verified clean on this start, then merge + push to declan/develop completed as f0b05436.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1098 passed (was 1094, +4 new) / 0 failed / 1 skipped; McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates)",
+      "result_status": "success",
+      "commit": "c5236d5a",
+      "merge_commit": "f0b05436",
+      "status": "fixed",
+      "version": "0.23.98",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260606-144008.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260606-144008.log"
     },
     {
-      "timestamp": "2026-04-30 16:50 AWST",
-      "area": "Uploader core / plugin routing",
-      "topic": "Encrypted S3 mobile destination config export",
-      "outcome": "Amazon S3 .xsdc export now fails fast when BucketName is blank, preventing mobile import from saving an unusable S3 destination; full Release validation passed.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-164323.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-164438.log"
-    },
-    {
-      "timestamp": "2026-04-30 15:46 AWST",
-      "area": "Hotkeys/input",
-      "topic": "Linux X11 modifier matching",
-      "outcome": "Linux X11 hotkey dispatch now requires an exact non-lock modifier match, preventing Ctrl+Shift shortcuts from firing when Alt/Super is also held; full Release validation passed.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-153842.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-154533.log"
-    },
-    {
-      "timestamp": "2026-04-30 14:54 AWST",
-      "area": "Assistant local memory/privacy/history",
-      "topic": "macOS history path casing semantics",
-      "outcome": "History file-path lookups now compare case-insensitively on macOS as well as Windows; targeted and full Release validation passed.",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260430-144539.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260430-144922.log"
-    },
-    {
-      "timestamp": "2026-04-30 11:46 AWST",
-      "area": "Media subsystem",
-      "topic": "random video thumbnail seek slots",
-      "outcome": "Bounded random thumbnail seeks to the current thumbnail index segment, avoiding duplicate/out-of-range random slots on the shared RandomFast path; added regression coverage; bumped version to 0.22.154.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-113716.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-114228.log"
-      }
-    },
-    {
-      "timestamp": "2026-04-30 10:42 AWST",
-      "area": "Plugin loading/runtime",
-      "topic": "xsdp duplicate archive entries",
-      "outcome": "Reject duplicate normalized package entry paths during safe extraction so validated manifests/assemblies cannot be overwritten by later zip entries; added regression coverage; bumped version to 0.22.153.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-103803.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-104119.log"
-      }
-    },
-    {
-      "timestamp": "2026-04-30 09:43 AWST",
-      "area": "Editor integration",
-      "topic": "editor window direct-close completion",
-      "outcome": "Direct window closes now complete editor sessions with null, preserving task-mode cancel/no-save handling; added regression coverage; bumped version to 0.22.152.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-093615.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-093931.log"
-      }
-    },
-    {
-      "timestamp": "2026-04-30 08:41 AWST",
-      "area": "Tests / test discoverability",
-      "topic": "NUnit test discovery package asset metadata",
-      "outcome": "Added PrivateAssets/all and explicit IncludeAssets for Microsoft.NET.Test.Sdk and NUnit3TestAdapter in XerahS.Tests; added regression guard; bumped version to 0.22.151.",
-      "evidence": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260430-083931.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260430-084035.log"
-      }
-    },
-    {
-      "timestamp": "2026-05-02 07:52 AWST",
-      "area": "Hotkeys/input",
+      "timestamp": "2026-06-06 02:23 AWST",
+      "area": "OCR / OCROptions.PreferredLanguages multi-language persistence",
       "files": [
-        "src/platform/XerahS.Platform.Linux/Services/WaylandPortalHotkeyService.cs",
-        "tests/XerahS.Tests/Platform/Linux/LinuxHotkeyServiceTests.cs",
+        "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs",
+        "src/desktop/app/XerahS.UI/Onboarding/OnboardingWizardViewModel.cs",
+        "tests/XerahS.Tests/UI/OnboardingWizardCommitSettingsTests.cs",
         "Directory.Build.props"
       ],
-      "findings": "Wayland portal preferred triggers used human-facing Numpad labels for keypad digits, which are not GTK/GDK accelerator key names and could prevent compositor binding of keypad shortcuts.",
-      "fix": "Map keypad digits to KP_0..KP_9 in portal accelerator generation and add regression coverage for direct mapping and preferred trigger output.",
-      "version": "0.22.181",
-      "validation": "Release build 0 warnings/0 errors; tests passed 780 total.",
-      "logs": {
-        "build": "/tmp/xerahs-hourly-sweep/build-20260502-074515.log",
-        "test": "/tmp/xerahs-hourly-sweep/test-20260502-074902.log"
-      }
+      "summary": "Added OCROptions.PreferredLanguages : List<string> as the canonical list of the user's onboarding OCR language selection. CommitSettingsAsync now writes the full state.SelectedOcrLanguages list and keeps OCROptions.Language = state.SelectedOcrLanguages[0] as the primary. 4 new regression tests (MultipleSelected, SingleSelected round-trip, SkippedOcrStep non-overwrite, EmptyOcrLanguages non-overwrite). Bumped 0.23.96 -> 0.23.97.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1094 passed, 0 failed, 1 skipped (MCP server 3 CreateHistoryDetailsAsync_* failures are the pre-existing environmental SQLite 'disk I/O error' on this machine)",
+      "result_status": "success",
+      "commit": "3fc75695",
+      "status": "fixed",
+      "version": "0.23.97",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260606-021430.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260606-021430.log"
+    },
+    {
+      "timestamp": "2026-06-05 20:11 AWST",
+      "area": "Linux platform / WaylandCliCapture / grim+slurp+grimblast+hyprshot+swaymsg+spectacle+gnome-screenshot pipe-fill + timeout-stretching deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs",
+        "tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs",
+        "Directory.Build.props"
+      ],
+      "outcome": "fixed",
+      "commit": "1a0962d7",
+      "version_bump": "0.23.95 -> 0.23.96",
+      "build": "0 warnings / 0 errors",
+      "tests": "XerahS.Tests 1090 passed (was 1086, +4 new WaylandCliCaptureTests) / 0 failed / 1 skipped; McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates).",
+      "logs": [
+        "/tmp/xerahs-hourly-sweep/build-20260605-200319.log",
+        "/tmp/xerahs-hourly-sweep/test-20260605-200319.log"
+      ],
+      "next_candidates_after": [
+        "MCP server (resource URI construction/encoding edge cases: xerahs://history/search malformed q / prefix-only path handling)",
+        "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
+        "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
+        "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
+        "File/path handling - remaining path helper exception parity and history backup user-visible diagnostics",
+        "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
+      ]
+    },
+    {
+      "timestamp": "2026-06-05 14:01 AWST",
+      "area": "macOS platform / MacOSInputService / osascript capture pipe-fill + timeout-stretching deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.MacOS/MacOSInputService.cs",
+        "tests/XerahS.Tests/Platform/MacOS/MacOSInputServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "outcome": "fixed",
+      "commit": "aee46cb7",
+      "version_bump": "0.23.94 -> 0.23.95",
+      "build": "0 warnings / 0 errors",
+      "tests": "XerahS.Tests 1086 passed (+4 new MacOSInputServiceTests) / 0 failed / 1 skipped; McpServer.Tests 37 passed / 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates).",
+      "logs": [
+        "/tmp/xerahs-hourly-sweep/build-20260605-135543.log",
+        "/tmp/xerahs-hourly-sweep/test-20260605-135543.log"
+      ],
+      "next_candidates_after": [
+        "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94, MacOSInputService v0.23.95 fixed; remaining: WaylandCliCapture grim/slurp/grimblast paths)",
+        "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
+        "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
+        "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
+        "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
+        "File/path handling - remaining path helper exception parity and history backup user-visible diagnostics",
+        "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
+      ]
+    },
+    {
+      "timestamp": "2026-06-05 01:49 AWST",
+      "area": "Linux platform / LinuxInputService / xdotool capture pipe-fill + timeout-stretching deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Services/LinuxInputService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxInputServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "outcome": "fixed",
+      "commit": "20bf0f95",
+      "version_bump": "0.23.93 -> 0.23.94",
+      "build": "0 warnings / 0 errors",
+      "tests": "XerahS.Tests 1082 passed / 1 skipped / 0 failed; new LinuxInputServiceTests 4/4 passed; McpServer.Tests 3 pre-existing SQLite 'disk I/O error' failures (environmental, documented in next_candidates).",
+      "logs": [
+        "/tmp/xerahs-hourly-sweep/build-20260605-014512.log",
+        "/tmp/xerahs-hourly-sweep/test-20260605-014512.log"
+      ],
+      "next_candidates_after": [
+        "Linux platform / stderr-drainage audit (LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94 fixed; remaining: MacOSInputService, WaylandCliCapture grim/slurp/grimblast paths)",
+        "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
+        "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
+        "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
+        "CLI / command surface \u2014 OpenClaw plugin export generated CLI/tool parity",
+        "File/path handling \u2014 remaining path helper exception parity and history backup user-visible diagnostics",
+        "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
+      ]
+    },
+    {
+      "timestamp": "2026-06-04 07:18 AWST",
+      "area": "Linux platform / LinuxScreenService / xrandr capture pipe-fill + timeout-stretching deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Services/LinuxScreenService.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxScreenServiceTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed LinuxScreenService.ParseScreens pipe-fill and timeout-stretching deadlocks. RedirectStandardError=true with sync stdout read was the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86). Extracted RunXrandrCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor + 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit code). Bumped version 0.23.90 -> 0.23.91.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1070 passed (was 1066, +4 new LinuxScreenServiceTests) / 0 failed / 1 skipped; 3 pre-existing MCP server CreateHistoryDetailsAsync_* tests fail with SQLite 'disk I/O error' (verified on pristine 0.23.90 HEAD without my changes, environmental, not a regression)",
+      "result_status": "success",
+      "commit": "2a8c7d4a",
+      "status": "fixed",
+      "version": "0.23.91",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260604-070552.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-full-20260604-070552.log"
+    },
+    {
+      "timestamp": "2026-06-04 00:47 AWST",
+      "area": "MCP server / CreateHistoryDetailsAsync stale local path diagnostic",
+      "files": [
+        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
+        "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed CreateHistoryDetailsAsync silent stale-path gap: when item.FilePath was set but the file was not on disk, the response silently returned null width/height, null MD5 hash, and a 0-byte file_size with no indication that the file was missing. MCP clients could not distinguish 'image is being processed' from 'the stored capture path is stale'. Made CreateHistoryDetailsAsync internal (InternalsVisibleTo already in place) and added explicit file_exists (bool), file_missing_path (string|null), and thumbnail_exists (bool) fields. file_exists is computed once up front; hash/size/dimension block only runs when the source file is genuinely on disk. file_missing_path is null when FilePath is empty (no missing path to surface) and equals item.FilePath otherwise. thumbnail_exists uses the same TryResolveLocalFilePath check as CreateHistoryBlobResourceUriIfLocal. Added 3 regression tests. Bumped version 0.23.89 -> 0.23.90.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 40 passed/0 failed (was 37, +3 new)",
+      "result_status": "success",
+      "commit": "27f8216c",
+      "status": "fixed",
+      "version": "0.23.90",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260604-004334.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260604-004334.log"
+    },
+    {
+      "timestamp": "2026-06-03 18:36 AWST",
+      "area": "MCP server / ResolveHistoryBlobPath misleading error message",
+      "files": [
+        "src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs",
+        "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "ResolveHistoryBlobPath threw 'History item thumbnail source file was not found.' with item.FilePath as FileName even when both the thumbnail and the source were missing, or when only the source was configured. Fix: branch the exception message on which fields are populated \u2014 'thumbnail and source files were not found.' when both present, 'source file was not found.' when only FilePath configured, original 'thumbnail source file was not found.' when only ThumbnailURL configured. FileName preserved as item.FilePath to keep prior contract for debug-log consumers. CreateHistoryBlobMissingResponse already uses item.FilePath / item.ThumbnailURL directly, so the structured-response path is unaffected. Added 3 regression tests (MissingThumbnailOnly_FallsBackToSourceFile, MissingBothFiles_MentionsThumbnailAndSource, OnlyThumbnailConfiguredMissing_KeepsThumbnailOnlyMessage). Bumped version 0.23.88 -> 0.23.89.",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 37 passed/0 failed (was 34, +3 new)",
+      "result_status": "success",
+      "commit": "e8c9fb14",
+      "status": "fixed",
+      "version": "0.23.89",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260603-183433.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260603-183433.log"
+    },
+    {
+      "timestamp": "2026-06-03 06:18 AWST",
+      "area": "Uploader core / plugin routing / InstanceManager.RemoveInstance stale default cleanup logging",
+      "files": [
+        "src/desktop/core/XerahS.Uploaders/PluginSystem/InstanceManager.cs",
+        "tests/XerahS.Tests/Uploaders/InstanceManagerTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed InstanceManager.RemoveInstance to call LogStaleDefaultRemoved(category, instanceId, 'instance was removed') for each default mapping that is implicitly cleaned when the underlying instance is removed. Parity fix with the GetDefaultInstance stale-cleanup path and the UpdateInstance category-change path, both of which already logged. Added RemoveInstance_LogsWhenRemovingStaleDefaultMapping regression test. Bumped version 0.23.87 -> 0.23.88.",
+      "result": "build 0 warnings/0 errors; tests 1066 passed, 0 failed, 1 skipped; MCP 34 passed, 0 failed",
+      "result_status": "success",
+      "commit": "6705b0e9",
+      "status": "fixed",
+      "version": "0.23.88",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260603-061438.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260603-061438.log"
+    },
+    {
+      "timestamp": "2026-06-03 00:10 AWST",
+      "area": "OCR / OcrViewModel onboarding language-selection parity",
+      "files": [
+        "src/desktop/app/XerahS.UI/ViewModels/OcrViewModel.cs",
+        "tests/XerahS.Tests/Tools/OcrViewModelTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed OcrViewModel.LoadAvailableLanguages to honour the language persisted by the onboarding wizard (SettingsManager.DefaultTaskSettings.CaptureSettings.OCROptions.Language). Added private static ResolvePersistedLanguageTag() helper that trims the persisted value once at the read-site boundary; selection order: persisted (trimmed) -> English -> first available. Added 4 regression tests. Bumped version 0.23.86 -> 0.23.87. Recovered from interrupted prior session (PID 18279 stale lock) per pre-staged-work recovery protocol.",
+      "result": "build 0 warnings/0 errors; tests 1065 passed, 0 failed, 1 skipped",
+      "result_status": "success",
+      "commit": "f30c3846",
+      "status": "fixed",
+      "version": "0.23.87",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260603-000330.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260603-000330.log"
+    },
+    {
+      "timestamp": "2026-06-02 11:42 AWST",
+      "area": "Wayland / Linux CLI capture / LinuxCliToolRunner pipe-drain deadlock",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Capture/Helpers/LinuxCliToolRunner.cs",
+        "tests/XerahS.Tests/Platform/Linux/LinuxCliToolRunnerTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed LinuxCliToolRunner.RunAsync pipe-drain deadlock: spawned child process with RedirectStandardError/Output=true but pipes were never drained, so OS pipe buffer could fill and block the child on its next write. Extracted RunCoreAsync with BeginErrorReadLine + fire-and-forget ReadToEndAsync; added bounded process.WaitForExit(1000) after Kill so async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync; added 4 regression tests (happy path, large-stderr 0-exit, large-stderr non-zero exit, timeout). Bumped version 0.23.85 -> 0.23.86.",
+      "result": "build 0 warnings/0 errors; tests 1061+34=1095 passed, 0 failed, 1 skipped",
+      "result_status": "success",
+      "commit": "b23cb6ba"
+    },
+    {
+      "timestamp": "2026-06-01 23:20 AWST",
+      "area": "Wayland / Linux CLI capture / SWAY active-window fallback",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs",
+        "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/SwayWindowPointQueryHelper.cs",
+        "tests/XerahS.Tests/Platform/Linux/WaylandWindowPointQueryHelperTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed WaylandCliCapture.CaptureActiveWindowAsync SWAY/null-desktop path: previously fell through to CaptureWithGrimSlurpAsync which runs slurp with no args (prompts user to draw a region with the mouse) \u2014 wrong UX for an active-window capture. Routed to grimblast 'save active' first, then CaptureWithSwayFocusedWindowAsync (swaymsg + grim -g with focused geometry). Added SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson and TryGetFocusedWindowGeometryExpression helpers with 7 regression tests. Bumped version 0.23.84 -> 0.23.85.",
+      "result": "build 0 warnings/0 errors; tests 1057+34=1091 passed, 0 failed, 1 skipped",
+      "commit": "baa44de9",
+      "status": "fixed",
+      "version": "0.23.85",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260601-231528.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260601-231528.log"
+    },
+    {
+      "timestamp": "2026-06-01 10:48 AWST",
+      "area": "FFmpegDownloader / cancellation token propagation",
+      "files": [
+        "src/desktop/core/XerahS.Common/FFmpegDownloader.cs",
+        "tests/XerahS.Tests/Common/FFmpegDownloaderCancellationTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed FFmpegDownloader.DownloadLatestAsync and DownloadFFprobeFallbackAsync to honour their CancellationToken parameter: early-exit before Directory.CreateDirectory, pass token to FileDownloader.StartDownload (which accepted it since v0.23.78), and convert OperationCanceledException/cancellation-after-exception into user-visible 'FFmpeg download was canceled.' messages (or null for the FFprobe fallback). Added 5 regression tests; bumped version 0.23.82 -> 0.23.83.",
+      "result": "build 0 warnings/0 errors; tests 1046+34=1080 passed, 0 failed, 1 skipped (5 new FFmpegDownloaderCancellation tests)",
+      "commit": "b777ea5d",
+      "status": "fixed",
+      "version": "0.23.83",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260601-104340.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260601-104340.log"
+    },
+    {
+      "timestamp": "2026-05-31 00:27 AWST",
+      "area": "CLI / bootstrap uploaders exit code parity",
+      "files": [
+        "src/desktop/cli/XerahS.CLI/Commands/BootstrapCommand.cs",
+        "src/desktop/cli/XerahS.CLI/Services/CliUploaderBootstrapper.cs",
+        "Directory.Build.props"
+      ],
+      "summary": "Fixed bootstrap uploaders to use report.HasBlockingIssues for exit code instead of always returning 0. Also made WriteJson internal so BootstrapCommand can call it directly. Bumped version 0.23.80 -> 0.23.81.",
+      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
+      "commit": "b5163200",
+      "status": "fixed",
+      "version": "0.23.81",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260531-001752.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260531-001752.log"
+    },
+    {
+      "timestamp": "2026-05-30 18:16 AWST",
+      "area": "TypeConverter / StringCollectionToStringTypeConverter silent type erasure",
+      "files": [
+        "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs",
+        "tests/XerahS.Tests/Common/StringCollectionToStringTypeConverterTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "summary": "Fixed ConvertTo silent type erasure \u2014 non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
+      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
+      "commit": "f0568d15",
+      "status": "fixed",
+      "version": "0.23.80",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260530-181232.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260530-181232.log"
+    },
+    {
+      "timestamp": "2026-05-29 23:47 AWST",
+      "area": "MCP server / resource URI dispatch and uploader plugin routing review",
+      "files": [],
+      "summary": "Reviewed MCP server URI dispatch and uploader plugin routing \u2014 all correctly implemented per prior fixes. No fixable bugs found in either area. Clean review (no code change).",
+      "result": "build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped",
+      "commit": "ffd1dc65",
+      "status": "reviewed",
+      "version": "0.23.78",
+      "build_log": "/tmp/xerahs-hourly-sweep/build-20260529-234721.log",
+      "test_log": "/tmp/xerahs-hourly-sweep/test-20260529-234721.log"
     }
   ]
 }

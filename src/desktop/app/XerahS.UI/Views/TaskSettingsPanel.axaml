@@ -115,6 +115,7 @@
                                     <CheckBox IsChecked="{Binding AnnotateMedia}" Content="Annotate media"/>
                                     <CheckBox IsChecked="{Binding ShowAfterCaptureWindow}" Content="Show after capture window"/>
                                     <CheckBox IsChecked="{Binding DoOCR}" Content="OCR text recognition"/>
+                                    <CheckBox IsChecked="{Binding CopyOcrTextToClipboard}" Content="Copy OCR text to clipboard"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

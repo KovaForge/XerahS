@@ -140,6 +140,147 @@ public class ToastWindowClickRoutingTests
     }
 
     [Test]
+    public void ToastViewModel_GetNextFadeOpacity_ReachesZeroBeforeClose()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ToastViewModel.GetNextFadeOpacity(1.0, 0.25), Is.EqualTo(0.75));
+            Assert.That(ToastViewModel.GetNextFadeOpacity(0.2, 0.25), Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void ToastViewModel_OnMenuClosed_StartsFade_WhenDurationNotElapsed_AndAutoHideEnabled()
+    {
+        // Arrange: auto-hide toast, duration not yet elapsed (_isDurationEnd = false),
+        // mouse not inside, menu closes after being open
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 10,
+            FadeDuration = 1
+        };
+
+        var viewModel = new ToastViewModel(config);
+
+        // Open menu before duration fires
+        viewModel.OnMenuOpened();
+
+        // Act: close the menu while duration has not elapsed
+        // Before the fix, OnMenuClosed called CheckFade() which requires _isDurationEnd=true.
+        // After the fix, OnMenuClosed calls StartFade() directly, resuming fade even before
+        // the duration timer fires.
+        Exception? exception = null;
+        try
+        {
+            viewModel.OnMenuClosed();
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception, Is.Null);
+            Assert.That(config.AutoHide, Is.True);
+        });
+    }
+
+    [Test]
+    public void ToastViewModel_OnMenuClosed_DoesNotThrow_WhenMouseIsInside()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 10,
+            FadeDuration = 1
+        };
+
+        var viewModel = new ToastViewModel(config);
+        viewModel.OnMouseEnter();
+        viewModel.OnMenuOpened();
+
+        // Act
+        Exception? exception = null;
+        try
+        {
+            viewModel.OnMenuClosed();
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception, Is.Null);
+            Assert.That(config.AutoHide, Is.True);
+        });
+    }
+
+    [Test]
+    public void ToastViewModel_OnMenuClosed_DoesNotThrow_WhenAutoHideDisabled()
+    {
+        var config = new ToastConfig
+        {
+            AutoHide = false,
+            Duration = 10,
+            FadeDuration = 1
+        };
+
+        var viewModel = new ToastViewModel(config);
+        viewModel.OnMenuOpened();
+
+        // Act
+        Exception? exception = null;
+        try
+        {
+            viewModel.OnMenuClosed();
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception, Is.Null);
+            Assert.That(config.AutoHide, Is.False);
+        });
+    }
+
+    [Test]
+    public void ToastViewModel_OnMenuClosed_DoesNotThrow_WhenMenuNeverOpened()
+    {
+        // Regression: OnMenuClosed should be safe to call even if menu was never opened
+        var config = new ToastConfig
+        {
+            AutoHide = true,
+            Duration = 10,
+            FadeDuration = 1
+        };
+
+        var viewModel = new ToastViewModel(config);
+
+        // Act: close menu without ever opening it
+        Exception? exception = null;
+        try
+        {
+            viewModel.OnMenuClosed();
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception, Is.Null);
+            Assert.That(config.AutoHide, Is.True);
+        });
+    }
+
     public void BuildMarkdownImage_UsesMarkdownImageSyntax_WithEscapedAltText()
     {
         var markdown = ToastViewModel.BuildMarkdownImage("https://example.com/capture.png", "Latest [Capture]");

@@ -67,14 +67,6 @@
                  TextWrapping="Wrap" />
     </Border>
 
-    <!-- ShareX import (conditional) -->
-    <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0"
-                IsVisible="{Binding HasShareXConfig}">
-      <Button Classes="WizardGhostButton" Content="Import from ShareX"
-              Command="{Binding ImportFromShareXCommand}" />
-      <TextBlock Text="ShareX configuration detected" FontSize="12" Foreground="{DynamicResource WizTextSecondary}" VerticalAlignment="Center" />
-    </StackPanel>
-
     <Button Classes="WizardGhostButton" Content="Test Connection"
             Command="{Binding TestConnectionCommand}" Margin="0,12,0,0"
             HorizontalAlignment="Left" />

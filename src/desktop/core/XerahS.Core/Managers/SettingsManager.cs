@@ -361,11 +361,12 @@ namespace XerahS.Core
             SaveWorkflowsConfig();
         }
 
-        public static void SaveAllSettingsAsync()
+        public static async Task SaveAllSettingsAsync()
         {
-            SaveApplicationConfigAsync();
-            SaveUploadersConfigAsync();
-            SaveWorkflowsConfigAsync();
+            await Task.WhenAll(
+                SaveApplicationConfigAsync(),
+                SaveUploadersConfigAsync(),
+                SaveWorkflowsConfigAsync());
         }
 
         /// <summary>
@@ -378,11 +379,12 @@ namespace XerahS.Core
             RaiseSettingsChanged();
         }
 
-        public static void SaveApplicationConfigAsync()
+        public static async Task<bool> SaveApplicationConfigAsync()
         {
             UpdateRecentTasks();
-            Settings?.SaveAsync(ApplicationConfigFilePath);
+            bool saved = Settings != null && await Settings.SaveAsync(ApplicationConfigFilePath);
             RaiseSettingsChanged();
+            return saved;
         }
 
         /// <summary>
@@ -395,11 +397,12 @@ namespace XerahS.Core
             RaiseSettingsChanged();
         }
 
-        public static void SaveUploadersConfigAsync()
+        public static async Task<bool> SaveUploadersConfigAsync()
         {
             UploadersConfig?.SyncPolymorphicSettingsFromLegacy();
-            UploadersConfig?.SaveAsync(UploadersConfigFilePath);
+            bool saved = UploadersConfig != null && await UploadersConfig.SaveAsync(UploadersConfigFilePath);
             RaiseSettingsChanged();
+            return saved;
         }
 
         /// <summary>
@@ -411,10 +414,11 @@ namespace XerahS.Core
             RaiseSettingsChanged();
         }
 
-        public static void SaveWorkflowsConfigAsync()
+        public static async Task<bool> SaveWorkflowsConfigAsync()
         {
-            WorkflowsConfig?.SaveAsync(WorkflowsConfigFilePath);
+            bool saved = WorkflowsConfig != null && await WorkflowsConfig.SaveAsync(WorkflowsConfigFilePath);
             RaiseSettingsChanged();
+            return saved;
         }
 
         private static void UpdateRecentTasks()

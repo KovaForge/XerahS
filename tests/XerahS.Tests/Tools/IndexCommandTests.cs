@@ -41,6 +41,8 @@ public class IndexCommandTests
     [TestCase("text", IndexerOutput.Txt)]
     [TestCase("xml", IndexerOutput.Xml)]
     [TestCase("json", IndexerOutput.Json)]
+    [TestCase("md", IndexerOutput.Markdown)]
+    [TestCase("markdown", IndexerOutput.Markdown)]
     public void TryParseFormat_WithSupportedFormat_ReturnsIndexerOutput(string? format, IndexerOutput expectedOutput)
     {
         bool result = IndexCommand.TryParseFormat(format, out IndexerOutput output);
@@ -53,11 +55,128 @@ public class IndexCommandTests
     }
 
     [Test]
+    public void ResolveOutputPath_WithMarkdownFormat_UsesMdExtension()
+    {
+        string folderPath = Path.Combine(Path.GetTempPath(), "xerahs-index-source");
+        string originalCurrentDirectory = Environment.CurrentDirectory;
+        string workDirectory = TestContext.CurrentContext.WorkDirectory;
+
+        try
+        {
+            Environment.CurrentDirectory = workDirectory;
+
+            string outputPath = IndexCommand.ResolveOutputPath(folderPath, null, IndexerOutput.Markdown);
+
+            Assert.That(outputPath, Is.EqualTo(Path.Combine(workDirectory, "xerahs-index-source.md")));
+        }
+        finally
+        {
+            Environment.CurrentDirectory = originalCurrentDirectory;
+        }
+    }
+
+    [Test]
     public void TryParseFormat_WithUnsupportedFormat_ReturnsFalse()
     {
         bool result = IndexCommand.TryParseFormat("pdf", out _);
 
         Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void IndexerSettings_ShouldRecurseIntoLevel_HandlesEdgeCases()
+    {
+        Assert.Multiple(() =>
+        {
+            // 0 = unlimited, always recurse
+            Assert.That(new IndexerSettings { MaxDepthLevel = 0 }.ShouldRecurseIntoLevel(0), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 0 }.ShouldRecurseIntoLevel(5), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 0 }.ShouldRecurseIntoLevel(1000), Is.True);
+
+            // Negative = unlimited (defensive — same as 0)
+            Assert.That(new IndexerSettings { MaxDepthLevel = -1 }.ShouldRecurseIntoLevel(0), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = -5 }.ShouldRecurseIntoLevel(5), Is.True);
+
+            // Positive = bounded
+            Assert.That(new IndexerSettings { MaxDepthLevel = 1 }.ShouldRecurseIntoLevel(0), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 1 }.ShouldRecurseIntoLevel(1), Is.False);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 3 }.ShouldRecurseIntoLevel(2), Is.True);
+            Assert.That(new IndexerSettings { MaxDepthLevel = 3 }.ShouldRecurseIntoLevel(3), Is.False);
+        });
+    }
+
+    [Test]
+    public void IndexerSettings_ExtensionMatchesFilter_HandlesEdgeCases()
+    {
+        Assert.Multiple(() =>
+        {
+            // Null/empty filter returns false (no filter to match)
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", null), Is.False);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", []), Is.False);
+
+            // With-dot vs without-dot normalization
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", [".cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter("cs", [".cs"]), Is.True);
+
+            // Case-insensitive matching
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".CS", ["cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["CS"]), Is.True);
+
+            // Whitespace in extension
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(" .cs ", ["cs"]), Is.True);
+
+            // Whitespace/null filter entries are ignored
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["", " ", "cs"]), Is.True);
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".cs", ["", " "]), Is.False);
+
+            // Non-matching extensions
+            Assert.That(IndexerSettings.ExtensionMatchesFilter(".txt", [".cs", ".md"]), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WithMarkdownFormat_WritesExpectedIndexFile()
+    {
+        string rootDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-index-cli-md-{Guid.NewGuid():N}");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"xerahs-index-cli-md-{Guid.NewGuid():N}.md");
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(rootDirectory, "captures"));
+            await File.WriteAllTextAsync(Path.Combine(rootDirectory, "capture.txt"), "hello");
+            await File.WriteAllTextAsync(Path.Combine(rootDirectory, "captures", "nested.txt"), "nested");
+
+            int exitCode = await IndexCommand.ExecuteAsync(
+                rootDirectory,
+                "md",
+                outputPath,
+                maxDepth: 0,
+                includeExtensions: null,
+                excludeExtensions: null,
+                includeHidden: false,
+                foldersOnly: false,
+                noSize: false,
+                noFooter: true,
+                jsonOutput: false,
+                CancellationToken.None);
+
+            string markdown = await File.ReadAllTextAsync(outputPath);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+                Assert.That(markdown, Does.StartWith("# Directory Index: "));
+                Assert.That(markdown, Does.Contain("- **captures/**"));
+                Assert.That(markdown, Does.Contain("- capture\\.txt"));
+                Assert.That(markdown, Does.Contain("- nested\\.txt"));
+            });
+        }
+        finally
+        {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (Directory.Exists(rootDirectory)) Directory.Delete(rootDirectory, recursive: true);
+        }
     }
 
     [Test]
@@ -153,6 +272,37 @@ public class IndexCommandTests
             if (File.Exists(outputPath)) File.Delete(outputPath);
             if (Directory.Exists(rootDirectory)) Directory.Delete(rootDirectory, recursive: true);
         }
+    }
+
+    [Test]
+    public void CountIndexedContents_InvalidPathCharacters_ReturnsZeroWithoutThrowing()
+    {
+        var settings = new IndexerSettings();
+
+        var result = IndexCommand.CountIndexedContents("invalid|path?chars", settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TotalFiles, Is.EqualTo(0));
+            Assert.That(result.TotalFolders, Is.EqualTo(1));
+            Assert.That(result.TotalBytes, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void CountIndexedContents_NonexistentDirectory_ReturnsZeroWithoutThrowing()
+    {
+        string nonexistentPath = Path.Combine(Path.GetTempPath(), $"xerahs-index-count-{Guid.NewGuid():N}");
+        var settings = new IndexerSettings();
+
+        var result = IndexCommand.CountIndexedContents(nonexistentPath, settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TotalFiles, Is.EqualTo(0));
+            Assert.That(result.TotalFolders, Is.EqualTo(1));
+            Assert.That(result.TotalBytes, Is.EqualTo(0));
+        });
     }
 
     [Test]

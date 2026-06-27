@@ -21,12 +21,10 @@
     Optionally you can also view the license at <http://www.gnu.org/licenses/>.
 */
 
-#endregion
+#endregion License Information (GPL v3)
 
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using XerahS.UI.Onboarding.ViewModels.Steps;
 
 namespace XerahS.UI.Onboarding.Steps;
 
@@ -35,27 +33,10 @@ public partial class WelcomeStepView : UserControl
     public WelcomeStepView()
     {
         InitializeComponent();
-        DataContextChanged += OnDataContextChanged;
     }
 
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
-    }
-
-    private void OnDataContextChanged(object? sender, EventArgs e)
-    {
-        // Language selection is handled by the ViewModel
-    }
-
-    private void OnLanguageComboSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (sender is ComboBox cb && cb.SelectedItem is LanguageOption option)
-        {
-            if (DataContext is WelcomeStepViewModel vm)
-            {
-                vm.SelectedLanguage = option.Code;
-            }
-        }
     }
 }

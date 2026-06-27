@@ -303,6 +303,47 @@ public class InstanceManagerTests
     }
 
     [Test]
+    public void FileTypeRouting_IgnoresUnavailableInstancesWhenReportingConflicts()
+    {
+        var unavailablePng = new UploaderInstance
+        {
+            InstanceId = "unavailable-png",
+            ProviderId = "missing-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable PNG",
+            SettingsJson = "{}",
+            IsAvailable = false,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(unavailablePng);
+
+        var candidate = new UploaderInstance
+        {
+            InstanceId = "candidate",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Replacement PNG",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = false,
+                FileExtensions = new List<string> { "png" }
+            }
+        };
+
+        Assert.That(InstanceManager.Instance.CanAddFileType(UploaderCategory.Image, candidate.InstanceId, ".png"), Is.True);
+        Assert.That(InstanceManager.Instance.GetBlockedFileTypes(UploaderCategory.Image, candidate.InstanceId), Is.Empty);
+        Assert.That(InstanceManager.Instance.ValidateFileTypeConfiguration(candidate), Is.Null);
+        Assert.That(InstanceManager.Instance.CanSetAllFileTypes(UploaderCategory.Image, candidate.InstanceId), Is.True);
+    }
+
+    [Test]
     public void GetDestinationForFile_SkipsUnavailableExtensionSpecificInstanceAndFallsBackToAvailableAllTypes()
     {
         var unavailablePng = new UploaderInstance
@@ -379,6 +420,222 @@ public class InstanceManagerTests
         var resolved = InstanceManager.Instance.ResolveAutoInstance(UploaderCategory.File);
 
         Assert.That(resolved?.InstanceId, Is.EqualTo(availableFallback.InstanceId));
+    }
+
+    [Test]
+    public void ResolveAutoInstance_SkipsCategoryMismatchedDefault()
+    {
+        var staleDefault = new UploaderInstance
+        {
+            ProviderId = "image-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Stale Image Default",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        var fileFallback = new UploaderInstance
+        {
+            ProviderId = "file-provider",
+            Category = UploaderCategory.File,
+            DisplayName = "File Fallback",
+            SettingsJson = "{}",
+            IsAvailable = true,
+            FileTypeRouting = new FileTypeScope
+            {
+                AllFileTypes = true,
+                FileExtensions = new List<string>()
+            }
+        };
+
+        InstanceManager.Instance.AddInstance(staleDefault);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, staleDefault.InstanceId);
+        staleDefault.Category = UploaderCategory.File;
+        InstanceManager.Instance.AddInstance(fileFallback);
+
+        var resolved = InstanceManager.Instance.ResolveAutoInstance(UploaderCategory.Image);
+
+        Assert.That(resolved, Is.Null);
+        Assert.That(InstanceManager.Instance.ResolveAutoInstance(UploaderCategory.File)?.InstanceId, Is.EqualTo(staleDefault.InstanceId));
+    }
+
+    [Test]
+    public void UpdateInstance_CategoryChange_RemovesStaleDefaultMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Mover",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        // Change category
+        instance.Category = UploaderCategory.File;
+        InstanceManager.Instance.UpdateInstance(instance);
+
+        // Old category default should be cleaned up
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
+        // Instance should exist in new category
+        Assert.That(InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.File).Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void GetDefaultInstance_ReturnsNullWhenInstanceCategoryMismatches()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Mismatch",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        // Simulate stale mapping by changing category directly (bypassing UpdateInstance)
+        instance.Category = UploaderCategory.File;
+
+        // GetDefaultInstance should detect mismatch and return null
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
+        Assert.That(InstanceManager.Instance.GetInstance(instance.InstanceId)?.Category, Is.EqualTo(UploaderCategory.File));
+    }
+
+    [Test]
+    public void GetDefaultInstance_ReturnsNullWhenDefaultInstanceIsUnavailable()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable",
+            SettingsJson = "{}",
+            IsAvailable = false
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
+    }
+
+    [Test]
+    public void GetDefaultInstance_LogsWhenCleaningStaleDefaultMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            InstanceId = "stale-default",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Unavailable Default",
+            SettingsJson = "{}",
+            IsAvailable = false
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        string logPath = Path.Combine(_rootPath, "stale-default.log");
+        DebugHelper.Init(logPath);
+
+        try
+        {
+            Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null);
+
+            DebugHelper.Flush();
+            string log = File.ReadAllText(logPath);
+            Assert.That(log, Does.Contain("Removed stale default Image uploader 'stale-default'"));
+            Assert.That(log, Does.Contain("instance is unavailable"));
+        }
+        finally
+        {
+            DebugHelper.Shutdown();
+        }
+    }
+
+    [Test]
+    public void RemoveInstance_LogsWhenRemovingStaleDefaultMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            InstanceId = "removable-default",
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Removable Default",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        string logPath = Path.Combine(_rootPath, "remove-default.log");
+        DebugHelper.Init(logPath);
+
+        try
+        {
+            InstanceManager.Instance.RemoveInstance(instance.InstanceId);
+
+            DebugHelper.Flush();
+            string log = File.ReadAllText(logPath);
+            Assert.That(log, Does.Contain("Removed stale default Image uploader 'removable-default'"));
+            Assert.That(log, Does.Contain("instance was removed"));
+        }
+        finally
+        {
+            DebugHelper.Shutdown();
+        }
+    }
+
+    [Test]
+    public void IsDefaultInstance_ReturnsTrueWhenDefault()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Test Default",
+            SettingsJson = "{}",
+            IsAvailable = true
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, instance.InstanceId), Is.True);
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.File, instance.InstanceId), Is.False);
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, "nonexistent"), Is.False);
+    }
+
+    [Test]
+    public void IsDefaultInstance_DoesNotCleanStaleMapping()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "No Clean",
+            SettingsJson = "{}",
+            IsAvailable = false
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, instance.InstanceId);
+
+        // IsDefaultInstance should report true even for unavailable instances (it's informational)
+        Assert.That(InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, instance.InstanceId), Is.True);
+
+        // It should NOT have cleaned the mapping (unlike GetDefaultInstance)
+        Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null,
+            "GetDefaultInstance still cleans stale mappings (expected)");
     }
 
     private static void ClearInstances()

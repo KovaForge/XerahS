@@ -83,6 +83,17 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="WizardWarningCard" Margin="0,12,0,0" IsVisible="{Binding HasLanguageRefreshError}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="⚠" FontSize="14" VerticalAlignment="Center"
+                   Foreground="{DynamicResource WizWarning}" />
+        <TextBlock Text="{Binding LanguageRefreshError}"
+                   FontSize="13"
+                   Foreground="{DynamicResource WizWarning}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
     <CheckBox Classes="WizardCheckBox" Content="Download in background"
               IsChecked="{Binding DownloadInBackground}" Margin="0,16,0,0" />
   </StackPanel>

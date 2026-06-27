@@ -28,6 +28,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
 using XerahS.Common;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels;
@@ -81,16 +82,59 @@ public partial class OcrViewModel : ViewModelBase
             return;
         }
 
-        var languages = ocrService.GetAvailableLanguages();
-        foreach (var lang in languages)
+        OcrLanguage[] languages;
+        try
         {
-            AvailableLanguages.Add(lang);
+            languages = ocrService.GetAvailableLanguages();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "OCR language loading");
+            StatusText = $"Could not load OCR languages: {ex.Message}";
+            return;
         }
 
-        // Default to English if available, otherwise first language
+        var seenTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var lang in languages)
+        {
+            string languageTag = lang.LanguageTag?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(languageTag) || !seenTags.Add(languageTag))
+            {
+                continue;
+            }
+
+            string displayName = NormalizeDisplayName(lang.DisplayName, languageTag);
+            AvailableLanguages.Add(new OcrLanguage(displayName, languageTag));
+        }
+
+        // Prefer the language persisted by the onboarding wizard (OCROptions.Language)
+        // so the user's choice carries over into the OCR tool; fall back to English,
+        // then to the first available language.
+        string? persistedLanguage = ResolvePersistedLanguageTag();
         SelectedLanguage = AvailableLanguages.FirstOrDefault(l =>
-            l.LanguageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+            string.Equals(l.LanguageTag, persistedLanguage, StringComparison.OrdinalIgnoreCase))
+            ?? AvailableLanguages.FirstOrDefault(l =>
+                l.LanguageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             ?? AvailableLanguages.FirstOrDefault();
+    }
+
+    private static string? ResolvePersistedLanguageTag()
+    {
+        try
+        {
+            return SettingsManager.DefaultTaskSettings?.CaptureSettings?.OCROptions?.Language?.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string NormalizeDisplayName(string? displayName, string languageTag)
+    {
+        string normalized = displayName?.Trim() ?? string.Empty;
+        return string.IsNullOrEmpty(normalized) ? languageTag : normalized;
     }
 
     [RelayCommand]
@@ -142,7 +186,9 @@ public partial class OcrViewModel : ViewModelBase
             }
             else
             {
-                StatusText = result.ErrorMessage ?? "OCR failed.";
+                StatusText = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                    ? "OCR failed."
+                    : result.ErrorMessage.Trim();
                 HasResult = false;
             }
         }

@@ -188,7 +188,7 @@ public static class ColorPickerToolService
             }
             finally
             {
-                RegionCaptureAnnotationOptionsStore.Persist();
+                await RegionCaptureAnnotationOptionsStore.PersistAsync();
             }
 
             if (result == null)

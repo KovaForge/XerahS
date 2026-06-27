@@ -294,4 +294,202 @@ public class WaylandWindowPointQueryHelperTests
         });
         Assert.That(bounds, Is.EqualTo(Rectangle.Empty));
     }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowRectFromTreeJson_ReturnsDeepestFocusedLeaf()
+    {
+        const string json = """
+            {
+              "id": 1,
+              "type": "root",
+              "focus": [2],
+              "nodes": [
+                {
+                  "id": 2,
+                  "type": "output",
+                  "focus": [3],
+                  "nodes": [
+                    {
+                      "id": 3,
+                      "type": "workspace",
+                      "focus": [4],
+                      "nodes": [
+                        {
+                          "id": 4,
+                          "type": "con",
+                          "name": "Background",
+                          "app_id": "org.example.Background",
+                          "visible": true,
+                          "rect": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+                          "focus": [5],
+                          "nodes": [
+                            {
+                              "id": 5,
+                              "type": "con",
+                              "name": "Editor",
+                              "app_id": "org.example.Editor",
+                              "visible": true,
+                              "rect": { "x": 200, "y": 150, "width": 1024, "height": 768 },
+                              "nodes": [],
+                              "floating_nodes": []
+                            }
+                          ],
+                          "floating_nodes": []
+                        }
+                      ],
+                      "floating_nodes": []
+                    }
+                  ],
+                  "floating_nodes": []
+                }
+              ],
+              "floating_nodes": []
+            }
+            """;
+
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson(json, out Rectangle rect);
+
+        Assert.That(ok, Is.True);
+        Assert.That(rect, Is.EqualTo(new Rectangle(200, 150, 1024, 768)));
+    }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowRectFromTreeJson_PrefersFocusedFloatingNode()
+    {
+        const string json = """
+            {
+              "id": 1,
+              "type": "root",
+              "focus": [2],
+              "nodes": [
+                {
+                  "id": 2,
+                  "type": "con",
+                  "name": "Workspace",
+                  "app_id": "org.example.Workspace",
+                  "visible": true,
+                  "rect": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+                  "focus": [30],
+                  "nodes": [
+                    {
+                      "id": 20,
+                      "type": "con",
+                      "name": "Tiled",
+                      "app_id": "org.example.Tiled",
+                      "visible": true,
+                      "rect": { "x": 0, "y": 0, "width": 1000, "height": 800 },
+                      "nodes": [],
+                      "floating_nodes": []
+                    }
+                  ],
+                  "floating_nodes": [
+                    {
+                      "id": 30,
+                      "type": "floating_con",
+                      "name": "Dialog",
+                      "app_id": "org.example.Dialog",
+                      "visible": true,
+                      "rect": { "x": 120, "y": 80, "width": 600, "height": 400 },
+                      "nodes": [],
+                      "floating_nodes": []
+                    }
+                  ]
+                }
+              ],
+              "floating_nodes": []
+            }
+            """;
+
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson(json, out Rectangle rect);
+
+        Assert.That(ok, Is.True);
+        Assert.That(rect, Is.EqualTo(new Rectangle(120, 80, 600, 400)));
+    }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowRectFromTreeJson_RejectsMalformedRect()
+    {
+        const string json = """
+            {
+              "id": 1,
+              "type": "root",
+              "focus": [2],
+              "nodes": [
+                {
+                  "id": 2,
+                  "type": "con",
+                  "name": "Broken",
+                  "app_id": "org.example.Broken",
+                  "visible": true,
+                  "rect": { "x": 0, "y": 0, "width": 0, "height": 0 },
+                  "nodes": [],
+                  "floating_nodes": []
+                }
+              ],
+              "floating_nodes": []
+            }
+            """;
+
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson(json, out Rectangle rect);
+
+        Assert.That(ok, Is.False);
+        Assert.That(rect, Is.EqualTo(Rectangle.Empty));
+    }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowRectFromTreeJson_ReturnsFalseOnInvalidJson()
+    {
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson("not json", out Rectangle rect);
+
+        Assert.That(ok, Is.False);
+        Assert.That(rect, Is.EqualTo(Rectangle.Empty));
+    }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowRectFromTreeJson_ReturnsFalseOnEmptyInput()
+    {
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson("", out Rectangle rect);
+
+        Assert.That(ok, Is.False);
+        Assert.That(rect, Is.EqualTo(Rectangle.Empty));
+    }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowGeometryExpression_FormatsGrimGeometryString()
+    {
+        const string json = """
+            {
+              "id": 1,
+              "type": "root",
+              "focus": [2],
+              "nodes": [
+                {
+                  "id": 2,
+                  "type": "con",
+                  "name": "Editor",
+                  "app_id": "org.example.Editor",
+                  "visible": true,
+                  "rect": { "x": 200, "y": 150, "width": 1024, "height": 768 },
+                  "nodes": [],
+                  "floating_nodes": []
+                }
+              ],
+              "floating_nodes": []
+            }
+            """;
+
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowGeometryExpression(json, out string? geometry);
+
+        Assert.That(ok, Is.True);
+        Assert.That(geometry, Is.EqualTo("200,150 1024x768"));
+    }
+
+    [Test]
+    public void SwayHelper_TryGetFocusedWindowGeometryExpression_ReturnsNullOnFailure()
+    {
+        bool ok = SwayWindowPointQueryHelper.TryGetFocusedWindowGeometryExpression("", out string? geometry);
+
+        Assert.That(ok, Is.False);
+        Assert.That(geometry, Is.Null);
+    }
 }

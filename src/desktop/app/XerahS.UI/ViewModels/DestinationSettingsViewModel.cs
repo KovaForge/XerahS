@@ -116,7 +116,7 @@ public partial class DestinationSettingsViewModel : ViewModelBase
     private void Provider_ConfigChanged(object? sender, EventArgs e)
     {
         // Save uploaders config when any provider's configuration changes
-        SettingsManager.SaveUploadersConfigAsync();
+        _ = SettingsManager.SaveUploadersConfigAsync();
     }
 
     private void LoadCategories()

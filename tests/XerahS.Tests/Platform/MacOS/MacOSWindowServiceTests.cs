@@ -82,6 +82,46 @@ public class MacOSWindowServiceTests
         Assert.That(result, Is.False);
     }
 
+    [TestCase(0, 600)]
+    [TestCase(800, 0)]
+    [TestCase(-1, 600)]
+    [TestCase(800, -1)]
+    public void TryParseFrontWindowInfo_RejectsInvalidWindowSize(int width, int height)
+    {
+        string payload = string.Join(
+            MacOSWindowService.FrontWindowInfoSeparator,
+            "Document 1",
+            "Preview",
+            "10",
+            "20",
+            width.ToString(),
+            height.ToString(),
+            "1234");
+
+        bool result = MacOSWindowService.TryParseFrontWindowInfo(payload, out _);
+
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void TryParseFrontWindowInfo_PreservesTitleWhitespace()
+    {
+        string payload = string.Join(
+            MacOSWindowService.FrontWindowInfoSeparator,
+            " Document 1 ",
+            "Preview",
+            "10",
+            "20",
+            "800",
+            "600",
+            "1234") + Environment.NewLine;
+
+        bool result = MacOSWindowService.TryParseFrontWindowInfo(payload, out var windowInfo);
+
+        Assert.That(result, Is.True);
+        Assert.That(windowInfo.WindowTitle, Is.EqualTo(" Document 1 "));
+    }
+
     [Test]
     public void IsSearchMatch_MatchesWindowTitleOrAppName()
     {

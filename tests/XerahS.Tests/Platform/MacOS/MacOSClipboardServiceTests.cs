@@ -29,9 +29,19 @@ public class MacOSClipboardServiceTests
     {
         var relativePath = Path.Combine("relative", "capture.png");
 
-        var specifier = MacOSClipboardService.BuildPosixFileList(new[] { $" {relativePath} " }).Single();
+        var specifier = MacOSClipboardService.BuildPosixFileList(new[] { relativePath }).Single();
 
         Assert.That(specifier, Is.EqualTo($"POSIX file \\\"{Path.GetFullPath(relativePath)}\\\""));
+    }
+
+    [Test]
+    public void BuildPosixFileList_PreservesSignificantFilenameWhitespace()
+    {
+        var pathWithTrailingSpace = Path.Combine(Path.GetTempPath(), "capture ");
+
+        var specifier = MacOSClipboardService.BuildPosixFileList(new[] { pathWithTrailingSpace }).Single();
+
+        Assert.That(specifier, Is.EqualTo($"POSIX file \\\"{Path.GetFullPath(pathWithTrailingSpace)}\\\""));
     }
 
     [Test]

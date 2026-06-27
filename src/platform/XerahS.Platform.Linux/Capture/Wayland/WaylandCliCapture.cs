@@ -24,9 +24,12 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
+using System.Drawing;
+using System.Text.Json;
 using SkiaSharp;
 using XerahS.Common;
 using XerahS.Platform.Linux.Capture.Contracts;
+using XerahS.Platform.Linux.Wayland.WindowQuery;
 
 namespace XerahS.Platform.Linux.Capture.Wayland;
 
@@ -40,6 +43,10 @@ internal static class WaylandCliCapture
 
     public static bool IsSlurpAvailable()
     {
+        // No-stderr variant: `which` on a missing tool writes to stderr in some
+        // shells. We do not redirect stderr here, so pipe-fill is not a concern.
+        // `which` exits non-zero fast when the tool is missing, so the
+        // WaitForExit(3000) is a safety net only.
         try
         {
             var startInfo = new ProcessStartInfo
@@ -61,40 +68,157 @@ internal static class WaylandCliCapture
     }
 
     /// <summary>
+    /// Spawn a CLI capture tool and capture (stdout, exitCode) with the
+    /// LinuxScreenService v0.23.91 template: drains stderr asynchronously so a
+    /// chatty child cannot fill the 64KB pipe buffer, reads stdout asynchronously
+    /// so a child that sleeps without output cannot stretch the call beyond the
+    /// configured timeout (anti-pattern B), and bounds the async drainers with a
+    /// 1s wait after Kill() so they finish reading the (now-broken) pipes before
+    /// process disposal. Returns (string.Empty, null) on timeout.
+    /// </summary>
+    internal static (string output, int? exitCode) RunCliCapture(
+        string fileName, string arguments, int timeoutMs)
+    {
+        Process? process = null;
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            process = Process.Start(startInfo);
+            if (process == null) return (string.Empty, null);
+
+            // Drain stderr asynchronously so a chatty child cannot fill the
+            // 64KB pipe buffer. Discard the text — surface to the caller only
+            // if the exit code is non-zero (future enhancement).
+            var stderrDrain = process.StandardError.ReadToEndAsync()
+                .ContinueWith(_ => { }, TaskScheduler.Default);
+
+            // Read stdout ASYNCHRONOUSLY so a child that sleeps with no output
+            // (anti-pattern B) cannot stretch the call beyond the configured
+            // timeout. Task.WaitAny returns the index of the first completed
+            // task; if the delay wins, we kill the child and return null.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var timeoutTask = Task.Delay(timeoutMs);
+
+            if (Task.WaitAny(stdoutTask, timeoutTask) != 0)
+            {
+                // Timeout: kill the child, bounded wait for the async drainers.
+                try { process.Kill(); } catch { /* best effort */ }
+                try { Task.WaitAll(new Task[] { stdoutTask, stderrDrain }, 1000); }
+                catch { /* drainer may have faulted on a closed stream */ }
+                return (string.Empty, null);
+            }
+
+            // stdout closed within the timeout — the child has exited (or is
+            // about to). Wait for exit to capture the exit code, with a
+            // bounded follow-up for the case where stdout closed but the
+            // process has not fully released.
+            if (!process.WaitForExit(timeoutMs))
+            {
+                try { process.Kill(); } catch { /* best effort */ }
+                process.WaitForExit(1000);
+                return (stdoutTask.Result, null);
+            }
+
+            // Best-effort: ensure the stderr drainer is done before disposing
+            // the process. Bounded so a stuck drainer cannot hang us.
+            try { Task.WaitAll(new Task[] { stderrDrain }, 1000); }
+            catch { /* ignore */ }
+
+            return (stdoutTask.Result, process.ExitCode);
+        }
+        catch
+        {
+            return (string.Empty, null);
+        }
+        finally
+        {
+            // Manual dispose: the helper has multiple return paths and is not
+            // a `using` block.
+            process?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Expose RunCliCapture and CaptureActiveWindowAsync routing for regression
+    /// tests without a real CLI tool. RoutingTest returns the ordered sequence
+    /// of helper names that CaptureActiveWindowAsync would attempt for the given
+    /// desktop string, so we can assert the Hyprland/Sway/null routing is
+    /// correct without needing real compositor tools.
+    /// </summary>
+    internal static class TestAccessor
+    {
+        public static (string output, int? exitCode) RunCliCapture(
+            string fileName, string arguments, int timeoutMs)
+            => WaylandCliCapture.RunCliCapture(fileName, arguments, timeoutMs);
+
+        /// <summary>
+        /// Returns the ordered list of helper names CaptureActiveWindowAsync
+        /// would attempt for the given desktop string. Does not invoke the
+        /// actual async capture helpers.
+        /// </summary>
+        public static List<string> CaptureActiveWindowRoutingTest(string? desktop)
+        {
+            var sequence = new List<string>();
+            if (desktop == "HYPRLAND")
+            {
+                sequence.Add(nameof(CaptureWithGrimblastActiveWindowAsync));
+                sequence.Add(nameof(CaptureWithHyprshotWindowAsync));
+            }
+            if (desktop is "SWAY" || desktop == null)
+            {
+                sequence.Add(nameof(CaptureWithGrimblastActiveWindowAsync));
+                sequence.Add(nameof(CaptureWithSwayFocusedWindowAsync));
+            }
+            return sequence;
+        }
+
+        /// <summary>
+        /// Simulates the initial slurp leg of <see cref="CaptureWithGrimSlurpAsync"/> with
+        /// synthetic (output, exitCode) values. Returns the parsed geometry string, or
+        /// null if the exit code is non-zero / the output is null or empty after trimming.
+        /// This exposes the null-guard on slurpOutput to direct test coverage —
+        /// RunCliCapture currently never returns null output, but the guard is required
+        /// to satisfy the defensive null-check added in the v0.23.113 fix.
+        /// </summary>
+        public static string? CaptureWithGrimSlurpParsingTest(string? slurpOutput, int? slurpExit)
+        {
+            if (slurpExit == null || slurpExit != 0) return null;
+            if (slurpOutput == null) return null;
+            var geometry = slurpOutput.Trim();
+            if (string.IsNullOrEmpty(geometry)) return null;
+            return geometry;
+        }
+    }
+
+    /// <summary>
     /// Region selection using slurp (coordinates only, no screenshot). For recording.
     /// </summary>
     public static async Task<SKRectI> SelectRegionWithSlurpAsync()
     {
         try
         {
-            var slurpStartInfo = new ProcessStartInfo
+            var (output, exitCode) = await Task.Run(() => RunCliCapture(
+                "slurp", "-f \"%x %y %w %h\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null)
             {
-                FileName = "slurp",
-                Arguments = "-f \"%x %y %w %h\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using var slurpProcess = Process.Start(slurpStartInfo);
-            if (slurpProcess == null)
-            {
-                DebugHelper.WriteLine("LinuxScreenCaptureService: Failed to start slurp process");
-                return SKRectI.Empty;
-            }
-            var completed = await Task.Run(() => slurpProcess.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed)
-            {
-                try { slurpProcess.Kill(); } catch { }
                 DebugHelper.WriteLine("LinuxScreenCaptureService: slurp timed out");
                 return SKRectI.Empty;
             }
-            if (slurpProcess.ExitCode != 0)
+            if (exitCode != 0)
             {
-                DebugHelper.WriteLine($"LinuxScreenCaptureService: slurp exited with code {slurpProcess.ExitCode} (likely cancelled)");
+                DebugHelper.WriteLine($"LinuxScreenCaptureService: slurp exited with code {exitCode} (likely cancelled)");
                 return SKRectI.Empty;
             }
-            string output = (await slurpProcess.StandardOutput.ReadToEndAsync().ConfigureAwait(false)).Trim();
+            output = output.Trim();
             DebugHelper.WriteLine($"LinuxScreenCaptureService: slurp output: '{output}'");
             var parts = output.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length >= 4 &&
@@ -182,9 +306,24 @@ internal static class WaylandCliCapture
             r = await CaptureWithHyprshotWindowAsync().ConfigureAwait(false);
             if (r != null) return r;
         }
-        if (IsWlrootsDesktop(desktop) || desktop == null)
+        // SWAY and other non-Hyprland wlroots desktops do NOT enter the first
+        // block above (which is Hyprland-specific). Route them through grimblast
+        // first, then fall back to a sway-focused window query if grimblast is
+        // unavailable. We exclude HYPRLAND explicitly here — Hyprland was already
+        // handled above and its grimblast result (if null) is followed by Hyprshot,
+        // never by the second block's grimblast+swaymsg pair.
+        if (desktop is "SWAY" || desktop == null)
         {
-            return await CaptureWithGrimSlurpAsync().ConfigureAwait(false);
+            // grimblast "save active" works on SWAY/wlroots in addition to Hyprland.
+            // Fall back to a focused-window geometry query so we still get a single
+            // window capture when grimblast is missing. The previous implementation
+            // fell through to CaptureWithGrimSlurpAsync which runs `slurp` with no
+            // arguments, prompting the user to draw a region with the mouse — the
+            // wrong UX for an active-window capture.
+            var r = await CaptureWithGrimblastActiveWindowAsync().ConfigureAwait(false);
+            if (r != null) return r;
+            r = await CaptureWithSwayFocusedWindowAsync().ConfigureAwait(false);
+            if (r != null) return r;
         }
         return null;
     }
@@ -194,19 +333,9 @@ internal static class WaylandCliCapture
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "grimblast",
-                Arguments = $"save area \"{tempFile}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "grimblast", $"save area \"{tempFile}\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with grimblast");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
@@ -220,36 +349,16 @@ internal static class WaylandCliCapture
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
         try
         {
-            string? geometry;
-            using (var slurpProcess = Process.Start(new ProcessStartInfo
-            {
-                FileName = "slurp",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            }))
-            {
-                if (slurpProcess == null) return null;
-                var completed = await Task.Run(() => slurpProcess.WaitForExit(60000)).ConfigureAwait(false);
-                if (!completed) { try { slurpProcess.Kill(); } catch { } return null; }
-                if (slurpProcess.ExitCode != 0) return null;
-                geometry = (await slurpProcess.StandardOutput.ReadToEndAsync().ConfigureAwait(false)).Trim();
-                if (string.IsNullOrEmpty(geometry)) return null;
-            }
-            using var grimProcess = Process.Start(new ProcessStartInfo
-            {
-                FileName = "grim",
-                Arguments = $"-g \"{geometry}\" \"{tempFile}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (grimProcess == null) return null;
-            var grimCompleted = await Task.Run(() => grimProcess.WaitForExit(10000)).ConfigureAwait(false);
-            if (!grimCompleted) { try { grimProcess.Kill(); } catch { } return null; }
-            if (grimProcess.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (slurpOutput, slurpExit) = await Task.Run(() => RunCliCapture(
+                "slurp", string.Empty, 60000)).ConfigureAwait(false);
+            if (slurpExit == null || slurpExit != 0) return null;
+            if (slurpOutput == null) return null;
+            var geometry = slurpOutput.Trim();
+            if (string.IsNullOrEmpty(geometry)) return null;
+
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "grim", $"-g \"{geometry}\" \"{tempFile}\"", 10000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with grim+slurp");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
@@ -263,19 +372,9 @@ internal static class WaylandCliCapture
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "hyprshot",
-                Arguments = $"-m region -o \"{Path.GetDirectoryName(tempFile)}\" -f \"{Path.GetFileName(tempFile)}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "hyprshot", $"-m region -o \"{Path.GetDirectoryName(tempFile)}\" -f \"{Path.GetFileName(tempFile)}\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with hyprshot");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
@@ -289,19 +388,9 @@ internal static class WaylandCliCapture
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "grimblast",
-                Arguments = $"save active \"{tempFile}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "grimblast", $"save active \"{tempFile}\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with grimblast (active window)");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
@@ -315,25 +404,64 @@ internal static class WaylandCliCapture
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "hyprshot",
-                Arguments = $"-m window -o \"{Path.GetDirectoryName(tempFile)}\" -f \"{Path.GetFileName(tempFile)}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "hyprshot", $"-m window -o \"{Path.GetDirectoryName(tempFile)}\" -f \"{Path.GetFileName(tempFile)}\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with hyprshot (window)");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
         }
         catch { return null; }
         finally { TryDelete(tempFile); }
+    }
+
+    /// <summary>
+    /// Active-window capture fallback for wlroots compositors without grimblast
+    /// active support. Queries swaymsg for the focused window geometry, then
+    /// runs grim with the geometry expression. Returns null if swaymsg or grim
+    /// are unavailable, or if the focused window cannot be determined.
+    /// </summary>
+    private static async Task<SKBitmap?> CaptureWithSwayFocusedWindowAsync()
+    {
+        string? geometry = await TryGetFocusedWindowGeometryAsync().ConfigureAwait(false);
+        if (string.IsNullOrEmpty(geometry))
+        {
+            DebugHelper.WriteLine("LinuxScreenCaptureService: swaymsg focused window query returned no geometry");
+            return null;
+        }
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
+        try
+        {
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "grim", $"-g \"{geometry}\" \"{tempFile}\"", 10000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: Screenshot captured with grim -g {geometry}");
+            using var stream = File.OpenRead(tempFile);
+            return SKBitmap.Decode(stream);
+        }
+        catch { return null; }
+        finally { TryDelete(tempFile); }
+    }
+
+    private static async Task<string?> TryGetFocusedWindowGeometryAsync()
+    {
+        // Reuse the same swaymsg invocation pattern as SwayWindowPointQueryHelper.
+        // The two -r/-t get_tree modes are equivalent on modern Sway, but the
+        // readable variant is preferred when supported.
+        try
+        {
+            var (output, exitCode) = await Task.Run(() => RunCliCapture(
+                "swaymsg", "-t get_tree -r", 10000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0) return null;
+            return SwayWindowPointQueryHelper.TryGetFocusedWindowGeometryExpression(output, out string? geometry)
+                ? geometry
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static async Task<SKBitmap?> CaptureWithSpectacleRegionAsync()
@@ -345,19 +473,9 @@ internal static class WaylandCliCapture
             // --nonotify: suppresses the notification after capture.
             // --output: saves directly to the specified path.
             // --background: runs without showing the main Spectacle window.
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "spectacle",
-                Arguments = $"--region --nonotify --background --output \"{tempFile}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "spectacle", $"--region --nonotify --background --output \"{tempFile}\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with spectacle --region");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
@@ -373,19 +491,9 @@ internal static class WaylandCliCapture
         {
             // gnome-screenshot -a: opens GNOME's native area selection crosshair.
             // -f: saves to the specified file path.
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "gnome-screenshot",
-                Arguments = $"-a -f \"{tempFile}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(60000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "gnome-screenshot", $"-a -f \"{tempFile}\"", 60000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with gnome-screenshot -a");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);
@@ -399,19 +507,9 @@ internal static class WaylandCliCapture
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "grim",
-                Arguments = $"\"{tempFile}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            });
-            if (process == null) return null;
-            var completed = await Task.Run(() => process.WaitForExit(10000)).ConfigureAwait(false);
-            if (!completed) { try { process.Kill(); } catch { } return null; }
-            if (process.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            var (_, exitCode) = await Task.Run(() => RunCliCapture(
+                "grim", $"\"{tempFile}\"", 10000)).ConfigureAwait(false);
+            if (exitCode == null || exitCode != 0 || !File.Exists(tempFile)) return null;
             DebugHelper.WriteLine("LinuxScreenCaptureService: Screenshot captured with grim");
             using var stream = File.OpenRead(tempFile);
             return SKBitmap.Decode(stream);

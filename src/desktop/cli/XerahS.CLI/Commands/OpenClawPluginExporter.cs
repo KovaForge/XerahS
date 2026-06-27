@@ -315,7 +315,7 @@ public static class OpenClawPluginExporter
                     try {
                       result.json = JSON.parse(rawStdout);
                     } catch (error) {
-                      reject(new Error(`XerahS did not return valid JSON: ${(error as Error).message}`));
+                      reject(new Error(formatInvalidJsonFailure(error as Error, result)));
                       return;
                     }
                   }
@@ -342,6 +342,11 @@ public static class OpenClawPluginExporter
                   ? `signal ${result.signalCode}`
                   : `exit code ${result.exitCode}`;
               return `XerahS ${args.join(" ")} failed with ${status}.${details ? `\n${details}` : ""}`;
+            }
+
+            function formatInvalidJsonFailure(error: Error, result: XerahSRunResult): string {
+              const details = [result.stderr, result.stdout].filter(Boolean).join("\n");
+              return `XerahS did not return valid JSON: ${error.message}${details ? `\n${details}` : ""}`;
             }
 
             function redactDiagnostics(text: string): string {
@@ -399,7 +404,7 @@ public static class OpenClawPluginExporter
                   description: "Upload a local file through XerahS and return the resulting URL JSON.",
                   parameters: uploadFileParams,
                   execute: async (_toolCallId: string, rawParams: Record<string, unknown>, signal?: AbortSignal) => {
-                    const filePath = readRequiredString(rawParams, "path");
+                    const filePath = readRequiredPath(rawParams, "path");
                     const args = ["upload", filePath, "--json"];
                     const name = readOptionalString(rawParams, "name");
 
@@ -443,7 +448,7 @@ public static class OpenClawPluginExporter
                       signal,
                     });
 
-                    return jsonResult(result.json);
+                    return jsonResult(requireUploaderReport(result.json));
                   },
                 },
                 {
@@ -452,12 +457,12 @@ public static class OpenClawPluginExporter
                   description: "Initialize safe first-use XerahS uploader defaults.",
                   parameters: Type.Object({}, { additionalProperties: false }),
                   execute: async (_toolCallId: string, _rawParams: Record<string, unknown>, signal?: AbortSignal) => {
-                    const result = await runXerahS(config, ["bootstrap", "uploaders"], { signal });
-
-                    return jsonResult({
-                      stdout: result.stdout,
-                      stderr: result.stderr,
+                    const result = await runXerahS(config, ["bootstrap", "uploaders", "--json"], {
+                      expectJson: true,
+                      signal,
                     });
+
+                    return jsonResult(requireUploaderReport(result.json));
                   },
                 },
               ];
@@ -472,19 +477,58 @@ public static class OpenClawPluginExporter
               return value;
             }
 
+            function readRequiredPath(params: Record<string, unknown>, name: string): string {
+              return readRequiredString(params, name).trim();
+            }
+
             function readOptionalString(params: Record<string, unknown>, name: string): string | undefined {
               const value = params[name];
-              return typeof value === "string" && value.trim() ? value : undefined;
+              if (typeof value !== "string") {
+                return undefined;
+              }
+
+              const trimmedValue = value.trim();
+              return trimmedValue ? trimmedValue : undefined;
             }
 
             function requireUploadUrl(value: unknown): unknown {
-              if (!value || typeof value !== "object") {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
                 throw new Error("XerahS upload did not return an object.");
               }
 
               const url = (value as { url?: unknown }).url;
               if (typeof url !== "string" || !url.trim()) {
                 throw new Error("XerahS upload did not return a URL.");
+              }
+
+              let parsedUrl: URL;
+              try {
+                parsedUrl = new URL(url);
+              } catch {
+                throw new Error("XerahS upload did not return a valid URL.");
+              }
+
+              if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+                throw new Error("XerahS upload did not return an HTTP URL.");
+              }
+
+              return value;
+            }
+
+            function requireUploaderReport(value: unknown): unknown {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("XerahS uploader command did not return a report object.");
+              }
+
+              const report = value as Record<string, unknown>;
+              for (const property of ["Created", "Repaired", "Skipped", "Diagnostics"]) {
+                if (!Array.isArray(report[property])) {
+                  throw new Error(`XerahS uploader report did not return a ${property} array.`);
+                }
+              }
+
+              if (typeof report.HasBlockingIssues !== "boolean") {
+                throw new Error("XerahS uploader report did not return a HasBlockingIssues boolean.");
               }
 
               return value;
@@ -513,14 +557,14 @@ public static class OpenClawPluginExporter
                 .command("doctor-uploaders")
                 .description("Inspect XerahS uploader readiness.")
                 .action(async () => {
-                  await printRun(config, ["doctor", "uploaders", "--json"], true);
+                  await printRun(config, ["doctor", "uploaders", "--json"], requireUploaderReport);
                 });
 
               root
                 .command("bootstrap-uploaders")
                 .description("Initialize safe first-use XerahS uploader defaults.")
                 .action(async () => {
-                  await printRun(config, ["bootstrap", "uploaders"], false);
+                  await printRun(config, ["bootstrap", "uploaders", "--json"], requireUploaderReport);
                 });
 
               root
@@ -529,7 +573,12 @@ public static class OpenClawPluginExporter
                 .option("--name <name>", "Optional upload filename override.")
                 .option("--as-file", "Force the file uploader category.")
                 .action(async (file, options) => {
-                  const args = ["upload", String(file), "--json"];
+                  const filePath = String(file).trim();
+                  if (!filePath) {
+                    throw new Error("file is required.");
+                  }
+
+                  const args = ["upload", filePath, "--json"];
                   const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
 
                   if (typeof opts.name === "string" && opts.name.trim()) {
@@ -540,11 +589,28 @@ public static class OpenClawPluginExporter
                     args.push("--as-file");
                   }
 
-                  await printRun(config, args, true);
+                  await printRun(config, args, requireUploadUrl);
+                });
+
+              root
+                .command("upload-text <text>")
+                .description("Upload text through XerahS and print URL JSON.")
+                .option("--name <name>", "Filename to associate with the uploaded text content.")
+                .action(async (text, options) => {
+                  const opts = typeof options === "object" && options ? (options as Record<string, unknown>) : {};
+                  const name = typeof opts.name === "string" && opts.name.trim() ? opts.name.trim() : "upload.txt";
+                  await printRun(config, ["upload", "--pipe", "--name", name, "--json"], requireUploadUrl, String(text));
                 });
             }
 
-            async function printRun(config: XerahSPluginConfig, args: string[], expectJson: boolean): Promise<void> {
+            type JsonValidator = (value: unknown) => unknown;
+
+            async function printRun(
+              config: XerahSPluginConfig,
+              args: string[],
+              jsonValidator?: JsonValidator,
+              input?: string,
+            ): Promise<void> {
               const abortController = new AbortController();
               let cancellationExitCode: number | undefined;
               const abortSigint = () => {
@@ -559,8 +625,21 @@ public static class OpenClawPluginExporter
               process.once("SIGTERM", abortSigterm);
 
               try {
-                const result = await runXerahS(config, args, { expectJson, signal: abortController.signal });
-                process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+                const result = await runXerahS(config, args, {
+                  input,
+                  expectJson: jsonValidator !== undefined,
+                  signal: abortController.signal,
+                });
+                if (jsonValidator) {
+                  try {
+                    process.stdout.write(`${JSON.stringify(jsonValidator(result.json))}\n`);
+                  } catch (error) {
+                    throw new Error(formatJsonValidationError(error, result.json));
+                  }
+                } else {
+                  process.stdout.write(result.stdout ? `${result.stdout}\n` : "");
+                }
+
                 process.stderr.write(result.stderr ? `${result.stderr}\n` : "");
               } catch (error) {
                 if (cancellationExitCode !== undefined) {
@@ -569,11 +648,102 @@ public static class OpenClawPluginExporter
                   return;
                 }
 
-                throw error;
+                process.exitCode = 1;
+                process.stderr.write(`${formatCliError(error)}\n`);
               } finally {
                 process.off("SIGINT", abortSigint);
                 process.off("SIGTERM", abortSigterm);
               }
+            }
+
+            function formatCliError(error: unknown): string {
+              return error instanceof Error ? error.message : String(error);
+            }
+
+            function formatJsonValidationError(error: unknown, value: unknown): string {
+              return `${formatCliError(error)}\nReceived JSON shape: ${describeJsonShape(value)}`;
+            }
+
+            function describeJsonShape(value: unknown): string {
+              return describeJsonShapeValue(value, 0);
+            }
+
+            function describeJsonShapeValue(value: unknown, depth: number): string {
+              if (Array.isArray(value)) {
+                if (value.length === 0 || depth >= 2) {
+                  return `array(${value.length})`;
+                }
+
+                return `array(${value.length})<${describeJsonShapeValue(value[0], depth + 1)}>`;
+              }
+
+              if (!value || typeof value !== "object") {
+                return typeof value;
+              }
+
+              const maxObjectEntries = 12;
+              const allEntries = Object.entries(value as Record<string, unknown>);
+              const entries = allEntries
+                .slice(0, maxObjectEntries)
+                .map(([key, entry]) => `${formatJsonShapeKey(key)}:${depth >= 2 ? (Array.isArray(entry) ? "array" : typeof entry) : describeJsonShapeValue(entry, depth + 1)}`)
+                .sort();
+              if (allEntries.length > maxObjectEntries) {
+                entries.push(`...+${allEntries.length - maxObjectEntries} keys`);
+              }
+
+              return `object{${entries.join(",")}}`;
+            }
+
+            function formatJsonShapeKey(key: string): string {
+              const sanitizedKey = key.replace(/[\u0000-\u001F\u007F]/gu, "?");
+              const maxKeyLength = 48;
+              const boundedKey = sanitizedKey.length > maxKeyLength
+                ? `${sanitizedKey.slice(0, maxKeyLength)}...`
+                : sanitizedKey;
+              return JSON.stringify(boundedKey);
+            }
+
+            function requireUploadUrl(value: unknown): unknown {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("XerahS upload did not return an object.");
+              }
+
+              const url = (value as { url?: unknown }).url;
+              if (typeof url !== "string" || !url.trim()) {
+                throw new Error("XerahS upload did not return a URL.");
+              }
+
+              let parsedUrl: URL;
+              try {
+                parsedUrl = new URL(url);
+              } catch {
+                throw new Error("XerahS upload did not return a valid URL.");
+              }
+
+              if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+                throw new Error("XerahS upload did not return an HTTP URL.");
+              }
+
+              return value;
+            }
+
+            function requireUploaderReport(value: unknown): unknown {
+              if (!value || typeof value !== "object" || Array.isArray(value)) {
+                throw new Error("XerahS uploader command did not return a report object.");
+              }
+
+              const report = value as Record<string, unknown>;
+              for (const property of ["Created", "Repaired", "Skipped", "Diagnostics"]) {
+                if (!Array.isArray(report[property])) {
+                  throw new Error(`XerahS uploader report did not return a ${property} array.`);
+                }
+              }
+
+              if (typeof report.HasBlockingIssues !== "boolean") {
+                throw new Error("XerahS uploader report did not return a HasBlockingIssues boolean.");
+              }
+
+              return value;
             }
             """
         });

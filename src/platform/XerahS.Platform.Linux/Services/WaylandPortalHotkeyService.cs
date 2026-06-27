@@ -997,6 +997,7 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         { Key.Oem5, "backslash" },
         { Key.Oem6, "bracketright" },
         { Key.Oem7, "apostrophe" },
+        { Key.Oem102, "backslash" },
         { Key.Apps, "Menu" },
         { Key.Divide, "KP_Divide" },
         { Key.Multiply, "KP_Multiply" },

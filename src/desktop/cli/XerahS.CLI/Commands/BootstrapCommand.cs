@@ -9,10 +9,17 @@ public static class BootstrapCommand
     {
         var command = new Command("bootstrap", "Initialize safe first-use CLI defaults");
         var uploadersCommand = new Command("uploaders", "Create or repair safe zero-config uploader instances and defaults");
-        uploadersCommand.SetAction(_ =>
+        var jsonOption = new Option<bool>("--json") { Description = "Write bootstrap output as JSON." };
+        uploadersCommand.Add(jsonOption);
+        uploadersCommand.SetAction(parseResult =>
         {
-            CliUploaderBootstrapper.Bootstrap();
-            Environment.ExitCode = 0;
+            bool json = parseResult.GetValue(jsonOption);
+            var report = CliUploaderBootstrapper.Bootstrap(quiet: json);
+            if (json)
+            {
+                CliUploaderBootstrapper.WriteJson(report);
+            }
+            Environment.ExitCode = report.HasBlockingIssues ? 1 : 0;
         });
         command.Add(uploadersCommand);
         return command;

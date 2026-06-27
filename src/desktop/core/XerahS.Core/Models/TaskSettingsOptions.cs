@@ -204,6 +204,15 @@ public class ScrollingCaptureOptions
 public class OCROptions
 {
     public string Language { get; set; } = "en";
+    /// <summary>
+    /// Full list of languages the user selected in the onboarding wizard.
+    /// The current OCR runtime only supports a single language per
+    /// <see cref="RecognizeAsync"/> call, so <see cref="Language"/> carries
+    /// the primary/active language for the tool. The full list is preserved
+    /// here so it can be surfaced in a multi-language picker once the runtime
+    /// supports it, and so the user's onboarding choice is not silently lost.
+    /// </summary>
+    public List<string> PreferredLanguages { get; set; } = new();
     public float ScaleFactor { get; set; } = 2f;
     public bool SingleLine { get; set; } = false;
     public bool Silent { get; set; } = false;

@@ -141,6 +141,32 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool DoOCR
+        {
+            get => ActiveTaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR);
+            set
+            {
+                if (value)
+                    ActiveTaskSettings.AfterCaptureJob |= AfterCaptureTasks.DoOCR;
+                else
+                    ActiveTaskSettings.AfterCaptureJob &= ~AfterCaptureTasks.DoOCR;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool CopyOcrTextToClipboard
+        {
+            get => ActiveTaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard);
+            set
+            {
+                if (value)
+                    ActiveTaskSettings.AfterCaptureJob |= AfterCaptureTasks.CopyOcrTextToClipboard;
+                else
+                    ActiveTaskSettings.AfterCaptureJob &= ~AfterCaptureTasks.CopyOcrTextToClipboard;
+                OnPropertyChanged();
+            }
+        }
+
         // Task Settings - After Upload
         public bool ShowAfterUploadWindow
         {

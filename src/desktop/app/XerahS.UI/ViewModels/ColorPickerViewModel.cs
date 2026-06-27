@@ -337,7 +337,7 @@ public partial class ColorPickerViewModel : ViewModelBase
         }
 
         LoadRecentColors();
-        SettingsManager.SaveApplicationConfigAsync();
+        _ = SettingsManager.SaveApplicationConfigAsync();
     }
 
     [RelayCommand]

@@ -16,7 +16,10 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia.HarfBuzz" />
-    <PackageReference Include="Avalonia.Headless.NUnit" />
+    <PackageReference Include="Avalonia.Headless.NUnit">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Microsoft.NET.Test.Sdk">
@@ -54,6 +57,7 @@
     <ProjectReference Include="..\..\src\desktop\plugins\Imgur.Plugin\XerahS.Imgur.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Immich.Plugin\XerahS.Immich.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Nextcloud.Plugin\XerahS.Nextcloud.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\mobile-experimental\XerahS.Mobile.Core\XerahS.Mobile.Core.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\src\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />

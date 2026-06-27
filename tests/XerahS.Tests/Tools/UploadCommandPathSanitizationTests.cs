@@ -52,6 +52,7 @@ public class UploadCommandPathSanitizationTests
                 taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
                 return Task.CompletedTask;
             }));
+        UploadCommand.ResetTempDirectoryCount();
     }
 
     [TestCase(null)]
@@ -98,6 +99,14 @@ public class UploadCommandPathSanitizationTests
     }
 
     [Test]
+    public void GetReadinessCategories_WhenTextFileIsUploadedAsFile_UsesFileUploader()
+    {
+        UploaderCategory[] categories = CliUploaderBootstrapper.GetReadinessCategories(uploadAsText: false);
+
+        Assert.That(categories, Is.EqualTo(new[] { UploaderCategory.File }));
+    }
+
+    [Test]
     public void CleanupTemporaryUploadDirectories_WhenGivenMultipleDirectories_RemovesEachDirectoryOnce()
     {
         string firstDirectory = UploadCommand.CreateTemporaryUploadDirectory();
@@ -112,6 +121,107 @@ public class UploadCommandPathSanitizationTests
             Assert.That(Directory.Exists(firstDirectory), Is.False);
             Assert.That(Directory.Exists(secondDirectory), Is.False);
         });
+    }
+
+    [Test]
+    public async Task UploadAsync_TextContentWithName_DoesNotCreateRedundantNamedCopyDirectory()
+    {
+        // --text --name <x> should write the payload once into a single unique temp
+        // directory named <x>; the redundant named-copy step that pre-existed created
+        // a second temp directory with the same name and an extra File.Copy on disk.
+        // Verified by counting CreateTemporaryUploadDirectory invocations during a
+        // single UploadAsync call (the counter is reset in SetUp).
+        TaskInfo? processedTaskInfo = null;
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                processedTaskInfo = taskInfo;
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
+
+        int exitCode = await InvokeUploadAsync(new SequencedDesktopTaskManager((_, _) => { }), filePath: null, text: "payload", pipe: false, name: "greeting.txt", asFile: false);
+
+        int created = UploadCommand.GetTempDirectoryCount();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(processedTaskInfo, Is.Not.Null);
+            Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.TextUpload));
+            Assert.That(processedTaskInfo.FileName, Is.EqualTo("greeting.txt"));
+            Assert.That(processedTaskInfo.TextContent, Is.EqualTo("payload"));
+            // --text --name <x> --no-randomize should produce exactly one temp directory
+            // (the write at line 165). The named-copy at line 192-200 must be skipped.
+            Assert.That(created, Is.EqualTo(1), "Expected exactly one temp directory for --text --name with no randomize; the named-copy must be skipped.");
+        });
+    }
+
+    [Test]
+    public async Task UploadAsync_TextContentWithNameAndRandomize_CreatesOnlyTwoTempDirectories()
+    {
+        // --text --name <x> with the default randomize=true should create two temp
+        // directories (one for the write, one for the suffixed copy); the named-copy
+        // step is still redundant and must be skipped.
+        TaskInfo? processedTaskInfo = null;
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                processedTaskInfo = taskInfo;
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
+
+        // Direct invocation with randomize=true (the InvokeUploadAsync test helper
+        // passes randomize=false).
+        MethodInfo method = typeof(UploadCommand).GetMethod("UploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var task = (Task<int>)method.Invoke(null, [new SequencedDesktopTaskManager((_, _) => { }), null, "payload", false, "greeting.txt", false, true])!;
+        int exitCode = await task;
+
+        int created = UploadCommand.GetTempDirectoryCount();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(processedTaskInfo, Is.Not.Null);
+            Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.TextUpload));
+            Assert.That(processedTaskInfo.TextContent, Is.EqualTo("payload"));
+            // --text --name <x> --randomize should produce exactly two temp directories
+            // (the write at line 165, plus the suffixed copy at line 216-220).
+            Assert.That(created, Is.EqualTo(2), "Expected exactly two temp directories for --text --name with randomize; the named-copy must be skipped but the randomize copy must still run.");
+        });
+    }
+
+    [Test]
+    public async Task UploadAsync_FilePathWithName_StillPerformsNamedCopy()
+    {
+        // For file-path input the source file is NOT a temp file already named with
+        // the requested name, so the named-copy step must still run. Regression
+        // coverage for the !sourceIsTemporaryFromTextOrPipe guard.
+        string sourceFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.bin");
+        string requestedName = "user-supplied-name.bin";
+
+        try
+        {
+            await File.WriteAllTextAsync(sourceFile, "payload");
+
+            int exitCode = await InvokeUploadAsync(new SequencedDesktopTaskManager((_, _) => { }), sourceFile, text: null, pipe: false, name: requestedName, asFile: false);
+
+            int created = UploadCommand.GetTempDirectoryCount();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+                // For a file path with --name, the named-copy at line 192-200 still
+                // runs (and is necessary), so the test expects exactly one temp
+                // directory from the named-copy. No randomize, so no suffixed copy.
+                Assert.That(created, Is.EqualTo(1), "Expected exactly one temp directory for --file --name with no randomize; the named-copy must still run for file paths.");
+            });
+        }
+        finally
+        {
+            File.Delete(sourceFile);
+        }
     }
 
     [Test]
@@ -143,6 +253,47 @@ public class UploadCommandPathSanitizationTests
             Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.TextUpload));
             Assert.That(processedTaskInfo.FileName, Is.EqualTo("note"));
         });
+    }
+
+    [Test]
+    public async Task UploadAsync_AsFileWithTextExtension_RequiresFileUploader()
+    {
+        string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt");
+        bool? checkedAsText = null;
+        TaskInfo? processedTaskInfo = null;
+        typeof(UploadCommand).GetField("_checkUploadReadiness", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<string, bool, UploadReadiness>)((_, uploadAsText) =>
+            {
+                checkedAsText = uploadAsText;
+                return UploadReadiness.Ready(new BootstrapReport(), uploadAsText ? UploaderCategory.Text : UploaderCategory.File);
+            }));
+        typeof(UploadCommand).GetField("_processUploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!
+            .SetValue(null, (Func<TaskInfo, CancellationToken, Task>)((taskInfo, _) =>
+            {
+                processedTaskInfo = taskInfo;
+                taskInfo.Result = new XerahS.Uploaders.UploadResult("ok", "https://example.invalid/uploaded.txt") { IsSuccess = true };
+                return Task.CompletedTask;
+            }));
+
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, "payload");
+
+            int exitCode = await InvokeUploadAsync(new SequencedDesktopTaskManager((_, _) => { }), tempFile, text: null, pipe: false, name: null, asFile: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+                Assert.That(checkedAsText, Is.False);
+                Assert.That(processedTaskInfo, Is.Not.Null);
+                Assert.That(processedTaskInfo!.Job, Is.EqualTo(TaskJob.FileUpload));
+                Assert.That(processedTaskInfo.FilePath, Is.EqualTo(tempFile));
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 
     [Test]
@@ -187,7 +338,7 @@ public class UploadCommandPathSanitizationTests
     private static async Task<int> InvokeUploadAsync(IDesktopTaskManager taskManager, string? filePath, string? text, bool pipe, string? name, bool asFile = false)
     {
         MethodInfo method = typeof(UploadCommand).GetMethod("UploadAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
-        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name, asFile])!;
+        var task = (Task<int>)method.Invoke(null, [taskManager, filePath, text, pipe, name, asFile, false])!;
         return await task;
     }
 

@@ -86,6 +86,12 @@ namespace XerahS.Media
         [Category("Thumbnails / Combined"), DefaultValue(true), Description("Draw border around thumbnails.")]
         public bool DrawBorder { get; set; }
 
+        [Category("Thumbnails / Combined"), DefaultValue(4096), Description("Maximum combined thumbnail width in pixels. 0 means unlimited.")]
+        public int MaxCombinedWidth { get; set; }
+
+        [Category("Thumbnails / Combined"), DefaultValue(4096), Description("Maximum combined thumbnail height in pixels. 0 means unlimited.")]
+        public int MaxCombinedHeight { get; set; }
+
         public string DefaultOutputDirectory { get; set; } = string.Empty;
         public string LastVideoPath { get; set; } = string.Empty;
 

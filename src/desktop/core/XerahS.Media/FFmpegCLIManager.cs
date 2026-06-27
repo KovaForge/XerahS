@@ -100,7 +100,13 @@ namespace XerahS.Media
             {
                 if (closeTryCount >= 2)
                 {
-                    process.Kill();
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
                 }
                 else
                 {
@@ -178,7 +184,7 @@ namespace XerahS.Media
             VideoInfo videoInfo = new VideoInfo();
             videoInfo.FilePath = videoPath;
 
-            Run($"-i \"{videoPath}\"\"");
+            Run($"-i {QuoteProcessArgument(videoPath)}");
             string output = Output.ToString();
 
             Match matchInput = Regex.Match(output, @"Duration: (?<Duration>\d{2}:\d{2}:\d{2}\.\d{2}),.+?start: (?<Start>\d+\.\d+),.+?bitrate: (?<Bitrate>\d+) kb/s",
@@ -214,6 +220,49 @@ namespace XerahS.Media
             }
 
             return videoInfo;
+        }
+
+        private static string QuoteProcessArgument(string argument)
+        {
+            if (argument.Length == 0)
+            {
+                return "\"\"";
+            }
+
+            if (!argument.Any(c => char.IsWhiteSpace(c) || c == '"'))
+            {
+                return argument;
+            }
+
+            StringBuilder builder = new StringBuilder(argument.Length + 2);
+            builder.Append('"');
+            int backslashCount = 0;
+
+            foreach (char c in argument)
+            {
+                if (c == '\\')
+                {
+                    backslashCount++;
+                    continue;
+                }
+
+                if (c == '"')
+                {
+                    builder.Append('\\', backslashCount * 2 + 1);
+                    builder.Append('"');
+                }
+                else
+                {
+                    builder.Append('\\', backslashCount);
+                    builder.Append(c);
+                }
+
+                backslashCount = 0;
+            }
+
+            builder.Append('\\', backslashCount * 2);
+            builder.Append('"');
+            return builder.ToString();
         }
 
         public DirectShowDevices GetDirectShowDevices()
@@ -269,15 +318,25 @@ namespace XerahS.Media
             return devices;
         }
 
+internal static class TestAccessor
+    {
+        internal static string EscapeConcatFilePath(string path) => FFmpegCLIManager.EscapeConcatFilePath(path);
+    }
+
+    private static string EscapeConcatFilePath(string path)
+    {
+        return path.Replace("'", "'\\''");
+    }
+
         public void ConcatenateVideos(string[] inputFiles, string outputFile, bool autoDeleteInputFiles = false)
         {
             string listFile = outputFile + ".txt";
-            string contents = string.Join(Environment.NewLine, inputFiles.Select(inputFile => $"file '{inputFile}'"));
+            string contents = string.Join(Environment.NewLine, inputFiles.Select(inputFile => $"file '{EscapeConcatFilePath(inputFile)}'"));
             File.WriteAllText(listFile, contents);
 
             try
             {
-                bool result = Run($"-f concat -safe 0 -i \"{listFile}\" -c copy \"{outputFile}\"");
+                bool result = Run($"-f concat -safe 0 -i {QuoteProcessArgument(listFile)} -c copy {QuoteProcessArgument(outputFile)}");
 
                 if (result && autoDeleteInputFiles)
                 {

@@ -176,36 +176,66 @@ public static class MainViewModelHelper
             return;
         }
 
-        using (bitmap)
+        Exception? imageSaveError = null;
+        try
         {
-            var ext = Path.GetExtension(path).ToLowerInvariant();
-            var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
-            int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
-            using var data = bitmap.Encode(format, quality);
-            using var stream = File.OpenWrite(path);
-            data.SaveTo(stream);
+            using (bitmap)
+            {
+                var ext = Path.GetExtension(path).ToLowerInvariant();
+                var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
+                int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
+                using var data = bitmap.Encode(format, quality);
+                using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+                data.SaveTo(stream);
+            }
+        }
+        catch (Exception ex)
+        {
+            imageSaveError = ex;
+        }
+
+        if (imageSaveError != null)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Image save failed (file may be incomplete): {imageSaveError.Message}");
+            DebugHelper.WriteException(imageSaveError);
+            viewModel.IsDirty = true;
+            return;
         }
 
         viewModel.ImageFilePath = path;
-        viewModel.IsDirty = false;
 
-        var annotations = viewModel.GetAnnotationSnapshotForPersistence();
-        using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
-        if (annotations.Count > 0 && sourceImage != null)
+        try
         {
-            string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
-            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
-        }
-        else
-        {
-            bool deleted = XannProjectFileService.TryDeleteSidecar(path);
-            if (deleted)
+            var annotations = viewModel.GetAnnotationSnapshotForPersistence();
+            using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
+            if (annotations.Count > 0 && sourceImage != null)
             {
-                DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");
+                string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
+                DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
             }
+            else
+            {
+                bool deleted = XannProjectFileService.TryDeleteSidecar(path);
+                if (deleted)
+                {
+                    DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");
+                }
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
+            DebugHelper.WriteException(ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
+            DebugHelper.WriteException(ex);
         }
 
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
+        viewModel.IsDirty = false;
     }
 
     private static async Task HandleUploadRequestedAsync(MainViewModel viewModel, IDesktopTaskManager taskManager, Func<SKBitmap?>? getEditedSnapshot)
@@ -304,14 +334,9 @@ public static class MainViewModelHelper
 
         try
         {
-            // Prefer edited snapshot (with annotations) over base preview image
-            SkiaSharp.SKBitmap? imageToCopy = null;
-            if (getEditedSnapshot != null)
-            {
-                imageToCopy = getEditedSnapshot();
-                if (imageToCopy != null)
-                    DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToCopy.Width}x{imageToCopy.Height} for clipboard");
-            }
+            SkiaSharp.SKBitmap? imageToCopy = getEditedSnapshot?.Invoke();
+            if (imageToCopy != null)
+                DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToCopy.Width}x{imageToCopy.Height} for clipboard");
 
             if (imageToCopy == null && viewModel.PreviewImage != null)
             {
@@ -336,6 +361,8 @@ public static class MainViewModelHelper
             {
                 DebugHelper.WriteLine("MainViewModelHelper: Platform clipboard not initialized");
             }
+
+            imageToCopy.Dispose();
         }
         catch (Exception ex)
         {

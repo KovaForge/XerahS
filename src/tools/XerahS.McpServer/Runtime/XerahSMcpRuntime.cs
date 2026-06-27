@@ -22,6 +22,8 @@ namespace XerahS.McpServer.Runtime;
 
 public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 {
+    internal const long MaxInlineHistoryBlobBytes = 5 * 1024 * 1024;
+
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private IServiceProvider? _services;
     private IDesktopTaskManager? _taskManager;
@@ -407,9 +409,20 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         if (uri.StartsWith("xerahs://history/thumb/", StringComparison.OrdinalIgnoreCase))
         {
             var item = FindHistoryItem(uri["xerahs://history/thumb/".Length..]);
-            if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+            string blobPath;
+            try
             {
-                throw new FileNotFoundException("History item thumbnail source file was not found.", item.FilePath);
+                blobPath = ResolveHistoryBlobPath(item);
+            }
+            catch (FileNotFoundException)
+            {
+                return CreateHistoryBlobMissingResponse(uri, item);
+            }
+
+            var blobInfo = new FileInfo(blobPath);
+            if (blobInfo.Length > MaxInlineHistoryBlobBytes)
+            {
+                return CreateHistoryBlobTooLargeResponse(uri, blobPath, blobInfo.Length);
             }
 
             return new JsonObject
@@ -418,17 +431,61 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                     new JsonObject
                     {
                         ["uri"] = uri,
-                        ["mimeType"] = GuessMimeType(item.FilePath),
-                        ["blob"] = Convert.ToBase64String(await File.ReadAllBytesAsync(item.FilePath, cancellationToken))
+                        ["mimeType"] = GuessMimeType(blobPath),
+                        ["blob"] = Convert.ToBase64String(await File.ReadAllBytesAsync(blobPath, cancellationToken))
                     })
             };
         }
 
-        if (uri.StartsWith("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
+        if (IsHistorySearchResourceUri(uri))
         {
-            var queryIndex = uri.IndexOf("?q=", StringComparison.OrdinalIgnoreCase);
-            var query = queryIndex >= 0 ? Uri.UnescapeDataString(uri[(queryIndex + 3)..]) : null;
-            return CreateJsonResource(uri, await QueryHistoryAsync(query, null, null, "all", 20, cancellationToken));
+            var queryStart = uri.IndexOf('?');
+            if (queryStart < 0)
+            {
+                return CreateJsonResource(uri, await QueryHistoryAsync(null, null, null, "all", 20, cancellationToken));
+            }
+
+            var queryString = uri[(queryStart + 1)..];
+            string? query = null;
+            string? fromDate = null;
+            string? toDate = null;
+            var limit = 20;
+
+            var pairs = queryString.Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var pair in pairs)
+            {
+                var eqIndex = pair.IndexOf('=');
+                if (eqIndex < 0)
+                {
+                    continue;
+                }
+
+                var key = DecodeResourceQueryComponent(pair[..eqIndex]);
+                var value = DecodeResourceQueryComponent(pair[(eqIndex + 1)..]);
+                if (key == null || value == null)
+                {
+                    continue;
+                }
+
+                if (string.Equals(key, "q", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = string.IsNullOrWhiteSpace(value) ? null : value;
+                }
+                else if (string.Equals(key, "from", StringComparison.OrdinalIgnoreCase))
+                {
+                    fromDate = value;
+                }
+                else if (string.Equals(key, "to", StringComparison.OrdinalIgnoreCase))
+                {
+                    toDate = value;
+                }
+                else if (string.Equals(key, "limit", StringComparison.OrdinalIgnoreCase) && int.TryParse(value, out var parsedLimit))
+                {
+                    limit = parsedLimit;
+                }
+            }
+
+            return CreateJsonResource(uri, await QueryHistoryAsync(query, fromDate, toDate, "all", limit, cancellationToken));
         }
 
         if (uri.StartsWith("xerahs://history/", StringComparison.OrdinalIgnoreCase))
@@ -500,6 +557,56 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         throw new ArgumentException($"Unknown resource URI: {uri}");
     }
 
+    internal static bool IsHistorySearchResourceUri(string uri)
+    {
+        if (uri.Equals("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!uri.StartsWith("xerahs://history/search?", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Ensure nothing comes between "search" and "?" (prevents prefix attacks like searchfoo?)
+        var searchPart = uri.Substring("xerahs://history/search".Length);
+        return searchPart.StartsWith("?");
+    }
+
+    internal static string? DecodeResourceQueryComponent(string value)
+    {
+        if (!HasValidPercentEncoding(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Uri.UnescapeDataString(value.Replace('+', ' '));
+        }
+        catch (UriFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static bool HasValidPercentEncoding(string value)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (value[i] != '%')
+            {
+                continue;
+            }
+
+            if (i + 2 >= value.Length || !Uri.IsHexDigit(value[i + 1]) || !Uri.IsHexDigit(value[i + 2]))
+            {
+                return false;
+            }
+
+            i += 2;
+        }
+
+        return true;
+    }
+
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
         if (_services != null && _taskManager != null && PlatformServices.IsInitialized)
@@ -569,9 +676,24 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         ArgumentNullException.ThrowIfNull(_taskManager);
 
         var tcs = new TaskCompletionSource<WorkerTask>(TaskCreationOptions.RunContinuationsAsynchronously);
+        WorkerTask? expectedTask = null;
+        EventHandler<WorkerTask>? startedHandler = null;
+        startedHandler = (_, task) =>
+        {
+            _taskManager.TaskStarted -= startedHandler;
+            expectedTask = task;
+        };
+
+        _taskManager.TaskStarted += startedHandler;
+
         EventHandler<WorkerTask>? handler = null;
         handler = (_, task) =>
         {
+            if (expectedTask == null || task != expectedTask)
+            {
+                return;
+            }
+
             _taskManager.TaskCompleted -= handler;
             tcs.TrySetResult(task);
         };
@@ -589,6 +711,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         }
         catch
         {
+            _taskManager.TaskStarted -= startedHandler;
             _taskManager.TaskCompleted -= handler;
             throw;
         }
@@ -858,7 +981,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         return item ?? throw new InvalidOperationException($"History item '{id}' was not found.");
     }
 
-    private async Task<JsonObject> CreateHistoryDetailsAsync(HistoryItem item, CancellationToken cancellationToken)
+    internal async Task<JsonObject> CreateHistoryDetailsAsync(HistoryItem item, CancellationToken cancellationToken)
     {
         long fileSize = 0;
         string? fileHash = null;
@@ -866,7 +989,21 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         int? height = null;
         string? ocrText = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).GetText(item.Id);
 
-        if (!string.IsNullOrWhiteSpace(item.FilePath) && File.Exists(item.FilePath))
+        // Track whether the source capture file is on disk so the MCP response can surface
+        // a clear stale-path diagnostic. The previous implementation silently produced null
+        // width/height, null hash, and a 0-byte file_size when the file was missing, leaving
+        // callers no way to distinguish "image is being processed" from "the stored file was
+        // moved or deleted". The new file_exists + file_missing_path fields make the cause
+        // explicit so MCP clients can prompt the user to relocate the capture or open the
+        // upload_url instead of waiting for content that will never arrive.
+        bool sourcePathConfigured = !string.IsNullOrWhiteSpace(item.FilePath);
+        bool sourceFileExists = sourcePathConfigured && File.Exists(item.FilePath);
+        bool thumbnailPathConfigured = !string.IsNullOrWhiteSpace(item.ThumbnailURL);
+        bool thumbnailFileExists = thumbnailPathConfigured &&
+            TryResolveLocalFilePath(item.ThumbnailURL, out var resolvedThumb) &&
+            File.Exists(resolvedThumb);
+
+        if (sourceFileExists)
         {
             var fileInfo = new FileInfo(item.FilePath);
             fileSize = fileInfo.Length;
@@ -900,8 +1037,12 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         {
             ["id"] = item.Id.ToString(CultureInfo.InvariantCulture),
             ["file_path"] = item.FilePath,
-            ["file_url"] = string.IsNullOrWhiteSpace(item.FilePath) ? null : new Uri(item.FilePath).AbsoluteUri,
+            ["file_url"] = CreateFileUrl(item.FilePath),
+            ["file_exists"] = sourceFileExists,
+            ["file_missing_path"] = sourcePathConfigured && !sourceFileExists ? item.FilePath : null,
             ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
+            ["thumbnail_resource"] = CreateHistoryBlobResourceUriIfLocal(item),
+            ["thumbnail_exists"] = thumbnailFileExists,
             ["capture_type"] = InferHistoryCaptureType(item),
             ["capture_width"] = width,
             ["capture_height"] = height,
@@ -918,6 +1059,162 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         };
     }
 
+    internal static string ResolveHistoryBlobPath(HistoryItem item)
+    {
+        if (TryResolveLocalFilePath(item.ThumbnailURL, out var thumbnailPath) && File.Exists(thumbnailPath))
+        {
+            return thumbnailPath;
+        }
+
+        if (TryResolveLocalFilePath(item.FilePath, out var filePath) && File.Exists(filePath))
+        {
+            return filePath;
+        }
+
+        // Both checks failed: surface which file was actually missing so debug logs and direct
+        // callers can tell whether the thumbnail cache was cleaned or the original capture was
+        // moved/deleted. Callers that convert the exception into a structured response
+        // (e.g. CreateHistoryBlobMissingResponse) use item.FilePath / item.ThumbnailURL
+        // directly, so this message is mainly for debug logs and direct callers. FileName is
+        // always item.FilePath to preserve the prior contract for existing consumers.
+        bool hasThumbnail = !string.IsNullOrWhiteSpace(item.ThumbnailURL);
+        bool hasFilePath = !string.IsNullOrWhiteSpace(item.FilePath);
+        string message = (hasThumbnail && hasFilePath)
+            ? "History item thumbnail and source files were not found."
+            : hasFilePath
+                ? "History item source file was not found."
+                : "History item thumbnail source file was not found.";
+        throw new FileNotFoundException(message, item.FilePath);
+    }
+
+    internal static string CreateHistoryBlobResourceUri(HistoryItem item)
+    {
+        return $"xerahs://history/thumb/{item.Id.ToString(CultureInfo.InvariantCulture)}";
+    }
+
+    internal static JsonObject CreateHistoryBlobTooLargeResponse(string uri, string blobPath, long byteLength)
+    {
+        var details = new JsonObject
+        {
+            ["error"] = "history_blob_too_large",
+            ["message"] = "History item blob is too large to inline. Open the local file path directly or reduce the capture/thumbnail size.",
+            ["resource_uri"] = uri,
+            ["file_path"] = blobPath,
+            ["file_size_bytes"] = byteLength,
+            ["max_inline_bytes"] = MaxInlineHistoryBlobBytes
+        };
+
+        return new JsonObject
+        {
+            ["contents"] = new JsonArray(
+                new JsonObject
+                {
+                    ["uri"] = uri,
+                    ["mimeType"] = "application/json",
+                    ["text"] = details.ToJsonString()
+                })
+        };
+    }
+
+    internal static JsonObject CreateHistoryBlobMissingResponse(string uri, HistoryItem item)
+    {
+        var details = new JsonObject
+        {
+            ["error"] = "history_blob_missing",
+            ["message"] = "History item thumbnail/source file is no longer available locally. The capture may have been moved, deleted, or the thumbnail cache may have been cleaned.",
+            ["resource_uri"] = uri,
+            ["history_id"] = item.Id.ToString(CultureInfo.InvariantCulture),
+            ["file_path"] = string.IsNullOrWhiteSpace(item.FilePath) ? null : item.FilePath,
+            ["thumbnail_path"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL
+        };
+
+        return new JsonObject
+        {
+            ["contents"] = new JsonArray(
+                new JsonObject
+                {
+                    ["uri"] = uri,
+                    ["mimeType"] = "application/json",
+                    ["text"] = details.ToJsonString()
+                })
+        };
+    }
+
+    internal static string? CreateFileUrl(string? filePath)
+    {
+        if (!TryResolveLocalFilePath(filePath, out var resolvedPath))
+        {
+            return null;
+        }
+
+        string fullPath = Path.GetFullPath(resolvedPath);
+        // Escape special URI characters (e.g. #, ?) that would break URI parsing.
+        // new Uri(string) does not escape these, producing invalid URIs for paths
+        // containing characters outside the reserved set.
+        string escapedPath = Uri.EscapeDataString(fullPath)
+            .Replace("%5C", "/"); // Uri.EscapeDataString escapes backslash; restore for file URIs.
+        return new Uri("file:///" + escapedPath.Replace("//", "/")).AbsoluteUri;
+    }
+
+    private static bool TryResolveLocalFilePath(string? value, out string path)
+    {
+        path = string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        try
+        {
+            if (Path.IsPathRooted(value))
+            {
+                path = Path.GetFullPath(value);
+                return true;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            if (!uri.IsFile)
+            {
+                return false;
+            }
+
+            path = uri.LocalPath;
+            return !string.IsNullOrWhiteSpace(path);
+        }
+
+        try
+        {
+            path = Path.GetFullPath(value);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
+    private static string? CreateHistoryBlobResourceUriIfLocal(HistoryItem item)
+    {
+        if (TryResolveLocalFilePath(item.ThumbnailURL, out var thumbnailPath) && File.Exists(thumbnailPath))
+        {
+            return CreateHistoryBlobResourceUri(item);
+        }
+
+        if (TryResolveLocalFilePath(item.FilePath, out var filePath) && File.Exists(filePath))
+        {
+            return CreateHistoryBlobResourceUri(item);
+        }
+
+        return null;
+    }
+
     private static JsonObject CreateHistorySummary(HistoryItem item, string? ocrText)
     {
         long size = 0;
@@ -926,11 +1223,14 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             size = new FileInfo(item.FilePath).Length;
         }
 
+        var thumbnailResource = CreateHistoryBlobResourceUriIfLocal(item);
+
         return new JsonObject
         {
             ["id"] = item.Id.ToString(CultureInfo.InvariantCulture),
             ["file_path"] = item.FilePath,
             ["thumbnail_url"] = string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
+            ["thumbnail_resource"] = thumbnailResource,
             ["created_at"] = item.DateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             ["file_size_bytes"] = size,
             ["ocr_text"] = string.IsNullOrWhiteSpace(ocrText) ? null : ocrText,
@@ -1026,7 +1326,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                 ["name"] = instance.DisplayName,
                 ["category"] = instance.Category.ToString().ToLowerInvariant(),
                 ["is_available"] = instance.IsAvailable,
-                ["is_default"] = manager.GetDefaultInstance(instance.Category)?.InstanceId == instance.InstanceId
+                ["is_default"] = manager.IsDefaultInstance(instance.Category, instance.InstanceId)
             })
             .Cast<JsonNode>()
             .ToArray();

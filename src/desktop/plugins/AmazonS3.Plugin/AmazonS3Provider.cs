@@ -108,6 +108,21 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
             catch { }
         }
 
+        if (!string.IsNullOrWhiteSpace(accessKeyId) &&
+            !string.IsNullOrWhiteSpace(secretAccessKey))
+        {
+            try
+            {
+                var config = json.ToObject<S3ConfigModel>();
+                if (config != null)
+                {
+                    config.SecretKey = secretKey;
+                    S3CredentialSecrets.StoreAccessKeyCredentials(secrets, config, accessKeyId, secretAccessKey);
+                }
+            }
+            catch { }
+        }
+
         if (jsonChanged)
         {
             updatedSettingsJson = json.ToString(Formatting.Indented);
@@ -138,10 +153,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
             return CreateSsoInstance(config);
         }
 
-        string accessKeyId = Secrets.GetSecret(ProviderId, config.SecretKey, "accessKeyId") ?? string.Empty;
-        string secretAccessKey = Secrets.GetSecret(ProviderId, config.SecretKey, "secretAccessKey") ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(accessKeyId) || string.IsNullOrWhiteSpace(secretAccessKey))
+        if (!S3CredentialSecrets.TryGetAccessKeyCredentials(Secrets, config, out string accessKeyId, out string secretAccessKey))
         {
             throw new InvalidOperationException("Amazon S3 credentials are missing");
         }

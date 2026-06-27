@@ -68,9 +68,6 @@ public partial class UploadStepViewModel : StepViewModelBase
     private string? _selectedUploaderId;
 
     [ObservableProperty]
-    private bool _hasShareXConfig;
-
-    [ObservableProperty]
     private bool _isTestingConnection;
 
     [ObservableProperty]
@@ -85,11 +82,6 @@ public partial class UploadStepViewModel : StepViewModelBase
 
     public bool HasSelection => !string.IsNullOrEmpty(SelectedUploaderId);
 
-    /// <summary>
-    /// Callback to import from ShareX. Set by the wizard.
-    /// </summary>
-    public Func<Task<bool>>? ImportShareXCallback { get; set; }
-
     public Func<UploaderOption, Task>? ConfigureUploaderCallback { get; set; }
 
     public UploadStepViewModel()
@@ -100,7 +92,6 @@ public partial class UploadStepViewModel : StepViewModelBase
         CanSkip = true;
 
         InitializeUploaders();
-        CheckForShareXConfig();
         SetValidationState(true);
     }
 
@@ -141,15 +132,6 @@ public partial class UploadStepViewModel : StepViewModelBase
         AvailableUploaders.Add(option);
     }
 
-    private void CheckForShareXConfig()
-    {
-        string shareXPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "ShareX");
-        HasShareXConfig = Directory.Exists(shareXPath) &&
-                         File.Exists(Path.Combine(shareXPath, "ApplicationConfig.json"));
-    }
-
     [RelayCommand]
     private async Task TestConnectionAsync()
     {
@@ -178,27 +160,6 @@ public partial class UploadStepViewModel : StepViewModelBase
         finally
         {
             IsTestingConnection = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task ImportFromShareXAsync()
-    {
-        if (ImportShareXCallback == null)
-        {
-            return;
-        }
-
-        bool result = await ImportShareXCallback();
-        if (result)
-        {
-            TestResult = "ShareX configuration imported successfully.";
-            IsTestSuccessful = true;
-        }
-        else
-        {
-            TestResult = "Failed to import ShareX configuration.";
-            IsTestSuccessful = false;
         }
     }
 

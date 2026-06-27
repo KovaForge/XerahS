@@ -363,7 +363,6 @@ public sealed class LinuxClipboardService : IClipboardService
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             };
 

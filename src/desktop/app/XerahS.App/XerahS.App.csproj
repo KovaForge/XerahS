@@ -21,7 +21,7 @@
     <DefineConstants Condition="'$(IsMacOSDesktopBuild)' == 'true'">$(DefineConstants);MACOS</DefineConstants>
     <DefineConstants Condition="'$(IsLinuxDesktopBuild)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
     <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
-    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <SelfContained Condition="'$(Configuration)' == 'Release' And '$(RuntimeIdentifier)' != ''">true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) OR $(RuntimeIdentifier.StartsWith('osx'))">

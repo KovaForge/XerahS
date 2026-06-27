@@ -109,6 +109,20 @@ public class LinuxHotkeyServiceTests
     }
 
     [Test]
+    public void WaylandPortalHotkeyService_MapKeyName_Oem102MapsToBackslash()
+    {
+        Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.Oem102), Is.EqualTo("backslash"));
+    }
+
+    [Test]
+    public void LinuxHotkeyService_GetCandidateKeysymNames_Oem102IncludesBackslash()
+    {
+        var names = LinuxHotkeyService.GetCandidateKeysymNames(Key.Oem102);
+
+        Assert.That(names, Does.Contain("backslash"));
+    }
+
+    [Test]
     public void WaylandPortalHotkeyService_BuildShortcutSnapshotMap_ToleratesDuplicatePortalIds()
     {
         var first = new Dictionary<string, object>

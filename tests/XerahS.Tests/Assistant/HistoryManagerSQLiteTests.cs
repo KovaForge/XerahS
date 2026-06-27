@@ -202,4 +202,150 @@ public sealed class HistoryManagerSQLiteTests
             }
         }
     }
+
+    [Test]
+    public void Delete_RemovesOcrIndexRows()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot1.png",
+                    FilePath = Path.Combine(tempDirectory, "shot1.png"),
+                    DateTime = new DateTime(2026, 5, 18, 0, 0, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot2.png",
+                    FilePath = Path.Combine(tempDirectory, "shot2.png"),
+                    DateTime = new DateTime(2026, 5, 18, 0, 1, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+            }
+
+            var ocrStore = new HistoryOcrIndexStore(dbPath);
+            ocrStore.UpsertText(1, Path.Combine(tempDirectory, "shot1.png"), null, "Alpha text", "test", "en");
+            ocrStore.UpsertText(2, Path.Combine(tempDirectory, "shot2.png"), null, "Beta text", "test", "en");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.Delete(new HistoryItem { Id = 1 });
+            }
+
+            Assert.That(ocrStore.GetText(1), Is.Null, "OCR text for deleted item 1 should be removed");
+            Assert.That(ocrStore.GetText(2), Is.EqualTo("Beta text"), "OCR text for non-deleted item 2 should remain");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
+    public void Delete_RemovesOcrIndexRows_BulkDelete()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot1.png",
+                    FilePath = Path.Combine(tempDirectory, "shot1.png"),
+                    DateTime = new DateTime(2026, 5, 18, 0, 0, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot2.png",
+                    FilePath = Path.Combine(tempDirectory, "shot2.png"),
+                    DateTime = new DateTime(2026, 5, 18, 0, 1, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot3.png",
+                    FilePath = Path.Combine(tempDirectory, "shot3.png"),
+                    DateTime = new DateTime(2026, 5, 18, 0, 2, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+            }
+
+            var ocrStore = new HistoryOcrIndexStore(dbPath);
+            ocrStore.UpsertText(1, Path.Combine(tempDirectory, "shot1.png"), null, "Alpha", "test", "en");
+            ocrStore.UpsertText(2, Path.Combine(tempDirectory, "shot2.png"), null, "Beta", "test", "en");
+            ocrStore.UpsertText(3, Path.Combine(tempDirectory, "shot3.png"), null, "Gamma", "test", "en");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.Delete(new HistoryItem { Id = 1 }, new HistoryItem { Id = 3 });
+            }
+
+            Assert.That(ocrStore.GetText(1), Is.Null, "OCR text for deleted item 1 should be removed");
+            Assert.That(ocrStore.GetText(2), Is.EqualTo("Beta"), "OCR text for non-deleted item 2 should remain");
+            Assert.That(ocrStore.GetText(3), Is.Null, "OCR text for deleted item 3 should be removed");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
+    public void Delete_Noop_WhenNoOcrIndexRowsExist()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                manager.AppendHistoryItem(new HistoryItem
+                {
+                    FileName = "shot1.png",
+                    FilePath = Path.Combine(tempDirectory, "shot1.png"),
+                    DateTime = new DateTime(2026, 5, 18, 0, 0, 0, DateTimeKind.Utc),
+                    Type = "Image"
+                });
+            }
+
+            // No OCR rows exist yet — delete should not throw.
+            using (var manager = new HistoryManagerSQLite(dbPath))
+            {
+                Assert.DoesNotThrow(() => manager.Delete(new HistoryItem { Id = 1 }));
+            }
+
+            var ocrStore = new HistoryOcrIndexStore(dbPath);
+            Assert.That(ocrStore.GetText(1), Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
 }

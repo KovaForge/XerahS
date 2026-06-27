@@ -300,22 +300,36 @@ public class SettingsManagerSecretsPathTests
     }
 
     [Test]
-    public void SaveApplicationConfigAsync_RaisesSettingsChangedLikeSynchronousSave()
+    public async Task SaveApplicationConfigAsync_CompletesWriteBeforeRaisingSettingsChanged()
     {
         int raisedCount = 0;
-        EventHandler handler = (_, _) => raisedCount++;
+        bool fileExistsWhenRaised = false;
+        string configPath = SettingsManager.ApplicationConfigFilePath;
+        File.Delete(configPath);
 
-        SettingsManager.SettingsChanged += handler;
+        SettingsManager.SettingsChanged += SettingsChanged;
         try
         {
-            SettingsManager.SaveApplicationConfigAsync();
+            bool saved = await SettingsManager.SaveApplicationConfigAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(saved, Is.True);
+                Assert.That(raisedCount, Is.EqualTo(1));
+                Assert.That(fileExistsWhenRaised, Is.True,
+                    "Async settings change notifications should not fire until the save has completed on disk.");
+            });
         }
         finally
         {
-            SettingsManager.SettingsChanged -= handler;
+            SettingsManager.SettingsChanged -= SettingsChanged;
         }
 
-        Assert.That(raisedCount, Is.EqualTo(1));
+        void SettingsChanged(object? sender, EventArgs e)
+        {
+            raisedCount++;
+            fileExistsWhenRaised = File.Exists(configPath);
+        }
     }
 
     [Test]
@@ -410,6 +424,31 @@ public class SettingsManagerSecretsPathTests
             Assert.That(allBackupFiles, Has.Length.EqualTo(2),
                 "Daily and weekly settings backups are independent retention modes and should both be written when both flags are enabled.");
         });
+    }
+
+    [Test]
+    public void Load_RestoresFromLatestSettingsBackupZip_WhenPrimaryFileIsCorrupt()
+    {
+        string directory = Path.Combine(TestContext.CurrentContext.WorkDirectory, "settings-backup-tests", Guid.NewGuid().ToString("N"));
+        string backupDirectory = Path.Combine(directory, "Backup");
+        string configPath = Path.Combine(directory, "ApplicationConfig.json");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(configPath, "{\"RecentTasksSave\":true}");
+
+        var config = new ApplicationConfig
+        {
+            BackupFolder = backupDirectory,
+            CreateBackup = true,
+            RecentTasksSave = false
+        };
+
+        Assert.That(config.Save(configPath), Is.True);
+        File.WriteAllText(configPath, "{ invalid json");
+
+        ApplicationConfig restored = ApplicationConfig.Load(configPath, backupDirectory);
+
+        Assert.That(restored.RecentTasksSave, Is.True,
+            "Settings load fallback should read the latest matching entry from the backup ZIPs created by SettingsBase.");
     }
 
     [Test]

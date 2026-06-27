@@ -47,6 +47,7 @@ namespace XerahS.Indexer
                 IndexerOutput.Txt => new IndexerText(settings),
                 IndexerOutput.Xml => new IndexerXml(settings),
                 IndexerOutput.Json => new IndexerJson(settings),
+                IndexerOutput.Markdown => new IndexerMarkdown(settings),
                 _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
             };
 
@@ -124,6 +125,18 @@ namespace XerahS.Indexer
                 catch (UnauthorizedAccessException ex)
                 {
                     DebugHelper.WriteException(ex, $"Access denied: {folderPath}");
+                }
+                catch (PathTooLongException ex)
+                {
+                    DebugHelper.WriteException(ex, $"Path too long: {folderPath}");
+                }
+                catch (DirectoryNotFoundException ex)
+                {
+                    DebugHelper.WriteException(ex, $"Directory not found: {folderPath}");
+                }
+                catch (IOException ex) when (ex is not PathTooLongException && ex is not DirectoryNotFoundException)
+                {
+                    DebugHelper.WriteException(ex, $"I/O error in folder: {folderPath}");
                 }
             }
 

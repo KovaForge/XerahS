@@ -37,12 +37,19 @@ internal static class CliUploaderBootstrapper
         return report;
     }
 
+    public static void BootstrapUploaders(bool json)
+    {
+        var report = Bootstrap(quiet: json);
+        if (json)
+        {
+            WriteJson(report);
+        }
+    }
+
     public static UploadReadiness CheckUploadReadiness(string fileName, bool uploadAsText)
     {
         var report = Bootstrap(true);
-        var categories = uploadAsText || FileHelpers.IsTextFile(fileName)
-            ? new[] { UploaderCategory.Text }
-            : new[] { UploaderCategory.File };
+        var categories = GetReadinessCategories(uploadAsText);
 
         foreach (var category in categories)
         {
@@ -53,18 +60,27 @@ internal static class CliUploaderBootstrapper
             $"No usable uploader is configured for {Path.GetFileName(fileName)}. Run 'xerahscli doctor uploaders --fix' for details.");
     }
 
+    internal static UploaderCategory[] GetReadinessCategories(bool uploadAsText) => uploadAsText
+        ? [UploaderCategory.Text]
+        : [UploaderCategory.File];
+
     public static int DoctorUploaders(bool fix, bool json)
     {
         var report = fix ? Bootstrap(true) : Inspect();
         if (json)
         {
-            Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+            WriteJson(report);
         }
         else
         {
             PrintReport(report);
         }
         return report.HasBlockingIssues ? 1 : 0;
+    }
+
+    internal static void WriteJson(BootstrapReport report)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static BootstrapReport Inspect()

@@ -23,11 +23,14 @@
 
 #endregion License Information (GPL v3)
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services;
@@ -97,22 +100,9 @@ public sealed class LinuxScreenService : IScreenService
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "xrandr",
-                Arguments = "--current",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process == null)
+            var (output, _) = RunXrandrCapture("xrandr", "--current", 1000);
+            if (string.IsNullOrEmpty(output))
                 return screens;
-
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(1000);
 
             var regex = new Regex(@"^(?<name>\S+)\s+connected\s+(?<primary>primary\s+)?(?<width>\d+)x(?<height>\d+)\+(?<x>-?\d+)\+(?<y>-?\d+)", RegexOptions.Compiled | RegexOptions.Multiline);
             foreach (Match match in regex.Matches(output))
@@ -156,5 +146,125 @@ public sealed class LinuxScreenService : IScreenService
         }
 
         return screens;
+    }
+
+    /// <summary>
+    /// Runs an xrandr-style synchronous CLI tool and returns its captured stdout
+    /// plus exit code. Drains stderr asynchronously so a noisy child process
+    /// cannot deadlock on a full OS pipe buffer (the same anti-pattern
+    /// previously fixed in <see cref="XerahS.Platform.Linux.Capture.Helpers.LinuxCliToolRunner"/>
+    /// for capture helpers). Reads stdout asynchronously too, so a child that
+    /// sleeps without producing output (e.g. <c>sleep 5</c>) cannot stretch a
+    /// 1-second timeout into 5 seconds waiting for the child to close its
+    /// stdout pipe.
+    /// </summary>
+    /// <param name="fileName">Executable to run (e.g. "xrandr").</param>
+    /// <param name="arguments">Command-line arguments to pass.</param>
+    /// <param name="timeoutMs">Maximum time to wait for the process to exit.</param>
+    /// <returns>Tuple of (stdout, exitCode). stdout may be empty; exitCode is null on timeout.</returns>
+    internal static (string output, int? exitCode) RunXrandrCapture(string fileName, string arguments, int timeoutMs)
+    {
+        Process? process = null;
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            process = Process.Start(startInfo);
+            if (process == null)
+                return (string.Empty, null);
+
+            // Drain stderr asynchronously so a chatty child process cannot
+            // block writing to a full 64KB OS pipe buffer. We deliberately
+            // discard stderr text — xrandr --current only writes to stdout
+            // for connected displays; any stderr line is a warning/error
+            // that we do not need to surface at the screen-parse layer.
+            var stderrDrain = process.StandardError.ReadToEndAsync().ContinueWith(
+                _ => { },
+                TaskScheduler.Default);
+
+            // Read stdout asynchronously too so a child that does not close
+            // its stdout pipe within the timeout (e.g. `sleep 5` with a 1s
+            // timeout) does not stretch the call to 5 seconds. The
+            // ReadToEndAsync + Task.WhenAny(timeout) pattern bounds the wait.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var timeoutTask = Task.Delay(timeoutMs);
+
+            var completed = Task.WaitAny(stdoutTask, timeoutTask);
+            if (completed != 0)
+            {
+                // Timeout: kill the child. After Kill, the child's stdout
+                // and stderr handles are closed, so the async drainers
+                // will unblock and complete on their own. We use a bounded
+                // wait so we do not block forever if the kernel delays
+                // the kill delivery.
+                try { process.Kill(); } catch { /* best effort */ }
+                try
+                {
+                    Task.WaitAll(new Task[] { stdoutTask, stderrDrain }, 1000);
+                }
+                catch
+                {
+                    // Drainer may have faulted on a closed stream; ignore.
+                }
+                return (string.Empty, null);
+            }
+
+            // stdout closed within the timeout — the child has exited (or is
+            // about to). Wait for exit to capture the exit code, with a
+            // bounded follow-up to handle the case where stdout is closed
+            // but the process has not yet fully released.
+            if (!process.WaitForExit(timeoutMs))
+            {
+                try { process.Kill(); } catch { /* best effort */ }
+                process.WaitForExit(1000);
+                return (stdoutTask.Result, null);
+            }
+
+            // Best-effort: make sure the stderr drainer is done so it does
+            // not leak a task across process disposal. Bounded so a stuck
+            // drainer cannot hang us.
+            try
+            {
+                Task.WaitAll(new Task[] { stderrDrain }, 1000);
+            }
+            catch
+            {
+                // Drainer may have faulted on a closed stream; ignore.
+            }
+
+            return (stdoutTask.Result, process.ExitCode);
+        }
+        catch
+        {
+            return (string.Empty, null);
+        }
+        finally
+        {
+            // Manually dispose the process so we do not depend on `using`
+            // syntax to clean up after a return from a non-using block.
+            process?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Exposes <see cref="RunXrandrCapture"/> for regression tests so the
+    /// test assembly can drive the run helper with synthetic commands
+    /// (e.g. /bin/sh -c "...large stderr...") without needing a real
+    /// xrandr binary on the test machine.
+    /// </summary>
+    internal static class TestAccessor
+    {
+        public static (string output, int? exitCode) RunXrandrCapture(string fileName, string arguments, int timeoutMs)
+        {
+            return LinuxScreenService.RunXrandrCapture(fileName, arguments, timeoutMs);
+        }
     }
 }

@@ -134,6 +134,18 @@ public class WindowsModernCaptureServiceTests
     }
 
     [Test]
+    public void TryReplaceSystemCursors_SkipsZeroCopiesWithoutReportingReplacement()
+    {
+        bool replacedAny = CursorReplacementHelper.TryReplaceSystemCursors(
+            new uint[] { 32512, 32513 },
+            copyCursor: () => IntPtr.Zero,
+            setSystemCursor: (_, _) => true,
+            destroyCursor: _ => Assert.Fail("Zero cursor handles must not be destroyed."));
+
+        Assert.That(replacedAny, Is.False);
+    }
+
+    [Test]
     public void TryReplaceSystemCursors_ReportsReplacementOnlyAfterSuccessfulSet()
     {
         int calls = 0;

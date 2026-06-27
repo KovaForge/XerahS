@@ -80,6 +80,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
     private void InitializeSteps()
     {
+        Steps.Add(new WelcomeStepViewModel());
         Steps.Add(new SaveLocationStepViewModel());
         Steps.Add(new HotkeyStepViewModel());
         Steps.Add(new UploadStepViewModel());
@@ -192,14 +193,11 @@ public partial class OnboardingWizardViewModel : ViewModelBase
 
     public void LoadFromState(OnboardingState state)
     {
-        State.SelectedLanguage = state.SelectedLanguage;
         State.ScreenshotsFolder = state.ScreenshotsFolder;
         State.CreateDateSubfolders = state.CreateDateSubfolders;
         State.PrimaryCaptureHotkey = state.PrimaryCaptureHotkey;
         State.AdditionalHotkeys = new List<HotkeyInfo>(state.AdditionalHotkeys);
         State.SelectedUploaderId = state.SelectedUploaderId;
-        State.SelectedOcrLanguages = new List<string>(state.SelectedOcrLanguages);
-        State.DownloadOcrInBackground = state.DownloadOcrInBackground;
         State.SkippedSteps = new HashSet<int>(state.SkippedSteps);
         State.LastCompletedStepIndex = state.LastCompletedStepIndex;
 
@@ -243,13 +241,13 @@ public partial class OnboardingWizardViewModel : ViewModelBase
             IReadOnlyDictionary<UploaderCategory, UploaderInstance>? selectedUploaderInstances = null;
 
             if (!string.IsNullOrEmpty(state.SelectedUploaderId) &&
-                !state.SkippedSteps.Contains(2) &&
+                !state.SkippedSteps.Contains(OnboardingStepIndices.Upload) &&
                 !string.Equals(state.SelectedUploaderId, "local", StringComparison.OrdinalIgnoreCase))
             {
                 selectedUploaderInstances = OnboardingFileUploaderHelper.EnsureFileUploaderInstances(state.SelectedUploaderId);
             }
 
-            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(0))
+            if (!string.IsNullOrEmpty(state.ScreenshotsFolder) && !state.SkippedSteps.Contains(OnboardingStepIndices.SaveLocation))
             {
                 SettingsManager.Settings.CustomScreenshotsPath = state.ScreenshotsFolder;
                 SettingsManager.Settings.UseCustomScreenshotsPath = true;
@@ -257,7 +255,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting screenshots folder: {state.ScreenshotsFolder}");
             }
 
-            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(1))
+            if (state.PrimaryCaptureHotkey != null && !state.SkippedSteps.Contains(OnboardingStepIndices.Hotkeys))
             {
                 WorkflowManager? workflowManager = GetWorkflowManager();
                 if (workflowManager != null)
@@ -300,7 +298,7 @@ public partial class OnboardingWizardViewModel : ViewModelBase
                 }
             }
 
-            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(2))
+            if (!string.IsNullOrEmpty(state.SelectedUploaderId) && !state.SkippedSteps.Contains(OnboardingStepIndices.Upload))
             {
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting upload destination: {state.SelectedUploaderId}");
             }

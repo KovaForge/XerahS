@@ -36,6 +36,20 @@ namespace XerahS.Platform.Linux.Capture.Helpers;
 internal static class LinuxCliToolRunner
 {
     /// <summary>
+    /// Test accessor exposing a minimal run helper that does not require the
+    /// tool to produce a PNG. Used by regression tests to exercise the stderr
+    /// drain path independently of bitmap decoding.
+    /// </summary>
+    internal static class TestAccessor
+    {
+        public static async Task<int?> RunForTestAsync(string toolName, string argsPrefix, int timeoutMs)
+        {
+            var (exitCode, _) = await RunCoreAsync(toolName, argsPrefix, timeoutMs).ConfigureAwait(false);
+            return exitCode;
+        }
+    }
+
+    /// <summary>
     /// Default timeout for non-interactive tools (e.g. fullscreen capture).
     /// </summary>
     public const int DefaultTimeoutMs = 10000;
@@ -53,6 +67,32 @@ internal static class LinuxCliToolRunner
     /// <param name="timeoutMs">Max wait in ms.</param>
     /// <returns>Decoded bitmap or null on failure/timeout.</returns>
     public static async Task<SKBitmap?> RunAsync(string toolName, string argsPrefix, int timeoutMs = DefaultTimeoutMs)
+    {
+        var (toolResult, tempFile) = await RunCoreAsync(toolName, argsPrefix, timeoutMs).ConfigureAwait(false);
+        if (toolResult != 0)
+        {
+            return null;
+        }
+
+        if (!File.Exists(tempFile))
+        {
+            return null;
+        }
+
+        try
+        {
+            DebugHelper.WriteLine($"LinuxScreenCaptureService: Screenshot captured with {toolName}");
+
+            using var stream = File.OpenRead(tempFile);
+            return SKBitmap.Decode(stream);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task<(int? ExitCode, string TempFile)> RunCoreAsync(string toolName, string argsPrefix, int timeoutMs)
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"sharex_screenshot_{Guid.NewGuid():N}.png");
 
@@ -75,8 +115,18 @@ internal static class LinuxCliToolRunner
             using var process = Process.Start(startInfo);
             if (process == null)
             {
-                return null;
+                return (null, tempFile);
             }
+
+            // Drain stderr asynchronously to prevent the OS pipe buffer (~64KB on Linux)
+            // from filling and blocking the child process. If the tool writes more than
+            // the buffer, it would otherwise block on write, hit the WaitForExit timeout,
+            // and the capture would fail even though the tool is still healthy.
+            process.BeginErrorReadLine();
+
+            // Consume stdout in the background too; we do not use its contents, but
+            // a redirected pipe must be drained or the child will block on write.
+            _ = process.StandardOutput.ReadToEndAsync().ContinueWith(_ => { }, TaskScheduler.Default);
 
             var completed = await Task.Run(() => process.WaitForExit(timeoutMs)).ConfigureAwait(false);
             if (!completed)
@@ -90,22 +140,25 @@ internal static class LinuxCliToolRunner
                     // ignore
                 }
 
-                return null;
+                // Give the async drainers a moment to finish reading the pipes
+                // after Kill so we do not dispose the process mid-read.
+                try
+                {
+                    process.WaitForExit(1000);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                return (null, tempFile);
             }
 
-            if (process.ExitCode != 0 || !File.Exists(tempFile))
-            {
-                return null;
-            }
-
-            DebugHelper.WriteLine($"LinuxScreenCaptureService: Screenshot captured with {toolName}");
-
-            using var stream = File.OpenRead(tempFile);
-            return SKBitmap.Decode(stream);
+            return (process.ExitCode, tempFile);
         }
         catch
         {
-            return null;
+            return (null, tempFile);
         }
         finally
         {

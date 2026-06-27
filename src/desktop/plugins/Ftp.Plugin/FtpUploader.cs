@@ -249,10 +249,17 @@ public sealed class FtpUploader : FileUploader, IDisposable
                     : new PrivateKeyFile(keyPath, _account.Passphrase);
                 return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", keyFile);
             }
-            catch (Exception ex) when (hasPassword)
+            catch (Exception ex)
             {
                 DebugHelper.WriteException(ex);
-                return CreatePasswordSftpClient();
+
+                if (hasPassword)
+                {
+                    return CreatePasswordSftpClient();
+                }
+
+                Errors.Add("SFTP key file could not be loaded: " + keyPath);
+                return null;
             }
         }
 
@@ -261,7 +268,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
 
         if (!string.IsNullOrWhiteSpace(keyPath))
         {
-            Errors.Add(File.Exists(keyPath) ? "SFTP key file could not be loaded: " + keyPath : "SFTP key file not found: " + keyPath);
+            Errors.Add("SFTP key file not found: " + keyPath);
             return null;
         }
 

@@ -91,7 +91,10 @@ namespace XerahS.History
                         }
                     }
 
-                    Backup(FilePath);
+                    if (!Backup(FilePath))
+                    {
+                        return false;
+                    }
                 }
 
                 return true;

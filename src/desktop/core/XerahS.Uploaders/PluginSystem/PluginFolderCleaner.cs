@@ -153,6 +153,8 @@ internal static class PluginFolderCleaner
 
         var keepFiles = BuildKeepFileSet(pluginDirectory, manifestPath, manifest);
         var quarantineRoot = Path.Combine(pluginDirectory, QuarantineDirectoryName);
+        PruneEmptyQuarantineDirectories(quarantineRoot);
+
         var allFiles = Directory.GetFiles(pluginDirectory, "*", SearchOption.AllDirectories);
 
         var filesToQuarantine = allFiles
@@ -374,6 +376,44 @@ internal static class PluginFolderCleaner
         {
             DebugHelper.WriteLine($"[PluginCleaner] Failed to read manifest '{manifestPath}': {ex.Message}");
             return null;
+        }
+    }
+
+    private static void PruneEmptyQuarantineDirectories(string quarantineRoot)
+    {
+        if (!Directory.Exists(quarantineRoot))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var directory in Directory.GetDirectories(quarantineRoot, "*", SearchOption.AllDirectories)
+                .OrderByDescending(path => path.Length))
+            {
+                TryDeleteDirectoryIfEmpty(directory);
+            }
+
+            TryDeleteDirectoryIfEmpty(quarantineRoot);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"[PluginCleaner] Failed pruning quarantine '{quarantineRoot}': {ex.Message}");
+        }
+    }
+
+    private static void TryDeleteDirectoryIfEmpty(string directory)
+    {
+        try
+        {
+            if (!Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                Directory.Delete(directory);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"[PluginCleaner] Could not delete empty quarantine directory '{directory}': {ex.Message}");
         }
     }
 
