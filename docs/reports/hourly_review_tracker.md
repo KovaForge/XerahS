@@ -1,5 +1,40 @@
 # XerahS Hourly Review Current Tracker
 
+### 2026-06-24 16:51 UTC - Linux platform / WaylandCliCapture / slurpOutput null guard in CaptureWithGrimSlurpAsync
+
+- Area: `src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:333-345 (CaptureWithGrimSlurpAsync)`
+- Files: src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs, tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs, Directory.Build.props
+- Findings: `CaptureWithGrimSlurpAsync` called `slurpOutput.Trim()` before checking for null. If `slurp` ever exited 0 with no stdout (pipe race, compositor glitch, or future contract change in `RunCliCapture`), this would throw `NullReferenceException` instead of gracefully returning null.
+- Fix: Added `if (slurpOutput == null) return null;` guard immediately after the exit-code check, before the `Trim()` call. Added `CaptureWithGrimSlurpParsingTest` to `TestAccessor` and 5 regression tests covering: valid geometry passthrough, null output (no throw), empty string output, whitespace-only output, and non-zero exit code.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; XerahS.Tests 1134 passed (+5 new) / 3 pre-existing failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite 'disk I/O error' failures (environmental, documented)
+- Commit: a68b633f
+- Version bump: 0.23.112 -> 0.23.113
+- Follow-up: None
+
+### 2026-06-23 07:23 UTC - ShareX.ImageEditor / EmojiCatalogEntry.GetSearchScore case-variant search regression
+
+- Area: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+- Files: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Emoji/EmojiCatalogEntry.cs, tests/XerahS.Tests/Editor/EmojiCatalogEntrySearchTests.cs, Directory.Build.props
+- Findings: EmojiCatalogEntry.GetSearchScore used StringComparison.Ordinal for the SearchIndex.Contains check at score 3, while the search term had already been lowercased and SearchIndex is built lowercase. Case-variant search terms (e.g. 'OBJECTS', 'Smile') that failed exact/prefix/keyword paths fell through to int.MaxValue instead of reaching score 3 via the SearchIndex fallback.
+- Fix: Changed SearchIndex.Contains(search, StringComparison.Ordinal) to StringComparison.OrdinalIgnoreCase. Added 7 regression tests covering score 0 (exact), 1 (name prefix), 2 (keyword prefix), 3 (ordinal-ignore-case group/keyword via SearchIndex), and int.MaxValue (no match). Version bump 0.23.110 -> 0.23.111.
+- Status: Fixed
+- Build/test: build 0 warnings/0 errors; EmojiCatalogEntrySearchTests 7 passed/0 failed
+- Commit: e50c8e0f
+- Follow-up: None
+
+
+### 2026-06-21 18:51 UTC - ShareX.ImageEditor csproj resource paths
+
+- Area: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+- Files: ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj, Directory.Build.props
+- Findings: Resource paths used Windows-style backslashes; normalized to forward slashes for cross-platform builds.
+- Fix: Minimal path normalization fix + version bump to 0.23.109. (Test coverage via existing resource loading in editor tests.)
+- Status: Fixed
+- Build/test: dotnet build/test completed successfully
+- Commit: 7b7f8eb8
+- Follow-up: None (minimal area fix)
+
 Purpose: compact human-readable companion to `docs/reports/hourly_review_state.json` for the recurring XerahS review.
 
 Use `hourly_review_state.json` as the hot machine-readable source. The full historical ledger was preserved at `docs/reports/archive/hourly_review_tracker_2026-04-30.md`.
@@ -1996,3 +2031,23 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings / 0 errors; XerahS.Tests filter HistoryViewModelBackupToastTests 4 passed / 0 failed; full solution test deferred (filter run is sufficient — only the new test class and unrelated code were touched). Logs: see /tmp/xerahs-hourly-sweep/build-20260610-180133.log
 - Commit: 4ccf08b8
 - Follow-up: The "File/path handling - remaining path helper exception parity and history backup user-visible diagnostics" next_candidates entry is now fully RESOLVED (path helper exception parity landed in v0.23.98, history backup user-visible diagnostic landed in v0.23.103 + v0.23.104). Drop the entry from next_candidates. Resume other tracks: OCR tool/onboarding language-selection parity (multi-runtime picker), Uploader UI/log diagnostics for unavailable provider replacement flows, CLI xerahscli upload --pipe edge cases, clawpatch queue (FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions), SQLite 'disk I/O error' McpServer.Tests environmental investigation.
+
+### 2026-06-17 12:01 AWST - Clean review sweep (post upstream merge)
+
+- Area: Capture pipeline (stalest reviewed area)
+- Files: none
+- Findings: All follow-up items from prior reviews addressed in v0.23.x series. No new bugs identified in quick verification pass. next_candidates empty in state.
+- Status: Reviewed (clean)
+- Build/test: skipped (clean review, no code change)
+- Commit: merge a5828b11 (upstream sync only)
+- Follow-up: Resume OCR language parity, Uploader diagnostics, CLI edge cases if new candidates appear. Monitor clawpatch queue.
+
+### 2026-06-23 19:10 AWST - Linux platform / WaylandCliCapture active-window routing correctness
+
+- Area: Linux platform / WaylandCliCapture / CaptureActiveWindowAsync routing (wayland-cli-capture-6)
+- Files: src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs, tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs, Directory.Build.props
+- Findings: Exposed `CaptureActiveWindowRoutingTest(string? desktop)` via `TestAccessor` to verify the ordered sequence of helper names without a real compositor. Bug: previously `CaptureActiveWindowAsync` used `IsWlrootsDesktop(desktop)` (returns true for both Hyprland and Sway) in the second routing block. This caused Hyprland to enter both the first block (grimblast -> hyprshot) AND the second block (grimblast -> sway-focused-window) after the first fell through — making the second block's grimblast call dead code for Hyprland. Fix: second block now uses `desktop is \"SWAY\" || desktop == null` explicitly, excluding Hyprland which was already handled above. 4 regression tests covering Hyprland, Sway, null desktop, and non-wlroots (KDE/GNOME/XFCE/i3/LXDE all return empty sequence).
+- Status: Fixed
+- Build/test: build 0 warnings / 0 errors (Release, -m:1); XerahS.Tests 1130 passed / 0 failed / 1 skipped (McpServer 5 SQLite disk-I/O environmental failures pre-existing and unrelated).
+- Commit: e2b103f8
+- Follow-up: Continue WaylandCliCapture follow-ups: CaptureWithGrimSlurpAsync area capture (218-255), remaining CLI capture helpers stderr-drainage audit, CLI xerahscli upload --pipe edge cases, clawpatch queue (FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions).

@@ -1,3 +1,8 @@
+## v0.23.107
+
+### Changed
+- No user-facing commits were detected in this range.
+
 ## v0.23.105
 
 ### Features
@@ -6,6 +11,7 @@
 ### Fixes
 - **CLI**: skip redundant named-copy for --text/--pipe when --name provided (3c55fcb6)
 - **Core**: CLI/OpenClaw wrapper manifest-vs-runtime parity (requireUploaderReport, --json) (6b08fc97)
+- **Core**: Make OpenClaw manifest DTOs public. (30f12f37)
 - **Core**: Surface history backup failures as user-visible toast in HistoryViewModel (4ccf08b8)
 - **History**: surface user-visible backup failure diagnostic via LastBackupFailureReason (e0f91f93)
 - **Linux Deb Packaging**: add Recommends wl-clipboard, xclip so clipboard CLI fallback works out-of-box on stock Ubuntu (LINUX-IMPROVEMENT-PLAN P3) (6eac1277)
@@ -14,10 +20,13 @@
 
 ### Build
 - **Core**: Add macOS Info.plist template and hardened-runtime entitlements (MACOS-IMPROVEMENT-PLAN P1/P2; plutil-lint clean, not yet wired into packaging) (9cebcf0a)
+- **Core**: Pin SQLite bundle packages for restore audit. (b58489b7)
+- **Docs**: sync CHANGELOG from KovaForge work after upstream merge (dc0940a6)
 
 ### Documentation
 - **Add Linux Improvement Plan**: evidence-based state assessment, prioritized P1-P8 backlog, top-5 implementation outlines with verification and rollback (2737d319)
 - **Add MacOS Improvement Plan**: evidence-based state assessment, prioritized P1-P10 backlog, top-5 implementation outlines with verification and rollback (27e23488)
+- **Add XIP0080**: Linux global hotkeys via direct evdev listener (99a195b7)
 - **Core**: Add 2026-06-06 OCR onboarding persistence blog draft. (c6038164)
 - **Core**: Add 2026-06-06 no-activity blog draft. (7f4e321c)
 - **Core**: Add 2026-06-07 no-activity blog draft. (36a5d295, f1057f09)
@@ -26,8 +35,21 @@
 - **Core**: Add 2026-06-10 blog draft. (8d490d9b)
 - **Core**: Add 2026-06-11 blog draft. (dbf26515)
 - **Core**: Add 2026-06-11 no-activity blog draft. (5d205ed9)
+- **Core**: Add 2026-06-12 blog draft. (8cfad0f6)
+- **Core**: Add 2026-06-12 daily blog draft. (79925979)
 - **Core**: Add 2026-06-12 no-activity blog draft. (f20c1a94)
+- **Core**: Add 2026-06-13 daily blog draft. (5e89df90)
+- **Core**: Add 2026-06-13 no-activity blog draft. (b30c490a)
+- **Core**: Add 2026-06-14 no-activity blog draft. (3ed56654)
+- **Core**: Add 2026-06-15 no-activity blog draft. (f3029f77)
+- **Core**: Add 2026-06-16 no-activity blog draft. (f934c738)
+- **Core**: Add 2026-06-17 blog draft. (4d0d746b)
+- **Core**: Add 2026-06-18 blog draft. (da1fa370)
+- **Core**: Add 2026-06-19 blog draft. (53170428)
+- **Core**: Expand XIP0080 with scope, branching strategy, and success criteria (e3189a4f)
+- **Core**: Hourly sweep tracker/state update (clean review + upstream merge) (31eb2236)
 - **Core**: KNOWN_ISSUES: document macOS distribution, permission, and window-capture issues; link improvement plan (dd519426)
+- **Core**: Move improvement plans into XIP proposals (XIP0077-XIP0079). (f5d969ca)
 - **Core**: RELIABILITY-PLAN — failure simulations, sign-off list, drift findings, sequencing (sections 4-7) (a8a10c70)
 - **Core**: RELIABILITY-PLAN — observed-state snapshot + failure-mode table (sections 1-2) (a44df371)
 - **Core**: RELIABILITY-PLAN — prioritized upgrades U1-U10 with steps/criteria/owners/rollbacks (section 3) (9bc0dcd1)
@@ -40,13 +62,19 @@
 - **Core**: Refresh 2026-06-08 blog draft. (36d5acff)
 - **Core**: Refresh 2026-06-09 blog draft. (eb95c4c3)
 - **Core**: Refresh 2026-06-10 blog draft. (ee2114d4)
+- **Core**: Refresh 2026-06-13 blog draft. (df0e51e0)
+- **Core**: Refresh 2026-06-14 blog draft. (330febfa)
+- **Core**: Refresh 2026-06-15 blog draft. (7d2817cb)
+- **Core**: Refresh 2026-06-16 blog draft. (038997ff)
+- **Core**: Refresh 2026-06-17 blog draft. (b3392d6c)
+- **Core**: Refresh 2026-06-18 blog draft. (2e473086)
+- **Core**: Refresh 2026-06-19 blog draft. (0d29b9be)
 - **Core**: add AGENTS wrapper policy (e0e75d9c, eb3e0fe7)
 - **Core**: add KFIP0010 for X/Twitter OCR clipboard accessibility drafts (64047239)
 - **Core**: review and narrow KFIP0010 implementation scope (8fc3398b)
 
 ### Changed
 - **Core**: [KFIP] Add KFIP0010 for X/Twitter compression-resilient capture and format optimization (fa236405)
-
 ## v0.23.98
 
 ### Features
