@@ -64,7 +64,16 @@ public partial class SaveLocationStepView : UserControl
                             AllowMultiple = false,
                         });
 
-                    return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                    if (folders.Count == 0) return null;
+                    try
+                    {
+                        return folders[0].TryGetLocalPath();
+                    }
+                    catch (Exception)
+                    {
+                        // Defensive: Avalonia's TryGetLocalPath can throw on some macOS paths
+                        return null;
+                    }
                 };
             }
         }
