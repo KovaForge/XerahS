@@ -1,3 +1,338 @@
+## v0.23.117
+
+### Features
+- **Core**: add after-capture OCR clipboard task
+- **Core**: Add capture command palette
+- **Core**: add markdown directory index output
+- **Core**: Add --randomize flag (default true) to CLI upload command, appending random alphanumeric suffix matching UI's %ra{10} behavior to avoid CDN caching
+- **Core**: Implement Send-to post-v1 policies
+
+### Fixes
+- **CLI**: skip redundant named-copy for --text/--pipe when --name provided
+- **Core**: Add Avalonia.Headless.NUnit PrivateAssets parity and extend guardrail test coverage
+- **Core**: Add coverlet.collector and PrivateAssets to McpServer.Tests with guardrail test
+- **Core**: Add FFmpeg concat file escape regression tests for EscapeConcatFilePath
+- **Core**: Add macOS upload file picker fallback
+- **Core**: add MaxCombinedWidth/Height guards to CombineScreenshots dimension overflow
+- **Core**: Add non-mutating IsDefaultInstance to prevent GetDefaultInstance destructive side-effect during read-only is_default checks
+- **Core**: add openclaw cli text upload
+- **Core**: align HandlePromptsGetAsync error shape with other MCP handlers
+- **Core**: Align plugin assembly version with root app version
+- **Core**: Apply onboarding OCR language to DefaultTaskSettings
+- **Core**: await async settings saves
+- **Core**: bootstrap uploaders exit code reflects blocking issues
+- **Core**: bound openclaw cli diagnostic keys
+- **Core**: bound openclaw cli json shape diagnostics
+- **Core**: Bundle CLI plugins for agent hosts
+- **Core**: Clamp negative Padding/Spacing in VideoThumbnailer.CombineScreenshots to prevent negative bitmap dimensions
+- **Core**: Clean stale default instance mappings on category change and validate category in GetDefaultInstance
+- **Core**: Clean up HistoryOcrIndex rows when history items are deleted
+- **Core**: Clean up temporary zip backups after replacement failure
+- **Core**: CLI/OpenClaw wrapper manifest-vs-runtime parity (requireUploaderReport, --json)
+- **Core**: close command palette on blank escape
+- **Core**: CopyFile exception handling and BackupFileZip atomic replacement
+- **Core**: Correct IsFileLocked to return false for missing files and null/empty paths instead of misreporting them as locked
+- **Core**: Decode plus signs in MCP history searches
+- **Core**: describe openclaw cli json validation failures
+- **Core**: Dispose editor copy SKBitmap to prevent resource leak in HandleCopyRequested
+- **Core**: dispose send-to editor bitmaps
+- **Core**: Drain stderr in macOS clipboard pbpaste/pbcopy helpers and remove unreachable stderr redirect from Linux clipboard/monitor process starts to prevent pipe-buffer deadlocks
+- **Core**: emit bootstrap uploader cli json
+- **Core**: Emit zero opacity before toast fade close
+- **Core**: Escape FFmpeg concat list paths
+- **Core**: Escape FFmpeg video probe paths
+- **Core**: Escape special URI chars in MCP CreateFileUrl output
+- **Core**: expose MCP history thumbnail resource URI
+- **Core**: Expose OCR index schema ensure for history deletes
+- **Core**: FFmpegDownloader cancellation token propagation
+- **Core**: FileDownloader cancellation token propagation and InvalidOperationException handling
+- **Core**: FileDownloader chunked/streaming-encoding support
+- **Core**: FileDownloader early EOF hang on Content-Length mismatch
+- **Core**: Guard null OCR onboarding language selections
+- **Core**: Guard ScrollingCaptureToolService.CurrentCapture clear with ReferenceEquals so closing old window does not lose active capture from newer window
+- **Core**: Handle invalid backup copy paths
+- **Core**: Handle IOException in BackupFileWeekly TOCTOU race
+- **Core**: Handle PathTooLongException, DirectoryNotFoundException, and IOException in indexer enumeration so long paths, deleted directories, and I/O errors don't crash the entire index or fallback count; add InternalsVisibleTo for Indexer tests
+- **Core**: Handle weekly backup destination failures
+- **Core**: harden gdi cursor replacement cleanup
+- **Core**: harden macos front-window parsing
+- **Core**: harden mcp history blob resources
+- **Core**: harden onboarding ocr language lifecycle
+- **Core**: Hide macOS Dock icon for tray startup (#252)
+- **Core**: honor cli upload as-file readiness
+- **Core**: HSB equality includes Alpha to satisfy hash contract
+- **Core**: Ignore malformed MCP history query parameters
+- **Core**: Ignore stale deleted-file OCR when searching assistant history
+- **Core**: ignore unavailable default uploaders
+- **Core**: Ignore unavailable uploader instances in file routing conflicts
+- **Core**: Keep auto uploader fallback within category
+- **Core**: keep mobile s3 config file-scoped
+- **Core**: keep mobile s3 imports file-scoped
+- **Core**: Kill FFmpeg process tree on forced close
+- **Core**: Linux hotkey Oem102 key mapping to backslash for Wayland portal and X11 fallback
+- **Core**: LinuxCliToolRunner pipe-drain deadlock
+- **Core**: LinuxThemeService gsettings pipe-fill + timeout-stretching deadlock
+- **Core**: Log stale default uploader cleanup on RemoveInstance for parity with GetDefaultInstance and category-change UpdateInstance paths
+- **Core**: Log stale uploader default cleanup
+- **Core**: Make OpenClaw manifest DTOs public.
+- **Core**: Make RegionCaptureAnnotationOptionsStore.Persist awaitable to prevent fire-and-forget config save data loss
+- **Core**: match refreshed ocr regional languages
+- **Core**: match regional ocr defaults
+- **Core**: MCP history/search query parsing handles ampersand delimiters, supports limit/from/to params, and resource error shape includes UserCancelled/ArgumentOutOfRangeException
+- **Core**: MCP server RunTaskAsync task identity race condition
+- **Core**: normalize command palette search whitespace
+- **Core**: normalize generated openclaw upload paths
+- **Core**: Normalize OCR failure status messages
+- **Core**: normalize ocr selected language mutations
+- **Core**: normalize onboarding ocr language refresh
+- **Core**: Normalize upload drag-drop file collection handling
+- **Core**: Omit MCP history thumbnail_resource URI when no local file exists
+- **Core**: order refreshed ocr selections
+- **Core**: Persist annotation edits after continue
+- **Core**: pipe generated openclaw cli text uploads
+- **Core**: preserve editor dirty state on sidecar save failure
+- **Core**: Preserve macOS clipboard file path whitespace
+- **Core**: Preserve MCP local path whitespace
+- **Core**: preserve ocr fallback languages
+- **Core**: preserve ocr languages when enumeration fails
+- **Core**: preserve openclaw cli json results
+- **Core**: preserve openclaw invalid json diagnostics
+- **Core**: Prevent user props from overriding release build guardrails
+- **Core**: print generated openclaw cli errors
+- **Core**: Prune empty plugin quarantine folders
+- **Core**: Prune old settings backup month folders after successful save
+- **Core**: quote openclaw cli diagnostic keys
+- **Core**: Recreate embedded editor save destinations
+- **Core**: Remove display language selection from onboarding welcome step
+- **Core**: Remove malformed trailing quotes from FFmpeg GetVideoInfo probe argument
+- **Core**: Report invalid SFTP key files
+- **Core**: Resolve CLI plugin discovery failure on macOS by prioritizing canonical Documents path and bundle S3 plugin during publish
+- **Core**: restore settings from backup zips
+- **Core**: re-throw UnauthorizedAccessException from annotation sidecar save
+- **Core**: Return actionable MCP oversized blob resources
+- **Core**: Return actionable missing MCP history blobs
+- **Core**: Run silent Windows updater
+- **Core**: share amazon s3 keychain credentials
+- **Core**: StringCollectionToStringTypeConverter silent type erasure
+- **Core**: Surface history backup failures
+- **Core**: Surface history backup failures as user-visible toast in HistoryViewModel
+- **Core**: Surface OCR language refresh errors
+- **Core**: Tighten MCP history search URI matching
+- **Core**: trim generated openclaw upload names
+- **Core**: trim refreshed ocr language selections
+- **Core**: truncate editor save overwrites
+- **Core**: Unblock macOS update prompts and add manual update action
+- **Core**: Update ImageEditor effect browser spacing
+- **Core**: validate openclaw cli json output
+- **Core**: validate openclaw upload urls
+- **Core**: validate openclaw uploader reports
+- **Core**: WaylandCliCapture active-window fallback for SWAY
+- **Core**: Wire OcrStepViewModel into onboarding wizard and add XAML template
+- **Core**: Wire onboarding wizard actions and remove OCR and ShareX import steps
+- **Core**: Wire WelcomeStepViewModel into onboarding wizard
+- **Core**: Wire workflow FFmpeg override into recording backends
+- **Core**: wrap command palette keyboard selection
+- **FileHelpers**: guard BackupFileZip/BackupFileWeekly against empty/whitespace destination folders
+- **History**: surface user-visible backup failure diagnostic via LastBackupFailureReason
+- **ImageEditor**: normalize resource paths to forward slashes for cross-platform consistency (minimal bug fix); bump to 0.23.109
+- **Indexer**: guard CountIndexedContents DirectoryInfo ctor inside try-catch
+- **Linux**: Wayland active-window routing - Hyprland/Sway/null desktop routing correctness
+- **Linux Deb Packaging**: add Recommends wl-clipboard, xclip so clipboard CLI fallback works out-of-box on stock Ubuntu (LINUX-IMPROVEMENT-PLAN P3)
+- **LinuxInputService TryGetWithXdotool**: drain stderr and bound stdout wait to prevent pipe-fill and timeout-stretching deadlocks
+- **LinuxScreenService Xrandr Capture**: drain stderr and bound stdout wait to prevent pipe-fill and timeout-stretching deadlocks
+- **MacOSInputService GetCursorPosition**: drain stderr and bound stdout wait to prevent pipe-fill and timeout-stretching deadlocks
+- **MCP**: harden IsHistorySearchResourceUri against prefix and malformed query attacks
+- **MCP CreateHistoryDetailsAsync**: surface file_exists/file_missing_path stale-path diagnostic
+- **MCP ResolveHistoryBlobPath**: distinguish thumbnail-vs-source missing file in exception message
+- **OCR**: persist full onboarding language selection to OCROptions.PreferredLanguages
+- **PulseAudioHelper RunPactl**: drain stderr and bound stdout wait to prevent pipe-fill and timeout-stretching deadlocks
+- **SettingsBase**: surface SettingsBackupFailed event with phase tag for backup create/prune/pruneFolder failures
+- **WaylandCliCapture Grim/slurp/grimblast**: drain stderr and bound stdout wait to prevent pipe-fill and timeout-stretching deadlocks
+
+### Build
+- **Core**: Add macOS Info.plist template and hardened-runtime entitlements (MACOS-IMPROVEMENT-PLAN P1/P2; plutil-lint clean, not yet wired into packaging)
+- **Core**: bump Avalonia to 12.0.5, SkiaSharp to stable 3.119.4
+- **Core**: Pin SQLite bundle packages for restore audit.
+- **Docs**: sync CHANGELOG from KovaForge work after upstream merge
+
+### Documentation
+- **Add Linux Improvement Plan**: evidence-based state assessment, prioritized P1-P8 backlog, top-5 implementation outlines with verification and rollback
+- **Add MacOS Improvement Plan**: evidence-based state assessment, prioritized P1-P10 backlog, top-5 implementation outlines with verification and rollback
+- **Core**: add AGENTS wrapper policy
+- **Core**: add CONTRIBUTING.md with git wrapper identity rules
+- **Core**: Add hourly review tracker entry for MCP server history search query parsing fix
+- **Core**: add KFIP0008 capture privacy redaction proposal
+- **Core**: add KFIP0010 for X/Twitter OCR clipboard accessibility drafts
+- **Core**: Append FileDownloader cancellation token review tracker entry
+- **Core**: Append TypeConverter fix to hourly tracker
+- **Core**: Blog drafts (2026 series, add/update)
+- **Core**: Correct FFmpeg Linux and override guidance
+- **Core**: correct xerahs sweep test totals
+- **Core**: hourly review tracker + state update for WaylandCliCapture routing fix
+- **Core**: Hourly sweep tracker/state update (clean review + upstream merge)
+- **Core**: KNOWN_ISSUES: document macOS distribution, permission, and window-capture issues; link improvement plan
+- **Core**: log 2026-05-18 04:33 AWST editor integration sidecar save fix
+- **Core**: log 2026-05-18 04:49 AWST media subsystem CombineScreenshots overflow guards
+- **Core**: Normalize XIP proposal statuses
+- **Core**: Record blog audit submodule lesson.
+- **Core**: record CLI OpenClaw plugin export review sweep
+- **Core**: record CLI ReClip/bootstrap continued review sweep
+- **Core**: Record CreateHistoryDetailsAsync stale-path fix in tracker and state
+- **Core**: Record Declan auth sweep blocker
+- **Core**: record editor save overwrite sweep
+- **Core**: record editor sidecar save review
+- **Core**: Record FFmpegDownloader cancellation fix in tracker and state
+- **Core**: Record FileHelpers empty/whitespace destination fix in tracker and state
+- **Core**: Record history backup user-visible diagnostic in state and tracker
+- **Core**: Record HistoryViewModel backup-toast fix in tracker and state
+- **Core**: Record LinuxCliToolRunner pipe-drain fix in tracker and state
+- **Core**: Record LinuxInputService xdotool fix in tracker and state
+- **Core**: Record LinuxScreenService xrandr capture fix in tracker and state
+- **Core**: Record LinuxThemeService gsettings fix in tracker and state
+- **Core**: Record MacOSInputService osascript fix in tracker and state
+- **Core**: Record MCP history blob sweep
+- **Core**: Record MCP IsHistorySearchResourceUri hardening in state and tracker
+- **Core**: Record MCP ResolveHistoryBlobPath fix in tracker and state
+- **Core**: record MCP thumbnail resource sweep
+- **Core**: Record MCP URI sweep
+- **Core**: record OCR language refresh review sweep
+- **Core**: Record OCR sweep results
+- **Core**: Record OCROptions.PreferredLanguages multi-language persistence fix in tracker and state
+- **Core**: Record OcrViewModel onboarding language-parity fix in tracker and state
+- **Core**: Record PulseAudioHelper RunPactl fix in tracker and state
+- **Core**: Record RemoveInstance stale-default cleanup logging fix in tracker and state
+- **Core**: Record uploader diagnostics sweep
+- **Core**: Record WaylandCliCapture active-window fix in tracker
+- **Core**: Record WaylandCliCapture grim/slurp/grimblast stderr-drain fix in tracker and state
+- **Core**: record WaylandCliCapture slurpOutput null guard fix in hourly review tracker + state
+- **Core**: Refresh 2026-05-10 OCR, OpenClaw, and Flatpak blog draft.
+- **Core**: Refresh 2026-05-11 uploader reliability blog draft.
+- **Core**: Refresh 2026-05-12 Send-to policies blog draft.
+- **Core**: Refresh 2026-05-13 command palette blog draft.
+- **Core**: Refresh 2026-05-14 docs-maintenance blog draft.
+- **Core**: Refresh 2026-05-15 mobile S3 fixes blog draft.
+- **Core**: Refresh 2026-05-17 silent-updater blog draft.
+- **Core**: Refresh 2026-05-29 audited blog draft.
+- **Core**: Refresh 2026-05-29 fix roundup blog draft.
+- **Core**: Refresh 2026-05-30 audit note blog draft.
+- **Core**: Refresh 2026-05-30 blog draft.
+- **Core**: Refresh 2026-05-31 blog draft.
+- **Core**: Refresh 2026-06-01 blog draft.
+- **Core**: Refresh 2026-06-02 blog draft.
+- **Core**: Refresh 2026-06-03 blog draft.
+- **Core**: Refresh 2026-06-04 blog draft.
+- **Core**: Refresh 2026-06-05 blog draft.
+- **Core**: Refresh 2026-06-06 blog draft.
+- **Core**: Refresh 2026-06-07 blog draft.
+- **Core**: Refresh 2026-06-08 blog draft.
+- **Core**: Refresh 2026-06-09 blog draft.
+- **Core**: Refresh 2026-06-10 blog draft.
+- **Core**: Refresh 2026-06-13 blog draft.
+- **Core**: Refresh 2026-06-14 blog draft.
+- **Core**: Refresh 2026-06-15 blog draft.
+- **Core**: Refresh 2026-06-16 blog draft.
+- **Core**: Refresh 2026-06-17 blog draft.
+- **Core**: Refresh 2026-06-18 blog draft.
+- **Core**: Refresh 2026-06-19 blog draft.
+- **Core**: Refresh 2026-06-20 blog draft.
+- **Core**: Refresh 2026-06-21 blog draft.
+- **Core**: Refresh 2026-06-22 blog draft.
+- **Core**: Refresh 2026-06-23 blog draft.
+- **Core**: Refresh 2026-06-24 blog draft.
+- **Core**: Refresh 2026-06-25 blog draft.
+- **Core**: Refresh 2026-06-26 blog draft.
+- **Core**: RELIABILITY-PLAN ΓÇö failure simulations, sign-off list, drift findings, sequencing (sections 4-7)
+- **Core**: RELIABILITY-PLAN ΓÇö observed-state snapshot + failure-mode table (sections 1-2)
+- **Core**: RELIABILITY-PLAN ΓÇö prioritized upgrades U1-U10 with steps/criteria/owners/rollbacks (section 3)
+- **Core**: Require XIP batch push and issue closure
+- **Core**: review and narrow KFIP0010 implementation scope
+- **Core**: ShareX.ImageEditor submodule updates
+- **Core**: sync tracker from prior Declan run
+- **Core**: update hourly review state for CLI continued review sweep
+- **Core**: Update hourly review state JSON
+- **Core**: Update hourly review tracker
+- **Core**: Update hourly review tracker after BackupFileWeekly fix
+- **Core**: update hourly review tracker and state after toast OnMenuClosed fix
+- **Core**: update hourly review tracker and state for File/path handling fixes (a54d2bea)
+- **Core**: Update hourly review tracker and state for McpServer.Tests coverage fix
+- **Core**: Update hourly review tracker and state JSON
+- **Core**: Update hourly review tracker for editor integration copy SKBitmap fix
+- **Core**: Update hourly review tracker for file/path handling IsFileLocked fix
+- **Core**: update hourly review tracker for indexer ctor guard fix (bd63b227)
+- **Core**: Update hourly review tracker for MCP path fix
+- **Core**: Update hourly review tracker for MCP server fix
+- **Core**: Update hourly review tracker for OCR null guard
+- **Core**: Update hourly review tracker for platform-specific services clipboard stderr drain sweep
+- **Core**: Update hourly review tracker for Settings/configuration backup retention fix
+- **Core**: Update hourly review tracker for uploader core default-instance fixes
+- **Core**: update hourly_review_state.json after editor integration fix
+- **Core**: update hourly_review_state.json after media subsystem CombineScreenshots fix
+- **Core**: Update hourly_review_state.json with Wayland active-window fix
+- **Core**: XIP/IEIP proposals and related documentation
+- **Kfip**: add KFIP0012 - Stable Workflow Automation Engine
+
+### Changed
+- **Core**: [CI] Keep automated releases prerelease by default
+- **Core**: [Docs] Mark v0.22.256 release workflow complete
+- **Core**: [Docs] Record sync-only sweep at v0.23.86
+- **Core**: [Docs] Record v0.22.256 Flathub verification
+- **Core**: [Docs] Update hourly review tracker for OCR tool UI language loader normalization
+- **Core**: [Fix] ToastWindow: adjust position to screen bounds on multi-monitor setups
+- **Core**: [KFIP] Add KFIP0009 for X/Twitter screen capture workflow enhancements
+- **Core**: [KFIP] Add KFIP0010 for X/Twitter compression-resilient capture and format optimization
+- **Core**: [Meta] Update hourly review tracker for editor annotation PersistAsync fix
+- **Core**: [Meta] Update hourly review tracker for scrolling capture fix v0.23.51
+- **Core**: [Meta] Update review tracker with commit hash 57007555
+- **Core**: [v0.23.47] Normalize platform OCR language tags and display names in tool UI language loader
+- **Core**: [v0.23.71] docs: append hourly review tracker entry for Oem102 hotkey fix
+- **Core**: [v0.23.71] docs: record sync-only sweep 2026-05-25
+- **Core**: [v0.23.71] docs: update hourly review state for Oem102 hotkey fix
+- **Core**: Add Fedora VS Code updater script
+- **Core**: Bump app version for blog drafts.
+- **Core**: Bump version to 0.23.31
+- **Core**: Bump version to 0.23.37
+- **Core**: Create derive-goal-from-session.md
+- **Core**: Finalize hourly review tracker commit refs
+- **Core**: Fix EmojiCatalogEntry.GetSearchScore case-insensitive SearchIndex lookup
+- **Core**: Fix macOS crash when selecting folder in onboarding
+- **Core**: Fix toast context menu close not resuming fade when duration has not elapsed
+- **Core**: guard slurpOutput against null before Trim() in CaptureWithGrimSlurpAsync
+- **Core**: IEIP/XIP proposal documents (create/update)
+- **Core**: queue 5 clawpatch findings into hourly sweep tracker
+- **Core**: ShareX.ImageEditor submodule updates
+- **Core**: Start minor release for command palette
+- **Core**: Trim next_candidates to be more specific about remaining toasts work
+- **Core**: Update derive-goal-from-session.md
+- **Core**: Update Directory.Packages.props
+- **Core**: Update hourly review state after BackupFileWeekly fix
+- **Core**: Update hourly review state after Editor integration fix (0.23.37)
+- **Core**: Update hourly review state JSON
+- **Core**: Update hourly review tracker after OCR cleanup
+- **Core**: Update hourly review tracker after platform fix
+- **Core**: Update hourly review tracker for assistant OCR search fix
+- **Core**: Update hourly review tracker for auto uploader fallback fix
+- **Core**: Update hourly review tracker for backup cleanup fix
+- **Core**: Update hourly review tracker for build props guardrail fix
+- **Core**: Update hourly review tracker for FFmpeg close fix
+- **Core**: Update hourly review tracker for FFmpeg concat fix
+- **Core**: Update hourly review tracker for FFmpeg path quoting
+- **Core**: Update hourly review tracker for file path fix
+- **Core**: Update hourly review tracker for FTP fix
+- **Core**: Update hourly review tracker for history backup fix
+- **Core**: Update hourly review tracker for indexer enumeration exception fix
+- **Core**: Update hourly review tracker for MCP blob fix
+- **Core**: Update hourly review tracker for MCP query fix
+- **Core**: Update hourly review tracker for media FFmpeg argument fix
+- **Core**: Update hourly review tracker for OCR language refresh fix
+- **Core**: Update hourly review tracker for plugin cleanup fix
+- **Core**: Update hourly review tracker for toast fade fix
+- **Core**: Update hourly review tracker for ToastWindow multi-monitor fix
+- **Core**: Update hourly review tracker for upload drag-drop fix
+- **Core**: Update hourly review tracker for uploader routing fix
+- **Core**: Update hourly review tracker for weekly backup fix
+- **Core**: Update ImageEditor to ShareX@abff8a8f8
+- **Fix Editor Save**: report image vs sidecar failures distinctly, keep dirty on image failure
+
 ## v0.23.107
 
 ### Changed
