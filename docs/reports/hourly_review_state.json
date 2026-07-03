@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-24 00:51 AWST",
+  "last_updated": "2026-07-03 20:47 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,6 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
     "src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)",
     "src/desktop/plugins/Immich.Plugin/ImmichClient.cs:367-412 (CreateSharedLinkAsync)",
     "src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs:63-68 (ImmichConfigModel)",
@@ -50,7 +49,6 @@
     "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
     "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
     "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp",
-    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
     "src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)",
     "src/desktop/core/XerahS.Common/FileDownloader.cs:136-140 (FileDownloader.DoWork)",
     "src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)",
@@ -77,7 +75,6 @@
     "src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8",
     "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7",
     "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp",
-    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
     "src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)",
     "src/desktop/core/XerahS.Common/FileDownloader.cs:136-140 (FileDownloader.DoWork)",
     "src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)",
@@ -775,5 +772,6 @@
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260529-234721.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260529-234721.log"
     }
-  ]
+  ],
+  "last_run_outcome": "reviewed (clean)"
 }

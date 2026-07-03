@@ -2051,3 +2051,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings / 0 errors (Release, -m:1); XerahS.Tests 1130 passed / 0 failed / 1 skipped (McpServer 5 SQLite disk-I/O environmental failures pre-existing and unrelated).
 - Commit: e2b103f8
 - Follow-up: Continue WaylandCliCapture follow-ups: CaptureWithGrimSlurpAsync area capture (218-255), remaining CLI capture helpers stderr-drainage audit, CLI xerahscli upload --pipe edge cases, clawpatch queue (FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions).
+
+### 2026-07-03 20:47 AWST - WaylandCliCapture / CaptureWithGrimSlurpAsync stderr drainage (audit chain v0.23.117)
+
+- Area: WaylandCliCapture / CaptureWithGrimSlurpAsync (lines 218-255)
+- Files: none changed
+- Findings: Candidate pointed to RunCliCapture call site at lines 218-255. The actual stderr pipe-fill fix is already implemented upstream in RunCliCapture (lines 79-133) — async ReadToEndAsync() drainer with 1000ms bounded wait. This candidate is stale; the underlying issue was resolved in the prior audit chain.
+- Status: Reviewed (clean — pivot)
+- Build/test: Build succeeded, 0 warnings, 0 errors. Tests: 1125 passed, 8 pre-existing failures (BuildManifest × 3, McpServer SQLite disk-I/O × 5 — all pre-existing, not regressions from this run).
+- Commit: none (no code change)
+- Follow-up: Continue clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Resolve pre-existing McpServer.Tests SQLite fixture issue (shared file-lock disk I/O). Clawpatch blocked by Codex usage limit — queue items remain in next_candidates.
