@@ -377,6 +377,11 @@ public sealed class ImmichClient
         bool showMetadata,
         CancellationToken cancellation = default)
     {
+        if (shareMode == ImmichShareMode.Asset && (assetIds is null || assetIds.Count == 0))
+        {
+            throw new InvalidOperationException("Immich individual shared link requires at least one asset ID.");
+        }
+
         object payload = shareMode == ImmichShareMode.Album
             ? new
             {

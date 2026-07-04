@@ -2061,3 +2061,28 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Build succeeded, 0 warnings, 0 errors. Tests: 1125 passed, 8 pre-existing failures (BuildManifest × 3, McpServer SQLite disk-I/O × 5 — all pre-existing, not regressions from this run).
 - Commit: none (no code change)
 - Follow-up: Continue clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Resolve pre-existing McpServer.Tests SQLite fixture issue (shared file-lock disk I/O). Clawpatch blocked by Codex usage limit — queue items remain in next_candidates.
+
+### 2026-07-04 21:30 AWST - Immich plugin / CreateSharedLinkAsync assetIds guard for INDIVIDUAL share mode
+
+- Area: src/desktop/plugins/Immich.Plugin/ImmichClient.cs:367-412 (CreateSharedLinkAsync)
+- Files:
+  - src/desktop/plugins/Immich.Plugin/ImmichClient.cs
+  - tests/XerahS.Tests/Uploaders/ImmichClientTests.cs (new)
+  - Directory.Build.props (version bump 0.23.122 -> 0.23.123)
+- Findings:
+  - `CreateSharedLinkAsync` is public and accepts `(shareMode, assetIds, ...)`.
+  - For `ImmichShareMode.Asset` (which serialises as Immich wire type `INDIVIDUAL`),
+    `assetIds` was previously passed straight into the payload as
+    `assetIds = assetIds?.ToArray()` and emitted as either `null` or `[]` when
+    callers passed an empty/null collection.
+  - Immich's `/shared-links` endpoint rejects `INDIVIDUAL` payloads without at
+    least one asset ID with a generic HTTP 400, surfacing as the unhelpful
+    `InvalidOperationException("Immich did not return a shared link.")` thrown
+    at line 412. The current production callsite (`ImmichUploader.DoUpload` line
+    113) always passes `new[] { assetId }`, so this is a defensive guard for
+    future callers and aligns with the existing validation pattern at lines
+    174, 187, 199, 203, 219, 232, 649, 657.
+- Status: Fixed
+- Build/test: build 0 warnings / 0 errors; ImmichClientTests 3 passed (full XerahS.Tests 1128 passed / 3 pre-existing BuildManifest failures unrelated to this change); logs: /tmp/xerahs-review/build-20260704-214010.log, /tmp/xerahs-review/test-immich-20260704-214226.log
+- Commit: (pending push)
+- Follow-up: Track the pre-existing OpenClawCommandTests BuildManifest JSON-flag failures (3 tests) and McpServer SQLite disk-I/O failures (5 tests) as a separate XIP — both are unrelated to the Immich review and exist on baseline (HEAD fed0babc).
