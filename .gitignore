@@ -48,6 +48,8 @@ credentials.*
 
 # Local build logs
 *.log
+*.binlog
+release-run-*.log
 errors.md
 
 # Local packaging output
