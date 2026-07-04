@@ -1,3 +1,8 @@
+## v0.23.120
+
+### Changed
+- No user-facing commits were detected in this range.
+
 ## v0.23.119
 
 ### Changed
