@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-03 20:47 AWST",
+  "last_updated": "2026-07-04 08:36 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -102,7 +102,25 @@
     "ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4",
     "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)",
     "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)",
-    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)"
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync)",
+    "low/high fnd_sig-feat-library-0cc26b772b-b635_ca39a8705f: Unused or unnecessary package references",
+    "low/high fnd_sig-feat-library-0b7ba58069-967e_b7fe168dd4: Unused package references in XerahS.Uploaders project",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
+    "src/platform/XerahS.Platform.Windows/XerahS.Platform.Windows.csproj:5-6",
+    "src/platform/XerahS.Platform.MacOS/XerahS.Platform.MacOS.csproj:5",
+    "src/platform/XerahS.Platform.Linux/XerahS.Platform.Linux.csproj:5",
+    "Directory.Packages.props:4 (ManagePackageVersionsCentrally)",
+    "ShareX.ImageEditor/Directory.Packages.props:3 (ManagePackageVersionsCentrally)",
+    "ShareX.VideoEditor/Directory.Packages.props:4 (ManagePackageVersionsCentrally)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:10-13",
+    "src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:9-11",
+    "src/desktop/core/XerahS.Uploaders/XerahS.Uploaders.csproj:13-18 (PackageReference)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)",
+    "Directory.Packages.props:4 (ManagePackageVersionsCentrally)",
+    "ShareX.ImageEditor/Directory.Packages.props:3 (ManagePackageVersionsCentrally)",
+    "ShareX.VideoEditor/Directory.Packages.props:4 (ManagePackageVersionsCentrally)",
+    "src/desktop/core/XerahS.Uploaders/XerahS.Uploaders.csproj:13-18 (PackageReference)",
+    "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync)"
   ],
   "areas": [
     {
@@ -390,6 +408,16 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-07-04 08:36 AWST",
+      "area": "Immich Plugin / CreateOrReuseAlbumShare model completeness (pivot, already fixed)",
+      "files": [],
+      "version_bump": null,
+      "commit": "ab5d5e8e",
+      "outcome": "reviewed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests 1125 passed / 3 pre-existing BuildManifest failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite disk I/O error failures (environmental)",
+      "notes": "Top candidate ImmichUploader.CreateOrReuseAlbumShare (lines 220-233): existing shared-link reuse uses AlbumId equality only \u2014 no permission fields to compare. ImmichSharedLink domain model lacks allowDownload/allowUpload/showMetadata/password fields that CreateSharedLinkAsync writes. Real fix requires adding those fields to ImmichSharedLink, ImmichSharedLinkResponse, and MapSharedLink \u2014 a multi-file API model expansion. Already fixed per prior fix; no code change this run. clawpatch findings fnd_sig-feat-library-0cc26b772b and fnd_sig-feat-library-0b7ba58069 ingested into next_candidates from run 20260704T003955-856b35 (prior session). Upstream merged: 2 commits (blog drafts 2026-07-02, 2026-07-03)."
+    },
     {
       "timestamp": "2026-06-24 00:51 AWST",
       "area": "Linux platform / WaylandCliCapture / CaptureWithGrimSlurpAsync slurpOutput null guard regression",
@@ -726,51 +754,6 @@
       "version": "0.23.83",
       "build_log": "/tmp/xerahs-hourly-sweep/build-20260601-104340.log",
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260601-104340.log"
-    },
-    {
-      "timestamp": "2026-05-31 00:27 AWST",
-      "area": "CLI / bootstrap uploaders exit code parity",
-      "files": [
-        "src/desktop/cli/XerahS.CLI/Commands/BootstrapCommand.cs",
-        "src/desktop/cli/XerahS.CLI/Services/CliUploaderBootstrapper.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed bootstrap uploaders to use report.HasBlockingIssues for exit code instead of always returning 0. Also made WriteJson internal so BootstrapCommand can call it directly. Bumped version 0.23.80 -> 0.23.81.",
-      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
-      "commit": "b5163200",
-      "status": "fixed",
-      "version": "0.23.81",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260531-001752.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260531-001752.log"
-    },
-    {
-      "timestamp": "2026-05-30 18:16 AWST",
-      "area": "TypeConverter / StringCollectionToStringTypeConverter silent type erasure",
-      "files": [
-        "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs",
-        "tests/XerahS.Tests/Common/StringCollectionToStringTypeConverterTests.cs",
-        "Directory.Build.props",
-        "docs/reports/hourly_review_tracker.md"
-      ],
-      "summary": "Fixed ConvertTo silent type erasure \u2014 non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
-      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
-      "commit": "f0568d15",
-      "status": "fixed",
-      "version": "0.23.80",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260530-181232.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260530-181232.log"
-    },
-    {
-      "timestamp": "2026-05-29 23:47 AWST",
-      "area": "MCP server / resource URI dispatch and uploader plugin routing review",
-      "files": [],
-      "summary": "Reviewed MCP server URI dispatch and uploader plugin routing \u2014 all correctly implemented per prior fixes. No fixable bugs found in either area. Clean review (no code change).",
-      "result": "build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped",
-      "commit": "ffd1dc65",
-      "status": "reviewed",
-      "version": "0.23.78",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260529-234721.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260529-234721.log"
     }
   ],
   "last_run_outcome": "reviewed (clean)"
