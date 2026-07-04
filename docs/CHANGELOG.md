@@ -1,3 +1,26 @@
+## v0.23.118
+
+### Build
+- **Core**: Bump version to 0.23.118. (fb91e4b7)
+
+### Documentation
+- **Core**: Add 2026-06-28 blog draft. (66c3b296)
+- **Core**: Add 2026-06-29 blog draft. (1fc5c1f7)
+- **Core**: Add 2026-06-30 quiet-day blog draft. (211988ab)
+- **Core**: Add 2026-07-01 blog draft. (1489a3ae)
+- **Core**: Add 2026-07-02 blog draft. (76a81323)
+- **Core**: Add 2026-07-03 quiet-day blog draft. (a050b9ee)
+- **Core**: Refresh 2026-06-27 blog draft. (b6843926)
+- **Core**: Refresh 2026-06-28 blog draft. (803af502)
+- **Core**: Refresh 2026-06-29 blog draft. (22bfae07)
+- **Core**: Refresh 2026-06-30 blog draft. (0caa6e61)
+- **Core**: Refresh 2026-07-01 blog draft. (53679d64)
+- **Core**: Refresh 2026-07-02 blog draft. (cf6d5bc6)
+
+### Changed
+- **Core**: [xerahs-review] 2026-07-03 sweep: upstream merge, pivot on WaylandCliCapture RunCliCapture (already fixed) (95748f7b)
+- **Core**: [xerahs-review] 2026-07-04 sweep: reviewed Immich CreateOrReuseAlbumShare (already fixed), upstream merge, clawpatch findings (85ff37f7)
+
 ## v0.23.117
 
 ### Features
