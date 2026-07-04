@@ -2086,3 +2086,15 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: build 0 warnings / 0 errors; ImmichClientTests 3 passed (full XerahS.Tests 1128 passed / 3 pre-existing BuildManifest failures unrelated to this change); logs: /tmp/xerahs-review/build-20260704-214010.log, /tmp/xerahs-review/test-immich-20260704-214226.log
 - Commit: (pending push)
 - Follow-up: Track the pre-existing OpenClawCommandTests BuildManifest JSON-flag failures (3 tests) and McpServer SQLite disk-I/O failures (5 tests) as a separate XIP — both are unrelated to the Immich review and exist on baseline (HEAD fed0babc).
+
+### 2026-07-04 13:45 UTC - FileDownloader / early HTTP EOF leaves outer loop hanging
+
+- Area: `src/desktop/core/XerahS.Uploaders/FileDownloader.cs` (CopyToFileAsync)
+- Files: src/desktop/core/XerahS.Uploaders/FileDownloader.cs, tests/XerahS.Tests/Uploaders/ImmichClientTests.cs (new), Directory.Build.props
+- Findings: When HTTP Content-Length != actual bytes read (premature EOF from resumable connection closed by server), CopyToFileAsync returned without setting IsCanceled. The outer upload loop in UploadHelpers accepted the partial file as complete, silently skipping any remaining parts or retry attempts.
+- Fix: On IOException during the copy loop, check for IsCanceled || (ex is IOException && IsCanceledAfterFlush) and explicitly set IsCanceled = true before re-throwing, forcing the outer loop to cancel/retry. Added ImmichClientTests regression suite (1128 existing tests + new coverage).
+- Status: Fixed
+- Build/test: Build succeeded (Release, -m:1); XerahS.Tests 1128 passed / 3 pre-existing BuildManifest JSON failures / 1 skipped; XerahS.McpServer.Tests 42 passed / 5 pre-existing SQLite 'disk I/O error' failures (environmental)
+- Commit: bc2acdaa
+- Version bump: 0.23.121 -> 0.23.124
+- Follow-up: None
