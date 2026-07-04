@@ -1,3 +1,8 @@
+## v0.23.119
+
+### Changed
+- **Core**: [kfip] Add KFIP-0013 X/Twitter Smart Thumbnail Generation (309ebc52)
+
 ## v0.23.118
 
 ### Build
