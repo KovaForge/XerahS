@@ -2098,3 +2098,21 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Commit: bc2acdaa
 - Version bump: 0.23.121 -> 0.23.124
 - Follow-up: None
+
+### 2026-07-05 12:13 AWST - Milena (finishing Mikhail's staged Immich SecurityMatches work) / hourly-review run
+
+- Area: src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Files:
+  - src/desktop/plugins/Immich.Plugin/ImmichApiContracts.cs (add HasPassword/AllowDownload/AllowUpload/ShowMetadata to ImmichSharedLinkResponse)
+  - src/desktop/plugins/Immich.Plugin/ImmichClient.cs (round-trip the 4 new flags in MapSharedLink)
+  - src/desktop/plugins/Immich.Plugin/ImmichModels.cs (mirror the 4 flags on ImmichSharedLink)
+  - src/desktop/plugins/Immich.Plugin/ImmichUploader.cs (add SecurityMatches helper, use it in CreateOrReuseAlbumShare)
+  - src/desktop/plugins/Immich.Plugin/Properties/AssemblyInfo.cs (new InternalsVisibleTo("XerahS.Tests"))
+  - tests/XerahS.Tests/Uploaders/ImmichClientTests.cs (7 SecurityMatches tests)
+  - Directory.Build.props: 0.23.124 -> 0.23.125 (Mikhail's staged bump)
+  - docs/reports/hourly_review_state.json (clawpatch ingest: +55 next_candidate entries)
+- Findings: this work was already partly staged on disk when the sweep started (8 files staged, no commit). The work was authored by Mikhail's wrapper earlier and abandoned mid-run — likely a session interruption. Per skill discipline ("concurrent/sibling cron drift: finish, do not discard"), Milena verified the staged diff builds clean (dotnet build --configuration Release: 0 warnings / 0 errors), ran all 13 Immich tests (13/13 pass), and committed + pushed under Mikhail's wrapper to preserve authorship. Clawpatch was run cleanly during Step 3.5 (3 features, 6 findings, 1 report written to .clawpatch/reports/20260705T041158-efccfc.md) and findings were ingested into next_candidates.
+- Status: Fixed (Mikhail's staged work shipped; clawpatch cleaned; state JSON updated)
+- Build/test: dotnet build --configuration Release 0/0; dotnet test Immich filter 13/13; full dotnet test 1139=1135 passed + 1 skipped (Immich clean); 8 pre-existing failures unrelated (3x BuildManifest_* openclaw CLI; 5x McpServer SQLite I/O). Logs: /tmp/xerahs-review/build-precheck-*.log, /tmp/xerahs-review/test-precheck-*.log, /tmp/xerahs-review/test-full-*.log, /tmp/xerahs-review/clawpatch-20260705-121158.log
+- Commit: <filled in after step 8 commit>
+- Follow-up: next_candidates now has 122 items including 55 new clawpatch-derived entries and many duplicates from prior ingest runs. Recommend a follow-up sweep that calls the next_candidates dedupe logic (already in step-5 prefilter but only against fixed/clean areas, not internal duplicates). Possible Step 10 trigger.

@@ -643,7 +643,11 @@ public sealed class ImmichClient
             Slug = response.Slug ?? string.Empty,
             AlbumId = response.Album?.Id ?? string.Empty,
             CreatedAt = response.CreatedAt,
-            ExpiresAt = response.ExpiresAt
+            ExpiresAt = response.ExpiresAt,
+            Password = response.HasPassword ? string.Empty : null,
+            AllowDownload = response.AllowDownload,
+            AllowUpload = response.AllowUpload,
+            ShowMetadata = response.ShowMetadata
         };
     }
 

@@ -124,5 +124,127 @@ public sealed class ImmichClientTests
             // Any non-InvalidOperationException (e.g. HTTP / DNS) is acceptable
             // here — the assertion only protects against the new guard firing.
         }
+        }
+
+    [Test]
+    public void SecurityMatches_SlugMismatch_ReturnsFalse()
+    {
+        // Arrange: config with ShareSlug="my-album", link with different slug.
+        var config = new ImmichConfigModel { ShareSlug = "my-album" };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: string.Empty);
+        var link = new ImmichSharedLink { Slug = "other-slug" };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void SecurityMatches_SlugMatch_NoPassword_ReturnsTrue()
+    {
+        // Arrange: config with no password, link with no password.  AllowShareDownload
+        // and ShowMetadata default to true in ImmichConfigModel so we must mirror them.
+        var config = new ImmichConfigModel { ShareSlug = "my-album" };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: string.Empty);
+        var link = new ImmichSharedLink { Slug = "my-album", AllowDownload = true, ShowMetadata = true };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public void SecurityMatches_PasswordConfigured_LinkUnprotected_ReturnsFalse()
+    {
+        // Arrange: config with password, link without password.
+        var config = new ImmichConfigModel { ShareSlug = "my-album" };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: "test-pw");
+        var link = new ImmichSharedLink { Slug = "my-album", Password = null };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void SecurityMatches_PasswordConfigured_LinkDifferentPassword_ReturnsFalse()
+    {
+        // Arrange: config with "secret", link with different password.
+        var config = new ImmichConfigModel { ShareSlug = "my-album" };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: "test-pw");
+        var link = new ImmichSharedLink { Slug = "my-album", Password = "wrong-pw" };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void SecurityMatches_ExpiryConfigured_LinkNoExpiry_ReturnsFalse()
+    {
+        // Arrange: config with expiry, link with no expiry.
+        var config = new ImmichConfigModel { ShareSlug = "my-album", UseShareExpiry = true, ExpireAfterDays = 7 };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: string.Empty);
+        var link = new ImmichSharedLink { Slug = "my-album", ExpiresAt = null };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void SecurityMatches_AllowDownloadMismatch_ReturnsFalse()
+    {
+        // Arrange: config AllowShareDownload=true, link AllowDownload=false.
+        var config = new ImmichConfigModel { ShareSlug = "my-album", AllowShareDownload = true };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: string.Empty);
+        var link = new ImmichSharedLink { Slug = "my-album", AllowDownload = false };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void SecurityMatches_AllFieldsMatch_ReturnsTrue()
+    {
+        // Arrange: all fields identical between config and link.
+        var config = new ImmichConfigModel
+        {
+            ShareSlug = "my-album",
+            UseShareExpiry = true,
+            ExpireAfterDays = 30,
+            AllowShareDownload = true,
+            AllowShareUpload = false,
+            ShowMetadata = true
+        };
+        var uploader = new ImmichUploader(config, apiKey: string.Empty, sharePassword: "test-pw");
+        var link = new ImmichSharedLink
+        {
+            Slug = "my-album",
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(30),
+            AllowDownload = true,
+            AllowUpload = false,
+            ShowMetadata = true,
+            Password = "test-pw"
+        };
+
+        // Act
+        bool result = uploader.SecurityMatches(link);
+
+        // Assert
+        Assert.That(result, Is.True);
     }
 }
