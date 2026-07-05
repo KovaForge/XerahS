@@ -46,6 +46,17 @@ debug/
 secrets.json
 credentials.*
 
+# Clawpatch — track reports (durable audit trail), ignore runtime artefacts
+# (per-feature JSON blobs, lock files, workspace config, in-progress patches).
+# See docs/technical/clawpatch-report-tracking.md for the policy.
+.clawpatch/features/
+.clawpatch/findings/
+.clawpatch/locks/
+.clawpatch/patches/
+.clawpatch/runs/
+.clawpatch/config.json
+.clawpatch/project.json
+
 # Local build logs
 *.log
 *.binlog
