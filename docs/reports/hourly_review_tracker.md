@@ -2149,3 +2149,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: dotnet build --configuration Release 0/0; dotnet test Immich filter 13/13; full dotnet test 1139=1135 passed + 1 skipped (Immich clean); 8 pre-existing failures unrelated (3x BuildManifest_* openclaw CLI; 5x McpServer SQLite I/O). Logs: /tmp/xerahs-review/build-precheck-*.log, /tmp/xerahs-review/test-precheck-*.log, /tmp/xerahs-review/test-full-*.log, /tmp/xerahs-review/clawpatch-20260705-121158.log
 - Commit: 6e990a01 (author=Mikhail Orlov, pushed via git-mikhail to KovaForge/xerahs; verified on GitHub API)
 - Follow-up: next_candidates now has 122 items including 55 new clawpatch-derived entries and many duplicates from prior ingest runs. Recommend a follow-up sweep that calls the next_candidates dedupe logic (already in step-5 prefilter but only against fixed/clean areas, not internal duplicates). Possible Step 10 trigger.
+
+### 2026-07-06 06:25 AWST - HSB operator == / GetHashCode / Equals (clean review)
+
+- Area: HSB equality members
+- Files: (none — clean review, no code change)
+- Findings: operator == (163-166) and GetHashCode (183-190) are correct and consistent — GetHashCode includes all four fields (Hue, Saturation, Brightness, Alpha) matching the equality surface. Equals (186-190) delegates to operator == correctly. Existing tests cover the contract fully. No bug found.
+- Status: Reviewed (clean)
+- Build/test: Build succeeded 0 warnings/0 errors. Tests: 1138 passed (XerahS.Tests), 1 skipped; 5 pre-existing McpServer SQLite environmental failures (known, documented in tracker)
+- Commit: none (no code change)
+- Follow-up: next_candidates has 65 items after dedupe + 28 new clawpatch items + 1 new duplicate pruned. Still heavily duplicated. Recommend a periodic dedupe pass. Continue clawpatch queue. Pre-existing failures: OpenClawCommandTests BuildManifest JSON (3 tests), McpServer SQLite disk-I/O (5 tests).
+- Skill: SKILL.md v1.3.4 patched (added global dedupe step for clawpatch ingest internal duplicates — step 4.5 now dedupes before and after ingest; dedupe ran 84->66 this sweep)

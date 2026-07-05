@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-05 21:10 AWST",
+  "last_updated": "2026-07-06 06:30 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,7 +11,6 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)",
     "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
     "Directory.Build.props:3-4",
     "src/desktop/plugins/Directory.Build.props:5-7",
@@ -66,7 +65,16 @@
     "low/high fnd_sig-feat-library-174beceeac-1364_f62f301175: Unused method 'Inverse' in ColorMatrixManager.cs",
     "low/high fnd_sig-feat-library-174beceeac-7c95_3cef1bc92d: Unused variable 'Dev' in AppResources.cs",
     "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)",
-    "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:53 (TearDown)"
+    "tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:53 (TearDown)",
+    "src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs:63-68 (ImmichConfigModel)",
+    "src/desktop/plugins/GitHubGist.Plugin/XerahS.GitHubGist.Plugin.csproj:4 (RootNamespace)",
+    "src/desktop/core/XerahS.Common/ColorBgra.cs:109-110 (BgraToUInt32)",
+    "src/desktop/core/XerahS.Common/ColorBgra.cs:113-115 (BgraToUInt32)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:13",
+    "src/desktop/core/XerahS.Common/Properties/AssemblyInfo.cs:5",
+    "src/desktop/core/XerahS.Common/ColorMatrixManager.cs:71-81 (Inverse)",
+    "src/desktop/core/XerahS.Common/XerahS.Common.csproj:10-13 (PackageReference)",
+    "src/desktop/core/XerahS.Common/AppResources.cs:37 (Dev)"
   ],
   "areas": [
     {
@@ -735,5 +743,5 @@
       "notes": "Mikhail's stages were abandoned mid-session; per skill discipline ('concurrent/sibling cron drift: finish, do not discard') Milena verified and committed. Pre-existing failures (3x BuildManifest_*, 5x McpServer SQLite) are unrelated and not in scope."
     }
   ],
-  "last_run_outcome": "fixed"
+  "last_run_outcome": "clean"
 }
