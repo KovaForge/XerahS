@@ -830,7 +830,7 @@
       "agent": "milena-petrova-bf",
       "outcome": "fixed",
       "summary": "Finished Mikhail's staged Immich SecurityMatches work: round-tripped password/allowDownload/allowUpload/showMetadata through CreateSharedLinkAsync/MapSharedLink; added SecurityMatches helper + 7 tests; v0.23.124 -> v0.23.125. Clawpatch ran cleanly (3 features, 6 findings); 55 new entries ingested into next_candidates. Shipped under git-mikhail to preserve authorship.",
-      "commit": "<filled in step 8>",
+      "commit": "6e990a01",
       "notes": "Mikhail's stages were abandoned mid-session; per skill discipline ('concurrent/sibling cron drift: finish, do not discard') Milena verified and committed. Pre-existing failures (3x BuildManifest_*, 5x McpServer SQLite) are unrelated and not in scope."
     }
   ],
