@@ -1,6 +1,39 @@
-# XerahS Hourly Review Current Tracker
 
-### 2026-06-24 16:51 UTC - Linux platform / WaylandCliCapture / slurpOutput null guard in CaptureWithGrimSlurpAsync
+### 2026-07-05 13:10 UTC - Immich Plugin / ToJson symmetry clamp for ExpireAfterDays
+
+**Status:** fixed
+
+**Branch:** develop (HEAD 09b831d1 at run start, post-commit will move)
+
+**Files:**
+- src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs
+- tests/XerahS.Tests/Uploaders/ImmichConfigViewModelTests.cs
+- Directory.Build.props (0.23.125 -> 0.23.126)
+- docs/reports/hourly_review_state.json (this run reflected)
+
+**Bug:** LoadFromJson (line 402) defensively clamps ExpireAfterDays <= 0 to 7, but ToJson (line 456) wrote the raw value. ToJson is called on every PropertyChanged event from UploaderInstanceViewModel.cs#276 BEFORE Validate() can reject the value, so an invalid ExpireAfterDays (0 or negative) entered via the UI was being persisted to JSON before validation could block it. Symmetry violation between load and save.
+
+**Fix:** Mirror the clamp in ToJson: `ExpireAfterDays = ExpireAfterDays <= 0 ? 7 : ExpireAfterDays`. The defensive clamp at load now has a matching defensive clamp at save; validate still rejects on UI action so the clamp is a safety net, not the primary gate.
+
+**Tests:** 3 new regression tests in ImmichConfigViewModelTests.cs:
+- ToJson_clampsNonPositiveExpireAfterDaysToSeven (input 0 -> 7)
+- ToJson_clampsNegativeExpireAfterDaysToSeven (input -3 -> 7)
+- ToJson_preservesValidExpireAfterDays (input 30 -> 30, sanity)
+
+All 16 Immich tests pass (3 new + 13 prior). Build clean (0 warnings, 0 errors, 3:51 elapsed). Full XerahS.Tests: 1138 passed / 3 failed (3 pre-existing OpenClaw BuildManifest failures, identical to baseline 20260704-214235 — unrelated to this change). McpServer.Tests: 42 passed / 5 failed (5 pre-existing SQLite "disk I/O error" environmental failures in CreateHistoryDetailsAsync tests, identical pattern to baseline; the 2 IsHistorySearchResourceUri failures are pre-existing from the 2026-06-09 audit).
+
+**Pivot notes:** Top-of-list candidate `src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs:63-68` was a false positive — symmetric round-trip is already in place via prior commit 6e990a01 ("Immich: round-trip share-security fields + SecurityMatches reconcile"). Investigated the surrounding code (LoadFromJson line 364, ToJson line 417, ViewModel property setters, ImmichClient consumer paths) and found the real asymmetry at ToJson line 456.
+
+**Clawpatch:** Run 20260705T125558-3932f2 ingested (3 features reviewed, 2 findings: net-new, low/high severity noise — unused `Inverse` method in ColorMatrixManager.cs, unused `Dev` variable in AppResources.cs, plus cluster "src/desktop band-aid" unused package refs). All gated by minimum severity on next ingest iterations; no actionable code change.
+
+**Submodule ShareX.ImageEditor:** develop branch @ 0838f334 (clean), matched with origin/develop — no sync action needed.
+
+**Submodule fork sync:** HEAD 09b831d1 = origin/develop; upstream/develop e0cf56a9; fork ahead 15+ commits (no merge needed).
+
+**Build log:** /tmp/xerahs-review/build-20260705-210147.log
+**Test log:** /tmp/xerahs-review/test-20260705-210546.log
+**Immich tests:** /tmp/xerahs-review/immich-tests-20260705-210929.log
+
 
 - Area: `src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:333-345 (CaptureWithGrimSlurpAsync)`
 - Files: src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs, tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs, Directory.Build.props

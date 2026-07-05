@@ -453,7 +453,7 @@ public partial class ImmichConfigViewModel : ObservableObject, IUploaderConfigVi
             },
             ShareSlug = ShareSlug,
             UseShareExpiry = IsShareEnabled && UseShareExpiry,
-            ExpireAfterDays = ExpireAfterDays,
+            ExpireAfterDays = ExpireAfterDays <= 0 ? 7 : ExpireAfterDays,
             AllowShareDownload = AllowShareDownload,
             AllowShareUpload = AllowShareUpload,
             ShowMetadata = ShowMetadata
