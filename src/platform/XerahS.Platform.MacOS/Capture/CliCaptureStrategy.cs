@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
 
-namespace ShareX.Avalonia.Platform.macOS.Capture;
+namespace XerahS.Platform.MacOS.Capture;
 
 /// <summary>
 /// Fallback capture strategy using macOS screencapture CLI tool.
