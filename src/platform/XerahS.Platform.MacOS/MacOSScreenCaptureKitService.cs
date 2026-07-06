@@ -180,9 +180,39 @@ namespace XerahS.Platform.MacOS
                 return _fallbackService.CaptureActiveWindowAsync(windowService, options);
             }
 
-            // For window capture, we need the window ID from the window service
-            // Fallback to CLI for now as getting window ID requires additional interface support
-            return _fallbackService.CaptureActiveWindowAsync(windowService, options);
+            // XIP0078 P5: resolve the frontmost application window through CGWindowList
+            // (front-to-back order) and capture it via the native bridge, skipping the
+            // interactive CLI detour. Exclude our own windows so a capture triggered from
+            // the XerahS UI grabs the window behind it.
+            return Task.Run(() =>
+            {
+                try
+                {
+                    int ownPid = Environment.ProcessId;
+                    var windows = QuartzWindowList.GetApplicationWindows();
+                    foreach (var window in windows)
+                    {
+                        if (window.OwnerPid == ownPid)
+                        {
+                            continue;
+                        }
+
+                        var bitmap = CaptureWindowNative(window.WindowNumber);
+                        if (bitmap != null)
+                        {
+                            return bitmap;
+                        }
+
+                        break; // Native capture of the frontmost window failed; use CLI fallback.
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "ScreenCaptureKit active window capture failed");
+                }
+
+                return _fallbackService.CaptureActiveWindowAsync(windowService, options).GetAwaiter().GetResult();
+            });
         }
 
         public Task<SKBitmap?> CaptureWindowAsync(IntPtr windowHandle, IWindowService windowService, CaptureOptions? options = null)
@@ -192,7 +222,60 @@ namespace XerahS.Platform.MacOS
                 return Task.FromResult<SKBitmap?>(null);
             }
 
+            // Handles produced by MacOSWindowService.GetAllWindows carry the CGWindowID (XIP0078 P5).
+            long handleValue = windowHandle.ToInt64();
+            if (_nativeAvailable && handleValue > 0 && handleValue <= uint.MaxValue &&
+                windowHandle != MacOSWindowService.FrontWindowHandle)
+            {
+                uint windowId = (uint)handleValue;
+                return Task.Run(() =>
+                    CaptureWindowNative(windowId) ??
+                    _fallbackService.CaptureWindowAsync(windowHandle, windowService, options).GetAwaiter().GetResult());
+            }
+
             return _fallbackService.CaptureWindowAsync(windowHandle, windowService, options);
+        }
+
+        private SKBitmap? CaptureWindowNative(uint windowId)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            IntPtr dataPtr = IntPtr.Zero;
+
+            try
+            {
+                DebugHelper.WriteLine($"[ScreenCaptureKit] Starting window capture for CGWindowID {windowId}");
+
+                int result = ScreenCaptureKitInterop.CaptureWindow(windowId, out dataPtr, out int length);
+
+                if (result != ScreenCaptureKitInterop.SUCCESS)
+                {
+                    DebugHelper.WriteLine($"[ScreenCaptureKit] Window capture failed: {ScreenCaptureKitInterop.GetErrorMessage(result)}");
+                    return null;
+                }
+
+                if (dataPtr == IntPtr.Zero || length <= 0)
+                {
+                    DebugHelper.WriteLine("[ScreenCaptureKit] No data returned from window capture");
+                    return null;
+                }
+
+                var bitmap = DecodePngFromPointer(dataPtr, length);
+                stopwatch.Stop();
+                DebugHelper.WriteLine($"[ScreenCaptureKit] Window capture completed in {stopwatch.ElapsedMilliseconds}ms, size={bitmap?.Width}x{bitmap?.Height}");
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "ScreenCaptureKit window capture failed");
+                return null;
+            }
+            finally
+            {
+                if (dataPtr != IntPtr.Zero)
+                {
+                    ScreenCaptureKitInterop.FreeBuffer(dataPtr);
+                }
+            }
         }
 
         public Task<CursorInfo?> CaptureCursorAsync()
