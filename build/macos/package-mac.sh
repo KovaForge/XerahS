@@ -7,6 +7,17 @@ PROJECT="$ROOT/src/desktop/app/XerahS.App/XerahS.App.csproj"
 DIST_DIR="$ROOT/dist"
 NATIVE_LIB="$ROOT/native/macos/libscreencapturekit_bridge.dylib"
 ICON_SOURCE="$ROOT/src/desktop/app/XerahS.UI/Assets/Logo.icns"
+ENTITLEMENTS="$SCRIPT_DIR/entitlements.plist"
+
+# XIP0078 P2 signing controls:
+#   MACOS_SIGN_IDENTITY   Developer ID Application identity. When set, the bundle is signed
+#                         with hardened runtime + entitlements and a DMG is produced.
+#   MACOS_NOTARY_PROFILE  notarytool keychain profile name. When set together with
+#                         MACOS_SIGN_IDENTITY, the DMG is notarized and stapled.
+#   MACOS_SKIP_SIGNING=1  Skip signing entirely (pre-XIP0078 behavior).
+# Without MACOS_SIGN_IDENTITY the bundle is ad-hoc signed (interim step: no Gatekeeper
+# benefit, but a sealed bundle for from-source users; harmless on arm64 where the linker
+# ad-hoc signs everything anyway).
 
 mkdir -p "$DIST_DIR"
 
@@ -220,6 +231,85 @@ PY
     echo "Configured macOS icon metadata for $app_bundle_path"
 }
 
+sign_file() {
+    local identity="$1"
+    local file="$2"
+
+    if [ "$identity" = "-" ]; then
+        codesign --force -s - "$file" >/dev/null 2>&1 || \
+            echo "Warning: ad-hoc signing failed for $file"
+    else
+        codesign --force --options runtime --timestamp -s "$identity" "$file"
+    fi
+}
+
+sign_app_bundle() {
+    local app_bundle_path="$1"
+
+    if [[ "$OSTYPE" != darwin* ]]; then
+        echo "Skipping code signing (not running on macOS)."
+        return
+    fi
+
+    if [ "${MACOS_SKIP_SIGNING:-0}" = "1" ]; then
+        echo "Skipping code signing (MACOS_SKIP_SIGNING=1)."
+        return
+    fi
+
+    local identity="${MACOS_SIGN_IDENTITY:--}"
+    if [ "$identity" = "-" ]; then
+        echo "Ad-hoc signing app bundle (set MACOS_SIGN_IDENTITY for Developer ID signing)..."
+    else
+        echo "Signing app bundle with identity '$identity' (hardened runtime + entitlements)..."
+        if [ ! -f "$ENTITLEMENTS" ]; then
+            echo "Error: entitlements file not found: $ENTITLEMENTS"
+            exit 1
+        fi
+    fi
+
+    # Sign innermost-first: every nested Mach-O (dylibs, apphost executables, daemon,
+    # plugin native deps), then the bundle itself. Managed PE assemblies are not
+    # signable by codesign and are skipped via the file(1) check.
+    while IFS= read -r -d '' candidate; do
+        if file -b "$candidate" 2>/dev/null | grep -q 'Mach-O'; then
+            sign_file "$identity" "$candidate"
+        fi
+    done < <(find "$app_bundle_path/Contents/MacOS" -type f -print0)
+
+    if [ "$identity" = "-" ]; then
+        codesign --force -s - "$app_bundle_path"
+    else
+        codesign --force --options runtime --timestamp \
+            --entitlements "$ENTITLEMENTS" \
+            -s "$identity" "$app_bundle_path"
+    fi
+
+    codesign --verify --strict "$app_bundle_path"
+    echo "Code signature verified for $app_bundle_path"
+}
+
+create_dmg_and_notarize() {
+    local app_bundle_path="$1"
+    local arch="$2"
+
+    if [[ "$OSTYPE" != darwin* ]] || [ -z "${MACOS_SIGN_IDENTITY:-}" ] || [ "${MACOS_SKIP_SIGNING:-0}" = "1" ]; then
+        return
+    fi
+
+    local dmg_path="$DIST_DIR/XerahS-$VERSION-mac-$arch.dmg"
+    echo "Creating DMG: $(basename "$dmg_path")"
+    hdiutil create -volname "XerahS" -srcfolder "$app_bundle_path" -ov -format UDZO "$dmg_path"
+
+    if [ -n "${MACOS_NOTARY_PROFILE:-}" ]; then
+        echo "Submitting DMG for notarization (profile: $MACOS_NOTARY_PROFILE)..."
+        xcrun notarytool submit "$dmg_path" --keychain-profile "$MACOS_NOTARY_PROFILE" --wait
+        xcrun stapler staple "$dmg_path"
+        echo "Notarized and stapled $(basename "$dmg_path")"
+    else
+        echo "MACOS_NOTARY_PROFILE not set; DMG created but not notarized."
+    fi
+}
+
 publish_and_package() {
     local arch="$1"
     local rid="osx-$arch"
@@ -317,12 +407,16 @@ publish_and_package() {
 
     echo "Published $plugin_count plugins to startup Plugins folder: $plugins_dir"
 
+    sign_app_bundle "$app_bundle_path"
+
     echo "Creating archive: $tar_name"
     if tar --help 2>/dev/null | grep -q -- "--mode"; then
         tar -C "$publish_dir" --mode='a+rx,u+w' -czf "$tar_path" "XerahS.app"
     else
         tar -C "$publish_dir" -czf "$tar_path" "XerahS.app"
     fi
+
+    create_dmg_and_notarize "$app_bundle_path" "$arch"
 
     echo "Success: Generated $tar_name in dist."
 }
