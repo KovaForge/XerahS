@@ -102,6 +102,11 @@ namespace XerahS.Platform.MacOS
                 return Task.FromResult<SKBitmap?>(null);
             }
 
+            if (!EnsureScreenRecordingAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             // Region capture requires interactive selection - delegate to CLI
             // ScreenCaptureKit doesn't have built-in interactive selection
             return _fallbackService.CaptureRegionAsync(options);
@@ -109,6 +114,11 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
+            if (!EnsureScreenRecordingAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             bool useModern = options?.UseModernCapture ?? true;
 
             if (!_nativeAvailable || !useModern)
@@ -124,6 +134,11 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
+            if (!EnsureScreenRecordingAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             bool useModern = options?.UseModernCapture ?? true;
 
             if (!_nativeAvailable || !useModern)
@@ -137,8 +152,29 @@ namespace XerahS.Platform.MacOS
             return Task.Run(() => CaptureFullscreenNative(options));
         }
 
+        /// <summary>
+        /// XIP0078 P3: preflight Screen Recording permission before any capture path (native or CLI).
+        /// Without permission the CLI fallback would return wallpaper-only frames, which looks like
+        /// a broken screenshot; instead we stop, prompt once, and guide the user to the Privacy pane.
+        /// </summary>
+        private static bool EnsureScreenRecordingAccess()
+        {
+            if (ScreenRecordingPermission.EnsureAccess())
+            {
+                return true;
+            }
+
+            DebugHelper.WriteLine("[ScreenCaptureKit] Capture aborted: Screen Recording permission denied.");
+            return false;
+        }
+
         public Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
+            if (!EnsureScreenRecordingAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             if (!_nativeAvailable)
             {
                 return _fallbackService.CaptureActiveWindowAsync(windowService, options);
@@ -151,6 +187,11 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureWindowAsync(IntPtr windowHandle, IWindowService windowService, CaptureOptions? options = null)
         {
+            if (!EnsureScreenRecordingAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             return _fallbackService.CaptureWindowAsync(windowHandle, windowService, options);
         }
 
