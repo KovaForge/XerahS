@@ -36,21 +36,45 @@ namespace XerahS.Tests.Assistant;
 public sealed class AssistantHistoryServiceTests
 {
     private string? _originalPersonalFolder;
+    private string? _createdTempFolder;
 
     [SetUp]
     public void SetUp()
     {
         _originalPersonalFolder = SettingsManager.PersonalFolder;
-        SettingsManager.PersonalFolder = Path.Combine(Path.GetTempPath(), "xerahs-assistant-history-tests", Guid.NewGuid().ToString("N"));
+        _createdTempFolder = Path.Combine(Path.GetTempPath(), "xerahs-assistant-history-tests", Guid.NewGuid().ToString("N"));
+        SettingsManager.PersonalFolder = _createdTempFolder;
         Directory.CreateDirectory(SettingsManager.HistoryFolder);
     }
 
     [TearDown]
     public void TearDown()
     {
-        if (!string.IsNullOrEmpty(_originalPersonalFolder))
+        try
         {
-            SettingsManager.PersonalFolder = _originalPersonalFolder;
+            // Restore the original folder only if it was a real value; assigning
+            // null/empty would be silently dropped by PathsManager.PersonalFolder
+            // (its setter ignores blank strings), leaving the static in test state.
+            if (!string.IsNullOrEmpty(_originalPersonalFolder))
+            {
+                SettingsManager.PersonalFolder = _originalPersonalFolder;
+            }
+
+            // Best-effort cleanup of the temp folder this test created. Failures
+            // here must not break the test runner.
+            if (!string.IsNullOrEmpty(_createdTempFolder) && Directory.Exists(_createdTempFolder))
+            {
+                Directory.Delete(_createdTempFolder, recursive: true);
+            }
+        }
+        catch
+        {
+            // Ignore — TearDown must never mask test failures.
+        }
+        finally
+        {
+            _originalPersonalFolder = null;
+            _createdTempFolder = null;
         }
     }
 
