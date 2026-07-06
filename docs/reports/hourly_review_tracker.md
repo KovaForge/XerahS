@@ -2160,3 +2160,14 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Commit: none (no code change)
 - Follow-up: next_candidates has 65 items after dedupe + 28 new clawpatch items + 1 new duplicate pruned. Still heavily duplicated. Recommend a periodic dedupe pass. Continue clawpatch queue. Pre-existing failures: OpenClawCommandTests BuildManifest JSON (3 tests), McpServer SQLite disk-I/O (5 tests).
 - Skill: SKILL.md v1.3.4 patched (added global dedupe step for clawpatch ingest internal duplicates — step 4.5 now dedupes before and after ingest; dedupe ran 84->66 this sweep)
+
+### 2026-07-06 20:51 AWST - AssistantHistoryServiceTests TearDown hardening + clawpatch ingest
+
+- Area: Assistant test fixture hygiene
+- Files: tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs, Directory.Build.props, docs/reports/hourly_review_state.json, .clawpatch/reports/20260705T125558-3932f2.md, .clawpatch/reports/20260705T222029-457d43.md (removed)
+- Findings: SetUp created a fresh temp `xerahs-assistant-history-tests/<guid>` directory but TearDown never deleted it (per-run disk leak). TearDown silently skipped PersonalFolder restoration when _originalPersonalFolder was null/empty (PathsManager.PersonalFolder setter drops blank strings, so the static could remain on a leaked test path). Fix: capture _createdTempFolder, recursively delete it in TearDown (try/catch so cleanup failure cannot mask test failures), restore PersonalFolder only when non-empty, null both fields in finally.
+- Status: Fixed
+- Build/test: dotnet build XerahS.Tests.csproj (Release, m:1) -> 0 warnings / 0 errors; dotnet test --filter "FullyQualifiedName~AssistantHistoryServiceTests" -> 7 passed / 0 failed / 0 skipped
+- Commit: 01a3a18f (atomic: code fix + version bump 0.23.126 -> 0.23.127 + clawpatch report ingest + duplicate report prune)
+- Follow-up: next_candidates now 98 items (34 freshly ingested from clawpatch 20260705T125558-3932f2, severity-prioritized at front; 64 from prior queue). Internal dedupe was a no-op (prior session already used set-based dedupe). Step 5 prefix-match against areas[] still has the documented gap for `path:lines (Method)` candidates — periodic full-pass dedupe recommended. Top of queue now: data-loss bugs in AssistantHistoryServiceTests.cs:43 (SetUp) + CaptureStage.cs:79-84 + ShareX.ImageEditor TFM. Continue clawpatch queue. Pre-existing failures: OpenClawCommandTests BuildManifest JSON (3 tests), McpServer SQLite disk-I/O (5 tests).
+- Skill: no SKILL.md changes this run (covered by v1.3.4 global dedupe + v1.3.6 unconditional tracker commit)
