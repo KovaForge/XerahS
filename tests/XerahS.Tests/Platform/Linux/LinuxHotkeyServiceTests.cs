@@ -207,6 +207,11 @@ public class LinuxHotkeyServiceTests
     [Test]
     public void LinuxHotkeyService_GetDiagnostics_WhenDisplayUnavailable_ReturnsUnavailable()
     {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("LinuxHotkeyService X11 interop is only available on Linux hosts.");
+        }
+
         using var service = new LinuxHotkeyService();
 
         var diagnostics = service.GetDiagnostics();

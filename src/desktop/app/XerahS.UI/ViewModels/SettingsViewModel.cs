@@ -301,9 +301,7 @@ namespace XerahS.UI.ViewModels
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
             RefreshLinuxRegionSelectorDiagnostics();
-#if LINUX
             RefreshLinuxClipboardDiagnostics();
-#endif
             LinuxRegionSelectorPreference = LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
                 taskSettings.CaptureSettings.LinuxRegionSelectorPreference);
             MacOSRegionSelectorPreference = taskSettings.CaptureSettings.MacOSRegionSelectorPreference;

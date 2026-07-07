@@ -50,9 +50,11 @@
                       GlobalPropertiesToRemove="OS"
                       AdditionalProperties="BuildWebUI=$(VideoEditorProjectReferenceBuildWebUI)" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Services\AvaloniaClipboardService.LinuxPersistence.cs" />
+  </ItemGroup>
   <ItemGroup Condition="'$(IsLinuxUiBuild)' == 'true'">
     <Compile Include="Services\AvaloniaClipboardService.LinuxPersistence.cs" />
-    <Compile Include="ViewModels\SettingsViewModel.LinuxClipboard.cs" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
