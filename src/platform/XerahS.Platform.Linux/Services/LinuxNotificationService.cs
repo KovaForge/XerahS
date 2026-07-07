@@ -24,17 +24,31 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
+using Avalonia.Threading;
 using XerahS.Common;
 using XerahS.Services.Abstractions;
 
 namespace XerahS.Platform.Linux.Services;
 
 /// <summary>
-/// Simple notification service using notify-send when available.
+/// Notification service using notify-send when available (XIP0079 P2: async delivery + action buttons).
 /// </summary>
 public sealed class LinuxNotificationService : INotificationService
 {
+    internal const string DefaultActionKey = "xerahs_action";
+    private static readonly Lazy<bool> SupportsActions = new(ProbeNotifySendActions);
+
     public void ShowNotification(string title, string message, NotificationType type = NotificationType.Info)
+    {
+        _ = Task.Run(() => ShowSimpleAsync(title, message, type));
+    }
+
+    public void ShowNotification(string title, string message, string actionText, Action action, NotificationType type = NotificationType.Info)
+    {
+        _ = Task.Run(() => ShowWithActionAsync(title, message, actionText, action, type));
+    }
+
+    private static void ShowSimpleAsync(string title, string message, NotificationType type)
     {
         if (!TryNotifySend(title, message, type))
         {
@@ -42,8 +56,13 @@ public sealed class LinuxNotificationService : INotificationService
         }
     }
 
-    public void ShowNotification(string title, string message, string actionText, Action action, NotificationType type = NotificationType.Info)
+    private static void ShowWithActionAsync(string title, string message, string actionText, Action action, NotificationType type)
     {
+        if (SupportsActions.Value && TryNotifySendWithAction(title, message, actionText, action, type))
+        {
+            return;
+        }
+
         if (!TryNotifySend(title, $"{message} ({actionText})", type))
         {
             DebugHelper.WriteLine($"[Notification:{type}] {title}: {message} (Action: {actionText})");
@@ -56,13 +75,56 @@ public sealed class LinuxNotificationService : INotificationService
         {
             using var process = Process.Start(CreateStartInfo(title, message, type));
             if (process == null)
+            {
                 return false;
+            }
 
             return WaitForSuccessfulExit(process, 2000);
         }
         catch
         {
             return false;
+        }
+    }
+
+    private static bool TryNotifySendWithAction(string title, string message, string actionText, Action action, NotificationType type)
+    {
+        Process? process = null;
+        try
+        {
+            process = Process.Start(CreateActionStartInfo(title, message, actionText, type));
+            if (process == null)
+            {
+                return false;
+            }
+
+            string? selectedKey = process.StandardOutput.ReadLine();
+            if (!process.WaitForExit(60_000))
+            {
+                process.Kill(entireProcessTree: true);
+                return false;
+            }
+
+            if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(selectedKey))
+            {
+                return false;
+            }
+
+            if (string.Equals(selectedKey.Trim(), DefaultActionKey, StringComparison.Ordinal))
+            {
+                Dispatcher.UIThread.Post(action);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "LinuxNotificationService: notify-send action failed");
+            return false;
+        }
+        finally
+        {
+            process?.Dispose();
         }
     }
 
@@ -98,15 +160,58 @@ public sealed class LinuxNotificationService : INotificationService
         };
 
         startInfo.ArgumentList.Add("-u");
-        startInfo.ArgumentList.Add(type switch
+        startInfo.ArgumentList.Add(MapUrgency(type));
+        startInfo.ArgumentList.Add(title);
+        startInfo.ArgumentList.Add(message);
+        return startInfo;
+    }
+
+    internal static ProcessStartInfo CreateActionStartInfo(string title, string message, string actionText, NotificationType type)
+    {
+        var startInfo = CreateStartInfo(title, message, type);
+        startInfo.RedirectStandardOutput = true;
+        startInfo.ArgumentList.Insert(0, "--wait");
+        startInfo.ArgumentList.Insert(0, $"{DefaultActionKey}={actionText}");
+        startInfo.ArgumentList.Insert(0, "--action");
+        return startInfo;
+    }
+
+    internal static string MapUrgency(NotificationType type)
+    {
+        return type switch
         {
             NotificationType.Success => "low",
             NotificationType.Warning => "normal",
             NotificationType.Error => "critical",
             _ => "normal"
-        });
-        startInfo.ArgumentList.Add(title);
-        startInfo.ArgumentList.Add(message);
-        return startInfo;
+        };
+    }
+
+    internal static bool ProbeNotifySendActions()
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "notify-send",
+                Arguments = "--help",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (process == null || !process.WaitForExit(2000))
+            {
+                return false;
+            }
+
+            string output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+            return output.Contains("--action", StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
