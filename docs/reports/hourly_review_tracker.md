@@ -2171,3 +2171,22 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Commit: 01a3a18f (atomic: code fix + version bump 0.23.126 -> 0.23.127 + clawpatch report ingest + duplicate report prune)
 - Follow-up: next_candidates now 98 items (34 freshly ingested from clawpatch 20260705T125558-3932f2, severity-prioritized at front; 64 from prior queue). Internal dedupe was a no-op (prior session already used set-based dedupe). Step 5 prefix-match against areas[] still has the documented gap for `path:lines (Method)` candidates — periodic full-pass dedupe recommended. Top of queue now: data-loss bugs in AssistantHistoryServiceTests.cs:43 (SetUp) + CaptureStage.cs:79-84 + ShareX.ImageEditor TFM. Continue clawpatch queue. Pre-existing failures: OpenClawCommandTests BuildManifest JSON (3 tests), McpServer SQLite disk-I/O (5 tests).
 - Skill: no SKILL.md changes this run (covered by v1.3.4 global dedupe + v1.3.6 unconditional tracker commit)
+
+### 2026-07-07 19:35 AWST - FileDownloader early-EOF hang (index 5)
+
+**Status:** Reviewed (clean)
+
+**Branch:** develop (HEAD 730286dd)
+
+**Files:**
+- src/desktop/core/XerahS.Common/FileDownloader.cs:178-184 (CopyToFileAsync)
+- tests/XerahS.Tests/Common/FileDownloaderTests.cs:80-120 (SimulateDownloadWithEarlyEOF_* tests)
+
+**Finding:** "FileDownloader can hang forever when the response stream ends early" — already covered. The inner CopyToFileAsync loop (lines 176-183) does `int bytesRead = await source.ReadAsync(...)`; `if (bytesRead <= 0) { break; }` which correctly exits on early EOF / chunked-stream close without Content-Length. Two regression tests already exist (`SimulateDownloadWithEarlyEOF_PartialDelivery_BreaksOut` asserts completed=false after 256 bytes of 1024, and `SimulateDownloadWithEarlyEOF_CompleteDelivery_CompletesTrue`).
+
+**Outcome:** No code change required. Previous fix (bc2acdaa) + existing test coverage already addresses the symptom class. Removed the candidate from next_candidates.
+
+**Clawpatch:** 20260707T113342-6f5059 (1 finding from XerahS.Mobile.Core, ingested; 3 features reviewed).
+
+**next_candidates:** 96 → 95 after clean review + dedupe.
+
