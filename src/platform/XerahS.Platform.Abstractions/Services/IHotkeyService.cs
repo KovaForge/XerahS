@@ -85,6 +85,11 @@ public interface IHotkeyService : IDisposable
     /// The default implementation is a no-op.
     /// </summary>
     void NotifyWindowReady() { }
+
+    /// <summary>
+    /// Returns the current global-hotkey delivery state for settings UI and diagnostics (XIP0079 P1).
+    /// </summary>
+    HotkeyDiagnostics GetDiagnostics() => new(HotkeyBackendState.Native, "native", null);
 }
 
 /// <summary>

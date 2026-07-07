@@ -58,6 +58,19 @@ public sealed class LinuxHotkeyService : IHotkeyService
     public bool IsSuspended { get; set; }
     public Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
 
+    public HotkeyDiagnostics GetDiagnostics()
+    {
+        if (_display == IntPtr.Zero)
+        {
+            return new HotkeyDiagnostics(
+                HotkeyBackendState.Unavailable,
+                "XGrabKey (X11)",
+                "Unable to open the X11 display. Global hotkeys are disabled.");
+        }
+
+        return new HotkeyDiagnostics(HotkeyBackendState.Native, "XGrabKey (X11)", null);
+    }
+
     public LinuxHotkeyService()
     {
         _display = NativeMethods.XOpenDisplay(null);

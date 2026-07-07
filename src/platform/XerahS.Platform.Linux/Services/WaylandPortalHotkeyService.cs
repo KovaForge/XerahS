@@ -151,6 +151,14 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         if (_portal == null || _sessionHandle == null || ShouldUseFallbackHotkeys())
             return false;
 
+        // ConfigureShortcuts requires portal interface version >= 2 (XIP0079 P1 / XIP0044).
+        uint? version = PortalInterfaceChecker.TryGetInterfaceVersion("org.freedesktop.portal.GlobalShortcuts");
+        if (version is < 2)
+        {
+            DebugHelper.WriteLine($"WaylandPortalHotkeyService: ConfigureShortcuts requires GlobalShortcuts portal v2+ (found v{version?.ToString() ?? "unknown"}); use the in-app hotkey recorder.");
+            return false;
+        }
+
         try
         {
             var parentWindow = PlatformServices.NativeWindowHandleProvider?.Invoke() ?? string.Empty;
@@ -274,6 +282,45 @@ public sealed class WaylandPortalHotkeyService : IHotkeyService
         {
             return hotkeyInfo.Id != 0 && _registered.ContainsKey(hotkeyInfo.Id);
         }
+    }
+
+    /// <inheritdoc />
+    public HotkeyDiagnostics GetDiagnostics()
+    {
+        if (_portal == null)
+        {
+            return new HotkeyDiagnostics(
+                HotkeyBackendState.Unavailable,
+                "GlobalShortcuts portal",
+                "The XDG GlobalShortcuts portal is not available in this session. Global hotkeys cannot be registered.");
+        }
+
+        if (ShouldUseFallbackHotkeys() || _fallbackHotkeyService != null)
+        {
+            return new HotkeyDiagnostics(
+                HotkeyBackendState.X11FallbackFocusOnly,
+                "XGrabKey (X11 fallback)",
+                "Global shortcuts portal is unavailable — hotkeys only fire while XerahS is focused. " +
+                "Use the in-app hotkey recorder below, or see developers/linux/INSTALL.md (Hotkey troubleshooting).");
+        }
+
+        if (_sessionHandle != null && _registered.Count > 0)
+        {
+            return new HotkeyDiagnostics(
+                HotkeyBackendState.PortalBound,
+                "GlobalShortcuts portal",
+                null);
+        }
+
+        if (_registered.Count > 0)
+        {
+            return new HotkeyDiagnostics(
+                HotkeyBackendState.PortalPending,
+                "GlobalShortcuts portal",
+                "Portal hotkey session is being established. Shortcuts may not fire until binding completes.");
+        }
+
+        return new HotkeyDiagnostics(HotkeyBackendState.PortalBound, "GlobalShortcuts portal", null);
     }
 
     public void Dispose()
