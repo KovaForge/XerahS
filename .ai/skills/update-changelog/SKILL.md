@@ -1,307 +1,331 @@
 ---
 name: update-changelog
-description: Rules and workflows for updating docs/CHANGELOG.md, including version grouping, aggressive consolidation, and GitHub tag-linked release headings.
+description: Rules and workflows for updating docs/CHANGELOG.md with user-facing, consolidated release notes (not commit logs). Includes version grouping, noise filtering, platform/XIP-aware bullets, and GitHub tag-linked headings.
+---
+
+## Goal
+
+`docs/CHANGELOG.md` is a **release notes** document for humans, not a git log.
+
+Target style (canonical examples: `v0.22.236`, `v0.23.128`, `v0.23.129`):
+
+- One **user-facing bullet** per component + intent cluster (often 3–8 bullets per category, not 50+).
+- Plain language: what changed and why it matters.
+- Platform prefixes when helpful: `**macOS — Hotkeys (XIP0078 P4)**:` or `**Linux — Clipboard (XIP0079 P3)**:`.
+- Optional one-line release summary for large ranges (e.g. "Broad reliability release aggregating v0.23.27 onward").
+- `---` horizontal rule between version sections.
+- File opens with a `# Changelog` preamble (intro + semver legend), then newest versions.
+- **No commit hashes** in bullets (version heading links to the tag when it exists).
+
+The helper script produces a **draft**. An agent **must** rewrite that draft into release-note prose before publishing.
+
 ---
 
 ## Automation Script (Recommended)
 
-Use the helper script to generate a draft section from commits since the last tag, grouped into changelog categories, **with similar commits consolidated by default** (see notes below). The default output is intentionally compact: version headings are linked to the GitHub tag URL only when the tag exists, and bullet entries do **not** include commit hashes. Treat the script output as a draft: before applying or releasing, perform a human-quality grouping pass so repeated commits become concise user-facing bullets instead of a commit log dump.
+Scripts:
 
-Script path:
+- PowerShell (primary): `.ai/skills/update-changelog/scripts/update-changelog.ps1`
+- Bash wrapper (macOS/Linux): `.ai/skills/update-changelog/scripts/update-changelog.sh`
 
-```powershell
-.ai/skills/update-changelog/scripts/update-changelog.ps1
-```
-
-Preview only (prints generated markdown):
+Preview draft:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1
 ```
 
-Generate draft from an explicit tag/version and save to a file:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -OutputPath build/changelog-draft.md
+```bash
+./.ai/skills/update-changelog/scripts/update-changelog.sh
 ```
 
-Apply directly to `docs/CHANGELOG.md`:
+Apply to `docs/CHANGELOG.md`:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -Apply
+powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.23.128 -Version 0.23.129 -Apply
 ```
 
-Per-commit lines only (disables automatic similarity merge):
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -NoConsolidation
+```bash
+./.ai/skills/update-changelog/scripts/update-changelog.sh --from-tag v0.23.128 --version 0.23.129 --apply
 ```
 
-Include commit hashes only when explicitly requested for audit/debug work:
+Flags:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.18.9 -Version 0.19.0 -IncludeHashes
+| Flag | Effect |
+|------|--------|
+| `-FromTag` / `--from-tag` | Lower bound (default: `git describe --tags --abbrev=0`) |
+| `-Version` / `--version` | Target version (default: root `Directory.Build.props`) |
+| `-Apply` / `--apply` | Upsert section into `docs/CHANGELOG.md` |
+| `-OutputPath` / `--output-path` | Write draft to file |
+| `-NoConsolidation` | Per-commit lines (debug only; do not publish) |
+| `-IncludeHashes` | Append hashes (audit only; do not publish) |
+
+Script behavior (default):
+
+1. **Skips noise commits** (hourly-review tracker/state, clawpatch ingest, bare version bumps, CI release-only commits).
+2. **Buckets repetitive docs** (blog-draft series, XIP/IEIP proposal churn, hourly-review records).
+3. **Buckets platform waves** (pipe-drain deadlocks, XIP P1–P5 platform work).
+4. **Merges same category + component** into one bullet (semicolon-separated themes).
+5. **Omits hashes** unless `-IncludeHashes`.
+6. **Links version heading** only when `vX.Y.Z` tag exists locally or on `origin`.
+7. **Appends `---`** after each generated version block.
+
+---
+
+## Mandatory Agent Rewrite Pass
+
+After running the script (or when editing by hand), **always** compress further:
+
+### 1. Collapse commit-log categories
+
+If a `### Fixes` section still has 10+ `**Core**:` lines, merge into themed bullets:
+
+```markdown
+### Fixes
+- **MCP server**: History search parsing, blob resource hardening, task identity race, stale-path diagnostics.
+- **Linux**: Pipe-drain deadlocks across CLI tools, theme service, clipboard, input, and capture helpers; Oem102 hotkey mapping; Wayland active-window routing.
+- **macOS**: Clipboard path whitespace, dock hide for tray startup, upload picker fallback, update prompts.
 ```
 
-Notes:
-- `-Version` defaults to root `Directory.Build.props`.
-- `-FromTag` defaults to `git describe --tags --abbrev=0`.
-- The script upserts the version heading for the target version (replaces existing linked or unlinked section for that version or inserts after `## Unreleased`).
-- Link version headings only when the corresponding Git tag exists locally or on `origin`. Existing tag example: `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`. Unreleased/no-tag example: `## v0.22.237`.
-- Commit hashes are omitted by default to keep the changelog readable. Use `-IncludeHashes` only for temporary audit/debug drafts, not normal release notes.
-- **Default consolidation**: `Get-ConsolidationBucket` in `scripts/update-changelog.ps1` merges commits that match the same similarity bucket (for example: **ShareX.ImageEditor** in the subject, **2026-... blog** draft series, **XIP/IEIP** docs, **Linux** install/capture documentation, **IEIP/XIP proposal `.md`** create/update under Changed, **multipart / S3 multipart**). Extend that function when new repetitive patterns appear.
-- **Mandatory final compression pass**: even when the script consolidates automatically, scan each category for adjacent or near-duplicate entries with the same component, feature area, document series, platform, dependency, or bug theme. Merge those into one readable bullet unless doing so would hide contributor attribution or combine unrelated behavior.
-- Always **manually review** for wording, missed merges, and contributor attribution (`#PR`, `@user`) before publishing.
+### 2. Roll up sparse patch versions
+
+When several consecutive versions are release-only or trivial, combine:
+
+```markdown
+## v0.23.121 / v0.23.120
+
+### Changed
+- Release version bumps only; no additional user-facing changes in these ranges.
+```
+
+Or fold patch-only work into the next meaningful minor heading with a summary line.
+
+### 3. Use platform + XIP labels for improvement-plan work
+
+```markdown
+### Features
+- **macOS — App bundle (XIP0078 P1)**: Render `Info.plist` from template with stable bundle identity (`com.xerahs.app`).
+- **Linux — Notifications (XIP0079 P2)**: After-upload toasts support action buttons via portal and `notify-send --action` fallback.
+```
+
+### 4. Drop or one-line internal-only work
+
+Omit (or fold into Documentation as one line):
+
+- Hourly review tracker / state JSON updates
+- Individual blog-draft add/refresh commits
+- Clawpatch report ingestion
+- "Record X in tracker" commits
+
+### 5. Target density
+
+| Range | Target bullets per category |
+|-------|----------------------------|
+| Small patch (1–5 user commits) | 1–3 per category |
+| Medium release (6–30 commits) | 3–8 per category |
+| Large wave (30+ commits) | 5–12 per category; use sub-themes |
+
+Aim for **50–90% fewer lines** than raw `git log` output.
+
+---
+
+## Draft → Final (agent rewrite)
+
+The script draft for `v0.23.121..HEAD` at `0.23.129` might look like:
+
+```markdown
+### Features
+- **Linux — Notifications (XIP0079 P2)**: notification action buttons via portal and notify-send
+- **macOS — Packaging (XIP0078 P2)**: env-gated codesign/notarize/DMG pipeline, ad-hoc signing default in package-mac.sh
+...
+### Documentation
+- **Blog**: Blog drafts (2026 series, add/update)
+```
+
+**Publish** after rewriting to release-note prose:
+
+```markdown
+## v0.23.129
+
+### Features
+- **Linux — Hotkeys (XIP0079 P1)**: Surface global-hotkey delivery state in Settings → Hotkeys with a warning banner when portal bind is degraded.
+- **Linux — Notifications (XIP0079 P2)**: After-upload toasts support real action buttons; async `notify-send` fallback; no UI-thread blocking.
+- **Linux — Clipboard (XIP0079 P3)**: Probe `wl-copy` / `xclip`; settings warnings; `.rpm` recommends clipboard tools; **Persist clipboard after exit** for Wayland.
+
+### Fixes
+- **Linux — Mixed-DPI (XIP0079 P4)**: Cumulative monitor layout for vertically stacked mixed-DPI Wayland displays.
+
+### Documentation
+- **Linux (XIP0079 P5)**: Rewrite `developers/linux/INSTALL.md` for Ubuntu/Fedora/Arch; update `KNOWN_ISSUES.md`.
+
+---
+```
+
+Actions on every draft:
+
+1. Turn commit subjects into **what changed for users**.
+2. Fold internal build fixes into one line (e.g. Linux-only UI partials off macOS builds).
+3. Collapse blog/XIP doc churn into one Documentation bullet or omit.
+4. Split macOS (XIP0078) and Linux (XIP0079) into separate version sections when they shipped as different tags.
+
+---
+
+### Good — platform improvement release (`v0.23.129`)
+
+```markdown
+## v0.23.129
+
+### Features
+- **Linux — Hotkeys (XIP0079 P1)**: Surface global-hotkey delivery state in Settings → Hotkeys with a warning banner when portal bind is degraded.
+- **Linux — Notifications (XIP0079 P2)**: After-upload toasts support real action buttons; async `notify-send` fallback; no UI-thread blocking.
+- **Linux — Clipboard (XIP0079 P3)**: Probe `wl-copy` / `xclip`; settings warnings; `.rpm` recommends clipboard tools; **Persist clipboard after exit** for Wayland.
+
+### Documentation
+- **Linux (XIP0079 P5)**: Rewrite `developers/linux/INSTALL.md` for Ubuntu/Fedora/Arch; update `KNOWN_ISSUES.md`.
+
+---
+```
+
+### Bad — commit log (never publish)
+
+```markdown
+### Fixes
+- **Core**: LinuxCliToolRunner pipe-drain deadlock (b23cb6ba)
+- **Core**: LinuxThemeService gsettings pipe-fill + timeout-stretching deadlock (74652cf4)
+- **Core**: Update hourly review tracker for LinuxInputService xdotool fix (4c307ea0)
+- **Core**: Add 2026-07-01 blog draft. (1489a3ae)
+```
+
+---
 
 ## Version Grouping Strategy
 
-### Current Unreleased Work
-- Use the latest released tag as the default lower bound.
-- Consolidate all commits after that tag into one heading for the target version, normally the root `Directory.Build.props` version.
-- Do not create multiple patch or prerelease headings for the same unreleased range unless the user explicitly requests a historical reconstruction.
+### Current unreleased work
 
-### Historical Stable Release Reconstruction
-- When rebuilding old changelog history across multiple stable releases, group entries by stable minor release boundaries.
-- Use git tags and `Directory.Build.props` history to identify those boundaries.
-- Fold patch and prerelease entries into the next stable minor heading unless a patch release was intentionally standalone.
-- Retain original context if useful, for example: `Feature: ... (originally v0.8.1)`.
+- Lower bound: latest released tag (`git describe --tags --abbrev=0`).
+- Upper bound: `HEAD`.
+- Heading: root `Directory.Build.props` `<Version>`.
+- One heading per target version unless user requests historical reconstruction.
 
-### Consolidation Rules
-- Combine related commits that affect the same component and purpose.
-- Prefer semantic groups over literal commit prefixes: normalize minor wording differences like `add`, `update`, `finish`, `polish`, `refactor`, `wire`, `document`, and `fix` when they describe the same user-facing workstream.
-- Use one bullet per **component + intent cluster**, not one bullet per commit. Good clusters include UI polish, installer/docs updates, proposal draft series, editor cleanup, upload provider work, dependency/build maintenance, and repeated bug fixes for the same behavior.
-- Do not include raw commit hashes such as `65bccfb9` in normal changelog entries. The linked version heading is the traceability anchor.
-- Keep different components separate unless they are part of one coherent user-facing change.
-- Keep commits with external contributor attribution separate when merging would obscure credit.
-- If a category still reads like a raw commit log after consolidation, it is not done; merge further or rewrite the bullets into concise release-note language.
+### Historical / cleanup passes
 
-## Commit Entry Handling
+When rebuilding noisy sections (as in v0.23.117 → v0.23.27 rollup):
 
-### Specific Commit Assignment
-- Respect specific user requests to assign certain commits to specific versions.
-- **Example**: "List commit `298457a` under **v0.11.0**."
-- Always verify the commit hash and subject before assignment, but do not print the hash in the final changelog unless the user explicitly asks for audit-style output.
+1. Read commits across the whole range.
+2. Group by **user-facing theme**, not by patch version.
+3. Keep version headers for releases that matter; merge trivial patches.
+4. Preserve `v0.22.236`+ summarized style for older stable releases.
 
-### Attribution
-- **External Contributors**: Attribute Pull Requests from external contributors by including the PR number and their username.
-    - **Format**: `(#PR_NUMBER, @username)`
-    - **Example**: `(#77, @Hexeption)`
-- **Maintainer Merges**: Exclude merge commits from the main maintainer (e.g., `McoreD`) from having explicit attribution unless they contain significant unique work not covered by other commits. The focus is on crediting other users.
+### Version headings
 
-### Categorization
-Group changes within each version using standard categories:
-- **Features**: New functionality.
-- **Fixes**: Bug fixes.
-- **Refactor**: Code improvements without external behavior change.
-- **Build**: Build system, dependencies, and packaging.
-- **Documentation**: User, developer, proposal, and release documentation.
-- **Testing**: Test coverage and test infrastructure.
-- **Performance**: Performance improvements.
-- **Changed**: Fallback for changes that do not map cleanly to the categories above.
+- Untagged: `## v0.23.129`
+- Tagged: `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`
 
-The helper script maps infrastructure and chore-style commit types into **Build** unless the commit subject carries a clearer component/category signal.
+---
 
-### Entry Consolidation to Reduce Line Count
-**CRITICAL**: Consolidate related commits into single entries to keep the changelog concise and readable.
+## Categories
 
-The automation script does this **by default**; agents should still **edit the draft** for narrative quality and any merges the heuristics miss.
+Use [Keep a Changelog](https://keepachangelog.com/) sections:
 
-#### Guidelines:
-- **Group by Component and Purpose**: Combine multiple commits that affect the same component and serve the same purpose.
-- **Remove Commit Hashes**: Normal changelog entries must not include commit hashes. Link the version heading to the GitHub tag only after the tag exists, for example `## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)`. If the tag does not exist yet, use plain `## v0.22.237`.
-- **Target Reduction**: Aim for 50-80% line reduction by consolidating related work and removing hash lists.
+- **Features** — new user-visible capability
+- **Fixes** — bug fixes and reliability hardening
+- **Refactor** — internal-only (omit unless user-facing)
+- **Build** — packaging, dependencies, CI
+- **Documentation** — user/dev docs, XIP status (not blog-draft spam)
+- **Testing** — test infrastructure (usually omit unless major)
+- **Performance** — measurable user-visible gains
+- **Changed** — fallback; prefer a real category when possible
 
-#### Examples:
+Map commit prefixes:
 
-**Before (verbose)**:
-```markdown
-- **Media Explorer**: Add `IUploaderExplorer` interface
-- **Media Explorer**: Implement S3 file browser
-- **Media Explorer**: Implement Imgur album browser
-- **Media Explorer**: Add navigation, breadcrumbs, search, filter
-- **Media Explorer**: Add bandwidth savings banner
-```
+| Commit prefix | Category |
+|---------------|----------|
+| `[Feature]` / `feat` | Features |
+| `[Fix]` / `fix` | Fixes |
+| `[Docs]` / `docs` | Documentation |
+| `[CI]` / `build` / `chore(infra)` | Build |
+| `[Refactor]` | Refactor |
 
-**After (consolidated)**:
-```markdown
-- **Media Explorer**: Implement provider file browsing with S3 and Imgur support, including navigation, search, filtering, and CDN thumbnail optimization
-```
+---
 
-**Before (mobile features)**:
-```markdown
-- **Mobile**: Add adaptive mobile theming infrastructure
-- **Mobile**: Refactor mobile views for adaptive native styling
-- **Mobile**: Align mobile heads with native theming defaults
-- **Mobile**: Complete sprint 5 mobile theming polish and docs
-- **Mobile**: Add mobile upload queue and picker
-- **Mobile**: Add mobile upload history screens
-```
+## Attribution
 
-**After (consolidated)**:
-```markdown
-- **Mobile**: Add adaptive theming infrastructure with native styling polish
-- **Mobile**: Add upload queue, picker, and history screens
-```
+- External contributors: `(#PR, @username)` on the relevant bullet.
+- Do not attribute maintainer merge commits or internal agent sweeps.
 
-**Before (fixes)**:
-```markdown
-- **Scrolling Capture**: Always auto-scroll to top
-- **Scrolling Capture**: Apply workflow settings and refresh hotkeys
-- **Scrolling Capture**: Use current scroll position for detection
-```
+---
 
-**After (consolidated)**:
-```markdown
-- **Scrolling Capture**: Improve auto-scroll behavior and workflow settings integration
-```
-
-#### When NOT to Consolidate:
-- Commits from different components (e.g., don't merge "Mobile" with "Linux Capture")
-- Commits with external contributor attribution (keep separate for visibility)
-- Significant standalone features that deserve their own entry
-
-## Format
-Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with Semantic Versioning.
+## File Layout
 
 ```markdown
-## vX.Y.Z
+# Changelog
 
-Use `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` only after `vX.Y.Z` exists as a local or remote Git tag.
+All notable changes to XerahS will be documented in this file.
+
+The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
+
+- **MAJOR** (x): Breaking changes (0 while unreleased)
+- **MINOR** (y): New features and enhancements
+- **PATCH** (z): Bug fixes and patches
+
+---
+
+## v0.23.129
 
 ### Features
-- **Component**: Description
+- **Component**: User-facing description.
 
-### Fixes
-- Description
+---
+
+## v0.23.128
+...
 ```
+
+When applying updates, ensure the preamble exists at the top. Insert new version sections **after** the preamble `---` and **before** older versions.
+
+---
 
 ## Workflow
 
-### Step-by-Step Process
+1. Resolve range: `-FromTag` + `Directory.Build.props` version.
+2. Run script → draft (preview, do not `-Apply` until reviewed).
+3. **Rewrite draft** using mandatory agent pass (above).
+4. Remove duplicate/orphan verbose blocks if consolidating history.
+5. Ensure `---` between versions and preamble at top.
+6. Run mojibake normalization (see below).
+7. Verify: no hashes in bullets, linked headings only for existing tags, readable density.
 
-1. **Choose the Changelog Mode**
-   - Current unreleased work: use the latest released tag as the lower bound and the root `Directory.Build.props` version as the target heading.
-   - Historical stable release reconstruction: use two stable release tags as the range and group output under the newer stable release heading.
-
-2. **Identify the Range**
-   - Default helper-script behavior: omit `-FromTag` to use `git describe --tags --abbrev=0`.
-   - Explicit current-range example: `-FromTag v0.21.2 -Version 0.22.0`.
-   - Historical stable reconstruction example: compare `v0.PREV_STABLE..v0.LATEST_STABLE`.
-
-   Fallback tag listing:
-   ```powershell
-   git tag -l --sort=-version:refname | Select-Object -First 10
-   ```
-
-3. **Check Target Version**
-   Read the root `Directory.Build.props` `<Version>` property unless the user explicitly provided a historical target version.
-
-4. **Consolidate Version Headings**
-   - Current unreleased work: create or update one `## vX.Y.Z` heading for the target version when the tag does not exist yet.
-   - Released/tagged work: use `## [vX.Y.Z](https://github.com/ShareX/XerahS/releases/tag/vX.Y.Z)` only when the tag exists locally or on `origin`.
-   - Historical reconstruction: preserve stable release boundaries, but fold patch/prerelease fragments into the stable heading unless a patch release was intentionally standalone.
-
-5. **Categorize Commits**
-   - Group commits into: Features, Fixes, Refactor, Build, Documentation, Testing, Performance, Changed
-   - Within each category, group by component (e.g., Mobile, Linux Capture, Editor)
-
-6. **Consolidate Related Entries**
-   - Identify commits affecting the same component with similar purpose
-   - Merge them into single, comprehensive entries
-   - Remove raw commit hashes from final bullets
-   - Link the version heading to the GitHub tag URL only when the tag exists
-   - Aim for 50-80% reduction in line count
-
-7. **Format and Verify**
-   - Ensure proper markdown formatting
-   - Verify linked version headings point to existing GitHub tags; unlink headings for tags that do not exist
-   - Verify normal bullets do not contain raw short hashes
-   - Check that external contributor attributions are preserved
-   - Confirm adherence to Keep a Changelog format
-
-8. **Fix Double-Encoding Mojibake**
-   After any write to `docs/CHANGELOG.md`, scan for corrupted UTF-8 round-trip artifacts and replace them with their correct Unicode equivalents. This occurs when UTF-8 bytes are decoded and re-encoded by the wrong tool chain. Apply this as a final step every time:
-
-   ```powershell
-   $c = [System.IO.File]::ReadAllText('docs/CHANGELOG.md', [System.Text.Encoding]::UTF8)
-
-   # Fix mojibake involving the section-sign byte pair and normalize the output.
-   $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
-
-   # Normalize any remaining section-sign corruption.
-   $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
-
-   # Collapse 3+ blank lines
-   $c = $c -replace "\r?\n", "`n"
-   $c = $c -replace "`n{3,}", "`n`n"
-   $c = $c -replace "`n", "`r`n"
-
-   [System.IO.File]::WriteAllText('docs/CHANGELOG.md', $c, [System.Text.Encoding]::UTF8)
-   ```
-
-   Common victims to watch for:
-   - em dash (`—`, U+2014)
-   - section sign (`§`, U+00A7)
-   - accented letters such as `ó` (U+00F3)
-
-### Example Command Sequence
-```powershell
-# Check latest tags with version-aware sorting.
-$tags = git tag -l --sort=-version:refname | Select-Object -First 10
-
-# Check current version.
-$version = Select-String -Path "Directory.Build.props" -Pattern '<Version>(.*)</Version>' | ForEach-Object { $_.Matches.Groups[1].Value }
-
-# Preview default current-unreleased changelog section.
-powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1
-
-# Apply an explicit current-unreleased range.
-powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1 -FromTag v0.21.2 -Version $version -Apply
-```
-
-### Encoding-Safe Multi-Line Block Replacement
-
-**Why**: exact-match replacement tools can fail when CHANGELOG.md contains multi-byte UTF-8 sequences that were double-encoded during a tool round trip. Use PowerShell `[System.IO.File]` plus `Regex` instead; it reads raw bytes and avoids exact-literal matching against corrupted text.
-
-**Pattern** (replace all prerelease sections between two stable headings with new consolidated content):
+### Mojibake cleanup (after any write)
 
 ```powershell
-$cl = 'docs/CHANGELOG.md'
-$c  = [System.IO.File]::ReadAllText($cl, [System.Text.Encoding]::UTF8)
-
-$newSection = @'
-## v0.X.Y
-
-### Features
-- ...
-
-### Fixes
-- ...
-
-'@
-
-# Use a linked heading instead only when v0.X.Y exists as a local or remote tag.
-
-# (?s) = dotall (. matches newlines); match from first prerelease heading up to (but not including) the previous stable heading
-$c = [System.Text.RegularExpressions.Regex]::Replace(
-    $c,
-    '(?s)## (?:v0\.FIRST_PRERELEASE|\[v0\.FIRST_PRERELEASE\]\([^)]+\)).*?(?=## (?:v0\.PREV_STABLE|\[v0\.PREV_STABLE\]\([^)]+\)))',
-    $newSection
-)
-
-# Normalize the double-encoded section-sign artifact (C2 A7 → A7).
+$c = [System.IO.File]::ReadAllText('docs/CHANGELOG.md', [System.Text.Encoding]::UTF8)
+$c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
 $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
-
-# Collapse 3+ consecutive blank lines down to 2
-$c = $c -replace "\r\n", "`n"
+$c = $c -replace "\r?\n", "`n"
 $c = $c -replace "`n{3,}", "`n`n"
-$c = $c -replace "`n", "`r`n"   # restore CRLF if the repo uses it
-
-[System.IO.File]::WriteAllText($cl, $c, [System.Text.Encoding]::UTF8)
+$c = $c -replace "`n", "`r`n"
+[System.IO.File]::WriteAllText('docs/CHANGELOG.md', $c, [System.Text.Encoding]::UTF8)
 ```
 
-**Key points**:
-- `(?s)` makes `.` match newlines so the pattern spans the whole block.
-- The lookahead stops the match at the previous stable heading, linked or unlinked; it is **not** consumed.
-- The mojibake normalization pass (`[char]0x00C2 + [char]0x00A7` to `[char]0x00A7`) should always run after a regex write to guard against double-encoding.
-- Blank-line normalization (`\n{3,}` to `\n\n`) prevents the file from accumulating excess whitespace after sections are removed.
+---
+
+## Consolidation Buckets (extend in script)
+
+The script's `Get-ConsolidationBucket` merges repetitive patterns. Extend when new churn appears:
+
+| Pattern | Merged summary |
+|---------|----------------|
+| `ShareX.ImageEditor` commits | ShareX.ImageEditor submodule updates |
+| `2026-.. blog` add/refresh | Blog drafts (2026 series) |
+| `XIP/IEIP` proposal docs | XIP/IEIP proposals and related documentation |
+| `hourly review` / `tracker` / `clawpatch` | *(skipped — not user-facing)* |
+| `pipe-drain` / `stderr` + Linux/macOS service | Platform pipe-drain deadlock hardening |
+| `XIP0078` / `XIP0079` + `P\d` | Platform improvement-plan item (keep P number) |
+| `multipart` / `S3 multipart` | Multipart upload support |
+| `[CI] Release v` only | *(skipped)* |
+
+---
+
+## Related
+
+- Release sequence: `.ai/skills/publish-release/SKILL.md` (step 2: update changelog)
+- Maintenance: `.ai/skills/run-maintenance/SKILL.md`
