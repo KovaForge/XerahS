@@ -294,3 +294,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: XIP0078 (written 2026-06-13) claimed the macOS bridge lacked `SCScreenshotManager` and that `sck_capture_window` had no `[LibraryImport]`. By implementation time (2026-07-07) both were already present; the real gap was that nothing *called* the window-capture import.
 
 **Lesson**: Always re-verify an improvement plan's file:line claims against the current branch before implementing it; plans go stale fast in an active repo. Implementation-specific notes: macOS `CFStringRef` framework constants (CGWindow keys, AX options) should be resolved via `dlsym` + `Marshal.ReadIntPtr` rather than hardcoding their string contents; `codesign` cannot sign managed PE assemblies, so bundle-signing loops must filter to Mach-O via `file(1)`; and MSBuild targets that must also run during Windows cross-compilation cannot shell out to `sed` - use `$([System.IO.File]::ReadAllText(...).Replace(...))` property functions instead.
+
+### Linux UI Features That Need Platform.Linux Must Use Conditional Compile
+
+**Context**: XIP0079 P3 post-exit clipboard persistence and settings hints live in `Platform.Linux`, but `XerahS.UI` is built on macOS/Windows without that project reference.
+
+**Lesson**: Use `IsLinuxUiBuild` plus conditional `<Compile Include=...>` for Linux-only partials (`AvaloniaClipboardService.LinuxPersistence.cs`, `SettingsViewModel.LinuxClipboard.cs`) and `#if LINUX` in shared view models. Default-interface methods on cross-platform abstractions (`IHotkeyService.GetDiagnostics()`) keep Windows/macOS builds unaffected without extra references.

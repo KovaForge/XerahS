@@ -1,57 +1,95 @@
-# Installing XerahS on Linux (Arch / EndeavourOS)
+# Installing XerahS on Linux
 
-This guide covers building and installing XerahS as a local Arch package from the repository using the reusable scripts in `build/linux/`.
+This guide covers building and installing XerahS on **Ubuntu**, **Fedora**, and **Arch** from the repository. For Flatpak, see [docs/linux/](../../docs/linux/).
 
 ---
 
 ## Prerequisites
 
-| Tool | Notes |
-|---|---|
-| `dotnet-sdk` | Install via `sudo pacman -S dotnet-sdk` |
-| `makepkg` / `bsdtar` | Included with `base-devel`: `sudo pacman -S base-devel` |
-| `node` + `npm` | Required for the video editor UI build; install via `sudo pacman -S nodejs npm` or from [nodejs.org](https://nodejs.org/) if pacman mirrors are unavailable |
+| Tool | Ubuntu 24.04+ | Fedora (current) | Arch / EndeavourOS |
+|---|---|---|---|
+| .NET SDK 10 | `sudo apt install dotnet-sdk-10.0` | `sudo dnf install dotnet-sdk-10.0` | `sudo pacman -S dotnet-sdk` |
+| Node.js 18+ | `sudo apt install nodejs npm` (or [NodeSource](https://github.com/nodesource/distributions) if the archive lags) | `sudo dnf install nodejs npm` | `sudo pacman -S nodejs npm` |
+| Packaging tools | `sudo apt install dpkg-dev` (for `.deb`) | `sudo dnf install rpm-build desktop-file-utils` (for `.rpm`) | `sudo pacman -S base-devel` (for AUR) |
 
-Verify your setup:
+Verify:
 
 ```bash
 dotnet --version   # expect 10.x
-node --version     # expect 18+ (22 recommended)
+node --version     # expect 18+
 npm --version
-makepkg --version
 ```
 
 ---
 
-## Build the Arch package
+## Build packages (Ubuntu / Fedora / generic)
 
 From the repository root:
 
 ```bash
-cd /path/to/XerahS
-./build/linux/package-aur.sh
+cd /path/to/xerahs
+./build/linux/package-linux.sh
 ```
 
-The script will:
-1. Clone the local repo into a clean `makepkg` source directory
-2. Run `dotnet publish` (all 11 plugins + video editor UI via Vite)
-3. Compress everything into an installable `.pkg.tar.zst`
-4. Copy the finished package to `dist/aur/`
+This produces `.tar.gz`, `.deb`, and `.rpm` artifacts under `dist/`.
 
-The build takes roughly 7–10 minutes; progress is printed to stdout.
-
-To control parallelism (useful on machines with limited RAM):
+Install:
 
 ```bash
-XERAHS_PLUGIN_JOBS=1 ./build/linux/package-aur.sh
+# Ubuntu / Debian
+sudo apt install ./dist/XerahS-*-linux-x64.deb
+
+# Fedora
+sudo dnf install ./dist/XerahS-*-linux-x64.rpm
 ```
+
+The `.deb` and `.rpm` packages **recommend** `wl-clipboard` and `xclip` for CLI/background clipboard workflows. `apt` installs Recommends by default; on Fedora use `sudo dnf install wl-clipboard xclip` if they were not pulled in.
 
 ---
 
-## Install
+## Run from source (development)
 
 ```bash
+dotnet run --project src/desktop/app/XerahS.App
+```
+
+### Debug-build hotkey caveat (Wayland)
+
+The XDG GlobalShortcuts portal matches the running binary against a `.desktop` file `Exec=` line. A raw `dotnet run` build often fails portal binding even though hotkeys work when packaged.
+
+Workaround for local dev on Wayland:
+
+```bash
+mkdir -p ~/.local/share/applications
+cat > ~/.local/share/applications/xerahs.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=XerahS
+Exec=/path/to/xerahs/src/desktop/app/XerahS.App/bin/Debug/net10.0/XerahS.App
+Icon=xerahs
+Terminal=false
+Categories=Utility;
+EOF
+update-desktop-database ~/.local/share/applications
+```
+
+Replace `Exec=` with your actual published or debug binary path.
+
+Check **Settings → Hotkeys** for the delivery-state banner (`PortalBound` vs `X11FallbackFocusOnly`). See [XIP0044](../../docs/proposals/xip/XIP0044-linux-global-hotkeys-not-firing-when-app-backgrounded.md).
+
+---
+
+## Arch / EndeavourOS (AUR-style local package)
+
+```bash
+./build/linux/package-aur.sh
 sudo pacman -U dist/aur/xerahs-git-*.pkg.tar.zst
+```
+
+To limit parallelism on low-RAM machines:
+
+```bash
+XERAHS_PLUGIN_JOBS=1 ./build/linux/package-aur.sh
 ```
 
 ---
@@ -62,54 +100,74 @@ sudo pacman -U dist/aur/xerahs-git-*.pkg.tar.zst
 xerahs
 ```
 
-Or launch **XerahS** from your application menu / app launcher.
-
----
-
-## Reinstall after a rebuild
-
-```bash
-./build/linux/package-aur.sh
-sudo pacman -U dist/aur/xerahs-git-*.pkg.tar.zst
-```
-
----
-
-## Installed file layout
-
-| Path | Contents |
-|---|---|
-| `/usr/lib/xerahs/` | Application binary, plugins, video editor assets |
-| `/usr/bin/xerahs` | Symlink → `/usr/lib/xerahs/XerahS` |
-| `/usr/share/applications/xerahs.desktop` | Desktop entry |
-| `/usr/share/icons/hicolor/256x256/apps/xerahs.png` | Application icon |
-| `/usr/share/licenses/xerahs-git/LICENSE.txt` | GPL-3.0 licence |
+Or launch **XerahS** from your application menu.
 
 ---
 
 ## Optional runtime dependencies
 
-Install any that apply to your desktop environment:
+Install packages for your session type and desktop environment:
+
+| Purpose | Ubuntu / Debian | Fedora | Arch |
+|---|---|---|---|
+| Wayland clipboard (CLI) | `wl-clipboard` | `wl-clipboard` | `wl-clipboard` |
+| X11 clipboard (CLI) | `xclip` | `xclip` | `xclip` |
+| wlroots region capture | `grim`, `slurp` | `grim`, `slurp` | `grim`, `slurp` |
+| wlroots recording | `wf-recorder` | `wf-recorder` | `wf-recorder` |
+| GNOME system tray | `gnome-shell-extension-appindicator` | `gnome-shell-extension-appindicator` | `gnome-shell-extension-appindicator` |
+| Video editor webview | `libwebkit2gtk-4.1-0` | `webkit2gtk4.1` | `webkit2gtk-4.1` |
+| X11 automation fallback | `xdotool` | `xdotool` | `xdotool` |
+
+Example (Ubuntu Wayland GNOME):
 
 ```bash
-# Wayland
-sudo pacman -S wl-clipboard grim slurp
-
-# X11
-sudo pacman -S xclip xdotool
-
-# GNOME system tray
-sudo pacman -S gnome-shell-extension-appindicator
-
-# Video editor webview
-sudo pacman -S webkit2gtk-4.1
+sudo apt install wl-clipboard gnome-shell-extension-appindicator
 ```
+
+---
+
+## Installed layout (deb/rpm)
+
+| Path | Contents |
+|---|---|
+| `/usr/lib/xerahs/` | Application binary, plugins, assets |
+| `/usr/bin/xerahs` | Symlink → `/usr/lib/xerahs/XerahS` |
+| `/usr/share/applications/xerahs.desktop` | Desktop entry |
+| `/usr/share/pixmaps/xerahs.png` | Application icon |
+
+---
+
+## Distro smoke checklist (release gate)
+
+Run on each target VM before claiming Linux support:
+
+1. Region capture → image on clipboard → paste in Firefox
+2. Quit XerahS → paste again (Wayland: needs `wl-clipboard` or **Persist clipboard after exit** enabled)
+3. Upload task → notification **Open URL** button works
+4. Tray icon visible (GNOME: extension installed)
+5. Global hotkey fires while another app is focused (portal-capable DE)
+6. Record 10 seconds, file saved
+
+| Target | Session | Status |
+|---|---|---|
+| Ubuntu 24.04 GNOME | Wayland | Manual matrix pending |
+| Ubuntu 24.04 GNOME | X11 | Manual matrix pending |
+| Fedora GNOME | Wayland | Manual matrix pending |
+| Arch KDE Plasma 6 | Wayland | Manual matrix pending |
+| Arch Hyprland | Wayland | Manual matrix pending |
 
 ---
 
 ## Uninstall
 
 ```bash
+# Ubuntu / Debian
+sudo apt remove xerahs
+
+# Fedora
+sudo dnf remove xerahs
+
+# Arch
 sudo pacman -R xerahs-git
 ```
 
@@ -117,6 +175,7 @@ sudo pacman -R xerahs-git
 
 ## Related files
 
-- **PKGBUILD**: `build/linux/aur/xerahs-git/PKGBUILD`
-- **Build orchestrator**: `build/linux/package-aur.sh`
-- **Build system docs**: `build/README.md`
+- **Packaging**: `build/linux/package-linux.sh`, `build/linux/XerahS.Packaging/`
+- **AUR PKGBUILD**: `build/linux/aur/xerahs-git/PKGBUILD`
+- **Improvement plan**: [docs/proposals/xip/XIP0079-linux-improvement-plan.md](../../docs/proposals/xip/XIP0079-linux-improvement-plan.md)
+- **Flatpak**: [docs/linux/](../../docs/linux/)
