@@ -918,6 +918,34 @@
                         </StackPanel>
 
                         <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
+                            <TextBlock Text="Linux Clipboard" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="12">
+                                    <Border Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                                            BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="12"
+                                            IsVisible="{Binding ShowLinuxClipboardCliWarning}">
+                                        <TextBlock Text="{Binding LinuxClipboardCliWarningText}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"/>
+                                    </Border>
+                                    <CheckBox IsChecked="{Binding PersistClipboardAfterExit}"
+                                              Content="Keep clipboard contents after XerahS exits (Wayland: uses wl-copy)"
+                                              AutomationProperties.Name="Persist Clipboard After Exit"/>
+                                    <TextBlock Text="Background workflows (CLI, watch-folder daemon) need wl-clipboard or xclip. The .deb and .rpm packages recommend these tools."
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
                             <TextBlock Text="Wayland Portal Services" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"

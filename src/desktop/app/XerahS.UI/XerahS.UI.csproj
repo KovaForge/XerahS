@@ -7,6 +7,7 @@
     <IsWindowsUiBuild Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '' And '$(CrossCompile)' != 'true')">true</IsWindowsUiBuild>
     <IsMacOSUiBuild Condition="$(RuntimeIdentifier.StartsWith('osx')) Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('OSX')))">true</IsMacOSUiBuild>
     <IsLinuxUiBuild Condition="$(RuntimeIdentifier.StartsWith('linux')) Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux')))">true</IsLinuxUiBuild>
+    <DefineConstants Condition="'$(IsLinuxUiBuild)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
     <TargetFramework>net10.0</TargetFramework>
     <TargetFramework Condition="'$(IsWindowsUiBuild)' == 'true'">net10.0-windows10.0.26100.0</TargetFramework>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj/**</DefaultItemExcludes>
@@ -48,6 +49,10 @@
     <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
                       GlobalPropertiesToRemove="OS"
                       AdditionalProperties="BuildWebUI=$(VideoEditorProjectReferenceBuildWebUI)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsLinuxUiBuild)' == 'true'">
+    <Compile Include="Services\AvaloniaClipboardService.LinuxPersistence.cs" />
+    <Compile Include="ViewModels\SettingsViewModel.LinuxClipboard.cs" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />

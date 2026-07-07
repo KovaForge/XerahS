@@ -60,6 +60,13 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
             UseWhiteShareXIcon = true;
         }
 
+        if (OperatingSystem.IsLinux())
+        {
+            bool isWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) ||
+                             string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.OrdinalIgnoreCase);
+            PersistClipboardAfterExit ??= isWayland;
+        }
+
         if (OperatingSystem.IsMacOS())
         {
             AssistantHotkey = new HotkeyInfo(Key.Space, KeyModifiers.Meta | KeyModifiers.Shift);
@@ -77,6 +84,11 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool TaskbarProgressEnabled = true;
     public bool UseWhiteShareXIcon = false;
     public bool? LinuxUseWaylandPortalServices = null;
+    /// <summary>
+    /// After UI clipboard copy, also hand off to wl-copy so paste survives app exit (Linux Wayland).
+    /// Null applies platform default: enabled on Wayland, disabled on X11.
+    /// </summary>
+    public bool? PersistClipboardAfterExit = null;
     public bool RememberMainFormPosition = false;
     public System.Drawing.Point MainFormPosition = System.Drawing.Point.Empty;
     public bool RememberMainFormSize = false;

@@ -28,6 +28,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services;
@@ -53,17 +54,12 @@ public sealed class LinuxClipboardService : IClipboardService
 
     public async Task SetTextAsync(string text)
     {
-        if (PreferWaylandClipboard)
+        if (await TrySetTextInternalAsync(text))
         {
-            if (await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text)))
-                return;
+            return;
         }
 
-        if (await TryPipeAsync(Xclip, "-selection clipboard", Encoding.UTF8.GetBytes(text)))
-            return;
-
-        if (!PreferWaylandClipboard)
-            await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text));
+        LogClipboardFailure("text");
     }
 
     public async Task<string?> GetTextAsync()
@@ -100,17 +96,57 @@ public sealed class LinuxClipboardService : IClipboardService
 
     public async Task SetImageAsync(byte[] pngBytes)
     {
+        if (await TrySetImageInternalAsync(pngBytes))
+        {
+            return;
+        }
+
+        LogClipboardFailure("image");
+    }
+
+    internal async Task<bool> TrySetTextInternalAsync(string text)
+    {
+        if (PreferWaylandClipboard)
+        {
+            if (await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text)))
+                return true;
+        }
+
+        if (await TryPipeAsync(Xclip, "-selection clipboard", Encoding.UTF8.GetBytes(text)))
+            return true;
+
+        if (!PreferWaylandClipboard && await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text)))
+            return true;
+
+        return false;
+    }
+
+    internal async Task<bool> TrySetImageInternalAsync(byte[] pngBytes)
+    {
         if (PreferWaylandClipboard)
         {
             if (await TryPipeAsync(WlCopy, "--type image/png", pngBytes))
-                return;
+                return true;
         }
 
         if (await TryPipeAsync(Xclip, "-selection clipboard -t image/png -i", pngBytes))
-            return;
+            return true;
 
-        if (!PreferWaylandClipboard)
-            await TryPipeAsync(WlCopy, "--type image/png", pngBytes);
+        if (!PreferWaylandClipboard && await TryPipeAsync(WlCopy, "--type image/png", pngBytes))
+            return true;
+
+        return false;
+    }
+
+    private static void LogClipboardFailure(string payloadKind)
+    {
+        string? hint = LinuxClipboardCapabilities.UserFacingWarning;
+        if (string.IsNullOrWhiteSpace(hint))
+        {
+            hint = "Install wl-clipboard (Wayland) or xclip (X11) for CLI clipboard support.";
+        }
+
+        DebugHelper.WriteLine($"LinuxClipboardService: Failed to copy {payloadKind} to clipboard. {hint}");
     }
 
     public async Task<SKBitmap?> GetImageAsync()
