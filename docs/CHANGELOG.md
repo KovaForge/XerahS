@@ -10,6 +10,37 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.23.130
+
+### Features
+- **Core**: Add checkbox to enable/disable screenshot subfolder pattern
+- **Linux — Clipboard (XIP0079 P3)**: clipboard CLI probe, warnings, RPM Recommends, post-exit persistence
+- **Linux — Hotkeys (XIP0079 P1)**: hotkey delivery diagnostics, settings banner, ConfigureShortcuts v2 gate
+- **Linux — Notifications (XIP0079 P2)**: notification action buttons via portal and notify-send
+- **macOS — App bundle (XIP0078 P1)**: render macOS Info.plist from template with stable bundle identity
+- **macOS — Hotkeys (XIP0078 P4)**: Carbon RegisterEventHotKey backend, no Accessibility needed; SharpHook fallback
+- **macOS — Packaging (XIP0078 P2)**: env-gated codesign/notarize/DMG pipeline, ad-hoc signing default in package-mac.sh
+- **macOS — Permissions (XIP0078 P3)**: Screen Recording permission preflight, guided flow, macOS diagnostics
+- **macOS — Window capture (XIP0078 P5)**: CGWindowList native window enumeration, wire sck_capture_window
+
+### Fixes
+- **Core**: Align OpenClaw manifest --json flags with pinned test contract; Keep Linux-only UI sources off macOS builds; skip X11 hotkey test on non-Linux; Remove superseded SettingsViewModel.LinuxClipboard partial
+- **FileDownloader**: cancel outer loop on early HTTP EOF
+- **Linux — Mixed-DPI (XIP0079 P4)**: cumulative mixed-DPI monitor layout for vertical stacks
+
+### Refactor
+- **macOS — ScreenCaptureKit (XIP0078 P8)**: rewrite ScreenCaptureKitStrategy against native bridge, fix stale ShareX.Avalonia namespaces
+
+### Documentation
+- **Core**: Add macOS paths to port-imageeditor skill; Blog drafts (2026 series, add/update); and related changes
+- **Linux — Documentation (XIP0079 P5)**: Linux INSTALL parity, KNOWN_ISSUES update, implementation notes
+- **macOS — Documentation (XIP0078)**: XIP0078 marked implemented with 2026-07-07 implementation notes; lessons-learnt entry
+
+### Changed
+- **Core**: mirror ExpireAfterDays<=0 clamp in ToJson (symmetry with LoadFromJson); round-trip share-security fields + SecurityMatches reconcile; and related changes
+
+---
+
 ## v0.23.129
 
 ### Features
