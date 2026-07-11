@@ -11,6 +11,7 @@ The Flatpak build is designed to work through XDG Desktop Portals and app-privat
 | `--device=dri` | Enables GPU/Skia acceleration. | None practical for current Avalonia rendering. | Software rendering or startup/rendering failures on some systems. | Low |
 | `--share=network` | Required for uploaders, update checks, and connected integrations. | No portal substitutes arbitrary network upload features. | Upload destinations and network integrations fail. | Medium |
 | `--talk-name=org.kde.StatusNotifierWatcher` | Enables StatusNotifierItem tray integration where available. | No portal equivalent for current tray behavior. | Tray icon may not appear. Core capture/upload still works. | Medium |
+| `--own-name=org.kde.*` | Avalonia's tray implementation owns `org.kde.StatusNotifierItem-{pid}-{id}` on the session bus before registering with the watcher (StatusNotifierItem spec). Without the grant the D-Bus proxy rejects `RequestName`; the app survives this (non-fatal since v0.23.132, issue #270) but the tray icon cannot appear. | None until Avalonia registers its unique bus name instead (the Qt/libappindicator approach). | Tray icon does not appear on KDE/XFCE and other SNI desktops. | High — Flathub lint blocks own-name wildcards (`finish-args-own-name-wildcard-org.kde`); a Flathub submission must drop this permission (losing the tray icon) or carry an upstream Avalonia fix. |
 
 ## Removed Or Avoided Permissions
 
