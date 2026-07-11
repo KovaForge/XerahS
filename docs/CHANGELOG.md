@@ -10,6 +10,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.23.131
+
+### Fixes
+- **macOS — Screenshot subfolder**: Onboarding was not syncing the "Create subfolder with today's date" toggle to the `UseSaveImageSubFolderPattern` setting; the checkbox in Settings always defaulted to `true`, overriding the user's choice on macOS.
+
+---
+
 ## v0.23.130
 
 ### Features
