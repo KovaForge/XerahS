@@ -141,6 +141,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
 
     public bool UseCustomScreenshotsPath = false;
     public string CustomScreenshotsPath = "";
+    public bool UseSaveImageSubFolderPattern = true;
     public string SaveImageSubFolderPattern = "%y-%mo";
     public string SaveImageSubFolderPatternWindow = "";
 

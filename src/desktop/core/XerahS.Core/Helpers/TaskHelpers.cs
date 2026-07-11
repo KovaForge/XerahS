@@ -434,6 +434,11 @@ public static partial class TaskHelpers
         {
             screenshotsFolder = nameParser.Parse(taskSettings.ScreenshotsFolder);
         }
+        else if (!settings.UseSaveImageSubFolderPattern)
+        {
+            // Subfolder creation disabled - write directly into the screenshots parent folder.
+            screenshotsFolder = GetScreenshotsParentFolder(taskSettings);
+        }
         else
         {
             string subFolderPattern;

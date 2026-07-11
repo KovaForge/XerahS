@@ -61,6 +61,9 @@ namespace XerahS.UI.ViewModels
         private string _saveImageSubFolderPattern = string.Empty;
 
         [ObservableProperty]
+        private bool _useSaveImageSubFolderPattern = true;
+
+        [ObservableProperty]
         private bool _useCustomScreenshotsPath;
 
         [ObservableProperty]
@@ -263,6 +266,7 @@ namespace XerahS.UI.ViewModels
             ScreenshotsFolder = settings.CustomScreenshotsPath ??
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ShareX");
             SaveImageSubFolderPattern = settings.SaveImageSubFolderPattern ?? "%y-%mo";
+            UseSaveImageSubFolderPattern = settings.UseSaveImageSubFolderPattern;
             UseCustomScreenshotsPath = settings.UseCustomScreenshotsPath;
             ShowTray = settings.ShowTray;
             SilentRun = settings.SilentRun;
@@ -380,6 +384,7 @@ namespace XerahS.UI.ViewModels
 
             settings.CustomScreenshotsPath = ScreenshotsFolder;
             settings.SaveImageSubFolderPattern = SaveImageSubFolderPattern;
+            settings.UseSaveImageSubFolderPattern = UseSaveImageSubFolderPattern;
             settings.UseCustomScreenshotsPath = UseCustomScreenshotsPath;
             settings.ShowTray = ShowTray;
             settings.SilentRun = SilentRun;
@@ -496,6 +501,7 @@ namespace XerahS.UI.ViewModels
         {
             ScreenshotsFolder = PathsManager.ScreenshotsFolder;
             SaveImageSubFolderPattern = "%y-%mo";
+            UseSaveImageSubFolderPattern = true;
             UseCustomScreenshotsPath = false;
             ShowTray = true;
             SilentRun = false;
