@@ -65,6 +65,7 @@ errors.md
 
 # Local packaging output
 dist/
+.flatpak-builder/
 .claude/
 .SRCINFO
 artifacts/

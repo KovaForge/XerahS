@@ -300,3 +300,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: XIP0079 P3 post-exit clipboard persistence and settings hints live in `Platform.Linux`, but `XerahS.UI` is built on macOS/Windows without that project reference.
 
 **Lesson**: Use `IsLinuxUiBuild` plus conditional `<Compile Include=...>` for Linux-only partials (`AvaloniaClipboardService.LinuxPersistence.cs`, `SettingsViewModel.LinuxClipboard.cs`) and `#if LINUX` in shared view models. Default-interface methods on cross-platform abstractions (`IHotkeyService.GetDiagnostics()`) keep Windows/macOS builds unaffected without extra references.
+
+### Flatpak Sandbox Denials Must Never Escape On The Avalonia UI Thread
+
+**Context**: Issue #270 — the Flatpak build crashed ~1 second after startup on KDE Plasma (Bazzite) while the same binary ran fine unsandboxed. Avalonia's `DBusTrayIconImpl` owns `org.kde.StatusNotifierItem-{pid}-{id}` before registering with `org.kde.StatusNotifierWatcher`; the Flatpak session-bus proxy denied `RequestName` (manifest only granted `--talk-name`), and the `DBusErrorReplyException` from the resulting `async void` continuation crashed the process. GNOME validation VMs never caught it because without a StatusNotifierWatcher on the bus the tray code path never runs.
+
+**Lesson**: Avalonia's dispatcher swallows an exception only when `UnhandledExceptionFilter` sets `RequestCatch = true` AND an `UnhandledException` handler sets `Handled = true`; subscribing to the filter alone is a no-op. Treat Linux desktop-integration failures (Tmds.DBus exceptions, `Avalonia.FreeDesktop` frames) as non-fatal log-and-continue. Reproduce Flatpak issues against a session bus that actually has a StatusNotifierWatcher (KDE/XFCE) — its absence silently disables the failing code path. Also never classify a startup exception as a "display error" by matching `Avalonia.X11` in the stack trace: every UI-thread exception unwinds through those frames.
