@@ -61,7 +61,6 @@ public class RegionCaptureAnnotationViewModelTests
             FontSize = 32,
             IsBold = true,
             IsItalic = true,
-            IsUnderline = true,
             StrokeWidth = 7,
             StrokeColor = "#FF112233"
         };
@@ -77,7 +76,6 @@ public class RegionCaptureAnnotationViewModelTests
             Assert.That(viewModel.ShowFillColor, Is.False);
             Assert.That(viewModel.TextBold, Is.True);
             Assert.That(viewModel.TextItalic, Is.True);
-            Assert.That(viewModel.TextUnderline, Is.True);
             Assert.That(viewModel.TextColor, Is.EqualTo("#FF00FF00"));
             Assert.That(viewModel.StrokeWidth, Is.EqualTo(7));
         });
@@ -96,7 +94,6 @@ public class RegionCaptureAnnotationViewModelTests
             TextFontSize = 54,
             TextBold = false,
             TextItalic = true,
-            TextUnderline = true,
             HighlightFillColor = Colors.Lime,
             StepBorderColor = Colors.Black,
             StepFillColor = Colors.White,
@@ -118,7 +115,6 @@ public class RegionCaptureAnnotationViewModelTests
             Assert.That(viewModel.FontSize, Is.EqualTo(54));
             Assert.That(viewModel.TextBold, Is.False);
             Assert.That(viewModel.TextItalic, Is.True);
-            Assert.That(viewModel.TextUnderline, Is.True);
         });
 
         viewModel.ActiveTool = EditorTool.Highlight;
