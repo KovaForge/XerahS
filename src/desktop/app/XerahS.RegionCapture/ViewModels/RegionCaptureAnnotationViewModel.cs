@@ -35,6 +35,7 @@ using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using AnnotationBorderStyle = ShareX.ImageEditor.Core.Annotations.BorderStyle;
 using ShareXStepTailStyle = ShareX.ImageEditor.Core.Annotations.StepTailStyle;
 
 namespace XerahS.RegionCapture.ViewModels;
@@ -45,6 +46,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private static readonly IReadOnlyList<ArrowStyle> _availableArrowStyles = Enum.GetValues<ArrowStyle>();
     private static readonly IReadOnlyList<CursorType> _availableCursorTypes = Enum.GetValues<CursorType>();
     private static readonly IReadOnlyList<int> _availableStepStartNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    private static readonly IReadOnlyList<AnnotationBorderStyle> _availableBorderStyles = Enum.GetValues<AnnotationBorderStyle>();
+    private static readonly IReadOnlyList<StepType> _availableStepTypes = Enum.GetValues<StepType>();
+    private static readonly IReadOnlyList<TextHorizontalAlignment> _availableTextHorizontalAlignments = Enum.GetValues<TextHorizontalAlignment>();
 
     private const float MinEffectStrength = 1;
     private const float MaxBlurStrength = 200;
@@ -73,6 +77,11 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         RecentImageFiles = new ReadOnlyObservableCollection<string>(_recentImageFiles);
         OpenRecentImageCommand = new RelayCommand<string?>(_ => { });
         OpenOptionsPanelCommand = new RelayCommand(() => { });
+        NewImageCommand = new RelayCommand(() => { });
+        OpenImageCommand = new RelayCommand(() => { });
+        SaveCommand = new RelayCommand(() => { });
+        SaveAsCommand = new RelayCommand(() => { });
+        ExitEditorCommand = new RelayCommand(() => { });
     }
 
     public EditorCore EditorCore => _editorCore;
@@ -88,6 +97,16 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     public ICommand OpenRecentImageCommand { get; }
 
     public ICommand OpenOptionsPanelCommand { get; }
+
+    public ICommand NewImageCommand { get; }
+
+    public ICommand OpenImageCommand { get; }
+
+    public ICommand SaveCommand { get; }
+
+    public ICommand SaveAsCommand { get; }
+
+    public ICommand ExitEditorCommand { get; }
 
     public event Action? InvalidateRequested;
 
@@ -329,6 +348,30 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ApplySelectedCursorType(normalizedCursorType);
     }
 
+    [ObservableProperty]
+    private AnnotationBorderStyle _selectedBorderStyle = AnnotationBorderStyle.Solid;
+
+    partial void OnSelectedBorderStyleChanged(AnnotationBorderStyle value)
+    {
+        ApplySelectedBorderStyle(value);
+    }
+
+    [ObservableProperty]
+    private StepType _selectedStepType = StepType.Numeric;
+
+    partial void OnSelectedStepTypeChanged(StepType value)
+    {
+        ApplySelectedStepType(value);
+    }
+
+    [ObservableProperty]
+    private TextHorizontalAlignment _selectedTextHorizontalAlignment = TextHorizontalAlignment.Center;
+
+    partial void OnSelectedTextHorizontalAlignmentChanged(TextHorizontalAlignment value)
+    {
+        ApplySelectedTextHorizontalAlignment(value);
+    }
+
     public IReadOnlyList<string> AvailableFontFamilies => _availableFontFamilies;
 
     public IReadOnlyList<ArrowStyle> AvailableArrowStyles => _availableArrowStyles;
@@ -336,6 +379,12 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     public IReadOnlyList<CursorType> AvailableCursorTypes => _availableCursorTypes;
 
     public IReadOnlyList<int> AvailableStepStartNumbers => _availableStepStartNumbers;
+
+    public IReadOnlyList<AnnotationBorderStyle> AvailableBorderStyles => _availableBorderStyles;
+
+    public IReadOnlyList<StepType> AvailableStepTypes => _availableStepTypes;
+
+    public IReadOnlyList<TextHorizontalAlignment> AvailableTextHorizontalAlignments => _availableTextHorizontalAlignments;
 
     [ObservableProperty]
     private int _stepStartNumber = 1;
@@ -368,11 +417,97 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     }
 
     [ObservableProperty]
+    private float _spotlightBlur;
+
+    public float SpotlightBlurMaximum => MaxBlurStrength;
+
+    partial void OnSpotlightBlurChanged(float value)
+    {
+        float clamped = Math.Clamp(value, 0, SpotlightBlurMaximum);
+        if (Math.Abs(clamped - value) > float.Epsilon)
+        {
+            SpotlightBlur = clamped;
+            return;
+        }
+
+        ApplySpotlightBlur(clamped);
+    }
+
+    [ObservableProperty]
     private bool _shadowEnabled;
 
     partial void OnShadowEnabledChanged(bool value)
     {
         ApplyShadowEnabled(value);
+    }
+
+    [ObservableProperty]
+    private string _shadowColor = Annotation.DefaultShadowColorHex;
+
+    public IBrush ShadowColorBrush
+    {
+        get => new SolidColorBrush(HexToColor(ShadowColor));
+        set
+        {
+            if (value is SolidColorBrush solidBrush)
+            {
+                ShadowColor = ColorToHex(solidBrush.Color);
+            }
+        }
+    }
+
+    partial void OnShadowColorChanged(string value)
+    {
+        OnPropertyChanged(nameof(ShadowColorBrush));
+        ApplyShadowDetail(annotation => annotation.ShadowColor = value, options => options.ShadowColorHex = value);
+    }
+
+    [ObservableProperty]
+    private double _shadowBlurRadius = Annotation.DefaultShadowBlurRadius;
+
+    partial void OnShadowBlurRadiusChanged(double value)
+    {
+        ApplyShadowDetail(annotation => annotation.ShadowBlurRadius = value, options => options.ShadowBlurRadius = value);
+    }
+
+    [ObservableProperty]
+    private double _shadowOpacity = Annotation.DefaultShadowOpacity;
+
+    partial void OnShadowOpacityChanged(double value)
+    {
+        ApplyShadowDetail(annotation => annotation.ShadowOpacity = value, options => options.ShadowOpacity = value);
+    }
+
+    [ObservableProperty]
+    private double _shadowOffsetX = Annotation.DefaultShadowOffsetX;
+
+    partial void OnShadowOffsetXChanged(double value)
+    {
+        ApplyShadowDetail(annotation => annotation.ShadowOffsetX = value, options => options.ShadowOffsetX = value);
+    }
+
+    [ObservableProperty]
+    private double _shadowOffsetY = Annotation.DefaultShadowOffsetY;
+
+    partial void OnShadowOffsetYChanged(double value)
+    {
+        ApplyShadowDetail(annotation => annotation.ShadowOffsetY = value, options => options.ShadowOffsetY = value);
+    }
+
+    [ObservableProperty]
+    private bool _speechBalloonTail = true;
+
+    partial void OnSpeechBalloonTailChanged(bool value)
+    {
+        ApplySpeechBalloonTail(value);
+    }
+
+    [ObservableProperty]
+    private bool _effectEllipse;
+
+    partial void OnEffectEllipseChanged(bool value)
+    {
+        ApplyEffectEllipse(value);
     }
 
     [ObservableProperty]
@@ -389,14 +524,6 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     partial void OnTextItalicChanged(bool value)
     {
         ApplyTextStyle(value, TextStyle.Italic);
-    }
-
-    [ObservableProperty]
-    private bool _textUnderline;
-
-    partial void OnTextUnderlineChanged(bool value)
-    {
-        ApplyTextStyle(value, TextStyle.Underline);
     }
 
     [ObservableProperty]
@@ -418,12 +545,6 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private void ToggleTextItalic()
     {
         TextItalic = !TextItalic;
-    }
-
-    [RelayCommand]
-    private void ToggleTextUnderline()
-    {
-        TextUnderline = !TextUnderline;
     }
 
     public float EffectStrengthMaximum => GetMaxEffectStrength(GetEffectiveToolForOptions());
@@ -481,6 +602,40 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
 
     public bool ShowStepStartNumber => ActiveTool == EditorTool.Step;
 
+    public bool ShowStepType => GetToolOptionsContext() == EditorTool.Step;
+
+    public bool ShowTextHorizontalAlignment => GetToolOptionsContext() switch
+    {
+        EditorTool.Text or EditorTool.SpeechBalloon => true,
+        _ => false
+    };
+
+    public bool ShowBorderStyle => GetToolOptionsContext() switch
+    {
+        EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Freehand => true,
+        _ => false
+    };
+
+    public bool ShowSpotlightBlur => GetToolOptionsContext() == EditorTool.Spotlight;
+
+    public bool ShowEffectEllipse => GetToolOptionsContext() switch
+    {
+        EditorTool.Magnify or EditorTool.Spotlight => true,
+        _ => false
+    };
+
+    public bool ShowSpeechBalloonTail => GetToolOptionsContext() switch
+    {
+        EditorTool.SpeechBalloon or EditorTool.Step => true,
+        _ => false
+    };
+
+    public bool ShowTextItalic => GetToolOptionsContext() switch
+    {
+        EditorTool.Text or EditorTool.SpeechBalloon => true,
+        _ => false
+    };
+
     public bool ShowCornerRadius => GetToolOptionsContext() switch
     {
         EditorTool.Rectangle or EditorTool.SpeechBalloon => true,
@@ -502,7 +657,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
 
     public bool ShowTextStyle => GetToolOptionsContext() switch
     {
-        EditorTool.Text => true,
+        EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Step => true,
         _ => false
     };
 
@@ -519,13 +674,19 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         ShowThickness ||
         ShowFontSize ||
         ShowStepStartNumber ||
+        ShowStepType ||
+        ShowTextHorizontalAlignment ||
         ShowFontFamily ||
+        ShowBorderStyle ||
         ShowArrowStyle ||
         ShowCursorType ||
         ShowCornerRadius ||
         ShowStrength ||
+        ShowSpotlightBlur ||
+        ShowEffectEllipse ||
         ShowTextStyle ||
         ShowShadow ||
+        ShowSpeechBalloonTail ||
         ShowTailStyle;
 
     public bool ShowToolOptions => ShowToolOptionsSeparator;
@@ -1080,19 +1241,35 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             return;
         }
 
-        if (ActiveTool == EditorTool.Select && SelectedAnnotation is TextAnnotation selectedText)
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
         {
-            switch (style)
+            switch (SelectedAnnotation)
             {
-                case TextStyle.Bold:
-                    selectedText.IsBold = value;
+                case TextAnnotation selectedText:
+                    if (style == TextStyle.Bold)
+                    {
+                        selectedText.IsBold = value;
+                    }
+                    else
+                    {
+                        selectedText.IsItalic = value;
+                    }
                     break;
-                case TextStyle.Italic:
-                    selectedText.IsItalic = value;
+                case SpeechBalloonAnnotation balloon:
+                    if (style == TextStyle.Bold)
+                    {
+                        balloon.IsBold = value;
+                    }
+                    else
+                    {
+                        balloon.IsItalic = value;
+                    }
                     break;
-                case TextStyle.Underline:
-                    selectedText.IsUnderline = value;
+                case NumberAnnotation number when style == TextStyle.Bold:
+                    number.IsBold = value;
                     break;
+                default:
+                    return;
             }
 
             RequestCanvasRefresh();
@@ -1102,13 +1279,233 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         switch (style)
         {
             case TextStyle.Bold:
-                _options.TextBold = value;
+                switch (ActiveTool)
+                {
+                    case EditorTool.SpeechBalloon:
+                        _options.SpeechBalloonTextBold = value;
+                        break;
+                    case EditorTool.Step:
+                        _options.StepTextBold = value;
+                        break;
+                    default:
+                        _options.TextBold = value;
+                        break;
+                }
                 break;
             case TextStyle.Italic:
-                _options.TextItalic = value;
+                if (ActiveTool == EditorTool.SpeechBalloon)
+                {
+                    _options.SpeechBalloonTextItalic = value;
+                }
+                else
+                {
+                    _options.TextItalic = value;
+                }
                 break;
-            case TextStyle.Underline:
-                _options.TextUnderline = value;
+        }
+    }
+
+    private void ApplySelectedBorderStyle(AnnotationBorderStyle value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case RectangleAnnotation rectangle when rectangle is not SmartEraserAnnotation:
+                    rectangle.BorderStyle = value;
+                    break;
+                case EllipseAnnotation ellipse:
+                    ellipse.BorderStyle = value;
+                    break;
+                case LineAnnotation line:
+                    line.BorderStyle = value;
+                    break;
+                case FreehandAnnotation freehand:
+                    freehand.BorderStyle = value;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        if (ActiveTool is EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Freehand)
+        {
+            _options.BorderStyle = value;
+        }
+    }
+
+    private void ApplySelectedStepType(StepType value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation is NumberAnnotation number)
+        {
+            number.StepType = value;
+            RequestCanvasRefresh();
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Step)
+        {
+            _options.StepType = value;
+        }
+    }
+
+    private void ApplySelectedTextHorizontalAlignment(TextHorizontalAlignment value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case TextAnnotation text:
+                    text.HorizontalAlignment = value;
+                    break;
+                case SpeechBalloonAnnotation balloon:
+                    balloon.HorizontalAlignment = value;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.Text:
+                _options.TextHorizontalAlignment = value;
+                break;
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonTextHorizontalAlignment = value;
+                break;
+        }
+    }
+
+    private void ApplySpotlightBlur(float value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation is SpotlightAnnotation spotlight)
+        {
+            spotlight.BlurAmount = value;
+            RequestCanvasRefresh();
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Spotlight)
+        {
+            _options.SpotlightBlur = value;
+        }
+    }
+
+    private void ApplyShadowDetail(Action<Annotation> applyToAnnotation, Action<ImageEditorOptions> applyToOptions)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            if (SelectedAnnotation is not BaseEffectAnnotation &&
+                SelectedAnnotation is not SmartEraserAnnotation &&
+                SelectedAnnotation is not SpotlightAnnotation)
+            {
+                applyToAnnotation(SelectedAnnotation);
+                RequestCanvasRefresh();
+            }
+
+            return;
+        }
+
+        applyToOptions(_options);
+    }
+
+    private void ApplySpeechBalloonTail(bool value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select && SelectedAnnotation != null)
+        {
+            switch (SelectedAnnotation)
+            {
+                case SpeechBalloonAnnotation balloon:
+                    balloon.TailEnabled = value;
+                    break;
+                case NumberAnnotation number:
+                    number.TailEnabled = value;
+                    break;
+                default:
+                    return;
+            }
+
+            RequestCanvasRefresh();
+            return;
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.SpeechBalloon:
+                _options.SpeechBalloonTail = value;
+                break;
+            case EditorTool.Step:
+                _options.StepTail = value;
+                break;
+        }
+    }
+
+    private void ApplyEffectEllipse(bool value)
+    {
+        if (_isLoadingToolOptions)
+        {
+            return;
+        }
+
+        if (ActiveTool == EditorTool.Select)
+        {
+            switch (SelectedAnnotation)
+            {
+                case MagnifyAnnotation magnify:
+                    magnify.IsEllipse = value;
+                    RequestCanvasRefresh();
+                    return;
+                case SpotlightAnnotation spotlight:
+                    spotlight.IsEllipse = value;
+                    RequestCanvasRefresh();
+                    return;
+            }
+        }
+
+        switch (ActiveTool)
+        {
+            case EditorTool.Magnify:
+                _options.MagnifierEllipse = value;
+                break;
+            case EditorTool.Spotlight:
+                _options.SpotlightEllipse = value;
                 break;
         }
     }
@@ -1127,6 +1524,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 StrokeWidth = _options.Thickness;
                 CornerRadius = _options.CornerRadius;
                 ShadowEnabled = _options.Shadow;
+                if (tool != EditorTool.Arrow)
+                {
+                    SelectedBorderStyle = _options.BorderStyle;
+                }
                 if (tool == EditorTool.Arrow)
                 {
                     SelectedArrowStyle = NormalizeArrowStyle(_options.ArrowStyle);
@@ -1142,9 +1543,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 ShadowEnabled = _options.Shadow;
                 FontSize = _options.TextFontSize;
                 SelectedFontFamily = NormalizeFontFamily(_options.TextFontFamily);
+                SelectedTextHorizontalAlignment = _options.TextHorizontalAlignment;
                 TextBold = _options.TextBold;
                 TextItalic = _options.TextItalic;
-                TextUnderline = _options.TextUnderline;
                 break;
             case EditorTool.SpeechBalloon:
                 SelectedColor = ColorToHex(_options.SpeechBalloonBorderColor);
@@ -1155,9 +1556,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 ShadowEnabled = _options.Shadow;
                 FontSize = _options.SpeechBalloonFontSize;
                 SelectedFontFamily = NormalizeFontFamily(_options.SpeechBalloonFontFamily);
-                TextBold = _options.TextBold;
-                TextItalic = _options.TextItalic;
-                TextUnderline = _options.TextUnderline;
+                SelectedTextHorizontalAlignment = _options.SpeechBalloonTextHorizontalAlignment;
+                TextBold = _options.SpeechBalloonTextBold;
+                TextItalic = _options.SpeechBalloonTextItalic;
+                SpeechBalloonTail = _options.SpeechBalloonTail;
                 break;
             case EditorTool.Step:
                 SelectedColor = ColorToHex(_options.StepBorderColor);
@@ -1166,9 +1568,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 StrokeWidth = _options.StepThickness;
                 ShadowEnabled = _options.Shadow;
                 FontSize = _options.StepFontSize;
-                TextBold = _options.TextBold;
-                TextItalic = _options.TextItalic;
-                TextUnderline = _options.TextUnderline;
+                SelectedStepType = _options.StepType;
+                TextBold = _options.StepTextBold;
+                SpeechBalloonTail = _options.StepTail;
                 break;
             case EditorTool.Highlight:
                 FillColor = ColorToHex(_options.HighlightFillColor);
@@ -1181,11 +1583,20 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 break;
             case EditorTool.Magnify:
                 EffectStrength = _options.MagnifierStrength;
+                EffectEllipse = _options.MagnifierEllipse;
                 break;
             case EditorTool.Spotlight:
                 EffectStrength = _options.SpotlightStrength;
+                SpotlightBlur = _options.SpotlightBlur;
+                EffectEllipse = _options.SpotlightEllipse;
                 break;
         }
+
+        ShadowColor = _options.ShadowColorHex;
+        ShadowBlurRadius = _options.ShadowBlurRadius;
+        ShadowOpacity = _options.ShadowOpacity;
+        ShadowOffsetX = _options.ShadowOffsetX;
+        ShadowOffsetY = _options.ShadowOffsetY;
     }
 
     private void LoadSelectedAnnotationOptions(Annotation annotation)
@@ -1197,6 +1608,11 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             SelectedColor = annotation.StrokeColor;
             StrokeWidth = (int)annotation.StrokeWidth;
             ShadowEnabled = annotation.ShadowEnabled;
+            ShadowColor = annotation.ShadowColor;
+            ShadowBlurRadius = annotation.ShadowBlurRadius;
+            ShadowOpacity = annotation.ShadowOpacity;
+            ShadowOffsetX = annotation.ShadowOffsetX;
+            ShadowOffsetY = annotation.ShadowOffsetY;
         }
 
         switch (annotation)
@@ -1204,6 +1620,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             case NumberAnnotation number:
                 FontSize = number.FontSize;
                 FillColor = number.FillColor;
+                SelectedStepType = number.StepType;
+                TextBold = number.IsBold;
+                SpeechBalloonTail = number.TailEnabled;
                 if (!string.IsNullOrWhiteSpace(number.TextColor))
                 {
                     TextColor = number.TextColor;
@@ -1212,9 +1631,9 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             case TextAnnotation text:
                 FontSize = text.FontSize;
                 SelectedFontFamily = NormalizeFontFamily(text.FontFamily);
+                SelectedTextHorizontalAlignment = text.HorizontalAlignment;
                 TextBold = text.IsBold;
                 TextItalic = text.IsItalic;
-                TextUnderline = text.IsUnderline;
                 if (!string.IsNullOrWhiteSpace(text.TextColor))
                 {
                     TextColor = text.TextColor;
@@ -1223,6 +1642,10 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             case SpeechBalloonAnnotation balloon:
                 FontSize = balloon.FontSize;
                 SelectedFontFamily = NormalizeFontFamily(balloon.FontFamily);
+                SelectedTextHorizontalAlignment = balloon.HorizontalAlignment;
+                TextBold = balloon.IsBold;
+                TextItalic = balloon.IsItalic;
+                SpeechBalloonTail = balloon.TailEnabled;
                 FillColor = balloon.FillColor;
                 CornerRadius = balloon.CornerRadius;
                 if (!string.IsNullOrWhiteSpace(balloon.TextColor))
@@ -1233,9 +1656,17 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
             case RectangleAnnotation rectangle when rectangle is not SmartEraserAnnotation:
                 FillColor = rectangle.FillColor;
                 CornerRadius = rectangle.CornerRadius;
+                SelectedBorderStyle = rectangle.BorderStyle;
                 break;
             case EllipseAnnotation ellipse:
                 FillColor = ellipse.FillColor;
+                SelectedBorderStyle = ellipse.BorderStyle;
+                break;
+            case LineAnnotation line:
+                SelectedBorderStyle = line.BorderStyle;
+                break;
+            case FreehandAnnotation freehand:
+                SelectedBorderStyle = freehand.BorderStyle;
                 break;
             case ArrowAnnotation arrow:
                 SelectedArrowStyle = NormalizeArrowStyle(arrow.Style);
@@ -1245,9 +1676,15 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
                 break;
             case SpotlightAnnotation spotlight:
                 EffectStrength = ConvertSpotlightOpacityToStrength(spotlight.DarkenOpacity);
+                SpotlightBlur = spotlight.BlurAmount;
+                EffectEllipse = spotlight.IsEllipse;
                 break;
             case BaseEffectAnnotation effect:
                 EffectStrength = effect.Amount;
+                if (effect is MagnifyAnnotation)
+                {
+                    EffectEllipse = effect.IsEllipse;
+                }
                 if (effect is HighlightAnnotation highlight)
                 {
                     FillColor = highlight.FillColor;
@@ -1264,18 +1701,26 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         OnPropertyChanged(nameof(ShowThickness));
         OnPropertyChanged(nameof(ShowFontSize));
         OnPropertyChanged(nameof(ShowStepStartNumber));
+        OnPropertyChanged(nameof(ShowStepType));
+        OnPropertyChanged(nameof(ShowTextHorizontalAlignment));
         OnPropertyChanged(nameof(ShowFontFamily));
+        OnPropertyChanged(nameof(ShowBorderStyle));
         OnPropertyChanged(nameof(ShowArrowStyle));
         OnPropertyChanged(nameof(ShowCursorType));
         OnPropertyChanged(nameof(ShowCornerRadius));
         OnPropertyChanged(nameof(ShowStrength));
+        OnPropertyChanged(nameof(ShowSpotlightBlur));
+        OnPropertyChanged(nameof(ShowEffectEllipse));
         OnPropertyChanged(nameof(ShowShadow));
+        OnPropertyChanged(nameof(ShowSpeechBalloonTail));
         OnPropertyChanged(nameof(ShowTextStyle));
+        OnPropertyChanged(nameof(ShowTextItalic));
         OnPropertyChanged(nameof(ShowTailStyle));
         OnPropertyChanged(nameof(ShowToolOptionsSeparator));
         OnPropertyChanged(nameof(ActiveToolIcon));
         OnPropertyChanged(nameof(ActiveToolName));
         OnPropertyChanged(nameof(EffectStrengthMaximum));
+        OnPropertyChanged(nameof(SpotlightBlurMaximum));
     }
 
     private EditorTool? GetToolOptionsContext()
@@ -1350,8 +1795,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private enum TextStyle
     {
         Bold,
-        Italic,
-        Underline
+        Italic
     }
 
     void IAnnotationToolbarAdapter.SelectTool(EditorTool tool) => SelectToolCommand.Execute(tool);

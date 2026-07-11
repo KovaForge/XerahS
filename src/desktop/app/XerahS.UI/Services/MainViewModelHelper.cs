@@ -60,6 +60,7 @@ public static class MainViewModelHelper
         viewModel.CopyRequested += () =>
         {
             HandleCopyRequested(viewModel, getEditedSnapshot);
+            return Task.CompletedTask;
         };
     }
 
@@ -68,10 +69,7 @@ public static class MainViewModelHelper
     /// </summary>
     public static void WireSaveRequested(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot = null, Func<Window?>? getWindow = null)
     {
-        viewModel.SaveRequested += () =>
-        {
-            _ = HandleSaveRequestedAsync(viewModel, getEditedSnapshot, getWindow);
-        };
+        viewModel.SaveRequested += () => HandleSaveRequestedAsync(viewModel, getEditedSnapshot, getWindow);
     }
 
     /// <summary>
@@ -79,10 +77,7 @@ public static class MainViewModelHelper
     /// </summary>
     public static void WireSaveAsRequested(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot = null, Func<Window?>? getWindow = null)
     {
-        viewModel.SaveAsRequested += () =>
-        {
-            _ = HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
-        };
+        viewModel.SaveAsRequested += () => HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
     }
 
     /// <summary>
@@ -97,28 +92,27 @@ public static class MainViewModelHelper
         };
     }
 
-    private static async Task HandleSaveRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
+    private static async Task<string?> HandleSaveRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
     {
         DebugHelper.WriteLine("MainViewModelHelper: SaveRequested received");
         try
         {
             if (!string.IsNullOrEmpty(viewModel.ImageFilePath))
             {
-                await SaveToPathAsync(viewModel, getEditedSnapshot, viewModel.ImageFilePath);
+                return await SaveToPathAsync(viewModel, getEditedSnapshot, viewModel.ImageFilePath);
             }
-            else
-            {
-                await HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
-            }
+
+            return await HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
         }
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"Editor save failed: {ex.Message}");
             DebugHelper.WriteException(ex);
+            return null;
         }
     }
 
-    private static async Task HandleSaveAsRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
+    private static async Task<string?> HandleSaveAsRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
     {
         DebugHelper.WriteLine("MainViewModelHelper: SaveAsRequested received");
         try
@@ -128,7 +122,7 @@ public static class MainViewModelHelper
             if (topLevel?.StorageProvider == null)
             {
                 DebugHelper.WriteLine("MainViewModelHelper: SaveAs — no storage provider available.");
-                return;
+                return null;
             }
 
             string suggestedName = string.IsNullOrEmpty(viewModel.ImageFilePath)
@@ -152,19 +146,20 @@ public static class MainViewModelHelper
             if (string.IsNullOrEmpty(path))
             {
                 DebugHelper.WriteLine("MainViewModelHelper: SaveAs cancelled or path unavailable.");
-                return;
+                return null;
             }
 
-            await SaveToPathAsync(viewModel, getEditedSnapshot, path);
+            return await SaveToPathAsync(viewModel, getEditedSnapshot, path);
         }
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"Editor save-as failed: {ex.Message}");
             DebugHelper.WriteException(ex);
+            return null;
         }
     }
 
-    private static async Task SaveToPathAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, string path)
+    private static async Task<string?> SaveToPathAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, string path)
     {
         SKBitmap? bitmap = getEditedSnapshot?.Invoke();
         if (bitmap == null && viewModel.PreviewImage != null)
@@ -173,7 +168,7 @@ public static class MainViewModelHelper
         if (bitmap == null)
         {
             DebugHelper.WriteLine("MainViewModelHelper: SaveToPath — no image to save.");
-            return;
+            return null;
         }
 
         Exception? imageSaveError = null;
@@ -199,7 +194,7 @@ public static class MainViewModelHelper
             DebugHelper.WriteLine($"MainViewModelHelper: Image save failed (file may be incomplete): {imageSaveError.Message}");
             DebugHelper.WriteException(imageSaveError);
             viewModel.IsDirty = true;
-            return;
+            return null;
         }
 
         viewModel.ImageFilePath = path;
@@ -236,6 +231,7 @@ public static class MainViewModelHelper
 
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
         viewModel.IsDirty = false;
+        return path;
     }
 
     private static async Task HandleUploadRequestedAsync(MainViewModel viewModel, IDesktopTaskManager taskManager, Func<SKBitmap?>? getEditedSnapshot)

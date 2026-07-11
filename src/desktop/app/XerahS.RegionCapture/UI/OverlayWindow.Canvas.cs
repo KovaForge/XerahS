@@ -321,7 +321,6 @@ public partial class OverlayWindow
                 textAnnotation.TextColor = _viewModel.GetResolvedTextColor();
                 textAnnotation.IsBold = _viewModel.TextBold;
                 textAnnotation.IsItalic = _viewModel.TextItalic;
-                textAnnotation.IsUnderline = _viewModel.TextUnderline;
                 break;
             case NumberAnnotation numberAnnotation:
                 numberAnnotation.FontSize = _viewModel.FontSize;
