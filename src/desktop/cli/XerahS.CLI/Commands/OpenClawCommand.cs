@@ -86,10 +86,10 @@ public static class OpenClawCommand
             ],
             Commands:
             [
-                new OpenClawManifestCommand("openclaw manifest", "Describe CLI capabilities for agents", true, false),
+                new OpenClawManifestCommand("openclaw manifest", "Describe CLI capabilities for agents", false, false),
                 new OpenClawManifestCommand("doctor uploaders --json", "Inspect uploader readiness", true, false),
                 new OpenClawManifestCommand("doctor uploaders --fix", "Repair safe local uploader defaults", false, true),
-                new OpenClawManifestCommand("bootstrap uploaders --json", "Idempotently initialize first-use uploader defaults and report Created/Repaired/Skipped/Diagnostics as JSON", false, true),
+                new OpenClawManifestCommand("bootstrap uploaders --json", "Idempotently initialize first-use uploader defaults and report Created/Repaired/Skipped/Diagnostics as JSON", true, true),
                 new OpenClawManifestCommand("upload <file> --json", "Upload a file and return JSON containing url, filename, size, and type", true, true),
                 new OpenClawManifestCommand("upload <file> --as-file --json", "Force text-like artifacts such as HTML through the file uploader category", true, true),
                 new OpenClawManifestCommand("upload --text <text> --name <name> --json", "Upload generated text content", true, true),
