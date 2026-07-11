@@ -86,3 +86,24 @@ Run `git-<person> whoami` to confirm identity and remote before pushing.
 ## Source of truth
 
 Inherited from `/Users/mike/Projects/KovaForge/AGENTS.md`. When this file and the parent conflict, the parent wins until this file is updated to match.
+
+## Cursor Cloud specific instructions
+
+These notes are for Cursor Cloud agents running on the Linux VM (Ubuntu 24.04). The per-person git wrappers above do **not** apply here; cloud agents use plain `git` on `cursor/*` branches.
+
+### Toolchain (already provisioned in the VM snapshot)
+- **.NET 10 SDK** lives in `~/.dotnet` and is on `PATH`/`DOTNET_ROOT` via `~/.bashrc`. If `dotnet` is not found in a non-login shell, use the full path `~/.dotnet/dotnet`.
+- **Node.js** (>= 22.12) and `npm` are preinstalled system-wide and satisfy the `ShareX.VideoEditor` frontend `engines` requirement.
+- On Linux the desktop projects build as **`net10.0`** (not `net10.0-windows...`); the Windows TFM only applies on Windows. `XerahS.Platform.Linux` is pulled in automatically.
+
+### Build / test / run (Linux desktop scope)
+- Build everything runnable on Linux: `dotnet build src/desktop/XerahS.sln -m:1 -p:nodeReuse=false -p:UseSharedCompilation=false` (single-node flags avoid MSBuild lock flakiness; see README "Desktop Quick Start").
+- Tests: `dotnet test tests/XerahS.Tests/XerahS.Tests.csproj`. Note: 3 tests in `XerahS.Tests.Tools.OpenClawCommandTests` (bootstrap `JsonOutput` flag) fail on a clean checkout and are unrelated to environment setup.
+- Run the app: `dotnet run --project src/desktop/app/XerahS.App/XerahS.App.csproj` (add `--no-build` if already built).
+- Lint/style is enforced by the build itself via `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` + Roslyn analyzers. `dotnet format --verify-no-changes` reports many pre-existing ENDOFLINE/CHARSET findings and is **not** the repo's style gate — do not treat those as regressions.
+
+### Non-obvious gotchas
+- **First build builds the VideoEditor web UI**: an MSBuild target runs `npm ci` + `vite build` in `ShareX.VideoEditor/frontend` and fails if `frontend/dist` is missing. This needs network on the first build; later builds skip it when deps are current.
+- **GUI needs a display**: `XerahS.App` `Program.cs` validates `DISPLAY`/`WAYLAND_DISPLAY` on Linux and will not start headless. The cloud VM already exposes an X11 display at `DISPLAY=:1` (the desktop the computer-use tools see). Export `DISPLAY=:1` before `dotnet run` if it is unset.
+- Screen recording on Linux falls back to the FFmpeg `x11grab` backend (no ScreenCast portal in the VM).
+- Submodules (`ShareX.ImageEditor`, `ShareX.VideoEditor`) are required to build; `XerahS.UI`/`XerahS.CLI` reference them directly. They are refreshed by the startup update script (`git submodule update --init --recursive`).
