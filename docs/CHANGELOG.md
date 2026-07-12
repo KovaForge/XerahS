@@ -10,6 +10,15 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.23.132
+
+### Fixes
+- **Linux — Flatpak startup crash (#270)**: The sandboxed build crashed ~1 second after startup on desktops with a StatusNotifierWatcher (KDE Plasma, XFCE, …). Avalonia's tray icon requests the `org.kde.StatusNotifierItem-{pid}-{id}` session-bus name, the Flatpak D-Bus proxy denied it, and the resulting `DBusErrorReplyException` escaped on the UI thread. The manifest now grants `--own-name=org.kde.*` so the tray icon works, and the dispatcher treats DBus/FreeDesktop integration failures as non-fatal (log-and-continue) so restricted sandboxes can never take the app down.
+- **Linux — Startup diagnostics**: Startup failures no longer print misleading "Unable to connect to display server" / "run via flatpak-spawn" guidance for non-display errors; the real exception and the log file path are written to the console instead.
+- **Linux — Flatpak plugin cleaner**: Skip plugin folder cleanup on read-only file systems (`/app`) with a single log line instead of a warning per bundled file.
+
+---
+
 ## v0.23.131
 
 ### Fixes

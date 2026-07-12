@@ -42,6 +42,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.23.132" date="2026-07-11">
+      <description>
+        <p>Fix Flatpak startup crash on desktops with a StatusNotifierWatcher (KDE Plasma) and enable the tray icon inside the sandbox. See the full changelog on GitHub.</p>
+      </description>
+    </release>
     <release version="0.22.256" date="2026-05-11">
       <description>
         <p>See the full changelog on GitHub.</p>
