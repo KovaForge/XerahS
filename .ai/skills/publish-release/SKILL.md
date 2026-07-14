@@ -18,10 +18,14 @@ Use this skill to run release steps in strict order:
 - Optional Step 8: Generate a Flathub source-build manifest candidate from the successful pre-release tag; do not open or automate a Flathub PR
 - The GitHub Actions release upload steps must also set `prerelease: true` and `make_latest: false`; do not rely only on the post-workflow `gh release edit --prerelease` guard.
 
-Repository target behavior:
-- The automation is repository-agnostic. Git pushes use the local `origin` remote.
-- GitHub CLI operations (`gh run`, `gh release`) resolve the target from the GitHub `origin` remote by default, for example `ShareX/XerahS` or `KovaForge/XerahS`.
+Repository target behavior (dual-repo):
+- Supported release targets: `https://github.com/KovaForge/XerahS` and `https://github.com/ShareX/XerahS`.
+- Git pushes use `--push-remote` (default: `origin`). For ShareX publishes from a KovaForge fork checkout, use `--push-remote upstream --repo ShareX/XerahS`.
+- GitHub CLI operations (`gh run`, `gh release`) resolve from the `origin` remote URL by default.
+- Origin may be a standard `github.com` URL or a KovaForge per-person SSH alias such as `git@github-vladislava:KovaForge/XerahS.git`.
+- Do **not** rely on bare `gh repo view` for target inference on fork checkouts: it often resolves the upstream parent (`ShareX/XerahS`) instead of origin (`KovaForge/XerahS`).
 - Use `--repo owner/name` to override the inferred target when needed.
+- After a successful workflow, the skill verifies the required asset set on the chosen repo (Windows/macOS/Linux/Flatpak + Chocolatey nupkg).
 
 Step 3 performs:
 - Pre-check: Run `dotnet build src/desktop/XerahS.sln`; do not proceed if build fails.
@@ -72,10 +76,16 @@ Automated monitor + default pre-release (recommended):
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
 ```
 
-Explicit repository target example:
+KovaForge fork example (origin already points at KovaForge):
 
 ```bash
-./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --assume-changelog-done --monitor --set-prerelease --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --git-wrapper git-vladislava --push-remote vladislava --assume-changelog-done --monitor --set-prerelease --bump z --yes
+```
+
+ShareX upstream example from a KovaForge checkout:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo ShareX/XerahS --push-remote upstream --assume-changelog-done --monitor --set-prerelease --bump z --yes
 ```
 
 Stable release opt-out example:
@@ -268,4 +278,7 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Flatpak CI bundling should export `flatpak-builder` output to an explicit local repo with `--repo=...`; validate files directly or use supported Flatpak commands, not `flatpak build-info`.
 - Chocolatey release metadata lookup must use the active GitHub repository (`GITHUB_REPOSITORY`, `origin`, or explicit `-Repository owner/name`), not a hardcoded upstream owner.
 - Chocolatey install scripts must also generate download URLs from the active release repository; updating only nuspec metadata is not enough.
+- Dual-repo remote resolution must parse `git@github-<alias>:Owner/Repo.git`; bare `gh repo view` on a KovaForge fork checkout often returns `ShareX/XerahS` and must not be used for release targeting.
+- After XIP0078 ad-hoc signing was added, macos-15 CI can fail when codesign hard-fails on unsigned nested managed DLLs; ad-hoc signing must use `--deep` and must not fail the release matrix for interim unsigned seals.
+- Always verify the full required asset list on the chosen repo after workflow success; an empty GitHub release with zero assets is a failed publish even if a tag/release shell exists.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.

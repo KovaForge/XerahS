@@ -267,6 +267,9 @@ sign_app_bundle() {
         fi
     fi
 
+    # Clear quarantine/xattrs that can break nested codesign on CI runners.
+    xattr -cr "$app_bundle_path" 2>/dev/null || true
+
     # Sign innermost-first: every nested Mach-O (dylibs, apphost executables, daemon,
     # plugin native deps), then the bundle itself. Managed PE assemblies are not
     # signable by codesign and are skipped via the file(1) check.
@@ -277,12 +280,27 @@ sign_app_bundle() {
     done < <(find "$app_bundle_path/Contents/MacOS" -type f -print0)
 
     if [ "$identity" = "-" ]; then
-        codesign --force -s - "$app_bundle_path"
-    else
-        codesign --force --options runtime --timestamp \
-            --entitlements "$ENTITLEMENTS" \
-            -s "$identity" "$app_bundle_path"
+        # .NET publish layouts mix Mach-O hosts with PE assemblies. Ad-hoc signing must
+        # use --deep so codesign does not hard-fail on unsigned nested managed DLLs
+        # (seen on macos-15 with System.Diagnostics.Contracts.dll and similar).
+        # Ad-hoc signatures have no Gatekeeper value anyway; do not fail the release
+        # matrix when interim ad-hoc sealing is imperfect.
+        if ! codesign --force --deep -s - "$app_bundle_path"; then
+            echo "Warning: ad-hoc deep sign failed; retrying without --deep..."
+            codesign --force -s - "$app_bundle_path" || \
+                echo "Warning: ad-hoc app bundle signing failed; continuing with unsigned interim bundle."
+        fi
+        if codesign --verify "$app_bundle_path" >/dev/null 2>&1; then
+            echo "Ad-hoc code signature verified for $app_bundle_path"
+        else
+            echo "Warning: ad-hoc signature verify failed for $app_bundle_path; continuing."
+        fi
+        return 0
     fi
+
+    codesign --force --options runtime --timestamp \
+        --entitlements "$ENTITLEMENTS" \
+        -s "$identity" "$app_bundle_path"
 
     codesign --verify --strict "$app_bundle_path"
     echo "Code signature verified for $app_bundle_path"

@@ -28,39 +28,9 @@ require_cmd() {
   fi
 }
 
-resolve_github_repo_from_origin() {
-  local remote_url
-  remote_url="$(git remote get-url origin 2>/dev/null || true)"
-  if [[ -z "$remote_url" ]]; then
-    return 1
-  fi
-
-  case "$remote_url" in
-    https://github.com/*)
-      remote_url="${remote_url#https://github.com/}"
-      ;;
-    http://github.com/*)
-      remote_url="${remote_url#http://github.com/}"
-      ;;
-    git@github.com:*)
-      remote_url="${remote_url#git@github.com:}"
-      ;;
-    ssh://git@github.com/*)
-      remote_url="${remote_url#ssh://git@github.com/}"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-
-  remote_url="${remote_url%.git}"
-  if [[ "$remote_url" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
-    echo "$remote_url"
-    return 0
-  fi
-
-  return 1
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# shellcheck source=resolve-github-repo.sh
+source "$SCRIPT_DIR/resolve-github-repo.sh"
 
 resolve_version_from_props() {
   local version_file="$1"
@@ -412,14 +382,8 @@ if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 1
 fi
 
-if [[ -z "$GH_TARGET_REPO" ]]; then
-  GH_TARGET_REPO="$(resolve_github_repo_from_origin || true)"
-fi
-if [[ -z "$GH_TARGET_REPO" ]]; then
-  GH_TARGET_REPO="${GH_REPO:-}"
-fi
-if [[ -z "$GH_TARGET_REPO" ]]; then
-  echo "Error: could not resolve GitHub repo from origin. Pass --repo owner/name." >&2
+if ! GH_TARGET_REPO="$(resolve_github_repo_prefer_origin "$GH_TARGET_REPO")"; then
+  echo "Error: could not resolve GitHub repo from origin. Pass --repo owner/name (e.g. KovaForge/XerahS or ShareX/XerahS)." >&2
   exit 1
 fi
 
