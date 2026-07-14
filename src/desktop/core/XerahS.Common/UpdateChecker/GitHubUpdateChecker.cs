@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using System.Net;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -79,7 +81,7 @@ namespace XerahS.Common
 
                 DebugHelper.WriteLine($"Found release: {latestRelease.tag_name?.TrimStart('v')} (prerelease: {latestRelease.prerelease})");
 
-                if (UpdateReleaseInfo(latestRelease, IsPortable, IsPortable))
+                if (UpdateReleaseInfo(latestRelease, IsPortable, isBrowserDownloadURL: true))
                 {
                     RefreshStatus();
                     DebugHelper.WriteLine($"Current: {CurrentVersion?.ToString(3)}, Latest: {LatestVersion?.ToString(3)}, Status: {Status}");
@@ -121,7 +123,7 @@ namespace XerahS.Common
         {
             List<GitHubRelease>? releases = null;
 
-            string response = await WebHelpers.DownloadStringAsync(ReleasesURL);
+            string response = await DownloadGitHubApiStringAsync(ReleasesURL);
 
             if (!string.IsNullOrEmpty(response))
             {
@@ -140,7 +142,7 @@ namespace XerahS.Common
         {
             GitHubRelease? latestRelease = null;
 
-            string response = await WebHelpers.DownloadStringAsync(LatestReleaseURL);
+            string response = await DownloadGitHubApiStringAsync(LatestReleaseURL);
 
             if (!string.IsNullOrEmpty(response))
             {
@@ -169,7 +171,7 @@ namespace XerahS.Common
                 {
                     latestRelease = await GetLatestRelease();
                 }
-                catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+                catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     // No stable release found, fall back to checking all releases
                     DebugHelper.WriteLine($"No stable releases found for {Owner}/{Repo}. Checking for pre-releases...");
@@ -184,6 +186,32 @@ namespace XerahS.Common
             }
 
             return latestRelease;
+        }
+
+        /// <summary>
+        /// Downloads a string from the GitHub API, adding the recommended Accept header
+        /// and providing diagnostic logging for rate-limit (403) responses.
+        /// </summary>
+        private static async Task<string> DownloadGitHubApiStringAsync(string url)
+        {
+            HttpClient client = HttpClientFactory.Create();
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+
+            using HttpResponseMessage response = await client.SendAsync(request);
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                // GitHub rate-limit: log remaining quota from headers if available.
+                string remaining = response.Headers.TryGetValues("X-RateLimit-Remaining", out var vals)
+                    ? string.Join(", ", vals)
+                    : "unknown";
+                DebugHelper.WriteLine($"GitHub API returned 403 for {url}. Rate-limit remaining: {remaining}");
+            }
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
         }
 
         protected virtual bool UpdateReleaseInfo(GitHubRelease? release, bool isPortable, bool isBrowserDownloadURL)
