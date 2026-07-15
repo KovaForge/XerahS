@@ -155,6 +155,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 - Never keep the existing patch/minor version when implementing a brand-new product feature that did not previously exist; always bump the app minor version in root `Directory.Build.props` first and use that bumped version in the commit prefix because new feature surfaces should start a new minor release line.
 - Never infer the GitHub release target with bare `gh repo view` on a KovaForge fork checkout; always resolve from the `origin` remote URL (including `git@github-<alias>:Owner/Repo.git`) or pass `--repo owner/name`, because `gh` often returns upstream `ShareX/XerahS` instead of `KovaForge/XerahS`.
+- Never apply one release-channel policy to both remotes; always treat `ShareX/XerahS` as pre-release and `KovaForge/XerahS` as full latest unless an explicit `--set-prerelease` / `--no-prerelease` override is requested.
 - Never let interim macOS ad-hoc codesign hard-fail the release matrix on unsigned nested managed DLLs; always use `--deep` and non-fatal verify for the ad-hoc path, because a single macos-15 codesign failure skips asset upload even when Windows/Linux builds succeeded.
 
 ### Windows TFM & CsWinRT Behavior (Net10.0-windows)

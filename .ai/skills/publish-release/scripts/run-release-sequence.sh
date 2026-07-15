@@ -20,9 +20,9 @@ Sequence options:
   --repo <owner/name>         GitHub repository for gh commands (default: origin remote owner/name)
   --push-remote <name>        Git remote used for branch/tag push (default: origin; pass through to bump script)
   --git-wrapper <cmd>         Git identity wrapper for commit/push (e.g. git-vladislava); also XERAHS_GIT_WRAPPER
-  --set-prerelease            Explicitly mark successful tag release as pre-release (default behavior)
-  --no-prerelease             Keep successful tag release as stable (opt out)
-  --prepare-flathub-source    Generate Flathub source-build manifest candidate after the pre-release is ready
+  --set-prerelease            Force successful tag release as pre-release
+  --no-prerelease             Force successful tag release as stable/latest
+  --prepare-flathub-source    Generate Flathub source-build manifest candidate after the release is ready
   -h, --help                  Show this help
 
 All other options are passed through to:
@@ -32,6 +32,10 @@ Dual-repo note:
   Supports KovaForge/XerahS and ShareX/XerahS. Origin may use per-person SSH hosts
   (git@github-<alias>:Owner/Repo.git). Never rely on bare \`gh repo view\` for target
   inference on forks (it often resolves ShareX/XerahS upstream).
+
+Release channel policy (default when neither --set-prerelease nor --no-prerelease is passed):
+  - ShareX/XerahS     -> pre-release
+  - KovaForge/XerahS  -> full release (latest)
 USAGE
 }
 
@@ -275,8 +279,8 @@ set_release_prerelease() {
   local is_prerelease=""
   local release_url=""
 
-  echo "Setting release $tag_name as pre-release..."
-  gh release edit "$tag_name" --repo "$gh_repo" --prerelease >/dev/null
+  echo "Setting release $tag_name as pre-release on $gh_repo..."
+  gh release edit "$tag_name" --repo "$gh_repo" --prerelease --latest=false >/dev/null
 
   is_prerelease="$(gh release view "$tag_name" --repo "$gh_repo" --json isPrerelease --jq '.isPrerelease')"
   release_url="$(gh release view "$tag_name" --repo "$gh_repo" --json url --jq '.url')"
@@ -287,6 +291,57 @@ set_release_prerelease() {
   fi
 
   echo "Release marked as pre-release: $release_url"
+}
+
+set_release_stable() {
+  local tag_name="$1"
+  local gh_repo="$2"
+  local is_prerelease=""
+  local is_latest=""
+  local release_url=""
+
+  echo "Setting release $tag_name as full release (latest) on $gh_repo..."
+  gh release edit "$tag_name" --repo "$gh_repo" --prerelease=false --latest >/dev/null
+
+  is_prerelease="$(gh release view "$tag_name" --repo "$gh_repo" --json isPrerelease --jq '.isPrerelease')"
+  is_latest="$(gh release view "$tag_name" --repo "$gh_repo" --json isLatest --jq '.isLatest')"
+  release_url="$(gh release view "$tag_name" --repo "$gh_repo" --json url --jq '.url')"
+
+  if [[ "$is_prerelease" == "true" ]]; then
+    echo "Error: release $tag_name is still marked as pre-release." >&2
+    exit 1
+  fi
+  if [[ "$is_latest" != "true" ]]; then
+    echo "Error: release $tag_name was not marked as latest." >&2
+    exit 1
+  fi
+
+  echo "Release marked as full release (latest): $release_url"
+}
+
+default_prerelease_for_repo() {
+  local gh_repo="$1"
+  case "$gh_repo" in
+    KovaForge/XerahS)
+      echo 0
+      ;;
+    *)
+      # ShareX/XerahS and any other target default to pre-release.
+      echo 1
+      ;;
+  esac
+}
+
+apply_release_channel() {
+  local tag_name="$1"
+  local gh_repo="$2"
+  local as_prerelease="$3"
+
+  if [[ "$as_prerelease" -eq 1 ]]; then
+    set_release_prerelease "$tag_name" "$gh_repo"
+  else
+    set_release_stable "$tag_name" "$gh_repo"
+  fi
 }
 
 expected_release_asset_names() {
@@ -361,7 +416,8 @@ SKIP_MAINTENANCE=0
 ASSUME_CHANGELOG_DONE=0
 MONITOR=0
 MONITOR_INTERVAL=120
-SET_PRERELEASE=1
+# empty = auto from repo policy; 1 = force prerelease; 0 = force stable
+SET_PRERELEASE=""
 PREPARE_FLATHUB_SOURCE=0
 WORKFLOW_NAME="Release Build (All Platforms)"
 GH_TARGET_REPO=""
@@ -424,6 +480,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-prerelease)
       SET_PRERELEASE=0
+      MONITOR=1
       shift
       ;;
     --prepare-flathub-source)
@@ -466,6 +523,15 @@ if ! GH_TARGET_REPO="$(resolve_github_repo_prefer_origin "$GH_TARGET_REPO")"; th
 fi
 echo "GitHub repo target: $GH_TARGET_REPO"
 echo "Origin remote URL : $(git remote get-url origin 2>/dev/null || echo '<missing>')"
+
+if [[ -z "$SET_PRERELEASE" ]]; then
+  SET_PRERELEASE="$(default_prerelease_for_repo "$GH_TARGET_REPO")"
+fi
+if [[ "$SET_PRERELEASE" -eq 1 ]]; then
+  echo "Release channel   : pre-release"
+else
+  echo "Release channel   : full release (latest)"
+fi
 
 maintenance_skill="$repo_root/.ai/skills/run-maintenance/SKILL.md"
 changelog_skill="$repo_root/.ai/skills/update-changelog/SKILL.md"
@@ -510,15 +576,15 @@ run_build_precheck
 bash "$bump_script" "${PASSTHROUGH_ARGS[@]}"
 
 if passthrough_has_flag "--dry-run"; then
-  if [[ $MONITOR -eq 1 || $SET_PRERELEASE -eq 1 ]]; then
-    echo "Skipping monitor/prerelease because bump step used --dry-run."
+  if [[ $MONITOR -eq 1 ]]; then
+    echo "Skipping monitor/release-channel steps because bump step used --dry-run."
   fi
   exit 0
 fi
 
 if passthrough_has_flag "--no-tag" || passthrough_has_flag "--no-push"; then
-  if [[ $MONITOR -eq 1 || $SET_PRERELEASE -eq 1 ]]; then
-    echo "Error: --monitor/--set-prerelease requires tag creation and push." >&2
+  if [[ $MONITOR -eq 1 ]]; then
+    echo "Error: --monitor/--set-prerelease/--no-prerelease requires tag creation and push." >&2
     exit 1
   fi
   echo "Done: bump step completed without remote tag push."
@@ -556,10 +622,8 @@ ensure_standard_release_notes "$tag_name" "$GH_TARGET_REPO"
 echo "Step 6: verifying required release assets on $GH_TARGET_REPO..."
 verify_release_assets "$tag_name" "$GH_TARGET_REPO"
 
-if [[ $SET_PRERELEASE -eq 1 ]]; then
-  echo "Step 7: marking release as pre-release..."
-  set_release_prerelease "$tag_name" "$GH_TARGET_REPO"
-fi
+echo "Step 7: applying release channel policy for $GH_TARGET_REPO..."
+apply_release_channel "$tag_name" "$GH_TARGET_REPO" "$SET_PRERELEASE"
 
 if [[ $PREPARE_FLATHUB_SOURCE -eq 1 ]]; then
   echo "Step 8: preparing Flathub source-build manifest candidate for $tag_name..."
