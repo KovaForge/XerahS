@@ -75,7 +75,7 @@ public class OnboardingWizardCommitSettingsTests
         {
             Assert.That(SettingsManager.Settings.CustomScreenshotsPath, Is.EqualTo(folder));
             Assert.That(SettingsManager.Settings.UseCustomScreenshotsPath, Is.True);
-            Assert.That(SettingsManager.Settings.SaveImageSubFolderPattern, Is.EqualTo("%y-%mo-%d"));
+            Assert.That(SettingsManager.Settings.SaveImageSubFolderPattern, Is.EqualTo("%y-%mo"));
         });
     }
 
