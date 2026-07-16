@@ -316,6 +316,20 @@ public class GradientInfo
 
     public GradientInfo(LinearGradientMode type, params Color[] colors) : this(type)
     {
+        if (colors == null || colors.Length == 0)
+        {
+            return;
+        }
+
+        // Single-color input used to divide by (Length - 1) == 0 and produce
+        // Infinity/NaN stop locations. Place the sole stop at 0 so solid-color
+        // gradients stay finite and within 0..100.
+        if (colors.Length == 1)
+        {
+            Colors.Add(new GradientStop(colors[0], 0));
+            return;
+        }
+
         for (int i = 0; i < colors.Length; i++)
         {
             Colors.Add(new GradientStop(colors[i], (int)Math.Round(100f / (colors.Length - 1) * i)));
