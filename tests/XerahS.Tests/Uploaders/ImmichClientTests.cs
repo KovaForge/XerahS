@@ -25,6 +25,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -246,5 +248,59 @@ public sealed class ImmichClientTests
 
         // Assert
         Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public async Task DownloadAssetAsync_MissingAsset_ReturnsNull()
+    {
+        // Regression: DownloadAssetAsync used throwing SendAsync, so 404s surfaced as
+        // InvalidOperationException instead of the advertised null fallback.
+        var client = new ImmichClient(ServerUrl, ApiKey, new StatusCodeHandler(HttpStatusCode.NotFound));
+
+        byte[]? result = await client.DownloadAssetAsync("missing-asset-id");
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public async Task DownloadThumbnailAsync_MissingAsset_ReturnsNull()
+    {
+        // Same contract for thumbnails: missing assets return null, never throw.
+        var client = new ImmichClient(ServerUrl, ApiKey, new StatusCodeHandler(HttpStatusCode.NotFound));
+
+        byte[]? result = await client.DownloadThumbnailAsync("missing-asset-id");
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public async Task DownloadAssetAsync_Success_ReturnsBodyBytes()
+    {
+        byte[] payload = { 1, 2, 3, 4, 5 };
+        var client = new ImmichClient(ServerUrl, ApiKey, new StatusCodeHandler(HttpStatusCode.OK, payload));
+
+        byte[]? result = await client.DownloadAssetAsync("present-asset-id");
+
+        Assert.That(result, Is.EqualTo(payload));
+    }
+
+    private sealed class StatusCodeHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode _statusCode;
+        private readonly byte[] _body;
+
+        public StatusCodeHandler(HttpStatusCode statusCode, byte[]? body = null)
+        {
+            _statusCode = statusCode;
+            _body = body ?? Array.Empty<byte>();
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(_statusCode)
+            {
+                Content = new ByteArrayContent(_body)
+            });
+        }
     }
 }

@@ -34,7 +34,7 @@ namespace ShareX.Immich.Plugin;
 
 public sealed class ImmichClient
 {
-    private static readonly HttpClient HttpClient = HttpClientFactory.Create();
+    private static readonly HttpClient SharedHttpClient = HttpClientFactory.Create();
 
     private static readonly string[] ScopedApiKeyPermissions =
     {
@@ -57,11 +57,27 @@ public sealed class ImmichClient
 
     private readonly string _serverUrl;
     private readonly string _apiKey;
+    private readonly HttpClient _httpClient;
 
     public ImmichClient(string serverUrl, string apiKey)
+        : this(serverUrl, apiKey, SharedHttpClient)
+    {
+    }
+
+    /// <summary>
+    /// Test seam: inject a handler-backed HttpClient so download helpers can be
+    /// exercised without the shared static client.
+    /// </summary>
+    internal ImmichClient(string serverUrl, string apiKey, HttpMessageHandler handler)
+        : this(serverUrl, apiKey, new HttpClient(handler, disposeHandler: true))
+    {
+    }
+
+    private ImmichClient(string serverUrl, string apiKey, HttpClient httpClient)
     {
         _serverUrl = NormalizeServerUrl(serverUrl);
         _apiKey = apiKey?.Trim() ?? string.Empty;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     public static string NormalizeServerUrl(string? serverUrl)
@@ -335,7 +351,7 @@ public sealed class ImmichClient
         request.Content = form;
         request.Headers.TryAddWithoutValidation("x-immich-checksum", checksum);
 
-        using HttpResponseMessage response = await HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        using HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
         string body = await response.Content.ReadAsStringAsync(cancellation);
         if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created)
         {
@@ -426,7 +442,11 @@ public sealed class ImmichClient
             return null;
         }
 
-        using HttpResponseMessage response = await SendAsync(HttpMethod.Get, $"/assets/{Uri.EscapeDataString(assetId)}/original", cancellation: cancellation);
+        // Optional download: missing assets must return null, not throw from SendAsync.
+        using HttpResponseMessage response = await SendOptionalAsync(
+            HttpMethod.Get,
+            $"/assets/{Uri.EscapeDataString(assetId)}/original",
+            cancellation);
         if (!response.IsSuccessStatusCode)
         {
             return null;
@@ -443,7 +463,11 @@ public sealed class ImmichClient
         }
 
         string size = maxWidthPx > 320 ? "preview" : "thumbnail";
-        using HttpResponseMessage response = await SendAsync(HttpMethod.Get, $"/assets/{Uri.EscapeDataString(assetId)}/thumbnail?size={size}", cancellation: cancellation);
+        // Optional download: missing assets must return null, not throw from SendAsync.
+        using HttpResponseMessage response = await SendOptionalAsync(
+            HttpMethod.Get,
+            $"/assets/{Uri.EscapeDataString(assetId)}/thumbnail?size={size}",
+            cancellation);
         if (!response.IsSuccessStatusCode)
         {
             return null;
@@ -534,6 +558,19 @@ public sealed class ImmichClient
         return await SendAsync(method, relativePath, payload, null, true, cancellation);
     }
 
+    /// <summary>
+    /// Non-throwing send for optional resources (downloads, soft lookups).
+    /// Caller owns the returned response and must dispose it.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendOptionalAsync(
+        HttpMethod method,
+        string relativePath,
+        CancellationToken cancellation = default)
+    {
+        using HttpRequestMessage request = CreateRequest(method, relativePath);
+        return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+    }
+
     private async Task<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string relativePath,
@@ -548,7 +585,7 @@ public sealed class ImmichClient
             request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
         }
 
-        HttpResponseMessage response = await HttpClient.SendAsync(request, cancellation);
+        HttpResponseMessage response = await _httpClient.SendAsync(request, cancellation);
         if (response.IsSuccessStatusCode)
         {
             return response;
