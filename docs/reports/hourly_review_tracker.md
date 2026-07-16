@@ -2190,3 +2190,24 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 
 **next_candidates:** 96 → 95 after clean review + dedupe.
 
+
+### 2026-07-16 22:34 AWST - GradientInfo / single-color divide-by-zero
+
+- Area: GradientInfo params Color[] constructor
+- Files: src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs, tests/XerahS.Tests/Core/Models/GradientInfoTests.cs, Directory.Build.props
+- Findings: Single-color GradientInfo computed 100f/(Length-1)*i and produced Infinity/NaN stop locations. Guard empty/null and Length==1; sole stop at 0.
+- Status: Fixed
+- Build/test: Core+Tests Release build 0 errors; GradientInfoTests 4 passed / 0 failed. logs: /tmp/xerahs-bugfix/build-20260716-220247-fix1.log, /tmp/xerahs-bugfix/test-20260716-220247-fix1.log
+- Commit: 15a16b11 (Declan Murphy)
+- Follow-up: none for this item
+- Skill: xerahs-bugfix/SKILL.md v1.0.1 (no skill patch this run beyond execution notes)
+
+### 2026-07-16 22:34 AWST - Immich / download helpers throw on missing assets
+
+- Area: ImmichClient DownloadAssetAsync / DownloadThumbnailAsync
+- Files: src/desktop/plugins/Immich.Plugin/ImmichClient.cs, tests/XerahS.Tests/Uploaders/ImmichClientTests.cs, Directory.Build.props
+- Findings: Helpers advertised null-on-failure but routed through throwing SendAsync, so 404s never reached the null path. Added SendOptionalAsync + instance HttpClient test seam.
+- Status: Fixed
+- Build/test: Tests project Release build 0 errors; ImmichClientTests 13 passed / 0 failed. logs: /tmp/xerahs-bugfix/build-20260716-220247-fix2.log, /tmp/xerahs-bugfix/test-20260716-220247-fix2.log
+- Commit: f1fca3fc (Declan Murphy)
+- Follow-up: none for this item

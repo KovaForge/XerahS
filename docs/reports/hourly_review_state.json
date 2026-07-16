@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-07 19:59 AWST",
+  "last_updated": "2026-07-16 22:34 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -22,7 +22,6 @@
     "fnd_sig-feat-library-0cc26b772b-2305_41f75ba593 -- Potential risk of incorrect OS-specific build configurations",
     "fnd_sig-feat-library-0b7ba58069-f0dc_e2e7a03841 -- Potential risk of incorrect package version management",
     "fnd_sig-feat-library-06c095cefe-2ae1_fe873fdbd8 -- ShareX.ImageEditor targets net10.0 instead of the required Windows TFM",
-    "fnd_sig-feat-library-061adb6873-7654_7626bbd5f6 -- Single-color gradients compute an invalid stop location",
     "fnd_sig-feat-library-08799ed4a4-e7b7_778331b100 -- SkiaSharp central version is ahead of the repository-mandated preview version",
     "fnd_sig-feat-library-0584088912-e889_eead89b9ed -- Common projects target net10.0 despite repository-required Windows TFM",
     "fnd_sig-feat-library-0584088912-e12d_fec808573b -- FileDownloader refuses valid downloads without Content-Length",
@@ -32,7 +31,6 @@
     "fnd_sig-feat-library-057839b894-d588_9212997b0c -- Redirected stderr can block CLI capture helpers before timeout",
     "fnd_sig-feat-library-061adb6873-5b4a_f9b6edb8e5 -- Serialized image effect presets allow Json.NET type metadata",
     "fnd_sig-feat-library-05a51d5ecc-07cb_ba4c21c6b7 -- Temporary picker copies are never cleaned up",
-    "fnd_sig-feat-library-09e6d488ad-8fdd_7f10621211 -- Download helpers intend to return null on missing assets but throw before the null path",
     "fnd_sig-feat-library-0584088912-df87_78427a1c1b -- FFmpeg downloader exposes cancellation tokens but does not cancel downloads",
     "fnd_sig-feat-library-1c07a0ed7c-bb9d_0041d1b225 -- Missing documentation for InternalsVisibleTo attribute",
     "fnd_sig-feat-library-16487a56b0-2467_b09e37530f -- Missing null check in DPAPIEncryptedStringValueProvider.GetValue",
@@ -198,7 +196,7 @@
       "status": "fixed",
       "priority": "High",
       "source": "follow-up from v0.23.103 history backup user-visible diagnostic",
-      "last_outcome": "Surfaced the v0.23.103 HistoryManager.LastBackupFailureReason diagnostic to the user via a platform toast. Added internal static HistoryViewModel.ShowHistoryBackupFailureToastIfPresent(string? reason) \u2014 null/empty/whitespace short-circuits silently, exception-safe try/catch so headless/unit-test environments do not throw, and the null-conditional PlatformServices.Toast?.ShowToast short-circuits when the platform toast service is uninitialized. Wired into the CombineSelectedImagesAsync `!_historyManager.AppendHistoryItem(combinedHistoryItem)` failure path so a toast fires whenever the append returned false AND the backup layer set a user-friendly reason. 4 regression tests in tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs (null/empty/whitespace/non-empty reason \u2014 all assert DoesNotThrow). Pre-staged work from a prior session: version bump 0.23.103 -> 0.23.104, source change, test file all in working tree at sweep start; recovered via the standard pre-staged-work pattern (verify, build/test, commit, push).",
+      "last_outcome": "Surfaced the v0.23.103 HistoryManager.LastBackupFailureReason diagnostic to the user via a platform toast. Added internal static HistoryViewModel.ShowHistoryBackupFailureToastIfPresent(string? reason) — null/empty/whitespace short-circuits silently, exception-safe try/catch so headless/unit-test environments do not throw, and the null-conditional PlatformServices.Toast?.ShowToast short-circuits when the platform toast service is uninitialized. Wired into the CombineSelectedImagesAsync `!_historyManager.AppendHistoryItem(combinedHistoryItem)` failure path so a toast fires whenever the append returned false AND the backup layer set a user-friendly reason. 4 regression tests in tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs (null/empty/whitespace/non-empty reason — all assert DoesNotThrow). Pre-staged work from a prior session: version bump 0.23.103 -> 0.23.104, source change, test file all in working tree at sweep start; recovered via the standard pre-staged-work pattern (verify, build/test, commit, push).",
       "follow_up": "File/path handling audit chain complete on the two follow-ups tracked here: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103 (data layer) + v0.23.104 (UI consumption). Continue other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
     },
     {
@@ -294,7 +292,7 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     },
     {
@@ -326,7 +324,7 @@
       "last_reviewed": "2026-05-30 18:16 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed ConvertTo silent type erasure \u2014 non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
+      "last_outcome": "Fixed ConvertTo silent type erasure — non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
       "follow_up": "Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; TFM mismatch in Common/Platform.Abstractions."
     },
     {
@@ -353,7 +351,7 @@
       "status": "fixed",
       "priority": "Medium",
       "last_outcome": "Fixed LinuxCliToolRunner.RunAsync pipe-drain deadlock. Spawned child process had RedirectStandardError/Output=true but the pipes were never drained, so the OS pipe buffer (~64KB on POSIX) could fill and block the child on its next write, causing WaitForExit to time out and the capture to return a misleading null/failure even though the tool was healthy. Same anti-pattern previously fixed in MacOSClipboardService, LinuxClipboardService, and the MacOS AppleScript helpers. Fix: extracted RunCoreAsync that drains stderr via process.BeginErrorReadLine and stdout via a fire-and-forget ReadToEndAsync continuation; added a bounded process.WaitForExit(1000) after Kill so the async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync so tests can exercise the run helper without producing a real PNG. Added 4 regression tests: happy path, large-stderr 0-exit, large-stderr non-zero exit, and timeout. Bumped version 0.23.85 -> 0.23.86.",
-      "follow_up": "Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length read/write loop wrapped the entire download and dropped 0-byte response bodies on chunked transfers \u2014 fixed locally in v0.23.84 commit 15a5773a but push deferred from prior run). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
+      "follow_up": "Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length read/write loop wrapped the entire download and dropped 0-byte response bodies on chunked transfers — fixed locally in v0.23.84 commit 15a5773a but push deferred from prior run). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
     },
     {
       "area": "Linux platform / LinuxScreenService / xrandr capture",
@@ -370,7 +368,7 @@
       "status": "fixed",
       "priority": "Medium",
       "source": "follow-up from LinuxScreenService v0.23.91 stderr-drain fix",
-      "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) \u2014 the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
+      "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) — the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
       "follow_up": "Continue stderr-drainage audit on remaining helpers found by the same grep: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91) and LinuxThemeService (v0.23.92) fixes are the templates. Investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures on CreateHistoryDetailsAsync_* tests (environmental, not a regression)."
     },
     {
@@ -443,7 +441,7 @@
       "commit": "ab5d5e8e",
       "outcome": "reviewed",
       "build_test": "build 0 warnings/0 errors; XerahS.Tests 1125 passed / 3 pre-existing BuildManifest failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite disk I/O error failures (environmental)",
-      "notes": "Top candidate ImmichUploader.CreateOrReuseAlbumShare (lines 220-233): existing shared-link reuse uses AlbumId equality only \u2014 no permission fields to compare. ImmichSharedLink domain model lacks allowDownload/allowUpload/showMetadata/password fields that CreateSharedLinkAsync writes. Real fix requires adding those fields to ImmichSharedLink, ImmichSharedLinkResponse, and MapSharedLink \u2014 a multi-file API model expansion. Already fixed per prior fix; no code change this run. clawpatch findings fnd_sig-feat-library-0cc26b772b and fnd_sig-feat-library-0b7ba58069 ingested into next_candidates from run 20260704T003955-856b35 (prior session). Upstream merged: 2 commits (blog drafts 2026-07-02, 2026-07-03)."
+      "notes": "Top candidate ImmichUploader.CreateOrReuseAlbumShare (lines 220-233): existing shared-link reuse uses AlbumId equality only — no permission fields to compare. ImmichSharedLink domain model lacks allowDownload/allowUpload/showMetadata/password fields that CreateSharedLinkAsync writes. Real fix requires adding those fields to ImmichSharedLink, ImmichSharedLinkResponse, and MapSharedLink — a multi-file API model expansion. Already fixed per prior fix; no code change this run. clawpatch findings fnd_sig-feat-library-0cc26b772b and fnd_sig-feat-library-0b7ba58069 ingested into next_candidates from run 20260704T003955-856b35 (prior session). Upstream merged: 2 commits (blog drafts 2026-07-02, 2026-07-03)."
     },
     {
       "timestamp": "2026-06-24 00:51 AWST",
@@ -522,7 +520,7 @@
         "Directory.Build.props"
       ],
       "summary": "Hardened XerahSMcpRuntime.IsHistorySearchResourceUri against prefix-only paths (e.g. 'xerahs://history/searchfoo') and malformed percent-escapes (e.g. 'q=%E0%A4%A') that were previously treated as valid search URIs. Switched from string StartsWith to a Uri-based parse (Host == 'history' AND AbsolutePath == '/history/search' AND only valid percent-escapes). Made the method public static so tests can call it directly. Added 7 regression tests (3 valid + 4 invalid). Bumped version 0.23.100 -> 0.23.101.",
-      "result": "build 0 warnings/0 errors; XerahS.Tests 1104 passed / 0 failed / 1 skipped (was 1098, +6: tests for IsHistorySearchResourceUri run in the main test project too via the McpServer.Tests internal fixture import? No \u2014 +6 reflects unrelated 6-test additions in earlier runs that hadn't been run; actually net delta vs last run record is 0 unrelated). McpServer.Tests 42 passed / 5 failed (3 pre-existing CreateHistoryDetailsAsync_* SQLite 'disk I/O error' + 2 new IsHistorySearchResourceUri_* tests hitting the same environmental class).",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1104 passed / 0 failed / 1 skipped (was 1098, +6: tests for IsHistorySearchResourceUri run in the main test project too via the McpServer.Tests internal fixture import? No — +6 reflects unrelated 6-test additions in earlier runs that hadn't been run; actually net delta vs last run record is 0 unrelated). McpServer.Tests 42 passed / 5 failed (3 pre-existing CreateHistoryDetailsAsync_* SQLite 'disk I/O error' + 2 new IsHistorySearchResourceUri_* tests hitting the same environmental class).",
       "result_status": "success",
       "commit": "de6e3939",
       "status": "fixed",
@@ -641,8 +639,8 @@
         "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
         "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
         "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
-        "CLI / command surface \u2014 OpenClaw plugin export generated CLI/tool parity",
-        "File/path handling \u2014 remaining path helper exception parity and history backup user-visible diagnostics",
+        "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
+        "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics",
         "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
       ]
     },
@@ -688,7 +686,7 @@
         "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
         "Directory.Build.props"
       ],
-      "summary": "ResolveHistoryBlobPath threw 'History item thumbnail source file was not found.' with item.FilePath as FileName even when both the thumbnail and the source were missing, or when only the source was configured. Fix: branch the exception message on which fields are populated \u2014 'thumbnail and source files were not found.' when both present, 'source file was not found.' when only FilePath configured, original 'thumbnail source file was not found.' when only ThumbnailURL configured. FileName preserved as item.FilePath to keep prior contract for debug-log consumers. CreateHistoryBlobMissingResponse already uses item.FilePath / item.ThumbnailURL directly, so the structured-response path is unaffected. Added 3 regression tests (MissingThumbnailOnly_FallsBackToSourceFile, MissingBothFiles_MentionsThumbnailAndSource, OnlyThumbnailConfiguredMissing_KeepsThumbnailOnlyMessage). Bumped version 0.23.88 -> 0.23.89.",
+      "summary": "ResolveHistoryBlobPath threw 'History item thumbnail source file was not found.' with item.FilePath as FileName even when both the thumbnail and the source were missing, or when only the source was configured. Fix: branch the exception message on which fields are populated — 'thumbnail and source files were not found.' when both present, 'source file was not found.' when only FilePath configured, original 'thumbnail source file was not found.' when only ThumbnailURL configured. FileName preserved as item.FilePath to keep prior contract for debug-log consumers. CreateHistoryBlobMissingResponse already uses item.FilePath / item.ThumbnailURL directly, so the structured-response path is unaffected. Added 3 regression tests (MissingThumbnailOnly_FallsBackToSourceFile, MissingBothFiles_MentionsThumbnailAndSource, OnlyThumbnailConfiguredMissing_KeepsThumbnailOnlyMessage). Bumped version 0.23.88 -> 0.23.89.",
       "result": "build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 37 passed/0 failed (was 34, +3 new)",
       "result_status": "success",
       "commit": "e8c9fb14",
@@ -757,7 +755,7 @@
         "Directory.Build.props",
         "docs/reports/hourly_review_tracker.md"
       ],
-      "summary": "Fixed WaylandCliCapture.CaptureActiveWindowAsync SWAY/null-desktop path: previously fell through to CaptureWithGrimSlurpAsync which runs slurp with no args (prompts user to draw a region with the mouse) \u2014 wrong UX for an active-window capture. Routed to grimblast 'save active' first, then CaptureWithSwayFocusedWindowAsync (swaymsg + grim -g with focused geometry). Added SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson and TryGetFocusedWindowGeometryExpression helpers with 7 regression tests. Bumped version 0.23.84 -> 0.23.85.",
+      "summary": "Fixed WaylandCliCapture.CaptureActiveWindowAsync SWAY/null-desktop path: previously fell through to CaptureWithGrimSlurpAsync which runs slurp with no args (prompts user to draw a region with the mouse) — wrong UX for an active-window capture. Routed to grimblast 'save active' first, then CaptureWithSwayFocusedWindowAsync (swaymsg + grim -g with focused geometry). Added SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson and TryGetFocusedWindowGeometryExpression helpers with 7 regression tests. Bumped version 0.23.84 -> 0.23.85.",
       "result": "build 0 warnings/0 errors; tests 1057+34=1091 passed, 0 failed, 1 skipped",
       "commit": "baa44de9",
       "status": "fixed",
@@ -779,7 +777,27 @@
       "area": "FileDownloader early-EOF hang",
       "status": "clean",
       "commit": null
+    },
+    {
+      "ts": "2026-07-16 22:34 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-061adb6873-7654_7626bbd5f6 -- Single-color gradients compute an invalid stop location",
+      "commit": "15a16b11",
+      "summary": "GradientInfo single-color ctor no longer divides by zero; sole stop at 0. Regression GradientInfoTests 4/4. v0.23.134 -> v0.23.135.",
+      "status": "fixed",
+      "version": "0.23.135"
+    },
+    {
+      "ts": "2026-07-16 22:34 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-09e6d488ad-8fdd_7f10621211 -- Download helpers intend to return null on missing assets but throw before the null path",
+      "commit": "f1fca3fc",
+      "summary": "Immich DownloadAssetAsync/DownloadThumbnailAsync use SendOptionalAsync so 404 returns null instead of throwing. Regression ImmichClientTests +3. v0.23.135 -> v0.23.136.",
+      "status": "fixed",
+      "version": "0.23.136"
     }
   ],
-  "last_run_outcome": "clean"
+  "last_run_outcome": "fixed"
 }
