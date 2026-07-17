@@ -2301,3 +2301,93 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - DPAPIEncryptedStringValueProvider null target guard
+
+- Area: Settings / DPAPIEncryptedStringValueProvider.GetValue+SetValue
+- Files: src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs, tests/XerahS.Tests/Common/DPAPIEncryptedStringValueProviderTests.cs, Directory.Build.props
+- Findings: Json.NET can invoke IValueProvider with a null target during incomplete materialization; PropertyInfo.GetValue(null) threw NRE. Guard GetValue (return null) and SetValue (no-op). Five regression tests cover null target, empty, and plain-text write-through without calling DPAPI (CA1416 pragma).
+- Status: Fixed
+- Build/test: Common+Tests Release build succeeded; DPAPIEncryptedStringValueProviderTests 5/5 passed. Logs: /tmp/xerahs-bugfix/build-20260717-160717.log, /tmp/xerahs-bugfix/test-20260717-160717.log
+- Commit: 4b131ab5 (Declan Murphy)
+- Follow-up: Mobile picker temp-copy cleanup (fnd_sig-feat-library-05a51d5ecc-07cb_ba4c21c6b7) still open; needs test surface for Mobile.Ava or extractable helper. Producer should stop re-queueing already-fixed Wayland/FileDownloader/stderr items.
+
+### 2026-07-17 16:07 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-057839b894-95c9_b127dbe5e6 -- Active-window capture falls back to interactive region selection on w
+- Files: (none — pivot, no code change)
+- Findings: CaptureActiveWindowAsync routes SWAY/null via grimblast+sway-focused-window (WaylandCliCapture.cs:300-328); tests cover HYPRLAND/SWAY/null routing; no grim+slurp fallback remains
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-0584088912-e12d_fec808573b -- FileDownloader refuses valid downloads without Content-Length
+- Files: (none — pivot, no code change)
+- Findings: DoWork streams via CopyToFileAsync with declaredFileSize null for missing Content-Length (FileDownloader.cs:242-254); FileDownloaderTests cover unknown-length/chunked paths
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-057839b894-d588_9212997b0c -- Redirected stderr can block CLI capture helpers before timeout
+- Files: (none — pivot, no code change)
+- Findings: RunCliCapture drains stderr asynchronously with bounded WaitAll after Kill (WaylandCliCapture.cs:92-134); v0.23.91 template
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0cc26b772b-2305_41f75ba593 -- Potential risk of incorrect OS-specific build configurations
+- Files: (none — pivot, no code change)
+- Findings: Platform csproj separation is intentional multi-TFM design, not a runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0b7ba58069-f0dc_e2e7a03841 -- Potential risk of incorrect package version management
+- Files: (none — pivot, no code change)
+- Findings: Central package management discrepancy is maintainability noise; ImageEditor/VideoEditor submodules own their props intentionally
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-08799ed4a4-e7b7_778331b100 -- SkiaSharp central version is ahead of the repository-mandated preview
+- Files: (none — pivot, no code change)
+- Findings: Package pin alignment is a deliberate release decision, not a confirmed runtime bug for this drain
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0584088912-e889_eead89b9ed -- Common projects target net10.0 despite repository-required Windows TF
+- Files: (none — pivot, no code change)
+- Findings: Common/Abstractions stay net10.0 for cross-platform neutrality; Windows TFM is enforced at app layer
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 16:07 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-1c07a0ed7c-00c3_7657e6f77b -- Potential security risk due to inclusion of System.Security.Cryptogra
+- Files: (none — pivot, no code change)
+- Findings: Package reference alone is not a bug; DPAPI usage is intentional for secrets storage
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
