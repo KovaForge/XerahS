@@ -105,6 +105,69 @@ public sealed class ImmichConfigViewModelTests
     }
 
     [Test]
+    public void ToJson_manualAlbumNameEdit_clearsStaleSelectedAlbumAndPersistsTypedName()
+    {
+        // Regression: selecting album A then typing a different free-form AlbumName used to
+        // keep SelectedAlbum set. ToJson/Validate called SyncSelectedAlbumIntoFields which
+        // restored album A's name and persisted album A's ID, so auto-create never saw the
+        // newly typed name.
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "AddToAlbum": true,
+                "AutoCreateAlbum": true,
+                "AlbumId": "album-a",
+                "AlbumName": "Album A"
+            }
+            """);
+
+        Assert.That(viewModel.SelectedAlbum, Is.Not.Null);
+        Assert.That(viewModel.SelectedAlbum!.Id, Is.EqualTo("album-a"));
+
+        // Act: user edits the free-form name toward a new auto-create target.
+        viewModel.AlbumName = "Brand New Album";
+
+        Assert.That(viewModel.SelectedAlbum, Is.Null, "manual name edit must clear stale picker selection");
+
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.AlbumId, Is.Empty);
+        Assert.That(roundTripped.AlbumName, Is.EqualTo("Brand New Album"));
+    }
+
+    [Test]
+    public void ToJson_selectingAlbum_stillCopiesAlbumNameFromSelection()
+    {
+        // Guard: picker selection must still populate AlbumName (OnSelectedAlbumChanged).
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "AddToAlbum": true,
+                "AlbumId": "",
+                "AlbumName": ""
+            }
+            """);
+
+        viewModel.SelectedAlbum = new ShareX.Immich.Plugin.ViewModels.ImmichAlbumOption("abc123", "My Trip Photos", 12);
+
+        Assert.That(viewModel.AlbumName, Is.EqualTo("My Trip Photos"));
+        Assert.That(viewModel.SelectedAlbum, Is.Not.Null);
+
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.AlbumId, Is.EqualTo("abc123"));
+        Assert.That(roundTripped.AlbumName, Is.EqualTo("My Trip Photos"));
+    }
+
+    [Test]
     public void ToJson_clampsNonPositiveExpireAfterDaysToSeven()
     {
         // Arrange: load a config with ExpireAfterDays = 0 (invalid; Validate would reject).

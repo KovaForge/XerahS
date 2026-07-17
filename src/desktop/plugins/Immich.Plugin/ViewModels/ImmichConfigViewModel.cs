@@ -214,6 +214,20 @@ public partial class ImmichConfigViewModel : ObservableObject, IUploaderConfigVi
         }
     }
 
+    /// <summary>
+    /// When the user types a free-form album name that no longer matches the
+    /// picker selection, clear <see cref="SelectedAlbum"/> so ToJson/Validate
+    /// do not restore the stale album ID via <see cref="SyncSelectedAlbumIntoFields"/>.
+    /// </summary>
+    partial void OnAlbumNameChanged(string value)
+    {
+        if (SelectedAlbum != null &&
+            !string.Equals(SelectedAlbum.Name, value, StringComparison.Ordinal))
+        {
+            SelectedAlbum = null;
+        }
+    }
+
     partial void OnIsConnectedChanged(bool value)
     {
         UpdateConnectionSummary();
