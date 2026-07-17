@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-16 22:34 AWST",
+  "last_updated": "2026-07-17 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,22 +11,13 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "fnd_sig-feat-library-108dac94d4-1a29_bf6987a0b0 -- Potential data loss when PlatformServices are not initialized during capture",
-    "fnd_sig-feat-library-0a565406f5-2391_9ab025638e -- ShareX.ImageEditor targets the wrong framework for this repo",
     "fnd_sig-feat-library-057839b894-95c9_b127dbe5e6 -- Active-window capture falls back to interactive region selection on wlroots desktops",
-    "fnd_sig-feat-library-09e6d488ad-4145_7e3ef02c30 -- Album share settings are silently ignored when a shared link already exists",
-    "fnd_sig-feat-library-0584088912-15bf_078d713cef -- HSB equality ignores alpha while hash code includes it",
     "fnd_sig-feat-library-108dac94d4-b45b_8bf8736048 -- Inconsistent handling of clipboard content in different workflows",
-    "fnd_sig-feat-library-0305bf9121-430a_e8a7c1af2e -- Plugin assembly version is pinned behind the app version",
-    "fnd_sig-feat-library-1a677c14f3-3111_5198de0a3c -- Potential namespace inconsistency in RootNamespace",
     "fnd_sig-feat-library-0cc26b772b-2305_41f75ba593 -- Potential risk of incorrect OS-specific build configurations",
     "fnd_sig-feat-library-0b7ba58069-f0dc_e2e7a03841 -- Potential risk of incorrect package version management",
-    "fnd_sig-feat-library-06c095cefe-2ae1_fe873fdbd8 -- ShareX.ImageEditor targets net10.0 instead of the required Windows TFM",
     "fnd_sig-feat-library-08799ed4a4-e7b7_778331b100 -- SkiaSharp central version is ahead of the repository-mandated preview version",
     "fnd_sig-feat-library-0584088912-e889_eead89b9ed -- Common projects target net10.0 despite repository-required Windows TFM",
     "fnd_sig-feat-library-0584088912-e12d_fec808573b -- FileDownloader refuses valid downloads without Content-Length",
-    "fnd_sig-feat-library-09e6d488ad-0ab1_f5eafdacaa -- Manual album name changes can be overwritten by a stale selected album",
-    "fnd_sig-feat-library-174beceeac-aec7_a6b211d35d -- Potential overflow in ColorBgra.cs",
     "fnd_sig-feat-library-1c07a0ed7c-00c3_7657e6f77b -- Potential security risk due to inclusion of System.Security.Cryptography.ProtectedData",
     "fnd_sig-feat-library-057839b894-d588_9212997b0c -- Redirected stderr can block CLI capture helpers before timeout",
     "fnd_sig-feat-library-061adb6873-5b4a_f9b6edb8e5 -- Serialized image effect presets allow Json.NET type metadata",
@@ -797,6 +788,87 @@
       "summary": "Immich DownloadAssetAsync/DownloadThumbnailAsync use SendOptionalAsync so 404 returns null instead of throwing. Regression ImmichClientTests +3. v0.23.135 -> v0.23.136.",
       "status": "fixed",
       "version": "0.23.136"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-09e6d488ad-0ab1_f5eafdacaa -- Manual album name changes can be overwritten by a stale selected album",
+      "commit": "6ccfe859",
+      "summary": "OnAlbumNameChanged clears SelectedAlbum when free-form name diverges",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-0584088912-15bf_078d713cef -- HSB equality ignores alpha while hash code includes it",
+      "commit": null,
+      "summary": "HSB.operator== includes Alpha; HSBTests cover equality/hash contract",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-09e6d488ad-4145_7e3ef02c30 -- Album share settings are silently ignored when a shared link already exists",
+      "commit": null,
+      "summary": "CreateOrReuseAlbumShare gates reuse on SecurityMatches; ImmichClientTests cover slug/password/expiry/flags",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0a565406f5-2391_9ab025638e -- ShareX.ImageEditor targets the wrong framework for this repo",
+      "commit": null,
+      "summary": "Shared-library TFM maintainability noise; ImageEditor is intentionally multi-platform shared with ShareX",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-06c095cefe-2ae1_fe873fdbd8 -- ShareX.ImageEditor targets net10.0 instead of the required Windows TFM",
+      "commit": null,
+      "summary": "Duplicate of ImageEditor TFM maintainability finding",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0305bf9121-430a_e8a7c1af2e -- Plugin assembly version is pinned behind the app version",
+      "commit": null,
+      "summary": "Release-metadata maintainability; not a runtime bug",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-1a677c14f3-3111_5198de0a3c -- Potential namespace inconsistency in RootNamespace",
+      "commit": null,
+      "summary": "Naming/maintainability only; no functional impact",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-108dac94d4-1a29_bf6987a0b0 -- Potential data loss when PlatformServices are not initialized during capture",
+      "commit": null,
+      "summary": "CaptureStage fails loudly with toast + InvalidOperationException when PlatformServices not ready; not silent data loss",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-174beceeac-aec7_a6b211d35d -- Potential overflow in ColorBgra.cs",
+      "commit": null,
+      "summary": "BgraToUInt32 is byte-range bitwise packing; overflow claim is speculative with no repro",
+      "status": "out-of-scope"
     }
   ],
   "last_run_outcome": "fixed"

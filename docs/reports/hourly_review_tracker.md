@@ -2211,3 +2211,93 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: Tests project Release build 0 errors; ImmichClientTests 13 passed / 0 failed. logs: /tmp/xerahs-bugfix/build-20260716-220247-fix2.log, /tmp/xerahs-bugfix/test-20260716-220247-fix2.log
 - Commit: f1fca3fc (Declan Murphy)
 - Follow-up: none for this item
+
+### 2026-07-17 08:06 AWST - Immich / Manual album name overwrite by stale SelectedAlbum
+
+- Area: fnd_sig-feat-library-09e6d488ad-0ab1_f5eafdacaa -- Manual album name changes can be overwritten by a stale selected album
+- Files: src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs, tests/XerahS.Tests/Uploaders/ImmichConfigViewModelTests.cs, Directory.Build.props
+- Findings: Selecting album A then typing a free-form AlbumName kept SelectedAlbum set. ToJson/Validate called SyncSelectedAlbumIntoFields and restored album A's name and ID. Added OnAlbumNameChanged to clear SelectedAlbum when the typed name diverges from the picker selection. OnSelectedAlbumChanged still copies the name on selection.
+- Status: Fixed
+- Build/test: Immich plugin + XerahS.Tests Release build succeeded (0 warnings/errors); ImmichConfigViewModelTests 8/8 passed. Full-solution Release build timed out unattended terminal (60s) after restore; scoped builds used. logs: /tmp/xerahs-bugfix/build-immich-20260717-080612.log, /tmp/xerahs-bugfix/build-tests-20260717-080612.log, /tmp/xerahs-bugfix/test-immich-20260717-080612.log
+- Commit: 6ccfe859
+- Follow-up: none for this item
+
+### 2026-07-17 08:06 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-0584088912-15bf_078d713cef -- HSB equality ignores alpha while hash code includes it
+- Files: (none — pivot, no code change)
+- Findings: HSB.operator== includes Alpha; HSBTests cover equality/hash contract
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-09e6d488ad-4145_7e3ef02c30 -- Album share settings are silently ignored when a shared link already 
+- Files: (none — pivot, no code change)
+- Findings: CreateOrReuseAlbumShare gates reuse on SecurityMatches; ImmichClientTests cover slug/password/expiry/flags
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0a565406f5-2391_9ab025638e -- ShareX.ImageEditor targets the wrong framework for this repo
+- Files: (none — pivot, no code change)
+- Findings: Shared-library TFM maintainability noise; ImageEditor is intentionally multi-platform shared with ShareX
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-06c095cefe-2ae1_fe873fdbd8 -- ShareX.ImageEditor targets net10.0 instead of the required Windows TF
+- Files: (none — pivot, no code change)
+- Findings: Duplicate of ImageEditor TFM maintainability finding
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0305bf9121-430a_e8a7c1af2e -- Plugin assembly version is pinned behind the app version
+- Files: (none — pivot, no code change)
+- Findings: Release-metadata maintainability; not a runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-1a677c14f3-3111_5198de0a3c -- Potential namespace inconsistency in RootNamespace
+- Files: (none — pivot, no code change)
+- Findings: Naming/maintainability only; no functional impact
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-108dac94d4-1a29_bf6987a0b0 -- Potential data loss when PlatformServices are not initialized during 
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage fails loudly with toast + InvalidOperationException when PlatformServices not ready; not silent data loss
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-17 08:06 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-174beceeac-aec7_a6b211d35d -- Potential overflow in ColorBgra.cs
+- Files: (none — pivot, no code change)
+- Findings: BgraToUInt32 is byte-range bitwise packing; overflow claim is speculative with no repro
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
