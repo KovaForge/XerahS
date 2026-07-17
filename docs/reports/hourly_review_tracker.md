@@ -2391,3 +2391,93 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - ImageEffect type-metadata lockdown
+
+- Area: fnd_sig-feat-library-061adb6873-5b4a_f9b6edb8e5 -- Serialized image effect presets allow Json.NET type metadata
+- Files: src/desktop/core/XerahS.Core/Helpers/ImageEffectPresetSerializer.cs, src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs, tests/XerahS.Tests/Helpers/ImageEffectPresetSerializerTests.cs, Directory.Build.props
+- Findings: SettingsBase uses TypeNameHandling.Auto; ImageEffectPreset.Effects had no scoped binder on the settings path, so arbitrary $type could be instantiated. Added ImageEffectListJsonConverter reusing ImageEffectSerializationBinder; binder now rejects abstract/non-ImageEffect targets. Regression: SettingsPath_Rejects_UnknownType / Accepts_Known / Rejects_Abstract.
+- Status: Fixed
+- Build/test: Release scoped (XerahS.Core + XerahS.Tests), ImageEffectPresetSerializerTests 10/10 pass; logs: /tmp/xerahs-bugfix/build-20260718-000518.log, /tmp/xerahs-bugfix/test-20260718-000518.log
+- Commit: 509a9a25
+- Follow-up: Audit other settings-surface polymorphic collections for the same gap (UploadersConfig.ServiceSettings, WatchFolderManager, CustomUploaderRepository)
+
+### 2026-07-18 00:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-108dac94d4-b45b_8bf8736048 -- Inconsistent handling of clipboard content in different workflows
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage intentionally diverges ClipboardUpload vs ClipboardUploadWithContentViewer (preload bypass); not a defect
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-0584088912-df87_78427a1c1b -- FFmpeg downloader exposes cancellation tokens but does not cancel dow
+- Files: (none — pivot, no code change)
+- Findings: FFmpegDownloader passes CancellationToken into FileDownloader.StartDownload; FileDownloader links CTS into DoWork/CopyToFileAsync
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-1c07a0ed7c-bb9d_0041d1b225 -- Missing documentation for InternalsVisibleTo attribute
+- Files: (none — pivot, no code change)
+- Findings: docs-gap only; no runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-174beceeac-1364_f62f301175 -- Unused method 'Inverse' in ColorMatrixManager.cs
+- Files: (none — pivot, no code change)
+- Findings: maintainability/dead-code noise; no functional defect
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0cc26b772b-b635_ca39a8705f -- Unused or unnecessary package references
+- Files: (none — pivot, no code change)
+- Findings: package hygiene; not a confirmed runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-1a677c14f3-d50f_4dbeeef67e -- Unused package references in XerahS.Common project
+- Files: (none — pivot, no code change)
+- Findings: package hygiene; not a confirmed runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-0b7ba58069-967e_b7fe168dd4 -- Unused package references in XerahS.Uploaders project
+- Files: (none — pivot, no code change)
+- Findings: package hygiene; not a confirmed runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)
+- Files: (none — pivot, no code change)
+- Findings: HSB operator== and GetHashCode include Alpha; HSBTests cover regression
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses

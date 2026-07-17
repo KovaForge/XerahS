@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-17 16:07 AWST",
+  "last_updated": "2026-07-18 00:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,19 +11,10 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "fnd_sig-feat-library-108dac94d4-b45b_8bf8736048 -- Inconsistent handling of clipboard content in different workflows",
-    "fnd_sig-feat-library-061adb6873-5b4a_f9b6edb8e5 -- Serialized image effect presets allow Json.NET type metadata",
     "fnd_sig-feat-library-05a51d5ecc-07cb_ba4c21c6b7 -- Temporary picker copies are never cleaned up",
-    "fnd_sig-feat-library-0584088912-df87_78427a1c1b -- FFmpeg downloader exposes cancellation tokens but does not cancel downloads",
-    "fnd_sig-feat-library-1c07a0ed7c-bb9d_0041d1b225 -- Missing documentation for InternalsVisibleTo attribute",
-    "fnd_sig-feat-library-174beceeac-1364_f62f301175 -- Unused method 'Inverse' in ColorMatrixManager.cs",
-    "fnd_sig-feat-library-0cc26b772b-b635_ca39a8705f -- Unused or unnecessary package references",
-    "fnd_sig-feat-library-1a677c14f3-d50f_4dbeeef67e -- Unused package references in XerahS.Common project",
-    "fnd_sig-feat-library-0b7ba58069-967e_b7fe168dd4 -- Unused package references in XerahS.Uploaders project",
     "fnd_sig-feat-library-174beceeac-7c95_3cef1bc92d -- Unused variable 'Dev' in AppResources.cs",
     "fnd_sig-feat-library-007bd09216-d985_82064ae3d3 -- Common projects target net10.0 despite repository Windows TFM requirement",
     "fnd_sig-feat-library-007bd09216-5c05_d3f2e07f89 -- String conversion silently erases unsupported collection values",
-    "src/desktop/core/XerahS.Common/HSB.cs:183-190 (HSB.GetHashCode/Equals)",
     "Directory.Build.props:3-4",
     "src/desktop/plugins/Directory.Build.props:5-7",
     "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)",
@@ -941,6 +932,15 @@
       "commit": null,
       "summary": "Package reference alone is not a bug; DPAPI usage is intentional for secrets storage",
       "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-18 00:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-061adb6873-5b4a_f9b6edb8e5 -- Serialized image effect presets allow Json.NET type metadata",
+      "commit": "509a9a25",
+      "summary": "ImageEffectPreset.Effects constrained via ImageEffectListJsonConverter allow-list",
+      "status": "fixed"
     }
   ],
   "last_run_outcome": "fixed"
