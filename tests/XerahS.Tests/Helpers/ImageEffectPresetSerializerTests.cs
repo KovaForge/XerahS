@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.ImageEffects.Adjustments;
@@ -249,6 +250,78 @@ public class ImageEffectPresetSerializerTests
                 File.Delete(path);
             }
         }
+    }
+
+    [Test]
+    public void SettingsPath_Rejects_UnknownType()
+    {
+        // SettingsBase uses TypeNameHandling.Auto; ImageEffectPreset.Effects must still
+        // refuse arbitrary $type payloads via ImageEffectListJsonConverter.
+        var json = """
+            {
+              "Name": "Malicious",
+              "Effects": [
+                { "$type": "System.Diagnostics.Process, System", "Amount": 1 }
+              ]
+            }
+            """;
+
+        var settings = new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto
+        };
+
+        var ex = Assert.Throws<JsonSerializationException>(() =>
+            JsonConvert.DeserializeObject<ImageEffectPreset>(json, settings));
+
+        Assert.That(ex!.Message, Does.Contain("Unsupported image effect type").Or.Contain("Unknown image effect type"));
+    }
+
+    [Test]
+    public void SettingsPath_Accepts_KnownEffectType()
+    {
+        var preset = new ImageEffectPreset
+        {
+            Name = "SafePreset",
+            Effects = { new BrightnessImageEffect { Amount = 12 } }
+        };
+
+        var settings = new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto
+        };
+
+        string json = JsonConvert.SerializeObject(preset, Formatting.None, settings);
+        var loaded = JsonConvert.DeserializeObject<ImageEffectPreset>(json, settings);
+
+        Assert.That(loaded, Is.Not.Null);
+        Assert.That(loaded!.Name, Is.EqualTo("SafePreset"));
+        Assert.That(loaded.Effects.Count, Is.EqualTo(1));
+        Assert.That(loaded.Effects[0], Is.TypeOf<BrightnessImageEffect>());
+        Assert.That(((BrightnessImageEffect)loaded.Effects[0]).Amount, Is.EqualTo(12).Within(0.01));
+    }
+
+    [Test]
+    public void SettingsPath_Rejects_AbstractEffectType()
+    {
+        var json = """
+            {
+              "Name": "Abstract",
+              "Effects": [
+                { "$type": "ShareX.ImageEditor.Core.ImageEffects.ImageEffect, ShareX.ImageEditor" }
+              ]
+            }
+            """;
+
+        var settings = new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto
+        };
+
+        var ex = Assert.Throws<JsonSerializationException>(() =>
+            JsonConvert.DeserializeObject<ImageEffectPreset>(json, settings));
+
+        Assert.That(ex!.Message, Does.Contain("Unsupported image effect type").Or.Contain("Unknown image effect type"));
     }
 
     private static void WriteConfigArchive(string filePath, JObject config)

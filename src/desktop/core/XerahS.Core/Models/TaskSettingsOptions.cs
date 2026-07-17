@@ -39,7 +39,13 @@ public class ImageEffectPreset
 {
     public string Name { get; set; } = "";
 
-    [JsonProperty(ItemTypeNameHandling = TypeNameHandling.Auto)]
+    /// <summary>
+    /// Effect chain. Deserialization is constrained to known ShareX.ImageEditor
+    /// ImageEffect types via <see cref="Helpers.ImageEffectListJsonConverter"/> so
+    /// settings/import JSON cannot instantiate arbitrary $type payloads even when
+    /// the parent SettingsBase serializer uses TypeNameHandling.Auto.
+    /// </summary>
+    [JsonConverter(typeof(Helpers.ImageEffectListJsonConverter))]
     public List<ImageEffect> Effects { get; set; } = new();
 
     /// <summary>
