@@ -100,16 +100,30 @@ namespace XerahS.Common
             Status = UpdateStatus.UpdateCheckFailed;
         }
 
-        public virtual async Task<string?> GetLatestDownloadURL(bool isBrowserDownloadURL)
+        public virtual Task<string?> GetLatestDownloadURL(bool isBrowserDownloadURL)
+        {
+            return GetLatestDownloadURL(isBrowserDownloadURL, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Resolve the latest release download URL, honouring
+        /// <paramref name="cancellationToken"/> on the GitHub API request so
+        /// long FFmpeg/update downloads can be aborted during URL discovery.
+        /// </summary>
+        public virtual async Task<string?> GetLatestDownloadURL(bool isBrowserDownloadURL, CancellationToken cancellationToken)
         {
             try
             {
-                GitHubRelease? latestRelease = await GetLatestRelease(IncludePreRelease);
+                GitHubRelease? latestRelease = await GetLatestRelease(IncludePreRelease, cancellationToken);
 
                 if (UpdateReleaseInfo(latestRelease, IsPortable, isBrowserDownloadURL))
                 {
                     return DownloadURL;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception e)
             {
@@ -119,11 +133,16 @@ namespace XerahS.Common
             return null;
         }
 
-        protected async Task<List<GitHubRelease>?> GetReleases()
+        protected Task<List<GitHubRelease>?> GetReleases()
+        {
+            return GetReleases(CancellationToken.None);
+        }
+
+        protected async Task<List<GitHubRelease>?> GetReleases(CancellationToken cancellationToken)
         {
             List<GitHubRelease>? releases = null;
 
-            string response = await DownloadGitHubApiStringAsync(ReleasesURL);
+            string response = await DownloadGitHubApiStringAsync(ReleasesURL, cancellationToken);
 
             if (!string.IsNullOrEmpty(response))
             {
@@ -138,11 +157,16 @@ namespace XerahS.Common
             return releases;
         }
 
-        protected async Task<GitHubRelease?> GetLatestRelease()
+        protected Task<GitHubRelease?> GetLatestRelease()
+        {
+            return GetLatestRelease(CancellationToken.None);
+        }
+
+        protected async Task<GitHubRelease?> GetLatestRelease(CancellationToken cancellationToken)
         {
             GitHubRelease? latestRelease = null;
 
-            string response = await DownloadGitHubApiStringAsync(LatestReleaseURL);
+            string response = await DownloadGitHubApiStringAsync(LatestReleaseURL, cancellationToken);
 
             if (!string.IsNullOrEmpty(response))
             {
@@ -152,13 +176,18 @@ namespace XerahS.Common
             return latestRelease;
         }
 
-        protected async Task<GitHubRelease?> GetLatestRelease(bool includePreRelease)
+        protected Task<GitHubRelease?> GetLatestRelease(bool includePreRelease)
+        {
+            return GetLatestRelease(includePreRelease, CancellationToken.None);
+        }
+
+        protected async Task<GitHubRelease?> GetLatestRelease(bool includePreRelease, CancellationToken cancellationToken)
         {
             GitHubRelease? latestRelease = null;
 
             if (includePreRelease)
             {
-                List<GitHubRelease>? releases = await GetReleases();
+                List<GitHubRelease>? releases = await GetReleases(cancellationToken);
 
                 if (releases != null && releases.Count > 0)
                 {
@@ -169,13 +198,13 @@ namespace XerahS.Common
             {
                 try
                 {
-                    latestRelease = await GetLatestRelease();
+                    latestRelease = await GetLatestRelease(cancellationToken);
                 }
                 catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     // No stable release found, fall back to checking all releases
                     DebugHelper.WriteLine($"No stable releases found for {Owner}/{Repo}. Checking for pre-releases...");
-                    List<GitHubRelease>? releases = await GetReleases();
+                    List<GitHubRelease>? releases = await GetReleases(cancellationToken);
 
                     if (releases != null && releases.Count > 0)
                     {
@@ -192,14 +221,19 @@ namespace XerahS.Common
         /// Downloads a string from the GitHub API, adding the recommended Accept header
         /// and providing diagnostic logging for rate-limit (403) responses.
         /// </summary>
-        private static async Task<string> DownloadGitHubApiStringAsync(string url)
+        private static Task<string> DownloadGitHubApiStringAsync(string url)
+        {
+            return DownloadGitHubApiStringAsync(url, CancellationToken.None);
+        }
+
+        private static async Task<string> DownloadGitHubApiStringAsync(string url, CancellationToken cancellationToken)
         {
             HttpClient client = HttpClientFactory.Create();
 
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
 
-            using HttpResponseMessage response = await client.SendAsync(request);
+            using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.Forbidden)
             {
@@ -211,7 +245,7 @@ namespace XerahS.Common
             }
 
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
+            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
 
         protected virtual bool UpdateReleaseInfo(GitHubRelease? release, bool isPortable, bool isBrowserDownloadURL)
