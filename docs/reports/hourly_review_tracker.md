@@ -2481,3 +2481,103 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Mobile picker temp cleanup / UploadQueueService ownership
+
+- Area: fnd_sig-feat-library-05a51d5ecc-07cb_ba4c21c6b7 -- Temporary picker copies are never cleaned up
+- Files: UploadQueueService.cs, MobileUploadView.axaml.cs, MobileUploadViewModel (Ava/Maui), MobileApp.axaml.cs, UploadQueueServiceOwnedTempTests.cs, Directory.Build.props
+- Findings: Picker/content-provider streams were copied to xerahs_mobile_* temps and enqueued without ownership; temps never deleted. Queue now accepts ownedTempFiles, marks UploadQueueItem.IsOwnedTempFile, and best-effort deletes after processing completes.
+- Status: Fixed
+- Build/test: scoped Core+Tests Release succeeded; UploadQueueServiceOwnedTempTests 5/5 passed
+- Commit: 81eed608 (Declan Murphy)
+- Follow-up: Android CopyUriToCache could also set ownership explicitly if share paths ever include non-temp user files
+
+### 2026-07-18 08:05 AWST - FFmpegDownloader CancellationToken into GitHub URL discovery
+
+- Area: FFmpegDownloader / GitHubUpdateChecker / WebHelpers
+- Files: FFmpegDownloader.cs, GitHubUpdateChecker.cs, WebHelpers.cs, WebHelpersCancellationTests.cs, Directory.Build.props
+- Findings: CancellationToken was checked between steps but not passed into GitHub API URL discovery or ffprobe fallback DownloadStringAsync. Propagated CT through GetLatestDownloadURL, DownloadGitHubApiStringAsync, and WebHelpers.DownloadStringAsync into HttpClient.
+- Status: Fixed
+- Build/test: scoped Common+Tests Release succeeded; WebHelpersCancellationTests + FFmpegDownloaderCancellationTests 7/7 passed
+- Commit: efe7421f (Declan Murphy)
+- Follow-up: GetLatestDownloadURL network mid-flight cancel is covered by HttpClient CT; no further work unless a custom HttpMessageHandler is introduced
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-174beceeac-7c95_3cef1bc92d -- Unused variable 'Dev' in AppResources.cs
+- Files: (none — pivot, no code change)
+- Findings: AppResources.Dev is used by ProductNameWithVersion (line 38); clawpatch false positive
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / out-of-scope
+
+- Area: fnd_sig-feat-library-007bd09216-d985_82064ae3d3 -- Common projects target net10.0 despite repository Windows TFM require
+- Files: (none — pivot, no code change)
+- Findings: Cross-platform libraries intentionally target net10.0; sibling finding already pivoted 2026-07-17
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: fnd_sig-feat-library-007bd09216-5c05_d3f2e07f89 -- String conversion silently erases unsupported collection values
+- Files: (none — pivot, no code change)
+- Findings: StringCollectionToStringTypeConverter already delegates to base; tests cover non-List types
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: Directory.Build.props:3-4
+- Files: (none — pivot, no code change)
+- Findings: Citation is the Version property, not a defect; version bumps land every fix
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+- Files: (none — pivot, no code change)
+- Findings: Single-color divide-by-zero guard landed in v0.23.135 with GradientInfoTests
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:38-49 (ImageEffectPreset.Effects)
+- Files: (none — pivot, no code change)
+- Findings: ImageEffectListJsonConverter $type lockdown landed in v0.23.139
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+- Files: (none — pivot, no code change)
+- Findings: SendOptionalAsync null-on-404 path landed in v0.23.136
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 08:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+- Files: (none — pivot, no code change)
+- Findings: CopyToFileAsync bytesRead<=0 EOF break + FileDownloaderTests already land
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
