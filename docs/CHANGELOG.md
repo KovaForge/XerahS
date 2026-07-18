@@ -10,6 +10,27 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.23.141
+
+### Features
+- **Developers**: add clawpatch-parser dashboard
+
+### Fixes
+- **Core**: Constrain ImageEffectPreset.Effects deserialization to known ImageEffect types; Default screenshot subfolder pattern to year-month; and related changes
+- **Immich**: clear stale SelectedAlbum when AlbumName diverges
+
+### Build
+- **Core**: Make release channel repo-scoped for ShareX vs KovaForge
+
+### Documentation
+- **Core**: Record dual-repo release targeting lessons
+
+### Changed
+- **Core**: [Fix] Treat .html/.htm as binary files — route to S3 not Paste2
+- **Xerahs Bugfix**: backfill last_runs for 08:05 tick audit trail; update tracker and state JSON after batch
+
+---
+
 ## v0.23.132
 
 ### Fixes
