@@ -2581,3 +2581,13 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-18 09:07 AWST - Backfill last_runs for 08:05 tick
+
+- Area: ledger hygiene (no code change)
+- Files: docs/reports/hourly_review_state.json
+- Findings: 08:05 tick drained queue 66->49 and wrote 10 tracker sections, but last_runs only recorded the FFmpeg fix. Backfilled mobile fix (81eed608) + 8 pivot rows so audit trail matches next_candidates removals.
+- Status: Fixed (ledger only)
+- Build/test: n/a
+- Commit: PENDING
+- Follow-up: Step 9 must always report queue before->after + pivot count (skill v1.1.5)
