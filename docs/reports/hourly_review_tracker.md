@@ -2591,3 +2591,63 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - Build/test: n/a
 - Commit: PENDING
 - Follow-up: Step 9 must always report queue before->after + pivot count (skill v1.1.5)
+
+### 2026-07-19 16:55 AWST - Step 5a categoriser drain (skill v1.1.7)
+
+- Area: docs/reports/hourly_review_state.json (next_candidates)
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Mandatory Step 5a categoriser (skill v1.1.7) ran against the 49-item next_candidates queue. Each item was classified into real-bug / already-fixed / tfm-noise / dead-code / false-positive. **0 real-bug candidates** were found — every entry was either stale (already-fixed citation), maintainability (TFM / PackageReference / RootNamespace), dead/unreferenced code, or a verified-correct control flow. All 49 entries drained from next_candidates.
+- Status: Drain (49 items)
+- Bucket breakdown: already-fixed=17, tfm-noise=22, dead-code=6, false-positive=4
+- Build/test: n/a (no code change)
+- Commit: (this tracker+state update)
+- Follow-up: Producer (xerahs-review) should ingest a fresh clawpatch cycle; this queue was 100% noise.
+  - [tfm-noise] src/desktop/plugins/Directory.Build.props:5-7 — Directory.Build.props metadata is maintainability noise
+  - [tfm-noise] Directory.Packages.props:39-40 — Directory.Packages.props metadata is maintainability noise
+  - [tfm-noise] src/desktop/core/XerahS.Core/XerahS.Core.csproj:24-27 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] ShareX.ImageEditor/Directory.Packages.props:15 — Directory.Packages.props metadata is maintainability noise
+  - [tfm-noise] src/desktop/core/XerahS.Common/XerahS.Common.csproj:2-8 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:2-7 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs:209-215 (OnSelectedAlbumChanged) — already fixed (v0.23.136/137) — stale citation
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs:417-462 (ToJson) — already fixed (v0.23.136/137) — stale citation
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs:694-700 (SyncSelectedAlbumIntoFields) — already fixed (v0.23.136/137) — stale citation
+  - [already-fixed] src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:70-97 (SelectRegionWithSlurpAsync) — already fixed (v0.23.91/96/113) — stale citation
+  - [already-fixed] src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:224-237 (CaptureWithGrimSlurpAsync) — already fixed (v0.23.91/96/113) — stale citation
+  - [already-fixed] src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:402-417 (CaptureWithGrimAsync) — already fixed (v0.23.91/96/113) — stale citation
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:433-447 (DownloadThumbnailAsync) — already fixed (v0.23.136/137) — stale citation
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:532-555 (SendAsync) — already fixed (v0.23.136/137) — stale citation
+  - [already-fixed] src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs:33-45 (StringCollectionToStringTyp — already fixed (v0.23.79) — stale citation
+  - [tfm-noise] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [already-fixed] src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:176-188 (CaptureActiveWindowAsync) — already fixed (v0.23.91/96/113) — stale citation
+  - [tfm-noise] low/high fnd_sig-feat-library-0cc26b772b-b635_ca39a8705f: Unused or unnecessary package references — unused package references — maintainability category, out of scope for bug-fix cron
+  - [tfm-noise] low/high fnd_sig-feat-library-0b7ba58069-967e_b7fe168dd4: Unused package references in XerahS.Uploaders project — unused package references — maintainability category, out of scope for bug-fix cron
+  - [already-fixed] src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs:218-255 (CaptureWithGrimSlurpAsync) — already fixed (v0.23.91/96/113) — stale citation
+  - [tfm-noise] src/platform/XerahS.Platform.Windows/XerahS.Platform.Windows.csproj:5-6 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] src/platform/XerahS.Platform.MacOS/XerahS.Platform.MacOS.csproj:5 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] src/platform/XerahS.Platform.Linux/XerahS.Platform.Linux.csproj:5 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] Directory.Packages.props:4 (ManagePackageVersionsCentrally) — Directory.Packages.props metadata is maintainability noise
+  - [tfm-noise] ShareX.ImageEditor/Directory.Packages.props:3 (ManagePackageVersionsCentrally) — Directory.Packages.props metadata is maintainability noise
+  - [tfm-noise] ShareX.VideoEditor/Directory.Packages.props:4 (ManagePackageVersionsCentrally) — Directory.Packages.props metadata is maintainability noise
+  - [tfm-noise] src/desktop/core/XerahS.Common/XerahS.Common.csproj:10-13 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] src/platform/XerahS.Platform.Abstractions/XerahS.Platform.Abstractions.csproj:9-11 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [tfm-noise] src/desktop/core/XerahS.Uploaders/XerahS.Uploaders.csproj:13-18 (PackageReference) — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [false-positive] src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84 — CaptureStage control flow verified correct
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:367-412 (CreateSharedLinkAsync) — already fixed (v0.23.136/137) — stale citation
+  - [already-fixed] src/desktop/core/XerahS.Common/FileDownloader.cs:136-140 (FileDownloader.DoWork) — already fixed (v0.23.76/78/84/137) — stale citation
+  - [false-positive] src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:157-163 — CaptureStage control flow verified correct
+  - [false-positive] src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:173-185 — CaptureStage control flow verified correct
+  - [already-fixed] src/desktop/core/XerahS.Common/FileDownloader.cs:108-121 (FileDownloader.DoWork) — already fixed (v0.23.76/78/84/137) — stale citation
+  - [already-fixed] src/desktop/core/XerahS.Common/FileDownloader.cs:160-191 (FileDownloader.DoWork) — already fixed (v0.23.76/78/84/137) — stale citation
+  - [already-fixed] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa — already fixed (v0.23.138) — stale citation
+  - [dead-code] low/high fnd_sig-feat-library-174beceeac-1364_f62f301175: Unused method 'Inverse' in ColorMatrixManager.cs — dead/unreferenced code
+  - [false-positive] low/high fnd_sig-feat-library-174beceeac-7c95_3cef1bc92d: Unused variable 'Dev' in AppResources.cs — Dev is read on line 38 (Dev ? " Preview" : "") — not actually unused, false positive
+  - [already-fixed] src/desktop/plugins/Immich.Plugin/ImmichConfigModel.cs:63-68 (ImmichConfigModel) — already fixed (v0.23.136/138) — stale citation
+  - [tfm-noise] src/desktop/plugins/GitHubGist.Plugin/XerahS.GitHubGist.Plugin.csproj:4 (RootNamespace) — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [dead-code] src/desktop/core/XerahS.Common/ColorBgra.cs:109-110 (BgraToUInt32) — dead/unreferenced code
+  - [dead-code] src/desktop/core/XerahS.Common/ColorBgra.cs:113-115 (BgraToUInt32) — dead/unreferenced code
+  - [tfm-noise] src/desktop/core/XerahS.Common/XerahS.Common.csproj:13 — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [dead-code] src/desktop/core/XerahS.Common/Properties/AssemblyInfo.cs:5 — AssemblyInfo trivia (auto-generated boilerplate)
+  - [dead-code] src/desktop/core/XerahS.Common/ColorMatrixManager.cs:71-81 (Inverse) — dead/unreferenced code
+  - [tfm-noise] src/desktop/core/XerahS.Common/XerahS.Common.csproj:10-13 (PackageReference) — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
+  - [dead-code] src/desktop/core/XerahS.Common/AppResources.cs:37 (Dev) — Dev resource is unused (clawpatch fnd_sig)
+  - [tfm-noise] Directory.Build.props:11 — Directory.Build.props metadata is maintainability noise
