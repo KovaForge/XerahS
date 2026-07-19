@@ -27,6 +27,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using XerahS.Core;
 using XerahS.UI.Services;
+using System.Linq;
 
 namespace XerahS.UI.Views
 {
@@ -56,6 +57,40 @@ namespace XerahS.UI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        public bool ApplySearchTarget(string? categoryName, string? instanceName)
+        {
+            if (DataContext is not ViewModels.DestinationSettingsViewModel vm)
+            {
+                return false;
+            }
+
+            bool changed = false;
+
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                ViewModels.CategoryViewModel? category = vm.Categories.FirstOrDefault(item =>
+                    string.Equals(item.Name, categoryName, StringComparison.OrdinalIgnoreCase));
+                if (category != null && !ReferenceEquals(vm.SelectedCategory, category))
+                {
+                    vm.SelectedCategory = category;
+                    changed = true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(instanceName) && vm.SelectedCategory != null)
+            {
+                ViewModels.UploaderInstanceViewModel? instance = vm.SelectedCategory.Instances.FirstOrDefault(item =>
+                    string.Equals(item.DisplayName, instanceName, StringComparison.OrdinalIgnoreCase));
+                if (instance != null)
+                {
+                    vm.SelectedCategory.SelectedInstance = instance;
+                    changed = true;
+                }
+            }
+
+            return changed;
         }
     }
 }

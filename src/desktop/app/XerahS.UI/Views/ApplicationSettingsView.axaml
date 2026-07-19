@@ -24,6 +24,7 @@
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
         <TabControl Grid.Row="1"
+                    x:Name="ApplicationSettingsTabs"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     VerticalContentAlignment="Stretch">

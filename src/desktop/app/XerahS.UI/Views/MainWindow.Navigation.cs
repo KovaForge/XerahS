@@ -27,6 +27,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using System;
 using System.Collections;
 using System.Linq;
@@ -35,6 +36,7 @@ using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.UI.Helpers;
+using XerahS.UI.Services.SettingsSearch;
 using XerahS.UI.Theming;
 using XerahS.UI.ViewModels;
 
@@ -181,7 +183,8 @@ namespace XerahS.UI.Views
                     contentFrame.Content = new SettingsView();
                     return true;
                 case "Settings_App":
-                    contentFrame.Content = new ApplicationSettingsView();
+                    _applicationSettingsView ??= CreateApplicationSettingsView();
+                    contentFrame.Content = _applicationSettingsView;
                     return true;
                 case "Settings_Dest":
                     _destinationSettingsView ??= CreateDestinationSettingsView();
@@ -203,9 +206,55 @@ namespace XerahS.UI.Views
             return new EditorView();
         }
 
+        private ApplicationSettingsView CreateApplicationSettingsView()
+        {
+            return new ApplicationSettingsView();
+        }
+
         private DestinationSettingsView CreateDestinationSettingsView()
         {
             return new DestinationSettingsView();
+        }
+
+        public void NavigateToSettingsSearchResult(SettingsSearchEntry entry)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+
+            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
+            if (contentFrame != null)
+            {
+                // Switch content immediately; do not rely solely on TreeView selection events.
+                HandleNavigationTag(entry.NavigationTag, contentFrame, out _);
+            }
+
+            // Keep the sidebar selection in sync when possible.
+            NavigateTo(entry.NavigationTag);
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (entry.NavigationTag == "Settings_App")
+                {
+                    _applicationSettingsView ??= CreateApplicationSettingsView();
+                    if (!ReferenceEquals(contentFrame?.Content, _applicationSettingsView) && contentFrame != null)
+                    {
+                        contentFrame.Content = _applicationSettingsView;
+                    }
+
+                    _applicationSettingsView.SelectTabByHeader(entry.AppTab);
+                    return;
+                }
+
+                if (entry.NavigationTag == "Settings_Dest")
+                {
+                    _destinationSettingsView ??= CreateDestinationSettingsView();
+                    if (!ReferenceEquals(contentFrame?.Content, _destinationSettingsView) && contentFrame != null)
+                    {
+                        contentFrame.Content = _destinationSettingsView;
+                    }
+
+                    _destinationSettingsView.ApplySearchTarget(entry.DestinationCategory, entry.DestinationInstance);
+                }
+            }, DispatcherPriority.Loaded);
         }
 
         private void BuildNavigationNodes()

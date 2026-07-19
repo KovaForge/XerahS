@@ -22,22 +22,83 @@
 */
 
 #endregion License Information (GPL v3)
-using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 
-namespace XerahS.UI.Views
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
+using XerahS.UI.Services.SettingsSearch;
+using XerahS.UI.ViewModels;
+
+namespace XerahS.UI.Views;
+
+public partial class SettingsView : PageView
 {
-    public partial class SettingsView : PageView
+    public SettingsView()
     {
-        public SettingsView()
+        InitializeComponent();
+        var viewModel = new SettingsSearchViewModel();
+        DataContext = viewModel;
+        viewModel.OpenResultHandler = OpenSearchResult;
+
+        AttachedToVisualTree += (_, _) =>
         {
-            InitializeComponent();
-            DataContext = new ViewModels.SettingsViewModel();
+            if (DataContext is SettingsSearchViewModel vm)
+            {
+                vm.RefreshStatus();
+                vm.OpenResultHandler = OpenSearchResult;
+            }
+        };
+    }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    private void OnResultsDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is SettingsSearchViewModel vm)
+        {
+            vm.OpenSelectedResultCommand.Execute(null);
+        }
+    }
+
+    private void OnResultsKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Enter or Key.Return))
+        {
+            return;
         }
 
-        private void InitializeComponent()
+        if (DataContext is SettingsSearchViewModel vm)
         {
-            AvaloniaXamlLoader.Load(this);
+            vm.OpenSelectedResultCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void OpenSearchResult(SettingsSearchEntry entry)
+    {
+        if (TopLevel.GetTopLevel(this) is MainWindow topLevelWindow)
+        {
+            topLevelWindow.NavigateToSettingsSearchResult(entry);
+            return;
+        }
+
+        if (VisualRoot is MainWindow visualRootWindow)
+        {
+            visualRootWindow.NavigateToSettingsSearchResult(entry);
+            return;
+        }
+
+        for (Control? current = this; current != null; current = current.Parent as Control)
+        {
+            if (current is MainWindow window)
+            {
+                window.NavigateToSettingsSearchResult(entry);
+                return;
+            }
         }
     }
 }
