@@ -59,6 +59,8 @@ public class BoolToConfiguredBrushConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        // One-way converter: returning null signals MAUI to leave the source value
+        // untouched for any accidental two-way binding instead of throwing.
+        return null;
     }
 }
