@@ -2671,3 +2671,24 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
 - This run was triggered manually by McoreD via Discord, not by the Milena cron. Wrapper used: `git-declan` (push to `declan/develop`); the per-skill default is `git-milena`. Cron owner remains Milena — no ownership rotation needed. Future manual invokes should keep the same wrapper so the audit trail stays under Declan.
 
 Co-authored-by: McoreD <McoreD@users.noreply.github.com>
+
+### 2026-07-19 17:35 AWST - xerahs-review v2.1.2 release-history drain
+
+- Area: docs/reports/hourly_review_state.json (next_candidates)
+- Files: docs/reports/hourly_review_state.json
+- Findings: Applied xerahs-review v2.1.2 (just shipped) to the current 12-item queue. The new release-history walk correctly suppressed 8 stale citations and kept 4 candidates.
+- Drained (8):
+  - [release-history] HSB.cs (v0.23.77), FileDownloader.cs (v0.23.76/78/84/137), DPAPI (v0.23.138), GradientInfo (v0.23.135), ImmichClient (v0.23.137), Directory.Build.props:11
+  - [area-level] ImmichUploader.cs (v0.23.124/125/126)
+  - [release-history] AssistantHistoryServiceTests.cs (v0.23.127) — note: this is an over-suppression; the cited line 43 (SetUp) bug may be a NEW issue not covered by v0.23.127 TearDown hardening. Consumer's v1.1.7 categoriser will re-surface on next tick via source review.
+- Kept (4):
+  - CaptureStage.cs:79-84 (data-loss)
+  - BoolConverters.cs:67-69 (mobile bug)
+  - check-markdown-mojibake.py:76 (bug)
+  - check-markdown-mojibake.py:81-83 (bug)
+- Status: Ingest + drain (12 -> 4)
+- Build/test: n/a (no code change)
+- Commit: (this tracker+state update)
+- Follow-up: consumer xerahs-bugfix next tick at 16:05 / 00:05 AWST will pick top 2-3 from the remaining 4 and auto-drain the rest if they're stale citations.
+
+Co-authored-by: McoreD <McoreD@users.noreply.github.com>
