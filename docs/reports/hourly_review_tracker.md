@@ -2651,3 +2651,23 @@ Use `hourly_review_state.json` as the hot machine-readable source. The full hist
   - [tfm-noise] src/desktop/core/XerahS.Common/XerahS.Common.csproj:10-13 (PackageReference) — .csproj metadata (RootNamespace / TargetFramework / PackageReference) is maintainability noise
   - [dead-code] src/desktop/core/XerahS.Common/AppResources.cs:37 (Dev) — Dev resource is unused (clawpatch fnd_sig)
   - [tfm-noise] Directory.Build.props:11 — Directory.Build.props metadata is maintainability noise
+
+### 2026-07-19 17:14 AWST - xerahs-review ingest (manual McoreD invoke, Declan wrapper)
+
+- Area: docs/reports/hourly_review_state.json (next_candidates)
+- Files: docs/reports/hourly_review_state.json, .clawpatch/reports/20260719T011521-6eec49.md
+- Findings: Clawpatch ran against declan/develop @ 0b580994 with `--provider minimax --model MiniMax-Text-01`. Report contained 40 findings across 2 clusters + 38 individual blocks. After applying the producer-side severity gate (triage=confirmed-bug AND confidence in {high, medium}, dropping category=maintainability), **12 confirmed-bug candidates** ingested into next_candidates. **0 -> 12**.
+- Ingest breakdown by category: data-loss=2, security=1, bug=8, concurrency=1. All ingested items carry high confidence.
+- Dropped at the gate (per producer contract): 21 risk / 5 contract-mismatch / 1 test-gap / 1 docs-gap / maintainability=7. These surface in the clawpatch report but stay out of `next_candidates` so the consumer-side auto-drain (skill v1.1.7) does not have to re-classify them.
+- Submodule (ShareX.ImageEditor): clean, no work.
+- Upstream sync: no new commits since last sync.
+- Fork sync (declan): already up to date.
+- Status: Ingest (12 items)
+- Build/test: n/a (no code change)
+- Commit: (this tracker+state update + clawpatch report)
+- Follow-up: consumer xerahs-bugfix at next tick (08:05 / 16:05 / 00:05 AWST) will pick the top 2-3 and auto-drain the rest if they are stale citations. Several items in the new ingest (HSB, DPAPI, StringCollectionToStringTypeConverter, ImmichUploader.CreateOrReuseAlbumShare, GradientInfo) are likely stale — they were fixed in v0.23.62-138 but clawpatch cannot invalidate its own old findings. The v1.1.7 categoriser handles this.
+
+**Skill notes (manual run, not cron):**
+- This run was triggered manually by McoreD via Discord, not by the Milena cron. Wrapper used: `git-declan` (push to `declan/develop`); the per-skill default is `git-milena`. Cron owner remains Milena — no ownership rotation needed. Future manual invokes should keep the same wrapper so the audit trail stays under Declan.
+
+Co-authored-by: McoreD <McoreD@users.noreply.github.com>
