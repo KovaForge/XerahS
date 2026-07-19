@@ -32,6 +32,7 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Core.Editor;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.Theming;
+using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -66,6 +67,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private bool _hasAnnotations;
     private readonly ObservableCollection<MenuItem> _recentImageMenuItems = new();
     private readonly ObservableCollection<string> _recentImageFiles = new();
+    private readonly ObservableCollection<ToolbarCustomizationItemViewModel> _visibleToolbarItems = new();
 
     public RegionCaptureAnnotationViewModel()
     {
@@ -75,6 +77,8 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
         _editorCore.InvalidateRequested += OnInvalidateRequested;
         RecentImageMenuItems = new ReadOnlyObservableCollection<MenuItem>(_recentImageMenuItems);
         RecentImageFiles = new ReadOnlyObservableCollection<string>(_recentImageFiles);
+        VisibleToolbarItems = new ReadOnlyObservableCollection<ToolbarCustomizationItemViewModel>(_visibleToolbarItems);
+        InitializeVisibleToolbarItems();
         OpenRecentImageCommand = new RelayCommand<string?>(_ => { });
         OpenOptionsPanelCommand = new RelayCommand(() => { });
         NewImageCommand = new RelayCommand(() => { });
@@ -91,6 +95,13 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     public ReadOnlyObservableCollection<MenuItem> RecentImageMenuItems { get; }
 
     public ReadOnlyObservableCollection<string> RecentImageFiles { get; }
+
+    /// <summary>
+    /// Tool buttons for <see cref="ShareX.ImageEditor.Presentation.Controls.AnnotationToolbar"/>.
+    /// Required because the shared toolbar binds <c>VisibleToolbarItems</c> via reflection
+    /// (editor hosts get this from <c>MainViewModel</c>; region capture must supply its own).
+    /// </summary>
+    public ReadOnlyObservableCollection<ToolbarCustomizationItemViewModel> VisibleToolbarItems { get; }
 
     public bool HasRecentImageFiles => false;
 
@@ -146,6 +157,7 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     partial void OnActiveToolChanged(EditorTool value)
     {
         _editorCore.ActiveTool = value;
+        UpdateVisibleToolbarActiveStates();
 
         _isLoadingToolOptions = true;
         try
@@ -1775,6 +1787,31 @@ public partial class RegionCaptureAnnotationViewModel : ObservableObject, IAnnot
     private static Color HexToColor(string hex)
     {
         return Color.TryParse(hex, out Color parsedColor) ? parsedColor : Colors.Transparent;
+    }
+
+    private void InitializeVisibleToolbarItems()
+    {
+        // Region capture only needs drawing tools. File / Background / Effects are editor chrome.
+        foreach (ToolbarCustomizationItemViewModel item in ToolbarCustomizationItemViewModel.CreateDefaultItems())
+        {
+            if (!item.Tool.HasValue)
+            {
+                continue;
+            }
+
+            item.IsActive = item.Tool.Value == ActiveTool;
+            _visibleToolbarItems.Add(item);
+        }
+    }
+
+    private void UpdateVisibleToolbarActiveStates()
+    {
+        foreach (ToolbarCustomizationItemViewModel item in _visibleToolbarItems)
+        {
+            item.IsActive = item.Tool.HasValue && item.Tool.Value == ActiveTool;
+        }
+
+        OnPropertyChanged(nameof(VisibleToolbarItems));
     }
 
     private static string NormalizeFontFamily(string? fontFamily)
