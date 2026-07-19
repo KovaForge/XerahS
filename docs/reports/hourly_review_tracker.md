@@ -2692,3 +2692,43 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Follow-up: consumer xerahs-bugfix next tick at 16:05 / 00:05 AWST will pick top 2-3 from the remaining 4 and auto-drain the rest if they're stale citations.
 
 Co-authored-by: McoreD <McoreD@users.noreply.github.com>
+
+### 2026-07-20 00:07 AWST - Pivot / false-positive
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage 79-84 control flow verified correct
+- Status: Pivot (false-positive)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 00:07 AWST - Pivot / tfm-noise
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: lint script (markdown mojibake check) — not a code bug
+- Status: Pivot (tfm-noise)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 00:07 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 00:07 AWST - Pivot / tfm-noise
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: lint script (markdown mojibake check) — not a code bug
+- Status: Pivot (tfm-noise)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses

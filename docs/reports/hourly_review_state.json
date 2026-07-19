@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-19 17:35 AWST",
+  "last_updated": "2026-07-20 00:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,12 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
-    "scripts/check-markdown-mojibake.py:81-83",
-    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
-    "scripts/check-markdown-mojibake.py:76"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -989,7 +984,16 @@
       "summary": "Directory.Packages.props metadata is maintainability noise",
       "status": "tfm-noise",
       "source": "Step 5a categoriser drain (skill v1.1.7)"
+    },
+    {
+      "ts": "2026-07-20 00:07 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+      "commit": null,
+      "summary": "CaptureStage 79-84 control flow verified correct",
+      "status": "false-positive"
     }
   ],
-  "last_run_outcome": "ingest + drain stale"
+  "last_run_outcome": "pivot"
 }
