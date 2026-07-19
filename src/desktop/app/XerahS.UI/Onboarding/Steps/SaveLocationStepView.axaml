@@ -38,7 +38,7 @@
     </StackPanel>
 
     <!-- Date Subfolder -->
-    <CheckBox Classes="WizardCheckBox" Content="Create subfolder with today's date"
+    <CheckBox Classes="WizardCheckBox" Content="Create subfolders by year-month (e.g. 2025-01)"
               IsChecked="{Binding CreateDateSubfolders, Mode=TwoWay}" Margin="0,16,0,0" />
 
     <!-- Path Preview -->

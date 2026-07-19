@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
-using ShareX.Avalonia.Platform.macOS.Capture;
+using XerahS.Platform.MacOS.Capture;
 using XerahS.Platform.Abstractions;
 using XerahS.Platform.MacOS;
 

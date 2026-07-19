@@ -175,17 +175,7 @@ namespace XerahS.App
                     var isFlatpak = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID")) || 
                                    System.IO.File.Exists("/.flatpak-info");
                     
-                    if (isFlatpak)
-                    {
-                        Console.Error.WriteLine("Running inside Flatpak sandbox detected.");
-                        Console.Error.WriteLine("\nSOLUTION: Run from host system using one of these methods:");
-                        Console.Error.WriteLine("  1. Use flatpak-spawn:");
-                        Console.Error.WriteLine("     flatpak-spawn --host bash -c \"export PATH=\\\"$HOME/.dotnet:$PATH\\\" && ");
-                        Console.Error.WriteLine("       cd /home/Public/GitHub/ShareXteam/XerahS && ");
-                        Console.Error.WriteLine("       dotnet run --project src/desktop/app/XerahS.App/XerahS.App.csproj\"");
-                        Console.Error.WriteLine("\n  2. Run from a non-sandboxed terminal (recommended)");
-                    }
-                    else if (string.IsNullOrEmpty(displayVar) && string.IsNullOrEmpty(waylandDisplay))
+                    if (string.IsNullOrEmpty(displayVar) && string.IsNullOrEmpty(waylandDisplay))
                     {
                         Console.Error.WriteLine("No display environment variables found.");
                         Console.Error.WriteLine("\nSOLUTION: Set the DISPLAY environment variable:");
@@ -200,9 +190,30 @@ namespace XerahS.App
                         Console.Error.WriteLine("Possible issues:");
                         Console.Error.WriteLine("  - X11 server not running");
                         Console.Error.WriteLine("  - Permission denied to access display");
-                        Console.Error.WriteLine("  - Running in restricted environment (container/sandbox)");
+                        if (isFlatpak)
+                        {
+                            Console.Error.WriteLine("  - Flatpak sandbox is missing the --socket=x11 permission");
+                        }
                     }
                     Console.Error.WriteLine(new string('=', 70) + "\n");
+                }
+                else if (OperatingSystem.IsLinux())
+                {
+                    Console.Error.WriteLine("\n" + new string('=', 70));
+                    Console.Error.WriteLine("ERROR: XerahS terminated due to an unexpected startup failure");
+                    Console.Error.WriteLine(new string('=', 70));
+                    Console.Error.WriteLine($"{ex.GetType().FullName}: {ex.Message}");
+                }
+
+                // Always tell the user where the full crash details were written.
+                try
+                {
+                    Console.Error.WriteLine($"Full details were logged to: {XerahS.Common.PathsManager.GetMainLogFilePath()}");
+                    Console.Error.WriteLine("Please attach this log file when reporting the problem at https://github.com/ShareX/XerahS/issues");
+                }
+                catch
+                {
+                    // Log path resolution must never mask the original failure.
                 }
 
 #if DEBUG
@@ -297,9 +308,23 @@ namespace XerahS.App
                 return false;
             }
 
-            return ex.Message.Contains("XOpenDisplay", StringComparison.OrdinalIgnoreCase) ||
-                   ex.Message.Contains("display", StringComparison.OrdinalIgnoreCase) ||
-                   ex.ToString().Contains("Avalonia.X11", StringComparison.OrdinalIgnoreCase);
+            // Only inspect exception messages, never the stack trace. Any exception that
+            // escapes the Avalonia run loop contains "Avalonia.X11" frames, which previously
+            // misclassified unrelated failures (e.g. DBus tray errors) as display errors and
+            // printed misleading "cannot connect to display" guidance (issue #270).
+            for (Exception? current = ex; current != null; current = current.InnerException)
+            {
+                if (current.Message.Contains("XOpenDisplay", StringComparison.OrdinalIgnoreCase) ||
+                    current.Message.Contains("Unable to open display", StringComparison.OrdinalIgnoreCase) ||
+                    current.Message.Contains("Could not connect to display", StringComparison.OrdinalIgnoreCase) ||
+                    (current.Message.Contains("display", StringComparison.OrdinalIgnoreCase) &&
+                     current.Message.Contains("connect", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -359,9 +384,8 @@ namespace XerahS.App
 
             if (isFlatpak)
             {
-                XerahS.Common.DebugHelper.WriteLine("WARNING: Running inside Flatpak sandbox.");
-                XerahS.Common.DebugHelper.WriteLine("  Display access may be restricted. If XerahS fails to start,");
-                XerahS.Common.DebugHelper.WriteLine("  run from a host terminal or use 'flatpak-spawn --host dotnet run ...'");
+                XerahS.Common.DebugHelper.WriteLine("Running inside Flatpak sandbox. Desktop integration (capture, recording,");
+                XerahS.Common.DebugHelper.WriteLine("  notifications, hotkeys) is portal-first; native CLI fallbacks are disabled.");
             }
 
             if (string.IsNullOrEmpty(displayVar) && string.IsNullOrEmpty(waylandDisplay))

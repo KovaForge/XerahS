@@ -26,9 +26,11 @@
         <!-- XIP-0023: Annotation Toolbar for Overlay mode -->
         <!-- Positioned below the instruction text (50px margin from top) -->
         <!-- Press Tab to toggle visibility, ENTER to confirm capture -->
+        <!-- Stretch + MaxWidth give AnnotationToolbar a finite viewport so tool buttons scroll instead of clipping (Avalonia 12.1+). -->
         <controls:AnnotationToolbar x:Name="AnnotationToolbarControl"
                                     VerticalAlignment="Top"
-                                    HorizontalAlignment="Center"
+                                    HorizontalAlignment="Stretch"
+                                    MaxWidth="{Binding Bounds.Width, ElementName=OverlayRoot}"
                                     Margin="0,50,0,0"
                                     IsVisible="True"/>
     </Grid>

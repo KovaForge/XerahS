@@ -100,6 +100,43 @@ namespace XerahS.UI.Views
             AvaloniaXamlLoader.Load(this);
         }
 
+        public bool SelectTabByHeader(string? tabHeader)
+        {
+            if (string.IsNullOrWhiteSpace(tabHeader))
+            {
+                return false;
+            }
+
+            TabControl? tabs = this.FindControl<TabControl>("ApplicationSettingsTabs");
+            if (tabs?.Items == null)
+            {
+                return false;
+            }
+
+            foreach (object? item in tabs.Items)
+            {
+                if (item is not TabItem tabItem)
+                {
+                    continue;
+                }
+
+                string header = tabItem.Header switch
+                {
+                    string text => text,
+                    TextBlock textBlock => textBlock.Text ?? string.Empty,
+                    _ => tabItem.Header?.ToString() ?? string.Empty
+                };
+
+                if (string.Equals(header.Trim(), tabHeader.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    tabs.SelectedItem = tabItem;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private async Task<string?> BrowseScreenshotsFolderAsync()
         {
             var topLevel = TopLevel.GetTopLevel(this);

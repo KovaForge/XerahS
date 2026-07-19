@@ -1,10 +1,24 @@
 # XIP0060 First-Run Onboarding Wizard
 
-**Status**: Complete
+**Status**: Implemented (reduced scope — do not re-implement removed features)  
 **Version**: v0.22.257
 
+> **Agent notice (2026-06-28):** Several sections below describe features that were **removed from the shipping wizard** and **will not be implemented**. Do not re-add them from this document. See [Scope reduction](#scope-reduction-2026-06-28) before implementing anything from the historical design.
+
+## Scope reduction (2026-06-28)
+
+The live onboarding wizard was simplified. The following XIP0060 features are **explicitly out of scope** and **must not be reintroduced** by agents reading this proposal:
+
+| Removed feature | Reason |
+|---|---|
+| Display language selection (welcome step) | App language is not configured during onboarding; removed to reduce friction. |
+| OCR language pack step | OCR is configured in Settings after first run, not during onboarding. |
+| ShareX configuration import (onboarding upload step) | Legacy import remains in Destination Settings only; not part of the wizard. |
+
+**Current wizard steps (5):** Welcome → Save Location → Hotkeys → Upload → Complete.
+
 **Created**: 2026-04-06  
-**Updated**: 2026-04-06  
+**Updated**: 2026-06-28  
 **Area**: Desktop | UX | Core  
 **Goal**: Deliver a polished, multi-step onboarding experience that guides first-time users through essential configuration, dramatically improving activation rates and time-to-value.
 
@@ -12,7 +26,7 @@
 
 ## Summary
 
-This proposal introduces a comprehensive first-run onboarding wizard for XerahS that activates when `IsFirstTimeRun` is true. The wizard will guide users through five essential configuration steps: language selection, default save location, hotkey assignment, upload destination setup, and OCR language pack selection. By replacing the current minimal first-run experience (a single ShareX import button) with an intentional, step-by-step flow, we can reduce user drop-off, prevent misconfiguration, and ensure users capture their first screenshot within minutes of installation. The wizard integrates seamlessly with existing `SettingsBase` infrastructure and leverages Avalonia's navigation capabilities for a modern, cross-platform experience.
+This proposal introduces a first-run onboarding wizard for XerahS that activates when `IsFirstTimeRun` is true. The **current** wizard covers save location, hotkeys, and upload destination (see [Scope reduction](#scope-reduction-2026-06-28) for removed steps). By replacing the minimal first-run experience with an intentional step-by-step flow, we reduce user drop-off and misconfiguration.
 
 ---
 
@@ -92,25 +106,24 @@ All selections are held in a transient `OnboardingState` object until the wizard
 
 ## Proposed Steps
 
-### Step 1: Welcome & Language Selection
+### Step 1: Welcome ~~& Language Selection~~ (language selection removed)
 
-**Purpose**: Set the tone and establish localization.
+> **Removed:** Display language selection was removed on 2026-06-28. The welcome step is informational only.
+
+**Purpose**: Set the tone and introduce the wizard.
 
 **Content**:
-- Welcome message: "Welcome to XerahS — let's get you set up in under 2 minutes"
-- Language dropdown (auto-detected from OS, fallback to English)
-- Brief value proposition: "The modern screenshot tool that works everywhere"
+- Welcome message and brief overview of the remaining steps
+- ~~Language dropdown~~ (removed — do not implement)
 
 **Smart Defaults**:
-- Language pre-selected from `CultureInfo.CurrentUICulture`
-- If exact match unavailable, fall back to language-only match (e.g., `pt-BR` → `pt`)
+- ~~Language pre-selected from `CultureInfo.CurrentUICulture`~~ (removed)
 
 **Validation**:
-- Language selection is optional (defaults to English)
+- No input required; user proceeds with Next
 
 **Edge Cases**:
-- RTL languages: Ensure wizard UI itself respects RTL layout
-- Missing translations: Fall back to English gracefully
+- ~~RTL languages~~ (removed with language step)
 
 ---
 
@@ -213,9 +226,11 @@ All selections are held in a transient `OnboardingState` object until the wizard
 
 ---
 
-### Step 5: OCR Language Setup
+### Step 5: OCR Language Setup (removed from wizard)
 
-**Purpose**: Ensure OCR works out-of-the-box for the user's language.
+> **Removed on 2026-06-28.** OCR language packs are configured in Settings, not during onboarding. Do not re-add this step.
+
+**Purpose**: ~~Ensure OCR works out-of-the-box for the user's language.~~ (historical)
 
 **Content**:
 - Multi-select list of available OCR languages
@@ -467,9 +482,11 @@ public class OnboardingWizardViewModel : ViewModelBase
 | Upgrade (existing config, `IsFirstTimeRun=true` from beta) | Show wizard with existing settings pre-populated |
 | Portable mode | Same behavior, store config relative to executable |
 
-### Import from ShareX
+### Import from ShareX (removed from wizard)
 
-The existing ShareX import functionality will be integrated into Step 4 (Upload Destination):
+> **Removed on 2026-06-28.** ShareX import is available in Destination Settings only, not in the onboarding upload step. Do not re-add wizard import UI.
+
+The existing ShareX import functionality ~~will be integrated into Step 4 (Upload Destination)~~ (historical design):
 
 ```csharp
 public class UploadStepViewModel : StepViewModelBase

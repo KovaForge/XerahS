@@ -1,6 +1,6 @@
 # XIP0078 macOS Improvement Plan
 
-**Status**: Proposed  
+**Status**: Implemented (P1, P3, P4, P5, P8 landed 2026-07-07 in v0.23.128; P2 pipeline landed env-gated, awaiting Apple Developer credentials)  
 **Priority**: High  
 **Area**: macOS | Platform | Packaging | Screen Capture | Hotkeys  
 **Related**: XIP0013, XIP0033  
@@ -312,3 +312,19 @@ Permission setup for testing (System Settings → Privacy & Security): Screen Re
 ---
 
 **macOS support level after proposed changes: 8.5/10** (current: 6/10). P1–P3 take distribution and permissions from hostile to first-class (→8); P4–P5 remove the Accessibility cliff and the CLI detours (→8.5). The remaining 1.5 points are external or long-tail: Apple credential dependency, Avalonia upstream behaviors, OCR/notification parity, and Intel verification.
+
+---
+
+## 9. Implementation notes (2026-07-07, v0.23.128)
+
+Landed in `develop`; deltas from the outlines above:
+
+- **P1**: `CreateMacOSAppBundle` renders `build/macos/Info.plist.template` via MSBuild property functions (`File::ReadAllText` + `Replace`) instead of `sed`, so Windows cross-compilation (`package-mac.ps1`, `CrossCompile=true`) produces the same plist. Template gained an `__EXECUTABLE__` placeholder (the checked-in template's hardcoded `CFBundleExecutable` value `XerahS.App` did not match the `XerahS` assembly name). Plist is always overwritten on publish.
+- **P2**: signing/DMG/notarization pipeline is in `package-mac.sh`, gated on `MACOS_SIGN_IDENTITY` / `MACOS_NOTARY_PROFILE` / `MACOS_SKIP_SIGNING`. Default (no identity) ad-hoc signs innermost-first with a Mach-O `file(1)` filter (managed PE assemblies are not codesign-able). **Human gate unchanged**: Developer ID cert + notary keychain profile still required for Gatekeeper-clean distribution.
+- **P3**: implemented via direct CoreGraphics P/Invoke (`Native/ScreenRecordingPermission.cs`) rather than new bridge exports - fewer moving parts, works even when the dylib is absent, and the committed dylib binary stays unchanged. All five capture entry points in `MacOSScreenCaptureKitService` preflight; denial requests once per session, then notifies and deep-links the Privacy pane instead of returning wallpaper-only frames. `MacOSDiagnosticService` implemented (TCC states, bridge availability, bundle vs bare-binary, TMPDIR socket-length caveat).
+- **P4**: `MacOSCarbonHotkeyBackend` + `Native/CarbonHotkeys.cs`; Carbon-first, SharpHook/Accessibility fallback for unmappable combos (e.g. PrintScreen has no Carbon virtual key). `eventHotKeyExistsErr` maps to `HotkeyStatus.Failed`. Rollback is `XERAHS_MACOS_HOTKEY_BACKEND=sharphook` (env var, not a settings entry).
+- **P5**: `Native/QuartzWindowList.cs` (CGWindowList, keys resolved via `dlsym`); `GetAllWindows` returns all layer-0 windows with CGWindowID handles, AppleScript retained for actions and as fallback. `sck_capture_window` wired for active-window and by-handle capture, CLI stays as fallback.
+- **P7**: found already satisfied for stills - the bridge has used `SCScreenshotManager` since inception; the G7 claim was stale. The rewritten `ScreenCaptureKitStrategy` (P8) routes the region-backend path through the bridge too.
+- **P8**: `ScreenCaptureKitStrategy` rewritten against the bridge with honest capabilities (no HDR claim); the whole `Capture/` folder moved from the stale `ShareX.Avalonia.Platform.macOS.Capture` namespace to `XerahS.Platform.MacOS.Capture`.
+
+Still pending: P2 credentials (hard gate), P6 notifications, P9 Vision OCR, P10 SMAppService.

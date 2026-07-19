@@ -76,6 +76,9 @@ public partial class MobileUploadView : UserControl
         }
 
         var localPaths = new List<string>(files.Count);
+        // Paths we materialize from non-file storage providers; the upload
+        // queue owns these and deletes them after processing completes.
+        var ownedTempPaths = new List<string>();
 
         foreach (var file in files)
         {
@@ -93,6 +96,7 @@ public partial class MobileUploadView : UserControl
                 await using var target = File.Create(tempPath);
                 await source.CopyToAsync(target);
                 localPaths.Add(tempPath);
+                ownedTempPaths.Add(tempPath);
             }
             catch (Exception ex)
             {
@@ -102,7 +106,7 @@ public partial class MobileUploadView : UserControl
 
         if (localPaths.Count > 0)
         {
-            vm.ProcessFiles(localPaths.ToArray());
+            vm.ProcessFiles(localPaths.ToArray(), ownedTempPaths);
         }
     }
 }

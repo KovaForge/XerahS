@@ -25,7 +25,7 @@
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 
-namespace ShareX.Avalonia.Platform.macOS.Capture;
+namespace XerahS.Platform.MacOS.Capture;
 
 /// <summary>
 /// Internal interface for macOS capture strategies.

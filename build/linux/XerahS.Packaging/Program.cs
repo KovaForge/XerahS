@@ -580,6 +580,8 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         // required for the system tray icon. Suggests means it is displayed as optional by dnf
         // and not pulled in automatically, so KDE/XFCE users are unaffected.
         sb.AppendLine("Suggests: gnome-shell-extension-appindicator");
+        // wl-clipboard / xclip back CLI clipboard for daemon and pre-window workflows.
+        sb.AppendLine("Recommends: wl-clipboard, xclip");
         sb.AppendLine();
         sb.AppendLine("%description");
         sb.AppendLine("XerahS is a modern, cross-platform screen capture and sharing tool.");

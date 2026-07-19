@@ -124,7 +124,11 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 ### RegionCapture and ImageEditor Resource Contracts
 
-- Never leave RegionCapture UI smoke coverage at compile-only; always load `AnnotationToolbar` and `OverlayWindow` in Avalonia headless tests because ImageEditor submodule updates can break icon/font resources at runtime without breaking the build.
+- Never walk the Avalonia visual/logical tree on every settings search keystroke; always debounce and search an immutable cached index (catalog + one-time visual checkbox scan) because tree walks on the UI thread make typing feel laggy as settings pages grow.
+- Never bind Avalonia buttons to `RelayCommand<T>` with `CommandParameter="{Binding SelectedItem}"` when enablement depends on that selection; always use a parameterless command that reads the selected property and call `NotifyCanExecuteChanged` on selection change because Avalonia often does not re-query `CanExecute` when only the parameter changes.
+- Never host `AnnotationToolbar` against a custom `IAnnotationToolbarAdapter` without supplying `VisibleToolbarItems` (and handling tool clicks for non-`EditorToolbarAdapter` hosts); always mirror the editor's toolbar item list for region-capture overlays because the shared toolbar binds tools via `ItemsSource`/`ReflectionBinding`, not hardcoded buttons.
+- Never host `AnnotationToolbar` as a centered size-to-content control without a finite width cap on Avalonia 12.1+; always stretch the host (or bind `MaxWidth` to the overlay/editor root `Bounds.Width`) and cap the toolbar chrome `ScrollViewer` to that width because otherwise trailing tool buttons clip with no horizontal scrollbar.
+- Never leave the `ShareX.ImageEditor` submodule on a detached/older HEAD after `git pull`; always `git submodule update --init` (or checkout the parent gitlink SHA) because app hosts compile against the pointer API (`BorderStyle`, `VisibleToolbarItems`, etc.) and a stale checkout silently empties or breaks the annotation toolbar.
 - Never use Avalonia's fake headless drawing for icon-font smoke tests; always use Skia-backed headless mode (`UseSkia()` and `UseHeadlessDrawing = false`) because glyph resource failures only surface when the font pipeline is actually exercised.
 - Never let feature work alter or bypass existing `ShareX.ImageEditor` theme resources, variants, or bindings unless the task explicitly targets them; always treat theme behavior and visual resource contracts as non-regression requirements because unrelated UI changes can silently break dark/light presentation across the editor.
 - Never make XerahS host startup responsible for prewarming editor wallpaper conversions; always let `ShareX.ImageEditor` request the desktop wallpaper during `MainViewModel` initialization because Linux wallpaper conversion/caching belongs to the editor integration contract and must work consistently across every host, not just XerahS.
@@ -154,6 +158,9 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 ## Build & Configuration
 
 - Never keep the existing patch/minor version when implementing a brand-new product feature that did not previously exist; always bump the app minor version in root `Directory.Build.props` first and use that bumped version in the commit prefix because new feature surfaces should start a new minor release line.
+- Never infer the GitHub release target with bare `gh repo view` on a KovaForge fork checkout; always resolve from the `origin` remote URL (including `git@github-<alias>:Owner/Repo.git`) or pass `--repo owner/name`, because `gh` often returns upstream `ShareX/XerahS` instead of `KovaForge/XerahS`.
+- Never apply one release-channel policy to both remotes; always treat `ShareX/XerahS` as pre-release and `KovaForge/XerahS` as full latest unless an explicit `--set-prerelease` / `--no-prerelease` override is requested.
+- Never let interim macOS ad-hoc codesign hard-fail the release matrix on unsigned nested managed DLLs; always use `--deep` and non-fatal verify for the ad-hoc path, because a single macos-15 codesign failure skips asset upload even when Windows/Linux builds succeeded.
 
 ### Windows TFM & CsWinRT Behavior (Net10.0-windows)
 
@@ -288,3 +295,21 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never pick the first descendant with `WS_VSCROLL` as the scrolling-capture target on Windows; some apps expose standalone `ScrollBar` controls before the real content pane, so target resolution must prefer the largest visible non-`ScrollBar` scroller and only fall back to a scrollbar control when no better candidate exists.
 - Never deliver scrolling-capture wheel input to the geometric center of the selected window by default; browser-based UIs can place nested scroll regions there, so wheel-based scrolling should use a capture-region-aware anchor point that is biased toward the primary content lane instead of the most central child surface.
 - Keep Flatpak CI validation aligned with the manifest-installed icon bucket. If `flatpak-builder` exports `share/icons/hicolor/512x512/apps/com.xerahs.XerahS.png`, the release workflow must validate that exact path instead of an older `256x256` path.
+
+### Verify XIP Claims Against Current Source Before Implementing
+
+**Context**: XIP0078 (written 2026-06-13) claimed the macOS bridge lacked `SCScreenshotManager` and that `sck_capture_window` had no `[LibraryImport]`. By implementation time (2026-07-07) both were already present; the real gap was that nothing *called* the window-capture import.
+
+**Lesson**: Always re-verify an improvement plan's file:line claims against the current branch before implementing it; plans go stale fast in an active repo. Implementation-specific notes: macOS `CFStringRef` framework constants (CGWindow keys, AX options) should be resolved via `dlsym` + `Marshal.ReadIntPtr` rather than hardcoding their string contents; `codesign` cannot sign managed PE assemblies, so bundle-signing loops must filter to Mach-O via `file(1)`; and MSBuild targets that must also run during Windows cross-compilation cannot shell out to `sed` - use `$([System.IO.File]::ReadAllText(...).Replace(...))` property functions instead.
+
+### Linux UI Features That Need Platform.Linux Must Use Conditional Compile
+
+**Context**: XIP0079 P3 post-exit clipboard persistence and settings hints live in `Platform.Linux`, but `XerahS.UI` is built on macOS/Windows without that project reference.
+
+**Lesson**: Use `IsLinuxUiBuild` plus conditional `<Compile Include=...>` for Linux-only partials (`AvaloniaClipboardService.LinuxPersistence.cs`, `SettingsViewModel.LinuxClipboard.cs`) and `#if LINUX` in shared view models. Default-interface methods on cross-platform abstractions (`IHotkeyService.GetDiagnostics()`) keep Windows/macOS builds unaffected without extra references.
+
+### Flatpak Sandbox Denials Must Never Escape On The Avalonia UI Thread
+
+**Context**: Issue #270 — the Flatpak build crashed ~1 second after startup on KDE Plasma (Bazzite) while the same binary ran fine unsandboxed. Avalonia's `DBusTrayIconImpl` owns `org.kde.StatusNotifierItem-{pid}-{id}` before registering with `org.kde.StatusNotifierWatcher`; the Flatpak session-bus proxy denied `RequestName` (manifest only granted `--talk-name`), and the `DBusErrorReplyException` from the resulting `async void` continuation crashed the process. GNOME validation VMs never caught it because without a StatusNotifierWatcher on the bus the tray code path never runs.
+
+**Lesson**: Avalonia's dispatcher swallows an exception only when `UnhandledExceptionFilter` sets `RequestCatch = true` AND an `UnhandledException` handler sets `Handled = true`; subscribing to the filter alone is a no-op. Treat Linux desktop-integration failures (Tmds.DBus exceptions, `Avalonia.FreeDesktop` frames) as non-fatal log-and-continue. Reproduce Flatpak issues against a session bus that actually has a StatusNotifierWatcher (KDE/XFCE) — its absence silently disables the failing code path. Also never classify a startup exception as a "display error" by matching `Avalonia.X11` in the stack trace: every UI-thread exception unwinds through those frames.

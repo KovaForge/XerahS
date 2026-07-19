@@ -26,6 +26,15 @@ finish-args:
   # compatible AppIndicator/KStatusNotifier extension.
   - --talk-name=org.kde.StatusNotifierWatcher
 
+  # Avalonia's tray implementation follows the StatusNotifierItem spec and owns
+  # org.kde.StatusNotifierItem-{pid}-{id} on the session bus before registering
+  # with the watcher. Without this grant the session-bus proxy rejects the
+  # RequestName call (issue #270: startup crash on KDE Plasma). The app also
+  # tolerates the rejection at runtime, but the grant is required for the tray
+  # icon to appear. NOTE: Flathub lint blocks own-name wildcards; a Flathub
+  # submission must either drop this (no tray icon) or negotiate an exception.
+  - --own-name=org.kde.*
+
 # NOTE: Flatpak builds do not rely on host CLI capture tools such as grim,
 # slurp, hyprshot, wl-clipboard, xclip, or xdotool. Sandboxed capture and
 # recording are portal-first; native CLI fallbacks are reserved for non-sandboxed

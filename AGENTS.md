@@ -44,6 +44,7 @@
 
 ### Shared Workflow
 - [Universal Agent Workflow](developers/guidelines/AGENT_WORKFLOW.md)
+- [Graphify Agent Prompt](developers/guidelines/GRAPHIFY_AGENT_PROMPT.md) — kickoff prompt + skill/tool paths for every agent using the `src/` knowledge graph
 - [Multi-Agent Coordination](docs/architecture/MULTI_AGENT_COORDINATION.md)
 - [Lessons Learnt](developers/lessons-learnt/general.md)
 
@@ -59,6 +60,7 @@
 ### Architecture
 - [Porting Guide & Platform Abstractions](docs/architecture/PORTING_GUIDE.md)
 - [XerahS Architecture Map](docs/architecture/xerahs_architecture_map.md)
+- [src/ Knowledge Graph (graphify)](docs/architecture/graphify-out/README.md) — queryable AST graph for agent navigation (`GRAPH_REPORT.md`, `graph.json`, HTML). Skill: [`.ai/skills/graphify/SKILL.md`](.ai/skills/graphify/SKILL.md). Agent prompt: [GRAPHIFY_AGENT_PROMPT.md](developers/guidelines/GRAPHIFY_AGENT_PROMPT.md). Rebuild: `scripts/update-graphify.sh`.
 
 ### Planning
 - [Roadmap & Status Snapshot](docs/planning/ROADMAP_SNAPSHOT_JAN_2025.md)

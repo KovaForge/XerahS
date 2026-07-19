@@ -110,6 +110,58 @@ if [ -n "$STAGED_KT_FILES" ]; then
     done
 fi
 
+# --- XIP0077 U8: State JSON integrity check ---
+STATE_JSON="docs/reports/hourly_review_state.json"
+if git diff --cached --name-only | grep -qF "$STATE_JSON"; then
+    echo "Checking state JSON integrity ($STATE_JSON)..."
+    # Validate JSON syntax
+    if ! git show ":$STATE_JSON" | "$PYTHON_CMD" -m json.tool > /dev/null 2>&1; then
+        VIOLATIONS=$((VIOLATIONS + 1))
+        VIOLATION_FILES+=("$STATE_JSON")
+        echo -e "${RED}FAIL: $STATE_JSON is not valid JSON${NC}"
+    else
+        # Check last_runs didn't shrink by more than 1
+        if [ -n "$PYTHON_CMD" ]; then
+            SHRINK_CHECK=$("$PYTHON_CMD" -c "
+import json, subprocess, sys
+try:
+    staged = json.loads(subprocess.run(
+        ['git', 'show', ':$STATE_JSON'],
+        capture_output=True, text=True, check=True
+    ).stdout)
+    head = json.loads(subprocess.run(
+        ['git', 'show', 'HEAD:$STATE_JSON'],
+        capture_output=True, text=True, check=True
+    ).stdout)
+    staged_runs = len(staged.get('last_runs', []))
+    head_runs = len(head.get('last_runs', []))
+    if head_runs - staged_runs > 1:
+        print(f'SHRINK head={head_runs} staged={staged_runs}')
+    else:
+        print('OK')
+except Exception as e:
+    # Fail closed: treat hook error as rejection
+    print(f'ERROR {e}')
+" 2>&1)
+            case "$SHRINK_CHECK" in
+                SHRINK*)
+                    VIOLATIONS=$((VIOLATIONS + 1))
+                    VIOLATION_FILES+=("$STATE_JSON")
+                    echo -e "${RED}FAIL: $STATE_JSON last_runs shrank by more than 1 entry ($SHRINK_CHECK)${NC}"
+                    ;;
+                ERROR*)
+                    VIOLATIONS=$((VIOLATIONS + 1))
+                    VIOLATION_FILES+=("$STATE_JSON")
+                    echo -e "${RED}FAIL: $STATE_JSON integrity check errored ($SHRINK_CHECK)${NC}"
+                    ;;
+                *)
+                    echo -e "${GREEN}OK: $STATE_JSON integrity check passed${NC}"
+                    ;;
+            esac
+        fi
+    fi
+fi
+
 if [ ${#STAGED_MD_FILES[@]} -eq 0 ] && [ -z "$STAGED_CS_FILES" ] && [ -z "$STAGED_SWIFT_FILES" ] && [ -z "$STAGED_KT_FILES" ]; then
     echo -e "${GREEN}OK: No Markdown, C#, Swift, or Kotlin files to check${NC}"
     exit 0

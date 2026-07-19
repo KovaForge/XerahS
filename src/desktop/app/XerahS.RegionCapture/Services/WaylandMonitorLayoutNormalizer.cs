@@ -35,6 +35,9 @@ internal readonly record struct AvaloniaScreenLayout(
 
 internal static class WaylandMonitorLayoutNormalizer
 {
+    private static bool UseLegacyNormalizer =>
+        string.Equals(Environment.GetEnvironmentVariable("XERAHS_LEGACY_MONITOR_NORMALIZER"), "1", StringComparison.Ordinal);
+
     public static IReadOnlyList<MonitorInfo> Normalize(IReadOnlyList<AvaloniaScreenLayout> screens)
     {
         if (screens.Count == 0)
@@ -42,31 +45,96 @@ internal static class WaylandMonitorLayoutNormalizer
             return [];
         }
 
+        return UseLegacyNormalizer
+            ? LegacyNormalize(screens)
+            : NormalizeCumulative(screens);
+    }
+
+    private static IReadOnlyList<MonitorInfo> NormalizeCumulative(IReadOnlyList<AvaloniaScreenLayout> screens)
+    {
         var normalizedScreens = screens
             .Select(screen => new NormalizedScreen(screen, GetSafeScaleFactor(screen.ScaleFactor)))
             .ToArray();
 
-        var columns = normalizedScreens
-            .GroupBy(screen => screen.Layout.Bounds.X)
-            .OrderBy(group => group.Key)
+        var physicalXByLogicalColumn = BuildCumulativeOrigins(
+            normalizedScreens,
+            screen => screen.Layout.Bounds.X,
+            screen => screen.PhysicalWidth);
+
+        var physicalYByLogicalRow = BuildCumulativeOrigins(
+            normalizedScreens,
+            screen => screen.Layout.Bounds.Y,
+            screen => screen.PhysicalHeight);
+
+        return BuildMonitors(normalizedScreens, physicalXByLogicalColumn, physicalYByLogicalRow);
+    }
+
+    private static IReadOnlyList<MonitorInfo> LegacyNormalize(IReadOnlyList<AvaloniaScreenLayout> screens)
+    {
+        var normalizedScreens = screens
+            .Select(screen => new NormalizedScreen(screen, GetSafeScaleFactor(screen.ScaleFactor)))
             .ToArray();
 
-        var physicalXByLogicalColumn = new Dictionary<double, double>(columns.Length);
-        double currentPhysicalX = 0;
-
-        foreach (var column in columns)
-        {
-            physicalXByLogicalColumn[column.Key] = currentPhysicalX;
-            currentPhysicalX += column.Max(screen => screen.PhysicalWidth);
-        }
+        var physicalXByLogicalColumn = BuildCumulativeOrigins(
+            normalizedScreens,
+            screen => screen.Layout.Bounds.X,
+            screen => screen.PhysicalWidth);
 
         double minLogicalY = normalizedScreens.Min(screen => screen.Layout.Bounds.Y);
 
-        var monitors = new List<MonitorInfo>(normalizedScreens.Length);
+        var physicalYByScreen = normalizedScreens.ToDictionary(
+            screen => screen,
+            screen => ScaleToPhysical(screen.Layout.Bounds.Y - minLogicalY, screen.ScaleFactor));
+
+        return BuildMonitors(
+            normalizedScreens,
+            physicalXByLogicalColumn,
+            screen => physicalYByScreen[screen]);
+    }
+
+    private static Dictionary<double, double> BuildCumulativeOrigins<T>(
+        IReadOnlyList<T> items,
+        Func<T, double> logicalCoordinateSelector,
+        Func<T, double> physicalExtentSelector)
+    {
+        var groups = items
+            .GroupBy(logicalCoordinateSelector)
+            .OrderBy(group => group.Key)
+            .ToArray();
+
+        var origins = new Dictionary<double, double>(groups.Length);
+        double currentPhysicalOrigin = 0;
+
+        foreach (var group in groups)
+        {
+            origins[group.Key] = currentPhysicalOrigin;
+            currentPhysicalOrigin += group.Max(physicalExtentSelector);
+        }
+
+        return origins;
+    }
+
+    private static IReadOnlyList<MonitorInfo> BuildMonitors(
+        IReadOnlyList<NormalizedScreen> normalizedScreens,
+        Dictionary<double, double> physicalXByLogicalColumn,
+        Dictionary<double, double> physicalYByLogicalRow)
+    {
+        return BuildMonitors(
+            normalizedScreens,
+            physicalXByLogicalColumn,
+            screen => physicalYByLogicalRow[screen.Layout.Bounds.Y]);
+    }
+
+    private static IReadOnlyList<MonitorInfo> BuildMonitors(
+        IReadOnlyList<NormalizedScreen> normalizedScreens,
+        Dictionary<double, double> physicalXByLogicalColumn,
+        Func<NormalizedScreen, double> physicalYSelector)
+    {
+        var monitors = new List<MonitorInfo>(normalizedScreens.Count);
         foreach (var screen in normalizedScreens)
         {
             double physicalX = physicalXByLogicalColumn[screen.Layout.Bounds.X];
-            double physicalY = ScaleToPhysical(screen.Layout.Bounds.Y - minLogicalY, screen.ScaleFactor);
+            double physicalY = physicalYSelector(screen);
 
             var physicalBounds = new PixelRect(
                 physicalX,

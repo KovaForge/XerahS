@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-06-10 18:05 AWST",
+  "last_updated": "2026-07-19 17:35 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -11,12 +11,21 @@
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
   "next_candidates": [
-    "OCR (follow-up: document single-runtime-language limitation in OcrStepViewModel.StepDescription; integrate PreferredLanguages into a multi-language picker when the runtime supports it)",
-    "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
-    "CLI / command surface - OpenClaw plugin export generated CLI/tool parity",
-    "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* and IsHistorySearchResourceUri_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released; now affects 5 tests after v0.23.101 added 2 new IsHistorySearchResourceUri fixtures)"
+    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+    "scripts/check-markdown-mojibake.py:81-83",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
+    "scripts/check-markdown-mojibake.py:76"
   ],
   "areas": [
+    {
+      "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
+      "last_reviewed": "2026-07-05 21:10 AWST",
+      "status": "fixed",
+      "priority": "Medium",
+      "source": "follow-up from Immich ConfigViewModel.ToJson round-trip analysis",
+      "last_outcome": "Mirror the ExpireAfterDays<=0 -> 7 clamp from LoadFromJson (line 402) into ToJson (line 456). ToJson runs on every PropertyChanged event in UploaderInstanceViewModel.cs#276 BEFORE Validate can reject the value, so an invalid value entered via the UI was being persisted to JSON before validation. Added 3 regression tests (clamps 0 and -3 to 7, preserves 30). Bumped version 0.23.125 -> 0.23.126.",
+      "follow_up": "Continue next_candidates queue (HSB operator==/GetHashCode, Directory.Build.props metadata, TaskSettingsOptions.GradientInfo, plugin version pinning, FFmpegDownloader path traversal, TFM mismatch in Common/Platform.Abstractions)."
+    },
     {
       "area": "MCP server / IsHistorySearchResourceUri prefix and malformed query hardening",
       "last_reviewed": "2026-06-09 20:31 AWST",
@@ -54,10 +63,10 @@
     },
     {
       "area": "Capture pipeline",
-      "last_reviewed": "2026-05-17 16:34 AWST",
+      "last_reviewed": "2026-06-17 12:01 AWST",
       "status": "reviewed",
       "priority": "High",
-      "last_outcome": "Re-review of DXGI rotated/scaled display bounds and GDI/DXGI cursor parity: DxgiRotationHelper CreateSourceBox/ApplyRotationToTransform math reviewed (correct); BitmapRotationHelper RotateClockwise math reviewed (correct); GDI ShowCursor path uses system cursor hide/restore with CursorData.IsVisible guard; DXGI path uses DxgiCursorCompositionHelper with PhysicalRectangle containment check; both paths handle cursor visibility options correctly. No fixable bugs found in this pass.",
+      "last_outcome": "Clean re-review post upstream sync; no actionable bugs.",
       "follow_up": "Continue capture pipeline review around DXGI multi-monitor rotation/scaling edge cases, rotated display bounds, and cursor/selection parity."
     },
     {
@@ -293,15 +302,93 @@
     },
     {
       "area": "Linux platform / WaylandCliCapture / grim+slurp+grimblast+hyprshot+swaymsg+spectacle+gnome-screenshot pipe-fill + timeout-stretching deadlock",
-      "last_reviewed": "2026-06-05 20:11 AWST",
-      "status": "Fixed",
+      "last_reviewed": "2026-06-24 00:51 AWST",
+      "status": "fixed",
       "priority": "Medium",
       "source": "follow-up from MacOSInputService v0.23.95 stderr-drain fix (final entry in stderr-drainage audit series v0.23.86->v0.23.96)",
-      "last_outcome": "Extracted RunCliCapture(fileName, arguments, timeoutMs) helper using the v0.23.91 LinuxScreenService template, then collapsed all 11 Process.Start sites (SelectRegionWithSlurp, CaptureWithGrimblastRegion, CaptureWithGrimSlurp slurp+grim, CaptureWithHyprshotRegion, CaptureWithGrimblastActiveWindow, CaptureWithHyprshotWindow, CaptureWithSwayFocusedWindow grim, TryGetFocusedWindowGeometryAsync swaymsg, CaptureWithSpectacleRegion, CaptureWithGnomeScreenshotArea, CaptureWithGrim) into one-liners that delegate to RunCliCapture with their original timeouts. Each now drains stderr asynchronously and bounds the stdout read with Task.WaitAny. Added internal TestAccessor exposing RunCliCapture so tests can drive synthetic /bin/sh commands. Added 4 regression tests in WaylandCliCaptureTests.cs (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.95 -> 0.23.96. stderr-drainage audit series complete: LinuxCliToolRunner v0.23.86, LinuxScreenService v0.23.91, LinuxThemeService v0.23.92, PulseAudioHelper v0.23.93, LinuxInputService v0.23.94, MacOSInputService v0.23.95, WaylandCliCapture v0.23.96.",
-      "follow_up": "stderr-drainage audit series complete. Resume other follow-up tracks: MCP search resource URI encoding edge cases (xerahs://history/search malformed q / prefix-only path), OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics for stale default cleanup and unavailable provider replacement flows, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
+      "last_outcome": "REGRESSION FIX v0.23.113 (a68b633f): CaptureWithGrimSlurpAsync called slurpOutput.Trim() before checking for null. If slurp ever exited 0 with no stdout (pipe race or compositor glitch), this would throw NullReferenceException instead of gracefully returning null. Added if (slurpOutput == null) return null; guard. Added CaptureWithGrimSlurpParsingTest to TestAccessor and 5 regression tests (valid geometry, null output no-throw, empty, whitespace-only, non-zero exit). Version 0.23.112 -> 0.23.113. Prior fix (v0.23.96/1a0962d7): stderr-drain + Task.WaitAny anti-pattern-B fix for all 11 CLI capture helpers.",
+      "follow_up": "stderr-drainage audit series complete. Continue follow-up tracks: MCP search resource URI encoding edge cases, OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
+    },
+    {
+      "area": "src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)",
+      "status": "fixed",
+      "first_seen": "2026-07-04 21:30 AWST",
+      "last_updated": "2026-07-05 12:13 AWST",
+      "summary": "Add SecurityMatches helper that compares slug, password, expiry, allowDownload, allowUpload, showMetadata. Use it in CreateOrReuseAlbumShare so a stale album-share link with mismatched security fields is recreated. Round-trip the 4 new fields in CreateSharedLinkAsync/MapSharedLink. Add InternalsVisibleTo to enable internal access from tests. v0.23.124 -> v0.23.125."
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-07-05 21:10 AWST",
+      "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
+      "files": [
+        "src/desktop/plugins/Immich.Plugin/ViewModels/ImmichConfigViewModel.cs",
+        "tests/XerahS.Tests/Uploaders/ImmichConfigViewModelTests.cs",
+        "Directory.Build.props"
+      ],
+      "version_bump": "0.23.125 -> 0.23.126",
+      "commit": "pending",
+      "outcome": "fixed",
+      "build_test": "build 0/0; Immich 16/16 (3 new ToJson clamp tests + 13 prior); full XerahS.Tests 1138/3 (3 pre-existing BuildManifest failures), McpServer.Tests 42/5 (5 pre-existing SQLite disk I/O env failures)"
+    },
+    {
+      "timestamp": "2026-07-04 21:54 AWST",
+      "area": "Immich plugin / CreateSharedLinkAsync assetIds guard for INDIVIDUAL share mode",
+      "files": [
+        "src/desktop/plugins/Immich.Plugin/ImmichClient.cs",
+        "tests/XerahS.Tests/Uploaders/ImmichClientTests.cs",
+        "Directory.Build.props"
+      ],
+      "version_bump": "0.23.122 -> 0.23.123",
+      "commit": "pending",
+      "outcome": "fixed",
+      "build_test": "build 0/0; ImmichClientTests 3/3; XerahS.Tests 1128/3 (3 pre-existing BuildManifest failures unrelated)"
+    },
+    {
+      "timestamp": "2026-07-04 08:36 AWST",
+      "area": "Immich Plugin / CreateOrReuseAlbumShare model completeness (pivot, already fixed)",
+      "files": [],
+      "version_bump": null,
+      "commit": "ab5d5e8e",
+      "outcome": "reviewed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests 1125 passed / 3 pre-existing BuildManifest failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite disk I/O error failures (environmental)",
+      "notes": "Top candidate ImmichUploader.CreateOrReuseAlbumShare (lines 220-233): existing shared-link reuse uses AlbumId equality only — no permission fields to compare. ImmichSharedLink domain model lacks allowDownload/allowUpload/showMetadata/password fields that CreateSharedLinkAsync writes. Real fix requires adding those fields to ImmichSharedLink, ImmichSharedLinkResponse, and MapSharedLink — a multi-file API model expansion. Already fixed per prior fix; no code change this run. clawpatch findings fnd_sig-feat-library-0cc26b772b and fnd_sig-feat-library-0b7ba58069 ingested into next_candidates from run 20260704T003955-856b35 (prior session). Upstream merged: 2 commits (blog drafts 2026-07-02, 2026-07-03)."
+    },
+    {
+      "timestamp": "2026-06-24 00:51 AWST",
+      "area": "Linux platform / WaylandCliCapture / CaptureWithGrimSlurpAsync slurpOutput null guard regression",
+      "files": [
+        "src/platform/XerahS.Platform.Linux/Capture/Wayland/WaylandCliCapture.cs",
+        "tests/XerahS.Tests/Platform/Linux/WaylandCliCaptureTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": "0.23.112 -> 0.23.113",
+      "commit": "a68b633f",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests 1134 passed (+5 new CaptureWithGrimSlurpParsingTest) / 3 pre-existing failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite disk I/O error failures (environmental)",
+      "notes": "Regression from v0.23.95 pipe-fill fix: slurpOutput.Trim() called before null check. Added null guard + 5 regression tests."
+    },
+    {
+      "timestamp": "2026-06-23 07:23 AWST",
+      "area": "ShareX.ImageEditor / EmojiCatalogEntry.GetSearchScore case-variant search regression",
+      "files": [
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/Emoji/EmojiCatalogEntry.cs",
+        "tests/XerahS.Tests/Editor/EmojiCatalogEntrySearchTests.cs",
+        "Directory.Build.props",
+        "docs/reports/hourly_review_state.json"
+      ],
+      "version_bump": "0.23.110 -> 0.23.111",
+      "commit": "e50c8e0f",
+      "outcome": "fixed",
+      "build_test": "build 0 warnings/0 errors; XerahS.Tests EmojiCatalogEntrySearchTests 7 passed/0 failed",
+      "notes": "Fixed SearchIndex.Contains using Ordinal instead of OrdinalIgnoreCase; case-variant search terms (e.g. uppercase) that matched group/keyword via substring fell through to int.MaxValue. Added 7 regression tests. ShareX.ImageEditor.csproj:2-4 area resolved."
+    },
+    {
+      "ts": "2026-06-17 12:01 AWST",
+      "outcome": "clean",
+      "merge": "a5828b11"
+    },
     {
       "timestamp": "2026-06-10 18:05 AWST",
       "area": "File/path handling / HistoryViewModel user-visible toast consuming v0.23.103 LastBackupFailureReason",
@@ -588,81 +675,321 @@
       "test_log": "/tmp/xerahs-hourly-sweep/test-20260601-231528.log"
     },
     {
-      "timestamp": "2026-06-01 10:48 AWST",
-      "area": "FFmpegDownloader / cancellation token propagation",
-      "files": [
-        "src/desktop/core/XerahS.Common/FFmpegDownloader.cs",
-        "tests/XerahS.Tests/Common/FFmpegDownloaderCancellationTests.cs",
-        "Directory.Build.props",
-        "docs/reports/hourly_review_tracker.md"
-      ],
-      "summary": "Fixed FFmpegDownloader.DownloadLatestAsync and DownloadFFprobeFallbackAsync to honour their CancellationToken parameter: early-exit before Directory.CreateDirectory, pass token to FileDownloader.StartDownload (which accepted it since v0.23.78), and convert OperationCanceledException/cancellation-after-exception into user-visible 'FFmpeg download was canceled.' messages (or null for the FFprobe fallback). Added 5 regression tests; bumped version 0.23.82 -> 0.23.83.",
-      "result": "build 0 warnings/0 errors; tests 1046+34=1080 passed, 0 failed, 1 skipped (5 new FFmpegDownloaderCancellation tests)",
-      "commit": "b777ea5d",
-      "status": "fixed",
-      "version": "0.23.83",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260601-104340.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260601-104340.log"
+      "ts": "2026-07-05 12:13 AWST",
+      "agent": "milena-petrova-bf",
+      "outcome": "fixed",
+      "summary": "Finished Mikhail's staged Immich SecurityMatches work: round-tripped password/allowDownload/allowUpload/showMetadata through CreateSharedLinkAsync/MapSharedLink; added SecurityMatches helper + 7 tests; v0.23.124 -> v0.23.125. Clawpatch ran cleanly (3 features, 6 findings); 55 new entries ingested into next_candidates. Shipped under git-mikhail to preserve authorship.",
+      "commit": "6e990a01",
+      "notes": "Mikhail's stages were abandoned mid-session; per skill discipline ('concurrent/sibling cron drift: finish, do not discard') Milena verified and committed. Pre-existing failures (3x BuildManifest_*, 5x McpServer SQLite) are unrelated and not in scope."
     },
     {
-      "timestamp": "2026-05-31 00:27 AWST",
-      "area": "CLI / bootstrap uploaders exit code parity",
-      "files": [
-        "src/desktop/cli/XerahS.CLI/Commands/BootstrapCommand.cs",
-        "src/desktop/cli/XerahS.CLI/Services/CliUploaderBootstrapper.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed bootstrap uploaders to use report.HasBlockingIssues for exit code instead of always returning 0. Also made WriteJson internal so BootstrapCommand can call it directly. Bumped version 0.23.80 -> 0.23.81.",
-      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
-      "commit": "b5163200",
-      "status": "fixed",
-      "version": "0.23.81",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260531-001752.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260531-001752.log"
+      "ts": "2026-07-07 19:59 AWST",
+      "agent": "declan",
+      "area": "FileDownloader early-EOF hang",
+      "status": "clean",
+      "commit": null
     },
     {
-      "timestamp": "2026-05-30 18:16 AWST",
-      "area": "TypeConverter / StringCollectionToStringTypeConverter silent type erasure",
-      "files": [
-        "src/desktop/core/XerahS.Common/UITypeEditors/StringCollectionToStringTypeConverter.cs",
-        "tests/XerahS.Tests/Common/StringCollectionToStringTypeConverterTests.cs",
-        "Directory.Build.props",
-        "docs/reports/hourly_review_tracker.md"
-      ],
-      "summary": "Fixed ConvertTo silent type erasure — non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
-      "result": "build 0 warnings/0 errors; tests 1040+34=1074 passed, 0 failed, 1 skipped",
-      "commit": "f0568d15",
+      "ts": "2026-07-16 22:34 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-061adb6873-7654_7626bbd5f6 -- Single-color gradients compute an invalid stop location",
+      "commit": "15a16b11",
+      "summary": "GradientInfo single-color ctor no longer divides by zero; sole stop at 0. Regression GradientInfoTests 4/4. v0.23.134 -> v0.23.135.",
       "status": "fixed",
-      "version": "0.23.80",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260530-181232.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260530-181232.log"
+      "version": "0.23.135"
     },
     {
-      "timestamp": "2026-05-29 23:47 AWST",
-      "area": "MCP server / resource URI dispatch and uploader plugin routing review",
-      "files": [],
-      "summary": "Reviewed MCP server URI dispatch and uploader plugin routing — all correctly implemented per prior fixes. No fixable bugs found in either area. Clean review (no code change).",
-      "result": "build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped",
-      "commit": "ffd1dc65",
-      "status": "reviewed",
-      "version": "0.23.78",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260529-234721.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260529-234721.log"
+      "ts": "2026-07-16 22:34 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-09e6d488ad-8fdd_7f10621211 -- Download helpers intend to return null on missing assets but throw before the null path",
+      "commit": "f1fca3fc",
+      "summary": "Immich DownloadAssetAsync/DownloadThumbnailAsync use SendOptionalAsync so 404 returns null instead of throwing. Regression ImmichClientTests +3. v0.23.135 -> v0.23.136.",
+      "status": "fixed",
+      "version": "0.23.136"
     },
     {
-      "area": "FileDownloader / cancellation token propagation and InvalidOperationException handling",
-      "files": [
-        "src/desktop/core/XerahS.Common/FileDownloader.cs",
-        "tests/XerahS.Tests/Common/FileDownloaderTests.cs",
-        "Directory.Build.props"
-      ],
-      "summary": "Fixed FileDownloader cancellation token propagation to HttpClient/SendAsync, ReadAsStreamAsync, ReadAsync, and WriteAsync calls. Also added InvalidOperationException catch for invalid URI strings (e.g. 'x'), fixed IsDownloading reset on early exit. Added 3 regression tests. Bumped version 0.23.77 -> 0.23.78.",
-      "result": "build 0 warnings/0 errors; tests 1035+34=1069 passed, 0 failed, 1 skipped",
-      "commit": "15f5e784",
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-09e6d488ad-0ab1_f5eafdacaa -- Manual album name changes can be overwritten by a stale selected album",
+      "commit": "6ccfe859",
+      "summary": "OnAlbumNameChanged clears SelectedAlbum when free-form name diverges",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-0584088912-15bf_078d713cef -- HSB equality ignores alpha while hash code includes it",
+      "commit": null,
+      "summary": "HSB.operator== includes Alpha; HSBTests cover equality/hash contract",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-09e6d488ad-4145_7e3ef02c30 -- Album share settings are silently ignored when a shared link already exists",
+      "commit": null,
+      "summary": "CreateOrReuseAlbumShare gates reuse on SecurityMatches; ImmichClientTests cover slug/password/expiry/flags",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0a565406f5-2391_9ab025638e -- ShareX.ImageEditor targets the wrong framework for this repo",
+      "commit": null,
+      "summary": "Shared-library TFM maintainability noise; ImageEditor is intentionally multi-platform shared with ShareX",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-06c095cefe-2ae1_fe873fdbd8 -- ShareX.ImageEditor targets net10.0 instead of the required Windows TFM",
+      "commit": null,
+      "summary": "Duplicate of ImageEditor TFM maintainability finding",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0305bf9121-430a_e8a7c1af2e -- Plugin assembly version is pinned behind the app version",
+      "commit": null,
+      "summary": "Release-metadata maintainability; not a runtime bug",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-1a677c14f3-3111_5198de0a3c -- Potential namespace inconsistency in RootNamespace",
+      "commit": null,
+      "summary": "Naming/maintainability only; no functional impact",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-108dac94d4-1a29_bf6987a0b0 -- Potential data loss when PlatformServices are not initialized during capture",
+      "commit": null,
+      "summary": "CaptureStage fails loudly with toast + InvalidOperationException when PlatformServices not ready; not silent data loss",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-174beceeac-aec7_a6b211d35d -- Potential overflow in ColorBgra.cs",
+      "commit": null,
+      "summary": "BgraToUInt32 is byte-range bitwise packing; overflow claim is speculative with no repro",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-16487a56b0-2467_b09e37530f -- Missing null check in DPAPIEncryptedStringValueProvider.GetValue",
+      "commit": "4b131ab538ee",
+      "summary": "Null-guard DPAPIEncryptedStringValueProvider.GetValue/SetValue",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-057839b894-95c9_b127dbe5e6 -- Active-window capture falls back to interactive region selection on wlroots desktops",
+      "commit": null,
+      "summary": "CaptureActiveWindowAsync routes SWAY/null via grimblast+sway-focused-window (WaylandCliCapture.cs:300-328); tests cover HYPRLAND/SWAY/null routing; no grim+slurp fallback remains",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-0584088912-e12d_fec808573b -- FileDownloader refuses valid downloads without Content-Length",
+      "commit": null,
+      "summary": "DoWork streams via CopyToFileAsync with declaredFileSize null for missing Content-Length (FileDownloader.cs:242-254); FileDownloaderTests cover unknown-length/chunked paths",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-057839b894-d588_9212997b0c -- Redirected stderr can block CLI capture helpers before timeout",
+      "commit": null,
+      "summary": "RunCliCapture drains stderr asynchronously with bounded WaitAll after Kill (WaylandCliCapture.cs:92-134); v0.23.91 template",
+      "status": "already-fixed"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0cc26b772b-2305_41f75ba593 -- Potential risk of incorrect OS-specific build configurations",
+      "commit": null,
+      "summary": "Platform csproj separation is intentional multi-TFM design, not a runtime bug",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0b7ba58069-f0dc_e2e7a03841 -- Potential risk of incorrect package version management",
+      "commit": null,
+      "summary": "Central package management discrepancy is maintainability noise; ImageEditor/VideoEditor submodules own their props intentionally",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-08799ed4a4-e7b7_778331b100 -- SkiaSharp central version is ahead of the repository-mandated preview version",
+      "commit": null,
+      "summary": "Package pin alignment is a deliberate release decision, not a confirmed runtime bug for this drain",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-0584088912-e889_eead89b9ed -- Common projects target net10.0 despite repository-required Windows TFM",
+      "commit": null,
+      "summary": "Common/Abstractions stay net10.0 for cross-platform neutrality; Windows TFM is enforced at app layer",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-17 16:07 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-1c07a0ed7c-00c3_7657e6f77b -- Potential security risk due to inclusion of System.Security.Cryptography.ProtectedData",
+      "commit": null,
+      "summary": "Package reference alone is not a bug; DPAPI usage is intentional for secrets storage",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-18 00:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-061adb6873-5b4a_f9b6edb8e5 -- Serialized image effect presets allow Json.NET type metadata",
+      "commit": "509a9a25",
+      "summary": "ImageEffectPreset.Effects constrained via ImageEffectListJsonConverter allow-list",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/core/XerahS.Common/FFmpegDownloader.cs:60-65 (FFmpegDownloader.DownloadLatestAsync)",
+      "commit": "efe7421f",
+      "summary": "Propagate CancellationToken into FFmpeg/GitHub URL discovery (v0.23.141)",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "fnd_sig-feat-library-05a51d5ecc-07cb_ba4c21c6b7 -- Temporary picker copies are never cleaned up",
+      "commit": "81eed608",
+      "summary": "Queue-owned cleanup for mobile picker-streamed temp files. v0.23.139 -> v0.23.140.",
       "status": "fixed",
-      "version": "0.23.78",
-      "build_log": "/tmp/xerahs-hourly-sweep/build-20260529-173500.log",
-      "test_log": "/tmp/xerahs-hourly-sweep/test-20260529-173500.log"
+      "version": "0.23.140",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original last_runs only recorded FFmpeg fix"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-174beceeac-7c95_3cef1bc92d -- Unused variable 'Dev' in AppResources.cs",
+      "commit": null,
+      "summary": "AppResources.Dev is used by ProductNameWithVersion (line 38); clawpatch false positive",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "fnd_sig-feat-library-007bd09216-d985_82064ae3d3 -- Common projects target net10.0 despite repository Windows TFM require",
+      "commit": null,
+      "summary": "Cross-platform libraries intentionally target net10.0; sibling finding already pivoted 2026-07-17",
+      "status": "out-of-scope",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "fnd_sig-feat-library-007bd09216-5c05_d3f2e07f89 -- String conversion silently erases unsupported collection values",
+      "commit": null,
+      "summary": "StringCollectionToStringTypeConverter already delegates to base; tests cover non-List types",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "Directory.Build.props:3-4",
+      "commit": null,
+      "summary": "Citation is the Version property, not a defect; version bumps land every fix",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)",
+      "commit": null,
+      "summary": "Single-color divide-by-zero guard landed in v0.23.135 with GradientInfoTests",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)",
+      "commit": null,
+      "summary": "SendOptionalAsync null-on-404 path landed in v0.23.136",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)",
+      "commit": null,
+      "summary": "CopyToFileAsync bytesRead<=0 EOF break + FileDownloaderTests already land",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-18 08:05 AWST",
+      "agent": "declan",
+      "outcome": "already-fixed",
+      "item": "src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:38-49 (ImageEffectPreset.Effects)",
+      "commit": null,
+      "summary": "ImageEffectListJsonConverter $type lockdown landed in v0.23.139",
+      "status": "already-fixed",
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
+    },
+    {
+      "ts": "2026-07-19 16:55 AWST",
+      "agent": "declan",
+      "outcome": "tfm-noise",
+      "item": "ShareX.ImageEditor/Directory.Packages.props:15",
+      "commit": null,
+      "summary": "Directory.Packages.props metadata is maintainability noise",
+      "status": "tfm-noise",
+      "source": "Step 5a categoriser drain (skill v1.1.7)"
     }
-  ]
+  ],
+  "last_run_outcome": "ingest + drain stale"
 }

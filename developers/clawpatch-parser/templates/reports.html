@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Clawpatch Reports · XerahS Developer Dashboard{% endblock %}
+{% block content %}
+{% if not reports %}
+  <div class="card"><p class="muted">No clawpatch reports found under <code>.clawpatch/reports/</code>.</p></div>
+{% else %}
+<table class="t">
+  <thead>
+    <tr>
+      <th>Generated (compact)</th>
+      <th>File</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in reports %}
+    <tr>
+      <td><span class="ts">{{ r.ts_compact }}</span></td>
+      <td><code>{{ r.filename }}</code></td>
+      <td><a class="btn" href="{{ url_for('report_view', filename=r.filename) }}">open</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

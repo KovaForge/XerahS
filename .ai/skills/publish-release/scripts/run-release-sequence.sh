@@ -17,56 +17,37 @@ Sequence options:
   --assume-changelog-done     Skip interactive confirmation for step 2
   --monitor                   Monitor tag release workflow after step 3
   --monitor-interval <sec>    Poll interval in seconds (default: 120)
-  --repo <owner/name>         GitHub repository for gh commands (default: origin remote)
-  --set-prerelease            Explicitly mark successful tag release as pre-release (default behavior)
-  --no-prerelease             Keep successful tag release as stable (opt out)
-  --prepare-flathub-source    Generate Flathub source-build manifest candidate after the pre-release is ready
+  --repo <owner/name>         GitHub repository for gh commands (default: origin remote owner/name)
+  --push-remote <name>        Git remote used for branch/tag push (default: origin; pass through to bump script)
+  --git-wrapper <cmd>         Git identity wrapper for commit/push (e.g. git-vladislava); also XERAHS_GIT_WRAPPER
+  --set-prerelease            Force successful tag release as pre-release
+  --no-prerelease             Force successful tag release as stable/latest
+  --prepare-flathub-source    Generate Flathub source-build manifest candidate after the release is ready
   -h, --help                  Show this help
 
 All other options are passed through to:
   ./.ai/skills/publish-release/scripts/bump-version-commit-tag.sh
+
+Dual-repo note:
+  Supports KovaForge/XerahS and ShareX/XerahS. Origin may use per-person SSH hosts
+  (git@github-<alias>:Owner/Repo.git). Never rely on bare \`gh repo view\` for target
+  inference on forks (it often resolves ShareX/XerahS upstream).
+
+Release channel policy (default when neither --set-prerelease nor --no-prerelease is passed):
+  - ShareX/XerahS     -> pre-release
+  - KovaForge/XerahS  -> full release (latest)
 USAGE
 }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# shellcheck source=resolve-github-repo.sh
+source "$SCRIPT_DIR/resolve-github-repo.sh"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Error: required command not found: $1" >&2
     exit 1
   fi
-}
-
-resolve_github_repo_from_origin() {
-  local remote_url
-  remote_url="$(git remote get-url origin 2>/dev/null || true)"
-  if [[ -z "$remote_url" ]]; then
-    return 1
-  fi
-
-  case "$remote_url" in
-    https://github.com/*)
-      remote_url="${remote_url#https://github.com/}"
-      ;;
-    http://github.com/*)
-      remote_url="${remote_url#http://github.com/}"
-      ;;
-    git@github.com:*)
-      remote_url="${remote_url#git@github.com:}"
-      ;;
-    ssh://git@github.com/*)
-      remote_url="${remote_url#ssh://git@github.com/}"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-
-  remote_url="${remote_url%.git}"
-  if [[ "$remote_url" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
-    echo "$remote_url"
-    return 0
-  fi
-
-  return 1
 }
 
 run_maintenance_chores() {
@@ -298,8 +279,8 @@ set_release_prerelease() {
   local is_prerelease=""
   local release_url=""
 
-  echo "Setting release $tag_name as pre-release..."
-  gh release edit "$tag_name" --repo "$gh_repo" --prerelease >/dev/null
+  echo "Setting release $tag_name as pre-release on $gh_repo..."
+  gh release edit "$tag_name" --repo "$gh_repo" --prerelease --latest=false >/dev/null
 
   is_prerelease="$(gh release view "$tag_name" --repo "$gh_repo" --json isPrerelease --jq '.isPrerelease')"
   release_url="$(gh release view "$tag_name" --repo "$gh_repo" --json url --jq '.url')"
@@ -312,11 +293,131 @@ set_release_prerelease() {
   echo "Release marked as pre-release: $release_url"
 }
 
+set_release_stable() {
+  local tag_name="$1"
+  local gh_repo="$2"
+  local is_prerelease=""
+  local is_latest=""
+  local release_url=""
+
+  echo "Setting release $tag_name as full release (latest) on $gh_repo..."
+  gh release edit "$tag_name" --repo "$gh_repo" --prerelease=false --latest >/dev/null
+
+  is_prerelease="$(gh release view "$tag_name" --repo "$gh_repo" --json isPrerelease --jq '.isPrerelease')"
+  is_latest="$(gh release view "$tag_name" --repo "$gh_repo" --json isLatest --jq '.isLatest')"
+  release_url="$(gh release view "$tag_name" --repo "$gh_repo" --json url --jq '.url')"
+
+  if [[ "$is_prerelease" == "true" ]]; then
+    echo "Error: release $tag_name is still marked as pre-release." >&2
+    exit 1
+  fi
+  if [[ "$is_latest" != "true" ]]; then
+    echo "Error: release $tag_name was not marked as latest." >&2
+    exit 1
+  fi
+
+  echo "Release marked as full release (latest): $release_url"
+}
+
+default_prerelease_for_repo() {
+  local gh_repo="$1"
+  case "$gh_repo" in
+    KovaForge/XerahS)
+      echo 0
+      ;;
+    *)
+      # ShareX/XerahS and any other target default to pre-release.
+      echo 1
+      ;;
+  esac
+}
+
+apply_release_channel() {
+  local tag_name="$1"
+  local gh_repo="$2"
+  local as_prerelease="$3"
+
+  if [[ "$as_prerelease" -eq 1 ]]; then
+    set_release_prerelease "$tag_name" "$gh_repo"
+  else
+    set_release_stable "$tag_name" "$gh_repo"
+  fi
+}
+
+expected_release_asset_names() {
+  local version="$1"
+  cat <<EOF
+XerahS-${version}-win-x64.exe
+XerahS-${version}-win-x64.msi
+XerahS-${version}-win-arm64.exe
+XerahS-${version}-win-arm64.msi
+XerahS-${version}-mac-arm64.tar.gz
+XerahS-${version}-mac-x64.tar.gz
+XerahS-${version}-linux-x64.tar.gz
+XerahS-${version}-linux-x64.deb
+XerahS-${version}-linux-x64.rpm
+XerahS-${version}-linux-arm64.tar.gz
+XerahS-${version}-linux-arm64.deb
+XerahS-${version}-linux-arm64.rpm
+com.xerahs.XerahS-${version}-linux-x64.flatpak
+xerahs.${version}.nupkg
+EOF
+}
+
+verify_release_assets() {
+  local tag_name="$1"
+  local gh_repo="$2"
+  local version="${tag_name#v}"
+  local assets_json=""
+  local missing_list=""
+  local expected=""
+  local asset_count=0
+  local attempt=1
+  local max_attempts=36
+
+  require_cmd gh
+  require_cmd jq
+
+  if ! wait_for_release "$tag_name" "$gh_repo"; then
+    echo "Error: release $tag_name was not found on $gh_repo. Cannot verify assets." >&2
+    exit 1
+  fi
+
+  while [[ $attempt -le $max_attempts ]]; do
+    assets_json="$(gh release view "$tag_name" --repo "$gh_repo" --json assets)"
+    asset_count="$(printf '%s' "$assets_json" | jq '.assets | length')"
+    missing_list=""
+
+    while IFS= read -r expected; do
+      [[ -z "$expected" ]] && continue
+      if ! printf '%s' "$assets_json" | jq -e --arg name "$expected" '.assets | any(.name == $name)' >/dev/null; then
+        missing_list+="${expected}"$'\n'
+      fi
+    done < <(expected_release_asset_names "$version")
+
+    if [[ -z "$missing_list" ]]; then
+      echo "All required release assets are present on $gh_repo for $tag_name (count=$asset_count)."
+      return 0
+    fi
+
+    echo "Waiting for required assets on $gh_repo/$tag_name (attempt $attempt/$max_attempts, found $asset_count)..."
+    printf '%s' "$missing_list" | sed '/^$/d' | sed 's/^/  missing: /'
+    sleep 10
+    attempt=$((attempt + 1))
+  done
+
+  echo "Error: release $tag_name on $gh_repo is missing one or more required assets." >&2
+  printf '%s' "$missing_list" | sed '/^$/d' | sed 's/^/  missing: /' >&2
+  printf '%s' "$assets_json" | jq -r '.assets[].name' 2>/dev/null | sed 's/^/  present: /' >&2 || true
+  exit 1
+}
+
 SKIP_MAINTENANCE=0
 ASSUME_CHANGELOG_DONE=0
 MONITOR=0
 MONITOR_INTERVAL=120
-SET_PRERELEASE=1
+# empty = auto from repo policy; 1 = force prerelease; 0 = force stable
+SET_PRERELEASE=""
 PREPARE_FLATHUB_SOURCE=0
 WORKFLOW_NAME="Release Build (All Platforms)"
 GH_TARGET_REPO=""
@@ -356,6 +457,22 @@ while [[ $# -gt 0 ]]; do
       GH_TARGET_REPO="$2"
       shift 2
       ;;
+    --push-remote)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --push-remote requires a remote name." >&2
+        exit 1
+      fi
+      PASSTHROUGH_ARGS+=("--push-remote" "$2")
+      shift 2
+      ;;
+    --git-wrapper)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --git-wrapper requires a command name." >&2
+        exit 1
+      fi
+      PASSTHROUGH_ARGS+=("--git-wrapper" "$2")
+      shift 2
+      ;;
     --set-prerelease)
       SET_PRERELEASE=1
       MONITOR=1
@@ -363,6 +480,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-prerelease)
       SET_PRERELEASE=0
+      MONITOR=1
       shift
       ;;
     --prepare-flathub-source)
@@ -398,17 +516,22 @@ fi
 cd "$repo_root"
 repo_root="$(pwd -P)"
 
-if [[ -z "$GH_TARGET_REPO" ]]; then
-  GH_TARGET_REPO="$(resolve_github_repo_from_origin || true)"
-fi
-if [[ -z "$GH_TARGET_REPO" ]]; then
-  GH_TARGET_REPO="${GH_REPO:-}"
-fi
-if [[ -z "$GH_TARGET_REPO" ]]; then
-  echo "Error: could not resolve GitHub repo from origin. Pass --repo owner/name." >&2
+if ! GH_TARGET_REPO="$(resolve_github_repo_prefer_origin "$GH_TARGET_REPO")"; then
+  echo "Error: could not resolve GitHub repo from origin. Pass --repo owner/name (e.g. KovaForge/XerahS or ShareX/XerahS)." >&2
+  echo "Hint: do not rely on bare \`gh repo view\` on forks; it may resolve ShareX/XerahS upstream." >&2
   exit 1
 fi
 echo "GitHub repo target: $GH_TARGET_REPO"
+echo "Origin remote URL : $(git remote get-url origin 2>/dev/null || echo '<missing>')"
+
+if [[ -z "$SET_PRERELEASE" ]]; then
+  SET_PRERELEASE="$(default_prerelease_for_repo "$GH_TARGET_REPO")"
+fi
+if [[ "$SET_PRERELEASE" -eq 1 ]]; then
+  echo "Release channel   : pre-release"
+else
+  echo "Release channel   : full release (latest)"
+fi
 
 maintenance_skill="$repo_root/.ai/skills/run-maintenance/SKILL.md"
 changelog_skill="$repo_root/.ai/skills/update-changelog/SKILL.md"
@@ -453,15 +576,15 @@ run_build_precheck
 bash "$bump_script" "${PASSTHROUGH_ARGS[@]}"
 
 if passthrough_has_flag "--dry-run"; then
-  if [[ $MONITOR -eq 1 || $SET_PRERELEASE -eq 1 ]]; then
-    echo "Skipping monitor/prerelease because bump step used --dry-run."
+  if [[ $MONITOR -eq 1 ]]; then
+    echo "Skipping monitor/release-channel steps because bump step used --dry-run."
   fi
   exit 0
 fi
 
 if passthrough_has_flag "--no-tag" || passthrough_has_flag "--no-push"; then
-  if [[ $MONITOR -eq 1 || $SET_PRERELEASE -eq 1 ]]; then
-    echo "Error: --monitor/--set-prerelease requires tag creation and push." >&2
+  if [[ $MONITOR -eq 1 ]]; then
+    echo "Error: --monitor/--set-prerelease/--no-prerelease requires tag creation and push." >&2
     exit 1
   fi
   echo "Done: bump step completed without remote tag push."
@@ -496,13 +619,15 @@ fi
 echo "Step 5: ensuring standard release notes for $tag_name..."
 ensure_standard_release_notes "$tag_name" "$GH_TARGET_REPO"
 
-if [[ $SET_PRERELEASE -eq 1 ]]; then
-  set_release_prerelease "$tag_name" "$GH_TARGET_REPO"
-fi
+echo "Step 6: verifying required release assets on $GH_TARGET_REPO..."
+verify_release_assets "$tag_name" "$GH_TARGET_REPO"
+
+echo "Step 7: applying release channel policy for $GH_TARGET_REPO..."
+apply_release_channel "$tag_name" "$GH_TARGET_REPO" "$SET_PRERELEASE"
 
 if [[ $PREPARE_FLATHUB_SOURCE -eq 1 ]]; then
   echo "Step 8: preparing Flathub source-build manifest candidate for $tag_name..."
   bash "$flathub_source_script" --tag "$tag_name" --repo "$GH_TARGET_REPO" --lint
 fi
 
-echo "Release sequence completed for $tag_name."
+echo "Release sequence completed for $tag_name on $GH_TARGET_REPO."

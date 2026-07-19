@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>XerahS.App</string>
+	<string>__EXECUTABLE__</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.xerahs.app</string>
 	<key>CFBundleName</key>

@@ -162,4 +162,177 @@ public class WaylandCliCaptureTests
         Assert.That(elapsedMs, Is.LessThan(2000),
             $"Helper took longer than 2s for a trivial non-zero-exit command. Elapsed: {elapsedMs:F0}ms.");
     }
+
+    [Test]
+    public void CaptureActiveWindowRouting_Hyprland_GrimblastThenHyprshot()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // Hyprland should be handled by the first block only: grimblast ->
+        // hyprshot. The second block (swaymsg fallback) must NOT be reached
+        // because IsWlrootsDesktop("HYPRLAND") is true -- the previous
+        // implementation would enter the second block after the first fell
+        // through, making the second block's grimblast call dead code.
+        var seq = WaylandCliCapture.TestAccessor
+            .CaptureActiveWindowRoutingTest("HYPRLAND");
+
+        Assert.That(seq, Is.EqualTo(new[]
+        {
+            "CaptureWithGrimblastActiveWindowAsync",
+            "CaptureWithHyprshotWindowAsync"
+        }));
+        Assert.That(seq.Count, Is.EqualTo(2),
+            "Hyprland should take exactly 2 steps; the swaymsg fallback is not applicable.");
+    }
+
+    [Test]
+    public void CaptureActiveWindowRouting_Sway_GrimblastThenSwayFocused()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // Sway is wlroots but not Hyprland, so it bypasses the first block
+        // and goes straight to the second: grimblast -> sway-focused-window.
+        var seq = WaylandCliCapture.TestAccessor
+            .CaptureActiveWindowRoutingTest("SWAY");
+
+        Assert.That(seq, Is.EqualTo(new[]
+        {
+            "CaptureWithGrimblastActiveWindowAsync",
+            "CaptureWithSwayFocusedWindowAsync"
+        }));
+        Assert.That(seq.Count, Is.EqualTo(2),
+            "Sway should take exactly 2 steps: grimblast then sway-focused-window.");
+    }
+
+    [Test]
+    public void CaptureActiveWindowRouting_NullDesktop_GrimblastThenSwayFocused()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // When DESKTOP_SESSION is unset (null), we treat it as an unknown
+        // wlroots environment and attempt grimblast -> sway-focused-window
+        // (swaymsg will fail fast on non-sway compositors, giving null, and
+        // the caller gets null).
+        var seq = WaylandCliCapture.TestAccessor
+            .CaptureActiveWindowRoutingTest(null);
+
+        Assert.That(seq, Is.EqualTo(new[]
+        {
+            "CaptureWithGrimblastActiveWindowAsync",
+            "CaptureWithSwayFocusedWindowAsync"
+        }));
+        Assert.That(seq.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void CaptureActiveWindowRouting_NonWlroots_ReturnsEmpty()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // KDE/GNOME/XFCE etc. should not be routed to any active-window
+        // helper from this method (they have their own capture paths).
+        foreach (var desktop in new[] { "KDE", "GNOME", "XFCE", "i3", "LXDE" })
+        {
+            var seq = WaylandCliCapture.TestAccessor
+                .CaptureActiveWindowRoutingTest(desktop);
+            Assert.That(seq, Is.Empty,
+                $"Desktop '{desktop}' should not be routed through the wlroots "
+                + "active-window helpers in CaptureActiveWindowAsync.");
+        }
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_ValidOutput_ReturnsParsedGeometry()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp returns "x y w h" geometry on success. Verify the parsing
+        // leg of CaptureWithGrimSlurpAsync correctly extracts it.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest("100 200 1920 1080", 0);
+
+        Assert.That(result, Is.EqualTo("100 200 1920 1080"));
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_NullOutput_ReturnsNull_NoThrow()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // Defensive regression test: if RunCliCapture ever returned null output
+        // (violating its current contract), the null-guard in
+        // CaptureWithGrimSlurpAsync v0.23.113 must prevent a NullReferenceException.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest(null, 0);
+
+        Assert.That(result, Is.Null,
+            "Null slurp output with exit 0 should return null, not throw NRE.");
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_EmptyOutput_ReturnsNull()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp exits 0 but produces no usable geometry (user cancelled / blank).
+        // The parsing helper should return null, not an empty string.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest(string.Empty, 0);
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_WhitespaceOnlyOutput_ReturnsNull()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp wrote trailing whitespace / blank lines before exiting 0.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest("  \n\r\n  ", 0);
+
+        Assert.That(result, Is.Null,
+            "Whitespace-only slurp output should be treated as empty.");
+    }
+
+    [Test]
+    public void CaptureWithGrimSlurpParsing_NonZeroExit_ReturnsNull()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            Assert.Ignore("POSIX-specific test (Linux/macOS).");
+        }
+
+        // slurp returns non-zero when the user cancels region selection.
+        // The parsing helper must return null regardless of output content.
+        var result = WaylandCliCapture.TestAccessor
+            .CaptureWithGrimSlurpParsingTest("100 200 1920 1080", 1);
+
+        Assert.That(result, Is.Null,
+            "Non-zero exit code should always return null, ignoring output.");
+    }
 }

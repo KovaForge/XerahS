@@ -83,7 +83,9 @@ namespace XerahS.Common
             try
             {
                 FFmpegUpdateChecker updateChecker = new FFmpegUpdateChecker(DefaultOwner, DefaultRepo, FFmpegUpdateChecker.ResolveArchitecture());
-                string? downloadUrl = await updateChecker.GetLatestDownloadURL(true);
+                // Propagate cancellation into GitHub URL discovery so a cancel
+                // mid-lookup does not continue into the archive download.
+                string? downloadUrl = await updateChecker.GetLatestDownloadURL(true, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -190,7 +192,7 @@ namespace XerahS.Common
 
             try
             {
-                string? downloadUrl = await GetFFprobeFallbackDownloadUrlAsync();
+                string? downloadUrl = await GetFFprobeFallbackDownloadUrlAsync(cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -341,14 +343,22 @@ namespace XerahS.Common
             }
         }
 
-        private static async Task<string?> GetFFprobeFallbackDownloadUrlAsync()
+        private static Task<string?> GetFFprobeFallbackDownloadUrlAsync()
+        {
+            return GetFFprobeFallbackDownloadUrlAsync(CancellationToken.None);
+        }
+
+        private static async Task<string?> GetFFprobeFallbackDownloadUrlAsync(CancellationToken cancellationToken)
         {
             string response = await WebHelpers.DownloadStringAsync(
-                $"https://api.github.com/repos/{FFprobeFallbackOwner}/{FFprobeFallbackRepo}/releases/latest");
+                $"https://api.github.com/repos/{FFprobeFallbackOwner}/{FFprobeFallbackRepo}/releases/latest",
+                cancellationToken);
             if (string.IsNullOrWhiteSpace(response))
             {
                 return null;
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             using JsonDocument document = JsonDocument.Parse(response);
             if (!document.RootElement.TryGetProperty("assets", out JsonElement assetsElement))

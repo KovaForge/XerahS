@@ -112,7 +112,9 @@ function Resolve-GitHubRepository {
 
     if (-not [string]::IsNullOrWhiteSpace($originUrl)) {
         $originUrl = $originUrl.Trim()
-        if ($originUrl -match 'github\.com[:/](?<owner>[^/]+)/(?<name>[^/.]+)(?:\.git)?/?$') {
+        # Support github.com and KovaForge per-person SSH aliases:
+        # git@github-vladislava:KovaForge/XerahS.git
+        if ($originUrl -match '(?:github\.com|github-[A-Za-z0-9_-]+)[:/](?<owner>[^/]+)/(?<name>[^/.]+?)(?:\.git)?/?$') {
             return @{
                 Owner = $Matches.owner
                 Name = $Matches.name

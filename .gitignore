@@ -27,7 +27,11 @@ packages/
 # IDE
 .vs/
 .vscode/
-.cursor/
+.cursor/*
+# Track graphify Cursor rule so agents on fresh clones get the pointer
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/graphify.mdc
 *.rsuser
 
 # OS
@@ -41,17 +45,37 @@ debug/
 # Local tooling
 .dotnet/
 .tmp/
+.tools/
 .env
 *.env
 secrets.json
 credentials.*
 
+# graphify rebuild cache (canonical graph lives in docs/architecture/graphify-out/)
+docs/architecture/graphify-out/cache/
+# Convenience symlink at repo root (targets docs/architecture/graphify-out/)
+/graphify-out
+
+# Clawpatch — track reports (durable audit trail), ignore runtime artefacts
+# (per-feature JSON blobs, lock files, workspace config, in-progress patches).
+# See docs/technical/clawpatch-report-tracking.md for the policy.
+.clawpatch/features/
+.clawpatch/findings/
+.clawpatch/locks/
+.clawpatch/patches/
+.clawpatch/runs/
+.clawpatch/config.json
+.clawpatch/project.json
+
 # Local build logs
 *.log
+*.binlog
+release-run-*.log
 errors.md
 
 # Local packaging output
 dist/
+.flatpak-builder/
 .claude/
 .SRCINFO
 artifacts/

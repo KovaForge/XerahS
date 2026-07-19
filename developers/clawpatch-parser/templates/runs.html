@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Runs · XerahS Developer Dashboard{% endblock %}
+{% block content %}
+{% if not runs %}
+  <div class="card"><p class="muted">No runs yet.</p></div>
+{% else %}
+<table class="t">
+  <thead>
+    <tr>
+      <th>When</th>
+      <th>Outcome</th>
+      <th>Area</th>
+      <th>Files touched</th>
+      <th>Version</th>
+      <th>Commit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in runs %}
+    <tr>
+      <td><span class="ts">{{ r.timestamp }}</span></td>
+      <td><span class="pill {{ status_color(r.outcome) }}">{{ r.outcome or '—' }}</span></td>
+      <td><strong>{{ r.area }}</strong>
+        {% if r.notes %}
+          <details><summary>notes</summary><div class="muted small">{{ r.notes }}</div></details>
+        {% endif %}
+        {% if r.build_test %}
+          <details><summary>build/test</summary><div class="muted small">{{ r.build_test }}</div></details>
+        {% endif %}
+      </td>
+      <td>
+        {% if r.files %}
+          <ul class="files">
+            {% for f in r.files %}<li><code>{{ f }}</code></li>{% endfor %}
+          </ul>
+        {% else %}—{% endif %}
+      </td>
+      <td><code>{{ r.version_bump or '—' }}</code></td>
+      <td>
+        {% if r.commit == 'pending' %}
+          <span class="err">pending</span>
+        {% elif r.commit %}
+          <code>{{ r.commit[:10] }}</code>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
