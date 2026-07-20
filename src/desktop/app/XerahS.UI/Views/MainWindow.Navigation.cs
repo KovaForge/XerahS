@@ -247,8 +247,6 @@ namespace XerahS.UI.Views
                     openedExternalWindow = true;
                     return true;
                 case "Settings":
-                    contentFrame.Content = new SettingsView();
-                    return true;
                 case "Settings_App":
                     _applicationSettingsView ??= CreateApplicationSettingsView();
                     contentFrame.Content = _applicationSettingsView;
@@ -281,47 +279,6 @@ namespace XerahS.UI.Views
         private DestinationSettingsView CreateDestinationSettingsView()
         {
             return new DestinationSettingsView();
-        }
-
-        public void NavigateToSettingsSearchResult(SettingsSearchEntry entry)
-        {
-            ArgumentNullException.ThrowIfNull(entry);
-
-            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
-            if (contentFrame != null)
-            {
-                // Switch content immediately; do not rely solely on TreeView selection events.
-                HandleNavigationTag(entry.NavigationTag, contentFrame, out _);
-            }
-
-            // Keep the sidebar selection in sync when possible.
-            NavigateTo(entry.NavigationTag);
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (entry.NavigationTag == "Settings_App")
-                {
-                    _applicationSettingsView ??= CreateApplicationSettingsView();
-                    if (!ReferenceEquals(contentFrame?.Content, _applicationSettingsView) && contentFrame != null)
-                    {
-                        contentFrame.Content = _applicationSettingsView;
-                    }
-
-                    _applicationSettingsView.SelectTabByHeader(entry.AppTab);
-                    return;
-                }
-
-                if (entry.NavigationTag == "Settings_Dest")
-                {
-                    _destinationSettingsView ??= CreateDestinationSettingsView();
-                    if (!ReferenceEquals(contentFrame?.Content, _destinationSettingsView) && contentFrame != null)
-                    {
-                        contentFrame.Content = _destinationSettingsView;
-                    }
-
-                    _destinationSettingsView.ApplySearchTarget(entry.DestinationCategory, entry.DestinationInstance);
-                }
-            }, DispatcherPriority.Loaded);
         }
 
         private void BuildNavigationNodes()
@@ -391,7 +348,7 @@ namespace XerahS.UI.Views
 
         public void NavigateToSettings()
         {
-            NavigateTo("Settings");
+            NavigateTo("Settings_App");
         }
 
         public void NavigateToHistory()
@@ -581,7 +538,7 @@ namespace XerahS.UI.Views
 
         private static NavigationNode CreateSettingsNode()
         {
-            NavigationNode settingsNode = CreateNode("Settings", "Settings", HostIcons.NavigationSettings, NavigationNodeKind.Page, isExpanded: true);
+            NavigationNode settingsNode = CreateNode("Settings", "Settings", HostIcons.NavigationSettings, NavigationNodeKind.Group, isExpanded: true);
             settingsNode.AddChild(CreateNode("Application Settings", "Settings_App", null, NavigationNodeKind.Page));
             settingsNode.AddChild(CreateNode("Destination Settings", "Settings_Dest", null, NavigationNodeKind.Page));
             return settingsNode;

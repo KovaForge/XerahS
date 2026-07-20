@@ -44,7 +44,7 @@ public class ViewLocator : IDataTemplate
             [typeof(IndexFolderViewModel)] = static () => new IndexFolderPanel(),
             [typeof(ProviderCatalogViewModel)] = static () => new ProviderCatalogView(),
             [typeof(ProviderExplorerViewModel)] = static () => new ProviderExplorerView(),
-            [typeof(SettingsViewModel)] = static () => new SettingsView(),
+            [typeof(SettingsViewModel)] = static () => new ApplicationSettingsView(),
             [typeof(TaskSettingsViewModel)] = static () => new TaskSettingsPanel(),
             [typeof(WorkflowEditorViewModel)] = static () => new WorkflowEditorView(),
             [typeof(WorkflowsViewModel)] = static () => new WorkflowsView()
