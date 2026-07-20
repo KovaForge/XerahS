@@ -114,6 +114,14 @@ public sealed class SettingsSearchService
         }
     }
 
+    public IReadOnlyList<SettingsSearchEntry> GetAllEntries()
+    {
+        lock (_gate)
+        {
+            return _snapshot;
+        }
+    }
+
     public IReadOnlyList<SettingsSearchEntry> Search(string? query, int maxResults = DefaultMaxResults)
     {
         string trimmed = query?.Trim() ?? string.Empty;
