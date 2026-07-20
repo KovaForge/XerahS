@@ -110,7 +110,33 @@ public sealed class SettingsSearch : AvaloniaObject
                 bool pageVisible = ApplyToPage(content, query, tabItem.Header?.ToString());
                 tabItem.IsVisible = pageVisible;
             }
+
+            EnsureVisibleTabSelected(tabControl);
         }
+    }
+
+    /// <summary>
+    /// When the selected tab is filtered out, select the first still-visible tab so its content shows immediately.
+    /// </summary>
+    private static void EnsureVisibleTabSelected(TabControl tabControl)
+    {
+        if (tabControl.Items == null)
+        {
+            return;
+        }
+
+        TabItem[] visibleTabs = tabControl.Items.OfType<TabItem>().Where(static tab => tab.IsVisible).ToArray();
+        if (visibleTabs.Length == 0)
+        {
+            return;
+        }
+
+        if (tabControl.SelectedItem is TabItem selected && selected.IsVisible)
+        {
+            return;
+        }
+
+        tabControl.SelectedItem = visibleTabs[0];
     }
 
     private static bool ApplyToPage(Control page, string query, string? fallbackTitle = null)

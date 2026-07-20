@@ -80,6 +80,49 @@ public class SettingsPanelSearchTests
         Assert.That(SettingsSearch.Matches("Proxy Configuration", "PROXY"), Is.True);
     }
 
+    [AvaloniaTest]
+    public void Apply_SelectsFirstVisibleTab_WhenCurrentTabHidden()
+    {
+        StackPanel generalPanel = CreatePanel("Theme", "theme dark light");
+        StackPanel watchPanel = CreatePanel("Watch folders", "watch folder daemon");
+
+        var generalTab = new TabItem
+        {
+            Header = "General",
+            Content = CreatePage("general", generalPanel)
+        };
+        var watchTab = new TabItem
+        {
+            Header = "Watch Folders",
+            Content = CreatePage("watch-folders", watchPanel)
+        };
+
+        var tabs = new TabControl
+        {
+            Items = { generalTab, watchTab },
+            SelectedItem = generalTab
+        };
+        var root = new UserControl { Content = tabs };
+
+        SettingsSearch.Apply(root, "watch");
+
+        Assert.That(generalTab.IsVisible, Is.False);
+        Assert.That(watchTab.IsVisible, Is.True);
+        Assert.That(tabs.SelectedItem, Is.SameAs(watchTab));
+    }
+
+    private static StackPanel CreatePage(string pageId, params Control[] panels)
+    {
+        var page = new StackPanel();
+        SettingsSearch.SetPageId(page, pageId);
+        foreach (Control panel in panels)
+        {
+            page.Children.Add(panel);
+        }
+
+        return page;
+    }
+
     private static UserControl CreateRoot(params Control[] panels)
     {
         var page = new StackPanel();
