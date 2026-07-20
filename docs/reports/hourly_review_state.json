@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-20 00:07 AWST",
+  "last_updated": "2026-07-20 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -23,12 +23,12 @@
     },
     {
       "area": "MCP server / IsHistorySearchResourceUri prefix and malformed query hardening",
-      "last_reviewed": "2026-06-09 20:31 AWST",
+      "last_reviewed": "2026-07-20 08:06 AWST",
       "status": "fixed",
       "priority": "Medium",
       "source": "follow-up from MCP search resource URI edge cases (next_candidates[0])",
-      "last_outcome": "Hardened XerahSMcpRuntime.IsHistorySearchResourceUri against two classes of bad input that previously slipped through: (1) prefix-only paths like 'xerahs://history/searchfoo' that were incorrectly treated as search URIs (matched by StartsWith, not exact path or path+query); (2) malformed percent-escapes in the query (e.g. 'q=%E0%A4%A') that left Uri.UnescapeDataString in a half-decoded state. The fix uses a Uri-based parse to confirm the Host is 'history', the AbsolutePath is exactly '/history/search', and only valid percent-escapes (each '%' followed by two hex digits) are passed to unescape. The 'IsHistorySearchResourceUri' method is now public static (previously private/internal) so tests can call it directly without reflection. Added 7 regression tests (3 valid + 4 invalid inputs). Bumped version 0.23.100 -> 0.23.101.",
-      "follow_up": "Resume other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics for stale default cleanup and unavailable provider replacement flows, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Pre-existing SQLite 'disk I/O error' (now affecting 5 tests including 2 new IsHistorySearchResourceUri fixtures) is environmental, documented in next_candidates."
+      "last_outcome": "Regression fixed: empty history search queries and queries containing no valid key/value pair are rejected; mixed malformed/valid pairs preserve valid limit/from values. Commit 8420c962; v0.24.1; targeted URI tests 13/13.",
+      "follow_up": "Resolve the longstanding MCP SQLite temp-database disk-I/O test isolation failures; otherwise await fresh next_candidates."
     },
     {
       "area": "Linux platform / LinuxInputService / xdotool capture pipe-fill + timeout-stretching deadlock",
@@ -993,7 +993,17 @@
       "commit": null,
       "summary": "CaptureStage 79-84 control flow verified correct",
       "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-20 08:06 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "MCP server / IsHistorySearchResourceUri empty and malformed query regression",
+      "commit": "8420c962",
+      "summary": "Reject empty/no-valid-pair MCP history search URIs while preserving valid sibling query parameters. v0.24.1.",
+      "status": "fixed",
+      "version": "0.24.1"
     }
   ],
-  "last_run_outcome": "pivot"
+  "last_run_outcome": "fixed"
 }

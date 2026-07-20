@@ -2732,3 +2732,23 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 08:06 AWST - MCP history search URI regression / empty and malformed queries
+
+- Area: MCP server / `IsHistorySearchResourceUri`
+- Files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `Directory.Build.props`
+- Findings: The empty-query and malformed-percent regression tests already present in `XerahSMcpServerTests.cs` failed against HEAD: `xerahs://history/search?` and a URI with only malformed query data were accepted. The matcher now rejects empty queries and requires at least one well-formed key/value pair while preserving valid sibling parameters when another pair is malformed. Version `0.24.0` -> `0.24.1`.
+- Status: Fixed
+- Build/test: Release build 0 warnings/0 errors; MCP history URI regression tests 13/13 passed; XerahS.Tests 1183 passed/0 failed/2 skipped. Full MCP suite: 44 passed/3 pre-existing SQLite disk-I/O failures. Logs: `/tmp/xerahs-bugfix/build-fix1-final-20260720-080652.log`, `/tmp/xerahs-bugfix/test-fix1-final-20260720-080652.log`, `/tmp/xerahs-bugfix/test-mcp-history-20260720-080652.log`
+- Commit: `8420c962` by Declan Murphy
+- Follow-up: await the producer to publish fresh `next_candidates`; separately resolve the longstanding MCP SQLite temp-database test isolation failures
+
+### 2026-07-20 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 next_candidates; no stale/out-of-scope pivots remained after the prior drain. A live full-suite regression in MCP history URI matching was fixed from existing failing coverage rather than leaving the run as a no-op.
+- Status: Clean queue; one regression fix landed
+- Build/test: same verification as the preceding fix entry
+- Commit: `8420c962` (fix); tracker commit pending
+- Follow-up: await the producer to publish fresh next_candidates
