@@ -2773,3 +2773,38 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: Release build passed with 0 errors and 3 pre-existing warnings; XerahS.Tests passed 1183/1185 (2 skipped). Full solution test failed only the 3 known MCP history-detail tests with SQLite disk I/O isolation errors; targeted retry reproduced 3/3 failures. Logs: /tmp/xerahs-bugfix/build-20260721-000649.log, /tmp/xerahs-bugfix/test-20260721-000649.log
 - Commit: pending (no-op tracker/state audit)
 - Follow-up: Producer should supply fresh `next_candidates`; separately resolve the known MCP SQLite temp-database test isolation failures.
+
+### 2026-07-21 10:51 AWST - clawpatch-ingest gate drops (skill v2.1.2, nadia-owned)
+
+- Reports parsed: 3 (20260720T185039-0cf386.md, 20260719T011521-6eec49.md, 20260707T113342-6f5059.md)
+- Findings dropped at severity gate: 82
+  - triage=risk: 63
+  - triage=contract-mismatch: 14
+  - triage=docs-gap: 3
+  - triage=test-gap: 2
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as release-history fixed (v2.1.2): 18
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - ... and 8 more
+- Ingested into next_candidates: 7
+  - src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+  - scripts/check-markdown-mojibake.py:81-83
+  - src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+  - scripts/check-markdown-mojibake.py:76
+  - Directory.Build.props:11
+  - src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+  - src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- next_candidates delta: +7 (total 7)
+- Source run id: 20260720T185039-0cf386
