@@ -2752,3 +2752,14 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: same verification as the preceding fix entry
 - Commit: `8420c962` (fix); tracker commit pending
 - Follow-up: await the producer to publish fresh next_candidates
+
+### 2026-07-20 16:18 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified 0 `next_candidates`; no real bugs or verified pivots were available. Fork, upstream, and ShareX.ImageEditor syncs were all current.
+- Status: Clean queue / no-op
+- Build/test: Release build succeeded with 0 errors and 3 pre-existing obsolete-API warnings; XerahS.Tests passed 1183/1183 with 2 skipped. Full MCP suite passed 44 and hit 3 longstanding `CreateHistoryDetailsAsync_*` SQLite disk-I/O failures; the remaining 44 MCP tests passed when those environmental cases were excluded. Logs: `/tmp/xerahs-bugfix/build-20260720-160703.log`, `/tmp/xerahs-bugfix/test-20260720-160703.log`, `/tmp/xerahs-bugfix/test-mcp-baseline-excluded-20260720-160703.log`
+- Commit: none (queue audit; tracker commit pending)
+- Follow-up: await the producer to publish fresh `next_candidates`; separately isolate the longstanding MCP SQLite test database from shared user history state
+- Skill: `xerahs-bugfix/SKILL.md` v1.1.9 patched (1 clarification: persist empty-queue no-op audits)
