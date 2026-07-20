@@ -562,12 +562,21 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         if (uri.Equals("xerahs://history/search", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        if (!uri.StartsWith("xerahs://history/search?", StringComparison.OrdinalIgnoreCase))
+        const string searchPrefix = "xerahs://history/search?";
+        if (!uri.StartsWith(searchPrefix, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        // Ensure nothing comes between "search" and "?" (prevents prefix attacks like searchfoo?)
-        var searchPart = uri.Substring("xerahs://history/search".Length);
-        return searchPart.StartsWith("?");
+        var query = uri[searchPrefix.Length..];
+        if (query.Length == 0)
+            return false;
+
+        return query.Split('&').Any(pair =>
+        {
+            var separator = pair.IndexOf('=');
+            var key = separator >= 0 ? pair[..separator] : pair;
+            var value = separator >= 0 ? pair[(separator + 1)..] : string.Empty;
+            return key.Length > 0 && HasValidPercentEncoding(key) && HasValidPercentEncoding(value);
+        });
     }
 
     internal static string? DecodeResourceQueryComponent(string value)
