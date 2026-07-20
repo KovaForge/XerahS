@@ -2763,3 +2763,13 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Commit: `36819036` (queue audit tracker/state)
 - Follow-up: await the producer to publish fresh `next_candidates`; separately isolate the longstanding MCP SQLite test database from shared user history state
 - Skill: `xerahs-bugfix/SKILL.md` v1.1.10 patched (2 clarifications: persist empty-queue no-op audits; validate manually when macOS Bash 3.2 cannot run the hook)
+
+### 2026-07-21 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified zero `next_candidates`; no fixes or pivots were available.
+- Status: No-op
+- Build/test: Release build passed with 0 errors and 3 pre-existing warnings; XerahS.Tests passed 1183/1185 (2 skipped). Full solution test failed only the 3 known MCP history-detail tests with SQLite disk I/O isolation errors; targeted retry reproduced 3/3 failures. Logs: /tmp/xerahs-bugfix/build-20260721-000649.log, /tmp/xerahs-bugfix/test-20260721-000649.log
+- Commit: pending (no-op tracker/state audit)
+- Follow-up: Producer should supply fresh `next_candidates`; separately resolve the known MCP SQLite temp-database test isolation failures.
