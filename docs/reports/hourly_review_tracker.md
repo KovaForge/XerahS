@@ -2808,3 +2808,73 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
   - src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
 - next_candidates delta: +7 (total 7)
 - Source run id: 20260720T185039-0cf386
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: source already performs the expected null/error guard; cited control flow is correct
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: UTF-8 decode failure is intentionally reported by a Markdown UTF-8 hygiene checker; alternative-encoding support is outside its contract
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code requires Android SDK 36/Xcode 26.2 and is excluded from this cron host
+- Status: Pivot (out-of-scope)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: BOM detection is the intended hygiene check, not a defect in the checker
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / tfm-noise
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: root line is intentional MSBuild warning-message configuration, not shell output concatenation
+- Status: Pivot (tfm-noise)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: uploader explicitly marks deletion unavailable and records a user-visible reason when no documented Paste2 delete URL exists
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: validation correctly rejects blank text formats and sets StatusMessage; no live defect at the cited lines
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses

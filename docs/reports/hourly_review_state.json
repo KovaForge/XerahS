@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-21 00:06 AWST",
+  "last_updated": "2026-07-21 08:18 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,15 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
-    "scripts/check-markdown-mojibake.py:81-83",
-    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
-    "scripts/check-markdown-mojibake.py:76",
-    "Directory.Build.props:11",
-    "src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)",
-    "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1029,7 +1021,70 @@
       "commit": null,
       "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available.",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+      "commit": null,
+      "summary": "source already performs the expected null/error guard; cited control flow is correct",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "scripts/check-markdown-mojibake.py:81-83",
+      "commit": null,
+      "summary": "UTF-8 decode failure is intentionally reported by a Markdown UTF-8 hygiene checker; alternative-encoding support is outside its contract",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
+      "commit": null,
+      "summary": "mobile code requires Android SDK 36/Xcode 26.2 and is excluded from this cron host",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "scripts/check-markdown-mojibake.py:76",
+      "commit": null,
+      "summary": "BOM detection is the intended hygiene check, not a defect in the checker",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "tfm-noise",
+      "item": "Directory.Build.props:11",
+      "commit": null,
+      "summary": "root line is intentional MSBuild warning-message configuration, not shell output concatenation",
+      "status": "tfm-noise"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)",
+      "commit": null,
+      "summary": "uploader explicitly marks deletion unavailable and records a user-visible reason when no documented Paste2 delete URL exists",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)",
+      "commit": null,
+      "summary": "validation correctly rejects blank text formats and sets StatusMessage; no live defect at the cited lines",
+      "status": "false-positive"
     }
   ],
-  "last_run_outcome": "no-op"
+  "last_run_outcome": "pivot"
 }
