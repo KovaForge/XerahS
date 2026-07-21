@@ -2878,3 +2878,4 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.11 patched (1 clarification: live source verification before treating clawpatch confirmed-bug labels as actionable)
