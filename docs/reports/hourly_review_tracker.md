@@ -2919,3 +2919,14 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a (no code change)
 - Commit: none (audit tracker/state; SHA recorded in Step 9 summary only per v1.1.12)
 - Follow-up: await the next `xerahs-review` producer ingest to re-populate `next_candidates`; separately resolve the longstanding MCP SQLite temp-database test isolation failures.
+
+### 2026-07-23 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after preflight. Fork/upstream/submodule already clean. No real-bug pick, no pivots. Empty-queue audit per skill v1.1.9.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit commit records SHA in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.12 — no patch this tick
