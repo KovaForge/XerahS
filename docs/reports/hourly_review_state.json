@@ -1163,7 +1163,7 @@
       "agent": "nadia",
       "outcome": "ingested",
       "item": "xerahs-review producer sweep (23:00 AWST cadence)",
-      "commit": null,
+      "commit": "6e76a852",
       "summary": "Clawpatch review run 20260723T150521-892e85 completed (3 features, 47 findings); ingested 9 high-signal confirmed-bug findings from the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate dropped 85 (triage≠confirmed-bug, category=maintainability, or triage=risk/contract-mismatch); 3 already-fixed at area level (ImmichUploader.cs:220-233); 20 already-fixed in release history (AssistantHistoryServiceTests, FileDownloader, HSB, GradientInfo, ImmichClient, DPAPIEncryptedStringValueProvider, IndexCommand.CountIndexedContents). Fork/upstream/submodule all current at HEAD d4a612a7 == nadia/develop == origin/develop; upstream/develop 22c8b34a is 106 commits behind HEAD (no merge needed). next_candidates: 0 -> 9",
       "status": "ingested"
     }
