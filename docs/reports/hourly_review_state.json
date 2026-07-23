@@ -1173,7 +1173,7 @@
       "agent": "nadia",
       "outcome": "ingested",
       "item": "xerahs-review producer sweep (23:00 AWST cadence, post-clawpatch rerun)",
-      "commit": null,
+      "commit": "a6ebc80c",
       "summary": "Re-fired clawpatch review (post-prior-partial-run cleanup). New report 20260723T151439-e25ee8 (48 findings, 2 clusters) plus 2 priors (20260723T150521-892e85, 20260720T185039-0cf386) = 137 total findings. Severity gate dropped 86; 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233); 25 dropped as already-fixed in release history; 22 dropped as duplicate evidence[0]/id. **1 NEW finding** added: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo missing null check on 'assembly' parameter — NRE risk). next_candidates: 9 -> 10 (+1). Fork/upstream/submodule unchanged this tick (all current at HEAD f8bfceac).",
       "status": "ingested"
     }
