@@ -2951,3 +2951,29 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Commit: none (audit only; SHA recorded in Step 9 summary)
 - Follow-up: none this tick; resume normal drain when producer enqueues
 - Skill: xerahs-bugfix/SKILL.md v1.1.12 unchanged (no efficiency blockers)
+
+### 2026-07-23 23:00 AWST - clawpatch ingest / 9 new findings
+
+- Area: xerahs-review producer sweep (23:00 AWST cadence, replacing dormant Milena 6h)
+- Files: `.clawpatch/reports/20260723T150521-892e85.md`, `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Clawpatch review of 3 features produced 47 raw findings; parsed 129 across the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate (triage=confirmed-bug, confidence in {high, medium}, category not maintainability) admitted 44; 3 dropped as already-fixed at area level (`src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233` — area `"ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)"` already marked fixed v0.23.124->v0.23.125); 20 dropped as already-fixed in release-history (`tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`, `FileDownloader.cs`, `HSB.cs`, `GradientInfo.ctor`, `ImmichClient.DownloadAssetAsync`, `DPAPIEncryptedStringValueProvider`, `IndexCommand.CountIndexedContents`); 12 dropped as duplicate evidence[0]/id across reports; **9 added** to `next_candidates`.
+- Status: ingested (producer-side only — no fixes, no area status changes, no other agents' last_runs rows touched)
+- Build/test: n/a (no code change)
+- Commit: pending (git-nadia)
+- Ingested evidence (next_candidates delta 0 -> 9):
+  - `src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84` — PlatformServices-not-initialized capture failure path lacks retry/fallback (data-loss / confirmed-bug / high)
+  - `src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)` — path traversal: no validation against `..`/`%2e%2e` after `Environment.ExpandEnvironmentVariables` (security / confirmed-bug / high)
+  - `scripts/check-markdown-mojibake.py:81-83` — non-UTF-8 Markdown files reported as invalid but no alternative encoding attempted (bug / confirmed-bug / medium)
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)` — out param left unset on unsupported extensions → caller NRE risk (bug / confirmed-bug / medium)
+  - `src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)` — `BoolToConfiguredBrushConverter.ConvertBack` throws `NotImplementedException`; two-way binding crash (bug / confirmed-bug / medium)
+  - `scripts/check-markdown-mojibake.py:76` — false-positive on legitimate UTF-8 BOM in Markdown files (bug / confirmed-bug / medium)
+  - `Directory.Build.props:11` — `status="$(curl ... || echo 000)"` fallback concatenates "000" with failed curl output (e.g. "404000") (concurrency / confirmed-bug / medium)
+  - `src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)` — no documented deletion API; user cannot delete uploaded paste (data-loss / confirmed-bug / medium)
+  - `src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)` — (already noted as pivot by xerahs-bugfix 2026-07-21 08:05 AWST; re-emerges in latest clawpatch report; consumer may re-pivot)
+- Gate drops breakdown:
+  - triage≠confirmed-bug: 47 (most are `risk` / `contract-mismatch`)
+  - category=maintainability: 1 (`AssistantServiceTests` OCR options normalization)
+  - already-fixed at area level: 3 (ImmichUploader)
+  - already-fixed in release history: 20
+- Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
+- Skill: xerahs-review/SKILL.md v2.2.0 unchanged (no efficiency blockers this run)

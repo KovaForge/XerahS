@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-23 16:06 AWST",
+  "last_updated": "2026-07-23 23:00 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,17 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+    "src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)",
+    "scripts/check-markdown-mojibake.py:81-83",
+    "src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
+    "scripts/check-markdown-mojibake.py:76",
+    "Directory.Build.props:11",
+    "src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)",
+    "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1147,7 +1157,16 @@
       "commit": null,
       "summary": "Step 5a found zero candidates; empty-queue audit (skill v1.1.9)",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-07-23 23:00 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer sweep (23:00 AWST cadence)",
+      "commit": null,
+      "summary": "Clawpatch review run 20260723T150521-892e85 completed (3 features, 47 findings); ingested 9 high-signal confirmed-bug findings from the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate dropped 85 (triage≠confirmed-bug, category=maintainability, or triage=risk/contract-mismatch); 3 already-fixed at area level (ImmichUploader.cs:220-233); 20 already-fixed in release history (AssistantHistoryServiceTests, FileDownloader, HSB, GradientInfo, ImmichClient, DPAPIEncryptedStringValueProvider, IndexCommand.CountIndexedContents). Fork/upstream/submodule all current at HEAD d4a612a7 == nadia/develop == origin/develop; upstream/develop 22c8b34a is 106 commits behind HEAD (no merge needed). next_candidates: 0 -> 9",
+      "status": "ingested"
     }
   ],
-  "last_run_outcome": "no-op"
+  "last_run_outcome": "ingested 9 findings; next_candidates 0->9"
 }
