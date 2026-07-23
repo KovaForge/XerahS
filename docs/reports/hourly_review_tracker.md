@@ -2991,3 +2991,27 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Anomalies: clawpatch first-pass produced only **1** finding this run (vs. prior 47 / 42 — most are scoped under `--limit 3` features per run). The 3 features sampled this run (XerahS.Uploaders/PluginSystem, ShareX.VideoEditor/backend/Hosting/Diagnostics, XerahS.CLI/Properties) had **0/1/0** findings. Carry-forward of high-signal findings from prior clawpatch reports is **already included** in `next_candidates` (9 from earlier ingest). The single new finding is the practical delta for this rerun.
 - Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
 - Skill: xerahs-review/SKILL.md v2.2.0 unchanged (no efficiency blockers this run)
+
+### 2026-07-24 00:08 AWST - xerahs-bugfix pivot drain (10 items, 0 fixes)
+
+
+- Area: next_candidates full-queue drain (pivot-only tick)
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: classified + live-verified all 10 queue items as already-fixed (4) or out-of-scope (6); no code change
+- Status: Pivot
+- Build/test: n/a (no code change)
+- Commit: PENDING (tracker-only)
+- Follow-up: producer can re-ingest fresh clawpatch; deferred last_runs at deferred-last-runs-20260724-000848.json (10 rows) for next fix tick
+- already-fixed:
+  - `src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84` — CaptureStage control flow verified correct
+  - `ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRu` — cited file/lines no longer exist at HEAD: <<error: Command '['git', '-C', '/Users/mike/Projects/KovaForge/xerahs', 'show', 'HEAD:ShareX.VideoEditor/backend/Host
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)` — out param always set (imageFormat=default on fail); regression already in CaptureCommandRegionParsingTests.TryGetImageFormat_WhenExtensionUnknown_ReturnsFalse
+  - `src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)` — already handles missing deletion URL with Deletion.Available=false + Deletion.Reason metadata (same pattern as PastebinUploader guest pastes). clawpatch asks fo
+- out-of-scope:
+  - `scripts/check-markdown-mojibake.py:81-83` — diagnostic script maintainability — not a product runtime bug
+  - `src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)` — mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+  - `scripts/check-markdown-mojibake.py:76` — diagnostic script maintainability — not a product runtime bug
+  - `Directory.Build.props:11` — Central package / build metadata noise
+  - `src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)` — local CLI config command; user-chosen watch folder is intentional. Path.GetFullPath+CreateDirectory under try/catch already surfaces errors; rejecting '..' woul
+  - `src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)` — TextFormat is freeform lang hint for paste2.org; no fixed whitelist. Empty check is intentional; arbitrary lang values are accepted by the API.
+- Skill: xerahs-bugfix/SKILL.md v1.1.13 patched (1 clarification: deferred last_runs on pivot-only ticks)
