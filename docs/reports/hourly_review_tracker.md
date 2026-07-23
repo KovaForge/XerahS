@@ -2977,3 +2977,17 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
   - already-fixed in release history: 20
 - Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
 - Skill: xerahs-review/SKILL.md v2.2.0 unchanged (no efficiency blockers this run)
+
+### 2026-07-23 23:13 AWST - clawpatch re-run / +1 fresh VideoEditor finding
+
+- Area: xerahs-review producer sweep (23:00 AWST cadence, post-prior-partial-run cleanup)
+- Files: `.clawpatch/reports/20260723T151439-e25ee8.md`, `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Re-fired `clawpatch review --provider minimax --model MiniMax-Text-01 --limit 3` (full-fidelity rerun per cron contract). New report 20260723T151439-e25ee8 reviewed 3 features (XerahS.Uploaders/PluginSystem#2, ShareX.VideoEditor/backend/Hosting/Diagnostics, XerahS.CLI/Properties) = 1 finding on first-pass (43 jobs, 30-43 s/feature). Cross-report ingest over the 3 newest reports (20260723T151439, 20260723T150521, 20260720T185039) = 137 total findings; severity gate dropped 86; 3 dropped as already-fixed at area level (`ImmichUploader.cs:220-233` — fixed v0.23.124->v0.23.125); 25 dropped as already-fixed in release history; 22 dropped as duplicate evidence[0]/id; **1 NEW** added.
+- Status: ingested (producer-side only — no fixes, no area status changes, no other agents' last_runs rows touched)
+- Build/test: n/a (no code change)
+- Commit: pending (git-nadia)
+- Ingested evidence (next_candidates delta 9 -> 10):
+  - `ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo)` — no null check on `assembly` parameter; NRE risk if a null value is passed (bug / confirmed-bug / high). Missing-test-grep: no VideoEditorDiagnostics tests existed as of 2026-07-23.
+- Anomalies: clawpatch first-pass produced only **1** finding this run (vs. prior 47 / 42 — most are scoped under `--limit 3` features per run). The 3 features sampled this run (XerahS.Uploaders/PluginSystem, ShareX.VideoEditor/backend/Hosting/Diagnostics, XerahS.CLI/Properties) had **0/1/0** findings. Carry-forward of high-signal findings from prior clawpatch reports is **already included** in `next_candidates` (9 from earlier ingest). The single new finding is the practical delta for this rerun.
+- Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
+- Skill: xerahs-review/SKILL.md v2.2.0 unchanged (no efficiency blockers this run)
