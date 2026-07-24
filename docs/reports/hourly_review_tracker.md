@@ -3026,3 +3026,13 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Commit: PENDING (audit commit; leave last_runs.commit null per v1.1.12)
 - Follow-up: await producer (xerahs-review) re-ingest; fold one deferred last_runs row per future fix commit
 - Skill: xerahs-bugfix/SKILL.md v1.1.13 — no patch this run
+
+### 2026-07-24 16:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after preflight; no real-bug items, no pivots this tick. Deferred last_runs from 2026-07-24 00:08 AWST (10 rows) left untouched pending a fix-bearing tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: PENDING (recorded in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer ingest; fold one deferred last_runs row per future fix commit
