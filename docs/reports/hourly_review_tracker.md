@@ -3036,3 +3036,55 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a (no code change)
 - Commit: PENDING (recorded in Step 9 summary only; last_runs.commit left null per v1.1.12)
 - Follow-up: wait for xerahs-review producer ingest; fold one deferred last_runs row per future fix commit
+
+### 2026-07-25 07:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 87
+  - triage=risk: 66
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 24
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - ... and 14 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-07-24 23:07 AWST - clawpatch ingest / 10 new findings (producer)
+
+- Status: ingested (producer-side only — no fixes, no area status changes, no other agents' last_runs rows touched)
+- Agent: nadia (cron-fired 23:00 AWST daily cadence)
+- Clawpatch review: ran 20260724T150348-691759 (3 features: ShareX.ImageEditor/Annotations, XerahS.RegionCapture/ViewModels, XerahS.Uploaders/LegacySupport/Compatibility). CLI per-feature findings=0 but report file produced (deterministic replay, byte-identical to 20260723T151439-e25ee8 — 48 findings, 2 clusters).
+- Ingest: 3 newest reports (20260724T150348, 20260723T151439, 20260723T150521) = 143 total findings.
+  - Severity gate dropped 87 (triage=risk x66, contract-mismatch x15, test-gap x3, docs-gap x3)
+  - Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 x3 — Immich Plugin ToJson symmetry clamp area)
+  - Release-history file cache dropped 24 (AssistantHistoryServiceTests, FileDownloader, HSB, IndexCommand.CountIndexedContents, DPAPI, GradientInfo, ImmichClient, WaylandCliCapture, OCR options, ShareX.VideoEditor diagnostics — all from v0.23.x release commits)
+  - Duplicate evidence[0]/id dedupe dropped 19
+  - **10 NEW findings ingested** (high-signal confirmed-bug, not yet shipped):
+    1. src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+    2. src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+    3. scripts/check-markdown-mojibake.py:81-83
+    4. src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+    5. src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+    6. ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo) — re-emerged after release-history file-cache drift? worth investigation
+    7. scripts/check-markdown-mojibake.py:76
+    8. Directory.Build.props:11
+    9. src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+    10. src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- next_candidates: 0 → 10 (Δ +10)
+- Fork/upstream/submodule: all current (HEAD ce62780e == nadia/develop == origin/develop after nadia fetch; upstream/develop already merged; ShareX.ImageEditor 6751bae7 == origin/develop == upstream/develop — clean)
+- Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
