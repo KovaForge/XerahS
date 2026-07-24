@@ -3015,3 +3015,14 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
   - `src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)` — local CLI config command; user-chosen watch folder is intentional. Path.GetFullPath+CreateDirectory under try/catch already surfaces errors; rejecting '..' woul
   - `src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)` — TextFormat is freeform lang hint for paste2.org; no fixed whitelist. Empty check is intentional; arbitrary lang values are accepted by the API.
 - Skill: xerahs-bugfix/SKILL.md v1.1.13 patched (1 clarification: deferred last_runs on pivot-only ticks)
+
+### 2026-07-24 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after prior 00:08 AWST pivot-only drain (commit 0acf9602). Fork/upstream/submodule current. Deferred last_runs file from 00:08 retained for next fix-bearing tick (v1.1.13). No code changes this tick.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: PENDING (audit commit; leave last_runs.commit null per v1.1.12)
+- Follow-up: await producer (xerahs-review) re-ingest; fold one deferred last_runs row per future fix commit
+- Skill: xerahs-bugfix/SKILL.md v1.1.13 — no patch this run
