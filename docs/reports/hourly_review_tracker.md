@@ -3189,3 +3189,13 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero candidates and zero pivots after fork/upstream/submodule sync. Deferred last_runs file from 2026-07-25 00:06 retained for next fix-bearing tick (9 rows).
+- Status: No-op (empty queue audit)
+- Build/test: n/a
+- Commit: none (audit only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; fold one deferred last_runs row per future fix commit
