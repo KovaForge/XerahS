@@ -3199,3 +3199,13 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a
 - Commit: none (audit only; SHA in Step 9 summary)
 - Follow-up: wait for xerahs-review producer to refill next_candidates; fold one deferred last_runs row per future fix commit
+
+### 2026-07-25 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. No real-bug items to pick; no pivots to drain. Prior deferred last_runs file (9 rows from 2026-07-25 00:06) left intact for next fix-bearing tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; fold one deferred last_runs row per future fix commit
