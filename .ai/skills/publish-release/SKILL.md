@@ -12,7 +12,7 @@ Use this skill to run release steps in strict order:
 - Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional only if `docs/CHANGELOG.md` is intentionally absent)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
-- Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
+- Step 5: If failure occurs, inspect logs, fix the root cause in code or workflow first (do not skip the fix and retry the same version), commit and push the fix, then retry with the next patch version. If the failure is in the `build-flatpak` job, verify all plugin DLLs are present in the staging directory; the workflow now includes a plugin re-validation step but a code fix in `package-linux.sh` may also be needed. Repeat until workflow succeeds.
 - Step 6: Ensure standard release notes block is present on the GitHub release
 - Step 7: Apply repo release-channel policy (see below)
 - Optional Step 8: Generate a Flathub source-build manifest candidate from the successful release tag; do not open or automate a Flathub PR
