@@ -3209,3 +3209,24 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a (no code change)
 - Commit: PENDING (filled in Step 9 summary only; last_runs.commit left null per v1.1.12)
 - Follow-up: wait for xerahs-review producer to refill next_candidates; fold one deferred last_runs row per future fix commit
+
+### 2026-07-26 07:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3 (['20260725T150502-d5fec1.md', '20260724T150348-691759.md', '20260723T151439-e25ee8.md'])
+- Findings dropped at severity gate: 87
+  - triage=risk: 66
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+
+### 2026-07-25 23:07 AWST - Producer tick (nadia-valeva-kf, daily cron)
+
+- Area: xerahs-review producer sweep
+- Files: .clawpatch/reports/20260725T150502-d5fec1.md; docs/reports/hourly_review_state.json; docs/reports/hourly_review_tracker.md
+- Findings: 3 features reviewed by clawpatch; 48 raw findings; 19 eligible (severity gate); 3 dropped as already-fixed (ImmichUploader.cs:220-233 dupes); 27 dropped as fixed-in-any-release (FileDownloader, HSB, IndexCommand CountIndexedContents, GradientInfo, ImmichClient DownloadAssetAsync, DPAPIEncryptedStringValueProvider, ReClipCommand SetWatchFolder, AssistantHistoryServiceTests SetUp/TearDown, etc); 18 skipped as in-eligible duplicates; **9 fresh findings added to next_candidates**.
+- Status: producer success (no fix commits)
+- Build/test: n/a (producer-side; consumer will build/test on drain)
+- Commit: PENDING (filled by Step 9 wrapper after commit lands)
+- Follow-up: xerahs-bugfix consumer at 00:06 AWST (24 min from now) will drain 9 next_candidates. These are largely "pivot" candidates per prior consumer runs (scripts/check-markdown-mojibake.py, CaptureCommand TryGetImageFormat, BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Directory.Build.props:11, Paste2Uploader TryExtractDeletionUrl, Paste2ConfigViewModel.Validate, CaptureStage PlatformServices-not-ready diagnostic) — consumer will hit pivot classifications on most.
+
