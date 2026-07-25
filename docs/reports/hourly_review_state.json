@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-25 23:07 AWST",
+  "last_updated": "2026-07-26 00:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,17 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
-    "scripts/check-markdown-mojibake.py:81-83",
-    "src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)",
-    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
-    "ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo)",
-    "scripts/check-markdown-mojibake.py:76",
-    "Directory.Build.props:11",
-    "src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)",
-    "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1237,5 +1227,5 @@
       "commit": "8fd0879547d20eef5f2c9d35acac2246105ec834"
     }
   ],
-  "last_run_outcome": "Producer tick (nadia-valeva-kf, daily cron, clawpatch 3 features 48 findings). Fork/upstream/submodule in sync (HEAD=dacdae0a, nadia=dacdae0a, origin=dacdae0a, upstream ancestor 22c8b34a). 19 eligible by severity gate; 3 dropped (area-level dedupe, Immich CreateOrReuseAlbumShare); 27 dropped (release-history dedupe, all duplicates from 3 reports); 18 skipped as duplicates within eligible; 9 added to next_candidates. Clawpatch report committed to .clawpatch/reports/. Consumer (xerahs-bugfix) will drain at 00:06 AWST."
+  "last_run_outcome": "pivot"
 }

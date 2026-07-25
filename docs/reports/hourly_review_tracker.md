@@ -3230,3 +3230,93 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Commit: PENDING (filled by Step 9 wrapper after commit lands)
 - Follow-up: xerahs-bugfix consumer at 00:06 AWST (24 min from now) will drain 9 next_candidates. These are largely "pivot" candidates per prior consumer runs (scripts/check-markdown-mojibake.py, CaptureCommand TryGetImageFormat, BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Directory.Build.props:11, Paste2Uploader TryExtractDeletionUrl, Paste2ConfigViewModel.Validate, CaptureStage PlatformServices-not-ready diagnostic) — consumer will hit pivot classifications on most.
 
+
+### 2026-07-26 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage control flow verified correct — toast + Failed status when PlatformServices not initialized
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+- Files: (none — pivot, no code change)
+- Findings: out param already set to default on false path; TryGetImageFormat returns false cleanly
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+- Files: (none — pivot, no code change)
+- Findings: intentionally diagnostic runtime snapshot — not a product bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: Central package / build metadata noise (MSBuildWarningsAsMessages)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: already sets Deletion.Available=false + reason when no delete URL; already user-visible
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: whitelist of TextFormat values is a feature request, not a runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
