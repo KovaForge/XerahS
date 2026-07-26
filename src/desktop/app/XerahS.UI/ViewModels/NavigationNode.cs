@@ -37,12 +37,15 @@ public enum NavigationNodeKind
 
 public partial class NavigationNode : ObservableObject
 {
-    public NavigationNode(string text, string? tag, string? glyph, NavigationNodeKind kind)
+    private string _searchText;
+
+    public NavigationNode(string text, string? tag, string? glyph, NavigationNodeKind kind, string? searchText = null)
     {
         Text = text;
         Tag = tag;
         Glyph = glyph;
         Kind = kind;
+        _searchText = string.Join(' ', text, searchText ?? string.Empty);
     }
 
     public string Text { get; }
@@ -58,6 +61,12 @@ public partial class NavigationNode : ObservableObject
     public NavigationNode? Parent { get; private set; }
 
     public bool HasGlyph => !string.IsNullOrWhiteSpace(Glyph);
+
+    public string SearchText
+    {
+        get => _searchText;
+        private set => SetProperty(ref _searchText, value);
+    }
 
     public void AddChild(NavigationNode child)
     {
@@ -86,6 +95,52 @@ public partial class NavigationNode : ObservableObject
         }
     }
 
+    public void UpdateSearchText(string? searchText)
+    {
+        SearchText = string.Join(' ', Text, searchText ?? string.Empty);
+    }
+
+    public void AppendSearchText(string? extra)
+    {
+        if (string.IsNullOrWhiteSpace(extra))
+        {
+            return;
+        }
+
+        SearchText = string.Join(' ', SearchText, extra);
+    }
+
+    /// <summary>
+    /// Applies ShareX-style AND term filter. Returns whether this node remains visible.
+    /// </summary>
+    public bool ApplyFilter(string? query)
+    {
+        query ??= string.Empty;
+
+        bool childMatches = false;
+
+        foreach (NavigationNode child in Children)
+        {
+            childMatches |= child.ApplyFilter(query);
+        }
+
+        string[] terms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        bool selfMatches = terms.Length == 0 ||
+            terms.All(term => SearchText.Contains(term, StringComparison.CurrentCultureIgnoreCase));
+
+        IsVisible = selfMatches || childMatches;
+
+        if (!string.IsNullOrWhiteSpace(query) && childMatches)
+        {
+            IsExpanded = true;
+        }
+
+        return IsVisible;
+    }
+
     [ObservableProperty]
     private bool _isExpanded;
+
+    [ObservableProperty]
+    private bool _isVisible = true;
 }

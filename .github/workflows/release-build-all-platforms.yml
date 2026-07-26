@@ -315,6 +315,13 @@ jobs:
             exit 1
           fi
 
+      - name: Validate and repair plugins in staging dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./build/linux/repair-flatpak-plugins.sh
+          ./build/linux/repair-flatpak-plugins.sh dist/xerahs-flatpak-staging linux-x64
+
       - name: Build Flatpak
         shell: bash
         run: |

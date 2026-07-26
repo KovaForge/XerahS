@@ -167,6 +167,7 @@ namespace XerahS.UI.Views
             if (e.Property == ContentControl.ContentProperty)
             {
                 UpdateShellModalVisibility();
+                QueueNavigationFilterUpdate();
             }
         }
 
@@ -526,6 +527,8 @@ namespace XerahS.UI.Views
                         (category.Name, category.Instances.Select(instance => instance.DisplayName)));
                     SettingsSearchService.Instance.MergeDestinationIndex(_destinationSettingsView, categories);
                 }
+
+                EnrichNavigationSearchTextFromSettingsIndex();
             }
             catch (Exception ex)
             {

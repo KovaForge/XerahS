@@ -10,6 +10,23 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.24.2
+
+### Features
+- **Core**: Add settings hub search with deep-link open; Add ShareX-style live search on main navigation
+
+### Fixes
+- **Core**: Auto-select first visible settings tab after search filter; Reject path traversal in ReClip set-watch-folder; and related changes
+
+### Documentation
+- **Core**: Add Cursor Cloud setup instructions to AGENTS.md; Drain stale and out-of-scope review candidates; and related changes
+
+### Changed
+- **Core**: [xerahs-review] Populate commit SHA on 23:00 AWST producer last_runs row; [xerahs-review] Populate commit SHA on 23:07 AWST producer last_runs row; and related changes
+- **Xerahs Bugfix**: drain 10 stale/misleading queue items (pivot-only tick); drain 4 stale/noise items from next_candidates (skill v1.1.8); and related changes
+
+---
+
 ## v0.23.141
 
 ### Features

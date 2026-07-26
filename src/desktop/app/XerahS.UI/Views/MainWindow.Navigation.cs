@@ -30,6 +30,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Core;
@@ -45,6 +46,71 @@ namespace XerahS.UI.Views
     public partial class MainWindow
     {
         private NavigationNode? _captureNavigationNode;
+        private string _navigationSearchText = string.Empty;
+        private bool _navigationFilterUpdateQueued;
+        private bool _navigationSearchIndexEnriched;
+
+        private void OnNavigationSearchTextChanged(object? sender, TextChangedEventArgs e)
+        {
+            _navigationSearchText = (sender as TextBox)?.Text ?? string.Empty;
+            QueueNavigationFilterUpdate();
+        }
+
+        private void QueueNavigationFilterUpdate()
+        {
+            if (_navigationFilterUpdateQueued)
+            {
+                return;
+            }
+
+            _navigationFilterUpdateQueued = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                _navigationFilterUpdateQueued = false;
+                ApplyNavigationFilter();
+            }, DispatcherPriority.Loaded);
+        }
+
+        private void ApplyNavigationFilter()
+        {
+            foreach (NavigationNode node in NavigationNodes)
+            {
+                node.ApplyFilter(_navigationSearchText);
+            }
+
+            TreeView? navigationTree = this.FindControl<TreeView>("NavigationTree");
+            if (navigationTree?.SelectedItem is NavigationNode selected && !selected.IsVisible)
+            {
+                NavigationNode? firstVisiblePage = FlattenNavigationNodes(NavigationNodes)
+                    .FirstOrDefault(x => x.IsVisible && x.Kind == NavigationNodeKind.Page);
+
+                navigationTree.SelectedItem = firstVisiblePage;
+            }
+
+            ApplyApplicationSettingsPanelFilter();
+        }
+
+        private void ApplyApplicationSettingsPanelFilter()
+        {
+            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
+            if (contentFrame?.Content is ApplicationSettingsView appSettings)
+            {
+                XerahS.UI.Controls.SettingsSearch.Apply(appSettings, _navigationSearchText);
+            }
+        }
+
+        private static IEnumerable<NavigationNode> FlattenNavigationNodes(IEnumerable<NavigationNode> nodes)
+        {
+            foreach (NavigationNode node in nodes)
+            {
+                yield return node;
+
+                foreach (NavigationNode child in FlattenNavigationNodes(node.Children))
+                {
+                    yield return child;
+                }
+            }
+        }
 
         private void OnNavSelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
@@ -57,6 +123,7 @@ namespace XerahS.UI.Views
             }
 
             HandleNavigationTag(selectedItem.Tag, contentFrame, out _);
+            QueueNavigationFilterUpdate();
         }
 
         private void OnNavigationNodeTapped(object? sender, TappedEventArgs e)
@@ -180,8 +247,6 @@ namespace XerahS.UI.Views
                     openedExternalWindow = true;
                     return true;
                 case "Settings":
-                    contentFrame.Content = new SettingsView();
-                    return true;
                 case "Settings_App":
                     _applicationSettingsView ??= CreateApplicationSettingsView();
                     contentFrame.Content = _applicationSettingsView;
@@ -216,47 +281,6 @@ namespace XerahS.UI.Views
             return new DestinationSettingsView();
         }
 
-        public void NavigateToSettingsSearchResult(SettingsSearchEntry entry)
-        {
-            ArgumentNullException.ThrowIfNull(entry);
-
-            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
-            if (contentFrame != null)
-            {
-                // Switch content immediately; do not rely solely on TreeView selection events.
-                HandleNavigationTag(entry.NavigationTag, contentFrame, out _);
-            }
-
-            // Keep the sidebar selection in sync when possible.
-            NavigateTo(entry.NavigationTag);
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (entry.NavigationTag == "Settings_App")
-                {
-                    _applicationSettingsView ??= CreateApplicationSettingsView();
-                    if (!ReferenceEquals(contentFrame?.Content, _applicationSettingsView) && contentFrame != null)
-                    {
-                        contentFrame.Content = _applicationSettingsView;
-                    }
-
-                    _applicationSettingsView.SelectTabByHeader(entry.AppTab);
-                    return;
-                }
-
-                if (entry.NavigationTag == "Settings_Dest")
-                {
-                    _destinationSettingsView ??= CreateDestinationSettingsView();
-                    if (!ReferenceEquals(contentFrame?.Content, _destinationSettingsView) && contentFrame != null)
-                    {
-                        contentFrame.Content = _destinationSettingsView;
-                    }
-
-                    _destinationSettingsView.ApplySearchTarget(entry.DestinationCategory, entry.DestinationInstance);
-                }
-            }, DispatcherPriority.Loaded);
-        }
-
         private void BuildNavigationNodes()
         {
             NavigationNodes.Clear();
@@ -274,6 +298,47 @@ namespace XerahS.UI.Views
             NavigationNodes.Add(CreateNode("About", "About", HostIcons.NavigationAbout, NavigationNodeKind.Page));
 
             UpdateNavigationItems();
+            QueueNavigationFilterUpdate();
+        }
+
+        internal void EnrichNavigationSearchTextFromSettingsIndex()
+        {
+            if (_navigationSearchIndexEnriched)
+            {
+                return;
+            }
+
+            IReadOnlyList<SettingsSearchEntry> entries = SettingsSearchService.Instance.GetAllEntries();
+            Dictionary<string, List<string>> byTag = new(StringComparer.Ordinal);
+
+            foreach (SettingsSearchEntry entry in entries)
+            {
+                if (!byTag.TryGetValue(entry.NavigationTag, out List<string>? list))
+                {
+                    list = [];
+                    byTag[entry.NavigationTag] = list;
+                }
+
+                list.Add(entry.Title);
+                list.AddRange(entry.Keywords);
+            }
+
+            foreach (NavigationNode node in FlattenNavigationNodes(NavigationNodes))
+            {
+                if (node.Tag != null && byTag.TryGetValue(node.Tag, out List<string>? extras))
+                {
+                    node.AppendSearchText(string.Join(' ', extras));
+                }
+
+                if (string.Equals(node.Tag, "Settings", StringComparison.Ordinal))
+                {
+                    node.AppendSearchText(string.Join(' ',
+                        entries.Select(entry => entry.Title).Concat(entries.SelectMany(entry => entry.Keywords))));
+                }
+            }
+
+            _navigationSearchIndexEnriched = true;
+            QueueNavigationFilterUpdate();
         }
 
         public void NavigateToEditor()
@@ -283,7 +348,7 @@ namespace XerahS.UI.Views
 
         public void NavigateToSettings()
         {
-            NavigateTo("Settings");
+            NavigateTo("Settings_App");
         }
 
         public void NavigateToHistory()
@@ -425,11 +490,12 @@ namespace XerahS.UI.Views
             }
 
             _captureNavigationNode.ReplaceChildren(NavigationItemsHelper.CreateCaptureNavigationNodes());
+            QueueNavigationFilterUpdate();
         }
 
         private static NavigationNode CreateNode(string text, string? tag, string? glyph, NavigationNodeKind kind, bool isExpanded = false)
         {
-            return new NavigationNode(text, tag, glyph, kind)
+            return new NavigationNode(text, tag, glyph, kind, NavigationSearchKeywords.ForTag(tag))
             {
                 IsExpanded = isExpanded
             };
@@ -472,7 +538,7 @@ namespace XerahS.UI.Views
 
         private static NavigationNode CreateSettingsNode()
         {
-            NavigationNode settingsNode = CreateNode("Settings", "Settings", HostIcons.NavigationSettings, NavigationNodeKind.Page, isExpanded: true);
+            NavigationNode settingsNode = CreateNode("Settings", "Settings", HostIcons.NavigationSettings, NavigationNodeKind.Group, isExpanded: true);
             settingsNode.AddChild(CreateNode("Application Settings", "Settings_App", null, NavigationNodeKind.Page));
             settingsNode.AddChild(CreateNode("Destination Settings", "Settings_Dest", null, NavigationNodeKind.Page));
             return settingsNode;

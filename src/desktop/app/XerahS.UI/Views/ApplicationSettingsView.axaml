@@ -30,11 +30,11 @@
                     VerticalContentAlignment="Stretch">
             <!-- General Tab -->
             <TabItem Header="General">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="general">
                     <StackPanel Spacing="24" Margin="24">
                         
                         <!-- Theme -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Theme" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -59,7 +59,7 @@
                         </StackPanel>
                         
                         <!-- Updates -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Updates" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -122,7 +122,7 @@
                         </StackPanel>
 
                         <!-- Tray Icon -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Tray Icon" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -168,7 +168,7 @@
                         </StackPanel>
 
                         <!-- Taskbar -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Taskbar" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -183,10 +183,10 @@
 
             <!-- Paths Tab -->
             <TabItem Header="Paths">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="paths">
                     <StackPanel Spacing="24" Margin="24">
                          <!-- Screenshots Folder -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Screenshots Folder" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -210,7 +210,7 @@
                         </StackPanel>
 
                         <!-- Subfolder Pattern -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Subfolder Pattern" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -232,9 +232,9 @@
 
             <!-- Watch Folders Tab -->
             <TabItem Header="Watch Folders">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="watch-folders">
                     <StackPanel Spacing="24" Margin="24">
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Watch folders" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -291,7 +291,7 @@
                             </Border>
                         </StackPanel>
 
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Watch Folder Service/Daemon" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -347,10 +347,10 @@
             
             <!-- Integration Tab -->
             <TabItem Header="Integration">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="integration">
                     <StackPanel Spacing="24" Margin="24">
                         <!-- System -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="System" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -371,7 +371,7 @@
                         </StackPanel>
 
                         <!-- Desktop Integration -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Desktop Integration" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -436,7 +436,7 @@
                         </StackPanel>
 
                         <!-- Capture Command Palette -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Capture Command Palette" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -473,7 +473,7 @@
                         </StackPanel>
 
                         <!-- Assistant -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Assistant" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -582,7 +582,7 @@
                         </StackPanel>
 
                         <!-- MCP Server -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="MCP Server" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -641,10 +641,10 @@
 
             <!-- History Tab -->
             <TabItem Header="History">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="history">
                     <StackPanel Spacing="24" Margin="24">
                         <!-- History Settings -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="History" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -665,7 +665,7 @@
                         </StackPanel>
 
                         <!-- Recent Tasks Settings -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Recent Tasks" FontWeight="SemiBold"/>
                             <Border BorderThickness="1" 
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
@@ -700,11 +700,11 @@
 
              <!-- Proxy Tab -->
             <TabItem Header="Proxy">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="proxy">
                     <StackPanel Spacing="24" Margin="24">
 
                         <!-- Proxy Method -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Proxy Configuration" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -728,58 +728,62 @@
                         </StackPanel>
 
                         <!-- Manual Proxy Settings -->
-                        <StackPanel Spacing="8" IsVisible="{Binding IsManualProxy}">
-                            <TextBlock Text="Proxy Server" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <Grid ColumnDefinitions="100, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Host:" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="2" Text="{Binding ProxyHost}"
-                                                 PlaceholderText="proxy.example.com"
-                                                 AutomationProperties.Name="Proxy Host"/>
-                                    </Grid>
-                                    <Grid ColumnDefinitions="100, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Port:" VerticalAlignment="Center"/>
-                                        <NumericUpDown Grid.Column="2"
-                                                       Value="{Binding ProxyPort}"
-                                                       Minimum="1" Maximum="65535"
-                                                       MinWidth="120" HorizontalAlignment="Stretch"
-                                                       AutomationProperties.Name="Proxy Port"/>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsManualProxy}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Proxy Server" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <Grid ColumnDefinitions="100, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Host:" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="2" Text="{Binding ProxyHost}"
+                                                     PlaceholderText="proxy.example.com"
+                                                     AutomationProperties.Name="Proxy Host"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="100, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Port:" VerticalAlignment="Center"/>
+                                            <NumericUpDown Grid.Column="2"
+                                                           Value="{Binding ProxyPort}"
+                                                           Minimum="1" Maximum="65535"
+                                                           MinWidth="120" HorizontalAlignment="Stretch"
+                                                           AutomationProperties.Name="Proxy Port"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- Authentication -->
-                        <StackPanel Spacing="8" IsVisible="{Binding IsManualProxy}">
-                            <TextBlock Text="Authentication (Optional)" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <Grid ColumnDefinitions="100, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Username:" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="2" Text="{Binding ProxyUsername}"
-                                                 PlaceholderText="username"
-                                                 AutomationProperties.Name="Proxy Username"/>
-                                    </Grid>
-                                    <Grid ColumnDefinitions="100, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Password:" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="2" Text="{Binding ProxyPassword}"
-                                                 PlaceholderText="password"
-                                                 PasswordChar="•"
-                                                 AutomationProperties.Name="Proxy Password"/>
-                                    </Grid>
-                                    <TextBlock Text="Leave username and password blank if your proxy does not require authentication."
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsManualProxy}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Authentication (Optional)" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <Grid ColumnDefinitions="100, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Username:" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="2" Text="{Binding ProxyUsername}"
+                                                     PlaceholderText="username"
+                                                     AutomationProperties.Name="Proxy Username"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="100, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Password:" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="2" Text="{Binding ProxyPassword}"
+                                                     PlaceholderText="password"
+                                                     PasswordChar="•"
+                                                     AutomationProperties.Name="Proxy Password"/>
+                                        </Grid>
+                                        <TextBlock Text="Leave username and password blank if your proxy does not require authentication."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
                     </StackPanel>
@@ -788,184 +792,196 @@
 
              <!-- Advanced Tab -->
              <TabItem Header="Advanced">
-                <ScrollViewer>
+                <ScrollViewer controls:SettingsSearch.PageId="advanced">
                     <StackPanel Spacing="24" Margin="24">
-                        <StackPanel Spacing="8" IsVisible="{Binding ShowUseModernCaptureSetting}">
-                            <TextBlock Text="Capture Engine" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1" 
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <CheckBox IsChecked="{Binding UseModernCapture}" Content="Use Modern Screen Capture (Direct3D11 on Windows, XDG Portal on Linux). Requires restart." AutomationProperties.Name="Use Modern Capture"/>
-                                </StackPanel>
-                            </Border>
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding ShowUseModernCaptureSetting}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Capture Engine" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1" 
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" 
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <CheckBox IsChecked="{Binding UseModernCapture}" Content="Use Modern Screen Capture (Direct3D11 on Windows, XDG Portal on Linux). Requires restart." AutomationProperties.Name="Use Modern Capture"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
-                        <StackPanel Spacing="8" IsVisible="{Binding IsMacOSPlatform}">
-                            <TextBlock Text="macOS Region Selector" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <TextBlock Text="Choose one selector for macOS interactive region capture so the native crosshair and XerahS overlay are not shown in the same workflow."
-                                               TextWrapping="Wrap"/>
-                                    <Grid ColumnDefinitions="120, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
-                                        <ComboBox Grid.Column="2"
-                                                  ItemsSource="{Binding MacOSRegionSelectorPreferences}"
-                                                  SelectedItem="{Binding MacOSRegionSelectorPreference}"
-                                                  HorizontalAlignment="Stretch"
-                                                  MinWidth="240"
-                                                  AutomationProperties.Name="macOS Region Selector">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate x:DataType="x:Object">
-                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                    </Grid>
-                                    <TextBlock Text="This is the default for macOS workflows and capture tools. Workflows set to Automatic follow this value."
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               TextWrapping="Wrap"/>
-                                    <CheckBox IsChecked="{Binding MacOSPlayCaptureSound}"
-                                              Content="Play native macOS capture sound"
-                                              AutomationProperties.Name="Play Native macOS Capture Sound"/>
-                                </StackPanel>
-                            </Border>
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsMacOSPlatform}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="macOS Region Selector" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Choose one selector for macOS interactive region capture so the native crosshair and XerahS overlay are not shown in the same workflow."
+                                                   TextWrapping="Wrap"/>
+                                        <Grid ColumnDefinitions="120, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding MacOSRegionSelectorPreferences}"
+                                                      SelectedItem="{Binding MacOSRegionSelectorPreference}"
+                                                      HorizontalAlignment="Stretch"
+                                                      MinWidth="240"
+                                                      AutomationProperties.Name="macOS Region Selector">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="x:Object">
+                                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <TextBlock Text="This is the default for macOS workflows and capture tools. Workflows set to Automatic follow this value."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <CheckBox IsChecked="{Binding MacOSPlayCaptureSound}"
+                                                  Content="Play native macOS capture sound"
+                                                  AutomationProperties.Name="Play Native macOS Capture Sound"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
-                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
-                            <TextBlock Text="Linux Region Selector" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <TextBlock Text="Choose which selector XerahS should prefer for Linux interactive region selection."
-                                               TextWrapping="Wrap"/>
-                                    <Grid ColumnDefinitions="120, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
-                                        <ComboBox Grid.Column="2"
-                                                  ItemsSource="{Binding LinuxRegionSelectorPreferences}"
-                                                  SelectedItem="{Binding LinuxRegionSelectorPreference}"
-                                                  HorizontalAlignment="Stretch"
-                                                  MinWidth="240"
-                                                  AutomationProperties.Name="Linux Region Selector">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate x:DataType="x:Object">
-                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                    </Grid>
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="{Binding LinuxRegionSelectorCurrentSessionText}"
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsLinuxPlatform}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Linux Region Selector" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Choose which selector XerahS should prefer for Linux interactive region selection."
                                                    TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding LinuxRegionSelectorPortalBackendText}"
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                        <Grid ColumnDefinitions="120, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Region selector:" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding LinuxRegionSelectorPreferences}"
+                                                      SelectedItem="{Binding LinuxRegionSelectorPreference}"
+                                                      HorizontalAlignment="Stretch"
+                                                      MinWidth="240"
+                                                      AutomationProperties.Name="Linux Region Selector">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="x:Object">
+                                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding LinuxRegionSelectorCurrentSessionText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding LinuxRegionSelectorPortalBackendText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding LinuxRegionSelectorAvailableText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding LinuxRegionSelectorAutomaticText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding LinuxRegionSelectorLastDecisionText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsLinuxPlatform}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Linux Recording Backend" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="Choose which recording backend XerahS should prefer for Linux screen recording workflows."
                                                    TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding LinuxRegionSelectorAvailableText}"
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                                   TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding LinuxRegionSelectorAutomaticText}"
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                                   TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding LinuxRegionSelectorLastDecisionText}"
+                                        <Grid ColumnDefinitions="120, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Recording backend:" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding LinuxRecordingBackendPreferences}"
+                                                      SelectedItem="{Binding LinuxRecordingBackendPreference}"
+                                                      HorizontalAlignment="Stretch"
+                                                      MinWidth="240"
+                                                      AutomationProperties.Name="Linux Recording Backend">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="x:Object">
+                                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <TextBlock Text="Automatic prefers native or portal-backed recording when available and falls back to FFmpeg when needed."
                                                    FontSize="12"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
-                                </StackPanel>
-                            </Border>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
-                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
-                            <TextBlock Text="Linux Recording Backend" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <TextBlock Text="Choose which recording backend XerahS should prefer for Linux screen recording workflows."
-                                               TextWrapping="Wrap"/>
-                                    <Grid ColumnDefinitions="120, 16, *">
-                                        <TextBlock Grid.Column="0" Text="Recording backend:" VerticalAlignment="Center"/>
-                                        <ComboBox Grid.Column="2"
-                                                  ItemsSource="{Binding LinuxRecordingBackendPreferences}"
-                                                  SelectedItem="{Binding LinuxRecordingBackendPreference}"
-                                                  HorizontalAlignment="Stretch"
-                                                  MinWidth="240"
-                                                  AutomationProperties.Name="Linux Recording Backend">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate x:DataType="x:Object">
-                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                    </Grid>
-                                    <TextBlock Text="Automatic prefers native or portal-backed recording when available and falls back to FFmpeg when needed."
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsLinuxPlatform}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Linux Clipboard" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="12">
+                                        <Border Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                                                BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="12"
+                                                IsVisible="{Binding ShowLinuxClipboardCliWarning}">
+                                            <TextBlock Text="{Binding LinuxClipboardCliWarningText}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="12"/>
+                                        </Border>
+                                        <CheckBox IsChecked="{Binding PersistClipboardAfterExit}"
+                                                  Content="Keep clipboard contents after XerahS exits (Wayland: uses wl-copy)"
+                                                  AutomationProperties.Name="Persist Clipboard After Exit"/>
+                                        <TextBlock Text="Background workflows (CLI, watch-folder daemon) need wl-clipboard or xclip. The .deb and .rpm packages recommend these tools."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
-                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
-                            <TextBlock Text="Linux Clipboard" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="12">
-                                    <Border Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
-                                            BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="12"
-                                            IsVisible="{Binding ShowLinuxClipboardCliWarning}">
-                                        <TextBlock Text="{Binding LinuxClipboardCliWarningText}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"/>
-                                    </Border>
-                                    <CheckBox IsChecked="{Binding PersistClipboardAfterExit}"
-                                              Content="Keep clipboard contents after XerahS exits (Wayland: uses wl-copy)"
-                                              AutomationProperties.Name="Persist Clipboard After Exit"/>
-                                    <TextBlock Text="Background workflows (CLI, watch-folder daemon) need wl-clipboard or xclip. The .deb and .rpm packages recommend these tools."
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <StackPanel Spacing="8" IsVisible="{Binding IsLinuxPlatform}">
-                            <TextBlock Text="Wayland Portal Services" FontWeight="SemiBold"/>
-                            <Border BorderThickness="1"
-                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    CornerRadius="4" Padding="16">
-                                <StackPanel Spacing="16">
-                                    <CheckBox IsChecked="{Binding LinuxUseWaylandPortalServices}"
-                                              Content="Use Wayland portal services for hotkeys, input capture, and open-uri integration. Requires restart."
-                                              AutomationProperties.Name="Use Wayland Portal Services"/>
-                                    <TextBlock Text="This setting controls portal-backed desktop integration on Wayland. It does not choose the Linux screenshot region selector or recording backend."
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsLinuxPlatform}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Wayland Portal Services" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="16">
+                                        <CheckBox IsChecked="{Binding LinuxUseWaylandPortalServices}"
+                                                  Content="Use Wayland portal services for hotkeys, input capture, and open-uri integration. Requires restart."
+                                                  AutomationProperties.Name="Use Wayland Portal Services"/>
+                                        <TextBlock Text="This setting controls portal-backed desktop integration on Wayland. It does not choose the Linux screenshot region selector or recording backend."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
                         
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Application Configuration" FontWeight="SemiBold"/>
                             <Border BorderThickness="1"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"

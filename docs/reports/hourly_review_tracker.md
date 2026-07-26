@@ -2692,3 +2692,641 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Follow-up: consumer xerahs-bugfix next tick at 16:05 / 00:05 AWST will pick top 2-3 from the remaining 4 and auto-drain the rest if they're stale citations.
 
 Co-authored-by: McoreD <McoreD@users.noreply.github.com>
+
+### 2026-07-20 00:07 AWST - Pivot / false-positive
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage 79-84 control flow verified correct
+- Status: Pivot (false-positive)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 00:07 AWST - Pivot / tfm-noise
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: lint script (markdown mojibake check) — not a code bug
+- Status: Pivot (tfm-noise)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 00:07 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 00:07 AWST - Pivot / tfm-noise
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: lint script (markdown mojibake check) — not a code bug
+- Status: Pivot (tfm-noise)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-20 08:06 AWST - MCP history search URI regression / empty and malformed queries
+
+- Area: MCP server / `IsHistorySearchResourceUri`
+- Files: `src/tools/XerahS.McpServer/Runtime/XerahSMcpRuntime.cs`, `Directory.Build.props`
+- Findings: The empty-query and malformed-percent regression tests already present in `XerahSMcpServerTests.cs` failed against HEAD: `xerahs://history/search?` and a URI with only malformed query data were accepted. The matcher now rejects empty queries and requires at least one well-formed key/value pair while preserving valid sibling parameters when another pair is malformed. Version `0.24.0` -> `0.24.1`.
+- Status: Fixed
+- Build/test: Release build 0 warnings/0 errors; MCP history URI regression tests 13/13 passed; XerahS.Tests 1183 passed/0 failed/2 skipped. Full MCP suite: 44 passed/3 pre-existing SQLite disk-I/O failures. Logs: `/tmp/xerahs-bugfix/build-fix1-final-20260720-080652.log`, `/tmp/xerahs-bugfix/test-fix1-final-20260720-080652.log`, `/tmp/xerahs-bugfix/test-mcp-history-20260720-080652.log`
+- Commit: `8420c962` by Declan Murphy
+- Follow-up: await the producer to publish fresh `next_candidates`; separately resolve the longstanding MCP SQLite temp-database test isolation failures
+
+### 2026-07-20 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 next_candidates; no stale/out-of-scope pivots remained after the prior drain. A live full-suite regression in MCP history URI matching was fixed from existing failing coverage rather than leaving the run as a no-op.
+- Status: Clean queue; one regression fix landed
+- Build/test: same verification as the preceding fix entry
+- Commit: `8420c962` (fix); tracker commit pending
+- Follow-up: await the producer to publish fresh next_candidates
+
+### 2026-07-20 16:18 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified 0 `next_candidates`; no real bugs or verified pivots were available. Fork, upstream, and ShareX.ImageEditor syncs were all current.
+- Status: Clean queue / no-op
+- Build/test: Release build succeeded with 0 errors and 3 pre-existing obsolete-API warnings; XerahS.Tests passed 1183/1183 with 2 skipped. Full MCP suite passed 44 and hit 3 longstanding `CreateHistoryDetailsAsync_*` SQLite disk-I/O failures; the remaining 44 MCP tests passed when those environmental cases were excluded. Logs: `/tmp/xerahs-bugfix/build-20260720-160703.log`, `/tmp/xerahs-bugfix/test-20260720-160703.log`, `/tmp/xerahs-bugfix/test-mcp-baseline-excluded-20260720-160703.log`
+- Commit: `36819036` (queue audit tracker/state)
+- Follow-up: await the producer to publish fresh `next_candidates`; separately isolate the longstanding MCP SQLite test database from shared user history state
+- Skill: `xerahs-bugfix/SKILL.md` v1.1.10 patched (2 clarifications: persist empty-queue no-op audits; validate manually when macOS Bash 3.2 cannot run the hook)
+
+### 2026-07-21 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified zero `next_candidates`; no fixes or pivots were available.
+- Status: No-op
+- Build/test: Release build passed with 0 errors and 3 pre-existing warnings; XerahS.Tests passed 1183/1185 (2 skipped). Full solution test failed only the 3 known MCP history-detail tests with SQLite disk I/O isolation errors; targeted retry reproduced 3/3 failures. Logs: /tmp/xerahs-bugfix/build-20260721-000649.log, /tmp/xerahs-bugfix/test-20260721-000649.log
+- Commit: pending (no-op tracker/state audit)
+- Follow-up: Producer should supply fresh `next_candidates`; separately resolve the known MCP SQLite temp-database test isolation failures.
+
+### 2026-07-21 10:51 AWST - clawpatch-ingest gate drops (skill v2.1.2, nadia-owned)
+
+- Reports parsed: 3 (20260720T185039-0cf386.md, 20260719T011521-6eec49.md, 20260707T113342-6f5059.md)
+- Findings dropped at severity gate: 82
+  - triage=risk: 63
+  - triage=contract-mismatch: 14
+  - triage=docs-gap: 3
+  - triage=test-gap: 2
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as release-history fixed (v2.1.2): 18
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - ... and 8 more
+- Ingested into next_candidates: 7
+  - src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+  - scripts/check-markdown-mojibake.py:81-83
+  - src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+  - scripts/check-markdown-mojibake.py:76
+  - Directory.Build.props:11
+  - src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+  - src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- next_candidates delta: +7 (total 7)
+- Source run id: 20260720T185039-0cf386
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: source already performs the expected null/error guard; cited control flow is correct
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: UTF-8 decode failure is intentionally reported by a Markdown UTF-8 hygiene checker; alternative-encoding support is outside its contract
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code requires Android SDK 36/Xcode 26.2 and is excluded from this cron host
+- Status: Pivot (out-of-scope)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: BOM detection is the intended hygiene check, not a defect in the checker
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / tfm-noise
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: root line is intentional MSBuild warning-message configuration, not shell output concatenation
+- Status: Pivot (tfm-noise)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: uploader explicitly marks deletion unavailable and records a user-visible reason when no documented Paste2 delete URL exists
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-21 08:18 AWST - Pivot / false-positive
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: validation correctly rejects blank text formats and sets StatusMessage; no live defect at the cited lines
+- Status: Pivot (false-positive)
+- Build/test: Release build succeeded (0 errors); full solution tests retained 1 UI failure and 3 known MCP SQLite disk-I/O failures; logs: /tmp/xerahs-bugfix/build-20260721-080539.log, /tmp/xerahs-bugfix/test-20260721-080539.log
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.11 patched (1 clarification: live source verification before treating clawpatch confirmed-bug labels as actionable)
+
+### 2026-07-21 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified 0 `next_candidates`; no fixes or pivots were available. Fork and ShareX.ImageEditor submodule syncs were already current; upstream `ShareX/XerahS` develop is at v0.23.118 blog drafts (declan/develop is ahead at v0.24.1, so no upstream merge needed). No new clawpatch reports have landed since the 20260720T185039 ingestion.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: pending (audit tracker/state)
+- Follow-up: await the next producer ingest; separately resolve the longstanding MCP SQLite temp-database test isolation failures.
+
+### 2026-07-22 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified 0 `next_candidates`; no fixes or pivots were available. `git status --short --branch` is clean; HEAD == `445adfb8` == `declan/develop`; upstream/develop (`22c8b34a`) is an ancestor of HEAD, so no upstream merge is required. Fork remote (`declan/develop`) and `ShareX.ImageEditor` submodule pointer are current (HEAD records the 2026-07-21 08:18 AWST audit and the prior 2026-07-21 16:07 AWST no-op audit). The most recent clawpatch report is `20260720T185039-0cf386.md`; `xerahs-review` has not re-populated `next_candidates` since that ingestion (the 2026-07-21 16:07 AWST audit recorded the same condition).
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: pending (audit tracker/state)
+- Follow-up: await the next `xerahs-review` producer ingest to re-populate `next_candidates`; separately resolve the longstanding MCP SQLite temp-database test isolation failures.
+
+### 2026-07-22 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified 0 `next_candidates`; no fixes or pivots were available. `git status --short --branch` is clean; HEAD == `a714f52c` == `declan/develop` == `origin/develop`; upstream/develop (`22c8b34a`) is an ancestor of HEAD, so no upstream merge is required. Fork remote and `ShareX.ImageEditor` submodule pointer are current. The most recent clawpatch report remains `20260720T185039-0cf386.md`; `xerahs-review` has not re-populated `next_candidates` since that ingestion.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (audit tracker/state; SHA recorded in Step 9 summary only per v1.1.12)
+- Follow-up: await the next `xerahs-review` producer ingest to re-populate `next_candidates`; separately resolve the longstanding MCP SQLite temp-database test isolation failures.
+
+### 2026-07-22 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Step 5a classified 0 `next_candidates`; no fixes or pivots were available. `git status --short --branch` is clean; HEAD == `b4e44da1` == `declan/develop` == `origin/develop` at audit start; upstream/develop (`22c8b34a`) is an ancestor of HEAD (102 KovaForge commits ahead), so no upstream merge is required. Fork remote and `ShareX.ImageEditor` submodule pointer are current (HEAD `6751bae7` matches origin/upstream). The most recent clawpatch report remains `20260720T185039-0cf386.md`; `xerahs-review` has not re-populated `next_candidates` since that ingestion (third consecutive empty-queue tick on 2026-07-22). Deferred `last_runs` backlog left untouched (no fix commit this tick; XIP0077 +0/+1 cap).
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (audit tracker/state; SHA recorded in Step 9 summary only per v1.1.12)
+- Follow-up: await the next `xerahs-review` producer ingest to re-populate `next_candidates`; separately resolve the longstanding MCP SQLite temp-database test isolation failures.
+
+### 2026-07-23 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after preflight. Fork/upstream/submodule already clean. No real-bug pick, no pivots. Empty-queue audit per skill v1.1.9.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit commit records SHA in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.12 — no patch this tick
+
+### 2026-07-23 08:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates and zero pivots. Fork/upstream/submodule already up to date. Producer last clawpatch report is 2026-07-20; queue remains empty.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: null (audit only; SHA recorded in Step 9 summary per skill v1.1.12)
+- Follow-up: wait for xerahs-review to ingest a fresh clawpatch cycle into next_candidates
+
+### 2026-07-23 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — no-op)
+- Findings: Step 5a classified zero next_candidates; producer (xerahs-review) has not enqueued new findings since the previous tick. Fork + upstream + ShareX.ImageEditor submodule all current.
+- Status: No-op (empty queue)
+- Build/test: n/a (no code touched)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: none this tick; resume normal drain when producer enqueues
+- Skill: xerahs-bugfix/SKILL.md v1.1.12 unchanged (no efficiency blockers)
+
+### 2026-07-23 23:00 AWST - clawpatch ingest / 9 new findings
+
+- Area: xerahs-review producer sweep (23:00 AWST cadence, replacing dormant Milena 6h)
+- Files: `.clawpatch/reports/20260723T150521-892e85.md`, `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Clawpatch review of 3 features produced 47 raw findings; parsed 129 across the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate (triage=confirmed-bug, confidence in {high, medium}, category not maintainability) admitted 44; 3 dropped as already-fixed at area level (`src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233` — area `"ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)"` already marked fixed v0.23.124->v0.23.125); 20 dropped as already-fixed in release-history (`tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs`, `FileDownloader.cs`, `HSB.cs`, `GradientInfo.ctor`, `ImmichClient.DownloadAssetAsync`, `DPAPIEncryptedStringValueProvider`, `IndexCommand.CountIndexedContents`); 12 dropped as duplicate evidence[0]/id across reports; **9 added** to `next_candidates`.
+- Status: ingested (producer-side only — no fixes, no area status changes, no other agents' last_runs rows touched)
+- Build/test: n/a (no code change)
+- Commit: pending (git-nadia)
+- Ingested evidence (next_candidates delta 0 -> 9):
+  - `src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84` — PlatformServices-not-initialized capture failure path lacks retry/fallback (data-loss / confirmed-bug / high)
+  - `src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)` — path traversal: no validation against `..`/`%2e%2e` after `Environment.ExpandEnvironmentVariables` (security / confirmed-bug / high)
+  - `scripts/check-markdown-mojibake.py:81-83` — non-UTF-8 Markdown files reported as invalid but no alternative encoding attempted (bug / confirmed-bug / medium)
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)` — out param left unset on unsupported extensions → caller NRE risk (bug / confirmed-bug / medium)
+  - `src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)` — `BoolToConfiguredBrushConverter.ConvertBack` throws `NotImplementedException`; two-way binding crash (bug / confirmed-bug / medium)
+  - `scripts/check-markdown-mojibake.py:76` — false-positive on legitimate UTF-8 BOM in Markdown files (bug / confirmed-bug / medium)
+  - `Directory.Build.props:11` — `status="$(curl ... || echo 000)"` fallback concatenates "000" with failed curl output (e.g. "404000") (concurrency / confirmed-bug / medium)
+  - `src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)` — no documented deletion API; user cannot delete uploaded paste (data-loss / confirmed-bug / medium)
+  - `src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)` — (already noted as pivot by xerahs-bugfix 2026-07-21 08:05 AWST; re-emerges in latest clawpatch report; consumer may re-pivot)
+- Gate drops breakdown:
+  - triage≠confirmed-bug: 47 (most are `risk` / `contract-mismatch`)
+  - category=maintainability: 1 (`AssistantServiceTests` OCR options normalization)
+  - already-fixed at area level: 3 (ImmichUploader)
+  - already-fixed in release history: 20
+- Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
+- Skill: xerahs-review/SKILL.md v2.2.0 unchanged (no efficiency blockers this run)
+
+### 2026-07-23 23:13 AWST - clawpatch re-run / +1 fresh VideoEditor finding
+
+- Area: xerahs-review producer sweep (23:00 AWST cadence, post-prior-partial-run cleanup)
+- Files: `.clawpatch/reports/20260723T151439-e25ee8.md`, `docs/reports/hourly_review_state.json`, `docs/reports/hourly_review_tracker.md`
+- Findings: Re-fired `clawpatch review --provider minimax --model MiniMax-Text-01 --limit 3` (full-fidelity rerun per cron contract). New report 20260723T151439-e25ee8 reviewed 3 features (XerahS.Uploaders/PluginSystem#2, ShareX.VideoEditor/backend/Hosting/Diagnostics, XerahS.CLI/Properties) = 1 finding on first-pass (43 jobs, 30-43 s/feature). Cross-report ingest over the 3 newest reports (20260723T151439, 20260723T150521, 20260720T185039) = 137 total findings; severity gate dropped 86; 3 dropped as already-fixed at area level (`ImmichUploader.cs:220-233` — fixed v0.23.124->v0.23.125); 25 dropped as already-fixed in release history; 22 dropped as duplicate evidence[0]/id; **1 NEW** added.
+- Status: ingested (producer-side only — no fixes, no area status changes, no other agents' last_runs rows touched)
+- Build/test: n/a (no code change)
+- Commit: pending (git-nadia)
+- Ingested evidence (next_candidates delta 9 -> 10):
+  - `ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo)` — no null check on `assembly` parameter; NRE risk if a null value is passed (bug / confirmed-bug / high). Missing-test-grep: no VideoEditorDiagnostics tests existed as of 2026-07-23.
+- Anomalies: clawpatch first-pass produced only **1** finding this run (vs. prior 47 / 42 — most are scoped under `--limit 3` features per run). The 3 features sampled this run (XerahS.Uploaders/PluginSystem, ShareX.VideoEditor/backend/Hosting/Diagnostics, XerahS.CLI/Properties) had **0/1/0** findings. Carry-forward of high-signal findings from prior clawpatch reports is **already included** in `next_candidates` (9 from earlier ingest). The single new finding is the practical delta for this rerun.
+- Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
+- Skill: xerahs-review/SKILL.md v2.2.0 unchanged (no efficiency blockers this run)
+
+### 2026-07-24 00:08 AWST - xerahs-bugfix pivot drain (10 items, 0 fixes)
+
+
+- Area: next_candidates full-queue drain (pivot-only tick)
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: classified + live-verified all 10 queue items as already-fixed (4) or out-of-scope (6); no code change
+- Status: Pivot
+- Build/test: n/a (no code change)
+- Commit: PENDING (tracker-only)
+- Follow-up: producer can re-ingest fresh clawpatch; deferred last_runs at deferred-last-runs-20260724-000848.json (10 rows) for next fix tick
+- already-fixed:
+  - `src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84` — CaptureStage control flow verified correct
+  - `ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRu` — cited file/lines no longer exist at HEAD: <<error: Command '['git', '-C', '/Users/mike/Projects/KovaForge/xerahs', 'show', 'HEAD:ShareX.VideoEditor/backend/Host
+  - `src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)` — out param always set (imageFormat=default on fail); regression already in CaptureCommandRegionParsingTests.TryGetImageFormat_WhenExtensionUnknown_ReturnsFalse
+  - `src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)` — already handles missing deletion URL with Deletion.Available=false + Deletion.Reason metadata (same pattern as PastebinUploader guest pastes). clawpatch asks fo
+- out-of-scope:
+  - `scripts/check-markdown-mojibake.py:81-83` — diagnostic script maintainability — not a product runtime bug
+  - `src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)` — mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+  - `scripts/check-markdown-mojibake.py:76` — diagnostic script maintainability — not a product runtime bug
+  - `Directory.Build.props:11` — Central package / build metadata noise
+  - `src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)` — local CLI config command; user-chosen watch folder is intentional. Path.GetFullPath+CreateDirectory under try/catch already surfaces errors; rejecting '..' woul
+  - `src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)` — TextFormat is freeform lang hint for paste2.org; no fixed whitelist. Empty check is intentional; arbitrary lang values are accepted by the API.
+- Skill: xerahs-bugfix/SKILL.md v1.1.13 patched (1 clarification: deferred last_runs on pivot-only ticks)
+
+### 2026-07-24 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after prior 00:08 AWST pivot-only drain (commit 0acf9602). Fork/upstream/submodule current. Deferred last_runs file from 00:08 retained for next fix-bearing tick (v1.1.13). No code changes this tick.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: PENDING (audit commit; leave last_runs.commit null per v1.1.12)
+- Follow-up: await producer (xerahs-review) re-ingest; fold one deferred last_runs row per future fix commit
+- Skill: xerahs-bugfix/SKILL.md v1.1.13 — no patch this run
+
+### 2026-07-24 16:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after preflight; no real-bug items, no pivots this tick. Deferred last_runs from 2026-07-24 00:08 AWST (10 rows) left untouched pending a fix-bearing tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: PENDING (recorded in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer ingest; fold one deferred last_runs row per future fix commit
+
+### 2026-07-25 07:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 87
+  - triage=risk: 66
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 24
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - ... and 14 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-07-24 23:07 AWST - clawpatch ingest / 10 new findings (producer)
+
+- Status: ingested (producer-side only — no fixes, no area status changes, no other agents' last_runs rows touched)
+- Agent: nadia (cron-fired 23:00 AWST daily cadence)
+- Clawpatch review: ran 20260724T150348-691759 (3 features: ShareX.ImageEditor/Annotations, XerahS.RegionCapture/ViewModels, XerahS.Uploaders/LegacySupport/Compatibility). CLI per-feature findings=0 but report file produced (deterministic replay, byte-identical to 20260723T151439-e25ee8 — 48 findings, 2 clusters).
+- Ingest: 3 newest reports (20260724T150348, 20260723T151439, 20260723T150521) = 143 total findings.
+  - Severity gate dropped 87 (triage=risk x66, contract-mismatch x15, test-gap x3, docs-gap x3)
+  - Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 x3 — Immich Plugin ToJson symmetry clamp area)
+  - Release-history file cache dropped 24 (AssistantHistoryServiceTests, FileDownloader, HSB, IndexCommand.CountIndexedContents, DPAPI, GradientInfo, ImmichClient, WaylandCliCapture, OCR options, ShareX.VideoEditor diagnostics — all from v0.23.x release commits)
+  - Duplicate evidence[0]/id dedupe dropped 19
+  - **10 NEW findings ingested** (high-signal confirmed-bug, not yet shipped):
+    1. src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+    2. src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+    3. scripts/check-markdown-mojibake.py:81-83
+    4. src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+    5. src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+    6. ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo) — re-emerged after release-history file-cache drift? worth investigation
+    7. scripts/check-markdown-mojibake.py:76
+    8. Directory.Build.props:11
+    9. src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+    10. src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- next_candidates: 0 → 10 (Δ +10)
+- Fork/upstream/submodule: all current (HEAD ce62780e == nadia/develop == origin/develop after nadia fetch; upstream/develop already merged; ShareX.ImageEditor 6751bae7 == origin/develop == upstream/develop — clean)
+- Follow-up: consumer (xerahs-bugfix, Declan) drains next_candidates at next 00:06 / 08:05 / 16:06 AWST tick. Resolve longstanding MCP SQLite temp-database test isolation failures separately.
+
+### 2026-07-25 00:06 AWST - ReClip / SetWatchFolder path traversal guard
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+- Files: src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs, tests/XerahS.Tests/Tools/ReClipCommandWatchFolderValidationTests.cs, Directory.Build.props
+- Findings: SetWatchFolder expanded env vars and called Path.GetFullPath + CreateDirectory with no rejection of parent-directory segments, embedded nulls, invalid path chars, or filesystem roots. Added TryValidateWatchFolder and reject those inputs before create/save.
+- Status: Fixed
+- Build/test: CLI+Tests Release build 0 errors; ReClipCommandWatchFolderValidationTests 5/5 passed; logs: /tmp/xerahs-bugfix/build-20260725-000616.log, /tmp/xerahs-bugfix/test-20260725-000616.log
+- Commit: ec5dc3fd (Declan Murphy)
+- Follow-up: none for this item
+- Skill: xerahs-bugfix/SKILL.md v1.1.14 patched (2 new pitfalls: disk-full mid-run; NuGet cache wipe invalidates --no-build)
+
+### 2026-07-25 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage control flow verified correct
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+- Files: (none — pivot, no code change)
+- Findings: out param already set to default on false path; regression covered by CaptureCommandRegionParsingTests.TryGetImageFormat_WhenExtensionUnknown_ReturnsFalse
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / out-of-scope
+
+- Area: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+- Files: (none — pivot, no code change)
+- Findings: intentionally diagnostic runtime snapshot — not a product bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / out-of-scope
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: Central package / build metadata noise
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: already sets Deletion.Available=false + reason when no delete URL; already user-visible metadata
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: whitelist of TextFormat values is a feature request, not a runtime bug; empty check already present
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-25 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero candidates and zero pivots after fork/upstream/submodule sync. Deferred last_runs file from 2026-07-25 00:06 retained for next fix-bearing tick (9 rows).
+- Status: No-op (empty queue audit)
+- Build/test: n/a
+- Commit: none (audit only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; fold one deferred last_runs row per future fix commit
+
+### 2026-07-25 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. No real-bug items to pick; no pivots to drain. Prior deferred last_runs file (9 rows from 2026-07-25 00:06) left intact for next fix-bearing tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; fold one deferred last_runs row per future fix commit
+
+### 2026-07-26 07:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3 (['20260725T150502-d5fec1.md', '20260724T150348-691759.md', '20260723T151439-e25ee8.md'])
+- Findings dropped at severity gate: 87
+  - triage=risk: 66
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+
+### 2026-07-25 23:07 AWST - Producer tick (nadia-valeva-kf, daily cron)
+
+- Area: xerahs-review producer sweep
+- Files: .clawpatch/reports/20260725T150502-d5fec1.md; docs/reports/hourly_review_state.json; docs/reports/hourly_review_tracker.md
+- Findings: 3 features reviewed by clawpatch; 48 raw findings; 19 eligible (severity gate); 3 dropped as already-fixed (ImmichUploader.cs:220-233 dupes); 27 dropped as fixed-in-any-release (FileDownloader, HSB, IndexCommand CountIndexedContents, GradientInfo, ImmichClient DownloadAssetAsync, DPAPIEncryptedStringValueProvider, ReClipCommand SetWatchFolder, AssistantHistoryServiceTests SetUp/TearDown, etc); 18 skipped as in-eligible duplicates; **9 fresh findings added to next_candidates**.
+- Status: producer success (no fix commits)
+- Build/test: n/a (producer-side; consumer will build/test on drain)
+- Commit: PENDING (filled by Step 9 wrapper after commit lands)
+- Follow-up: xerahs-bugfix consumer at 00:06 AWST (24 min from now) will drain 9 next_candidates. These are largely "pivot" candidates per prior consumer runs (scripts/check-markdown-mojibake.py, CaptureCommand TryGetImageFormat, BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Directory.Build.props:11, Paste2Uploader TryExtractDeletionUrl, Paste2ConfigViewModel.Validate, CaptureStage PlatformServices-not-ready diagnostic) — consumer will hit pivot classifications on most.
+
+
+### 2026-07-26 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage control flow verified correct — toast + Failed status when PlatformServices not initialized
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+- Files: (none — pivot, no code change)
+- Findings: out param already set to default on false path; TryGetImageFormat returns false cleanly
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+- Files: (none — pivot, no code change)
+- Findings: intentionally diagnostic runtime snapshot — not a product bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: Central package / build metadata noise (MSBuildWarningsAsMessages)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: already sets Deletion.Available=false + reason when no delete URL; already user-visible
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: whitelist of TextFormat values is a feature request, not a runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 08:06 AWST - Queue check / no queued candidates
+
+- Area: hourly_review_state.json next_candidates
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after prior 00:06 AWST pivot drain (9 items). Fork/upstream/submodule clean. No code fix this tick.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: none (audit only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; 9 deferred last_runs rows await a fix-bearing tick

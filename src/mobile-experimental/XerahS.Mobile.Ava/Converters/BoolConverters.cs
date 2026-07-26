@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia;
 using Avalonia.Media;
@@ -66,6 +67,8 @@ public class BoolToConfiguredBrushConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {
-        throw new NotImplementedException();
+        // One-way converter: signal Avalonia to leave the source value untouched
+        // for any accidental two-way binding rather than throwing NotImplementedException.
+        return BindingOperations.DoNothing;
     }
 }

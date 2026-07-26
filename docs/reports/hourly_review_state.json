@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-19 17:35 AWST",
+  "last_updated": "2026-07-26 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,12 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
-    "scripts/check-markdown-mojibake.py:81-83",
-    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
-    "scripts/check-markdown-mojibake.py:76"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -28,12 +23,12 @@
     },
     {
       "area": "MCP server / IsHistorySearchResourceUri prefix and malformed query hardening",
-      "last_reviewed": "2026-06-09 20:31 AWST",
+      "last_reviewed": "2026-07-20 08:06 AWST",
       "status": "fixed",
       "priority": "Medium",
       "source": "follow-up from MCP search resource URI edge cases (next_candidates[0])",
-      "last_outcome": "Hardened XerahSMcpRuntime.IsHistorySearchResourceUri against two classes of bad input that previously slipped through: (1) prefix-only paths like 'xerahs://history/searchfoo' that were incorrectly treated as search URIs (matched by StartsWith, not exact path or path+query); (2) malformed percent-escapes in the query (e.g. 'q=%E0%A4%A') that left Uri.UnescapeDataString in a half-decoded state. The fix uses a Uri-based parse to confirm the Host is 'history', the AbsolutePath is exactly '/history/search', and only valid percent-escapes (each '%' followed by two hex digits) are passed to unescape. The 'IsHistorySearchResourceUri' method is now public static (previously private/internal) so tests can call it directly without reflection. Added 7 regression tests (3 valid + 4 invalid inputs). Bumped version 0.23.100 -> 0.23.101.",
-      "follow_up": "Resume other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics for stale default cleanup and unavailable provider replacement flows, CLI xerahscli upload --pipe edge cases, history backup user-visible diagnostics. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions. Pre-existing SQLite 'disk I/O error' (now affecting 5 tests including 2 new IsHistorySearchResourceUri fixtures) is environmental, documented in next_candidates."
+      "last_outcome": "Regression fixed: empty history search queries and queries containing no valid key/value pair are rejected; mixed malformed/valid pairs preserve valid limit/from values. Commit 8420c962; v0.24.1; targeted URI tests 13/13.",
+      "follow_up": "Resolve the longstanding MCP SQLite temp-database disk-I/O test isolation failures; otherwise await fresh next_candidates."
     },
     {
       "area": "Linux platform / LinuxInputService / xdotool capture pipe-fill + timeout-stretching deadlock",
@@ -989,7 +984,256 @@
       "summary": "Directory.Packages.props metadata is maintainability noise",
       "status": "tfm-noise",
       "source": "Step 5a categoriser drain (skill v1.1.7)"
+    },
+    {
+      "ts": "2026-07-20 00:07 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+      "commit": null,
+      "summary": "CaptureStage 79-84 control flow verified correct",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-20 08:06 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "MCP server / IsHistorySearchResourceUri empty and malformed query regression",
+      "commit": "8420c962",
+      "summary": "Reject empty/no-valid-pair MCP history search URIs while preserving valid sibling query parameters. v0.24.1.",
+      "status": "fixed",
+      "version": "0.24.1"
+    },
+    {
+      "ts": "2026-07-20 16:18 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-21 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+      "commit": null,
+      "summary": "source already performs the expected null/error guard; cited control flow is correct",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "scripts/check-markdown-mojibake.py:81-83",
+      "commit": null,
+      "summary": "UTF-8 decode failure is intentionally reported by a Markdown UTF-8 hygiene checker; alternative-encoding support is outside its contract",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "out-of-scope",
+      "item": "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
+      "commit": null,
+      "summary": "mobile code requires Android SDK 36/Xcode 26.2 and is excluded from this cron host",
+      "status": "out-of-scope"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "scripts/check-markdown-mojibake.py:76",
+      "commit": null,
+      "summary": "BOM detection is the intended hygiene check, not a defect in the checker",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "tfm-noise",
+      "item": "Directory.Build.props:11",
+      "commit": null,
+      "summary": "root line is intentional MSBuild warning-message configuration, not shell output concatenation",
+      "status": "tfm-noise"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)",
+      "commit": null,
+      "summary": "uploader explicitly marks deletion unavailable and records a user-visible reason when no documented Paste2 delete URL exists",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 08:18 AWST",
+      "agent": "declan",
+      "outcome": "false-positive",
+      "item": "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)",
+      "commit": null,
+      "summary": "validation correctly rejects blank text formats and sets StatusMessage; no live defect at the cited lines",
+      "status": "false-positive"
+    },
+    {
+      "ts": "2026-07-21 16:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-22 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": "40309998",
+      "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available. Fork and submodule pointers are current; upstream/develop is an ancestor of HEAD.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-22 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available. Fork/submodule current; upstream/develop is an ancestor of HEAD.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-22 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a classified zero next_candidates; no fixes or pivots were available. Fork/submodule current; upstream/develop is an ancestor of HEAD.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-23 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit (skill v1.1.9)",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-23 08:08 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit (skill v1.1.9)",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-23 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit (skill v1.1.9)",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-23 23:00 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer sweep (23:00 AWST cadence)",
+      "commit": "6e76a852",
+      "summary": "Clawpatch review run 20260723T150521-892e85 completed (3 features, 47 findings); ingested 9 high-signal confirmed-bug findings from the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate dropped 85 (triage≠confirmed-bug, category=maintainability, or triage=risk/contract-mismatch); 3 already-fixed at area level (ImmichUploader.cs:220-233); 20 already-fixed in release history (AssistantHistoryServiceTests, FileDownloader, HSB, GradientInfo, ImmichClient, DPAPIEncryptedStringValueProvider, IndexCommand.CountIndexedContents). Fork/upstream/submodule all current at HEAD d4a612a7 == nadia/develop == origin/develop; upstream/develop 22c8b34a is 106 commits behind HEAD (no merge needed). next_candidates: 0 -> 9",
+      "status": "ingested"
+    },
+    {
+      "ts": "2026-07-23 23:13 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer sweep (23:00 AWST cadence, post-clawpatch rerun)",
+      "commit": "a6ebc80c",
+      "summary": "Re-fired clawpatch review (post-prior-partial-run cleanup). New report 20260723T151439-e25ee8 (48 findings, 2 clusters) plus 2 priors (20260723T150521-892e85, 20260720T185039-0cf386) = 137 total findings. Severity gate dropped 86; 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233); 25 dropped as already-fixed in release history; 22 dropped as duplicate evidence[0]/id. **1 NEW finding** added: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo missing null check on 'assembly' parameter — NRE risk). next_candidates: 9 -> 10 (+1). Fork/upstream/submodule unchanged this tick (all current at HEAD f8bfceac).",
+      "status": "ingested"
+    },
+    {
+      "ts": "2026-07-24 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit (skill v1.1.9). Prior 00:08 pivot drain emptied queue (0acf9602); deferred last_runs pending next fix-bearing tick. Producer last ingest 2026-07-23 23:13 AWST (nadia).",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-24 16:08 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-24 23:06 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer sweep (23:00 AWST cadence)",
+      "commit": "e2ab4551",
+      "summary": "Clawpatch review run 20260724T150348-691759 completed (3 features: ShareX.ImageEditor Annotations, XerahS.RegionCapture/ViewModels, XerahS.Uploaders/LegacySupport/Compatibility). CLI per-feature findings=0 but report file written with 48 findings (deterministic replay, identical byte-for-byte to 20260723T151439-e25ee8). Ingest over 3 newest reports (20260724T150348, 20260723T151439, 20260723T150521) = 143 total findings. Severity gate dropped 87 (triage=risk x66, contract-mismatch x15, test-gap x3, docs-gap x3); 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233 x3 — ImmichPlugin/ToJson symmetry clamp area); 24 dropped as already-fixed in release-history file cache (AssistantHistoryServiceTests, FileDownloader, HSB, IndexCommand.CountIndexedContents, DPAPI, GradientInfo, ImmichClient, WaylandCliCapture, OCR options, plus ShareX.VideoEditor diagnostics — v0.23.x release commits); 19 dropped as duplicate evidence[0]/id. **10 NEW findings** added (high-signal confirmed-bug, not yet shipped): CaptureStage.cs:79-84, ReClipCommand.cs:114 (SetWatchFolder), scripts/check-markdown-mojibake.py:81-83 + 76, CaptureCommand.cs:131-153 (TryGetImageFormat), BoolConverters.cs:67-69 (ConvertBack), VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo — re-emerged after release-history file-cache drift?), Directory.Build.props:11, Paste2Uploader.cs:66-78 (TryExtractDeletionUrl), Paste2ConfigViewModel.cs:76-81 (Validate). Fork/upstream/submodule unchanged this tick (HEAD ce62780e == nadia/develop == origin/develop after nadia fetch; upstream/develop already merged; ShareX.ImageEditor 6751bae7 == origin/develop == upstream/develop — clean). Producer-side only: no fixes, no areas[*].status changes, no other agents' last_runs rows touched.",
+      "status": "ingested"
+    },
+    {
+      "ts": "2026-07-25 00:06 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)",
+      "commit": "ec5dc3fd46e9bcaf9446f1830ac35bc993ce5002",
+      "summary": "Reject path traversal in ReClip set-watch-folder (TryValidateWatchFolder)",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-07-25 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates and zero pivots; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-25 16:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found 0 candidates; v1.1.9 empty-queue audit; 9 deferred rows await next fix commit"
+    },
+    {
+      "ts": "2026-07-25 23:07 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "summary": "Daily producer tick: clawpatch review (3 features, 48 findings, 19 eligible). Severity gate + area-level + release-history dedupe applied. 9 fresh findings appended to next_candidates. No fix commits (producer-side).",
+      "commit": "8fd0879547d20eef5f2c9d35acac2246105ec834"
+    },
+    {
+      "ts": "2026-07-26 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; deferred-last-runs holds 9 rows from 00:06 AWST pivot-only tick."
     }
   ],
-  "last_run_outcome": "ingest + drain stale"
+  "last_run_outcome": "no-op"
 }
