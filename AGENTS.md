@@ -28,6 +28,7 @@
    - Commit format: `[vX.Y.Z] [Type] Use concise description`.
    - **Version prefix must use the next unreleased XerahS app version.** Read root `Directory.Build.props` `<Version>` and compare it with the highest existing XerahS tag (for example `git tag --sort=-v:refname | Select-Object -First 1`). Never use a version prefix that is lower than or equal to the latest tag. If the root version is not ahead of the latest tag, bump `Directory.Build.props` first, then use that bumped version in commit prefixes.
    - Exception: when committing inside shared library repos/submodules such as `ShareX.ImageEditor` (and other libraries shared with ShareX), omit the version prefix and use `[Type] Use concise description` because those commits must not carry the XerahS app version.
+   - **Do not create branches** (local or remote) unless a human explicitly requests it. Stay on the current branch; do not invent feature/fix/chore branches, worktree branches, or `cursor/*` branches on your own.
    - If verification passes and the user did not ask to pause, execute the workflow without waiting for extra permission.
 
 5. **Agent Workflow**
