@@ -10,6 +10,20 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.24.8
+
+Special pre-release from `linux-hotkey-rewrite` (XIP0080): Linux global hotkeys via evdev, merged onto latest develop.
+
+### Features
+- **Linux — Hotkeys (XIP0080)**: New evdev-based global hotkey backend with key map, modifier tracking, and matching engine; wired into `LinuxPlatform` with GlobalShortcuts portal / X11 fallback when input access is unavailable.
+- **Linux — Diagnostics**: `doctor --linux-input` reports evdev hotkey readiness (device access, group membership, and backend selection).
+- **Linux — Packaging**: Ship udev rule and polkit policy so packages can grant `/dev/input/event*` access for global hotkeys; document setup steps.
+
+### Tests
+- **Linux — Hotkeys**: Unit coverage for evdev key map, modifier tracker, and hotkey matcher.
+
+---
+
 ## v0.24.2
 
 ### Features
