@@ -3390,3 +3390,94 @@ Added candidates (8):
   - scripts/check-markdown-mojibake.py:76
   - src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
   - src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+
+### 2026-07-27 00:06 AWST - Pivot-only drain / queue 8→0
+
+- Area: xerahs-bugfix consumer queue (pivot-only tick)
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a + source verify: 0 real bugs. 8 pivots drained (already-fixed: CaptureStage, CaptureCommand.TryGetImageFormat, Paste2Uploader deletion metadata; out-of-scope: mojibake script x2, mobile BoolConverters, VideoEditor diagnostics, Paste2 TextFormat allow-list feature request). Paste2Uploader already sets Deletion.Available=false + Reason when no public delete API. Paste2 Validate empty-check is sufficient; upload/ToJson default blank→text; no paste2.org format enum in repo.
+- Status: Pivot (pivot-only)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Follow-up: deferred last_runs holds 9 rows for next fix-bearing tick; do not re-queue unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.14 — no patch this run
+
+### 2026-07-27 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage control flow verified correct — toast + Failed status when PlatformServices not initialized
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+- Files: (none — pivot, no code change)
+- Findings: out param already set to default on false path; TryGetImageFormat returns false cleanly
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / out-of-scope
+
+- Area: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+- Files: (none — pivot, no code change)
+- Findings: ShareX.VideoEditor diagnostic snapshot — submodule/tooling noise
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: already surfaces Deletion.Available=false + Deletion.Reason when no public delete API/URL; clawpatch wants feature not present upstream
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: feature request for TextFormat allow-list; no documented paste2.org format enum; blank already defaults to text on upload/ToJson
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
