@@ -303,6 +303,10 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     fi
 
     # Publish plugin projects in parallel; override with XERAHS_PLUGIN_JOBS.
+    # Note: dotnet build-server shutdown is NOT called between main app publish and plugin
+    # publish. Doing so clears the MSBuild server's in-memory asset resolution state for
+    # transitive dependencies (e.g. ShareX.ImageEditor's os-Unix/rid-linux-x64 conditional
+    # asset paths), causing plugins to fail with silent MSB4181 errors.
     PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
     if ! [[ "$PLUGIN_JOBS" =~ ^[1-9][0-9]*$ ]]; then
         echo "Error: XERAHS_PLUGIN_JOBS must be a positive integer (received '$PLUGIN_JOBS')."
