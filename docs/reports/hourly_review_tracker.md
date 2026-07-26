@@ -3320,3 +3320,13 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-26 08:06 AWST - Queue check / no queued candidates
+
+- Area: hourly_review_state.json next_candidates
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after prior 00:06 AWST pivot drain (9 items). Fork/upstream/submodule clean. No code fix this tick.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: none (audit only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; 9 deferred last_runs rows await a fix-bearing tick
