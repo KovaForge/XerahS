@@ -410,7 +410,7 @@ jobs:
             export -f publish_single_plugin
 
             mkdir -p "${PLUGINS_STAGING_DIR:?}"
-            mapfile -d \'\0 -t PLUGIN_PROJECTS < <(find "$ROOT/src/desktop/plugins" -mindepth 2 -maxdepth 2 -name "*.csproj" -print0 | sort -z)
+            mapfile -d \'\0 -t PLUGIN_PROJECTS < <(find "src/desktop/plugins" -mindepth 2 -maxdepth 2 -name "*.csproj" -print0 | sort -z)
             PLUGIN_COUNT="${#PLUGIN_PROJECTS[@]}"
             if [ "$PLUGIN_COUNT" -eq 0 ]; then
               echo "Error: No plugin projects found."
