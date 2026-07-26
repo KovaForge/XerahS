@@ -3341,3 +3341,52 @@ Co-authored-by: McoreD <McoreD@users.noreply.github.com>
 - Commit: PENDING (tracker audit; leave last_runs.commit null per v1.1.12)
 - Follow-up: wait for xerahs-review to refill next_candidates; on next fix, fold 1 deferred last_runs row
 - Skill: xerahs-bugfix/SKILL.md v1.1.14 — no patch this run
+
+### 2026-07-26 23:07 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 87
+  - triage=risk: 66
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 30
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [concurrency/confirmed-bug] Directory.Build.props:11
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa
+  - ... and 20 more
+- Ingested: 8
+- next_candidates delta: +8 (total 8)
+
+### 2026-07-26 23:07 AWST - Daily producer tick (nadia-valeva-kf)
+
+- Area: hourly_review_state.json next_candidates
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review (3 features) parsed 144 raw findings; severity gate (triage=confirmed-bug + confidence in high/medium + category not maintainability) admitted 57; area-level dedupe dropped 3 (Immich album share); v2.1.1+2.1.2 release-history dedupe dropped 30 (HSB, FileDownloader, DPAPI, Immich, IndexCommand, GradientInfo, etc.); 16 duplicates of existing; 8 fresh findings appended.
+- Status: produced (8 added to next_candidates)
+- Build/test: n/a (producer tick; no code change)
+- Commit: PENDING (producer-side; SHA populated after Step 9 push)
+- Follow-up: consumer (Declan) picks at 00:06 AWST; expect likely 8 pivot-drains (Mobile.Converters BoolToConfiguredBrushConverter ConvertBack already-pivoted earlier, BoolConverters BoolTo* similar, VideoEditorRuntimeDiagnosticsSnapshot null-check diagnostic-only, Paste2 deletion URL handling, CaptureCommand.TryGetImageFormat out-param semantics, CaptureStage platform-services-init data-loss, mojibake.py UTF-8-only)
+- Skill: xerahs-review/SKILL.md v2.2.1 (no patch this run; no Step 10 blocker)
+- next_candidates: 0 -> 8
+
+Added candidates (8):
+  - src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+  - scripts/check-markdown-mojibake.py:81-83
+  - src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+  - src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+  - ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.Crea
+  - scripts/check-markdown-mojibake.py:76
+  - src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+  - src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
