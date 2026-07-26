@@ -1,0 +1,25 @@
+# XerahS global hotkey support (XIP0080)
+#
+# XerahS can listen for global hotkeys directly from keyboard input devices via
+# evdev. This works on every Wayland compositor (GNOME, KDE Plasma, Hyprland) and
+# on X11, without depending on the XDG GlobalShortcuts portal.
+#
+# Reading /dev/input/event* requires permission. This rule keeps keyboard event
+# devices owned by the 'input' group with group-read access (the default on most
+# distributions). Add your user to that group to enable hotkeys:
+#
+#     sudo usermod -aG input $USER     # then log out and back in
+#
+# Verify readiness with:
+#
+#     xerahs doctor --linux-input
+#
+# Alternative (per-session ACL, no group membership required): replace the
+# GROUP/MODE assignment below with the systemd-logind uaccess tag:
+#
+#     KERNEL=="event*", SUBSYSTEM=="input", TAG+="uaccess"
+#
+# Note: granting input-device read access lets local software observe keystrokes.
+# Apply only on systems where you trust the locally installed applications.
+
+KERNEL=="event*", SUBSYSTEM=="input", GROUP="input", MODE="0660"
