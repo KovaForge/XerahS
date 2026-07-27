@@ -3481,3 +3481,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-27 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after prior 00:06 pivot drain (8→0). No real-bug picks. Fork/upstream/submodule clean. 9 deferred pivot audit rows remain under /tmp for next fix-bearing tick.
+- Status: no-op
+- Build/test: n/a (empty queue — no code change)
+- Commit: PENDING (filled in Step 9 summary after push; leave last_runs.commit null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings; fold one deferred last_runs row per future fix commit
+- Skill: xerahs-bugfix/SKILL.md v1.1.14 — no Step 10 patch this tick
