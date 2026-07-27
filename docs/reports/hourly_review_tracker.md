@@ -3492,3 +3492,13 @@ Added candidates (8):
 - Commit: PENDING (filled in Step 9 summary after push; leave last_runs.commit null per v1.1.12)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings; fold one deferred last_runs row per future fix commit
 - Skill: xerahs-bugfix/SKILL.md v1.1.14 — no Step 10 patch this tick
+
+### 2026-07-27 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found 0 candidates in next_candidates; producer has not yet refilled since the 2026-07-27 00:06 pivot-only drain. 9 deferred last_runs rows remain under /tmp/xerahs-bugfix/deferred-last-runs-20260727-000615.json awaiting a fix-bearing tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only — v1.1.12)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; on next fix commit, fold one deferred last_runs row
