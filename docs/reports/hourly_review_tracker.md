@@ -3539,3 +3539,104 @@ Added candidates (8):
   7. Directory.Build.props:11
   8. src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
   9. src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+
+### 2026-07-28 00:06 AWST - Queue drain / pivot-only tick
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified all 9 next_candidates as non-real-bug (already-fixed=3, out-of-scope=6). No code fixes; drained queue 9→0. last_runs delta +0; audit rows deferred.
+- Status: Pivot
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Follow-up: wait for xerahs-review producer to refill real-bug candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.14 (no patch this run)
+
+### 2026-07-28 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage control flow verified correct — toast + Failed status when PlatformServices not initialized
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+- Files: (none — pivot, no code change)
+- Findings: out param already set to default on false path; TryGetImageFormat returns false cleanly for unknown extensions
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron); ConvertBack already returns BindingOperations.DoNothing
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / out-of-scope
+
+- Area: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+- Files: (none — pivot, no code change)
+- Findings: ShareX.VideoEditor diagnostic snapshot — submodule/tooling noise
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: diagnostic script maintainability — not a product runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / out-of-scope
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: Central package / build metadata noise (MSBuildWarningsAsMessages)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: already surfaces Deletion.Available=false + Deletion.Reason when no public delete API/URL; clawpatch wants feature not present upstream
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: feature request for TextFormat allow-list; no documented paste2.org format enum; blank already defaults to text on upload/ToJson
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses
