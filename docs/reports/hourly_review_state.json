@@ -1283,7 +1283,7 @@
       "outcome": "produced",
       "item": "xerahs-review producer sweep",
       "status": "produced",
-      "commit": null,
+      "commit": "cf35628f",
       "summary": "Clawpatch review run 20260727T150452-7111cf completed (3 features, 147 raw findings); ingested 9 high-signal confirmed-bug findings from the 3 newest reports (gate: 90 risk/contract/test/docs, 3 area-fixed, 27 release-history fixed, 18 dup-skipped). Fork/upstream/submodule clean. next_candidates 0 -> 9.",
       "ts": "2026-07-27 23:03 AWST"
     }

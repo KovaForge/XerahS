@@ -3525,7 +3525,7 @@ Added candidates (8):
 - Outcome: produced
 - Item: xerahs-review producer sweep
 - Status: produced
-- Commit: PENDING (filled in Step 9 summary after push)
+- Commit: cf35628f
 - Findings ingested: 9
 - next_candidates delta: 0 -> 9 (+9)
 - Clawpatch run: 20260727T150452-7111cf (3 features, 147 raw findings, 90 dropped at severity gate, 3 area-fixed, 27 release-history fixed, 18 dup-skipped)
