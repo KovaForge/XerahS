@@ -3502,3 +3502,40 @@ Added candidates (8):
 - Build/test: n/a (no code change)
 - Commit: none (empty-queue audit; SHA in Step 9 summary only — v1.1.12)
 - Follow-up: wait for xerahs-review producer to refill next_candidates; on next fix commit, fold one deferred last_runs row
+
+
+### 2026-07-27 23:03 AWST - clawpatch-ingest gate drops (skill v2.1.2)
+
+- Reports parsed: 3 (20260727T150452-7111cf, 20260726T150305-c76f5a, 20260725T150502-d5fec1)
+- Findings parsed: 147
+- Findings dropped at severity gate: 90
+  - triage=risk: 69
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+- Findings dropped as recently fixed in release history: 27
+- Findings skipped as duplicate of existing in queue: 18
+- Ingested: 9
+- next_candidates delta: 0 -> 9 (+9)
+
+### 2026-07-27 23:03 AWST - xerahs-review producer sweep
+
+- Agent: nadia-valeva-kf
+- Outcome: produced
+- Item: xerahs-review producer sweep
+- Status: produced
+- Commit: PENDING (filled in Step 9 summary after push)
+- Findings ingested: 9
+- next_candidates delta: 0 -> 9 (+9)
+- Clawpatch run: 20260727T150452-7111cf (3 features, 147 raw findings, 90 dropped at severity gate, 3 area-fixed, 27 release-history fixed, 18 dup-skipped)
+- Ingested candidates:
+  1. src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+  2. scripts/check-markdown-mojibake.py:81-83
+  3. src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+  4. src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+  5. ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo)
+  6. scripts/check-markdown-mojibake.py:76
+  7. Directory.Build.props:11
+  8. src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+  9. src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
