@@ -3683,3 +3683,14 @@ Added candidates (8):
   - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetVa
 - Ingested: 9
 - next_candidates delta: +9 (total 9)
+
+### 2026-07-28 23:09 AWST - Daily producer tick (nadia) — ingest 9 fresh findings
+
+- Area: xerahs-review producer sweep
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, .clawpatch/reports/20260727T150452-7111cf.md, .clawpatch/reports/20260728T150412-26bc73.md
+- Findings: clawpatch run 20260728T150412-26bc73 reviewed 3 features, 0 new findings (re-emitted cached report). Parsed 150 findings across 3 newest reports. Severity gate dropped 93 (72 risk + 15 contract-mismatch + 3 test-gap + 3 docs-gap). Area-level dedupe dropped 1. Release-history walk dropped 9. Ingested 9 confirmed-bug findings (data-loss/bug/concurrency/security). next_candidates 0 -> 9.
+- Status: produced
+- Build/test: n/a (producer-side, no code change)
+- Commit: 4c591558
+- Follow-up: same 9 citations re-surface every run since 2026-07-20T18:50:39; consumer drains as pivot. Step 9 efficiency blocker: producer-side guard for "consumer-recently-classified-as-pivot" missing from the v2.1.0/v2.1.2 dedupe.
+- Skill: xerahs-review/SKILL.md v2.2.1 (no patch this run; Step 9 reflection flagged churn loop)
