@@ -3694,3 +3694,104 @@ Added candidates (8):
 - Commit: 4c591558
 - Follow-up: same 9 citations re-surface every run since 2026-07-20T18:50:39; consumer drains as pivot. Step 9 efficiency blocker: producer-side guard for "consumer-recently-classified-as-pivot" missing from the v2.1.0/v2.1.2 dedupe.
 - Skill: xerahs-review/SKILL.md v2.2.1 (no patch this run; Step 9 reflection flagged churn loop)
+
+### 2026-07-29 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+- Files: (none — pivot, no code change)
+- Findings: CaptureStage control flow verified correct — toast + Failed status when PlatformServices not initialized
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:81-83
+- Files: (none — pivot, no code change)
+- Findings: intentional UTF-8 decode failure path returns findings; script is a lint helper not a runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)
+- Files: (none — pivot, no code change)
+- Findings: out param already set to default on false path; caller checks return value; regression test TryGetImageFormat_WhenExtensionUnknown_ReturnsFalse exists
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / already-fixed
+
+- Area: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+- Files: (none — pivot, no code change)
+- Findings: cited path not present at parent HEAD (submodule-only / stale citation)
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / out-of-scope
+
+- Area: scripts/check-markdown-mojibake.py:76
+- Files: (none — pivot, no code change)
+- Findings: UTF-8 BOM detection is intentional non-fatal lint finding
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / out-of-scope
+
+- Area: Directory.Build.props:11
+- Files: (none — pivot, no code change)
+- Findings: MSBuildWarningsAsMessages MSB3026 is intentional build metadata, not a runtime bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)
+- Files: (none — pivot, no code change)
+- Findings: already sets Deletion.Available=false + Reason when Paste2 returns no public delete URL
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)
+- Files: (none — pivot, no code change)
+- Findings: empty TextFormat check is sufficient; paste2.org format allow-list would be a feature request not a bug
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-07-29 00:05 AWST - Queue check / pivot-only drain (Declan)
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a + source verify: 0 real bugs among 9 producer-ingested candidates. Drained all 9 as pivots (already-fixed / out-of-scope / false-positive / tfm-noise). v1.1.13: last_runs delta +0; deferred 9 audit rows under /tmp. Producer (nadia 23:09 AWST) re-emitted previously pivoted findings.
+- Status: Pivot (queue empty)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Follow-up: wait for xerahs-review producer for fresh findings; fold one deferred last_runs row per future fix commit
+- Skill: xerahs-bugfix/SKILL.md — no code path this tick; note producer re-ingest of known pivots
