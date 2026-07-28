@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-28 08:06 AWST",
+  "last_updated": "2026-07-28 16:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1284,6 +1284,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates; queue empty after prior pivot drain. Deferred last_runs (18 rows) carried forward for next fix-bearing tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-07-28 16:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; queue remains empty after 2026-07-28 08:06 no-op. Submodule pointer 6751bae → 1bcb66c ([Fix] Restore Lucide icon glyphs) merged from upstream and pushed to origin; parent pointer updated. Deferred last_runs (18 rows) carried forward unchanged for next fix-bearing tick.",
       "status": "no-op"
     }
   ],

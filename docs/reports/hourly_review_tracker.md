@@ -3650,3 +3650,13 @@ Added candidates (8):
 - Build/test: n/a (empty queue)
 - Commit: null (audit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
 - Follow-up: wait for xerahs-review producer to refill real-bug candidates; on next fix, fold one deferred last_runs row under +0/+1
+
+### 2026-07-28 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, ShareX.ImageEditor (submodule pointer 6751bae → 1bcb66c)
+- Findings: Step 5a classified 0 candidates. Queue remains empty after 2026-07-28 08:06 no-op. Deferred last_runs file holds 18 rows from prior pivot-only drains; fold next fix-bearing tick. Submodule merged upstream [Fix] Restore Lucide icon glyphs (1bcb66c) and pushed to origin.
+- Status: no-op
+- Build/test: n/a (empty queue; submodule-only sync)
+- Commit: null (audit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
+- Follow-up: wait for xerahs-review producer to refill real-bug candidates; on next fix, fold one deferred last_runs row under +0/+1
