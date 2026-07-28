@@ -3640,3 +3640,13 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only; last_runs deferred per v1.1.13)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-07-28 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 candidates (queue already empty after 2026-07-28 00:06 pivot-only drain). No real-bug items to pick. No new pivots this tick. Deferred last_runs file from prior pivot-only tick retained (18 rows) for the next fix-bearing tick per v1.1.13.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: null (audit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
+- Follow-up: wait for xerahs-review producer to refill real-bug candidates; on next fix, fold one deferred last_runs row under +0/+1
