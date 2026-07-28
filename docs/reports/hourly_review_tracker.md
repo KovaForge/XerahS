@@ -3795,3 +3795,14 @@ Added candidates (8):
 - Commit: PENDING
 - Follow-up: wait for xerahs-review producer for fresh findings; fold one deferred last_runs row per future fix commit
 - Skill: xerahs-bugfix/SKILL.md — no code path this tick; note producer re-ingest of known pivots
+
+### 2026-07-29 00:05 AWST - Seed recently_pivoted (Declan)
+
+- Area: xerahs-bugfix consumer / producer dedupe seed
+- Files: docs/reports/hourly_review_state.json
+- Findings: Seeded state.recently_pivoted with 9 exact candidate strings drained this tick (FIFO cap 200). Pairs with xerahs-bugfix v1.1.15 + xerahs-review v2.2.2 so producer skips re-ingest of pivot drains.
+- Status: Pivot (metadata seed)
+- Build/test: n/a
+- Commit: PENDING
+- Follow-up: producer must read recently_pivoted before next_candidates append
+- Skill: xerahs-bugfix v1.1.15 + xerahs-review v2.2.2

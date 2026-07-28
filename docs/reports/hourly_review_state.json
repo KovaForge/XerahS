@@ -1305,5 +1305,16 @@
       "ts": "2026-07-28 23:09 AWST"
     }
   ],
-  "last_run_outcome": "pivot"
+  "last_run_outcome": "pivot",
+  "recently_pivoted": [
+    "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
+    "scripts/check-markdown-mojibake.py:81-83",
+    "src/desktop/cli/XerahS.CLI/Commands/CaptureCommand.cs:131-153 (TryGetImageFormat)",
+    "src/mobile-experimental/XerahS.Mobile.Ava/Converters/BoolConverters.cs:67-69 (ConvertBack)",
+    "ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo)",
+    "scripts/check-markdown-mojibake.py:76",
+    "Directory.Build.props:11",
+    "src/desktop/plugins/Paste2.Plugin/Paste2Uploader.cs:66-78 (TryExtractDeletionUrl)",
+    "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)"
+  ]
 }
