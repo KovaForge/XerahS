@@ -3838,3 +3838,14 @@ Added candidates (8):
 - Commit: PENDING
 - Follow-up: queue has been empty since 2026-07-29 00:05 pivot drain; consumer (Declan) cannot pick until next_candidates refills. Two paths forward: (a) wait for upstream code churn to perturb clawpatch sampling; (b) force fresh clawpatch sampling by changing `--limit`, prompt, or feature selection. No anomaly in the dedupe pipeline itself.
 - Skill: xerahs-review/SKILL.md v2.2.2 unchanged (no efficiency blockers this tick)
+
+### 2026-07-30 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero next_candidates after fork/upstream/submodule sync; producer last tick also left queue at 0. Empty-queue audit only (v1.1.9).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch candidates; deferred pivot audit rows remain under /tmp for next fix-bearing tick
+- Skill: xerahs-bugfix/SKILL.md v1.1.15 — no patch this run
