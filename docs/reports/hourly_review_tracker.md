@@ -3817,3 +3817,13 @@ Added candidates (8):
 - Commit: PENDING (tracker audit; leave last_runs.commit null per v1.1.12)
 - Follow-up: wait for xerahs-review producer; if same 9 citations reappear despite recently_pivoted, escalate producer ingest skip
 - Skill: xerahs-bugfix/SKILL.md v1.1.15 unchanged (no efficiency blockers this tick)
+
+### 2026-07-29 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after 2026-07-29 08:08 no-op. Producer has not refilled next_candidates since the 00:05 pivot drain (recently_pivoted=9). No real-bug picks; no code changes.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings; keep deferred last_runs (9) for next fix-bearing tick; do not re-queue recently_pivoted items
