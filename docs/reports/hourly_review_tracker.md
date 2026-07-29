@@ -3827,3 +3827,14 @@ Added candidates (8):
 - Build/test: n/a (empty queue)
 - Commit: none (audit only; SHA recorded in Step 9 summary)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings; keep deferred last_runs (9) for next fix-bearing tick; do not re-queue recently_pivoted items
+
+### 2026-07-29 23:03 AWST - Producer tick / duplicate-day clawpatch (Nadia)
+
+- Area: xerahs-review producer sweep
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review run 20260729T150504-f1bdd3 completed (3 features, 0 raw findings surfaced by current model pass). On re-check across the last 3 reports (20260729/728/727) the 153-finding payload is byte-identical (MD5 7baef4ac...) — clawpatch is returning the same content for the same code state. Gate pass: 0 added to next_candidates; 3 dropped as area-level already-fixed (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare — appears in `areas[]` as fixed); 27 dropped as recently_pivoted (carry-over from 2026-07-29 00:05 pivot drain); 27 dropped as recently-fixed in last N commits (regression filter); 96 dropped at severity gate (75 risk + 15 contract-mismatch + 3 test-gap + 3 docs-gap). Fork sync no-op (nadia/develop=9f90892=origin/develop). Upstream sync no-op (HEAD⊇upstream/develop=22c8b34). ShareX.ImageEditor submodule clean at 1bcb66c.
+- Status: no-op (queue stays empty)
+- Build/test: n/a (no code change, deferred to next tick)
+- Commit: PENDING
+- Follow-up: queue has been empty since 2026-07-29 00:05 pivot drain; consumer (Declan) cannot pick until next_candidates refills. Two paths forward: (a) wait for upstream code churn to perturb clawpatch sampling; (b) force fresh clawpatch sampling by changing `--limit`, prompt, or feature selection. No anomaly in the dedupe pipeline itself.
+- Skill: xerahs-review/SKILL.md v2.2.2 unchanged (no efficiency blockers this tick)
