@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-07-29 00:05 AWST",
+  "last_updated": "2026-07-29 08:08 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1303,9 +1303,18 @@
       "commit": "4c591558",
       "summary": "Daily producer tick (nadia, 23:00 AWST cadence): clawpatch review run 20260728T150412-26bc73 completed (3 features, 0 new findings; re-emitted cached report identical to 20260727T150452-7111cf). Ingested 9 high-signal confirmed-bug findings from the 3 newest reports (gate: 93 risk/contract/test/docs dropped; 1 area-fixed; 9 release-history-fixed; 0 dup-skipped). Fork/upstream/submodule clean. next_candidates 0 -> 9. Same 9 citations re-surface every run since 2026-07-20T18:50:39; consumer drains them as pivot (already-fixed/out-of-scope). Flagged as Step 9 efficiency blocker.",
       "ts": "2026-07-28 23:09 AWST"
+    },
+    {
+      "ts": "2026-07-29 08:08 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; queue empty after 2026-07-29 00:05 pivot drain (recently_pivoted=9). Upstream/submodule clean. Deferred last_runs (9 rows from 00:05) carried forward for next fix-bearing tick.",
+      "status": "no-op"
     }
   ],
-  "last_run_outcome": "pivot",
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",

@@ -3806,3 +3806,14 @@ Added candidates (8):
 - Commit: PENDING
 - Follow-up: producer must read recently_pivoted before next_candidates append
 - Skill: xerahs-bugfix v1.1.15 + xerahs-review v2.2.2
+
+### 2026-07-29 08:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after prior 2026-07-29 00:05 pivot drain (9 stale producer re-ingest items; recently_pivoted seeded). Fork HEAD=declan/develop=22ad858d. Upstream develop not behind. ShareX.ImageEditor clean at 1bcb66c. Deferred last_runs (9 rows) left for next fix-bearing tick under XIP0077 +0/+1.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: PENDING (tracker audit; leave last_runs.commit null per v1.1.12)
+- Follow-up: wait for xerahs-review producer; if same 9 citations reappear despite recently_pivoted, escalate producer ingest skip
+- Skill: xerahs-bugfix/SKILL.md v1.1.15 unchanged (no efficiency blockers this tick)
