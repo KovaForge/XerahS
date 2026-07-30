@@ -3849,3 +3849,14 @@ Added candidates (8):
 - Commit: PENDING (filled in Step 9 summary only; last_runs.commit left null per v1.1.12)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch candidates; deferred pivot audit rows remain under /tmp for next fix-bearing tick
 - Skill: xerahs-bugfix/SKILL.md v1.1.15 — no patch this run
+
+### 2026-07-30 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Producer last tick left queue empty; recently_pivoted=9 retained. No real-bug picks, no pivots.
+- Status: no-op
+- Build/test: n/a (no code changes)
+- Commit: none (audit only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+- Skill: xerahs-bugfix/SKILL.md v1.1.15 — no patch this run
