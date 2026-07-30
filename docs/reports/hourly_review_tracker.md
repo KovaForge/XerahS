@@ -3870,3 +3870,14 @@ Added candidates (8):
 - Build/test: n/a (empty queue)
 - Commit: null (audit commit SHA in Step 9 summary only; v1.1.12)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings into next_candidates
+
+### 2026-07-31 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit only)
+- Findings: Step 5a found zero candidates after classify; recently_pivoted=9; deferred last_runs from 2026-07-29 00:05 still holds 9 rows (carried forward — no fix commit this tick to fold under +0/+1). Latest clawpatch report 20260729T150504 still producer-side; consumer queue empty.
+- Status: No-op (empty queue)
+- Build/test: n/a
+- Commit: none (audit metadata only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer ingest; do not invent fixes from raw clawpatch reports
+- Skill: xerahs-bugfix/SKILL.md v1.1.15 — no patch this run
