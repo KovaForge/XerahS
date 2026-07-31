@@ -225,7 +225,8 @@ public sealed class RegionCaptureOrchestrator : IDisposable
             canvas.DrawBitmap(
                 captured.Bitmap,
                 new SKRect(0, 0, captured.Width, captured.Height),
-                new SKRect(destX, destY, destX + captured.Width, destY + captured.Height));
+                new SKRect(destX, destY, destX + captured.Width, destY + captured.Height),
+                SKSamplingOptions.Default);
 
             // Dispose individual capture
             captured.Dispose();

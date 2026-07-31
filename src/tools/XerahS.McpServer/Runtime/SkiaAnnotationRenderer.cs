@@ -97,11 +97,12 @@ internal static class SkiaAnnotationRenderer
         var right = new SKPoint(basePoint.X - perpendicular.X * headWidth, basePoint.Y - perpendicular.Y * headWidth);
 
         using var headPaint = new SKPaint { Color = color, IsAntialias = true, Style = SKPaintStyle.Fill };
-        using var path = new SKPath();
-        path.MoveTo(end);
-        path.LineTo(left);
-        path.LineTo(right);
-        path.Close();
+        using var pathBuilder = new SKPathBuilder();
+        pathBuilder.MoveTo(end);
+        pathBuilder.LineTo(left);
+        pathBuilder.LineTo(right);
+        pathBuilder.Close();
+        using var path = pathBuilder.Detach();
         canvas.DrawPath(path, headPaint);
     }
 
@@ -184,7 +185,7 @@ internal static class SkiaAnnotationRenderer
         var thickness = ReadFloat(parameters, "thickness", 4f);
 
         using var paint = CreateStrokePaint(color, thickness);
-        using var path = new SKPath();
+        using var pathBuilder = new SKPathBuilder();
 
         var first = points[0] as JsonObject;
         if (first == null)
@@ -192,16 +193,17 @@ internal static class SkiaAnnotationRenderer
             return;
         }
 
-        path.MoveTo(ReadFloat(first, "x"), ReadFloat(first, "y"));
+        pathBuilder.MoveTo(ReadFloat(first, "x"), ReadFloat(first, "y"));
 
         for (var index = 1; index < points.Count; index++)
         {
             if (points[index] is JsonObject point)
             {
-                path.LineTo(ReadFloat(point, "x"), ReadFloat(point, "y"));
+                pathBuilder.LineTo(ReadFloat(point, "x"), ReadFloat(point, "y"));
             }
         }
 
+        using var path = pathBuilder.Detach();
         canvas.DrawPath(path, paint);
     }
 
@@ -226,10 +228,10 @@ internal static class SkiaAnnotationRenderer
         };
 
         surface.Canvas.Clear(SKColors.Transparent);
-        surface.Canvas.DrawImage(subset, 0, 0, paint);
+        surface.Canvas.DrawImage(subset, 0, 0, SKSamplingOptions.Default, paint);
         using var filtered = surface.Snapshot();
         using var canvas = new SKCanvas(bitmap);
-        canvas.DrawImage(filtered, rect.Left, rect.Top);
+        canvas.DrawImage(filtered, rect.Left, rect.Top, SKSamplingOptions.Default);
     }
 
     private static void ApplyPixelate(SKBitmap bitmap, JsonObject parameters)
@@ -268,7 +270,7 @@ internal static class SkiaAnnotationRenderer
 
         using var output = surface.Snapshot();
         using var canvas = new SKCanvas(bitmap);
-        canvas.DrawImage(output, rect.Left, rect.Top);
+        canvas.DrawImage(output, rect.Left, rect.Top, SKSamplingOptions.Default);
     }
 
     private static void DrawStep(SKCanvas canvas, JsonObject parameters)

@@ -383,7 +383,7 @@ namespace XerahS.Platform.Linux
 
                 var cropped = new SKBitmap(cropRect.Width, cropRect.Height);
                 using var canvas = new SKCanvas(cropped);
-                canvas.DrawBitmap(fullBitmap, cropRect, new SKRect(0, 0, cropRect.Width, cropRect.Height));
+                canvas.DrawBitmap(fullBitmap, cropRect, new SKRect(0, 0, cropRect.Width, cropRect.Height), SKSamplingOptions.Default);
                 fullBitmap.Dispose();
 
                 DebugHelper.WriteLine($"LinuxScreenCaptureService: CaptureRectAsync: Successfully cropped bitmap: {cropped.Width}x{cropped.Height}");

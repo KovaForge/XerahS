@@ -753,7 +753,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
 
         var cropped = new SkiaSharp.SKBitmap(crop.Width, crop.Height);
         using var canvas = new SkiaSharp.SKCanvas(cropped);
-        canvas.DrawBitmap(bitmap, crop, new SkiaSharp.SKRect(0, 0, crop.Width, crop.Height));
+        canvas.DrawBitmap(bitmap, crop, new SkiaSharp.SKRect(0, 0, crop.Width, crop.Height), SkiaSharp.SKSamplingOptions.Default);
         bitmap.Dispose();
         return cropped;
     }
