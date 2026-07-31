@@ -3892,3 +3892,14 @@ Added candidates (8):
 - Commit: PENDING (tracker commit SHA in Step 9 summary; leave last_runs.commit null per v1.1.12)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
 - Skill: deferred-file cleanup on consecutive no-op ticks (see Step 10 if skill patched)
+
+### 2026-07-31 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates; fork/upstream/submodule already up to date; no deferred-last-runs files present. Third consecutive empty-queue no-op tick after 08:05 and 00:06.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: null (record SHA in Step 9 summary only; v1.1.12)
+- Follow-up: wait for xerahs-review producer to refresh next_candidates; do not invent fixes
+- Skill: xerahs-bugfix/SKILL.md v1.1.16 (no patch this run)
