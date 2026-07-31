@@ -59,7 +59,7 @@ public class TaskSettings
 
     public WorkflowType Job = WorkflowType.None;
 
-    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.AnnotateMedia | AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
+    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
 
     public AfterUploadTasks AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
 
