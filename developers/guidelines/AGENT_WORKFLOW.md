@@ -5,13 +5,14 @@ This document adapts a cross-agent workflow to the XerahS repository. It is writ
 ## 1. Plan Before Coding
 
 - Planning is mandatory for work that is likely to take more than a few minutes, touches multiple projects, changes behavior, or affects architecture or contributor process.
+- For architecture, dependency, or unfamiliar-area orientation in `src/`, consult the graphify knowledge graph before broad greps. Kickoff prompt and path index: `developers/guidelines/GRAPHIFY_AGENT_PROMPT.md`. Artifacts: `docs/architecture/graphify-out/`.
 - If the host supports explicit plan mode, start with `Entering plan mode for this task...`.
 - A useful plan includes:
-  1. Goal and assumptions
-  2. Files or projects to inspect or change
-  3. Implementation steps
-  4. Risks and edge cases
-  5. Verification steps
+    1. Goal and assumptions
+    2. Files or projects to inspect or change
+    3. Implementation steps
+    4. Risks and edge cases
+    5. Verification steps
 - In XerahS, planning does **not** always mean blocking. Wait for approval only when the user asks for a review-first flow, or when the design is ambiguous, architectural, or otherwise high-risk.
 - Trivial edits can skip a full plan, but state why.
 

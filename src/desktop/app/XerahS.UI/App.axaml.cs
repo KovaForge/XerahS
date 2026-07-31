@@ -89,12 +89,35 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // Suppress benign Avalonia DBus TaskCanceledException crashes on Linux
+        // Suppress benign Avalonia desktop-integration exceptions on Linux (DBus tray icon,
+        // IME, portal glitches) so they cannot take down the whole app. Avalonia's dispatcher
+        // only swallows an exception when the filter stage requests a catch AND an
+        // UnhandledException handler marks it as handled, so both stages are wired here.
+        // Without this, a sandboxed Flatpak install crashes ~1 second after startup on KDE:
+        // Avalonia's DBusTrayIconImpl requests the org.kde.StatusNotifierItem-{pid}-{tid} bus
+        // name, the Flatpak session-bus proxy denies it, and the resulting
+        // Tmds.DBus.Protocol.DBusErrorReplyException escapes on the UI thread (issue #270).
         Avalonia.Threading.Dispatcher.UIThread.UnhandledExceptionFilter += (sender, e) =>
         {
-            if (e.Exception is System.Threading.Tasks.TaskCanceledException)
+            if (IsNonFatalDispatcherException(e.Exception))
             {
                 e.RequestCatch = true;
+            }
+        };
+
+        Avalonia.Threading.Dispatcher.UIThread.UnhandledException += (sender, e) =>
+        {
+            if (IsNonFatalDispatcherException(e.Exception))
+            {
+                e.Handled = true;
+                try
+                {
+                    DebugHelper.WriteException(e.Exception, "Suppressed non-fatal UI thread exception (desktop integration)");
+                }
+                catch
+                {
+                    // Never throw from the dispatcher exception handler.
+                }
             }
         };
 
@@ -314,6 +337,50 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Determines whether an exception that reached the Avalonia dispatcher unhandled should be
+    /// suppressed instead of crashing the process. Only Linux desktop-integration failures are
+    /// considered non-fatal: DBus errors (tray icon / StatusNotifier / dbusmenu / IME) and
+    /// exceptions raised inside Avalonia.FreeDesktop. These features are optional; losing them
+    /// (for example inside a Flatpak sandbox with restricted session-bus access) must not
+    /// terminate the application.
+    /// </summary>
+    internal static bool IsNonFatalDispatcherException(Exception? ex)
+    {
+        if (ex is null)
+        {
+            return false;
+        }
+
+        if (ex is System.Threading.Tasks.TaskCanceledException)
+        {
+            return true;
+        }
+
+        if (ex is AggregateException aggregate)
+        {
+            return aggregate.InnerExceptions.Count > 0 &&
+                   aggregate.InnerExceptions.All(IsNonFatalDispatcherException);
+        }
+
+        // Tmds.DBus.Protocol.DBusException / DBusErrorReplyException and friends. Matched by
+        // namespace to avoid a hard dependency on the transitive Tmds.DBus.Protocol package.
+        string typeName = ex.GetType().FullName ?? string.Empty;
+        if (typeName.StartsWith("Tmds.DBus.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Failures inside Avalonia's FreeDesktop integration layer (tray icon, dbusmenu, IME).
+        string stackTrace = ex.StackTrace ?? string.Empty;
+        if (stackTrace.Contains("Avalonia.FreeDesktop.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return ex.InnerException != null && IsNonFatalDispatcherException(ex.InnerException);
     }
 
     private static async Task ShowOnboardingWizardAsync(Window owner)

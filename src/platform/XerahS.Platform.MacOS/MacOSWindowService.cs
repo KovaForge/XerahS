@@ -142,6 +142,40 @@ namespace XerahS.Platform.MacOS
 
         public XerahS.Platform.Abstractions.WindowInfo[] GetAllWindows()
         {
+            // XIP0078 P5: native CGWindowList enumeration returns every on-screen window in a few
+            // milliseconds with no Automation prompt, instead of the frontmost-only osascript query.
+            // Handles carry the CGWindowID so window capture can go through the native SCK bridge.
+            try
+            {
+                var windows = Native.QuartzWindowList.GetApplicationWindows();
+                if (windows.Count > 0)
+                {
+                    var result = new XerahS.Platform.Abstractions.WindowInfo[windows.Count];
+                    for (int i = 0; i < windows.Count; i++)
+                    {
+                        var window = windows[i];
+                        result[i] = new XerahS.Platform.Abstractions.WindowInfo
+                        {
+                            Handle = new IntPtr(window.WindowNumber),
+                            // Titles are empty without Screen Recording permission; degrade to the app name.
+                            Title = string.IsNullOrEmpty(window.Title) ? window.OwnerName : window.Title,
+                            ClassName = window.OwnerName,
+                            Bounds = window.Bounds,
+                            ProcessId = (uint)window.OwnerPid,
+                            IsVisible = true,
+                            IsMaximized = false,
+                            IsMinimized = false
+                        };
+                    }
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "MacOSWindowService.GetAllWindows: native enumeration failed, falling back to AppleScript");
+            }
+
             if (!TryGetFrontWindowInfo(out var windowInfo))
             {
                 return Array.Empty<XerahS.Platform.Abstractions.WindowInfo>();

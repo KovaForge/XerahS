@@ -282,17 +282,19 @@ public partial class MobileApp : Avalonia.Application
             Tag = _platformTag
         };
 
-        // Set up platform callbacks
+        // Set up platform callbacks. Android share intents always materialize
+        // content-provider URIs into cache copies (MainActivity.CopyUriToCache),
+        // so pass the same array as ownedTempFiles for queue cleanup ownership.
         OnFilesReceived = (paths) =>
         {
-            Dispatcher.UIThread.Post(() => _uploadViewModel.ProcessFiles(paths));
+            Dispatcher.UIThread.Post(() => _uploadViewModel.ProcessFiles(paths, paths));
         };
 
         // Process any files that were shared before the app was ready (e.g. launch via Share intent)
         lock (_pendingLock)
         {
             foreach (var pending in _pendingSharedPaths)
-                Dispatcher.UIThread.Post(() => _uploadViewModel.ProcessFiles(pending));
+                Dispatcher.UIThread.Post(() => _uploadViewModel.ProcessFiles(pending, pending));
             _pendingSharedPaths.Clear();
         }
 

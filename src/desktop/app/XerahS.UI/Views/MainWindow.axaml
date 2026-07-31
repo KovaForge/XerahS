@@ -136,44 +136,52 @@
                     Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                     BorderThickness="0,0,1,0">
-                <TreeView Name="NavigationTree"
-                          Margin="12"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          SelectionChanged="OnNavSelectionChanged"
-                          KeyDown="OnNavigationTreeKeyDown"
-                          AutomationProperties.Name="Main Navigation">
-                    <TreeView.ItemTemplate>
-                        <TreeDataTemplate DataType="{x:Type vm:NavigationNode}"
-                                          x:DataType="vm:NavigationNode"
-                                          ItemsSource="{Binding Children}">
-                            <Border Background="Transparent"
-                                    CornerRadius="8"
-                                    Padding="10,8"
-                                    Tapped="OnNavigationNodeTapped"
-                                    AutomationProperties.Name="{Binding Text}">
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="12">
-                                    <TextBlock Text="{Binding Glyph}"
-                                               FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
-                                               FontSize="18"
-                                               FontWeight="Normal"
-                                               VerticalAlignment="Center"
-                                               IsVisible="{Binding HasGlyph}" />
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Text}"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </Border>
-                        </TreeDataTemplate>
-                    </TreeView.ItemTemplate>
-                    <TreeView.Styles>
-                        <Style Selector="TreeView#NavigationTree TreeViewItem">
-                            <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
-                        </Style>
-                    </TreeView.Styles>
-                </TreeView>
+                <Grid Margin="12" RowDefinitions="Auto,*" RowSpacing="8">
+                    <TextBox Name="NavigationSearchBox"
+                             Watermark="Search"
+                             MinHeight="32"
+                             TextChanged="OnNavigationSearchTextChanged"
+                             AutomationProperties.Name="Navigation Search"/>
+                    <TreeView Name="NavigationTree"
+                              Grid.Row="1"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              SelectionChanged="OnNavSelectionChanged"
+                              KeyDown="OnNavigationTreeKeyDown"
+                              AutomationProperties.Name="Main Navigation">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate DataType="{x:Type vm:NavigationNode}"
+                                              x:DataType="vm:NavigationNode"
+                                              ItemsSource="{Binding Children}">
+                                <Border Background="Transparent"
+                                        CornerRadius="8"
+                                        Padding="10,8"
+                                        Tapped="OnNavigationNodeTapped"
+                                        AutomationProperties.Name="{Binding Text}">
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="12">
+                                        <TextBlock Text="{Binding Glyph}"
+                                                   FontFamily="{DynamicResource ShareX.FontFamily.Icon}"
+                                                   FontSize="18"
+                                                   FontWeight="Normal"
+                                                   VerticalAlignment="Center"
+                                                   IsVisible="{Binding HasGlyph}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Text}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Border>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                        <TreeView.Styles>
+                            <Style Selector="TreeView#NavigationTree TreeViewItem">
+                                <Setter Property="IsVisible" Value="{ReflectionBinding IsVisible}" />
+                                <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.Styles>
+                    </TreeView>
+                </Grid>
             </Border>
 
             <!-- Content Area (column 1) — bounded by * column, ensures ScrollViewers work -->

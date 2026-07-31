@@ -45,10 +45,15 @@ namespace XerahS.Common
             return port;
         }
 
-        public static async System.Threading.Tasks.Task<string> DownloadStringAsync(string url)
+        public static Task<string> DownloadStringAsync(string url)
+        {
+            return DownloadStringAsync(url, CancellationToken.None);
+        }
+
+        public static async Task<string> DownloadStringAsync(string url, CancellationToken cancellationToken)
         {
             HttpClient client = HttpClientFactory.Create();
-            return await client.GetStringAsync(url);
+            return await client.GetStringAsync(url, cancellationToken);
         }
     }
 }

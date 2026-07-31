@@ -1,6 +1,6 @@
 # XIP0079 Linux Improvement Plan
 
-**Status**: Proposed  
+**Status**: Implemented (P1–P5 landed 2026-07-07 in v0.23.129; XIP0044 hotkey verification matrix and distro smoke tests remain manual)  
 **Priority**: High  
 **Area**: Linux | Platform | Hotkeys | Notifications | Clipboard | Packaging  
 **Targets**: Ubuntu 24.04+, Fedora (current), Arch — X11 and Wayland (GNOME, KDE Plasma, wlroots)  
@@ -288,3 +288,17 @@ gdbus monitor --session --dest org.freedesktop.portal.Desktop | grep ActionInvok
 **Linux support level today: 6.5/10** (strong architecture and capture stack; unverified hotkey fixes, silent degradation paths, doc gaps).
 
 **Linux support level after P1–P5: 8/10.** The remaining 2 points are structurally external: Avalonia's missing Wayland backend, GNOME tray policy, portal backend UI variance, and the long tail of compositor-specific behavior that only sustained field testing retires.
+
+---
+
+## 9. Implementation notes (2026-07-07, v0.23.129)
+
+| Item | Landed | Notes |
+|---|---|---|
+| P1 Hotkey diagnostics | Yes | `HotkeyDiagnostics` on `IHotkeyService`; settings banner; `ConfigureShortcuts` gated on GlobalShortcuts portal v2+ via `PortalInterfaceChecker.TryGetInterfaceVersion`. Manual XIP0044 matrix not yet recorded. |
+| P2 Notification actions | Yes | `PortalNotificationService` `buttons` + `ActionInvoked`; `notify-send --action --wait` async fallback; caller no longer blocks up to 2s. |
+| P3 Clipboard resilience | Yes | `LinuxClipboardCapabilities` probe; settings + diagnostic warnings; `.deb`/`rpm` `Recommends: wl-clipboard, xclip`; `PersistClipboardAfterExit` + `LinuxClipboardExitPersistence` via `wl-copy` owner. |
+| P4 Mixed-DPI normalizer | Yes | Cumulative row/column physical origins; `XERAHS_LEGACY_MONITOR_NORMALIZER=1` rollback; unit tests for vertical + 2×2 grid. |
+| P5 Docs parity | Yes | `developers/linux/INSTALL.md` rewritten (Ubuntu/Fedora/Arch); `KNOWN_ISSUES.md` Linux section updated; distro smoke matrix table added (manual runs pending). |
+| P7 zxdg_exporter_v2 | Deferred | Per §4 — no Avalonia Wayland backend yet. |
+| P8 AppImage | Deferred | Per §4 — Flatpak preferred. |

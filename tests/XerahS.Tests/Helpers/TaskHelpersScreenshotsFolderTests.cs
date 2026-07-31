@@ -33,6 +33,7 @@ public class TaskHelpersScreenshotsFolderTests
 {
     private bool _originalUseCustomScreenshotsPath;
     private string _originalCustomScreenshotsPath = string.Empty;
+    private bool _originalUseSaveImageSubFolderPattern;
     private string _originalSaveImageSubFolderPattern = string.Empty;
     private string _originalSaveImageSubFolderPatternWindow = string.Empty;
 
@@ -42,6 +43,7 @@ public class TaskHelpersScreenshotsFolderTests
         var settings = SettingsManager.Settings;
         _originalUseCustomScreenshotsPath = settings.UseCustomScreenshotsPath;
         _originalCustomScreenshotsPath = settings.CustomScreenshotsPath;
+        _originalUseSaveImageSubFolderPattern = settings.UseSaveImageSubFolderPattern;
         _originalSaveImageSubFolderPattern = settings.SaveImageSubFolderPattern;
         _originalSaveImageSubFolderPatternWindow = settings.SaveImageSubFolderPatternWindow;
     }
@@ -52,6 +54,7 @@ public class TaskHelpersScreenshotsFolderTests
         var settings = SettingsManager.Settings;
         settings.UseCustomScreenshotsPath = _originalUseCustomScreenshotsPath;
         settings.CustomScreenshotsPath = _originalCustomScreenshotsPath;
+        settings.UseSaveImageSubFolderPattern = _originalUseSaveImageSubFolderPattern;
         settings.SaveImageSubFolderPattern = _originalSaveImageSubFolderPattern;
         settings.SaveImageSubFolderPatternWindow = _originalSaveImageSubFolderPatternWindow;
     }
@@ -62,6 +65,7 @@ public class TaskHelpersScreenshotsFolderTests
         var settings = SettingsManager.Settings;
         settings.UseCustomScreenshotsPath = true;
         settings.CustomScreenshotsPath = Path.Combine("%TEMP%", "XerahS-CustomShots");
+        settings.UseSaveImageSubFolderPattern = false;
         settings.SaveImageSubFolderPattern = string.Empty;
         settings.SaveImageSubFolderPatternWindow = string.Empty;
 
@@ -77,12 +81,28 @@ public class TaskHelpersScreenshotsFolderTests
         var settings = SettingsManager.Settings;
         settings.UseCustomScreenshotsPath = true;
         settings.CustomScreenshotsPath = Path.Combine("%TEMP%", "XerahS-CustomShots");
+        settings.UseSaveImageSubFolderPattern = true;
         settings.SaveImageSubFolderPattern = "captures";
         settings.SaveImageSubFolderPatternWindow = string.Empty;
 
         string folder = TaskHelpers.GetScreenshotsFolder();
 
         string expected = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "XerahS-CustomShots", "captures"));
+        Assert.That(folder, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void GetScreenshotsFolder_IgnoresPattern_WhenSubfolderDisabled()
+    {
+        var settings = SettingsManager.Settings;
+        settings.UseCustomScreenshotsPath = false;
+        settings.CustomScreenshotsPath = string.Empty;
+        settings.UseSaveImageSubFolderPattern = false;
+        settings.SaveImageSubFolderPattern = "%y-%mo";
+
+        string folder = TaskHelpers.GetScreenshotsFolder();
+        string expected = FileHelpers.GetAbsolutePath(XerahS.Common.PathsManager.ScreenshotsFolder);
+
         Assert.That(folder, Is.EqualTo(expected));
     }
 

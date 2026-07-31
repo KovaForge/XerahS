@@ -1,6 +1,6 @@
 ---
 name: publish-release
-description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional only if docs/CHANGELOG.md is intentionally absent), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then set pre-release by default (use explicit opt-out for stable). On failures, inspect logs, fix root cause, and retry with the next patch release."
+description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional only if docs/CHANGELOG.md is intentionally absent), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then apply repo release-channel policy (ShareX/XerahS = pre-release; KovaForge/XerahS = full latest release). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -12,16 +12,25 @@ Use this skill to run release steps in strict order:
 - Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional only if `docs/CHANGELOG.md` is intentionally absent)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
-- Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
+- Step 5: If failure occurs, inspect logs, fix the root cause in code or workflow first (do not skip the fix and retry the same version), commit and push the fix, then retry with the next patch version. If the failure is in the `build-flatpak` job, verify all plugin DLLs are present in the staging directory; the workflow now includes a plugin re-validation step but a code fix in `package-linux.sh` may also be needed. Repeat until workflow succeeds.
 - Step 6: Ensure standard release notes block is present on the GitHub release
-- Step 7: Set the successful release as pre-release by default (opt out only when intentionally publishing stable)
-- Optional Step 8: Generate a Flathub source-build manifest candidate from the successful pre-release tag; do not open or automate a Flathub PR
-- The GitHub Actions release upload steps must also set `prerelease: true` and `make_latest: false`; do not rely only on the post-workflow `gh release edit --prerelease` guard.
+- Step 7: Apply repo release-channel policy (see below)
+- Optional Step 8: Generate a Flathub source-build manifest candidate from the successful release tag; do not open or automate a Flathub PR
+- GitHub Actions release upload steps must match the same repo policy (`prerelease` / `make_latest` by `github.repository`); do not rely only on the post-workflow `gh release edit` guard.
 
-Repository target behavior:
-- The automation is repository-agnostic. Git pushes use the local `origin` remote.
-- GitHub CLI operations (`gh run`, `gh release`) resolve the target from the GitHub `origin` remote by default, for example `ShareX/XerahS` or `KovaForge/XerahS`.
+Repository target behavior (dual-repo):
+- Supported release targets: `https://github.com/KovaForge/XerahS` and `https://github.com/ShareX/XerahS`.
+- Git pushes use `--push-remote` (default: `origin`). For ShareX publishes from a KovaForge fork checkout, use `--push-remote upstream --repo ShareX/XerahS`.
+- GitHub CLI operations (`gh run`, `gh release`) resolve from the `origin` remote URL by default.
+- Origin may be a standard `github.com` URL or a KovaForge per-person SSH alias such as `git@github-vladislava:KovaForge/XerahS.git`.
+- Do **not** rely on bare `gh repo view` for target inference on fork checkouts: it often resolves the upstream parent (`ShareX/XerahS`) instead of origin (`KovaForge/XerahS`).
 - Use `--repo owner/name` to override the inferred target when needed.
+- After a successful workflow, the skill verifies the required asset set on the chosen repo (Windows/macOS/Linux/Flatpak + Chocolatey nupkg).
+
+Release channel policy (default):
+- `ShareX/XerahS` -> always **Pre-release** (`prerelease: true`, not latest)
+- `KovaForge/XerahS` -> **Release** / latest (`prerelease: false`, `make_latest: true`)
+- Override with `--set-prerelease` or `--no-prerelease` when intentionally forcing the opposite channel.
 
 Step 3 performs:
 - Pre-check: Run `dotnet build src/desktop/XerahS.sln`; do not proceed if build fails.
@@ -66,22 +75,34 @@ From repository root:
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh
 ```
 
-Automated monitor + default pre-release (recommended):
+Automated monitor with repo-default channel (recommended):
 
 ```bash
-./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --bump z --yes
 ```
 
-Explicit repository target example:
+KovaForge fork example (publishes as full Release / latest):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --git-wrapper git-vladislava --push-remote vladislava --assume-changelog-done --monitor --bump z --yes
+```
+
+ShareX upstream example from a KovaForge checkout (publishes as Pre-release):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo ShareX/XerahS --push-remote upstream --assume-changelog-done --monitor --bump z --yes
+```
+
+Force pre-release on KovaForge (override):
 
 ```bash
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --assume-changelog-done --monitor --set-prerelease --bump z --yes
 ```
 
-Stable release opt-out example:
+Force stable/latest on ShareX (override; uncommon):
 
 ```bash
-./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --no-prerelease --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo ShareX/XerahS --push-remote upstream --assume-changelog-done --monitor --no-prerelease --bump z --yes
 ```
 
 Manual monitor (fallback, PowerShell example):
@@ -106,7 +127,7 @@ Patch bump with built-in 2-minute monitoring:
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --monitor-interval 120 --bump z --yes
 ```
 
-Patch bump, pre-release, and generate Flathub source-build candidate:
+Patch bump, pre-release forced, and generate Flathub source-build candidate:
 
 ```bash
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --prepare-flathub-source --bump z --yes
@@ -173,14 +194,15 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Write body: `gh release edit v<new-version> --notes-file <file>`
    - Verify all **8 Windows assets** are attached (`-win-x64.exe`, `-win-x64.msi`, `-win-arm64.exe`, `-win-arm64.msi`) plus macOS and Linux assets.
 
-7. Step 7 - Set pre-release (default behavior)
-   - `gh release edit v<new-version> --prerelease`
-   - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
-   - Stable opt-out: skip this step only when intentionally publishing stable.
-   - Workflow guard: `.github/workflows/release-build-all-platforms.yml` must create/upload releases with `prerelease: true` and `make_latest: false` so the release is never briefly published as latest before this post-run verification step.
+7. Step 7 - Apply release channel policy
+   - `ShareX/XerahS`: `gh release edit v<new-version> --prerelease --latest=false`
+   - `KovaForge/XerahS`: `gh release edit v<new-version> --prerelease=false --latest`
+   - Verify: `gh release view v<new-version> --json isPrerelease,isLatest,url,assets`
+   - Overrides: `--set-prerelease` / `--no-prerelease`
+   - Workflow guard: `.github/workflows/release-build-all-platforms.yml` must create/upload with the same repo policy (`prerelease: github.repository != 'KovaForge/XerahS'`, `make_latest: github.repository == 'KovaForge/XerahS'`).
 
 8. Optional Flathub source-build preparation for manual submission
-   - Keep the GitHub release as a pre-release while this validation is ongoing.
+   - Prefer keeping ShareX validation releases as pre-release while Flathub work is ongoing.
    - Run `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag v<new-version> --repo owner/name --lint`.
    - Confirm the generated manifest uses `type: git` sources pinned by tag/commit for the main repository and submodules.
    - Generate and add offline dependency sources for NuGet/.NET packages and `ShareX.VideoEditor/frontend` npm packages before attempting a network-disabled Flathub build.
@@ -205,7 +227,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 6. If failed, inspect logs, fix root cause, and retry with next patch version.
 7. Continue retry loop until release workflow is successful.
 8. Ensure standard release notes content is present on the successful release.
-9. Mark successful release as pre-release by default; only skip when explicitly publishing stable.
+9. Apply release-channel policy for the target repo: ShareX/XerahS = pre-release; KovaForge/XerahS = full latest release.
 10. When preparing for Flathub, generate the source-build manifest candidate and treat missing offline dependency sources as release-blocking for Flathub submission.
 
 ## Guardrails
@@ -218,8 +240,8 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 - Always monitor workflow after tag push; do not stop at tag creation.
 - Always inspect logs on failure and fix root cause before retry.
 - Always ensure the standard release notes block exists on the successful release.
-- Always keep Flathub validation releases as pre-release until source-build, dependency-source, lint, repo-lint, and smoke-test gates pass.
-- Always keep the GitHub Actions release creation step aligned with that policy by setting `prerelease: true` and `make_latest: false` in `softprops/action-gh-release`.
+- Always keep Flathub validation on ShareX/XerahS as pre-release until source-build, dependency-source, lint, repo-lint, and smoke-test gates pass.
+- Always keep the GitHub Actions release creation step aligned with repo channel policy: ShareX/XerahS uses `prerelease: true` / `make_latest: false`; KovaForge/XerahS uses `prerelease: false` / `make_latest: true`.
 - Always use a new patch version for retries requiring new commits/tags.
 - Abort on detached HEAD.
 - Abort if version format is not `X.Y.Z`.
@@ -236,11 +258,11 @@ When executing this skill:
 4. Monitor tag workflow every 120 seconds until completion.
 5. On failure, inspect logs, fix issue, and retry with next patch version.
 6. Ensure release notes include changelog link + macOS troubleshooting block.
-7. If requested, set the final successful release to pre-release.
+7. If requested explicitly, override channel with `--set-prerelease` or `--no-prerelease`; otherwise apply repo defaults.
 8. If preparing for Flathub, run the source-build helper and report which of the source/dependency gates passed or failed.
-9. Report final version, commit hash, branch push status, tag push status, run URL, and pre-release status.
+9. Report final version, commit hash, branch push status, tag push status, run URL, repo target, and release channel (pre-release vs latest).
 
-Default pre-release policy: unless explicitly instructed otherwise, keep `--set-prerelease` enabled. Use `--no-prerelease` only for intentional stable publishes.
+Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS` = full latest release. Use `--set-prerelease` / `--no-prerelease` only for intentional overrides.
 
 ## Notes (lessons learnt)
 
@@ -268,4 +290,8 @@ Default pre-release policy: unless explicitly instructed otherwise, keep `--set-
 - Flatpak CI bundling should export `flatpak-builder` output to an explicit local repo with `--repo=...`; validate files directly or use supported Flatpak commands, not `flatpak build-info`.
 - Chocolatey release metadata lookup must use the active GitHub repository (`GITHUB_REPOSITORY`, `origin`, or explicit `-Repository owner/name`), not a hardcoded upstream owner.
 - Chocolatey install scripts must also generate download URLs from the active release repository; updating only nuspec metadata is not enough.
+- Dual-repo remote resolution must parse `git@github-<alias>:Owner/Repo.git`; bare `gh repo view` on a KovaForge fork checkout often returns `ShareX/XerahS` and must not be used for release targeting.
+- After XIP0078 ad-hoc signing was added, macos-15 CI can fail when codesign hard-fails on unsigned nested managed DLLs; ad-hoc signing must use `--deep` and must not fail the release matrix for interim unsigned seals.
+- Always verify the full required asset list on the chosen repo after workflow success; an empty GitHub release with zero assets is a failed publish even if a tag/release shell exists.
+- Release channel is repo-scoped: never publish ShareX/XerahS as latest by default; never leave KovaForge/XerahS as pre-release by default after a successful publish-release run.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.

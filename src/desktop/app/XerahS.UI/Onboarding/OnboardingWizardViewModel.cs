@@ -251,7 +251,8 @@ public partial class OnboardingWizardViewModel : ViewModelBase
             {
                 SettingsManager.Settings.CustomScreenshotsPath = state.ScreenshotsFolder;
                 SettingsManager.Settings.UseCustomScreenshotsPath = true;
-                SettingsManager.Settings.SaveImageSubFolderPattern = state.CreateDateSubfolders ? "%y-%mo-%d" : string.Empty;
+                SettingsManager.Settings.UseSaveImageSubFolderPattern = state.CreateDateSubfolders;
+                SettingsManager.Settings.SaveImageSubFolderPattern = state.CreateDateSubfolders ? "%y-%mo" : string.Empty;
                 DebugHelper.WriteLine($"[OnboardingWizard] Setting screenshots folder: {state.ScreenshotsFolder}");
             }
 

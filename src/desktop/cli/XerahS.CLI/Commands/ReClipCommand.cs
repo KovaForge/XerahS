@@ -111,7 +111,12 @@ public static class ReClipCommand
     {
         try
         {
-            string fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(folder));
+            if (!TryValidateWatchFolder(folder, out string fullPath, out string? error))
+            {
+                Console.Error.WriteLine($"Failed to set ReClip watch folder: {error}");
+                return 1;
+            }
+
             Directory.CreateDirectory(fullPath);
 
             var config = ReClipIntegrationConfig.Load(ConfigFilePath);
@@ -135,6 +140,77 @@ public static class ReClipCommand
             Console.Error.WriteLine($"Failed to set ReClip watch folder: {ex.Message}");
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Validates and canonicalizes a ReClip watch-folder path.
+    /// Rejects empty/whitespace, embedded nulls, invalid path characters,
+    /// unresolved ".." segments in the input, and filesystem roots.
+    /// </summary>
+    internal static bool TryValidateWatchFolder(string? folder, out string fullPath, out string? error)
+    {
+        fullPath = string.Empty;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            error = "Watch folder path is required.";
+            return false;
+        }
+
+        if (folder.Contains('\0'))
+        {
+            error = "Watch folder path contains an invalid null character.";
+            return false;
+        }
+
+        char[] invalidChars = Path.GetInvalidPathChars();
+        if (folder.IndexOfAny(invalidChars) >= 0)
+        {
+            error = "Watch folder path contains invalid characters.";
+            return false;
+        }
+
+        // Reject explicit ".." segments in the raw input before canonicalization.
+        // Path.GetFullPath collapses ".." which would otherwise hide traversal intent
+        // when the CLI is invoked with a relative handoff path.
+        string[] segments = folder.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        foreach (string segment in segments)
+        {
+            if (segment == "..")
+            {
+                error = "Watch folder path must not contain parent-directory segments ('..').";
+                return false;
+            }
+        }
+
+        string expanded;
+        try
+        {
+            expanded = Environment.ExpandEnvironmentVariables(folder);
+            fullPath = Path.GetFullPath(expanded);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            error = $"Watch folder path is invalid: {ex.Message}";
+            fullPath = string.Empty;
+            return false;
+        }
+
+        // Reject filesystem roots (/, C:\, etc.) — watch folders must be concrete directories.
+        string? root = Path.GetPathRoot(fullPath);
+        if (!string.IsNullOrEmpty(root) &&
+            string.Equals(
+                fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            error = "Watch folder path must not be a filesystem root.";
+            fullPath = string.Empty;
+            return false;
+        }
+
+        return true;
     }
 
     private static ReClipStatus ToStatus(ReClipIntegrationConfig config)

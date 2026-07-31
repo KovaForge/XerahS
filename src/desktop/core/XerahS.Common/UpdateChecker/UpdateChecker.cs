@@ -74,7 +74,7 @@ namespace XerahS.Common
             if (CurrentVersion == null)
             {
                 // For now, use assembly version as fallback
-                CurrentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                CurrentVersion = (System.Reflection.Assembly.GetEntryAssembly() ?? System.Reflection.Assembly.GetExecutingAssembly()).GetName().Version;
             }
 
             if (CurrentVersion != null && LatestVersion != null && !string.IsNullOrEmpty(DownloadURL) &&

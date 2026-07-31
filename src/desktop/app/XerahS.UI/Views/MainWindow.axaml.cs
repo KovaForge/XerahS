@@ -36,6 +36,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using SkiaSharp;
 using XerahS.Bootstrap;
@@ -48,6 +49,7 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI.Views.Dialogs;
+using XerahS.UI.Services.SettingsSearch;
 
 namespace XerahS.UI.Views
 {
@@ -60,6 +62,7 @@ namespace XerahS.UI.Views
         private readonly IDesktopTaskManager? _taskManager;
         private EditorView? _editorView = null;
         private DestinationSettingsView? _destinationSettingsView = null;
+        private ApplicationSettingsView? _applicationSettingsView = null;
         private MainViewModel? _mainViewModel;
         private bool _isOpenImageInProgress;
         private bool _onboardingShown;
@@ -164,6 +167,7 @@ namespace XerahS.UI.Views
             if (e.Property == ContentControl.ContentProperty)
             {
                 UpdateShellModalVisibility();
+                QueueNavigationFilterUpdate();
             }
         }
 
@@ -481,8 +485,8 @@ namespace XerahS.UI.Views
                 };
             }
 
-            // Pre-warm Destination Settings so the first navigation does not pay init cost.
-            Dispatcher.UIThread.Post(() => _ = PreWarmDestinationSettingsAsync(), DispatcherPriority.Background);
+            // Pre-warm settings pages so first open and settings search indexing stay off the hot path.
+            Dispatcher.UIThread.Post(() => _ = PreWarmSettingsSearchIndexAsync(), DispatcherPriority.Background);
 
             // Show onboarding wizard once on first run — guard prevents double-fire on repeated OnWindowOpened calls.
             if (SettingsManager.Settings.IsFirstTimeRun && !_onboardingShown)
@@ -508,21 +512,33 @@ namespace XerahS.UI.Views
             }
         }
 
-        private async Task PreWarmDestinationSettingsAsync()
+        private async Task PreWarmSettingsSearchIndexAsync()
         {
             try
             {
-                _destinationSettingsView ??= CreateDestinationSettingsView();
+                _applicationSettingsView ??= CreateApplicationSettingsView();
+                SettingsSearchService.Instance.MergeApplicationIndex(_applicationSettingsView);
 
-                if (_destinationSettingsView.DataContext is DestinationSettingsViewModel vm)
+                _destinationSettingsView ??= CreateDestinationSettingsView();
+                if (_destinationSettingsView.DataContext is DestinationSettingsViewModel destinationVm)
                 {
-                    await vm.Initialize();
+                    await destinationVm.Initialize();
+                    var categories = destinationVm.Categories.Select(category =>
+                        (category.Name, category.Instances.Select(instance => instance.DisplayName)));
+                    SettingsSearchService.Instance.MergeDestinationIndex(_destinationSettingsView, categories);
                 }
+
+                EnrichNavigationSearchTextFromSettingsIndex();
             }
             catch (Exception ex)
             {
-                XerahS.Common.DebugHelper.WriteException(ex, "Failed to pre-warm Destination Settings");
+                XerahS.Common.DebugHelper.WriteException(ex, "Failed to pre-warm settings search index");
             }
+        }
+
+        private async Task PreWarmDestinationSettingsAsync()
+        {
+            await PreWarmSettingsSearchIndexAsync();
         }
 
         protected override void OnClosing(WindowClosingEventArgs e)

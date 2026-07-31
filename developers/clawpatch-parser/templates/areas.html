@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Areas · XerahS Developer Dashboard{% endblock %}
+{% block content %}
+{% if not areas %}
+  <div class="card"><p class="muted">No areas tracked in the state JSON yet.</p></div>
+{% else %}
+<table class="t areas">
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Priority</th>
+      <th>Area</th>
+      <th>Last reviewed</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in areas %}
+    <tr>
+      <td><span class="pill {{ status_color(a.status) }}">{{ a.status or '—' }}</span></td>
+      <td>{% if a.priority %}<span class="pill prio-{{ a.priority|lower }}">{{ a.priority }}</span>{% else %}—{% endif %}</td>
+      <td><strong>{{ a.area }}</strong>
+        {% if a.last_outcome %}
+          <details><summary>last outcome</summary><div class="muted small">{{ a.last_outcome }}</div></details>
+        {% endif %}
+        {% if a.follow_up %}
+          <details><summary>follow-up</summary><div class="muted small">{{ a.follow_up }}</div></details>
+        {% endif %}
+      </td>
+      <td><span class="ts">{{ a.last_reviewed or '—' }}</span></td>
+      <td>{{ a.source or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -216,12 +216,96 @@ function Categorize-Commit([string]$Subject) {
     }
 }
 
+function Test-IsNoiseCommit([string]$Subject) {
+    if ($Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
+        return $true
+    }
+
+    if ($Subject -match '(?i)^\[v[\d.]+\]\s+\[(Docs|Meta|CI)\]\s+(Bump version|Update hourly review|Record .+ in tracker|hourly|clawpatch|xerahs-review|sync tracker)') {
+        return $true
+    }
+
+    if ($Subject -match '(?i)(hourly review (tracker|state)|clawpatch (ingest|report)|tracker:\s|xerahs-review:|update hourly_review_state|queue \d+ clawpatch|\[hourly\]|pre-commit:.*state JSON|XIP\d{4} state JSON)') {
+        return $true
+    }
+
+    if ($Subject -match '(?i)^\[?v?[\d.]+\]?\s*(Bump version to|tracker:)') {
+        return $true
+    }
+
+    return $false
+}
+
+function Get-PlatformXipLabel([string]$Subject) {
+    if ($Subject -notmatch '(?i)XIP(\d{4})') {
+        return $null
+    }
+
+    $xipNum = $Matches[1]
+    $xip = "XIP$xipNum"
+    $priority = if ($Subject -match '(?i)\bP(\d+)\b') { " P$($Matches[1])" } else { '' }
+
+    $platform = switch -Regex ($Subject) {
+        '(?i)macOS|MacOS|Carbon|ScreenCaptureKit|Info\.plist|codesign|notarize|CGWindowList|sck_capture' { 'macOS'; break }
+        '(?i)Linux|Wayland|wl-copy|xclip|portal|notify-send|rpm|\.deb' { 'Linux'; break }
+        default {
+            switch ($xipNum) {
+                '0078' { 'macOS' }
+                '0079' { 'Linux' }
+                default { $null }
+            }
+        }
+    }
+
+    if ($null -eq $platform) {
+        return $null
+    }
+
+    $topic = switch -Regex ($Subject) {
+        '(?i)hotkey' { 'Hotkeys'; break }
+        '(?i)notification|notify-send' { 'Notifications'; break }
+        '(?i)clipboard|wl-copy|xclip' { 'Clipboard'; break }
+        '(?i)monitor|mixed-DPI|DPI|normalizer' { 'Mixed-DPI'; break }
+        '(?i)Info\.plist|bundle' { 'App bundle'; break }
+        '(?i)permission|Screen Recording' { 'Permissions'; break }
+        '(?i)window|CGWindowList|sck_capture' { 'Window capture'; break }
+        '(?i)ScreenCaptureKit' { 'ScreenCaptureKit'; break }
+        '(?i)codesign|notarize|DMG|package-mac' { 'Packaging'; break }
+        '(?i)INSTALL|KNOWN_ISSUES|documentation|docs' { 'Documentation'; break }
+        default { 'Platform' }
+    }
+
+    return "$platform — $topic ($xip$priority)"
+}
+
 function Get-ConsolidationBucket {
     param(
         [string]$Subject,
         [string]$Category,
         [string]$Component
     )
+
+    if ($Subject -match '(?i)(pipe-drain|pipe-fill|stderr).*(deadlock|timeout)') {
+        $platform = if ($Subject -match '(?i)Linux|Wayland|wl-|xclip|grim|slurp|gsettings|xdotool|xrandr|PulseAudio') { 'Linux' }
+                    elseif ($Subject -match '(?i)macOS|MacOS|osascript|pbpaste|pbcopy') { 'macOS' }
+                    else { $Component }
+        return @{
+            GroupKey = "$Category|$platform|__consolidate_pipe_drain__"
+            Summary  = "$platform service helpers: drain stderr and bound subprocess waits to prevent pipe-fill deadlocks"
+            ComponentOverride = $platform
+        }
+    }
+
+    $xipLabel = Get-PlatformXipLabel -Subject $Subject
+    if ($null -ne $xipLabel) {
+        $cleanDesc = $Subject -replace '^\[v\d+\.\d+\.\d+\]\s+\[[^\]]+\]\s+', ''
+        $cleanDesc = $cleanDesc -replace '(?i)^XIP\d{4}\s+P\d+:\s*', ''
+        return @{
+            GroupKey = "$Category|$xipLabel|__xip_platform__"
+            Summary  = $cleanDesc.Trim()
+            ComponentOverride = $xipLabel
+        }
+    }
 
     if ($Subject -match '(?i)ShareX\.ImageEditor') {
         return @{
@@ -231,7 +315,7 @@ function Get-ConsolidationBucket {
     }
 
     if ($Category -eq 'Documentation') {
-        if ($Subject -match '(?i)(Add|Update)\s+2026-\d{2}-\d{2}.*blog') {
+        if ($Subject -match '(?i)(Add|Update|Refresh)\s+2026-\d{2}-\d{2}.*blog') {
             return @{
                 GroupKey = "Documentation|__blog_series__|__consolidate_blog_drafts__"
                 Summary  = "Blog drafts (2026 series, add/update)"
@@ -306,15 +390,69 @@ function Get-CommitRows([string]$FromTag, [bool]$IncludeMerges) {
     return $rows
 }
 
+function Merge-EntriesByComponent {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Collections.IEnumerable]$Entries
+    )
+
+    $merged = @{}
+    foreach ($entry in $Entries) {
+        $component = $entry.Component
+        if (-not $merged.ContainsKey($component)) {
+            $merged[$component] = [pscustomobject]@{
+                Category = $entry.Category
+                Component = $component
+                Descriptions = New-Object System.Collections.Generic.List[string]
+                Hashes = New-Object System.Collections.Generic.List[string]
+            }
+        }
+
+        $desc = $entry.Description.Trim()
+        if (-not [string]::IsNullOrWhiteSpace($desc) -and -not $merged[$component].Descriptions.Contains($desc)) {
+            $merged[$component].Descriptions.Add($desc)
+        }
+
+        foreach ($hash in $entry.Hashes) {
+            if (-not $merged[$component].Hashes.Contains($hash)) {
+                $merged[$component].Hashes.Add($hash)
+            }
+        }
+    }
+
+    $result = @()
+    foreach ($item in $merged.Values) {
+        $text = if ($item.Descriptions.Count -le 1) {
+            $item.Descriptions[0]
+        }
+        elseif ($item.Descriptions.Count -le 3) {
+            ($item.Descriptions | Sort-Object) -join '; '
+        }
+        else {
+            (($item.Descriptions | Sort-Object | Select-Object -First 2) -join '; ') + '; and related changes'
+        }
+
+        $result += [pscustomobject]@{
+            Category = $item.Category
+            Component = $item.Component
+            Description = $text
+            Hashes = $item.Hashes
+        }
+    }
+
+    return $result
+}
+
 function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar, [bool]$EmitHashes) {
     $grouped = @{}
     foreach ($row in $CommitRows) {
-        if ($row.Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
+        if (Test-IsNoiseCommit -Subject $row.Subject) {
             continue
         }
 
         $parsed = Categorize-Commit $row.Subject
         $description = $parsed.Description
+        $component = $parsed.Component
         $key = $null
 
         if ($ConsolidateSimilar) {
@@ -322,17 +460,20 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
             if ($null -ne $bucket) {
                 $key = $bucket.GroupKey
                 $description = $bucket.Summary
+                if ($bucket.ContainsKey('ComponentOverride') -and -not [string]::IsNullOrWhiteSpace($bucket.ComponentOverride)) {
+                    $component = $bucket.ComponentOverride
+                }
             }
         }
 
         if ($null -eq $key) {
-            $key = "{0}|{1}|{2}" -f $parsed.Category, $parsed.Component, $parsed.Description
+            $key = "{0}|{1}|{2}" -f $parsed.Category, $component, $parsed.Description
         }
 
         if (-not $grouped.ContainsKey($key)) {
             $grouped[$key] = [pscustomobject]@{
                 Category = $parsed.Category
-                Component = $parsed.Component
+                Component = $component
                 Description = $description
                 Hashes = New-Object System.Collections.Generic.List[string]
             }
@@ -362,7 +503,7 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
             continue
         }
 
-        $entries = @($byCategory[$category] | Sort-Object Component, Description)
+        $entries = @(Merge-EntriesByComponent -Entries $byCategory[$category] | Sort-Object Component, Description)
         if ($entries.Count -eq 0) {
             continue
         }
@@ -386,7 +527,33 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
         $lines.Add("")
     }
 
+    $lines.Add("---")
+    $lines.Add("")
+
     return ($lines -join "`n").TrimEnd() + "`n"
+}
+
+function Ensure-ChangelogPreamble([string]$Content) {
+    if ($Content -match '(?ms)^#\s*Changelog\s*$') {
+        return $Content
+    }
+
+    $preamble = @"
+# Changelog
+
+All notable changes to XerahS will be documented in this file.
+
+The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
+
+- **MAJOR** (x): Breaking changes (0 while unreleased)
+- **MINOR** (y): New features and enhancements
+- **PATCH** (z): Bug fixes and patches
+
+---
+
+"@
+
+    return $preamble + $Content.TrimStart()
 }
 
 function Upsert-ChangelogSection([string]$Content, [string]$Version, [string]$Section) {
@@ -401,6 +568,13 @@ function Upsert-ChangelogSection([string]$Content, [string]$Version, [string]$Se
     $unreleasedMatch = [regex]::Match($Content, '(?m)^## Unreleased\s*$')
     if ($unreleasedMatch.Success) {
         $insertIndex = $unreleasedMatch.Index + $unreleasedMatch.Length
+        $insertion = "`n`n" + $Section.TrimEnd() + "`n"
+        return $Content.Insert($insertIndex, $insertion)
+    }
+
+    $preambleBreak = [regex]::Match($Content, '(?m)^---\s*$')
+    if ($preambleBreak.Success) {
+        $insertIndex = $preambleBreak.Index + $preambleBreak.Length
         $insertion = "`n`n" + $Section.TrimEnd() + "`n"
         return $Content.Insert($insertIndex, $insertion)
     }
@@ -430,6 +604,7 @@ if ($Apply) {
     }
 
     $existing = Get-Content -Path $resolvedChangelog -Raw
+    $existing = Ensure-ChangelogPreamble -Content $existing
     $updated = Upsert-ChangelogSection -Content $existing -Version $resolvedVersion -Section $section
 
     $updated = Normalize-ChangelogText -Text $updated
@@ -451,3 +626,5 @@ if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
 }
 Write-Host ""
 Write-Output $section
+Write-Host ""
+Write-Host "Rewrite pass: compress categories, merge trivial patch versions, polish platform/XIP bullets before publishing." -ForegroundColor DarkYellow

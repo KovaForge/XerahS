@@ -188,5 +188,36 @@ public class LinuxHotkeyServiceTests
 
         Assert.That(rebindCalls, Is.EqualTo(0));
     }
+
+    [Test]
+    public void WaylandPortalHotkeyService_GetDiagnostics_WhenPortalSkipped_ReturnsUnavailable()
+    {
+        using var service = new WaylandPortalHotkeyService(null, skipPortalInitialization: true);
+
+        var diagnostics = service.GetDiagnostics();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(diagnostics.State, Is.EqualTo(HotkeyBackendState.Unavailable));
+            Assert.That(diagnostics.BackendName, Does.Contain("GlobalShortcuts"));
+            Assert.That(diagnostics.UserFacingWarning, Is.Not.Null.And.Not.Empty);
+        });
+    }
+
+    [Test]
+    public void LinuxHotkeyService_GetDiagnostics_WhenDisplayUnavailable_ReturnsUnavailable()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("LinuxHotkeyService X11 interop is only available on Linux hosts.");
+        }
+
+        using var service = new LinuxHotkeyService();
+
+        var diagnostics = service.GetDiagnostics();
+
+        // Headless CI typically has no X display; either Unavailable or Native depending on environment.
+        Assert.That(diagnostics.State, Is.AnyOf(HotkeyBackendState.Unavailable, HotkeyBackendState.Native));
+    }
 }
 

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Raw state JSON · XerahS Developer Dashboard{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Raw <code>hourly_review_state.json</code></h2>
+  {% if state_error %}
+    <p class="err">{{ state_error }}</p>
+  {% endif %}
+  <pre class="raw">{{ pretty }}</pre>
+</div>
+{% endblock %}

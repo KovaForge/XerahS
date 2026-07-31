@@ -72,9 +72,7 @@ namespace XerahS.Platform.Linux
             bool hasGlobalShortcuts = usePortalServices && PortalInterfaceChecker.HasInterface("org.freedesktop.portal.GlobalShortcuts");
             bool hasInputCapture = usePortalServices && PortalInterfaceChecker.HasInterface("org.freedesktop.portal.InputCapture");
 
-            IHotkeyService hotkeyService = hasGlobalShortcuts
-                ? new WaylandPortalHotkeyService()
-                : new LinuxHotkeyService();
+            IHotkeyService hotkeyService = CreateHotkeyService(environment, hasGlobalShortcuts);
 
             IInputService inputService = hasInputCapture
                 ? new WaylandPortalInputService()
@@ -114,6 +112,71 @@ namespace XerahS.Platform.Linux
             // Initialize theme service for dark mode detection
             PlatformServices.Theme = new LinuxThemeService();
             DebugHelper.WriteLine($"Linux: Theme service initialized. Dark mode preferred: {PlatformServices.Theme.IsDarkModePreferred}");
+        }
+
+        /// <summary>
+        /// Selects the global hotkey provider for the current session.
+        ///
+        /// Preference order:
+        /// 1. Direct evdev listener (works on every Wayland compositor and X11) when at least
+        ///    one keyboard device is readable. See XIP0080.
+        /// 2. XDG GlobalShortcuts portal as a legacy fallback on Wayland sessions that expose it.
+        /// 3. X11 key grabs (<see cref="LinuxHotkeyService"/>) as the final fallback.
+        ///
+        /// The backend can be forced with the XERAHS_LINUX_HOTKEY_BACKEND environment variable
+        /// (values: evdev, portal, x11) for diagnostics and troubleshooting.
+        /// </summary>
+        private static IHotkeyService CreateHotkeyService(LinuxRuntimeEnvironment environment, bool hasGlobalShortcuts)
+        {
+            string? forced = Environment.GetEnvironmentVariable("XERAHS_LINUX_HOTKEY_BACKEND")?.Trim().ToLowerInvariant();
+
+            if (forced == "portal")
+            {
+                if (hasGlobalShortcuts)
+                {
+                    DebugHelper.WriteLine("Linux hotkeys: Forced portal backend via XERAHS_LINUX_HOTKEY_BACKEND.");
+                    return new WaylandPortalHotkeyService();
+                }
+
+                DebugHelper.WriteLine("Linux hotkeys: portal backend forced but GlobalShortcuts portal is unavailable; falling back to X11.");
+                return new LinuxHotkeyService();
+            }
+
+            if (forced == "x11")
+            {
+                DebugHelper.WriteLine("Linux hotkeys: Forced X11 backend via XERAHS_LINUX_HOTKEY_BACKEND.");
+                return new LinuxHotkeyService();
+            }
+
+            bool evdevForced = forced == "evdev";
+            bool evdevAvailable = EvdevGlobalHotkeyService.IsAvailable();
+
+            if (evdevForced || evdevAvailable)
+            {
+                if (evdevAvailable)
+                {
+                    DebugHelper.WriteLine("Linux hotkeys: Using direct evdev listener (XIP0080).");
+                    return new EvdevGlobalHotkeyService();
+                }
+
+                DebugHelper.WriteLine("Linux hotkeys: evdev backend requested but no readable keyboard devices found. " +
+                    "Grant input access (input group / udev rule) or run 'xerahs doctor --linux-input'.");
+
+                if (evdevForced)
+                {
+                    // Honor the forced choice even if currently unusable; the service self-reports failures.
+                    return new EvdevGlobalHotkeyService();
+                }
+            }
+
+            if (hasGlobalShortcuts)
+            {
+                DebugHelper.WriteLine("Linux hotkeys: evdev unavailable; using XDG GlobalShortcuts portal (legacy fallback).");
+                return new WaylandPortalHotkeyService();
+            }
+
+            DebugHelper.WriteLine("Linux hotkeys: Using X11 key grabs.");
+            return new LinuxHotkeyService();
         }
 
         private static IStartupService CreateStartupService(LinuxRuntimeEnvironment environment)

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}XerahS Developer Dashboard{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">⌘</span>
+      <span>XerahS Developer Dashboard</span>
+    </div>
+    <nav class="primary">
+      <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>Overview</a>
+      <a href="{{ url_for('candidates') }}" {% if request.endpoint == 'candidates' %}class="active"{% endif %}>Candidates <span class="badge">{{ n_candidates }}</span></a>
+      <a href="{{ url_for('areas') }}" {% if request.endpoint == 'areas' %}class="active"{% endif %}>Areas <span class="badge">{{ n_areas }}</span></a>
+      <a href="{{ url_for('runs') }}" {% if request.endpoint == 'runs' %}class="active"{% endif %}>Runs <span class="badge">{{ n_runs }}</span></a>
+      <a href="{{ url_for('reports_list') }}" {% if request.endpoint in ('reports_list','report_view') %}class="active"{% endif %}>Reports</a>
+      <a href="{{ url_for('raw') }}" {% if request.endpoint == 'raw' %}class="active"{% endif %}>Raw JSON</a>
+    </nav>
+    <div class="meta">
+      {% if state_error %}
+        <span class="err" title="{{ state_error }}">state.json error</span>
+      {% else %}
+        <span class="ts">updated {{ state.last_updated or '—' }}</span>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <span>parsed locally — no DB — clawpatch-parser v1.0.0</span>
+  </footer>
+</body>
+</html>

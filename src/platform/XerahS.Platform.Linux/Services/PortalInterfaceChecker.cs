@@ -207,6 +207,32 @@ internal static class PortalInterfaceChecker
     }
 
     /// <summary>
+    /// Reads the <c>version</c> property for a portal interface (e.g. GlobalShortcuts v2 for ConfigureShortcuts).
+    /// Returns null when the property cannot be read.
+    /// </summary>
+    public static uint? TryGetInterfaceVersion(string interfaceName)
+    {
+        if (string.IsNullOrWhiteSpace(interfaceName))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var connection = new Connection(Address.Session);
+            connection.ConnectAsync().GetAwaiter().GetResult();
+            var properties = connection.CreateProxy<IDBusProperties>(PortalBusName, PortalObjectPath);
+            object value = properties.GetAsync(interfaceName, "version").GetAwaiter().GetResult();
+            return Convert.ToUInt32(value);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"PortalInterfaceChecker: Could not read version for '{interfaceName}': {ex.GetType().Name}: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Checks whether <c>org.kde.StatusNotifierWatcher</c> is registered on the session bus.
     /// This D-Bus service is required for system tray icons (SNI protocol) to be displayed.
     /// On stock GNOME it is absent; the "AppIndicator and KStatusNotifierItem Support"
@@ -251,4 +277,10 @@ internal static class PortalInterfaceChecker
 public interface IIntrospectable : IDBusObject
 {
     Task<string> IntrospectAsync();
+}
+
+[DBusInterface("org.freedesktop.DBus.Properties")]
+public interface IDBusProperties : IDBusObject
+{
+    Task<object> GetAsync(string interfaceName, string propertyName);
 }

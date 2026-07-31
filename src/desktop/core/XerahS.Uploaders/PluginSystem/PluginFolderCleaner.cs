@@ -172,6 +172,19 @@ internal static class PluginFolderCleaner
             quarantineRoot,
             DateTime.UtcNow.ToString("yyyyMMdd_HHmmss"));
 
+        // Bundled plugin folders can live on a read-only file system (e.g. /app inside a
+        // Flatpak sandbox). Quarantining is impossible there, so skip quietly with one line
+        // instead of logging a failure per file.
+        try
+        {
+            Directory.CreateDirectory(runQuarantineDirectory);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DebugHelper.WriteLine($"[PluginCleaner] Skipping cleanup of '{pluginDirectory}' (not writable): {ex.Message}");
+            return;
+        }
+
         int quarantinedCount = 0;
         foreach (var file in filesToQuarantine)
         {

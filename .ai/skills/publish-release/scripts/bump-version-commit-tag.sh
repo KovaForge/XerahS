@@ -18,6 +18,8 @@ Options:
   --dry-run                          Print actions without changing git state
   --no-tag                           Skip tag creation/push
   --no-push                          Skip branch/tag push
+  --push-remote <name>               Git remote for branch/tag push (default: origin)
+  --git-wrapper <cmd>                Optional git identity wrapper (e.g. git-vladislava); also via XERAHS_GIT_WRAPPER
   --allow-empty                      If nothing is staged after git add -A, commit with --allow-empty
   -h, --help                         Show this help
 USAGE
@@ -27,6 +29,17 @@ require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Error: required command not found: $1" >&2
     exit 1
+  fi
+}
+
+# Prefer an explicit wrapper for commit/push identity in KovaForge checkouts.
+GIT_WRAPPER="${XERAHS_GIT_WRAPPER:-}"
+
+run_git() {
+  if [[ -n "$GIT_WRAPPER" ]]; then
+    "$GIT_WRAPPER" "$@"
+  else
+    git "$@"
   fi
 }
 
@@ -179,6 +192,7 @@ DRY_RUN=0
 NO_TAG=0
 NO_PUSH=0
 ALLOW_EMPTY=0
+PUSH_REMOTE="origin"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -218,6 +232,22 @@ while [[ $# -gt 0 ]]; do
       NO_PUSH=1
       shift
       ;;
+    --push-remote)
+      if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        echo "Error: --push-remote requires a remote name." >&2
+        exit 1
+      fi
+      PUSH_REMOTE="$2"
+      shift 2
+      ;;
+    --git-wrapper)
+      if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        echo "Error: --git-wrapper requires a command name." >&2
+        exit 1
+      fi
+      GIT_WRAPPER="$2"
+      shift 2
+      ;;
     --allow-empty)
       ALLOW_EMPTY=1
       shift
@@ -233,6 +263,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ -n "$GIT_WRAPPER" ]] && ! command -v "$GIT_WRAPPER" >/dev/null 2>&1; then
+  echo "Error: git wrapper '$GIT_WRAPPER' not found in PATH." >&2
+  exit 1
+fi
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "$repo_root" ]]; then
@@ -287,8 +322,13 @@ if git show-ref --verify --quiet "refs/tags/${tag_name}"; then
   exit 1
 fi
 
-if git ls-remote --exit-code --tags origin "refs/tags/${tag_name}" >/dev/null 2>&1; then
-  echo "Error: remote tag '$tag_name' already exists on origin." >&2
+if ! git remote get-url "$PUSH_REMOTE" >/dev/null 2>&1; then
+  echo "Error: push remote '$PUSH_REMOTE' is not configured." >&2
+  exit 1
+fi
+
+if git ls-remote --exit-code --tags "$PUSH_REMOTE" "refs/tags/${tag_name}" >/dev/null 2>&1; then
+  echo "Error: remote tag '$tag_name' already exists on $PUSH_REMOTE." >&2
   exit 1
 fi
 
@@ -307,8 +347,9 @@ if [[ $ASSUME_YES -eq 0 ]]; then
   fi
   echo "Tag        : $tag_name"
   echo "Commit msg : [v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
-  echo "Push       : $([[ $NO_PUSH -eq 0 ]] && echo yes || echo no)"
+  echo "Push       : $([[ $NO_PUSH -eq 0 ]] && echo "yes ($PUSH_REMOTE)" || echo no)"
   echo "Create tag : $([[ $NO_TAG -eq 0 ]] && echo yes || echo no)"
+  echo "Git wrapper: ${GIT_WRAPPER:-<none>}"
   echo "Sync files :"
   print_version_sync_targets
   echo ""
@@ -327,14 +368,26 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "[DRY RUN] Would keep version $new_version (no bump)"
   fi
   echo "[DRY RUN] Would run: git add -A"
-  echo "[DRY RUN] Would run: git commit -m \"[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}\""
+  if [[ -n "$GIT_WRAPPER" ]]; then
+    echo "[DRY RUN] Would run: $GIT_WRAPPER commit -m \"[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}\""
+  else
+    echo "[DRY RUN] Would run: git commit -m \"[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}\""
+  fi
   if [[ $NO_PUSH -eq 0 ]]; then
-    echo "[DRY RUN] Would run: git push origin $current_branch"
+    if [[ -n "$GIT_WRAPPER" ]]; then
+      echo "[DRY RUN] Would run: $GIT_WRAPPER push $PUSH_REMOTE $current_branch"
+    else
+      echo "[DRY RUN] Would run: git push $PUSH_REMOTE $current_branch"
+    fi
   fi
   if [[ $NO_TAG -eq 0 ]]; then
     echo "[DRY RUN] Would run: git tag -a $tag_name -m $tag_name"
     if [[ $NO_PUSH -eq 0 ]]; then
-      echo "[DRY RUN] Would run: git push origin $tag_name"
+      if [[ -n "$GIT_WRAPPER" ]]; then
+        echo "[DRY RUN] Would run: $GIT_WRAPPER push $PUSH_REMOTE $tag_name"
+      else
+        echo "[DRY RUN] Would run: git push $PUSH_REMOTE $tag_name"
+      fi
     fi
   fi
   if [[ $ALLOW_EMPTY -eq 1 ]]; then
@@ -354,24 +407,24 @@ git add -A
 
 if git diff --cached --quiet; then
   if [[ $ALLOW_EMPTY -eq 1 ]]; then
-    git commit --allow-empty -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
+    run_git commit --allow-empty -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
   else
     echo "Error: no staged changes. Nothing to commit. (Use --allow-empty for no-bump tag-only commits.)" >&2
     exit 1
   fi
 else
-  git commit -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
+  run_git commit -m "[v${new_version}] [${TYPE_TOKEN}] ${SUMMARY}"
 fi
 
 if [[ $NO_PUSH -eq 0 ]]; then
-  git push origin "$current_branch"
+  run_git push "$PUSH_REMOTE" "$current_branch"
 fi
 
 if [[ $NO_TAG -eq 0 ]]; then
   git tag -a "$tag_name" -m "$tag_name"
   if [[ $NO_PUSH -eq 0 ]]; then
-    git push origin "$tag_name"
+    run_git push "$PUSH_REMOTE" "$tag_name"
   fi
 fi
 
-echo "Done: version bumped to $new_version and synced ${#VERSION_SYNC_TARGETS[@]} version file(s)"
+echo "Done: version bumped to $new_version and synced ${#VERSION_SYNC_TARGETS[@]} version file(s) (push remote: $PUSH_REMOTE)"

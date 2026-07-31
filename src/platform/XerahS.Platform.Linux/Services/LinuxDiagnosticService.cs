@@ -111,6 +111,8 @@ namespace XerahS.Platform.Linux.Services
 
             var ffmpegProbe = ProbeCommand("ffmpeg");
             var wfRecorderProbe = ProbeCommand("wf-recorder");
+            var wlCopyProbe = ProbeCommand("wl-copy");
+            var xclipProbe = ProbeCommand("xclip");
             var slurpProbe = ProbeCommand("slurp");
             var grimProbe = ProbeCommand("grim");
             var gstLaunchProbe = ProbeCommand("gst-launch-1.0");
@@ -120,6 +122,8 @@ namespace XerahS.Platform.Linux.Services
 
             bool hasFfmpeg = ffmpegProbe.Exists;
             bool hasWfRecorder = wfRecorderProbe.Exists;
+            bool hasWlCopy = wlCopyProbe.Exists;
+            bool hasXclip = xclipProbe.Exists;
             bool hasSlurp = slurpProbe.Exists;
             bool hasGrim = grimProbe.Exists;
             bool hasGstLaunch = gstLaunchProbe.Exists;
@@ -227,12 +231,22 @@ namespace XerahS.Platform.Linux.Services
             sb.AppendLine("[COMMAND RESOLUTION]");
             sb.AppendLine($"ffmpeg: {ToStatus(hasFfmpeg)} ({ffmpegProbe.Resolution})");
             sb.AppendLine($"wf-recorder: {ToStatus(hasWfRecorder)} ({wfRecorderProbe.Resolution})");
+            sb.AppendLine($"wl-copy: {ToStatus(hasWlCopy)} ({wlCopyProbe.Resolution})");
+            sb.AppendLine($"xclip: {ToStatus(hasXclip)} ({xclipProbe.Resolution})");
             sb.AppendLine($"slurp: {ToStatus(hasSlurp)} ({slurpProbe.Resolution})");
             sb.AppendLine($"grim: {ToStatus(hasGrim)} ({grimProbe.Resolution})");
             sb.AppendLine($"gst-launch-1.0: {ToStatus(hasGstLaunch)} ({gstLaunchProbe.Resolution})");
             sb.AppendLine($"gst-inspect-1.0: {ToStatus(hasGstInspect)} ({gstInspectProbe.Resolution})");
             sb.AppendLine($"busctl: {ToStatus(hasBusctl)} ({busctlProbe.Resolution})");
             sb.AppendLine($"pw-cli: {ToStatus(hasPwCli)} ({pwCliProbe.Resolution})");
+            sb.AppendLine();
+
+            sb.AppendLine("[CLIPBOARD CLI]");
+            sb.AppendLine(LinuxClipboardCapabilities.DiagnosticSummary);
+            if (!LinuxClipboardCapabilities.CliClipboardHealthy)
+            {
+                sb.AppendLine($"Warning: {LinuxClipboardCapabilities.UserFacingWarning}");
+            }
             sb.AppendLine();
 
             sb.AppendLine("[CAPABILITIES]");
@@ -276,10 +290,14 @@ namespace XerahS.Platform.Linux.Services
                 {
                     sb.AppendLine("- Install FFmpeg with pipewire input or GStreamer pipewire plugins.");
                 }
-                if (!hasSlurp)
-                {
-                    sb.AppendLine("- Install slurp for native region selection on wlroots compositors.");
-                }
+            if (!hasSlurp)
+            {
+                sb.AppendLine("- Install slurp for native region selection on wlroots compositors.");
+            }
+            if (!LinuxClipboardCapabilities.CliClipboardHealthy)
+            {
+                sb.AppendLine($"- [CLIPBOARD] {LinuxClipboardCapabilities.UserFacingWarning}");
+            }
             }
             else if (!ffmpegX11Grab)
             {

@@ -59,9 +59,34 @@ public sealed class UploadQueueService
 
     public int EnqueueFiles(IEnumerable<string> filePaths)
     {
+        return EnqueueFiles(filePaths, ownedTempFiles: null);
+    }
+
+    /// <summary>
+    /// Enqueue file paths for upload. Paths listed in
+    /// <paramref name="ownedTempFiles"/> are best-effort deleted after the
+    /// queue finishes processing them (success or final failure). Callers that
+    /// materialize picker streams into <c>Path.GetTempPath()</c> must mark those
+    /// copies so they do not accumulate indefinitely on mobile.
+    /// </summary>
+    public int EnqueueFiles(IEnumerable<string> filePaths, IEnumerable<string>? ownedTempFiles)
+    {
         if (filePaths == null)
         {
             return 0;
+        }
+
+        HashSet<string>? owned = null;
+        if (ownedTempFiles != null)
+        {
+            owned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var path in ownedTempFiles)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    owned.Add(path);
+                }
+            }
         }
 
         var addedCount = 0;
@@ -78,7 +103,11 @@ public sealed class UploadQueueService
                 _queue.Enqueue(new UploadQueueItem
                 {
                     FilePath = filePath,
-                    EnqueuedUtc = DateTime.UtcNow
+                    EnqueuedUtc = DateTime.UtcNow,
+                    // Ownership is in-memory only: snapshots intentionally
+                    // deserialize IsOwnedTempFile as false so a restarted
+                    // process never auto-deletes a stale path.
+                    IsOwnedTempFile = owned != null && owned.Contains(filePath)
                 });
                 addedCount++;
             }
@@ -182,39 +211,74 @@ public sealed class UploadQueueService
     private static async Task<UploadQueueItemCompletedEventArgs> ProcessItemAsync(UploadQueueItem item)
     {
         var fileName = Path.GetFileName(item.FilePath);
-        if (!File.Exists(item.FilePath))
+        try
         {
-            return new UploadQueueItemCompletedEventArgs(fileName, success: false, url: null, error: "File not found");
-        }
-
-        var attempts = 0;
-        string? lastError = null;
-
-        while (attempts < MaxRetryCount)
-        {
-            attempts++;
-
-            try
+            if (!File.Exists(item.FilePath))
             {
-                using var task = CreateWorkerTask(item.FilePath);
-                await task.StartAsync().ConfigureAwait(false);
+                return new UploadQueueItemCompletedEventArgs(fileName, success: false, url: null, error: "File not found");
+            }
 
-                var url = task.Info?.Result?.URL;
-                if (!string.IsNullOrWhiteSpace(url))
+            var attempts = 0;
+            string? lastError = null;
+
+            while (attempts < MaxRetryCount)
+            {
+                attempts++;
+
+                try
                 {
-                    return new UploadQueueItemCompletedEventArgs(fileName, success: true, url: url, error: null);
-                }
+                    using var task = CreateWorkerTask(item.FilePath);
+                    await task.StartAsync().ConfigureAwait(false);
 
-                lastError = task.Error?.Message ?? task.Info?.Result?.Response ?? "Upload failed";
+                    var url = task.Info?.Result?.URL;
+                    if (!string.IsNullOrWhiteSpace(url))
+                    {
+                        return new UploadQueueItemCompletedEventArgs(fileName, success: true, url: url, error: null);
+                    }
+
+                    lastError = task.Error?.Message ?? task.Info?.Result?.Response ?? "Upload failed";
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex.Message;
+                    DebugHelper.WriteException(ex, $"Upload queue failed for: {item.FilePath}");
+                }
             }
-            catch (Exception ex)
-            {
-                lastError = ex.Message;
-                DebugHelper.WriteException(ex, $"Upload queue failed for: {item.FilePath}");
-            }
+
+            return new UploadQueueItemCompletedEventArgs(fileName, success: false, url: null, error: lastError ?? "Upload failed");
+        }
+        finally
+        {
+            // Only delete after the queue is done with the path (success or
+            // final failure). Retries still see the file while MaxRetryCount
+            // is being exhausted.
+            TryDeleteOwnedTempFile(item);
+        }
+    }
+
+    /// <summary>
+    /// Best-effort delete of a picker-materialized temp file after the queue
+    /// finishes with it. No-op unless <see cref="UploadQueueItem.IsOwnedTempFile"/>
+    /// is set by the enqueuer.
+    /// </summary>
+    internal static void TryDeleteOwnedTempFile(UploadQueueItem item)
+    {
+        if (item == null || !item.IsOwnedTempFile || string.IsNullOrWhiteSpace(item.FilePath))
+        {
+            return;
         }
 
-        return new UploadQueueItemCompletedEventArgs(fileName, success: false, url: null, error: lastError ?? "Upload failed");
+        try
+        {
+            if (File.Exists(item.FilePath))
+            {
+                File.Delete(item.FilePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, $"[UploadQueue] Failed to delete owned temp file: {item.FilePath}");
+        }
     }
 
     private static WorkerTask CreateWorkerTask(string filePath)
@@ -344,6 +408,13 @@ public sealed class UploadQueueItem
 {
     public string FilePath { get; set; } = string.Empty;
     public DateTime EnqueuedUtc { get; set; }
+
+    /// <summary>
+    /// When true, the queue owns this path and will best-effort delete it after
+    /// processing completes. Not persisted across process restarts (snapshots
+    /// deserialize this as false) so a restart never auto-deletes a stale path.
+    /// </summary>
+    public bool IsOwnedTempFile { get; set; }
 }
 
 internal sealed class UploadQueueSnapshot

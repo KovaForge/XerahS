@@ -144,52 +144,79 @@ publish_single_plugin() {
     local publish_dir="$3"
     local arch="$4"
 
-    local plugin_dir plugin_name plugin_id plugin_output id_match
+    local plugin_dir plugin_name plugin_id plugin_output id_match assembly_name
     plugin_dir=$(dirname "$plugin_project")
     plugin_name=$(basename "$plugin_project" .csproj)
     plugin_id="$plugin_name"
+    assembly_name="$plugin_name.dll"
 
-    # Determine plugin ID from plugin.json when available.
+    # Determine plugin ID and assembly file from plugin.json when available.
     if [ -f "$plugin_dir/plugin.json" ]; then
         id_match=$(grep -o '"pluginId"[[:space:]]*:[[:space:]]*"[^"]*"' "$plugin_dir/plugin.json" | cut -d'"' -f4 || true)
         if [ -n "${id_match:-}" ]; then
             plugin_id="$id_match"
         fi
+
+        local assembly_match
+        assembly_match=$(grep -o '"assemblyFileName"[[:space:]]*:[[:space:]]*"[^"]*"' "$plugin_dir/plugin.json" | cut -d'"' -f4 || true)
+        if [ -n "${assembly_match:-}" ]; then
+            assembly_name="$assembly_match"
+        fi
     fi
 
     echo "  Publishing Plugin: $plugin_name ($plugin_id) for $arch"
     plugin_output="$plugins_dir/$plugin_id"
-    rm -rf "$plugin_output"
-    mkdir -p "$plugin_output"
 
-    dotnet_publish_serial "$plugin_project" \
-        -c Release \
-        -r "$arch" \
-        -p:OS=Linux \
-        -p:RuntimeIdentifiers="$arch" \
-        -o "$plugin_output" \
-        --no-self-contained \
-        -p:PublishSingleFile=false \
-        -p:EnableWindowsTargeting=true > /dev/null
+    # Parallel plugin publishes share intermediate outputs of referenced projects and can
+    # silently race, leaving a plugin folder without its assembly (observed with xargs -P > 1).
+    # Validate the published assembly and retry once before failing the build.
+    local attempt
+    for attempt in 1 2; do
+        rm -rf "$plugin_output"
+        mkdir -p "$plugin_output"
 
-    # Ensure plugin.json exists for runtime discovery.
-    if [ ! -f "$plugin_output/plugin.json" ] && [ -f "$plugin_dir/plugin.json" ]; then
-        cp "$plugin_dir/plugin.json" "$plugin_output/plugin.json"
-    fi
+        dotnet_publish_serial "$plugin_project" \
+            -c Release \
+            -r "$arch" \
+            -p:OS=Linux \
+            -p:RuntimeIdentifiers="$arch" \
+            -o "$plugin_output" \
+            --no-self-contained \
+            -p:PublishSingleFile=false \
+            -p:EnableWindowsTargeting=true > /dev/null
 
-    # Cleanup: remove files that already exist in the main app directory.
-    local f fname
-    for f in "$plugin_output"/*; do
-        if [ -f "$f" ]; then
-            fname=$(basename "$f")
-            if [ -f "$publish_dir/$fname" ]; then
-                rm "$f"
+        # Ensure plugin.json exists for runtime discovery.
+        if [ ! -f "$plugin_output/plugin.json" ] && [ -f "$plugin_dir/plugin.json" ]; then
+            cp "$plugin_dir/plugin.json" "$plugin_output/plugin.json"
+        fi
+
+        # Cleanup: remove files that already exist in the main app directory.
+        local f fname
+        for f in "$plugin_output"/*; do
+            if [ -f "$f" ]; then
+                fname=$(basename "$f")
+                if [ -f "$publish_dir/$fname" ]; then
+                    rm "$f"
+                fi
             fi
+        done
+
+        if [ -f "$plugin_output/$assembly_name" ]; then
+            break
+        fi
+
+        if [ "$attempt" -eq 1 ]; then
+            echo "  Plugin assembly '$assembly_name' missing after publish; retrying: $plugin_name" >&2
         fi
     done
 
     if [ ! -f "$plugin_output/plugin.json" ]; then
         echo "Error: plugin.json missing for plugin '$plugin_id' in $plugin_output" >&2
+        return 1
+    fi
+
+    if [ ! -f "$plugin_output/$assembly_name" ]; then
+        echo "Error: plugin assembly '$assembly_name' missing for plugin '$plugin_id' in $plugin_output" >&2
         return 1
     fi
 }
@@ -276,6 +303,10 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     fi
 
     # Publish plugin projects in parallel; override with XERAHS_PLUGIN_JOBS.
+    # Note: dotnet build-server shutdown is NOT called between main app publish and plugin
+    # publish. Doing so clears the MSBuild server's in-memory asset resolution state for
+    # transitive dependencies (e.g. ShareX.ImageEditor's os-Unix/rid-linux-x64 conditional
+    # asset paths), causing plugins to fail with silent MSB4181 errors.
     PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
     if ! [[ "$PLUGIN_JOBS" =~ ^[1-9][0-9]*$ ]]; then
         echo "Error: XERAHS_PLUGIN_JOBS must be a positive integer (received '$PLUGIN_JOBS')."

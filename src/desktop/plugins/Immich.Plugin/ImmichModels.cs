@@ -57,6 +57,10 @@ public sealed class ImmichSharedLink
     public string AlbumId { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
+    public string? Password { get; set; }
+    public bool AllowDownload { get; set; }
+    public bool AllowUpload { get; set; }
+    public bool ShowMetadata { get; set; }
 }
 
 public sealed class ImmichDuplicateCheckResult

@@ -108,4 +108,30 @@ public class NotificationServiceProcessStartInfoTests
 
         Assert.That(LinuxNotificationService.WaitForSuccessfulExit(process!, 2000), Is.False);
     }
+
+    [Test]
+    public void LinuxNotificationService_CreateActionStartInfo_IncludesWaitAndActionFlags()
+    {
+        var startInfo = LinuxNotificationService.CreateActionStartInfo("Upload", "Done", "Open URL", NotificationType.Success);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(startInfo.RedirectStandardOutput, Is.True);
+            Assert.That(startInfo.ArgumentList, Does.Contain("--action"));
+            Assert.That(startInfo.ArgumentList, Does.Contain("--wait"));
+            Assert.That(startInfo.ArgumentList, Does.Contain($"{LinuxNotificationService.DefaultActionKey}=Open URL"));
+        });
+    }
+
+    [Test]
+    public void PortalNotificationService_MapPriority_MapsNotificationTypes()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(PortalNotificationService.MapPriority(NotificationType.Success), Is.EqualTo("low"));
+            Assert.That(PortalNotificationService.MapPriority(NotificationType.Warning), Is.EqualTo("normal"));
+            Assert.That(PortalNotificationService.MapPriority(NotificationType.Error), Is.EqualTo("urgent"));
+            Assert.That(PortalNotificationService.MapPriority(NotificationType.Info), Is.EqualTo("normal"));
+        });
+    }
 }

@@ -55,6 +55,12 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private string _linuxRegionSelectorLastDecisionText = string.Empty;
 
+        [ObservableProperty]
+        private bool _showLinuxClipboardCliWarning;
+
+        [ObservableProperty]
+        private string? _linuxClipboardCliWarningText;
+
         public bool IsLinuxPlatform => OperatingSystem.IsLinux();
 
         public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
@@ -98,6 +104,24 @@ namespace XerahS.UI.ViewModels
             LinuxRegionSelectorAutomaticText = $"Automatic will prefer: {GetPreferenceDescription(diagnostics.AutomaticPreference)}";
             LinuxRegionSelectorLastDecisionText = FormatLastDecision(diagnostics.LastDecision);
             OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
+        }
+
+        private void RefreshLinuxClipboardDiagnostics()
+        {
+            if (!OperatingSystem.IsLinux())
+            {
+                ShowLinuxClipboardCliWarning = false;
+                LinuxClipboardCliWarningText = null;
+                return;
+            }
+
+#if LINUX
+            LinuxClipboardCliWarningText = XerahS.Platform.Linux.Services.LinuxClipboardCapabilities.UserFacingWarning;
+            ShowLinuxClipboardCliWarning = !XerahS.Platform.Linux.Services.LinuxClipboardCapabilities.CliClipboardHealthy;
+#else
+            ShowLinuxClipboardCliWarning = false;
+            LinuxClipboardCliWarningText = null;
+#endif
         }
 
         private static string GetPreferenceDescription(LinuxInteractiveRegionSelectorPreference preference)

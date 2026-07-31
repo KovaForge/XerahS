@@ -103,4 +103,141 @@ public sealed class ImmichConfigViewModelTests
         Assert.That(viewModel.SelectedAlbum, Is.Null);
         Assert.That(viewModel.AlbumName, Is.Empty);
     }
+
+    [Test]
+    public void ToJson_manualAlbumNameEdit_clearsStaleSelectedAlbumAndPersistsTypedName()
+    {
+        // Regression: selecting album A then typing a different free-form AlbumName used to
+        // keep SelectedAlbum set. ToJson/Validate called SyncSelectedAlbumIntoFields which
+        // restored album A's name and persisted album A's ID, so auto-create never saw the
+        // newly typed name.
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "AddToAlbum": true,
+                "AutoCreateAlbum": true,
+                "AlbumId": "album-a",
+                "AlbumName": "Album A"
+            }
+            """);
+
+        Assert.That(viewModel.SelectedAlbum, Is.Not.Null);
+        Assert.That(viewModel.SelectedAlbum!.Id, Is.EqualTo("album-a"));
+
+        // Act: user edits the free-form name toward a new auto-create target.
+        viewModel.AlbumName = "Brand New Album";
+
+        Assert.That(viewModel.SelectedAlbum, Is.Null, "manual name edit must clear stale picker selection");
+
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.AlbumId, Is.Empty);
+        Assert.That(roundTripped.AlbumName, Is.EqualTo("Brand New Album"));
+    }
+
+    [Test]
+    public void ToJson_selectingAlbum_stillCopiesAlbumNameFromSelection()
+    {
+        // Guard: picker selection must still populate AlbumName (OnSelectedAlbumChanged).
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "AddToAlbum": true,
+                "AlbumId": "",
+                "AlbumName": ""
+            }
+            """);
+
+        viewModel.SelectedAlbum = new ShareX.Immich.Plugin.ViewModels.ImmichAlbumOption("abc123", "My Trip Photos", 12);
+
+        Assert.That(viewModel.AlbumName, Is.EqualTo("My Trip Photos"));
+        Assert.That(viewModel.SelectedAlbum, Is.Not.Null);
+
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.AlbumId, Is.EqualTo("abc123"));
+        Assert.That(roundTripped.AlbumName, Is.EqualTo("My Trip Photos"));
+    }
+
+    [Test]
+    public void ToJson_clampsNonPositiveExpireAfterDaysToSeven()
+    {
+        // Arrange: load a config with ExpireAfterDays = 0 (invalid; Validate would reject).
+        // LoadFromJson defensively clamps invalid values to 7 (line 402 in
+        // ImmichConfigViewModel.cs), and ToJson must mirror that clamp because
+        // ToJson runs on every PropertyChanged event in
+        // UploaderInstanceViewModel.cs#276 BEFORE Validate is consulted. Without the
+        // mirror clamp, an invalid value entered via the UI is persisted to JSON before
+        // Validate ever runs, leading to an invalid round-trip.
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "ShareMode": 2,
+                "UseShareExpiry": true,
+                "ExpireAfterDays": 0
+            }
+            """);
+
+        // Act: serialize. ToJson mirrors the load clamp and rewrites 0 -> 7.
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        // Assert: ExpireAfterDays was clamped to 7 on save (defensive symmetry with load).
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.ExpireAfterDays, Is.EqualTo(7));
+    }
+
+    [Test]
+    public void ToJson_clampsNegativeExpireAfterDaysToSeven()
+    {
+        // Same idea: negative values from the UI must also be clamped on save.
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "ShareMode": 2,
+                "UseShareExpiry": true,
+                "ExpireAfterDays": -3
+            }
+            """);
+
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.ExpireAfterDays, Is.EqualTo(7));
+    }
+
+    [Test]
+    public void ToJson_preservesValidExpireAfterDays()
+    {
+        // Sanity guard: a valid value (e.g. 30) must round-trip unchanged.
+        var viewModel = new ImmichConfigViewModel();
+        viewModel.LoadFromJson(/*lang=json*/ """
+            {
+                "ServerUrl": "https://immich.example.com",
+                "SecretKey": "00000000000000000000000000000000",
+                "ShareMode": 2,
+                "UseShareExpiry": true,
+                "ExpireAfterDays": 30
+            }
+            """);
+
+        string json = viewModel.ToJson();
+        var roundTripped = Newtonsoft.Json.JsonConvert.DeserializeObject<ShareX.Immich.Plugin.ImmichConfigModel>(json);
+
+        Assert.That(roundTripped, Is.Not.Null);
+        Assert.That(roundTripped!.ExpireAfterDays, Is.EqualTo(30));
+    }
 }
