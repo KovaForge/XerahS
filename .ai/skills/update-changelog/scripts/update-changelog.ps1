@@ -216,6 +216,7 @@ function Categorize-Commit([string]$Subject) {
     }
 }
 
+<<<<<<< Updated upstream
 function Test-IsNoiseCommit([string]$Subject) {
     if ($Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
         return $true
@@ -230,12 +231,39 @@ function Test-IsNoiseCommit([string]$Subject) {
     }
 
     if ($Subject -match '(?i)^\[?v?[\d.]+\]?\s*(Bump version to|tracker:)') {
+=======
+function Test-SkipChangelogCommit([string]$Subject) {
+    if ($Subject -match '(?i)^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
+        return $true
+    }
+
+    # Agent workflow meta — not user-facing release notes.
+    if ($Subject -match '(?i)hourly[_ ]review|hourly sweep|review tracker|review_state|next_candidates|derive-goal-from-session|Finalize hourly review tracker|sync tracker from prior|queue \d+ clawpatch|correct xerahs sweep test totals|log 20\d{2}-\d{2}-\d{2} \d{2}:\d{2} AWST') {
+        return $true
+    }
+
+    if ($Subject -match '(?i)^(Record|record|Append|update hourly review|Update hourly review|update hourly_review|Hourly sweep tracker)') {
+        return $true
+    }
+
+    if ($Subject -match '(?i)\b(Record|record|Append)\b.*\b(tracker|state|sweep|review)\b') {
+        return $true
+    }
+
+    if ($Subject -match '(?i)Require XIP batch push|editor save overwrite sweep|editor sidecar save review') {
+        return $true
+    }
+
+    # Version-only churn between prerelease bumps.
+    if ($Subject -match '(?i)^(\[v[\d.]+\]\s+\[[^\]]+\]\s+)?(Bump version|Bump app version|Start minor release for)') {
+>>>>>>> Stashed changes
         return $true
     }
 
     return $false
 }
 
+<<<<<<< Updated upstream
 function Get-PlatformXipLabel([string]$Subject) {
     if ($Subject -notmatch '(?i)XIP(\d{4})') {
         return $null
@@ -278,6 +306,8 @@ function Get-PlatformXipLabel([string]$Subject) {
     return "$platform — $topic ($xip$priority)"
 }
 
+=======
+>>>>>>> Stashed changes
 function Get-ConsolidationBucket {
     param(
         [string]$Subject,
@@ -285,6 +315,7 @@ function Get-ConsolidationBucket {
         [string]$Component
     )
 
+<<<<<<< Updated upstream
     if ($Subject -match '(?i)(pipe-drain|pipe-fill|stderr).*(deadlock|timeout)') {
         $platform = if ($Subject -match '(?i)Linux|Wayland|wl-|xclip|grim|slurp|gsettings|xdotool|xrandr|PulseAudio') { 'Linux' }
                     elseif ($Subject -match '(?i)macOS|MacOS|osascript|pbpaste|pbcopy') { 'macOS' }
@@ -308,6 +339,9 @@ function Get-ConsolidationBucket {
     }
 
     if ($Subject -match '(?i)ShareX\.ImageEditor') {
+=======
+    if ($Subject -match '(?i)ShareX\.ImageEditor|Update ImageEditor to ShareX@') {
+>>>>>>> Stashed changes
         return @{
             GroupKey = "$Category|$Component|__consolidate_sharex_imageeditor__"
             Summary  = "ShareX.ImageEditor submodule updates"
@@ -315,16 +349,38 @@ function Get-ConsolidationBucket {
     }
 
     if ($Category -eq 'Documentation') {
+<<<<<<< Updated upstream
         if ($Subject -match '(?i)(Add|Update|Refresh)\s+2026-\d{2}-\d{2}.*blog') {
+=======
+        if ($Subject -match '(?i)(Add|Update|Refresh)\s+20\d{2}-\d{2}-\d{2}.*blog') {
+>>>>>>> Stashed changes
             return @{
                 GroupKey = "Documentation|__blog_series__|__consolidate_blog_drafts__"
-                Summary  = "Blog drafts (2026 series, add/update)"
+                Summary  = "Blog drafts (2026 series)"
             }
         }
-        if ($Subject -match '(?i)\b(XIP\d+|IEIP\d+)') {
+        if ($Subject -match '(?i)RELIABILITY-PLAN') {
             return @{
-                GroupKey = "Documentation|__xip_ieip__|__consolidate_xip_ieip_docs__"
-                Summary  = "XIP/IEIP proposals and related documentation"
+                GroupKey = "Documentation|__reliability_plan__|__consolidate_reliability_plan__"
+                Summary  = "Reliability upgrade plan (observed state, failure modes, U1-U10 upgrades, simulations, sign-off)"
+            }
+        }
+        if ($Subject -match '(?i)(Linux|MacOS) Improvement Plan|KNOWN_ISSUES.*macOS|Move improvement plans into XIP') {
+            return @{
+                GroupKey = "Documentation|__platform_improvement_plans__|__consolidate_platform_plans__"
+                Summary  = "Linux and macOS improvement plans (XIP0077-XIP0079) and KNOWN_ISSUES updates"
+            }
+        }
+        if ($Subject -match '(?i)\b(XIP\d+|IEIP\d+|KFIP\d+)') {
+            return @{
+                GroupKey = "Documentation|__xip_ieip_kfip__|__consolidate_proposal_docs__"
+                Summary  = "XIP, IEIP, and KFIP proposals and related documentation"
+            }
+        }
+        if ($Subject -match '(?i)AGENTS wrapper|CONTRIBUTING\.md') {
+            return @{
+                GroupKey = "Documentation|__contributor_policy__|__consolidate_contributor_docs__"
+                Summary  = "Contributor workflow docs (AGENTS wrapper policy, CONTRIBUTING.md)"
             }
         }
         if ($Component -eq 'Linux') {
@@ -335,17 +391,149 @@ function Get-ConsolidationBucket {
         }
     }
 
-    if ($Category -eq 'Changed' -and $Subject -match '(?i)(Create|Update)\s+(IEIP|XIP)\d+|(IEIP|XIP)\d+[^\n]*\.md\b') {
+    if ($Category -eq 'Changed' -and $Subject -match '(?i)(Create|Update)\s+(IEIP|XIP|KFIP)\d+|(IEIP|XIP|KFIP)\d+[^\n]*\.md\b') {
         return @{
-            GroupKey = "Changed|__ieip_xip_md__|__consolidate_proposal_md__"
-            Summary  = "IEIP/XIP proposal documents (create/update)"
+            GroupKey = "Changed|__proposal_md__|__consolidate_proposal_md__"
+            Summary  = "Proposal documents (create/update)"
         }
+    }
+
+    if ($Category -eq 'Changed' -and $Subject -match '(?i)Update hourly review|hourly review tracker|hourly_review_state') {
+        return $null
     }
 
     if (($Category -eq 'Changed' -or $Category -eq 'Features') -and $Subject -match '(?i)multipart(\s+upload)?|S3\s+multipart') {
         return @{
             GroupKey = "$Category|$Component|__consolidate_multipart__"
             Summary  = "Multipart upload support (S3, abstractions, coverage)"
+        }
+    }
+
+    if ($Category -eq 'Testing' -or $Subject -match '(?i)guardrail test|Headless\.NUnit|coverlet\.collector|McpServer\.Tests') {
+        return @{
+            GroupKey = "Testing|Core|__consolidate_guardrail_tests__"
+            Category = "Testing"
+            Summary  = "Guardrail and test-coverage improvements (Headless.NUnit, McpServer.Tests, FFmpeg regression tests)"
+        }
+    }
+
+    if ($Category -eq 'Fixes') {
+        if ($Subject -match '(?i)openclaw|bootstrap uploader|CLI/OpenClaw|CLI plugins for agent|Bundle CLI plugins') {
+            return @{
+                GroupKey = "Fixes|CLI|__consolidate_openclaw_cli__"
+                Summary  = "OpenClaw/CLI upload pipeline: text upload, JSON validation and diagnostics, path normalization, bootstrap uploader JSON, manifest parity, plugin bundling, macOS plugin discovery, S3 keychain credentials"
+            }
+        }
+        if ($Subject -match '(?i)\bMCP\b|mcp history|IsHistorySearchResourceUri|ResolveHistoryBlobPath|CreateHistoryDetailsAsync|HandlePromptsGetAsync|RunTaskAsync task identity|thumbnail_resource|history blob|history/search query') {
+            return @{
+                GroupKey = "Fixes|MCP|__consolidate_mcp_history__"
+                Summary  = "MCP history search and resources: query parsing, URI matching, thumbnail/blob paths, stale and oversized diagnostics, task identity race, error-shape alignment"
+            }
+        }
+        if ($Subject -match '(?i)ocr.*language|onboarding.*ocr|OcrStep|OCROptions\.PreferredLanguages|ocr regional|ocr fallback|ocr selected|ocr failure status|onboarding ocr|refreshed ocr|Apply onboarding OCR') {
+            return @{
+                GroupKey = "Fixes|OCR|__consolidate_ocr_languages__"
+                Summary  = "OCR onboarding language lifecycle: regional defaults, refresh and persistence, fallback when enumeration fails, null guards, failure message normalization"
+            }
+        }
+        if ($Subject -match '(?i)command palette') {
+            return @{
+                GroupKey = "Fixes|Core|__consolidate_command_palette__"
+                Summary  = "Command palette UX: keyboard selection wrap, blank-escape close, search whitespace normalization"
+            }
+        }
+        if ($Subject -match '(?i)editor.*save|sidecar save|annotation.*Persist|HandleCopyRequested|send-to editor|editor copy|editor dirty|editor save overwrite|Fix Editor Save|Recreate embedded editor|truncate editor save') {
+            return @{
+                GroupKey = "Fixes|Editor|__consolidate_editor_save__"
+                Summary  = "Editor save and integration: sidecar/image failure handling, dirty-state preservation, overwrite truncation, bitmap disposal, annotation persist-after-continue"
+            }
+        }
+        if ($Subject -match '(?i)ffmpeg|CombineScreenshots|VideoThumbnailer|Kill FFmpeg') {
+            return @{
+                GroupKey = "Fixes|Media|__consolidate_ffmpeg__"
+                Summary  = "FFmpeg and media pipeline: path escaping, cancellation, process-tree kill, CombineScreenshots guards, probe argument quoting, workflow override wiring"
+            }
+        }
+        if ($Subject -match '(?i)FileDownloader') {
+            return @{
+                GroupKey = "Fixes|Core|__consolidate_filedownloader__"
+                Summary  = "FileDownloader reliability: cancellation tokens, chunked encoding, early-EOF hang on Content-Length mismatch"
+            }
+        }
+        if ($Subject -match '(?i)pipe-drain|pipe-fill|stderr.*drain|timeout-stretching|Drain stderr') {
+            return @{
+                GroupKey = "Fixes|Linux|__consolidate_pipe_drain__"
+                Summary  = "Linux/macOS CLI subprocess reliability: stderr drain and bounded waits to prevent pipe-fill and timeout-stretching deadlocks (clipboard, theme, capture, input, audio, Wayland tools)"
+            }
+        }
+        if ($Subject -match '(?i)WaylandCliCapture|LinuxCliToolRunner|LinuxThemeService|LinuxScreenService|LinuxInputService|PulseAudioHelper|Linux hotkey|Linux Deb Packaging|Wayland active-window') {
+            return @{
+                GroupKey = "Fixes|Linux|__consolidate_linux_platform__"
+                Summary  = "Linux platform: Wayland/X11 capture routing, hotkey mapping (Oem102), deb packaging clipboard recommends (wl-clipboard, xclip), active-window fallbacks"
+            }
+        }
+        if ($Subject -match '(?i)macos.*(Dock|upload file picker|front-window|update prompt|clipboard)|Hide macOS Dock|Unblock macOS update') {
+            return @{
+                GroupKey = "Fixes|macOS|__consolidate_macos__"
+                Summary  = "macOS: tray Dock icon hidden (#252), upload file picker fallback, front-window parsing, update prompts with manual action, clipboard path whitespace"
+            }
+        }
+        if ($Subject -match '(?i)default instance|default uploader|uploader routing|auto uploader fallback|Ignore unavailable|plugin assembly version|upload drag-drop|honor cli upload|RemoveInstance stale|GetDefaultInstance|IsDefaultInstance') {
+            return @{
+                GroupKey = "Fixes|Uploaders|__consolidate_uploader_defaults__"
+                Summary  = "Uploader default-instance lifecycle: non-mutating checks, stale cleanup, category validation, routing conflicts, auto fallback within category, drag-drop normalization"
+            }
+        }
+        if ($Subject -match '(?i)BackupFile|settings backup|SettingsBackupFailed|restore settings|await async settings|BackupFileWeekly|BackupFileZip|FileHelpers.*Backup|weekly backup|settings from backup|Prune old settings backup|Prune empty plugin') {
+            return @{
+                GroupKey = "Fixes|Settings|__consolidate_settings_backup__"
+                Summary  = "Settings and backup reliability: async saves, atomic zip replacement, weekly backup TOCTOU handling, restore from backups, empty-destination guards, user-visible failure toasts"
+            }
+        }
+        if ($Subject -match '(?i)HistoryOcrIndex|indexer enumeration|CountIndexedContents|Handle PathTooLong') {
+            return @{
+                GroupKey = "Fixes|History|__consolidate_history_indexer__"
+                Summary  = "History and indexer: OCR index cleanup on delete, enumeration resilience for long paths and I/O errors"
+            }
+        }
+        if ($Subject -match '(?i)toast|ToastWindow') {
+            return @{
+                GroupKey = "Fixes|UI|__consolidate_toast__"
+                Summary  = "Toast notifications: fade opacity, multi-monitor bounds, context-menu close resume"
+            }
+        }
+        if ($Subject -match '(?i)ScrollingCapture') {
+            return @{
+                GroupKey = "Fixes|Capture|__consolidate_scrolling_capture__"
+                Summary  = "Scrolling capture: ReferenceEquals guard when closing old capture window"
+            }
+        }
+        if ($Subject -match '(?i)mobile s3') {
+            return @{
+                GroupKey = "Fixes|Mobile|__consolidate_mobile_s3__"
+                Summary  = "Mobile S3 configuration: file-scoped config and imports"
+            }
+        }
+    }
+
+    if ($Category -eq 'Build' -and $Subject -match '(?i)Avalonia|SkiaSharp|SQLite bundle') {
+        return @{
+            GroupKey = "Build|Core|__consolidate_dependencies__"
+            Summary  = "Dependency updates: Avalonia 12.0.5, SkiaSharp 3.119.4, SQLite bundle pins"
+        }
+    }
+
+    if ($Category -eq 'Build' -and $Subject -match '(?i)macOS Info\.plist|hardened-runtime') {
+        return @{
+            GroupKey = "Build|macOS|__consolidate_macos_packaging__"
+            Summary  = "macOS Info.plist template and hardened-runtime entitlements (not yet wired into packaging)"
+        }
+    }
+
+    if ($Category -eq 'Changed' -and $Subject -match '(?i)\[Docs\]|\[CI\]|Flathub verification|release workflow complete|sync-only sweep|Fedora VS Code updater|Directory\.Packages\.props') {
+        return @{
+            GroupKey = "Changed|Core|__consolidate_release_meta__"
+            Summary  = "Release and CI maintenance: prerelease defaults, v0.22.256 workflow docs, Flathub verification, Fedora updater script, package pins"
         }
     }
 
@@ -446,7 +634,11 @@ function Merge-EntriesByComponent {
 function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar, [bool]$EmitHashes) {
     $grouped = @{}
     foreach ($row in $CommitRows) {
+<<<<<<< Updated upstream
         if (Test-IsNoiseCommit -Subject $row.Subject) {
+=======
+        if (Test-SkipChangelogCommit -Subject $row.Subject) {
+>>>>>>> Stashed changes
             continue
         }
 
@@ -460,8 +652,16 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
             if ($null -ne $bucket) {
                 $key = $bucket.GroupKey
                 $description = $bucket.Summary
+<<<<<<< Updated upstream
                 if ($bucket.ContainsKey('ComponentOverride') -and -not [string]::IsNullOrWhiteSpace($bucket.ComponentOverride)) {
                     $component = $bucket.ComponentOverride
+=======
+                if ($bucket.ContainsKey('Category') -and -not [string]::IsNullOrWhiteSpace($bucket.Category)) {
+                    $parsed.Category = $bucket.Category
+                }
+                if ($bucket.ContainsKey('Component') -and -not [string]::IsNullOrWhiteSpace($bucket.Component)) {
+                    $parsed.Component = $bucket.Component
+>>>>>>> Stashed changes
                 }
             }
         }

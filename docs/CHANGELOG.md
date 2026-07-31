@@ -8,6 +8,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
 
+<<<<<<< Updated upstream
 ---
 
 ## v0.24.8
@@ -285,7 +286,64 @@ Broad reliability, onboarding, CLI/OpenClaw, and platform-hardening release (agg
 
 ---
 ## v0.22.237
+=======
+## [v0.23.117](https://github.com/ShareX/XerahS/releases/tag/v0.23.117)
+>>>>>>> Stashed changes
 
+### Features
+- **Capture**: Command palette for quick capture actions
+- **Core**: After-capture OCR clipboard task, markdown directory index output, and Send-to post-v1 policies
+- **CLI**: Upload `--randomize` flag (default on) appends random suffix matching UI `%ra{10}` to avoid CDN caching
+
+### Fixes
+- **CLI/OpenClaw**: Text-upload pipeline with JSON validation, diagnostics, path normalization, bootstrap uploader JSON, manifest parity, plugin bundling for agent hosts, macOS plugin discovery, and S3 keychain credentials; skip redundant named-copy when `--name` is set
+- **MCP**: History search and resources: query parsing, URI matching, thumbnail/blob paths, stale and oversized diagnostics, task identity race, error-shape alignment
+- **OCR**: Onboarding language lifecycle: regional defaults, refresh and persistence, fallback when enumeration fails, assistant history stale-file guard, index schema on history delete
+- **Command palette**: Keyboard selection wrap, blank-escape close, search whitespace normalization
+- **Editor**: Save and sidecar reliability: distinct failure reporting, dirty-state preservation, overwrite truncation, bitmap disposal, annotation persist-after-continue; ImageEditor resource path normalization and effect browser spacing
+- **FFmpeg/Media**: Path escaping, cancellation tokens, process-tree kill, CombineScreenshots guards, probe quoting, workflow override wiring; FileDownloader chunked encoding and early-EOF fix
+- **Linux**: Pipe-drain deadlocks across CLI subprocesses; Wayland/X11 capture routing, Oem102 hotkey mapping, active-window fallbacks; deb packaging recommends wl-clipboard/xclip; grim/slurp null-guard
+- **macOS**: Tray Dock icon hidden (#252), upload file picker fallback, front-window parsing, update prompts with manual action, clipboard path whitespace, onboarding folder-picker crash
+- **Uploaders**: Default-instance lifecycle, routing conflicts, auto fallback within category, drag-drop normalization, stale-default cleanup logging
+- **Settings/Backup**: Async saves, atomic zip replacement, weekly backup TOCTOU handling, restore from backups, empty-destination guards, user-visible failure toasts and diagnostics
+- **History/Indexer**: OCR index cleanup on delete; enumeration resilience for long paths and I/O errors
+- **UI**: Toast fade opacity, multi-monitor bounds, context-menu close resume
+- **Capture**: Scrolling capture ReferenceEquals guard when closing old capture window
+- **Mobile**: File-scoped S3 config and imports
+- **Misc**: IsFileLocked false for missing paths, HSB alpha hash contract, SFTP invalid key reporting, silent Windows updater, GDI cursor cleanup, build guardrails against user props override, StringCollection type converter fix, EmojiCatalog search score case-insensitivity
+
+### Build
+- **Dependencies**: Avalonia 12.0.5, SkiaSharp 3.119.4, SQLite bundle pins
+- **macOS**: Info.plist template and hardened-runtime entitlements (not yet wired into packaging)
+
+### Documentation
+- **Plans**: Linux and macOS improvement plans (XIP0077-XIP0079), reliability upgrade plan (U1-U10), KNOWN_ISSUES macOS section
+- **Proposals**: XIP, IEIP, and KFIP proposals including XIP0080 (Linux evdev hotkeys) and KFIP0009-0012
+- **Contributor**: AGENTS wrapper policy and CONTRIBUTING.md
+- **Blog**: 2026 blog draft series
+- **Guides**: FFmpeg Linux/override guidance, XIP proposal status normalization
+
+### Testing
+- **Core**: Guardrail coverage (Headless.NUnit, McpServer.Tests, FFmpeg concat escape regression tests)
+
+### Changed
+- **Release/CI**: Prerelease defaults, v0.22.256 workflow and Flathub verification docs, Fedora VS Code updater script
+- **OCR UI**: Normalize platform language tags and display names in tool UI loader
+- **ImageEditor**: Submodule updates
+
+## v0.22.239
+
+### Fixes
+- **Core**: Resolve startup log issues
+- **Core**: Parse raw OpenClaw plugin JSON output, redact stdout diagnostics, use core OpenClaw plugin SDK import
+
+### Build
+- **Core**: Attach ImageEditor during release prep
+
+### Documentation
+- **Core**: Link changelog only for existing tags; link version headings and omit per-entry hashes; update changelog for release prep
+
+## v0.22.237
 ### Fixes
 - Resolve startup log issues
 

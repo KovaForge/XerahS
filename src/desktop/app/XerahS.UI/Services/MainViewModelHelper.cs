@@ -112,8 +112,17 @@ public static class MainViewModelHelper
         }
     }
 
+    private static readonly HashSet<MainViewModel> _saveAsInProgress = new();
+
     private static async Task<string?> HandleSaveAsRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
     {
+        // Guard against re-entry (e.g. double-click or keyboard repeat triggering the dialog twice)
+        if (!_saveAsInProgress.Add(viewModel))
+        {
+            DebugHelper.WriteLine("MainViewModelHelper: SaveAsRequested ignored — save already in progress.");
+            return null;
+        }
+
         DebugHelper.WriteLine("MainViewModelHelper: SaveAsRequested received");
         try
         {
@@ -156,6 +165,10 @@ public static class MainViewModelHelper
             DebugHelper.WriteLine($"Editor save-as failed: {ex.Message}");
             DebugHelper.WriteException(ex);
             return null;
+        }
+        finally
+        {
+            _saveAsInProgress.Remove(viewModel);
         }
     }
 
