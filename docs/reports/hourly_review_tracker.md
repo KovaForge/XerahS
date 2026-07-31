@@ -3964,3 +3964,34 @@ Added candidates (8):
 - Consumer xerahs-bugfix at 00:06 AWST will drain the 3 GIF candidates
 - All 3 share root cause (GIF integer overflow > 65535) — likely single fix patch
 - Anomaly: this is the first non-empty queue since 2026-07-20T18:50:39 (11 days empty)
+
+### 2026-08-01 00:05 AWST - AnimatedGifCreator / clamp NETSCAPE2.0 loop count
+
+- Area: AnimatedGifCreator.CreateApplicationExtensionBlock
+- Files: src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs, tests/XerahS.Tests/Common/AnimatedGifCreatorTests.cs, Directory.Build.props
+- Findings: NETSCAPE2.0 loop count is unsigned 16-bit; repeat % 0x100 / repeat / 0x100 corrupted the field for negative or oversized values. Clamped with Math.Clamp(repeat, 0, 0xFFFF). Helper made internal for direct byte regression tests.
+- Status: Fixed
+- Build/test: XerahS.Common + XerahS.Tests Release build succeeded; AnimatedGifCreatorTests 8/8 passed. Logs: /tmp/xerahs-bugfix/build-20260801-000555-gif2.log, /tmp/xerahs-bugfix/test-20260801-000555-gif2.log
+- Commit: c470f2c5 (c470f2c5b5df840ee5a3b89ba65d4841405f280e)
+- Follow-up: producer should skip this citation via recently_pivoted; no further GIF loop work unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.17 patch pending (VideoEditor dangling frontend launcher pitfall)
+
+### 2026-08-01 00:05 AWST - Pivot / false-positive
+
+- Area: src/desktop/core/XerahS.Common/GIF/OctreeQuantizer.cs:275 (GetPaletteIndex)
+- Files: (none — pivot, no code change)
+- Findings: Color32 channels are bytes; node index is 0-7 via bit masks — no integer overflow path
+- Status: Pivot (false-positive)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-08-01 00:05 AWST - Pivot / false-positive
+
+- Area: src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+- Files: (none — pivot, no code change)
+- Findings: Finish already guards with if (stream != null) before WriteByte/Dispose
+- Status: Pivot (false-positive)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
