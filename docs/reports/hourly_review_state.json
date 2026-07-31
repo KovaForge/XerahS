@@ -1394,7 +1394,7 @@
       "agent": "nadia",
       "outcome": "ingested",
       "item": "clawpatch findings -> next_candidates",
-      "commit": null,
+      "commit": "b31d56bc",
       "summary": "Step 5.5 parsed 156 findings across 3 reports; gate dropped 96 (risk/contract/test/docs); 3 area-level (ImmichUploader), 24 recently-pivoted (v2.2.2), 30 release-fixed (v2.1.1); ingested 3 GIF (feat_library_4462f99a32: AnimatedGifCreator overflow + OctreeQuantizer + Finish) -> next_candidates: 0 -> 3",
       "status": "ok"
     }
