@@ -392,7 +392,10 @@ namespace XerahS.Platform.MacOS
                     continue;
                 }
 
-                var escaped = fullPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                // AppleScript POSIX-file specifiers must use forward slashes regardless of host
+                // platform. Normalise separators first, then escape embedded quotes.
+                var posixPath = fullPath.Replace(Path.DirectorySeparatorChar, '/');
+                var escaped = posixPath.Replace("\"", "\\\"");
                 yield return $"POSIX file \\\"{escaped}\\\"";
             }
         }

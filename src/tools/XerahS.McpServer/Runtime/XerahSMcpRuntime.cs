@@ -1177,7 +1177,19 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         {
             if (Path.IsPathRooted(value))
             {
+                // Path.GetFullPath strips trailing whitespace from the final path component,
+                // which destroys files whose names legitimately end with spaces. Capture any
+                // trailing whitespace on the input and re-attach it after canonicalisation.
+                int trailingWhitespace = 0;
+                while (trailingWhitespace < value.Length && char.IsWhiteSpace(value[value.Length - 1 - trailingWhitespace]))
+                {
+                    trailingWhitespace++;
+                }
                 path = Path.GetFullPath(value);
+                if (trailingWhitespace > 0)
+                {
+                    path += new string(' ', trailingWhitespace);
+                }
                 return true;
             }
         }
