@@ -3903,3 +3903,64 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 summary only; v1.1.12)
 - Follow-up: wait for xerahs-review producer to refresh next_candidates; do not invent fixes
 - Skill: xerahs-bugfix/SKILL.md v1.1.16 (no patch this run)
+
+### 2026-07-31 23:08 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 96
+  - triage=risk: 75
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+
+### 2026-07-31 23:08 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3 (20260731T150358-7c432f, 20260729T150504-f1bdd3, 20260728T150412-26bc73)
+- Total findings parsed: 156
+- Findings dropped at severity gate: 96 (triage=risk:75, contract-mismatch:15, test-gap:3, docs-gap:3)
+- Findings dropped as already-fixed (area-level dedupe): 3 (ImmichUploader CreateOrReuseAlbumShare)
+- Findings dropped as recently-pivoted (v2.2.2): 24
+- Findings dropped as recently fixed in last 60 commits (v2.1.1): 30
+- Ingested: 3 (all 3 from feat_library_4462f99a32 GIF feature)
+  - [bug/confirmed-bug/fnd_sig-feat-library-4462f99a32-a25a_a616a88a52] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [bug/confirmed-bug/fnd_sig-feat-library-4462f99a32-7630_754d03f2e4] src/desktop/core/XerahS.Common/GIF/OctreeQuantizer.cs:275 (GetPaletteIndex)
+  - [bug/confirmed-bug/fnd_sig-feat-library-4462f99a32-52e0_818b9f0699] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+- next_candidates delta: +3 (total 3)
+
+### 2026-07-31 23:08 AWST - xerahs-review producer tick (nadia-daily)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Workspace: /Users/mike/Projects/KovaForge/xerahs
+- Cron: xerahs-review-daily-producer (fires at 23:00 AWST, feeds 00:06 bugfix drain)
+- Status: ok
+
+#### Fork sync
+- nadia remote: HEAD a0ce75b0 (already up to date with nadia/develop 0dc5d622)
+- origin (vladislava): HEAD matches origin/develop a0ce75b0
+
+#### Upstream sync
+- upstream/develop tip: 22c8b34a (v0.23.118, 2026-07-11 docs/blog)
+- merge-base: 22c8b34a (already ancestor of HEAD a0ce75b0)
+- Status: no new upstream commits since previous sync; no merge needed
+
+#### ShareX.ImageEditor submodule
+- Submodule HEAD: 1bcb66c (develop branch, ahead of remote and upstream; no new commits)
+- Status: clean
+
+#### Clawpatch review
+- Command: clawpatch review --provider minimax --model MiniMax-Text-01 --limit 3
+- Run: 20260731T150358-7c432f
+- Features reviewed: 3 (feat_library_4462f99a32 GIF, feat_library_44deda67fa Hosting, feat_library_44efa937b2 MacOS Properties)
+- Findings (raw): 3 (all from GIF feature; other 2 features yielded 0)
+- After v2.1.0/+v2.1.1/+v2.1.2/+v2.2.2 dedupe: 3 added to next_candidates
+  - src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock) — high, integer overflow
+  - src/desktop/core/XerahS.Common/GIF/OctreeQuantizer.cs:275 (GetPaletteIndex) — high, integer overflow
+  - src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish) — high, integer overflow
+- next_candidates: 0 -> 3 (+3 new)
+- Report: .clawpatch/reports/20260731T150358-7c432f.md
+
+#### Next follow-up
+- Consumer xerahs-bugfix at 00:06 AWST will drain the 3 GIF candidates
+- All 3 share root cause (GIF integer overflow > 65535) — likely single fix patch
+- Anomaly: this is the first non-empty queue since 2026-07-20T18:50:39 (11 days empty)

@@ -10,7 +10,11 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)",
+    "src/desktop/core/XerahS.Common/GIF/OctreeQuantizer.cs:275 (GetPaletteIndex)",
+    "src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1384,6 +1388,15 @@
       "commit": null,
       "summary": "Step 5a found zero candidates; no deferred-last-runs files present; producer queue empty",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-07-31 23:08 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "clawpatch findings -> next_candidates",
+      "commit": null,
+      "summary": "Step 5.5 parsed 156 findings across 3 reports; gate dropped 96 (risk/contract/test/docs); 3 area-level (ImmichUploader), 24 recently-pivoted (v2.2.2), 30 release-fixed (v2.1.1); ingested 3 GIF (feat_library_4462f99a32: AnimatedGifCreator overflow + OctreeQuantizer + Finish) -> next_candidates: 0 -> 3",
+      "status": "ok"
     }
   ],
   "last_run_outcome": "no-op",
