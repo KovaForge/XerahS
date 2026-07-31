@@ -96,8 +96,12 @@ namespace XerahS.Common.GIF
             return new byte[] { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a' };
         }
 
-        private byte[] CreateApplicationExtensionBlock(int repeat)
+        internal byte[] CreateApplicationExtensionBlock(int repeat)
         {
+            // NETSCAPE2.0 loop count is a 16-bit little-endian field.
+            // Clamp so negative / oversized values cannot corrupt the GIF.
+            int loopCount = Math.Clamp(repeat, 0, 0xFFFF);
+
             byte[] buffer = new byte[19];
             buffer[0] = 0x21; // Extension introducer
             buffer[1] = 0xFF; // Application extension
@@ -115,8 +119,8 @@ namespace XerahS.Common.GIF
             buffer[13] = (byte)'0';
             buffer[14] = 0x03; // Size of block
             buffer[15] = 0x01; // Loop indicator
-            buffer[16] = (byte)(repeat % 0x100); // Number of repetitions
-            buffer[17] = (byte)(repeat / 0x100); // 0 for endless loop
+            buffer[16] = (byte)(loopCount % 0x100); // Number of repetitions
+            buffer[17] = (byte)(loopCount / 0x100); // 0 for endless loop
             buffer[18] = 0x00; // Block terminator
             return buffer;
         }
