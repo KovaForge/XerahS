@@ -44,7 +44,7 @@ public static class ColorMatrixManager
         using SKPaint paint = new SKPaint { ColorFilter = SKColorFilter.CreateColorMatrix(matrix) };
         using SKCanvas canvas = new SKCanvas(result);
         canvas.Clear(SKColors.Transparent);
-        canvas.DrawBitmap(bmp, 0, 0, paint);
+        canvas.DrawBitmap(bmp, 0, 0, SKSamplingOptions.Default, paint);
         return result;
     }
 
@@ -64,7 +64,7 @@ public static class ColorMatrixManager
         using SKCanvas canvas = new SKCanvas(result);
         using SKPaint paint = new SKPaint { ColorFilter = filter };
         canvas.Clear(SKColors.Transparent);
-        canvas.DrawBitmap(bmp, 0, 0, paint);
+        canvas.DrawBitmap(bmp, 0, 0, SKSamplingOptions.Default, paint);
         return result;
     }
 

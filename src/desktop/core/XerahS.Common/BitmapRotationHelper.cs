@@ -75,7 +75,7 @@ public static class BitmapRotationHelper
                 break;
         }
 
-        canvas.DrawBitmap(source, 0, 0);
+        canvas.DrawBitmap(source, 0, 0, SKSamplingOptions.Default);
         return result;
     }
 }

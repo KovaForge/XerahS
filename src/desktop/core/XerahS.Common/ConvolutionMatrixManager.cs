@@ -58,7 +58,7 @@ public static class ConvolutionMatrixManager
         SKBitmap result = new SKBitmap(bmp.Info);
         using SKCanvas canvas = new SKCanvas(result);
         canvas.Clear(SKColors.Transparent);
-        canvas.DrawBitmap(bmp, 0, 0, paint);
+        canvas.DrawBitmap(bmp, 0, 0, SKSamplingOptions.Default, paint);
         return result;
     }
 

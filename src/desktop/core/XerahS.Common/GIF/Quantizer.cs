@@ -64,7 +64,7 @@ namespace XerahS.Common.GIF
             SKBitmap copy = new SKBitmap(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
             using (SKCanvas canvas = new SKCanvas(copy))
             {
-                canvas.DrawBitmap(source, 0, 0);
+                canvas.DrawBitmap(source, 0, 0, SKSamplingOptions.Default);
             }
 
             // Construct 8bpp output? Skia doesn't really have a "palette" bitmap type in the same way GDI+ does for manipulation.

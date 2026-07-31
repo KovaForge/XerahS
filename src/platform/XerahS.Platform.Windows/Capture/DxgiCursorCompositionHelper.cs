@@ -94,7 +94,7 @@ internal static class DxgiCursorCompositionHelper
 
         using var canvas = new SKCanvas(bitmap);
         using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
-        canvas.DrawBitmap(cursorBitmap, 0, 0, paint);
+        canvas.DrawBitmap(cursorBitmap, 0, 0, SKSamplingOptions.Default, paint);
 
         return true;
     }
