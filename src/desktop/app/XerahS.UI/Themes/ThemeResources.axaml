@@ -452,6 +452,20 @@
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
   </Style>
 
+  <!-- AnnotateImage / EditorWindow (taskMode): host global TextBlock FontFamily (Inter) blanks
+       Lucide PUA glyphs on Button.toolbar-button Content="{icon}". Lock font + size under
+       the .xerahs-editor-host scope so app-level specificity beats DarkTheme's bare TextBlock. -->
+  <Style Selector=".xerahs-editor-host Button.toolbar-button">
+    <Setter Property="FontFamily" Value="{DynamicResource ShareX.FontFamily.Icon}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="FontSize" Value="18" />
+  </Style>
+  <Style Selector=".xerahs-editor-host Button.toolbar-button TextBlock">
+    <Setter Property="FontFamily" Value="{DynamicResource ShareX.FontFamily.Icon}" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
   <Style Selector=".xerahs-editor-host Border.xerahs-confirmation-header, .xerahs-editor-host Border.xerahs-confirmation-footer">
     <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
