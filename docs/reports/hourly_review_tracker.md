@@ -4016,3 +4016,84 @@ Added candidates (8):
 - Commit: null (audit only; SHA recorded in Step 9 summary)
 - Follow-up: wait for xerahs-review producer to re-ingest clawpatch findings
 - Skill: xerahs-bugfix/SKILL.md v1.1.18 (no patch this tick)
+
+### 2026-08-01 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+  - 20260801T150459-763172.md
+  - 20260731T150358-7c432f.md
+  - 20260729T150504-f1bdd3.md
+- Findings dropped at severity gate: 96
+  - triage=risk: 75
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+
+### 2026-08-01 23:07 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+  - 20260801T150459-763172.md
+  - 20260731T150358-7c432f.md
+  - 20260729T150504-f1bdd3.md
+- Findings dropped at severity gate: 96
+  - triage=risk: 75
+  - triage=contract-mismatch: 15
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed (release-history v2.1.2): 31
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - ... and 21 more
+- Skipped as recently-pivoted (v2.2.2): 29
+- Skipped as duplicate of existing: 0
+- Ingested: 1
+  - src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-01 23:10 AWST - xerahs-review producer tick (nadia-daily)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Workspace: /Users/mike/Projects/KovaForge/xerahs
+- Cron: xerahs-review-daily-producer (fires at 23:00 AWST, feeds 00:06 bugfix drain)
+- Status: ok
+
+#### Fork sync
+- nadia remote: HEAD moved 9f2e6dc9..4d6d8b8a (consumer push included AnnotateToolbar fix + upstream PR #278 fast-forward)
+- origin (vladislava): HEAD still fb2074ed (origin is 2 behind; expected — Vladislava's remote has not been re-pushed with the consumer fix yet)
+
+#### Upstream sync
+- upstream/develop tip: 4d6d8b8a (Merge PR #278 'Fix empty queue audit and update AnnotateToolbar icons')
+- merge-base: 4d6d8b8a (fast-forward to HEAD)
+- Status: fast-forward merged; pushed to nadia remote
+
+#### ShareX.ImageEditor submodule
+- Submodule HEAD: 1bcb66c (develop branch, matches origin/develop and upstream/develop)
+- Status: clean (no new commits)
+
+#### Clawpatch review
+- Command: clawpatch review --provider minimax --model MiniMax-Text-01 --limit 3
+- Run: 20260801T150459-763172
+- Features reviewed: 3 (feat_library_49a3ae3944 UploaderPluginSdk, feat_library_49cbf3ebc1 Bitly.Plugin, feat_library_4b88d6d423 Assistant UI)
+- Findings (raw): 55 in this run (1 Bitly.Plugin; 0 from UploaderPluginSdk, 0 from Assistant UI)
+- After v2.1.0/+v2.1.1/+v2.1.2/+v2.2.2 dedupe: 1 added to next_candidates
+  - src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL) — medium/bug, missing error handling around SendRequest
+- next_candidates: 0 -> 1 (+1 new)
+- Report: .clawpatch/reports/20260801T150459-763172.md
+
+#### Next follow-up
+- Consumer xerahs-bugfix at 00:06 AWST will pick up the Bitly Plugin SendRequest error-handling fix
+- This is the first non-empty queue since 2026-07-31T23:08 producer tick (the GIF fixes drained at 00:05); 11 hours empty then 1 fresh finding
+- Anomaly: BitlyPlugin finding is from a low-traffic plugin; if it survives the consumer audit the regression test should cover the network-failure path on the SendRequest call
