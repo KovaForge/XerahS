@@ -8,7 +8,25 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
 
-<<<<<<< Updated upstream
+---
+
+## v0.24.10
+
+Dependency and reliability release on top of v0.24.8: SkiaSharp 4.x / Avalonia 12.1 / ReactiveUI 24, ImageEditor canvas fix, GIF loop clamp, and capture UX defaults.
+
+### Fixes
+- **GIF**: Clamp NETSCAPE2.0 loop count to the 16-bit range so animated GIFs loop correctly in strict players.
+- **ImageEditor**: Grow canvas to fit off-bounds annotations (issue #255); bump ShareX.ImageEditor gitlink.
+- **Region capture**: Restore annotation toolbar icon visibility after capture; hide main window before hotkey-triggered region capture.
+- **Tests / paths**: Clear pre-existing failures from trailing whitespace and non-POSIX path separators.
+
+### Changed
+- **Dependencies (XIP-0081)**: ReactiveUI 24.0.0, SkiaSharp 4.151.0, Avalonia 12.1.1, plus related central package bumps; complete SkiaSharp 4.x migration with ImageEditor sync.
+- **After-capture defaults**: Disable AnnotateImage/AnnotateMedia by default so captures no longer always open the editor.
+
+### Documentation
+- Blog drafts (2026-07 series) and XIP-0081 proposal notes.
+
 ---
 
 ## v0.24.8
@@ -286,9 +304,6 @@ Broad reliability, onboarding, CLI/OpenClaw, and platform-hardening release (agg
 
 ---
 ## v0.22.237
-=======
-## [v0.23.117](https://github.com/ShareX/XerahS/releases/tag/v0.23.117)
->>>>>>> Stashed changes
 
 ### Features
 - **Capture**: Command palette for quick capture actions

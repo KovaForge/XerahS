@@ -48,13 +48,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/
 ./.ai/skills/update-changelog/scripts/update-changelog.sh --from-tag v0.23.128 --version 0.23.129 --apply
 ```
 
-<<<<<<< Updated upstream
 Flags:
-=======
-**PowerShell script authoring**: use ASCII punctuation (colons, hyphens) in consolidation summary strings inside `update-changelog.ps1`. Unicode em dashes in `.ps1` string literals can break parsing on some hosts.
-
-Include commit hashes only when explicitly requested for audit/debug work:
->>>>>>> Stashed changes
 
 | Flag | Effect |
 |------|--------|
@@ -64,6 +58,10 @@ Include commit hashes only when explicitly requested for audit/debug work:
 | `-OutputPath` / `--output-path` | Write draft to file |
 | `-NoConsolidation` | Per-commit lines (debug only; do not publish) |
 | `-IncludeHashes` | Append hashes (audit only; do not publish) |
+
+**PowerShell script authoring**: use ASCII punctuation (colons, hyphens) in consolidation summary strings inside `update-changelog.ps1`. Unicode em dashes in `.ps1` string literals can break parsing on some hosts.
+
+Include commit hashes only when explicitly requested for audit/debug work:
 
 Script behavior (default):
 
@@ -92,7 +90,6 @@ If a `### Fixes` section still has 10+ `**Core**:` lines, merge into themed bull
 - **macOS**: Clipboard path whitespace, dock hide for tray startup, upload picker fallback, update prompts.
 ```
 
-<<<<<<< Updated upstream
 ### 2. Roll up sparse patch versions
 
 When several consecutive versions are release-only or trivial, combine:
@@ -203,8 +200,9 @@ Actions on every draft:
 ```
 
 ---
-=======
-Notes:
+
+## Notes
+
 - `-Version` defaults to root `Directory.Build.props`.
 - `-FromTag` defaults to `git describe --tags --abbrev=0`.
 - The script upserts the version heading for the target version (replaces existing linked or unlinked section for that version or inserts after `## Unreleased`).
@@ -215,7 +213,6 @@ Notes:
 - **Mandatory final compression pass**: even when the script consolidates automatically, scan each category for adjacent or near-duplicate entries with the same component, feature area, document series, platform, dependency, or bug theme. Merge those into one readable bullet unless doing so would hide contributor attribution or combine unrelated behavior. Target roughly 50-80% line reduction versus raw commit output.
 - **Single unreleased heading**: fold duplicate prerelease sections (for example v0.23.105, v0.23.98) into one heading for the current `Directory.Build.props` version. Keep `# Changelog` and the intro block at the **top** of the file, not mid-file.
 - Always **manually review** for wording, missed merges, and contributor attribution (`#PR`, `@user`) before publishing.
->>>>>>> Stashed changes
 
 ## Version Grouping Strategy
 
@@ -244,20 +241,16 @@ When rebuilding noisy sections (as in v0.23.117 → v0.23.27 rollup):
 
 ## Categories
 
-<<<<<<< Updated upstream
-Use [Keep a Changelog](https://keepachangelog.com/) sections:
-=======
-The automation script does this **by default** via `Get-ConsolidationBucket` (theme clusters) and `Test-SkipChangelogCommit` (agent meta omitted); agents must still **edit the draft** for narrative quality and any merges the heuristics miss. A good v0.23.x unreleased range should land near **40-60 bullets total**, not hundreds.
->>>>>>> Stashed changes
+Use [Keep a Changelog](https://keepachangelog.com/) sections. The automation script consolidates via `Get-ConsolidationBucket` and skips agent meta via `Test-SkipChangelogCommit`; agents must still edit the draft. Target ~40–60 bullets for a typical unreleased range.
 
 - **Features** — new user-visible capability
 - **Fixes** — bug fixes and reliability hardening
+- **Changed** — behavior/dependency changes that aren’t pure fixes
 - **Refactor** — internal-only (omit unless user-facing)
 - **Build** — packaging, dependencies, CI
-- **Documentation** — user/dev docs, XIP status (not blog-draft spam)
+- **Documentation** — docs, blog, XIPs (user-facing only)
 - **Testing** — test infrastructure (usually omit unless major)
 - **Performance** — measurable user-visible gains
-- **Changed** — fallback; prefer a real category when possible
 
 Map commit prefixes:
 
