@@ -290,7 +290,7 @@ public partial class App : Application
                             desktop.MainWindow.ShowInTaskbar = false;
                             Common.DebugHelper.WriteLine("SilentRun startup: main window hidden to tray.");
                         }
-                    }, Avalonia.Threading.DispatcherPriority.Background);
+                    }, Avalonia.Threading.DispatcherPriority.Send);
                 };
 
                 desktop.MainWindow.Opened += hideOnFirstOpen;
