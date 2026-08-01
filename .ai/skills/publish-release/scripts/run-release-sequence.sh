@@ -50,13 +50,35 @@ require_cmd() {
   fi
 }
 
+auto_commit_pending_changes() {
+  local status_output
+  status_output="$(git status --short)"
+  if [[ -z "$status_output" ]]; then
+    return 0
+  fi
+
+  echo "Auto-committing uncommitted local changes before maintenance pull..."
+  echo "  - git add -A"
+  git add -A
+
+  local commit_msg
+  commit_msg="[skill] Auto-commit uncommitted changes before release maintenance"
+  echo "  - git commit -m \"$commit_msg\""
+  if ! git commit -m "$commit_msg"; then
+    echo "Error: auto-commit failed. Check git status for details." >&2
+    git status >&2
+    exit 1
+  fi
+  echo "Auto-commit succeeded."
+}
+
 run_maintenance_chores() {
   echo "Step 1: running maintenance prep..."
+
   echo "  - git status --short"
   if [[ -n "$(git status --short)" ]]; then
-    echo "Error: working tree has local changes. Commit, stash, or clean them before maintenance pull." >&2
-    git status --short >&2
-    exit 1
+    echo "Working tree has uncommitted local changes — auto-committing before maintenance pull."
+    auto_commit_pending_changes
   fi
   echo "  - git submodule foreach --recursive status guard"
   git submodule foreach --recursive '
