@@ -10,6 +10,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## [v0.24.11](https://github.com/ShareX/XerahS/releases/tag/v0.24.11)
+
+### Changed
+- No user-facing commits were detected in this range.
+
+---
+
 ## [v0.24.10](https://github.com/ShareX/XerahS/releases/tag/v0.24.10)
 
 ### Documentation
