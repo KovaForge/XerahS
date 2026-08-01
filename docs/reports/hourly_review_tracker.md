@@ -4097,3 +4097,14 @@ Added candidates (8):
 - Consumer xerahs-bugfix at 00:06 AWST will pick up the Bitly Plugin SendRequest error-handling fix
 - This is the first non-empty queue since 2026-07-31T23:08 producer tick (the GIF fixes drained at 00:05); 11 hours empty then 1 fresh finding
 - Anomaly: BitlyPlugin finding is from a low-traffic plugin; if it survives the consumer audit the regression test should cover the network-failure path on the SendRequest call
+
+### 2026-08-02 00:06 AWST - Bitly Plugin / ShortenURL error surfacing
+
+- Area: Bitly Plugin / BitlyUrlShortener.ShortenURL SendRequest error handling
+- Files: src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs, tests/XerahS.Tests/Uploaders/BitlyUrlShortenerTests.cs, tests/XerahS.Tests/XerahS.Tests.csproj, Directory.Build.props
+- Findings: ShortenURL kept the original long URL on result.URL while only writing failures to Uploader.Errors. UploadResult.IsError stays false when IsURLExpected && URL is set, so callers never saw Bitly failures via result.ErrorsToString(). Fixed by catching request/parse failures, copying Uploader.Errors onto the result, and clearing IsURLExpected so IsError is true. Added SendBitlyRequest hook + 4 regression tests.
+- Status: Fixed
+- Build/test: Bitly plugin + XerahS.Tests Release build OK; BitlyUrlShortenerTests 4/4 Passed. logs: /tmp/xerahs-bugfix/build-20260802-000626.bitly2, /tmp/xerahs-bugfix/build-20260802-000626.tests2, /tmp/xerahs-bugfix/test-20260802-000626.log.2
+- Commit: 2436bbb620dc (Declan Murphy)
+- Follow-up: queue empty after this drain; producer will re-scan Bitly on next clawpatch cycle
+- Skill: xerahs-bugfix/SKILL.md v1.1.18 — no skill patch this run
