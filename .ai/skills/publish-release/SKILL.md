@@ -8,7 +8,7 @@ description: "Orchestrate XerahS release flow in strict order: run maintenance p
 ## Overview
 
 Use this skill to run release steps in strict order:
-- Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`), then reattach `ShareX.ImageEditor` to `develop` and fast-forward it from `origin/develop`
+- Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`), then reattach `ShareX.ImageEditor` to `develop` and fast-forward it from `origin/develop`. Uncommitted local changes in the working tree are auto-committed with message `[skill] Auto-commit uncommitted changes before release maintenance` before the pull. Submodule local changes still block the sequence and must be committed/stashed manually.
 - Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional only if `docs/CHANGELOG.md` is intentionally absent)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
@@ -220,6 +220,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 
 1. Require completion of `run-maintenance` first.
    - Script behavior: executes maintenance commands automatically unless explicitly bypassed with `--skip-maintenance` (or legacy alias `--assume-maintenance-done`).
+   - Uncommitted local working-tree changes are auto-committed before the pull; submodule changes still block and require manual resolution.
 2. Require completion of `update-changelog` second (skip only if `docs/CHANGELOG.md` is intentionally absent or user confirms).
 3. Before bump, run `dotnet build src/desktop/XerahS.sln`; abort on failure.
 4. Run `scripts/bump-version-commit-tag.sh` (or PowerShell/manual equivalent when bash unavailable).
@@ -233,7 +234,7 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 ## Guardrails
 
 - Do not skip sequence unless user explicitly requests bypass.
-- Do not skip maintenance unless user explicitly requests bypass (`--skip-maintenance`).
+- Do not skip maintenance unless user explicitly requests bypass (`--skip-maintenance`). Local working-tree changes are auto-committed before the pull rather than blocking.
 - Do not commit/push during maintenance/changelog steps.
 - After maintenance submodule update, always reattach `ShareX.ImageEditor` to `develop`, fast-forward it from `origin/develop`, and verify it is not detached before build, bump, tag, or release work continues.
 - Always verify build before bump/tag.
