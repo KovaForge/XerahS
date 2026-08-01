@@ -8,7 +8,30 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
 
-<<<<<<< Updated upstream
+---
+
+## [v0.24.12](https://github.com/ShareX/XerahS/releases/tag/v0.24.12)
+
+### Changed
+- No user-facing commits were detected in this range.
+
+---
+
+## [v0.24.11](https://github.com/ShareX/XerahS/releases/tag/v0.24.11)
+
+### Changed
+- No user-facing commits were detected in this range.
+
+---
+
+## [v0.24.10](https://github.com/ShareX/XerahS/releases/tag/v0.24.10)
+
+### Documentation
+- **Xip**: XIP, IEIP, and KFIP proposals and related documentation
+
+### Changed
+- **Xerahs Bugfix**: empty-queue audit (queue=0)
+
 ---
 
 ## v0.24.8
@@ -286,9 +309,6 @@ Broad reliability, onboarding, CLI/OpenClaw, and platform-hardening release (agg
 
 ---
 ## v0.22.237
-=======
-## [v0.23.117](https://github.com/ShareX/XerahS/releases/tag/v0.23.117)
->>>>>>> Stashed changes
 
 ### Features
 - **Capture**: Command palette for quick capture actions

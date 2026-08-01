@@ -3995,3 +3995,24 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-08-01 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Queue remains empty. Deleted stale deferred file(s):deferred-last-runs-20260801-000555.json (v1.1.16 — no fix commit available to fold under XIP0077 +0/+1; tracker markdown remains durable ledger).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+
+### 2026-08-01 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream sync. No real-bug items; no pivots to drain. Deferred last_runs files: none.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: null (audit only; SHA recorded in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to re-ingest clawpatch findings
+- Skill: xerahs-bugfix/SKILL.md v1.1.18 (no patch this tick)

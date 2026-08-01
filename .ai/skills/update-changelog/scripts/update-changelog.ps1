@@ -216,22 +216,6 @@ function Categorize-Commit([string]$Subject) {
     }
 }
 
-<<<<<<< Updated upstream
-function Test-IsNoiseCommit([string]$Subject) {
-    if ($Subject -match '^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
-        return $true
-    }
-
-    if ($Subject -match '(?i)^\[v[\d.]+\]\s+\[(Docs|Meta|CI)\]\s+(Bump version|Update hourly review|Record .+ in tracker|hourly|clawpatch|xerahs-review|sync tracker)') {
-        return $true
-    }
-
-    if ($Subject -match '(?i)(hourly review (tracker|state)|clawpatch (ingest|report)|tracker:\s|xerahs-review:|update hourly_review_state|queue \d+ clawpatch|\[hourly\]|pre-commit:.*state JSON|XIP\d{4} state JSON)') {
-        return $true
-    }
-
-    if ($Subject -match '(?i)^\[?v?[\d.]+\]?\s*(Bump version to|tracker:)') {
-=======
 function Test-SkipChangelogCommit([string]$Subject) {
     if ($Subject -match '(?i)^\[v\d+\.\d+\.\d+\]\s+\[CI\]\s+Release\s+v\d+\.\d+\.\d+$') {
         return $true
@@ -256,14 +240,12 @@ function Test-SkipChangelogCommit([string]$Subject) {
 
     # Version-only churn between prerelease bumps.
     if ($Subject -match '(?i)^(\[v[\d.]+\]\s+\[[^\]]+\]\s+)?(Bump version|Bump app version|Start minor release for)') {
->>>>>>> Stashed changes
         return $true
     }
 
     return $false
 }
 
-<<<<<<< Updated upstream
 function Get-PlatformXipLabel([string]$Subject) {
     if ($Subject -notmatch '(?i)XIP(\d{4})') {
         return $null
@@ -306,8 +288,6 @@ function Get-PlatformXipLabel([string]$Subject) {
     return "$platform — $topic ($xip$priority)"
 }
 
-=======
->>>>>>> Stashed changes
 function Get-ConsolidationBucket {
     param(
         [string]$Subject,
@@ -315,7 +295,6 @@ function Get-ConsolidationBucket {
         [string]$Component
     )
 
-<<<<<<< Updated upstream
     if ($Subject -match '(?i)(pipe-drain|pipe-fill|stderr).*(deadlock|timeout)') {
         $platform = if ($Subject -match '(?i)Linux|Wayland|wl-|xclip|grim|slurp|gsettings|xdotool|xrandr|PulseAudio') { 'Linux' }
                     elseif ($Subject -match '(?i)macOS|MacOS|osascript|pbpaste|pbcopy') { 'macOS' }
@@ -338,10 +317,7 @@ function Get-ConsolidationBucket {
         }
     }
 
-    if ($Subject -match '(?i)ShareX\.ImageEditor') {
-=======
     if ($Subject -match '(?i)ShareX\.ImageEditor|Update ImageEditor to ShareX@') {
->>>>>>> Stashed changes
         return @{
             GroupKey = "$Category|$Component|__consolidate_sharex_imageeditor__"
             Summary  = "ShareX.ImageEditor submodule updates"
@@ -349,11 +325,7 @@ function Get-ConsolidationBucket {
     }
 
     if ($Category -eq 'Documentation') {
-<<<<<<< Updated upstream
-        if ($Subject -match '(?i)(Add|Update|Refresh)\s+2026-\d{2}-\d{2}.*blog') {
-=======
         if ($Subject -match '(?i)(Add|Update|Refresh)\s+20\d{2}-\d{2}-\d{2}.*blog') {
->>>>>>> Stashed changes
             return @{
                 GroupKey = "Documentation|__blog_series__|__consolidate_blog_drafts__"
                 Summary  = "Blog drafts (2026 series)"
@@ -634,11 +606,7 @@ function Merge-EntriesByComponent {
 function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$ConsolidateSimilar, [bool]$EmitHashes) {
     $grouped = @{}
     foreach ($row in $CommitRows) {
-<<<<<<< Updated upstream
-        if (Test-IsNoiseCommit -Subject $row.Subject) {
-=======
         if (Test-SkipChangelogCommit -Subject $row.Subject) {
->>>>>>> Stashed changes
             continue
         }
 
@@ -652,16 +620,14 @@ function Build-ChangelogSection([string]$Version, [object[]]$CommitRows, [bool]$
             if ($null -ne $bucket) {
                 $key = $bucket.GroupKey
                 $description = $bucket.Summary
-<<<<<<< Updated upstream
                 if ($bucket.ContainsKey('ComponentOverride') -and -not [string]::IsNullOrWhiteSpace($bucket.ComponentOverride)) {
                     $component = $bucket.ComponentOverride
-=======
+                }
                 if ($bucket.ContainsKey('Category') -and -not [string]::IsNullOrWhiteSpace($bucket.Category)) {
                     $parsed.Category = $bucket.Category
                 }
                 if ($bucket.ContainsKey('Component') -and -not [string]::IsNullOrWhiteSpace($bucket.Component)) {
                     $parsed.Component = $bucket.Component
->>>>>>> Stashed changes
                 }
             }
         }
