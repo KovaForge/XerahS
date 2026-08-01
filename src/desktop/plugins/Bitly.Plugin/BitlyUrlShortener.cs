@@ -29,7 +29,7 @@ using XerahS.Uploaders;
 
 namespace ShareX.Bitly.Plugin;
 
-public sealed class BitlyUrlShortener : UrlShortener
+public class BitlyUrlShortener : UrlShortener
 {
     private const string UrlApi = "https://api-ssl.bitly.com/";
     private const string UrlShorten = UrlApi + "v4/shorten";
@@ -52,8 +52,7 @@ public sealed class BitlyUrlShortener : UrlShortener
 
         if (string.IsNullOrEmpty(_config.AccessToken))
         {
-            Errors.Add("Bitly access token is required. Configure OAuth and obtain a token.");
-            return result;
+            return Fail(result, "Bitly access token is required. Configure OAuth and obtain a token.");
         }
 
         var requestBody = new BitlyShortenRequestBody
@@ -68,26 +67,73 @@ public sealed class BitlyUrlShortener : UrlShortener
             ["Authorization"] = "Bearer " + _config.AccessToken
         };
 
-        result.Response = SendRequest(XerahS.Uploaders.HttpMethod.POST, UrlShorten, json, "application/json", null, headers);
+        try
+        {
+            result.Response = SendBitlyRequest(json, headers);
+        }
+        catch (Exception ex)
+        {
+            // Base Uploader.SendRequest normally swallows network failures into Uploader.Errors.
+            // Guard here so unexpected throws still surface a user-visible diagnostic.
+            return Fail(result, $"Bitly request failed: {ex.Message}");
+        }
+
+        if (IsError)
+        {
+            // SendRequest already recorded the network failure on Uploader.Errors.
+            return Fail(result, null);
+        }
+
+        if (string.IsNullOrEmpty(result.Response))
+        {
+            return Fail(result, "Bitly request failed: empty response from API.");
+        }
 
         BitlyShortenResponse? responseData = null;
-        if (!string.IsNullOrEmpty(result.Response))
+        try
         {
-            try
-            {
-                responseData = JsonConvert.DeserializeObject<BitlyShortenResponse>(result.Response);
-            }
-            catch
-            {
-                // Leave responseData null
-            }
+            responseData = JsonConvert.DeserializeObject<BitlyShortenResponse>(result.Response);
+        }
+        catch (Exception ex)
+        {
+            return Fail(result, $"Bitly response parsing failed: {ex.Message}");
         }
 
         if (responseData != null && !string.IsNullOrEmpty(responseData.link))
         {
             result.ShortenedURL = responseData.link;
+            return result;
         }
 
+        return Fail(result, "Bitly response did not include a shortened link.");
+    }
+
+    /// <summary>
+    /// Sends the Bitly shorten request. Overridable for regression tests that inject failures.
+    /// </summary>
+    protected virtual string? SendBitlyRequest(string json, NameValueCollection headers)
+    {
+        return SendRequest(XerahS.Uploaders.HttpMethod.POST, UrlShorten, json, "application/json", null, headers);
+    }
+
+    /// <summary>
+    /// Records a failure on both Uploader.Errors and UploadResult.
+    /// Clears IsURLExpected so UploadResult.IsError/ErrorsToString reflect the failure
+    /// even when the original long URL is kept on result.URL.
+    /// </summary>
+    private UploadResult Fail(UploadResult result, string? message)
+    {
+        if (!string.IsNullOrEmpty(message))
+        {
+            Errors.Add(message);
+        }
+
+        // UploadResult.IsError is false while IsURLExpected && URL is set (original long URL).
+        // Shortener failures keep the original URL for context; flip IsURLExpected so callers
+        // see the error via result.IsError / ErrorsToString().
+        result.IsURLExpected = false;
+        result.IsSuccess = false;
+        result.Errors.Add(Errors);
         return result;
     }
 
