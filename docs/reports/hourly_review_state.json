@@ -1428,12 +1428,12 @@
       "agent": "nadia",
       "outcome": "ingested",
       "item": "clawpatch findings -> next_candidates",
-      "commit": null,
+      "commit": "6bfd8340e2",
       "summary": "xerahs-review daily-producer tick (Nadia, 23:00 AWST cadence). Step 5 clawpatch review run 20260801T150459-763172 produced 55 findings across 3 features (feat_library_49a3ae3944 UploaderPluginSdk, feat_library_49cbf3ebc1 Bitly.Plugin, feat_library_4b88d6d423 Assistant UI); 1 finding from Bitly.Plugin. Step 5.5 parsed 160 findings across 3 newest reports (20260801T150459, 20260731T150358, 20260729T150504); gate dropped 96 (risk/contract/test/docs); 3 area-level (ImmichUploader), 31 release-fixed (v2.1.2), 29 recently-pivoted (v2.2.2); ingested 1 (BitlyPlugin SendRequest missing error handling). Fork sync pulled nadia remote 9f2e6dc9..HEAD (consumer fix AnnotateToolbar); upstream fast-forward merged 4d6d8b8a (PR #278 'Fix empty queue audit and update AnnotateToolbar icons'); pushed to nadia. next_candidates: 0 -> 1.",
       "status": "ok"
     }
   ],
-  "last_run_outcome": "ingested (1 Bitly Plugin SendRequest finding)",
+  "last_run_outcome": "ingested (1 Bitly Plugin SendRequest finding) — commit 6bfd8340e2",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
