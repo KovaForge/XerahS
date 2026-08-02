@@ -182,6 +182,14 @@ public sealed class DropboxUploader : FileUploader, IOAuth2Basic
         OAuth2Token token = _authInfo.Token;
         if (NeedsRefresh(token) && !RefreshAccessToken())
         {
+            // Soft-fail: if the current access token is not proven expired, keep
+            // using it when the refresh endpoint is unreachable or rejects the
+            // refresh_token. Only hard-fail once expiry is known.
+            if (CanUseAccessTokenWithoutRefresh(token))
+            {
+                return true;
+            }
+
             Errors.Add("Dropbox access token refresh failed. Please login again.");
             return false;
         }
@@ -416,14 +424,41 @@ public sealed class DropboxUploader : FileUploader, IOAuth2Basic
             && !string.IsNullOrWhiteSpace(_authInfo.Token.access_token);
     }
 
-    private static bool NeedsRefresh(OAuth2Token token)
+    /// <summary>
+    /// Determines whether the Dropbox access token should be refreshed before use.
+    /// Exposed to tests via InternalsVisibleTo.
+    /// </summary>
+    internal static bool NeedsRefresh(OAuth2Token token)
     {
         if (token.ExpireDate == DateTime.MinValue)
         {
-            return token.expires_in > 0 || !string.IsNullOrWhiteSpace(token.refresh_token);
+            // No absolute expiry tracked. Only force a refresh when the provider
+            // previously advertised a finite lifetime (expires_in > 0) AND a
+            // refresh_token is available. A bare refresh_token without expiry
+            // metadata must not trigger a refresh on every CheckAuthorization.
+            return token.expires_in > 0 && !string.IsNullOrWhiteSpace(token.refresh_token);
         }
 
         return token.IsExpired;
+    }
+
+    /// <summary>
+    /// True when the current access token can still be used after a failed refresh.
+    /// </summary>
+    internal static bool CanUseAccessTokenWithoutRefresh(OAuth2Token token)
+    {
+        if (token == null || string.IsNullOrWhiteSpace(token.access_token))
+        {
+            return false;
+        }
+
+        // Unknown absolute expiry: allow the existing access token through.
+        if (token.ExpireDate == DateTime.MinValue)
+        {
+            return true;
+        }
+
+        return !token.IsExpired;
     }
 
     private static string? GetDirectShareableUrl(string? url)
