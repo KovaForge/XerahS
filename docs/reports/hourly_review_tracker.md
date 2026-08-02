@@ -4108,3 +4108,14 @@ Added candidates (8):
 - Commit: 2436bbb620dc (Declan Murphy)
 - Follow-up: queue empty after this drain; producer will re-scan Bitly on next clawpatch cycle
 - Skill: xerahs-bugfix/SKILL.md v1.1.18 — no skill patch this run
+
+### 2026-08-02 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero next_candidates after prior Bitly fix (v0.24.15) drained the queue. Producer last ingested 1 Bitly finding at 2026-08-01 23:10 AWST; consumer already fixed it at 2026-08-02 00:06 AWST. No deferred last_runs files present.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+- Skill: xerahs-bugfix/SKILL.md v1.1.18 (no patch this run)
