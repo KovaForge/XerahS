@@ -118,6 +118,9 @@ namespace XerahS.UI.ViewModels
         private bool _taskbarProgressEnabled;
 
         [ObservableProperty]
+        private bool _disableToastNotification;
+
+        [ObservableProperty]
         private bool _autoCheckUpdate;
 
         [ObservableProperty]
@@ -274,6 +277,7 @@ namespace XerahS.UI.ViewModels
             ThemeMode = settings.ThemeMode;
             TrayIconProgressEnabled = settings.TrayIconProgressEnabled;
             TaskbarProgressEnabled = settings.TaskbarProgressEnabled;
+            DisableToastNotification = settings.DisableToastNotification;
             AutoCheckUpdate = settings.AutoCheckUpdate;
             UpdateChannel = settings.UpdateChannel;
             PreReleaseUpdateSource = settings.PreReleaseUpdateSource;
@@ -392,6 +396,7 @@ namespace XerahS.UI.ViewModels
             settings.ThemeMode = ThemeMode;
             settings.TrayIconProgressEnabled = TrayIconProgressEnabled;
             settings.TaskbarProgressEnabled = TaskbarProgressEnabled;
+            settings.DisableToastNotification = DisableToastNotification;
             settings.AutoCheckUpdate = AutoCheckUpdate;
             settings.UpdateChannel = UpdateChannel;
             settings.PreReleaseUpdateSource = PreReleaseUpdateSource;
@@ -505,6 +510,7 @@ namespace XerahS.UI.ViewModels
             UseCustomScreenshotsPath = false;
             ShowTray = true;
             SilentRun = false;
+            DisableToastNotification = false;
             SelectedTheme = 0;
             LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.Automatic;
             MacOSRegionSelectorPreference = MacOSInteractiveRegionSelectorPreference.Automatic;
