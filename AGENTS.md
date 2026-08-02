@@ -86,6 +86,16 @@ Whoever pushes uses their own wrapper. Example: Declan pushes with `git-declan p
 
 Run `git-<person> whoami` to confirm identity and remote before pushing.
 
+### Fallback when no wrapper is installed
+
+If the matching `git-<person>` wrapper is not on `PATH` (e.g. fresh CI/sandbox/headless box), fall back to the default git auth already configured for the agent:
+
+- Confirm the configured identity is correct for you: `git config --get user.name` and `git config --get user.email`.
+- Confirm the remote is the shared `https://github.com/ShareX/XerahS.git` (or your fork): `git remote -v`.
+- Push with plain `git push <remote> <branch>` (or `git push` if on a tracking branch).
+
+The wrapper is preferred because it pins the per-person committer identity and routes to the right remote. The fallback exists only so an agent is not blocked when the wrapper is genuinely unavailable; do not "fix" the wrapper-missing case by editing git config in place unless the operator asks for it.
+
 ## Source of truth
 
 Inherited from `/Users/mike/Projects/KovaForge/AGENTS.md`. When this file and the parent conflict, the parent wins until this file is updated to match.
