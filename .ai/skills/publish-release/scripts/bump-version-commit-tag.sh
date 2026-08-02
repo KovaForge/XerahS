@@ -110,6 +110,7 @@ collect_version_sync_targets() {
   VERSION_SYNC_TARGETS=()
   local file
   local chocolatey_nuspec="build/windows/chocolatey/xerahs.nuspec"
+  local flatpak_metainfo="flatpak/com.xerahs.XerahS.metainfo.xml"
 
   while IFS= read -r file; do
     if [[ -n "$file" ]] && grep -q '<Version>[0-9]\+\.[0-9]\+\.[0-9]\+</Version>' "$file"; then
@@ -119,6 +120,13 @@ collect_version_sync_targets() {
 
   if [[ -f "$chocolatey_nuspec" ]] && grep -q '<version>[0-9]\+\.[0-9]\+\.[0-9]\+</version>' "$chocolatey_nuspec"; then
     VERSION_SYNC_TARGETS+=("$chocolatey_nuspec|version")
+  fi
+
+  # Flatpak AppStream metainfo: keep the <releases> block in sync so
+  # `flatpak info` reports the new version instead of a stale entry.
+  # See .ai/skills/publish-release/SKILL.md §"Version sync" for scope.
+  if [[ -f "$flatpak_metainfo" ]] && grep -q '<releases>' "$flatpak_metainfo"; then
+    VERSION_SYNC_TARGETS+=("$flatpak_metainfo|metainfo_release")
   fi
 
   if [[ ${#VERSION_SYNC_TARGETS[@]} -eq 0 ]]; then
@@ -131,7 +139,14 @@ print_version_sync_targets() {
   local entry file xml_tag
   for entry in "${VERSION_SYNC_TARGETS[@]}"; do
     IFS='|' read -r file xml_tag <<< "$entry"
-    echo "  - $file (<$xml_tag>)"
+    case "$xml_tag" in
+      metainfo_release)
+        echo "  - $file (insert <release>)"
+        ;;
+      *)
+        echo "  - $file (<$xml_tag>)"
+        ;;
+    esac
   done
 }
 
@@ -164,6 +179,63 @@ update_version_tag_in_file() {
   mv "$tmp" "$file"
 }
 
+# Insert a new <release version="NEW" date="YYYY-MM-DD"> entry as the first
+# child of <releases> in a Flatpak AppStream metainfo XML file. Skips if a
+# release with the same version already exists. Uses a generic description
+# placeholder ("See CHANGELOG.md for details.") which the caller should edit
+# in the resulting commit before pushing.
+update_metainfo_release_in_file() {
+  local file="$1"
+  local new_version="$2"
+  local today
+  today="$(date -u +%Y-%m-%d)"
+
+  python3 - "$file" "$new_version" "$today" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+file_path = Path(sys.argv[1])
+new_version = sys.argv[2]
+today = sys.argv[3]
+
+content = file_path.read_text(encoding="utf-8")
+
+# Skip if a release with this exact version is already present.
+if re.search(rf'<release version="{re.escape(new_version)}"', content):
+    sys.exit(0)
+
+new_release = (
+    f'\n    <release version="{new_version}" date="{today}">\n'
+    '      <description>\n'
+    '        <p>See CHANGELOG.md for details.</p>\n'
+    '      </description>\n'
+    '    </release>'
+)
+
+new_content, n = re.subn(r"(<releases>)", r"\1" + new_release, content, count=1)
+if n != 1:
+    print(f"Error: <releases> not found in {file_path}", file=sys.stderr)
+    sys.exit(2)
+
+file_path.write_text(new_content, encoding="utf-8")
+PY
+}
+
+sync_one_target() {
+  local entry file xml_tag
+  entry="$1"
+  IFS='|' read -r file xml_tag <<< "$entry"
+  case "$xml_tag" in
+    metainfo_release)
+      update_metainfo_release_in_file "$file" "$new_version"
+      ;;
+    *)
+      update_version_tag_in_file "$file" "$xml_tag" "$new_version"
+      ;;
+  esac
+}
+
 prompt_if_empty() {
   local var_name="$1"
   local prompt="$2"
@@ -181,6 +253,7 @@ require_cmd git
 require_cmd grep
 require_cmd awk
 require_cmd sort
+require_cmd python3
 
 BUMP=""
 NO_BUMP=0
@@ -398,8 +471,7 @@ fi
 
 if [[ $NO_BUMP -eq 0 ]]; then
   for entry in "${VERSION_SYNC_TARGETS[@]}"; do
-    IFS='|' read -r file xml_tag <<< "$entry"
-    update_version_tag_in_file "$file" "$xml_tag" "$new_version"
+    sync_one_target "$entry"
   done
 fi
 

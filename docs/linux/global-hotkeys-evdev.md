@@ -82,7 +82,33 @@ is unavailable. The command exits non-zero when no readable keyboard is found.
 
 ## Flatpak / sandboxed installs
 
-Sandboxed builds do not get raw `/dev/input` access (for Flathub compliance), so
-the evdev path is unavailable inside the sandbox. XerahS automatically falls back
-to the XDG GlobalShortcuts portal there. Use a native `.deb`/`.rpm`/AUR install for
-the direct evdev hotkey experience.
+Sandboxed Flatpak builds do not grant raw `/dev/input` access (not a
+Flathub-standard permission), so the direct-evdev path is unavailable
+inside the sandbox. Instead, the Flatpak requests `--socket=wayland`,
+`--socket=fallback-x11`, and the
+`org.freedesktop.portal.{Desktop,GlobalShortcuts,ScreenCast,Notification}`
+D-Bus names via `finish-args:` in
+[`flatpak/com.xerahs.XerahS.yml`](../../flatpak/com.xerahs.XerahS.yml).
+That lets the runtime resolve the XDG GlobalShortcuts portal service
+through the Flatpak session-bus proxy, so the on-screen hotkey capture
+dialog renders natively on Wayland (GNOME, KDE, Hyprland) and the
+portal-native triggers fire from any focused application.
+
+Three active backends, picked at runtime by
+[`LinuxPlatform.CreateHotkeyService`](../../src/platform/XerahS.Platform.Linux/LinuxPlatform.cs):
+
+1. **evdev** — direct `/dev/input` listener (native `.deb`/`.rpm`/AUR only).
+2. **XDG GlobalShortcuts portal** — the Flatpak and any Wayland session
+   where the portal is exposed.
+3. **X11 key grabs** — final fallback on X11 sessions (focus-only).
+
+If a Flatpak install still shows the broken "three blank rectangles"
+placeholder dialog after an upgrade, run
+`flatpak run --command=xerahs com.xerahs.XerahS doctor --linux-input`
+and check the `GlobalShortcuts:` line — it must read
+`ok (source=dbus-introspect)`. If it reads
+`no (source=…)`, verify that
+`org.freedesktop.portal.GlobalShortcuts` is exposed by the active
+xdg-desktop-portal backend (`busctl --user introspect
+org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop | grep
+GlobalShortcuts`).
