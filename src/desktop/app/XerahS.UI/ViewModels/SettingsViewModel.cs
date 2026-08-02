@@ -461,10 +461,20 @@ namespace XerahS.UI.ViewModels
         private async Task ManualUpdate()
         {
             IsManualUpdateInProgress = true;
-            ManualUpdateStatusText = "Checking for updates...";
 
             try
             {
+                if (XerahS.UI.Services.UpdateService.IsRuntimeManagedByFlatpak)
+                {
+                    // The Flatpak runtime owns upgrade delivery; the in-app
+                    // updater is intentionally a no-op here so it does not
+                    // surface .deb / .rpm assets that the sandbox cannot
+                    // install.
+                    ManualUpdateStatusText = XerahS.UI.Services.UpdateService.RuntimeManagedUpdateMessage;
+                    return;
+                }
+
+                ManualUpdateStatusText = "Checking for updates...";
                 Services.UpdateService.Instance.Initialize();
                 UpdateStatus status = await Services.UpdateService.Instance.CheckForUpdatesAsync();
 
