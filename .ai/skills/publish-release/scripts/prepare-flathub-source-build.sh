@@ -368,6 +368,14 @@ fi
 cd "$repo_root"
 repo_root="$(pwd -P)"
 
+# Resolve OUTPUT_PATH to an absolute path so flatpak-run --filesystem=... grants
+# work correctly. flatpak-run rejects relative filesystem locations with
+# "Unknown filesystem location"; passing absolute paths avoids the failure.
+case "$OUTPUT_PATH" in
+  /*) ;;
+  *) OUTPUT_PATH="$repo_root/$OUTPUT_PATH" ;;
+esac
+
 if [[ -z "$TAG_NAME" ]]; then
   version="$(resolve_version_from_props Directory.Build.props)"
   if [[ -z "$version" ]]; then
@@ -426,7 +434,12 @@ sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
 
 finish-args:
-  - --socket=x11
+  # Display. Wayland native socket first so the XDG GlobalShortcuts portal
+  # dialog renders with native chrome on GNOME/KDE/Hyprland. fallback-x11
+  # allows XWayland when only X11 is available. --share=ipc is required by
+  # Flathub lint whenever any x11 variant is present.
+  - --socket=wayland
+  - --socket=fallback-x11
   - --share=ipc
   - --device=dri
   - --share=network
