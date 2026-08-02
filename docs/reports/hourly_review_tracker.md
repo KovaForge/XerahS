@@ -4130,3 +4130,57 @@ Added candidates (8):
 - Commit: null (audit SHA in Step 9 summary only; v1.1.12 no self-ref backfill)
 - Follow-up: wait for xerahs-review to ingest clawpatch queue; untracked report .clawpatch/reports/20260801T150459-763172.md left for producer
 - Skill: none this run
+
+### 2026-08-02 23:02 AWST - xerahs-review producer tick (nadia-daily)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Workspace: /Users/mike/Projects/KovaForge/xerahs
+- Cron: xerahs-review-daily-producer (fires at 23:00 AWST, feeds 00:06 bugfix drain)
+- Status: ok
+
+#### Fork sync
+- nadia remote: HEAD still 69f2b95f (consumer push of v0.24.17 [Tray icon outline], v0.24.18 [Flatpak finish-args + .deb/.rpm filter], and KFIP0017 X/Twitter Capture Mode Suite since last producer tick)
+- origin (vladislava): HEAD still fb2074ed (origin 2 behind; expected — Vladislava's remote has not been re-pushed with consumer fix yet)
+- Status: clean
+
+#### Upstream sync
+- upstream/develop tip: b43eb3dc ([Flatpak] source-build manifest wayland-first finish-args)
+- merge-base: b43eb3dc (already merged via bb3904f9 in last consumer batch)
+- Status: clean (no upstream movement since last sync)
+
+#### ShareX.ImageEditor submodule
+- Submodule HEAD: 1bcb66c (develop branch, matches origin/develop and upstream/develop)
+- Status: clean (no new commits)
+
+#### Clawpatch review
+- Command: clawpatch review --provider minimax --model MiniMax-Text-01 --limit 3
+- Run: 20260802T150427-966688
+- Features reviewed: 3 (.NET project Ava, C# CLI XerahS.CLI, C# source Dropbox.Plugin)
+- Findings (raw): 60 in this run (2 .NET project Ava, 0 CLI, 3 Dropbox.Plugin)
+- Reports parsed for ingest: 3 (latest run + 2 prior)
+
+#### Clawpatch ingest (3 latest reports)
+- Reports: 20260802T150427-966688.md, 20260801T150459-763172.md, 20260731T150358-7c432f.md
+- Findings parsed: 169
+- Dropped at severity gate: 99
+    - triage=risk: 77
+  - triage=contract-mismatch: 16
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Dropped as already-fixed (area-level): 3
+- Dropped as recently-fixed (release-history v2.1.2): 33
+- Skipped as duplicate of existing: 1
+- Skipped as recently-pivoted: 30
+- Added to next_candidates: 3
+    - src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)
+  - src/desktop/plugins/Dropbox.Plugin/DropboxProvider.cs:211 (GetThumbnailAsync)
+- next_candidates delta: 3 -> 3 (+3)
+
+#### Next follow-up
+- Consumer xerahs-bugfix at 00:06 AWST will pick up:
+  1. DropboxUploader.RefreshAccessToken (medium/bug, token-refresh needs-trigger logic) — security-adjacent
+  2. BitlyUrlShortener.ShortenURL (medium/bug, SendRequest error handling) — RE-INGESTED from prior run; consumer should verify it is the same Bitly fix already merged in v0.24.15 (2436bbb6); if duplicate, expect consumer to drop per v2.1.2 dedupe
+  3. DropboxProvider.GetThumbnailAsync (medium/bug, missing HTTP error-status handling) — new
+- Note: Bitly finding is a re-ingest from an earlier clawpatch report (not yet seen by v2.1.2 release-history gate); consumer's release-history check should catch it against 2436bbb6
+

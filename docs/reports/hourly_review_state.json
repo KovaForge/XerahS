@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-02 16:06 AWST",
+  "last_updated": "2026-08-02 23:02 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,11 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)",
+    "src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)",
+    "src/desktop/plugins/Dropbox.Plugin/DropboxProvider.cs:211 (GetThumbnailAsync)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -313,6 +317,45 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-08-02 23:02 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260802T150427-966688.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 5 findings (1 .NET project Ava, 0 CLI, 3 Dropbox.Plugin); ingest: 3 added to next_candidates (DropboxUploader.RefreshAccessToken, BitlyUrlShortener.ShortenURL, DropboxProvider.GetThumbnailAsync)",
+      "notes": "Producer-only tick. nadia remote HEAD: 69f2b95f (in sync with upstream/develop b43eb3dc; origin 2 behind on fb2074ed, expected). Submodule ShareX.ImageEditor clean. clawpatch reports parsed: 3 (latest 20260802T150427-966688). Findings dropped at severity gate: 99. Dropped as already-fixed (area-level): 3. Dropped as recently-pivoted: 30. Dropped as recently-fixed (release-history v2.1.2): 33. Skipped as duplicate: 1. next_candidates delta: 3 -> 3 (+3).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 3,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 3,
+        "queue_size_after": 3,
+        "queue_added": [
+          "src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)",
+          "src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)",
+          "src/desktop/plugins/Dropbox.Plugin/DropboxProvider.cs:211 (GetThumbnailAsync)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 77,
+          "triage=contract-mismatch": 16,
+          "triage=test-gap": 3,
+          "triage=docs-gap": 3
+        },
+        "clawpatch_reports_parsed": [
+          "20260802T150427-966688.md",
+          "20260801T150459-763172.md",
+          "20260731T150358-7c432f.md"
+        ]
+      }
+    },
     {
       "timestamp": "2026-07-05 21:10 AWST",
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
