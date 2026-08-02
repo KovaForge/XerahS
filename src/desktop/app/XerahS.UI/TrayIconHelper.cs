@@ -137,11 +137,10 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     private static string GetIdleIconPath()
     {
-        // Use the white/monochrome icon on macOS (menu bar) and Linux (GNOME/KDE top panel)
-        // when the user has opted in. Both environments use dark system panels where a white
-        // icon matches the look of built-in indicators (WiFi, volume, battery).
-        bool useWhite = SettingsManager.Settings.UseWhiteShareXIcon &&
-                        (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux());
+        // The white/monochrome tray icon is opt-in everywhere. The setting is auto-flipped
+        // to true on Linux/macOS (dark system panels — menu bar, GNOME/KDE top bar) but the
+        // user can override it on any platform, including Windows. See issue #261.
+        bool useWhite = SettingsManager.Settings.UseWhiteShareXIcon;
         return useWhite ? WhiteIconPath : DefaultIconPath;
     }
 

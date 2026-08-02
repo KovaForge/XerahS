@@ -5,11 +5,16 @@ sdk: org.freedesktop.Sdk
 command: xerahs
 
 finish-args:
-  # Display. Avalonia currently selects its X11 backend on the Fedora GNOME
-  # validation VM. XDG portals remain the path for sandboxed capture and desktop
-  # integration; no raw Wayland display socket is requested.
-  - --socket=x11
-  - --share=ipc
+  # Display. The Wayland native socket is preferred so the XDG GlobalShortcuts
+  # portal dialog renders with native chrome on GNOME/KDE/Hyprland. The
+  # fallback-x11 socket allows XWayland when only X11 is available. Both
+  # sockets together pass flatpak-builder-lint (x11+wayland together would
+  # not). Native .deb/.rpm/AUR installs are not sandboxed and continue to
+  # use the direct-evdev hotkey path via the udev rule in
+  # build/linux/packaging/99-xerahs-input.rules.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc       # required by Flathub lint whenever any x11 variant is present
 
   # GPU / Skia acceleration.
   - --device=dri
@@ -17,10 +22,14 @@ finish-args:
   # Network is required for upload destinations, update checks, and connected integrations.
   - --share=network
 
-  # XDG Desktop Portals are used for screenshots, screencasts, file access,
-  # OpenURI, notifications, background startup, and global shortcuts when
-  # supported by the user's portal backend. Explicit portal bus-name grants are
-  # intentionally avoided for Flathub linter compliance.
+  # XDG Desktop Portals — Capture/Hotkeys/Notification via the standard
+  # portal path. No explicit portal bus-name grants: the Flatpak session-bus
+  # proxy (xdg-dbus-proxy) auto-routes calls to
+  # org.freedesktop.portal.{Desktop,GlobalShortcuts,ScreenCast,Notification}
+  # whenever the running app's app_id matches a known .desktop file.
+  # `App.axaml.cs:70` sets `Name = "xerahs"` to align the Wayland app_id with
+  # flatpak/com.xerahs.XerahS.desktop's StartupWMClass=xerahs, so the proxy
+  # forwards the portal calls without us needing `--talk-name=…portal.*`.
 
   # StatusNotifierItem tray integration. On GNOME this still depends on a
   # compatible AppIndicator/KStatusNotifier extension.
