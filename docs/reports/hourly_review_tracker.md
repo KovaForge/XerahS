@@ -4184,3 +4184,34 @@ Added candidates (8):
   3. DropboxProvider.GetThumbnailAsync (medium/bug, missing HTTP error-status handling) — new
 - Note: Bitly finding is a re-ingest from an earlier clawpatch report (not yet seen by v2.1.2 release-history gate); consumer's release-history check should catch it against 2436bbb6
 
+
+### 2026-08-03 00:05 AWST - DropboxUploader / OAuth token refresh gate
+
+- Area: DropboxUploader.RefreshAccessToken / NeedsRefresh
+- Files: src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs, src/desktop/plugins/Dropbox.Plugin/Properties/AssemblyInfo.cs, tests/XerahS.Tests/Uploaders/DropboxUploaderRefreshTests.cs, Directory.Build.props
+- Findings: NeedsRefresh treated any refresh_token + ExpireDate=MinValue as requiring an immediate network refresh, so CheckAuthorization failed offline even when the access token was still usable. Now requires expires_in > 0 AND a refresh_token before forcing refresh, and soft-fails CheckAuthorization when refresh fails but the access token is not proven expired.
+- Status: Fixed
+- Build/test: Dropbox plugin + XerahS.Tests Release build OK; DropboxUploaderRefreshTests 11/11 passed. Logs: /tmp/xerahs-bugfix/build-20260803-000527-dropbox.log, /tmp/xerahs-bugfix/build-20260803-000527-tests.log, /tmp/xerahs-bugfix/test-20260803-000527-dropbox-refresh.log
+- Commit: 1436cdb5
+- Version: 0.24.18 → 0.24.19
+- Follow-up: none for this path; deferred pivot last_runs rows for Bitly ShortenURL + DropboxProvider.GetThumbnailAsync under XIP0077 +0/+1
+
+### 2026-08-03 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)
+- Files: (none — pivot, no code change)
+- Findings: try/catch around SendBitlyRequest already present (lines 70-79); empty/JSON failures surface diagnostics; BitlyUrlShortenerTests cover throw/null/success
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; last_runs row deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless source regresses (seeded in recently_pivoted)
+
+### 2026-08-03 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Dropbox.Plugin/DropboxProvider.cs:211 (GetThumbnailAsync)
+- Files: (none — pivot, no code change)
+- Findings: inner GetThumbnailAsync (line 584) and DownloadBytesFromUrlAsync (line 614) already check IsSuccessStatusCode and return null; non-image short-circuit before HTTP
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; last_runs row deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless source regresses (seeded in recently_pivoted)
