@@ -26,6 +26,7 @@
 using Avalonia.Threading;
 using XerahS.Bootstrap;
 using XerahS.Common;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Views;
 
@@ -50,6 +51,15 @@ public class AvaloniaToastService : IToastService
         if (!config.IsValid)
         {
             DebugHelper.WriteLine("ToastConfig is not valid, skipping toast display.");
+            return;
+        }
+
+        // Global master switch (issue #252): when the user has disabled the
+        // notification window in Application Settings, skip the popup entirely
+        // so the capture/upload flow does not surface any toast.
+        if (SettingsManager.Settings?.DisableToastNotification == true)
+        {
+            DebugHelper.WriteLine("Toast notification window disabled by global setting; skipping toast display.");
             return;
         }
 

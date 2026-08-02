@@ -121,6 +121,22 @@
                             </Border>
                         </StackPanel>
 
+                        <!-- Notifications -->
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                            <TextBlock Text="Notifications" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <CheckBox IsChecked="{Binding DisableToastNotification}"
+                                              Content="Disable notification window"
+                                              ToolTip.Tip="Suppress the corner toast popup that normally appears after a task completes (e.g. 'Task Completed', 'Upload Completed'). Capture, upload and other actions still run normally."
+                                              AutomationProperties.Name="Disable Notification Window"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- Tray Icon -->
                         <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
                             <TextBlock Text="Tray Icon" FontWeight="SemiBold"/>

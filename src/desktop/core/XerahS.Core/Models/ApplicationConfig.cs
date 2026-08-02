@@ -83,6 +83,12 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool TrayIconProgressEnabled = true;
     public bool TaskbarProgressEnabled = true;
     public bool UseWhiteShareXIcon = false;
+    /// <summary>
+    /// Global master switch that suppresses every toast notification popup (the corner
+    /// "Task Completed" / "Upload Completed" window). Capture and upload still run; only
+    /// the toast window is hidden. See issue #252.
+    /// </summary>
+    public bool DisableToastNotification = false;
     public bool? LinuxUseWaylandPortalServices = null;
     /// <summary>
     /// After UI clipboard copy, also hand off to wl-copy so paste survives app exit (Linux Wayland).
