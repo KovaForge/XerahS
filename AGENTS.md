@@ -11,7 +11,7 @@
    - Exception: if the only tracked change is a version-only bump in the root `Directory.Build.props`, a fresh `dotnet build` is not required before push. In that case, verify the diff is limited to the intended version change and keep the commit prefix aligned with the new version.
    - **Never** disable `<TreatWarningsAsErrors>`. Fix the warnings.
    - **Target Framework**: `net10.0-windows10.0.26100.0` (do not use `net10.0-windows` alone).
-   - **SkiaSharp**: keep it aligned with the centrally managed version in root `Directory.Packages.props` (currently **3.119.3-preview.1.1**). Do not reintroduce the legacy `2.88.9` pin.
+   - **SkiaSharp**: keep all `SkiaSharp` and `SkiaSharp.NativeAssets.*` packages aligned to the same version in root `Directory.Packages.props` (currently managed **SkiaSharp 4.151.0** plus matching **SkiaSharp.NativeAssets.Linux 4.151.0** and **SkiaSharp.NativeAssets.Win32 4.151.0**). The managed and native versions must match exactly; Avalonia 12.1.1's transitives pull `SkiaSharp.NativeAssets.Linux` 3.119.4 by default, and a managed/native split crashes startup with `SkiaSharpVersion.CheckNativeLibraryCompatible` ("Supported versions of the native libSkiaSharp library are in the range [151.0, 152.0)"). Do not reintroduce the legacy `2.88.9` pin.
 
 2. **Build Timeouts**
    - Do not enforce a fixed single-build time limit; packaging and release builds can legitimately take longer on slower PCs.

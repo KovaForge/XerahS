@@ -188,6 +188,7 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never let `XerahS.App` or `XerahS.CLI` publish transitive `ShareX.VideoEditor/frontend/dist` assets directly; always remove those `ResolvedFileToPublish` entries and copy the Web UI once after `Publish` because duplicate Video Editor frontend publish items trigger `NETSDK1152` on Windows and macOS release packaging.
 - Never pair `.WithDeveloperTools()` with `AttachDeveloperTools()` in XerahS DEBUG startup; always keep exactly one developer-tools attachment path in the application layer because Avalonia 12 throws when DevTools are attached twice.
 - Never call `UseSkia()` in an Avalonia 12 headless/test host without also configuring `Avalonia.HarfBuzz` and `.UseHarfBuzz()` because Skia-only builders no longer get text shaping automatically.
+- Never pin managed `SkiaSharp` to a major version higher than the corresponding `SkiaSharp.NativeAssets.*` transitive; always pin every `SkiaSharp.NativeAssets.<rid>` package consumed (Linux at minimum, plus Win32/macOS/WASM if used) in `Directory.Packages.props` so the native `libSkiaSharp.so` matches the managed assembly's expected native range, otherwise Avalonia's transitives will pull the older 3.x native and crash with `SkiaSharpVersion.CheckNativeLibraryCompatible` at startup (XIP-0081).
 
 ---
 
