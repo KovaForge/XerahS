@@ -4215,3 +4215,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only; last_runs row deferred under XIP0077 +0/+1)
 - Follow-up: do not re-queue unless source regresses (seeded in recently_pivoted)
+
+### 2026-08-03 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream sync. Deleted stale /tmp/xerahs-bugfix/deferred-last-runs-20260803-000527.json (2 already-fixed pivot audit rows from 00:05 tick; no fix commit available to fold under XIP0077 +0/+1). Tracker markdown remains the durable ledger for those pivots.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: null (audit commit SHA recorded in Step 9 summary only — v1.1.12)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+- Skill: none this tick
