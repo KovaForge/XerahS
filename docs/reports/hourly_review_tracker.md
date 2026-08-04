@@ -4324,3 +4324,13 @@ Added candidates (8):
 - Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
 - Commit: pending (Step 9)
 - Follow-up: consumer drains at 00:06 AWST will see zero queue (no-op audit). Worth investigating whether clawpatch is producing genuinely fresh findings (the same 35 cited bugs are now part of every report).
+
+### 2026-08-05 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero `real-bug` candidates. Producer tick `nadia-valeva-kf` at 2026-08-04 23:06 AWST parsed 178 findings across 3 clawpatch reports (latest `20260804T150355-87bb09.md`), dropped 105 at severity gate, 3 area-level-fixed, 35 release-history-fixed (v2.1.2), 35 recently-pivoted; ingested 0. Fork sync: HEAD == declan/develop == origin/develop (c388b85c). Upstream behind 20 (expected; KovaForge-specific commits ahead). Submodule ShareX.ImageEditor clean.
+- Status: no-op (empty consumer queue)
+- Build/test: n/a (no code change)
+- Commit: (see pushed audit SHA in Step 9 summary)
+- Follow-up: resume next_candidates drain when producer ingests fresh findings.
