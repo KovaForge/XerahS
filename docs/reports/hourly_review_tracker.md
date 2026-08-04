@@ -4267,3 +4267,60 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: pending
 - Follow-up: await next xerahs-review producer cycle
+
+### 2026-08-04 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 105
+  - triage=risk: 81
+  - triage=contract-mismatch: 18
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+
+### 2026-08-04 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 105
+  - triage=risk: 81
+  - triage=contract-mismatch: 18
+  - triage=test-gap: 3
+  - triage=docs-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 35
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - ... and 25 more
+- Skipped as duplicate: 0
+- Skipped as recently-pivoted: 35
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-04 23:06 AWST - xerahs-review producer tick (Nadia, daily cron)
+
+- Owner: nadia-valeva-kf
+- Report run: 20260804T150355-87bb09.md
+- Reports parsed (3 newest): 3
+- Findings parsed (total across reports): 178
+- Severity-gate drops: 105 ({'triage=risk': 81, 'triage=contract-mismatch': 18, 'triage=test-gap': 3, 'triage=docs-gap': 3})
+- Area-level already-fixed drops: 3
+- Release-history fixed drops (v2.1.2 cache): 35
+- Recently-pivoted drops: 35
+- Ingested into next_candidates: 0
+- next_candidates delta: 0 -> 0 (+0)
+- Fork sync: nadia remote already at HEAD (19227995); origin=6a7a648b (vladislava, not pushed to)
+- Upstream sync: upstream/develop (b43eb3dc) already merged into HEAD; no new commits
+- Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
+- Commit: pending (Step 9)
+- Follow-up: consumer drains at 00:06 AWST will see zero queue (no-op audit). Worth investigating whether clawpatch is producing genuinely fresh findings (the same 35 cited bugs are now part of every report).

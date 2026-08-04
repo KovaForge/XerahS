@@ -1547,6 +1547,23 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates."
+    },
+    {
+      "ts": "2026-08-04 23:06 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "no-op",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "clawpatch review ran (20260804T150355-87bb09.md); parsed 178 findings across 3 reports, dropped 105 at severity gate ({'triage=risk': 81, 'triage=contract-mismatch': 18, 'triage=test-gap': 3, 'triage=docs-gap': 3}), 3 area-level-fixed, 35 release-history-fixed (v2.1.2), 35 recently-pivoted; ingested 0. Fork/upstream/submodule already in sync.",
+      "status": "no-op",
+      "latest_report": "20260804T150355-87bb09.md",
+      "reports_parsed": 3,
+      "parsed_total": 178,
+      "dropped_gate": 105,
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 35,
+      "skipped_recently_pivoted": 35,
+      "ingested": 0
     }
   ],
   "last_run_outcome": "no-op",
