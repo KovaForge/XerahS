@@ -4247,3 +4247,13 @@ Added candidates (8):
 - Build/test: n/a (no code changes)
 - Commit: none (audit only; SHA in Step 9 summary)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
+
+### 2026-08-04 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: none
+- Findings: Step 5a found zero candidates; no fixes or pivots were available.
+- Status: No-op
+- Build/test: n/a (metadata-only audit)
+- Commit: pending
+- Follow-up: await fresh next_candidates from xerahs-review
