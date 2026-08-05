@@ -4401,5 +4401,5 @@ Added candidates (8):
 - Fork sync: HEAD == nadia/develop == origin/develop (b01d0b54); nadia/develop advanced c388b85c..b01d0b54 since last tick (consumer pushed 3 audit commits)
 - Upstream sync: upstream/develop (b43eb3dc) unchanged; local is 23 commits ahead (KovaForge-specific layer; expected)
 - Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
-- Commit: pending (Step 9)
+- Commit: 599b6a53 (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
 - Follow-up: 00:06 AWST consumer drain should pick up PluginManifest.IsSafePluginId. The same 36 v2.1.2 release-fixed paths continue to dominate the dropped set — clawpatch reports appear to be re-emitting the same historical citations; no fresh bugs in the eligible set beyond the one PluginManifest finding.
