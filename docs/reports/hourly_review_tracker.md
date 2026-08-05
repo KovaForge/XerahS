@@ -4403,3 +4403,52 @@ Added candidates (8):
 - Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
 - Commit: 599b6a53 (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
 - Follow-up: 00:06 AWST consumer drain should pick up PluginManifest.IsSafePluginId. The same 36 v2.1.2 release-fixed paths continue to dominate the dropped set — clawpatch reports appear to be re-emitting the same historical citations; no fresh bugs in the eligible set beyond the one PluginManifest finding.
+
+### 2026-08-05 23:11 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 125
+  - triage=risk: 91
+  - triage=contract-mismatch: 25
+  - triage=docs-gap: 6
+  - triage=test-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history (v2.1.2): 36
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - ... and 26 more
+- Ingested: 1
+  + src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)
+- next_candidates delta: +1 (total 2)
+
+### 2026-08-05 23:11 AWST - xerahs-review producer tick (Nadia, daily cron)
+
+- Owner: nadia-valeva-kf
+- Report run: 20260805T151014-a3a066.md
+- Reports parsed (3 newest): 3
+- Findings parsed (total across reports): 203
+- Severity-gate drops: 125 ({'triage=risk': 91, 'triage=contract-mismatch': 25, 'triage=docs-gap': 6, 'triage=test-gap': 3})
+- Area-level already-fixed drops: 3
+- Release-history fixed drops (v2.1.2 cache): 36
+- Recently-pivoted drops: 36
+- Skipped as duplicate of existing: 2 (the prior tick's PluginManifest.IsSafePluginId plus one historical path)
+- Ingested into next_candidates: 1
+- Ingested: src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)
+- next_candidates delta: 1 -> 2 (+1)
+- Fork sync: HEAD == nadia/develop == origin/develop (1555de70); no fetch delta (consumer was already merged into origin/develop when I fetched at the top of this tick)
+- Upstream sync: upstream/develop (b43eb3dc) unchanged; local is 23 commits ahead (KovaForge-specific layer; expected)
+- Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
+- Skill note: SKILL.md patched to v2.2.3 prior to this tick (file-handle shadowing + AWST tz-aware construction in Step 5.5 script; both fixes exercised cleanly this run)
+- Commit: pending (Step 9)
+- Follow-up: 00:06 AWST consumer drain should pick up RandomCrypto.max and PluginManifest.IsSafePluginId. RandomCrypto.max is a small-but-real finding (capped `max` constant for cryptographic random range — typical production-use risk if any caller passed a value above the cap, which is plausible given the function name).
