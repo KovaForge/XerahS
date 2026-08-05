@@ -4450,5 +4450,5 @@ Added candidates (8):
 - Upstream sync: upstream/develop (b43eb3dc) unchanged; local is 23 commits ahead (KovaForge-specific layer; expected)
 - Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
 - Skill note: SKILL.md patched to v2.2.3 prior to this tick (file-handle shadowing + AWST tz-aware construction in Step 5.5 script; both fixes exercised cleanly this run)
-- Commit: pending (Step 9)
+- Commit: c2b94cd5 (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
 - Follow-up: 00:06 AWST consumer drain should pick up RandomCrypto.max and PluginManifest.IsSafePluginId. RandomCrypto.max is a small-but-real finding (capped `max` constant for cryptographic random range — typical production-use risk if any caller passed a value above the cap, which is plausible given the function name).
