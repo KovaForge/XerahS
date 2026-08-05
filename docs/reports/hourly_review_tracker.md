@@ -4345,3 +4345,14 @@ Added candidates (8):
 - Commit: PENDING
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
 - Skill: xerahs-bugfix/SKILL.md v1.1.18 — no patch this tick (no efficiency blockers)
+
+### 2026-08-05 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero candidates in next_candidates; no fix or pivot work this tick. Producer tick 2026-08-04 23:06 AWST ingested 0 findings. No deferred-last-runs files present.
+- Status: No-op (empty queue)
+- Build/test: n/a
+- Commit: PENDING (filled in Step 9 summary only; leave JSON commit null per v1.1.12)
+- Follow-up: next consumer tick depends on next clawpatch/producer cycle
+- Skill: xerahs-bugfix/SKILL.md — no patch this run (no efficiency blockers)
