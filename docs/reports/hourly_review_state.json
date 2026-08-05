@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-05 00:06 AWST",
+  "last_updated": "2026-08-05 08:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1572,6 +1572,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates. Producer tick 2026-08-04 23:06 AWST (nadia-valeva-kf) parsed 178 findings, dropped 105 at severity gate + 3 area-fixed + 35 release-fixed (v2.1.2) + 35 recently-pivoted; ingested 0. HEAD == declan/develop == origin/develop (c388b85c). Upstream behind 20 expected. Submodule ShareX.ImageEditor clean."
+    },
+    {
+      "ts": "2026-08-05 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; queue remains drained from prior tick (44c424e0). No deferred-last-runs files present; cleaned none.",
+      "status": "no-op"
     }
   ],
   "last_run_outcome": "no-op",

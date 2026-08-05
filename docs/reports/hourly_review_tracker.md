@@ -4334,3 +4334,14 @@ Added candidates (8):
 - Build/test: n/a (no code change)
 - Commit: (see pushed audit SHA in Step 9 summary)
 - Follow-up: resume next_candidates drain when producer ingests fresh findings.
+
+### 2026-08-05 08:05 AWST - Queue check / no queued candidates
+
+- Area: hourly_review_state.json::next_candidates
+- Files: docs/reports/hourly_review_tracker.md; docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found zero candidates; queue remains drained from prior tick (44c424e0 at 2026-08-05 00:06 AWST). No deferred-last-runs files to clean.
+- Status: No-op
+- Build/test: n/a (empty-queue audit)
+- Commit: PENDING
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+- Skill: xerahs-bugfix/SKILL.md v1.1.18 — no patch this tick (no efficiency blockers)
