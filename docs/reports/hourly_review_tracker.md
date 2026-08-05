@@ -4452,3 +4452,25 @@ Added candidates (8):
 - Skill note: SKILL.md patched to v2.2.3 prior to this tick (file-handle shadowing + AWST tz-aware construction in Step 5.5 script; both fixes exercised cleanly this run)
 - Commit: c2b94cd5 (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
 - Follow-up: 00:06 AWST consumer drain should pick up RandomCrypto.max and PluginManifest.IsSafePluginId. RandomCrypto.max is a small-but-real finding (capped `max` constant for cryptographic random range — typical production-use risk if any caller passed a value above the cap, which is plausible given the function name).
+
+### 2026-08-06 00:05 AWST - PluginManifest / IsSafePluginId ASCII whitelist
+
+- Area: PluginManifest.IsSafePluginId
+- Files: src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs, tests/XerahS.Tests/Helpers/PluginManifestSecurityTests.cs, Directory.Build.props
+- Findings: IsSafePluginId used char.IsLetterOrDigit which accepts Unicode/fullwidth letters; PluginId can become a spoofable default assembly name via GetAssemblyFileName(). Tightened to ASCII [A-Za-z0-9._-] with length cap 128.
+- Status: Fixed
+- Build/test: scoped Release build OK; PluginManifestSecurityTests 34 passed (logs: /tmp/xerahs-bugfix/build-20260806-000517-plugin.log, /tmp/xerahs-bugfix/test-20260806-000517-plugin.log)
+- Commit: 1f87c27f (Declan Murphy)
+- Follow-up: none for this item; CommunityPluginIndex has a parallel IsSafePluginId that may need the same ASCII tighten on a later tick
+- Skill: none this entry
+
+### 2026-08-06 00:05 AWST - RandomCrypto / Next inclusive range overflow
+
+- Area: RandomCrypto.Next(int,int)
+- Files: src/desktop/core/XerahS.Common/Random/RandomCrypto.cs, tests/XerahS.Tests/Common/RandomCryptoTests.cs, Directory.Build.props
+- Findings: Inclusive upper bound used maxValue++ which overflows at int.MaxValue and corrupts range math. Compute exclusive upper bound as long instead.
+- Status: Fixed
+- Build/test: scoped Release build OK; RandomCryptoTests 5 passed (logs: /tmp/xerahs-bugfix/build-20260806-000517-random.log, /tmp/xerahs-bugfix/test-20260806-000517-random.log)
+- Commit: 34387b80 (Declan Murphy)
+- Follow-up: none
+- Skill: none this entry
