@@ -4356,3 +4356,50 @@ Added candidates (8):
 - Commit: PENDING (filled in Step 9 summary only; leave JSON commit null per v1.1.12)
 - Follow-up: next consumer tick depends on next clawpatch/producer cycle
 - Skill: xerahs-bugfix/SKILL.md — no patch this run (no efficiency blockers)
+
+### 2026-08-05 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 116
+  - triage=risk: 87
+  - triage=contract-mismatch: 22
+  - triage=docs-gap: 4
+  - triage=test-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history (v2.1.2): 36
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Core/Models/TaskSettingsOptions.cs:317-322 (GradientInfo.ctor)
+  - ... and 26 more
+- Ingested: 1
+  + src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-05 23:06 AWST - xerahs-review producer tick (Nadia, daily cron)
+
+- Owner: nadia-valeva-kf
+- Report run: 20260805T150502-1ccffd.md
+- Reports parsed (3 newest): 3
+- Findings parsed (total across reports): 192
+- Severity-gate drops: 116 ({'triage=risk': 87, 'triage=contract-mismatch': 22, 'triage=docs-gap': 4, 'triage=test-gap': 3})
+- Area-level already-fixed drops: 3
+- Release-history fixed drops (v2.1.2 cache): 36
+- Recently-pivoted drops: 36
+- Ingested into next_candidates: 1
+- Ingested: src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)
+- next_candidates delta: 0 -> 1 (+1)
+- Fork sync: HEAD == nadia/develop == origin/develop (b01d0b54); nadia/develop advanced c388b85c..b01d0b54 since last tick (consumer pushed 3 audit commits)
+- Upstream sync: upstream/develop (b43eb3dc) unchanged; local is 23 commits ahead (KovaForge-specific layer; expected)
+- Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
+- Commit: pending (Step 9)
+- Follow-up: 00:06 AWST consumer drain should pick up PluginManifest.IsSafePluginId. The same 36 v2.1.2 release-fixed paths continue to dominate the dropped set — clawpatch reports appear to be re-emitting the same historical citations; no fresh bugs in the eligible set beyond the one PluginManifest finding.
