@@ -64,8 +64,6 @@ namespace XerahS.Common
         /// <returns>A 32-bit signed integer that is greater than or equal to <paramref name="minValue"/> and less than or equal to <paramref name="maxValue"/>.</returns>
         public static int Next(int minValue, int maxValue)
         {
-            maxValue++;
-
             if (minValue > maxValue)
             {
                 throw new ArgumentOutOfRangeException(nameof(minValue));
@@ -76,7 +74,10 @@ namespace XerahS.Common
                 return minValue;
             }
 
-            long diff = maxValue - minValue;
+            // Inclusive upper bound. Do not use maxValue++ — int.MaxValue overflows
+            // to int.MinValue and corrupts the range math below.
+            long exclusiveUpper = (long)maxValue + 1L;
+            long diff = exclusiveUpper - minValue;
 
             lock (randomLock)
             {
