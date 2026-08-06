@@ -4474,3 +4474,14 @@ Added candidates (8):
 - Commit: 34387b80 (Declan Murphy)
 - Follow-up: none
 - Skill: none this entry
+
+### 2026-08-06 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md (audit only)
+- Findings: Step 5a categoriser found zero candidates; producer has not re-ingested since prior 00:05 AWST fix tick (RandomCrypto + PluginManifest, v0.24.20/21). Upstream already ancestor; submodule clean; HEAD was 1e33e723 at audit start. Deleted stale deferred-last-runs-20260806-000517.json (1 row) per v1.1.16.
+- Status: no-op (empty queue)
+- Build/test: n/a (no code change)
+- Commit: none (audit commit SHA recorded in Step 9 summary only; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; no manual picks required
+- Skill: xerahs-bugfix/SKILL.md unchanged this run (no efficiency blocker observed)
