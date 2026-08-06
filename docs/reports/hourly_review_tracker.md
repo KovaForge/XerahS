@@ -4542,3 +4542,14 @@ Added candidates (8):
 - Skill note: SKILL.md v2.2.3 unchanged this tick; no efficiency blocker observed
 - Commit: fbf3c847 (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
 - Follow-up: 00:06 AWST consumer drain should pick up CliCaptureStrategy.cs:111-112 (data-loss / confirmed-bug: unchecked temp-file deletion in CliCaptureStrategy.CaptureRegionAsync when decoding fails; try-finally or using-statement wrap). Refills the queue after the 16:05 AWST empty-queue audit. Existing 16-entry recently_pivoted list continues to gate stale citations; 36 recently-pivoted drops + 42 release-history drops dominated the eligible-findings dedupe (97 of 132 drops downstream of the severity gate).
+
+### 2026-08-07 00:06 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.MacOS/Capture/CliCaptureStrategy.cs:111-112
+- Files: (none — pivot, no code change)
+- Findings: CaptureRegionAsync already deletes tempFile in finally (lines 107-118); decode failure still cleans up
+- Status: Pivot (already-fixed)
+- Build/test: n/a (source verified: try/finally already deletes tempFile on decode failure)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses; producer should honor recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md — no patch this tick (false-positive already covered by Step 5a)
