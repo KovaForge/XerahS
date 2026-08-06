@@ -4540,5 +4540,5 @@ Added candidates (8):
 - Upstream sync: upstream/develop (b43eb3dc) unchanged; local is 23 commits ahead (KovaForge-specific layer; expected)
 - Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
 - Skill note: SKILL.md v2.2.3 unchanged this tick; no efficiency blocker observed
-- Commit: <FILL_AFTER_COMMIT> (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
+- Commit: fbf3c847 (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
 - Follow-up: 00:06 AWST consumer drain should pick up CliCaptureStrategy.cs:111-112 (data-loss / confirmed-bug: unchecked temp-file deletion in CliCaptureStrategy.CaptureRegionAsync when decoding fails; try-finally or using-statement wrap). Refills the queue after the 16:05 AWST empty-queue audit. Existing 16-entry recently_pivoted list continues to gate stale citations; 36 recently-pivoted drops + 42 release-history drops dominated the eligible-findings dedupe (97 of 132 drops downstream of the severity gate).
