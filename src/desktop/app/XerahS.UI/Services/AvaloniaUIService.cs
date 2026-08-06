@@ -458,7 +458,7 @@ namespace XerahS.UI.Services
             owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
             owner.ShowInTaskbar;
 
-        public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+        public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
             AfterCaptureTasks afterCapture,
             AfterUploadTasks afterUpload)
@@ -495,7 +495,7 @@ namespace XerahS.UI.Services
                     await closedTcs.Task;
                 }
 
-                return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled);
+                return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled, viewModel.QuickAction);
             });
         }
 

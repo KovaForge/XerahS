@@ -84,9 +84,9 @@ namespace XerahS.Platform.Abstractions
         Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath);
 
         /// <summary>
-        /// Shows the After Capture window and returns selected tasks.
+        /// Shows the After Capture window and returns selected tasks or a terminal quick action.
         /// </summary>
-        Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+        Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
             AfterCaptureTasks afterCapture,
             AfterUploadTasks afterUpload);

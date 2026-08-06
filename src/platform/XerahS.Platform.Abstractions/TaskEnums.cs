@@ -65,3 +65,10 @@ public enum AfterUploadTasks // Localized
     OpenURL = 1 << 4,
     ShowQRCode = 1 << 5
 }
+
+public enum AfterCaptureQuickAction
+{
+    None,
+    CopyImage,
+    CopyFilePath
+}

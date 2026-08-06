@@ -500,7 +500,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         }
 
         var taskSettings = task.Info?.TaskSettings ?? new TaskSettings();
-        if (taskSettings.GeneralSettings?.ShowToastNotificationAfterTaskCompleted != true)
+        if (!ShouldShowCompletionNotification(task.Info))
         {
             return;
         }
@@ -590,6 +590,10 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             }
         });
     }
+
+    internal static bool ShouldShowCompletionNotification(TaskInfo? info) =>
+        info?.SuppressCompletionNotification != true &&
+        info?.TaskSettings?.GeneralSettings?.ShowToastNotificationAfterTaskCompleted == true;
 
     private void OnWorkflowTaskStarted(object? sender, Core.Tasks.WorkerTask task)
     {

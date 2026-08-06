@@ -27,6 +27,7 @@ using System.Reflection;
 using NUnit.Framework;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
+using XerahS.Core.Tasks.Processors;
 using XerahS.RegionCapture.ScreenRecording;
 using XerahS.Tests.Xip0052;
 using XerahS.UI.Services;
@@ -88,6 +89,56 @@ public class WorkflowOrchestratorTests
         InvokeHotkey(orchestrator, WorkflowType.ScreenRecorder);
 
         Assert.That(coordinator.SignalStopCalls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void QuickActionCompletionNotification_IsSuppressed()
+    {
+        var info = new TaskInfo
+        {
+            SuppressCompletionNotification = true
+        };
+
+        Assert.That(WorkflowOrchestrator.ShouldShowCompletionNotification(info), Is.False);
+    }
+
+    [Test]
+    public void StandardCompletionNotification_UsesWorkflowSetting()
+    {
+        var info = new TaskInfo();
+        info.TaskSettings.GeneralSettings.ShowToastNotificationAfterTaskCompleted = true;
+
+        Assert.That(WorkflowOrchestrator.ShouldShowCompletionNotification(info), Is.True);
+
+        info.TaskSettings.GeneralSettings.ShowToastNotificationAfterTaskCompleted = false;
+        Assert.That(WorkflowOrchestrator.ShouldShowCompletionNotification(info), Is.False);
+    }
+
+    [Test]
+    public void QuickActionTasks_PreserveAfterCaptureWindowForFutureRuns()
+    {
+        var result = (
+            AfterCaptureTasks.CopyImageToClipboard,
+            AfterUploadTasks.None,
+            false,
+            AfterCaptureQuickAction.CopyImage);
+
+        var tasks = CaptureJobProcessor.GetAfterCaptureTasksForRun(result);
+
+        Assert.That(
+            tasks,
+            Is.EqualTo(AfterCaptureTasks.ShowAfterCaptureWindow | AfterCaptureTasks.CopyImageToClipboard));
+    }
+
+    [Test]
+    public void ContinueTasks_UseTheDialogSelectionUnchanged()
+    {
+        var selected = AfterCaptureTasks.ShowAfterCaptureWindow | AfterCaptureTasks.SaveImageToFile;
+        var result = (selected, AfterUploadTasks.None, false, AfterCaptureQuickAction.None);
+
+        var tasks = CaptureJobProcessor.GetAfterCaptureTasksForRun(result);
+
+        Assert.That(tasks, Is.EqualTo(selected));
     }
 
     [Test]

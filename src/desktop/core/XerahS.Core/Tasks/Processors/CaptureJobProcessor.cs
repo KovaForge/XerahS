@@ -84,11 +84,13 @@ namespace XerahS.Core.Tasks.Processors
                         return false;
                     }
 
-                    settings.AfterCaptureJob = result.Capture;
+                    settings.AfterCaptureJob = GetAfterCaptureTasksForRun(result);
                     settings.AfterUploadJob = result.Upload;
+                    info.SuppressCompletionNotification = result.QuickAction != AfterCaptureQuickAction.None;
 
                     // Persist "Show after capture window" setting if user unchecked it
-                    if (originalAfterCapture.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow) &&
+                    if (result.QuickAction == AfterCaptureQuickAction.None &&
+                        originalAfterCapture.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow) &&
                         !result.Capture.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow))
                     {
                         PersistShowAfterCaptureWindowSetting(settings.WorkflowId, false);
@@ -793,6 +795,21 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteException(ex, $"Upload failed for {instance.DisplayName}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Maps a terminal After Capture quick action to the tasks for this run while preserving
+        /// the workflow's ShowAfterCaptureWindow flag for future captures.
+        /// </summary>
+        internal static AfterCaptureTasks GetAfterCaptureTasksForRun(
+            (AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction) result)
+        {
+            if (result.QuickAction == AfterCaptureQuickAction.None)
+            {
+                return result.Capture;
+            }
+
+            return result.Capture | AfterCaptureTasks.ShowAfterCaptureWindow;
         }
 
         /// <summary>
