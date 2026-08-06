@@ -4485,3 +4485,13 @@ Added candidates (8):
 - Commit: none (audit commit SHA recorded in Step 9 summary only; last_runs.commit left null per v1.1.12)
 - Follow-up: wait for xerahs-review producer to refill next_candidates; no manual picks required
 - Skill: xerahs-bugfix/SKILL.md unchanged this run (no efficiency blocker observed)
+
+### 2026-08-06 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit only)
+- Findings: Step 5a categoriser found zero candidates; no picks or pivots this tick. Fork/upstream/submodule already synced.
+- Status: no-op (empty consumer queue)
+- Build/test: n/a
+- Commit: none (audit only; SHA in run summary)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
