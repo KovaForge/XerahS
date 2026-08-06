@@ -4495,3 +4495,50 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (audit only; SHA in run summary)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
+
+### 2026-08-06 23:11 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 132
+  - triage=risk: 93
+  - triage=contract-mismatch: 28
+  - triage=docs-gap: 8
+  - triage=test-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 42
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+  - ... and 32 more
+- Ingested: 1
+  + src/platform/XerahS.Platform.MacOS/Capture/CliCaptureStrategy.cs:111-112
+### 2026-08-06 23:11 AWST - xerahs-review producer tick (Nadia, daily cron)
+
+- Owner: nadia-valeva-kf
+- Report run: 20260806T150827-7177c0.md
+- Reports parsed (3 newest): 3 (20260806T150827-7177c0, 20260805T151014-a3a066, 20260805T150502-1ccffd)
+- Findings parsed (total across reports): 214
+- Severity-gate drops: 132 ({'triage=risk': 93, 'triage=contract-mismatch': 28, 'triage=docs-gap': 8, 'triage=test-gap': 3})
+- Area-level already-fixed drops: 3
+- Release-history fixed drops (v2.1.2 cache): 42
+- Recently-pivoted drops: 36
+- Skipped as duplicate of existing: 0
+- Ingested into next_candidates: 1
+- Ingested: src/platform/XerahS.Platform.MacOS/Capture/CliCaptureStrategy.cs:111-112
+- next_candidates delta: 0 -> 1 (+1)
+- Fork sync: HEAD == nadia/develop == origin/develop at sweep start was already in sync (722710c4 == nadia/develop after fetch); consumer-tick audit commit 722710c4 had been pushed to nadia/develop previously but not to origin (per-agent remote verification rule)
+- Upstream sync: upstream/develop (b43eb3dc) unchanged; local is 23 commits ahead (KovaForge-specific layer; expected)
+- Submodule (ShareX.ImageEditor): HEAD=1bcb66c4, origin=1bcb66c4, upstream=1bcb66c4 — clean
+- Skill note: SKILL.md v2.2.3 unchanged this tick; no efficiency blocker observed
+- Commit: <FILL_AFTER_COMMIT> (pushed to nadia/develop; origin/develop 1 commit behind — per-agent remote verification rule)
+- Follow-up: 00:06 AWST consumer drain should pick up CliCaptureStrategy.cs:111-112 (data-loss / confirmed-bug: unchecked temp-file deletion in CliCaptureStrategy.CaptureRegionAsync when decoding fails; try-finally or using-statement wrap). Refills the queue after the 16:05 AWST empty-queue audit. Existing 16-entry recently_pivoted list continues to gate stale citations; 36 recently-pivoted drops + 42 release-history drops dominated the eligible-findings dedupe (97 of 132 drops downstream of the severity gate).
