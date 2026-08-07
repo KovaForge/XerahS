@@ -42,18 +42,28 @@ public partial class HotkeySelectionControl : UserControl
     public static readonly StyledProperty<bool> RegisterOnCommitProperty =
         AvaloniaProperty.Register<HotkeySelectionControl, bool>(nameof(RegisterOnCommit), true);
 
-    // Static debug log - writes to Debug output and collects in list
+    // Static debug log - writes to Debug output and collects in list.
+    // Guarded by _debugLogLock: SetDebugCallback / OnLoaded default init /
+    // Log / GetDebugLog can race across UI + dispatcher posts.
+    private static readonly object _debugLogLock = new();
     private static Action<string>? _debugLog;
     private static readonly System.Collections.Generic.List<string> _debugMessages = new();
 
     public static void SetDebugCallback(Action<string> callback)
     {
-        _debugLog = (msg) =>
+        lock (_debugLogLock)
         {
-            _debugMessages.Add(msg);
-            XerahS.Common.DebugHelper.WriteLine($"[Hotkey] {msg}");
-            callback(msg);
-        };
+            _debugLog = (msg) =>
+            {
+                lock (_debugLogLock)
+                {
+                    _debugMessages.Add(msg);
+                }
+
+                XerahS.Common.DebugHelper.WriteLine($"[Hotkey] {msg}");
+                callback(msg);
+            };
+        }
     }
 
     public static void Log(string message)
@@ -62,10 +72,33 @@ public partial class HotkeySelectionControl : UserControl
         var formattedMsg = $"[{time}] {message}";
         // Also log to DebugHelper for file logging
         XerahS.Common.DebugHelper.WriteLine($"[Hotkey] {message}");
-        _debugLog?.Invoke(formattedMsg);
+
+        Action<string>? sink;
+        lock (_debugLogLock)
+        {
+            sink = _debugLog;
+        }
+
+        sink?.Invoke(formattedMsg);
     }
 
-    public static string GetDebugLog() => string.Join("\n", _debugMessages);
+    public static string GetDebugLog()
+    {
+        lock (_debugLogLock)
+        {
+            return string.Join("\n", _debugMessages);
+        }
+    }
+
+    /// <summary>Test hook: clear static debug sink + message buffer.</summary>
+    internal static void ResetDebugLogForTests()
+    {
+        lock (_debugLogLock)
+        {
+            _debugLog = null;
+            _debugMessages.Clear();
+        }
+    }
 
 
     private enum ControlMode
@@ -109,16 +142,23 @@ public partial class HotkeySelectionControl : UserControl
         _originalBackground = HotkeyButton.Background;
 
         // Set up debug logger if not already set - use static list for simplicity
-        if (_debugLog == null)
+        lock (_debugLogLock)
         {
-            // Use a static StringBuilder that can be read later
-            _debugLog = (msg) =>
+            if (_debugLog == null)
             {
-                _debugMessages.Add(msg);
-                System.Diagnostics.Debug.WriteLine($"[HotkeyDebug] {msg}");
-            };
-            Log("Debug logger initialized (check Debug output and static _debugMessages)");
+                _debugLog = (msg) =>
+                {
+                    lock (_debugLogLock)
+                    {
+                        _debugMessages.Add(msg);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[HotkeyDebug] {msg}");
+                };
+            }
         }
+
+        Log("Debug logger initialized (check Debug output and static _debugMessages)");
 
         if (!_handlersAttached)
         {
