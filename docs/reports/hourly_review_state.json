@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-07 16:08 AWST",
+  "last_updated": "2026-08-07 23:10 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,10 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:162-163 (_viewModel)",
+    "src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:46-57 (_debugLog)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1668,6 +1671,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates; queue remains empty after producer lag / prior drains"
+    },
+    {
+      "ts": "2026-08-07 23:10 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "Step 6 clawpatch review parsed 224 findings across 3 reports; severity gate dropped 137 (3 area-fixed dedupe, 44 release-history); appended 2 net new candidates (HotkeySelectionControl _viewModel / _debugLog). Queue: 0 -> 2.",
+      "status": "ingested"
     }
   ],
   "last_run_outcome": "no-op",

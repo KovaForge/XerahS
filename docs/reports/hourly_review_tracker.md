@@ -4574,3 +4574,40 @@ Added candidates (8):
 - Build/test: n/a (empty queue)
 - Commit: null (audit only; SHA in Step 9 summary)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+
+### 2026-08-07 23:08 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 137
+  - triage=risk: 94
+  - triage=contract-mismatch: 30
+  - triage=docs-gap: 10
+  - triage=test-gap: 3
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed (release-history): 44
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)
+  - ... and 34 more
+- Ingested: 2
+  + src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:162-163 (_viewModel)
+  + src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:46-57 (_debugLog)
+
+### 2026-08-07 23:10 AWST - xerahs-review producer tick (Nadia, daily cron)
+
+- Reports parsed: 3
+- Total findings across reports: 79
+- Severity gate drops: 137 (area-fixed dedupe: 3, release-history: 44)
+- Net new candidates appended: 2
+- Queue size: 0 -> 2
+- Drain target: next 00:06 AWST xerahs-bugfix tick
