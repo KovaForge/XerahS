@@ -4564,3 +4564,13 @@ Added candidates (8):
 - Commit: PENDING (record pushed SHA in Step 9 summary only; leave last_runs.commit null per v1.1.12)
 - Follow-up: wait for xerahs-review producer to re-ingest clawpatch findings; do not invent work
 - Skill: xerahs-bugfix/SKILL.md — no patch this tick (empty-queue path already covered)
+
+### 2026-08-07 16:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates; no real-bug pick and no pivots this tick. Fork/upstream/submodule already synced.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: null (audit only; SHA in Step 9 summary)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
