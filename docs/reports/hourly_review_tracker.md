@@ -4611,3 +4611,24 @@ Added candidates (8):
 - Net new candidates appended: 2
 - Queue size: 0 -> 2
 - Drain target: next 00:06 AWST xerahs-bugfix tick
+
+### 2026-08-08 00:05 AWST - HotkeySelectionControl / static debug log race
+
+- Area: HotkeySelectionControl static `_debugLog` concurrency
+- Files: src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs, tests/XerahS.Tests/Avalonia/HotkeySelectionControlDebugLogTests.cs, Directory.Build.props
+- Findings: Static `_debugLog` Action and `_debugMessages` List were shared across instances without synchronization. SetDebugCallback, OnLoaded default sink init, Log, and GetDebugLog now share `_debugLogLock`. Added concurrent regression tests.
+- Status: Fixed
+- Build/test: UI Release build OK; Tests Release build OK; filter HotkeySelectionControlDebugLogTests Passed 3/3. logs: /tmp/xerahs-bugfix/build-20260808-000533.log.ui, /tmp/xerahs-bugfix/build-20260808-000533.log.tests, /tmp/xerahs-bugfix/test-20260808-000533.log.filtered
+- Commit: b04999a9
+- Follow-up: none for this item
+- Skill: xerahs-bugfix/SKILL.md Step 10 pending this tick
+
+### 2026-08-08 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:162-163 (_viewModel)
+- Files: (none — pivot, no code change)
+- Findings: OnPreviewKeyDown already returns when _viewModel is null (L181); all mutate paths null-guard
+- Status: Pivot (already-fixed)
+- Build/test: n/a (source-verified guards at OnPreviewKeyDown L181/L221 and null-safe mutate paths)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
