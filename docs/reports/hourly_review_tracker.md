@@ -4553,3 +4553,14 @@ Added candidates (8):
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses; producer should honor recently_pivoted
 - Skill: xerahs-bugfix/SKILL.md — no patch this tick (false-positive already covered by Step 5a)
+
+### 2026-08-07 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json; docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found 0 next_candidates after fork/upstream sync. No real-bug items to pick. Stale deferred-last-runs-20260807-000601.json (1 already-fixed CliCaptureStrategy row from 00:06 AWST) deleted per v1.1.16 — tracker markdown remains the durable pivot ledger; no fix commit available to fold under XIP0077 +0/+1.
+- Status: No-op (queue empty)
+- Build/test: n/a (no code change)
+- Commit: PENDING (record pushed SHA in Step 9 summary only; leave last_runs.commit null per v1.1.12)
+- Follow-up: wait for xerahs-review producer to re-ingest clawpatch findings; do not invent work
+- Skill: xerahs-bugfix/SKILL.md — no patch this tick (empty-queue path already covered)
