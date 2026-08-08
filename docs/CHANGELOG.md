@@ -10,6 +10,29 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.24.23
+
+### Features
+- **Core**: Add Copy image / Copy file path quick actions in After Capture; Add global 'Disable notification window' checkbox (issue #252); and related changes
+
+### Fixes
+- **Core**: Bitly shortener surfaces network errors on UploadResult; Don't surface .deb / .rpm update assets inside a Flatpak sandbox; Synchronize HotkeySelectionControl static debug log
+- **Dropbox OAuth**: stop forced refresh on bare refresh_token
+- **PluginManifest**: ASCII-only PluginId whitelist
+- **RandomCrypto**: prevent int.MaxValue overflow in Next range
+
+### Documentation
+- **Core**: Document fallback to plain git push when wrapper is missing
+
+### Changed
+- **Core**: [Fix] Suppress main window on SilentRun startup — raise Dispatcher priority to Send; [Nadia] xerahs-review producer tick 2026-08-01 23:10 AWST: ingest Bitly Plugin SendRequest error handling; and related changes
+- **KFIP0017**: X/Twitter Capture Mode Suite — scroll capture, video clips & GIF conversion
+- **Source Build Manifest**: Wayland-first finish-args, absolute OUTPUT_PATH
+- **Xerahs Bugfix**: audit empty consumer queue; drain CliCaptureStrategy temp cleanup false-positive; and related changes
+- **Xerahs Review**: fill in producer-tick commit SHA on tracker; fill in producer-tick commit SHA on tracker (23:11 AWST); and related changes
+
+---
+
 ## [v0.24.12](https://github.com/ShareX/XerahS/releases/tag/v0.24.12)
 
 ### Changed
