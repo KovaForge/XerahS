@@ -4655,3 +4655,46 @@ Added candidates (8):
 - Commit: null (audit commit SHA in Step 9 summary only; do not self-backfill)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
 - Skill: no SKILL.md patch this tick (no efficiency blockers)
+
+### 2026-08-08 23:08 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+  - 20260808T150518-bd850a.md
+  - 20260807T150551-95d3a2.md
+  - 20260806T150827-7177c0.md
+- Findings dropped at severity gate: 145
+  - triage=risk: 96
+  - triage=contract-mismatch: 34
+  - triage=docs-gap: 11
+  - triage=test-gap: 4
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed (last 60 commits + any release): 56
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 46 more
+- Findings dropped as recently-pivoted: 33
+- Findings skipped as duplicate of existing next_candidates: 0
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-08 23:08 AWST - xerahs-review (Nadia, producer)
+
+- Outcome: no-op (queue still empty; producer-side deduping working as designed)
+- clawpatch: 3 reports parsed, 237 findings, 92 eligible after severity gate, 92 dropped by dedup gates (3 area-fixed / 33 recently-pivoted / 56 recently-fixed in any release), 0 net added.
+- next_candidates: 0 -> 0
+- Fork sync: nadia develop up to date with HEAD (ca1adcc3); origin develop also at ca1adcc3
+- Upstream sync: up to date with ShareX/XerahS develop (b43eb3dc)
+- Submodule (ShareX.ImageEditor): up to date at 1bcb66c (origin develop + upstream develop both match)
+- State JSON committed + pushed via git-nadia (see commit SHA in run row)
+- Skill: xerahs-review/SKILL.md v2.2.3 not patched this run (no efficiency blocker)
