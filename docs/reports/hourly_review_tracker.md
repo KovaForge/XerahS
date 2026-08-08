@@ -4698,3 +4698,14 @@ Added candidates (8):
 - Submodule (ShareX.ImageEditor): up to date at 1bcb66c (origin develop + upstream develop both match)
 - State JSON committed + pushed via git-nadia (see commit SHA in run row)
 - Skill: xerahs-review/SKILL.md v2.2.3 not patched this run (no efficiency blocker)
+
+### 2026-08-09 00:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. No real-bug picks, no pivots. No deferred-last-runs files present (v1.1.16 cleanup N/A). last_runs append +1 no-op row (commit null; no self-SHA backfill per v1.1.12). last_runs growth left uncapped (head was 131; v1.1.18).
+- Status: no-op
+- Build/test: n/a (empty-queue audit only)
+- Commit: PENDING (record pushed SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.20 — no patch this tick
