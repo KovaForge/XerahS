@@ -42,6 +42,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.24.18" date="2026-08-02">
+      <description>
+        <p>Wire up the XDG GlobalShortcuts portal so global hotkeys route through the portal dialog. Don't surface .deb / .rpm update assets inside the Flatpak sandbox. Source-build manifest switched to Wayland-first finish-args; offline-generated npm (170) and NuGet (96) dependency sources; build and repo lint pass on Fedora 25.08 SDK. See the full changelog on GitHub.</p>
+      </description>
+    </release>
     <release version="0.23.132" date="2026-07-11">
       <description>
         <p>Fix Flatpak startup crash on desktops with a StatusNotifierWatcher (KDE Plasma) and enable the tray icon inside the sandbox. See the full changelog on GitHub.</p>
