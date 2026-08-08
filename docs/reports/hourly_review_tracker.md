@@ -4632,3 +4632,15 @@ Added candidates (8):
 - Build/test: n/a (source-verified guards at OnPreviewKeyDown L181/L221 and null-safe mutate paths)
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-08-08 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates. Deleted stale deferred-last-runs-20260808-000533.json (1 already-fixed HotkeySelectionControl _viewModel row from 00:05 tick) per v1.1.16 — tracker markdown remains durable ledger; no fix commit available to fold under XIP0077 +0/+1.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: null (audit commit SHA in Step 9 summary only; do not self-backfill)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings
+- Skill: no SKILL.md patch this tick (no efficiency blockers)
+
