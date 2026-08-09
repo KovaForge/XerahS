@@ -4731,3 +4731,46 @@ Added candidates (8):
 - Commit: null (audit commit SHA recorded in Step 9 summary only; v1.1.12)
 - Follow-up: wait for xerahs-review producer ingest; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.20 unchanged (no efficiency blockers)
+
+### 2026-08-09 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 154
+  - triage=risk: 99
+  - triage=contract-mismatch: 38
+  - triage=docs-gap: 12
+  - triage=test-gap: 5
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in any release: 53
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 43 more
+- Ingested: 2
+  + src/mobile-experimental/XerahS.Mobile.Maui/ViewModels/MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries())
+  + src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl)
+
+
+### 2026-08-09 23:05 AWST - xerahs-review (Nadia, producer, daily cron)
+
+- Outcome: ingested (daily producer run; replaces dormant Milena 6h cadence)
+- clawpatch: 3 reports parsed, 251 findings, 41 eligible after severity gate, 39 dropped by recently_pivoted gate, 0 added by area-level/release-history dedupe overlap. Net added: 2.
+- Added candidates (2):
+  + src/mobile-experimental/XerahS.Mobile.Maui/ViewModels/MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries) [confirmed-bug]
+  + src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl) [confirmed-bug]
+- next_candidates: 0 -> 2
+- Fork sync: nadia develop up to date with HEAD (1c0ccd7c); origin develop also at same SHA
+- Upstream sync: up to date with ShareX/XerahS develop (b43eb3dc)
+- Submodule (ShareX.ImageEditor): up to date at 1bcb66c (origin develop + upstream develop both match)
+- State JSON committed + pushed via git-nadia (record pushed SHA in Step 9 summary)
+- Skill: xerahs-review/SKILL.md v2.2.3 not patched this run (no efficiency blocker)

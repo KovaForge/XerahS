@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-09 16:06 AWST",
+  "last_updated": "2026-08-09 23:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,10 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/mobile-experimental/XerahS.Mobile.Maui/ViewModels/MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries())",
+    "src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1739,6 +1742,15 @@
       "commit": null,
       "summary": "Step 5a found zero candidates and zero pivots; producer last ingest left queue empty; deferred files cleaned",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-09 23:05 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "Daily producer cron (replaces dormant Milena 6h cadence per McoreD 2026-07-21). Step 5.5 parsed 251 findings across 3 clawpatch reports; severity gate dropped 154 (99 risk / 38 contract-mismatch / 12 docs-gap / 5 test-gap); area-fixed dedupe dropped 3; recently-pivoted dropped 39; recently-fixed (any release history) dropped 53. Net added 2. Queue 0 -> 2. Adds: MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries — confirmed-bug); NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl — confirmed-bug).",
+      "status": "ingested"
     }
   ],
   "last_run_outcome": "no-op",
