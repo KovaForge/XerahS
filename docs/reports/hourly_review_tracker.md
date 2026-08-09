@@ -4774,3 +4774,23 @@ Added candidates (8):
 - Submodule (ShareX.ImageEditor): up to date at 1bcb66c (origin develop + upstream develop both match)
 - State JSON committed + pushed via git-nadia (record pushed SHA in Step 9 summary)
 - Skill: xerahs-review/SKILL.md v2.2.3 not patched this run (no efficiency blocker)
+
+### 2026-08-10 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.Maui/ViewModels/MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries()
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron; v1.1.8)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred under XIP0077 +0)
+- Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
+
+### 2026-08-10 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl)
+- Files: (none — pivot, no code change)
+- Findings: false positive — NextcloudClient.NormalizeServerUrl already uses Uri.GetLeftPart(Path) + TrimEnd('/'); TryNormalizeServerUrl validates scheme; covered by NextcloudClientTests.NormalizeServerUrl_RemovesTrailingSlashQueryAndFragment
+- Status: Pivot (false-positive)
+- Build/test: n/a
+- Commit: none (drain only; last_runs deferred under XIP0077 +0)
+- Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
