@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-10 08:05 AWST",
+  "last_updated": "2026-08-10 16:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1756,6 +1756,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates; deleted stale deferred-last-runs-20260810-000608.json (v1.1.16 consecutive no-op deferred cleanup). Queue remains empty.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-10 16:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit. No deferred files to clean. Fork/upstream/submodule already in sync.",
       "status": "no-op"
     }
   ],

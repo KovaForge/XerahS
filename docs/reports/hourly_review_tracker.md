@@ -4805,3 +4805,14 @@ Added candidates (8):
 - Commit: null (audit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings into next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.20 (no patch this run)
+
+### 2026-08-10 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. No real-bug items to pick; no pivots to drain. No deferred-last-runs files present.
+- Status: no-op
+- Build/test: skipped (empty-queue audit — no code scope)
+- Commit: null (audit commit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings into next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.20 unchanged (no efficiency blockers this run)
