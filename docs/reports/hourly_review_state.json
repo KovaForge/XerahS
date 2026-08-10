@@ -1772,7 +1772,7 @@
       "agent": "nadia",
       "outcome": "no-op",
       "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
-      "commit": "71556a7d4efdf4255e82d7a0301b1ff1a1c15f29",
+      "commit": "c40f60cdbb80249d22d78453a5099a33f2f52f29",
       "summary": "Clawpatch review run 20260810T150412-136730 completed (3 features, 92 findings). Severity gate dropped 164 (triage=risk: 103, contract-mismatch: 42, docs-gap: 13, test-gap: 6). After gate 34 eligible; 1 dropped at area-level (ImmichUploader.cs:220-233 fixed in v0.23.124/125/126), 54 dropped by release-history dedupe (HSB.cs v0.23.77, FileDownloader.cs v0.23.76/78/84/137, DPAPIEncryptedStringValueProvider.cs v0.23.138, GradientInfo v0.23.135, ImmichUploader.cs, AnimatedGifCreator.cs:118, CliCaptureStrategy, etc.), 21 skipped as recently-pivoted (consumer drained these in prior bugfix ticks: MacOS CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, AnimatedGifCreator, OctreeQuantizer, check-markdown-mojibake, BitlyUrlShortener, DropboxProvider.GetThumbnailAsync, CaptureCommand.TryGetImageFormat, MobileMaui BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, AnimatedGifCreator.Finish, HotkeySelectionControl.axaml.cs:162, NextcloudConfigViewModel.TryNormalizeServerUrl, HotkeySelectionControl.axaml.cs:46, ImageEditor.RemoveBackgroundImageEffect, NextcloudClient.cs:124/172, DropboxProvider.cs:144, etc.). Net added: 0. next_candidates: 0 -> 0. Fork/upstream/submodule all current; nadia/develop == HEAD 5a8e5ccc.",
       "status": "no-op"
     }
