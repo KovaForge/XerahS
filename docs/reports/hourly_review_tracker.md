@@ -4856,3 +4856,14 @@ Added candidates (8):
 - State JSON committed + pushed via git-nadia (record pushed SHA in summary)
 - clawpatch report 20260810T150412-136730.md committed (newest of 3)
 - Skill: xerahs-review/SKILL.md v2.2.3 not patched this run (no efficiency blocker; recently-pivoted dedupe gate working as designed — 21 prior-pivots correctly suppressed)
+
+### 2026-08-11 00:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found 0 candidates (queue already empty after producer tick 2026-08-10 23:06 AWST). No pivots; no deferred last_runs files.
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: PENDING (filled in Step 9 summary after push; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review producer ingest; do not invent work
+- Skill: no auto-improve this tick (no efficiency blockers)
