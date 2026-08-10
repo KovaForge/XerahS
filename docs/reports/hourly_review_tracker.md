@@ -4816,3 +4816,43 @@ Added candidates (8):
 - Commit: null (audit commit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
 - Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings into next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.20 unchanged (no efficiency blockers this run)
+
+### 2026-08-10 23:05 AWST - clawpatch-ingest gate drops (skill v2.2.3)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 164
+  - triage=risk: 103
+  - triage=contract-mismatch: 42
+  - triage=docs-gap: 13
+  - triage=test-gap: 6
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 54
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 44 more
+- Findings dropped as recently-pivoted: 43
+- Ingested: 0
+
+### 2026-08-10 23:06 AWST - xerahs-review (Nadia, producer, daily cron)
+
+- Outcome: no-op (daily producer run; replaces dormant Milena 6h cadence)
+- clawpatch: 3 reports parsed (newest 20260810T150412-136730, prior two .clawpatch/reports/20260809T150315-d3aeb6 + 20260808T150518-bd850a), 264 findings total, 100 eligible after severity gate. 1 dropped at area-level (ImmichUploader.cs:220-233 fixed in v0.23.124/125/126), 54 dropped by release-history dedupe (HSB.cs v0.23.77, FileDownloader.cs v0.23.76/78/84/137, DPAPIEncryptedStringValueProvider.cs v0.23.138, GradientInfo v0.23.135, ImmichUploader.cs, AnimatedGifCreator.cs, CliCaptureStrategy, etc.), 21 skipped as recently-pivoted (consumer drained these in prior bugfix ticks: MacOS CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, AnimatedGifCreator, OctreeQuantizer, check-markdown-mojibake, BitlyUrlShortener, DropboxProvider.GetThumbnailAsync, CaptureCommand.TryGetImageFormat, MobileMaui BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, AnimatedGifCreator.Finish, HotkeySelectionControl.axaml.cs:162/46, NextcloudConfigViewModel.TryNormalizeServerUrl, ImageEditor.RemoveBackgroundImageEffect, NextcloudClient.cs:124/172, DropboxProvider.cs:144, plus 3 Immich items).
+- Added candidates: 0
+- next_candidates: 0 -> 0 (unchanged)
+- Fork sync: nadia develop up to date with HEAD (5a8e5ccc); origin develop at 5772e690 (behind, expected — vladislava remote; not my push target)
+- Upstream sync: up to date with ShareX/XerahS develop (b43eb3dc); HEAD is 53 commits ahead (no merge needed)
+- Submodule (ShareX.ImageEditor): up to date at 1bcb66c (origin develop + upstream develop both match)
+- State JSON committed + pushed via git-nadia (record pushed SHA in summary)
+- clawpatch report 20260810T150412-136730.md committed (newest of 3)
+- Skill: xerahs-review/SKILL.md v2.2.3 not patched this run (no efficiency blocker; recently-pivoted dedupe gate working as designed — 21 prior-pivots correctly suppressed)
