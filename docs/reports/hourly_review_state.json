@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-10 00:06 AWST",
+  "last_updated": "2026-08-10 08:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1748,9 +1748,18 @@
       "commit": null,
       "summary": "Daily producer cron (replaces dormant Milena 6h cadence per McoreD 2026-07-21). Step 5.5 parsed 251 findings across 3 clawpatch reports; severity gate dropped 154 (99 risk / 38 contract-mismatch / 12 docs-gap / 5 test-gap); area-fixed dedupe dropped 3; recently-pivoted dropped 39; recently-fixed (any release history) dropped 53. Net added 2. Queue 0 -> 2. Adds: MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries — confirmed-bug); NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl — confirmed-bug).",
       "status": "ingested"
+    },
+    {
+      "ts": "2026-08-10 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; deleted stale deferred-last-runs-20260810-000608.json (v1.1.16 consecutive no-op deferred cleanup). Queue remains empty.",
+      "status": "no-op"
     }
   ],
-  "last_run_outcome": "pivot",
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",

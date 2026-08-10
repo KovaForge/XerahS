@@ -4794,3 +4794,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only; last_runs deferred under XIP0077 +0)
 - Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
+
+### 2026-08-10 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. No real-bug items to pick. Deleted stale deferred-last-runs-20260810-000608.json under v1.1.16 (prior 00:06 AWST pivot-only tick had no fix commit to fold rows under XIP0077 +0/+1). Tracker markdown remains the durable pivot ledger.
+- Status: no-op
+- Build/test: n/a (empty-queue audit)
+- Commit: null (audit SHA recorded in Step 9 summary only; v1.1.12 no self-ref)
+- Follow-up: wait for xerahs-review producer to ingest fresh clawpatch findings into next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.20 (no patch this run)
