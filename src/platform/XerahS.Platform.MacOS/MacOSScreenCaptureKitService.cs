@@ -37,7 +37,7 @@ namespace XerahS.Platform.MacOS
     /// Requires macOS 12.3+ and libscreencapturekit_bridge.dylib.
     /// Falls back to CLI-based MacOSScreenshotService if native library is unavailable.
     /// </summary>
-    public class MacOSScreenCaptureKitService : IScreenCaptureService
+    public class MacOSScreenCaptureKitService : IScreenCaptureService, IScreenCapturePermissionService
     {
         private readonly MacOSScreenshotService _fallbackService;
         private readonly bool _nativeAvailable;
@@ -102,7 +102,7 @@ namespace XerahS.Platform.MacOS
                 return Task.FromResult<SKBitmap?>(null);
             }
 
-            if (!EnsureScreenRecordingAccess())
+            if (!EnsureScreenCaptureAccess())
             {
                 return Task.FromResult<SKBitmap?>(null);
             }
@@ -114,7 +114,7 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            if (!EnsureScreenRecordingAccess())
+            if (!EnsureScreenCaptureAccess())
             {
                 return Task.FromResult<SKBitmap?>(null);
             }
@@ -134,7 +134,7 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
-            if (!EnsureScreenRecordingAccess())
+            if (!EnsureScreenCaptureAccess())
             {
                 return Task.FromResult<SKBitmap?>(null);
             }
@@ -157,7 +157,7 @@ namespace XerahS.Platform.MacOS
         /// Without permission the CLI fallback would return wallpaper-only frames, which looks like
         /// a broken screenshot; instead we stop, prompt once, and guide the user to the Privacy pane.
         /// </summary>
-        private static bool EnsureScreenRecordingAccess()
+        public bool EnsureScreenCaptureAccess()
         {
             if (ScreenRecordingPermission.EnsureAccess())
             {
@@ -170,7 +170,7 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
-            if (!EnsureScreenRecordingAccess())
+            if (!EnsureScreenCaptureAccess())
             {
                 return Task.FromResult<SKBitmap?>(null);
             }
@@ -217,7 +217,7 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureWindowAsync(IntPtr windowHandle, IWindowService windowService, CaptureOptions? options = null)
         {
-            if (!EnsureScreenRecordingAccess())
+            if (!EnsureScreenCaptureAccess())
             {
                 return Task.FromResult<SKBitmap?>(null);
             }

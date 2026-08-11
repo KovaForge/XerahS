@@ -184,6 +184,13 @@ namespace XerahS.UI.Services
                 DebugHelper.WriteLine($"[RegionCapture] macOS selector preference received: {requestedPreference}.");
             }
 
+            if (!EnsurePlatformCaptureAccess(_platformImpl, OperatingSystem.IsMacOS()))
+            {
+                DebugHelper.WriteLine("[RegionCapture] macOS region capture stopped before opening selector UI because Screen Recording permission is denied.");
+                DebugHelper.Flush();
+                return null;
+            }
+
             if (ShouldUseMacOSNativeRegionCapture(options))
             {
                 DebugHelper.WriteLine("[RegionCapture] macOS native crosshair selected; using platform region capture without XerahS overlay.");
@@ -651,6 +658,13 @@ namespace XerahS.UI.Services
         {
             return OperatingSystem.IsMacOS() &&
                 options?.MacOSRegionSelectorPreference == MacOSInteractiveRegionSelectorPreference.NativeCrosshair;
+        }
+
+        internal static bool EnsurePlatformCaptureAccess(IScreenCaptureService platformImpl, bool isMacOS)
+        {
+            return !isMacOS ||
+                platformImpl is not IScreenCapturePermissionService permissionService ||
+                permissionService.EnsureScreenCaptureAccess();
         }
 
         private static async Task WaitForMacOSNativeSelectorReadinessAsync()
