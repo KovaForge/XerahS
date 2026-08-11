@@ -36,11 +36,16 @@ public class MacOSScreenCapturePermissionGateTests
     public void NonMacOSCaptureDoesNotRunPermissionPreflight()
     {
         var captureService = new PermissionAwareCaptureService(false);
+        int notificationCount = 0;
 
-        bool result = ScreenCaptureService.EnsurePlatformCaptureAccess(captureService, false);
+        bool result = ScreenCaptureService.EnsurePlatformCaptureAccess(
+            captureService,
+            false,
+            () => notificationCount++);
 
         Assert.That(result, Is.True);
         Assert.That(captureService.PreflightCallCount, Is.Zero);
+        Assert.That(notificationCount, Is.Zero);
     }
 
     [TestCase(true)]
@@ -48,19 +53,47 @@ public class MacOSScreenCapturePermissionGateTests
     public void MacOSCaptureUsesPlatformPermissionResult(bool permissionGranted)
     {
         var captureService = new PermissionAwareCaptureService(permissionGranted);
+        int notificationCount = 0;
 
-        bool result = ScreenCaptureService.EnsurePlatformCaptureAccess(captureService, true);
+        bool result = ScreenCaptureService.EnsurePlatformCaptureAccess(
+            captureService,
+            true,
+            () => notificationCount++);
 
         Assert.That(result, Is.EqualTo(permissionGranted));
         Assert.That(captureService.PreflightCallCount, Is.EqualTo(1));
+        Assert.That(notificationCount, Is.EqualTo(permissionGranted ? 0 : 1));
     }
 
     [Test]
     public void CaptureServiceWithoutPermissionPreflightRemainsSupported()
     {
-        bool result = ScreenCaptureService.EnsurePlatformCaptureAccess(new CaptureService(), true);
+        int notificationCount = 0;
+
+        bool result = ScreenCaptureService.EnsurePlatformCaptureAccess(
+            new CaptureService(),
+            true,
+            () => notificationCount++);
 
         Assert.That(result, Is.True);
+        Assert.That(notificationCount, Is.Zero);
+    }
+
+    [Test]
+    public void PermissionDeniedToastIsCriticalAndActionable()
+    {
+        ToastConfig config = ScreenCaptureService.CreateMacOSCapturePermissionDeniedToastConfig();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(config.Title, Is.EqualTo("Screen Recording permission required"));
+            Assert.That(config.Text, Does.Contain("System Settings > Privacy & Security > Screen Recording"));
+            Assert.That(config.Text, Does.Contain("restart XerahS"));
+            Assert.That(config.IgnoreGlobalDisable, Is.True);
+            Assert.That(config.LeftClickAction, Is.EqualTo(ToastClickAction.CloseNotification));
+            Assert.That(AvaloniaToastService.ShouldSuppressToast(config, true), Is.False);
+            Assert.That(AvaloniaToastService.ShouldSuppressToast(new ToastConfig(), true), Is.True);
+        });
     }
 
     private class CaptureService : IScreenCaptureService
