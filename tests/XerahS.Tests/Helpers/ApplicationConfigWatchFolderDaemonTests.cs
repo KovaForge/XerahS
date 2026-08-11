@@ -34,6 +34,14 @@ namespace XerahS.Tests.Helpers;
 public class ApplicationConfigWatchFolderDaemonTests
 {
     [Test]
+    public void ApplicationConfig_DefaultScreenshotContentSearch_IsEnabled()
+    {
+        var config = new ApplicationConfig();
+
+        Assert.That(config.ScreenshotContentSearchEnabled, Is.True);
+    }
+
+    [Test]
     public void ApplicationConfig_DefaultWatchFolderDaemonSettings_AreExpected()
     {
         var config = new ApplicationConfig();

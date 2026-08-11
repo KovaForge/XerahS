@@ -72,11 +72,6 @@
                                VerticalAlignment="Center" 
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                     
-                    <ProgressBar IsIndeterminate="True" 
-                                 Width="100" Height="2" 
-                                 IsVisible="{Binding IsLoadingThumbnails}"
-                                 VerticalAlignment="Center"
-                                 AutomationProperties.Name="Loading Thumbnails"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal"

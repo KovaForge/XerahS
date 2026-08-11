@@ -32,6 +32,55 @@ namespace XerahS.Tests.Assistant;
 public sealed class HistoryManagerSQLiteTests
 {
     [Test]
+    public void SearchHistoryItems_ReturnsPagedMetadataAndOcrMatches()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string dbPath = Path.Combine(tempDirectory, "history.db");
+            var metadataItem = new HistoryItem
+            {
+                FileName = "quarterly-roadmap.png",
+                FilePath = Path.Combine(tempDirectory, "metadata.png"),
+                DateTime = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+                Type = "Image"
+            };
+            var ocrItem = new HistoryItem
+            {
+                FileName = "capture.png",
+                FilePath = Path.Combine(tempDirectory, "ocr.png"),
+                DateTime = new DateTime(2026, 5, 2, 0, 0, 0, DateTimeKind.Utc),
+                Type = "Image"
+            };
+
+            using var manager = new HistoryManagerSQLite(dbPath);
+            manager.AppendHistoryItem(metadataItem);
+            manager.AppendHistoryItem(ocrItem);
+            new HistoryOcrIndexStore(dbPath).UpsertText(ocrItem.Id, ocrItem.FilePath, null, "Quarterly roadmap review", "test", "en");
+
+            (List<HistoryItem> firstPage, int totalCount) = manager.SearchHistoryItems("ROADMAP", 0, 1);
+            (List<HistoryItem> secondPage, int repeatedCount) = manager.SearchHistoryItems("roadmap", 1, 1);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(totalCount, Is.EqualTo(2));
+                Assert.That(repeatedCount, Is.EqualTo(2));
+                Assert.That(firstPage.Select(item => item.Id), Is.EqualTo(new[] { ocrItem.Id }));
+                Assert.That(secondPage.Select(item => item.Id), Is.EqualTo(new[] { metadataItem.Id }));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
     public void ContainsFilePath_FindsEntriesBeyondFirstPage()
     {
         string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");

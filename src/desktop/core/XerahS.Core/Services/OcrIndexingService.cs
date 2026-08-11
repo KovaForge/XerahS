@@ -27,13 +27,19 @@ using XerahS.Common;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
 using SkiaSharp;
+using System.Collections.Concurrent;
 
 namespace XerahS.Core.Services;
 
 public static class OcrIndexingService
 {
     private const string TagName = "OcrText";
+    private const int MaximumQueuedItems = 256;
     private static readonly SemaphoreSlim IndexGate = new(1, 1);
+    private static readonly ConcurrentQueue<HistoryItem> IndexQueue = new();
+    private static readonly ConcurrentDictionary<long, byte> QueuedItemIds = new();
+    private static int _queuedItemCount;
+    private static int _queueWorkerRunning;
 
     public static bool IsEnabled => SettingsManager.Settings.ScreenshotContentSearchEnabled;
 
@@ -49,17 +55,63 @@ public static class OcrIndexingService
             return;
         }
 
-        _ = Task.Run(async () =>
+        if (string.IsNullOrWhiteSpace(GetOcrTag(item)) && PlatformServices.Ocr?.IsSupported != true)
         {
-            try
+            return;
+        }
+
+        if (!QueuedItemIds.TryAdd(item.Id, 0))
+        {
+            return;
+        }
+
+        if (Interlocked.Increment(ref _queuedItemCount) > MaximumQueuedItems)
+        {
+            Interlocked.Decrement(ref _queuedItemCount);
+            QueuedItemIds.TryRemove(item.Id, out _);
+            DebugHelper.WriteLine($"OcrIndexingService queue is full; skipped history item {item.Id}.");
+            return;
+        }
+
+        IndexQueue.Enqueue(item);
+        StartQueueWorker();
+    }
+
+    private static void StartQueueWorker()
+    {
+        if (Interlocked.CompareExchange(ref _queueWorkerRunning, 1, 0) == 0)
+        {
+            _ = Task.Run(ProcessQueueAsync);
+        }
+    }
+
+    private static async Task ProcessQueueAsync()
+    {
+        while (true)
+        {
+            while (IndexQueue.TryDequeue(out HistoryItem? item))
             {
-                await IndexHistoryItemAsync(item, CancellationToken.None);
+                Interlocked.Decrement(ref _queuedItemCount);
+                try
+                {
+                    await IndexHistoryItemAsync(item, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "OcrIndexingService.QueueIndexHistoryItem");
+                }
+                finally
+                {
+                    QueuedItemIds.TryRemove(item.Id, out _);
+                }
             }
-            catch (Exception ex)
+
+            Interlocked.Exchange(ref _queueWorkerRunning, 0);
+            if (IndexQueue.IsEmpty || Interlocked.CompareExchange(ref _queueWorkerRunning, 1, 0) != 0)
             {
-                DebugHelper.WriteException(ex, "OcrIndexingService.QueueIndexHistoryItem");
+                return;
             }
-        });
+        }
     }
 
     public static async Task IndexHistoryItemAsync(HistoryItem item, CancellationToken cancellationToken)

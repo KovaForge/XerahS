@@ -94,9 +94,6 @@ namespace XerahS.UI.ViewModels
         private bool _isLoading = false;
 
         [ObservableProperty]
-        private bool _isLoadingThumbnails = false;
-
-        [ObservableProperty]
         private bool _isCombiningSelection = false;
 
         [ObservableProperty]
@@ -104,6 +101,7 @@ namespace XerahS.UI.ViewModels
         private string _searchText = string.Empty;
 
         private int _searchVersion;
+        private int _reloadRequested;
 
         public ObservableCollection<HistoryItem> SelectedHistoryItems { get; } = new();
 
@@ -147,7 +145,6 @@ namespace XerahS.UI.ViewModels
 
         private readonly HistoryManagerSQLite _historyManager;
         private readonly IDesktopTaskManager _taskManager;
-        private CancellationTokenSource? _thumbnailCancellationTokenSource;
         private readonly IDialogService _coreDialogService;
 
         public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService, bool autoLoadHistory = true)
@@ -190,11 +187,13 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task LoadHistoryAsync()
         {
-            if (IsLoading) return;
+            if (IsLoading)
+            {
+                Interlocked.Exchange(ref _reloadRequested, 1);
+                return;
+            }
 
             IsLoading = true;
-
-
             try
             {
                 var historyPath = SettingsManager.GetHistoryFilePath();
@@ -217,32 +216,32 @@ namespace XerahS.UI.ViewModels
                 }
                 else
                 {
-                    List<HistoryItem> matches = await SearchHistoryItemsAsync(query);
-                    TotalItems = matches.Count;
+                    int requestedPage = Math.Max(CurrentPage, 1);
+                    int offset = (requestedPage - 1) * PageSize;
+                    (items, TotalItems) = await SearchHistoryItemsAsync(query, offset, PageSize);
                     TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
                     if (TotalPages == 0) TotalPages = 1;
 
-                    if (CurrentPage > TotalPages) CurrentPage = TotalPages;
+                    if (requestedPage > TotalPages)
+                    {
+                        CurrentPage = TotalPages;
+                        offset = (CurrentPage - 1) * PageSize;
+                        (items, TotalItems) = await SearchHistoryItemsAsync(query, offset, PageSize);
+                    }
                     if (CurrentPage < 1) CurrentPage = 1;
-
-                    int offset = (CurrentPage - 1) * PageSize;
-                    items = matches.Skip(offset).Take(PageSize).ToList();
                 }
 
-                // Clear and populate on UI thread
-                ClearSelectedHistoryItems();
-                HistoryItems.Clear();
-                foreach (var item in items)
+                if (!string.Equals(query, SearchText.Trim(), StringComparison.Ordinal))
                 {
-                    HistoryItems.Add(item);
+                    Interlocked.Exchange(ref _reloadRequested, 1);
                 }
-
-                DebugHelper.WriteLine($"History loaded: {items.Count} items (Page {CurrentPage}/{TotalPages})");
-
-                // Start loading thumbnails in background after history is displayed
-                if (HistoryItems.Count > 0)
+                else
                 {
-                    _ = LoadThumbnailsInBackgroundAsync();
+                    ClearSelectedHistoryItems();
+                    HistoryItems = new ObservableCollection<HistoryItem>(items);
+
+                    DebugHelper.WriteLine($"History loaded: {items.Count} items (Page {CurrentPage}/{TotalPages})");
+
                 }
             }
 
@@ -254,11 +253,17 @@ namespace XerahS.UI.ViewModels
             {
                 IsLoading = false;
             }
+
+            if (Interlocked.Exchange(ref _reloadRequested, 0) != 0)
+            {
+                await LoadHistoryAsync();
+            }
         }
 
         [RelayCommand]
         private async Task SearchHistoryAsync()
         {
+            Interlocked.Increment(ref _searchVersion);
             CurrentPage = 1;
             await LoadHistoryAsync();
         }
@@ -272,6 +277,7 @@ namespace XerahS.UI.ViewModels
             }
 
             SearchText = string.Empty;
+            Interlocked.Increment(ref _searchVersion);
             CurrentPage = 1;
             await LoadHistoryAsync();
         }
@@ -292,51 +298,9 @@ namespace XerahS.UI.ViewModels
             }
         }
 
-        private Task<List<HistoryItem>> SearchHistoryItemsAsync(string query)
+        private Task<(List<HistoryItem> Items, int TotalCount)> SearchHistoryItemsAsync(string query, int offset, int limit)
         {
-            return Task.Run(() =>
-            {
-                int count = _historyManager.GetTotalCount();
-                if (count <= 0)
-                {
-                    return new List<HistoryItem>();
-                }
-
-                List<HistoryItem> items = _historyManager.GetHistoryItems(0, count);
-                Dictionary<long, string> indexedTexts = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath())
-                    .GetTexts(items.Select(item => item.Id));
-
-                return items
-                    .Where(item => MatchesHistorySearch(
-                        item,
-                        query,
-                        indexedTexts.TryGetValue(item.Id, out string? ocrText) ? ocrText : null))
-                    .OrderByDescending(item => item.DateTime)
-                    .ToList();
-            });
-        }
-
-        private static bool MatchesHistorySearch(HistoryItem item, string query, string? indexedOcrText)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return true;
-            }
-
-            return ContainsSearchText(item.FileName, query) ||
-                   ContainsSearchText(item.FilePath, query) ||
-                   ContainsSearchText(item.URL, query) ||
-                   ContainsSearchText(item.Host, query) ||
-                   ContainsSearchText(item.TagsWindowTitle, query) ||
-                   ContainsSearchText(item.TagsProcessName, query) ||
-                   ContainsSearchText(indexedOcrText, query) ||
-                   item.Tags.Any(pair => ContainsSearchText(pair.Key, query) || ContainsSearchText(pair.Value, query));
-        }
-
-        private static bool ContainsSearchText(string? source, string query)
-        {
-            return !string.IsNullOrWhiteSpace(source) &&
-                source.Contains(query, StringComparison.OrdinalIgnoreCase);
+            return Task.Run(() => _historyManager.SearchHistoryItems(query, offset, limit));
         }
 
         [RelayCommand]
@@ -359,81 +323,6 @@ namespace XerahS.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// Loads thumbnails asynchronously on a background thread.
-        /// This allows history items to display immediately while thumbnails load gradually.
-        /// </summary>
-        private async Task LoadThumbnailsInBackgroundAsync()
-        {
-            // Cancel any previous thumbnail loading
-            _thumbnailCancellationTokenSource?.Cancel();
-            var thumbnailCancellationTokenSource = new CancellationTokenSource();
-            _thumbnailCancellationTokenSource = thumbnailCancellationTokenSource;
-            CancellationToken cancellationToken = thumbnailCancellationTokenSource.Token;
-            List<HistoryItem> snapshot = HistoryItems.ToList();
-
-            IsLoadingThumbnails = true;
-            try
-            {
-                await Task.Run(() =>
-                {
-                    int loadedCount = 0;
-                    foreach (var item in snapshot)
-                    {
-                        // Check cancellation token
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        // Pre-load thumbnail by accessing the converter
-                        // This forces the thumbnail to be cached for faster display
-                        if (!string.IsNullOrEmpty(item.FilePath) && File.Exists(item.FilePath))
-                        {
-                            try
-                            {
-                                var ext = Path.GetExtension(item.FilePath).ToLowerInvariant();
-                                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".bmp" || ext == ".webp")
-                                {
-                                    using var stream = File.OpenRead(item.FilePath);
-                                    _ = Bitmap.DecodeToWidth(stream, 180);
-                                    loadedCount++;
-                                }
-                            }
-                            catch
-                            {
-                                // Silently skip thumbnails that fail to load
-                            }
-                        }
-
-                        // Add small delay to prevent CPU saturation
-                        if (loadedCount > 0 && loadedCount % 5 == 0)
-                        {
-                            cancellationToken.WaitHandle.WaitOne(50);
-                            cancellationToken.ThrowIfCancellationRequested();
-                        }
-                    }
-
-                    DebugHelper.WriteLine($"Thumbnails pre-loaded: {loadedCount} images");
-                }, cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                DebugHelper.WriteLine("Thumbnail loading was cancelled");
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Error while loading thumbnails");
-            }
-            finally
-            {
-                if (ReferenceEquals(_thumbnailCancellationTokenSource, thumbnailCancellationTokenSource))
-                {
-                    _thumbnailCancellationTokenSource = null;
-                    IsLoadingThumbnails = false;
-                }
-
-                thumbnailCancellationTokenSource.Dispose();
-            }
-        }
-
         [RelayCommand]
         private void ToggleView()
         {
@@ -443,8 +332,6 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task RefreshHistory()
         {
-            // Cancel any ongoing thumbnail loading
-            _thumbnailCancellationTokenSource?.Cancel();
             await LoadHistoryAsync();
         }
 
@@ -1119,8 +1006,6 @@ namespace XerahS.UI.ViewModels
 
         public void Dispose()
         {
-            _thumbnailCancellationTokenSource?.Cancel();
-            _thumbnailCancellationTokenSource?.Dispose();
             _historyManager?.Dispose();
         }
     }

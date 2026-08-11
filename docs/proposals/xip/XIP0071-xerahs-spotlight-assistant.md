@@ -825,7 +825,7 @@ Exit criteria:
   - Privacy detail, shown in tooltip or expandable help: **Recognized text is saved on this device. Cloud OCR is never used automatically.**
   - Avoid technical UI labels such as "Search screenshots by content"; keep "OCR" and indexing terminology in advanced/help text only.
 - Status: implemented in desktop History settings as **Make screenshots searchable**.
-- Default is off unless the user enables it.
+- Default is on for new configurations; users can disable it at any time.
 - Capture path: implemented. When the setting is enabled, every new screenshot capture is queued for local OCR after the file is saved and the history row exists. The OCR job runs off the UI thread and does not block saving, preview, upload, or copy actions.
 - OCR engine preference: use the native platform OCR engine first when available (`Windows.Media.Ocr`, macOS Vision, or platform-native Linux/Tesseract integration as supported). If no local OCR engine is available, mark the row as `not_supported` and do not use cloud OCR automatically.
 - Storage source: implemented as a SQLite-backed OCR catalog tied to history item IDs and normalized file paths in the existing history database. FTS5 remains a later scale/performance improvement.

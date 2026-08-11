@@ -44,7 +44,7 @@ namespace XerahS.History
         {
             FileHelpers.CreateDirectoryFromFilePath(filePath);
 
-            string connectionString = $"Data Source={filePath}";
+            string connectionString = $"Data Source={filePath};Pooling=False";
             connection = new SqliteConnection(connectionString);
             connection.Open();
 
@@ -103,22 +103,7 @@ CREATE TABLE IF NOT EXISTS History (
             {
                 while (reader.Read())
                 {
-                    HistoryItem item = new HistoryItem()
-                    {
-                        Id = reader["Id"] == DBNull.Value ? 0L : Convert.ToInt64(reader["Id"]),
-                        FileName = reader["FileName"] == DBNull.Value ? string.Empty : reader["FileName"]?.ToString() ?? string.Empty,
-                        FilePath = reader["FilePath"]?.ToString() ?? string.Empty,
-                        DateTime = DateTime.TryParse(reader["DateTime"]?.ToString(), out var dt) ? dt : DateTime.MinValue,
-                        Type = reader["Type"]?.ToString() ?? string.Empty,
-                        Host = reader["Host"]?.ToString() ?? string.Empty,
-                        URL = reader["URL"]?.ToString() ?? string.Empty,
-                        ThumbnailURL = reader["ThumbnailURL"]?.ToString() ?? string.Empty,
-                        DeletionURL = reader["DeletionURL"]?.ToString() ?? string.Empty,
-                        ShortenedURL = reader["ShortenedURL"]?.ToString() ?? string.Empty,
-                        Tags = JsonConvert.DeserializeObject<Dictionary<string, string?>>(reader["Tags"]?.ToString() ?? "{}") ?? new Dictionary<string, string?>()
-                    };
-
-                    items.Add(item);
+                    items.Add(ReadHistoryItem(reader));
                 }
             }
 
@@ -155,22 +140,7 @@ CREATE TABLE IF NOT EXISTS History (
                 {
                     while (reader.Read())
                     {
-                        HistoryItem item = new HistoryItem()
-                        {
-                            Id = reader["Id"] == DBNull.Value ? 0L : Convert.ToInt64(reader["Id"]),
-                            FileName = reader["FileName"] == DBNull.Value ? string.Empty : reader["FileName"]?.ToString() ?? string.Empty,
-                            FilePath = reader["FilePath"]?.ToString() ?? string.Empty,
-                            DateTime = DateTime.TryParse(reader["DateTime"]?.ToString(), out var dt) ? dt : DateTime.MinValue,
-                            Type = reader["Type"]?.ToString() ?? string.Empty,
-                            Host = reader["Host"]?.ToString() ?? string.Empty,
-                            URL = reader["URL"]?.ToString() ?? string.Empty,
-                            ThumbnailURL = reader["ThumbnailURL"]?.ToString() ?? string.Empty,
-                            DeletionURL = reader["DeletionURL"]?.ToString() ?? string.Empty,
-                            ShortenedURL = reader["ShortenedURL"]?.ToString() ?? string.Empty,
-                            Tags = JsonConvert.DeserializeObject<Dictionary<string, string?>>(reader["Tags"]?.ToString() ?? "{}") ?? new Dictionary<string, string?>()
-                        };
-
-                        items.Add(item);
+                        items.Add(ReadHistoryItem(reader));
                     }
                 }
             }
@@ -181,6 +151,61 @@ CREATE TABLE IF NOT EXISTS History (
         public async Task<List<HistoryItem>> GetHistoryItemsAsync(int offset, int limit)
         {
             return await Task.Run(() => GetHistoryItems(offset, limit));
+        }
+
+        public (List<HistoryItem> Items, int TotalCount) SearchHistoryItems(string query, int offset, int limit)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return (GetHistoryItems(offset, limit), GetTotalCount());
+            }
+
+            HistoryOcrIndexStore.EnsureDatabase(EnsureConnection());
+            string normalizedQuery = query.Trim();
+            int clampedOffset = Math.Max(0, offset);
+            int clampedLimit = Math.Max(1, limit);
+
+            const string predicate = """
+                instr(lower(coalesce(FileName, '')), lower(@Query)) > 0 OR
+                instr(lower(coalesce(FilePath, '')), lower(@Query)) > 0 OR
+                instr(lower(coalesce(URL, '')), lower(@Query)) > 0 OR
+                instr(lower(coalesce(Host, '')), lower(@Query)) > 0 OR
+                instr(lower(coalesce(Tags, '')), lower(@Query)) > 0 OR
+                EXISTS (
+                    SELECT 1
+                    FROM HistoryOcrIndex AS Ocr
+                    WHERE Ocr.HistoryItemId = History.Id
+                      AND Ocr.Status = 'indexed'
+                      AND Ocr.OcrText IS NOT NULL
+                      AND instr(lower(Ocr.OcrText), lower(@Query)) > 0
+                )
+                """;
+
+            int totalCount;
+            using (SqliteCommand countCommand = EnsureConnection().CreateCommand())
+            {
+                countCommand.CommandText = $"SELECT COUNT(*) FROM History WHERE {predicate};";
+                countCommand.Parameters.AddWithValue("@Query", normalizedQuery);
+                object? result = countCommand.ExecuteScalar();
+                totalCount = result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
+            }
+
+            List<HistoryItem> items = new(Math.Min(totalCount, clampedLimit));
+            using (SqliteCommand command = EnsureConnection().CreateCommand())
+            {
+                command.CommandText = $"SELECT * FROM History WHERE {predicate} ORDER BY DateTime DESC LIMIT @Limit OFFSET @Offset;";
+                command.Parameters.AddWithValue("@Query", normalizedQuery);
+                command.Parameters.AddWithValue("@Limit", clampedLimit);
+                command.Parameters.AddWithValue("@Offset", clampedOffset);
+
+                using SqliteDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    items.Add(ReadHistoryItem(reader));
+                }
+            }
+
+            return (items, totalCount);
         }
 
         public bool ContainsFilePath(string filePath, int pageSize = 500)
@@ -380,6 +405,24 @@ WHERE Id = @Id;";
             return connection ?? throw new InvalidOperationException("Database connection is not initialized.");
         }
 
+        private static HistoryItem ReadHistoryItem(SqliteDataReader reader)
+        {
+            return new HistoryItem
+            {
+                Id = reader["Id"] == DBNull.Value ? 0L : Convert.ToInt64(reader["Id"]),
+                FileName = reader["FileName"] == DBNull.Value ? string.Empty : reader["FileName"]?.ToString() ?? string.Empty,
+                FilePath = reader["FilePath"]?.ToString() ?? string.Empty,
+                DateTime = DateTime.TryParse(reader["DateTime"]?.ToString(), out DateTime dateTime) ? dateTime : DateTime.MinValue,
+                Type = reader["Type"]?.ToString() ?? string.Empty,
+                Host = reader["Host"]?.ToString() ?? string.Empty,
+                URL = reader["URL"]?.ToString() ?? string.Empty,
+                ThumbnailURL = reader["ThumbnailURL"]?.ToString() ?? string.Empty,
+                DeletionURL = reader["DeletionURL"]?.ToString() ?? string.Empty,
+                ShortenedURL = reader["ShortenedURL"]?.ToString() ?? string.Empty,
+                Tags = JsonConvert.DeserializeObject<Dictionary<string, string?>>(reader["Tags"]?.ToString() ?? "{}") ?? new Dictionary<string, string?>()
+            };
+        }
+
         private static bool IsSamePath(string? left, IReadOnlyList<string> rightPaths)
         {
             IReadOnlyList<string>? leftPaths = GetComparablePaths(left);
@@ -443,4 +486,3 @@ WHERE Id = @Id;";
         }
     }
 }
-
