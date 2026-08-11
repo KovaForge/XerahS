@@ -4905,3 +4905,13 @@ Added candidates (8):
 - clawpatch report 20260811T150326-d558dc.md committed (newest of 3; older 2 already on nadia/develop).
 - State JSON: next_candidates extended (1 entry); last_runs appended (this row); last_updated/last_run_outcome/areas[*].status NOT touched (consumer-side fields preserved).
 - Skill: xerahs-review/SKILL.md v2.2.3 not patched this run. Dedupe gates (release-history, recently-pivoted cache, area-level) all working as designed — 275 raw findings -> 1 newly queued candidate. No efficiency blocker identified.
+
+### 2026-08-12 00:05 AWST - Pivot / already-fixed
+
+- Area: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+- Files: (none — pivot, no code change)
+- Findings: submodule citation — cited lines at submodule HEAD already contain the ISSUE-024 fix (commit eb4739c Manage latest effect preview bitmap lifecycle)
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only — submodule citation already-fixed at HEAD)
+- Follow-up: do not re-queue unless source regresses
