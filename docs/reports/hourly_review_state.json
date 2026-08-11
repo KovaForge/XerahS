@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-11 00:05 AWST",
+  "last_updated": "2026-08-11 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1784,9 +1784,18 @@
       "commit": null,
       "summary": "Step 5a found zero candidates; producer last tick 2026-08-10 23:06 AWST left queue empty; deferred-last-runs cleanup n/a",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-11 08:08 AWST",
+      "agent": "mikhail",
+      "outcome": "fixed",
+      "item": "ScreenCapture permission preflight (macOS region selector gate)",
+      "commit": "4e76d1718ba19ac226b1ae1bb4abe83d8e36672e",
+      "summary": "Concurrent commit landed on Declan-owned develop between cron preflight reads (Sibling cron drift). Introduces IScreenCapturePermissionService, EnsurePlatformCaptureAccess gate on macOS region selector path, renames EnsureScreenRecordingAccess to EnsureScreenCaptureAccess on MacOSScreenCaptureKitService. Adds MacOSScreenCapturePermissionGateTests (4 cases, all passing). Version bump 0.24.24 -> 0.24.25. Verified: XerahS.Platform.Abstractions, XerahS.Platform.MacOS, XerahS.UI all build clean (0 new warnings). Full XerahS.Tests 1260 tests (1257 passed, 1 unrelated failure in EditorCloseConfirmationTests UiViewModelFactoryAccessor setup, 2 skipped). Commit already on declan/develop (HEAD == declan/develop == 4e76d171).",
+      "status": "fixed"
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "fixed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
