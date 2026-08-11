@@ -4889,3 +4889,19 @@ Added candidates (8):
 - Commit: PENDING (filled in Step 9 summary after push; last_runs.commit left null per v1.1.12)
 - Follow-up: wait for next xerahs-review producer ingest; do not invent work
 - Skill: no auto-improve this tick (no efficiency blockers; empty-queue audit contract working as designed)
+### 2026-08-11 23:05 AWST - xerahs-review (Nadia, producer, daily cron)
+
+- Outcome: ingested 1 new finding (PreviewEffect null-ref in ShareX.ImageEditor); queue non-empty for the first time since 2026-07-20.
+- clawpatch: 3 reports parsed (newest 20260811T150326-d558dc, prior two 20260810T150412-136730 + 20260809T150315-d3aeb6). 275 findings total, 103 eligible after severity gate.
+- 172 dropped at severity gate (107 risk, 45 contract-mismatch, 14 docs-gap, 6 test-gap).
+- 3 dropped at area-level (ImmichUploader.cs:220-233 — CreateOrReuseAlbumShare fixed in v0.23.124/125/126, repeated across 3 reports).
+- 54 dropped by release-history dedupe (HSB.cs, FileDownloader.cs, DPAPIEncryptedStringValueProvider.cs, GradientInfo, ImmichUploader.cs, AnimatedGifCreator.cs:118/119, ReClipCommand.cs:114, IndexCommand.cs:273-290, DropboxUploader.cs:150, HistoryManagerSQLiteTests.cs:73-113, AssistantHistoryServiceTests.cs:43/156-174/178-199, AnimatedGifCreator/OctreeQuantizer.cs:275, and others touched by `[vX.Y.Z]` release commits in repo history).
+- 45 skipped as recently-pivoted (cross-report duplicates of: CliCaptureStrategy.cs:111-112, MobileHistoryViewModel.cs:108, CaptureStage.cs:79-84, AnimatedGifCreator.cs, OctreeQuantizer.cs:275, check-markdown-mojibake.py, BitlyUrlShortener.cs:71, DropboxProvider.cs:144/211, CaptureCommand.cs:131-153, BoolConverters.cs:67-69, VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334, NextcloudConfigViewModel.cs:375-378, Paste2Uploader.cs:66-78, Paste2ConfigViewModel.cs:76-81, NextcloudClient.cs:124-127/172-175, Directory.Build.props:11).
+- Added candidates: 1 — `ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)` (bug/confirmed-bug, high confidence; PreviewEffect delegates without null-checking `_preEffectImage`)
+- next_candidates: 0 -> 1 (+1)
+- Fork sync: nadia develop at HEAD b05fdde0 (initial fetch showed ef5d63d, stale; re-fetched — both refs converged to b05fdde0). origin/develop also at b05fdde0. No merge needed.
+- Upstream sync: up to date with ShareX/XerahS develop (b43eb3dc); HEAD is 10 commits ahead (no merge needed, all KovaForge work).
+- Submodule (ShareX.ImageEditor): up to date at 1bcb66c (no push needed).
+- clawpatch report 20260811T150326-d558dc.md committed (newest of 3; older 2 already on nadia/develop).
+- State JSON: next_candidates extended (1 entry); last_runs appended (this row); last_updated/last_run_outcome/areas[*].status NOT touched (consumer-side fields preserved).
+- Skill: xerahs-review/SKILL.md v2.2.3 not patched this run. Dedupe gates (release-history, recently-pivoted cache, area-level) all working as designed — 275 raw findings -> 1 newly queued candidate. No efficiency blocker identified.

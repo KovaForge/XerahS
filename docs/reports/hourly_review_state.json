@@ -10,7 +10,9 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1802,6 +1804,35 @@
       "commit": null,
       "summary": "Step 5a found zero candidates (queue still empty after producer tick 2026-08-10 23:06 AWST and Mikhail's concurrent fix at 2026-08-11 08:08 AWST). No pivots; no deferred last_runs files to clean. Fork sync clean: HEAD == declan/develop == origin/develop == 5ce22c8c (Mikhail's macOS capture notify). Upstream 59 ahead, no merge needed. Submodule ShareX.ImageEditor clean at 1bcb66c4. No code change this tick.",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-11 23:05 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
+      "commit": "HEAD",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260811T150326-d558dc.md completed (3 features reviewed: ShareX.ImageEditor MainViewModel, XerahS.Common ImageEffects Drawings, XerahS.Paste2.Plugin). 3 raw findings across 2 features reviewed. Step 5.5 ingest: 275 findings parsed across 3 reports (newest + 2 prior). Severity gate dropped 172 (107 risk / 45 contract-mismatch / 14 docs-gap / 6 test-gap). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare — already fixed in v0.23.124/125/126, repeated across 3 reports). Release-history dedupe dropped 54 (HSB.cs:163-190 equality/hash contract; FileDownloader.cs:112-124/136-140 EOF spin; DPAPIEncryptedStringValueProvider; GradientInfo; AnimatedGifCreator.cs:118/119 integer overflow; ReClipCommand.cs:114 SetWatchFolder; IndexCommand.cs:273-290 CountIndexedContents; DropboxUploader.cs:150 RefreshAccessToken; HistoryManagerSQLiteTests.cs:73-113 ContainsFilePath; AssistantHistoryServiceTests.cs:43/156-174/178-199 SetUp+TearDown+OCR-cache invalidation; OctreeQuantizer.cs:275 GetPaletteIndex; ImmichUploader.cs; etc). recently_pivoted dedupe skipped 45 (cross-report duplicates of CliCaptureStrategy.cs:111-112, MobileHistoryViewModel.cs:108, CaptureStage.cs:79-84, check-markdown-mojibake.py, BitlyUrlShortener.cs:71, DropboxProvider.cs:144/211, CaptureCommand.cs:131-153, BoolConverters.cs:67-69, VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334, NextcloudConfigViewModel.cs:375-378, Paste2Uploader.cs:66-78, Paste2ConfigViewModel.cs:76-81, NextcloudClient.cs:124-127/172-175, Directory.Build.props:11, etc — all already on consumer's mental model). 0 dups of existing. 1 added: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect) — PreviewEffect delegates 'effect' without null-checking _preEffectImage (high confidence, confirmed-bug, bug category). next_candidates: 0 -> 1 (+1). Queue non-empty for first time since 2026-07-20. Fork sync: nadia develop == HEAD == origin/develop == b05fdde0 (initial fetch showed ef5d63d; re-fetched — converged). Upstream: HEAD 60 ahead of upstream/develop (no merge, all KovaForge work). Submodule ShareX.ImageEditor at 1bcb66c on heads/develop, clean. clawpatch report 20260811T150326-d558dc.md added (older 2 already on nadia develop).",
+      "status": "produced",
+      "latest_report": "20260811T150326-d558dc.md",
+      "reports_parsed": 3,
+      "parsed_total": 275,
+      "dropped_gate": 172,
+      "dropped_gate_breakdown": {
+        "triage=risk": 107,
+        "triage=contract-mismatch": 45,
+        "triage=docs-gap": 14,
+        "triage=test-gap": 6
+      },
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 54,
+      "skipped_recently_pivoted": 45,
+      "skipped_dup": 0,
+      "ingested": 1,
+      "ingested_items": [
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)"
+      ],
+      "queue_size_before": 0,
+      "queue_size_after": 1
     }
   ],
   "last_run_outcome": "no-op",
