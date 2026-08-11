@@ -4878,3 +4878,14 @@ Added candidates (8):
 - Commit: 4e76d171 (author: Mikhail Orlov <275563267+mikhail-orlov-kf@users.noreply.github.com>; already on `declan/develop` per pre-push `git fetch declan develop` — `HEAD == declan/develop == 4e76d171`).
 - Follow-up: Do not invent a re-fix on top of this; if more platform-specific permission preflights (Linux/Wayland, Windows) need the same gate, prefer adding more `IScreenCapturePermissionService` implementations rather than coupling to `OperatingSystem.IsMacOS()` inline.
 - Skill: Concurrent/sibling cron drift pitfall already covers this; promoting the explicit "verify HEAD == <agent>/develop before assuming local-only commit" preflight into Step 8 for clarity.
+
+### 2026-08-11 16:12 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found 0 candidates (queue still empty after producer tick 2026-08-10 23:06 AWST and Mikhail's concurrent commit at 2026-08-11 08:08 AWST). No pivots; no deferred last_runs files to clean (v1.1.16 consecutive no-op cleanup n/a).
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: PENDING (filled in Step 9 summary after push; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review producer ingest; do not invent work
+- Skill: no auto-improve this tick (no efficiency blockers; empty-queue audit contract working as designed)
