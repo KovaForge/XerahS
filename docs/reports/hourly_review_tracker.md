@@ -4976,3 +4976,14 @@ Added candidates (8):
 - Skipped as duplicate of existing: 0
 - Ingested: 0
 - next_candidates delta: +0 (total 0)
+
+### 2026-08-13 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync; no real-bug pick and no pivots this tick
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: null (record SHA in Step 9 summary only; no self-referential backfill)
+- Follow-up: wait for xerahs-review producer to refill next_candidates; keep recently_pivoted seed
+- Skill: xerahs-bugfix/SKILL.md v1.1.21 — no patch this run (no efficiency blockers)
