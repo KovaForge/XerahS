@@ -4915,3 +4915,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only — submodule citation already-fixed at HEAD)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-08-12 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream sync. Deleted stale deferred-last-runs-20260812-000559.json (v1.1.16 consecutive no-op cleanup). HEAD already matched declan/develop; upstream ancestor; submodule clean.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: null (audit commit SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: no SKILL.md patch this tick
