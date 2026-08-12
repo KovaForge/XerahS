@@ -4937,3 +4937,42 @@ Added candidates (8):
 - Commit: null (audit commit SHA recorded in Step 9 summary only — v1.1.12)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: no SKILL.md patch this tick
+
+### 2026-08-12 23:15 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3 (20260812T150925-64e0c7.md, 20260811T150326-d558dc.md, 20260810T150412-136730.md)
+- v2.2.4 submodule-prefix drops: 50
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [build-release/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+  - [data-loss/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/Filters/RemoveBackgroundImageEffect.cs:54-232 (RemoveBackgro
+  - [build-release/risk] Directory.Packages.props:7-57 (PackageVersion)
+  - [api-contract/contract-mismatch] Directory.Packages.props:8-19
+  - [bug/confirmed-bug] ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+  - [maintainability/risk] Directory.Packages.props:4 (ManagePackageVersionsCentrally)
+  - [api-contract/contract-mismatch] Directory.Packages.props:40-42
+  - [api-contract/contract-mismatch] Directory.Packages.props:7-57
+  - [api-contract/contract-mismatch] Directory.Packages.props:40 (SkiaSharp)
+- Findings dropped at severity gate: 135
+  - triage=risk: 87
+  - triage=contract-mismatch: 30
+  - triage=docs-gap: 12
+  - triage=test-gap: 6
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed: 57
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+- v2.2.2 recently-pivoted skips: 39
+- Skipped as duplicate of existing: 0
+- Ingested: 0
+- next_candidates delta: +0 (total 0)

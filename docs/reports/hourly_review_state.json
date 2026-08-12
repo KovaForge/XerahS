@@ -1849,6 +1849,34 @@
       "commit": null,
       "summary": "Step 5a found zero candidates; empty-queue audit only. No deferred-last-runs files present.",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-12 23:17 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
+      "status": "no-op",
+      "commit": "HEAD",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence — replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260812T150925-64e0c7 completed (3 features: feat_library_612a85b226 XerahS.UI/Onboarding, feat_library_6151a2fd01 XerahS.Platform.Linux/Capture/Helpers, feat_library_632edc748d XerahS.Assistant). Step 5.5 ingest: parsed 284 findings across 3 newest reports (20260812T150925-64e0c7 + 20260811T150326-d558dc + 20260810T150412-136730). v2.2.4 submodule-prefix gate dropped 50 (ShareX.ImageEditor / ShareX.VideoEditor citations — cannot be fixed from parent repo without submodule sync). v2.1.0 severity gate dropped 135 (87 triage=risk, 30 contract-mismatch, 12 docs-gap, 6 test-gap) — note: both raw XerahS.Assistant.csproj:17-20 (low/maintainability) findings from today's clawpatch run dropped here (category=maintainability is excluded). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare). Release-history dedupe dropped 57 (v2.1.2 walk of Directory.Build.props <Version> history). v2.2.2 recently-pivoted dedupe skipped 39 (consumer-drained citations: CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, HotkeySelectionControl, AnimatedGifCreator, OctreeQuantizer, BitlyUrlShortener, DropboxProvider, NextcloudConfigViewModel, Mobile BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Paste2Uploader, Paste2ConfigViewModel, DropboxUploader, DPAPIEncryptedStringValueProvider, GradientInfo, FileDownloader, HSB, ReClipCommand, IndexCommand, RandomCrypto, PluginManifest.IsSafePluginId, NextcloudClient, etc.). 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 00562fb8 (consumer-driven empty-queue audit commits). Upstream: HEAD 65 ahead of upstream/develop, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3 (in sync with parent pointer 160000 d898b2c3). No submodule or parent push needed. clawpatch report 20260812T150925-64e0c7.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
+      "latest_report": "20260812T150925-64e0c7.md",
+      "reports_parsed": 3,
+      "parsed_total": 284,
+      "dropped_submodule_prefix": 50,
+      "dropped_gate": 135,
+      "dropped_gate_breakdown": {
+        "triage=risk": 87,
+        "triage=contract-mismatch": 30,
+        "triage=docs-gap": 12,
+        "triage=test-gap": 6
+      },
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 57,
+      "skipped_recently_pivoted": 39,
+      "skipped_dup": 0,
+      "ingested": 0,
+      "ingested_items": [],
+      "queue_size_before": 0,
+      "queue_size_after": 0
     }
   ],
   "last_run_outcome": "no-op",
