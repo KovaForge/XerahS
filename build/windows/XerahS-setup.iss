@@ -83,7 +83,9 @@ Source: "{#MyAppReleaseDirectory}\Plugins\*"; DestDir: "{userdocs}\{#MyAppName}\
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
 Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: CreateDesktopIcon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Parameters: "-silent"; Tasks: CreateStartupIcon
+
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" -silent"; Tasks: CreateStartupIcon; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall; Check: not IsNoRun
@@ -160,4 +162,3 @@ begin
   if (CurStep = ssPostInstall) and DaemonWasRunning then
     StartWatchFolderDaemon();
 end;
-
