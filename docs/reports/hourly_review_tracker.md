@@ -4998,3 +4998,14 @@ Added candidates (8):
 - Commit: null (audit commit SHA in run summary only; leave last_runs.commit null per v1.1.12)
 - Follow-up: await next xerahs-review producer ingest into next_candidates
 - Skill: none this tick
+
+### 2026-08-13 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after classify; no pivots; no code fix
+- Status: no-op
+- Build/test: n/a (empty queue)
+- Commit: null (audit only; SHA in delivery summary)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.21 — no Step 10 patch this run
