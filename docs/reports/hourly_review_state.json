@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-13 23:08 AWST",
+  "last_updated": "2026-08-14 00:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -102,7 +102,7 @@
       "status": "fixed",
       "priority": "High",
       "source": "follow-up from v0.23.103 history backup user-visible diagnostic",
-      "last_outcome": "Surfaced the v0.23.103 HistoryManager.LastBackupFailureReason diagnostic to the user via a platform toast. Added internal static HistoryViewModel.ShowHistoryBackupFailureToastIfPresent(string? reason) \u2014 null/empty/whitespace short-circuits silently, exception-safe try/catch so headless/unit-test environments do not throw, and the null-conditional PlatformServices.Toast?.ShowToast short-circuits when the platform toast service is uninitialized. Wired into the CombineSelectedImagesAsync `!_historyManager.AppendHistoryItem(combinedHistoryItem)` failure path so a toast fires whenever the append returned false AND the backup layer set a user-friendly reason. 4 regression tests in tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs (null/empty/whitespace/non-empty reason \u2014 all assert DoesNotThrow). Pre-staged work from a prior session: version bump 0.23.103 -> 0.23.104, source change, test file all in working tree at sweep start; recovered via the standard pre-staged-work pattern (verify, build/test, commit, push).",
+      "last_outcome": "Surfaced the v0.23.103 HistoryManager.LastBackupFailureReason diagnostic to the user via a platform toast. Added internal static HistoryViewModel.ShowHistoryBackupFailureToastIfPresent(string? reason) — null/empty/whitespace short-circuits silently, exception-safe try/catch so headless/unit-test environments do not throw, and the null-conditional PlatformServices.Toast?.ShowToast short-circuits when the platform toast service is uninitialized. Wired into the CombineSelectedImagesAsync `!_historyManager.AppendHistoryItem(combinedHistoryItem)` failure path so a toast fires whenever the append returned false AND the backup layer set a user-friendly reason. 4 regression tests in tests/XerahS.Tests/UI/HistoryViewModelBackupToastTests.cs (null/empty/whitespace/non-empty reason — all assert DoesNotThrow). Pre-staged work from a prior session: version bump 0.23.103 -> 0.23.104, source change, test file all in working tree at sweep start; recovered via the standard pre-staged-work pattern (verify, build/test, commit, push).",
       "follow_up": "File/path handling audit chain complete on the two follow-ups tracked here: empty/whitespace destination guards v0.23.98, user-visible backup diagnostic v0.23.103 (data layer) + v0.23.104 (UI consumption). Continue other follow-up tracks: OCR tool/onboarding language-selection parity, Uploader UI/log diagnostics, CLI xerahscli upload --pipe edge cases. Clawpatch queue: FileDownloader chunked/streaming-encoding support, plugin version pinning, TFM mismatch in Common/Platform.Abstractions."
     },
     {
@@ -198,7 +198,7 @@
       "last_reviewed": "2026-05-14 12:51 AWST",
       "status": "clean",
       "priority": "High",
-      "last_outcome": "Clean review \u2014 no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
+      "last_outcome": "Clean review — no fixable bugs found. GNOME eval rect bounds validated before JSON serialization; X11 property conversion handles memory/format/count edges; Wayland compositor helpers degrade with descriptive diagnostics; frame extent overflow already hardened.",
       "follow_up": "Continue region/window enumeration review around macOS AppleScript front-window parsing edge cases, Windows window enumeration filtering parity, and multi-monitor scaled display bounds across platforms."
     },
     {
@@ -230,7 +230,7 @@
       "last_reviewed": "2026-05-30 18:16 AWST",
       "status": "fixed",
       "priority": "Medium",
-      "last_outcome": "Fixed ConvertTo silent type erasure \u2014 non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
+      "last_outcome": "Fixed ConvertTo silent type erasure — non-List<string> values (string[], StringCollection, Dictionary) and non-string destinations now delegate to base instead of returning string.Empty. Added 4 regression tests. Bumped version 0.23.79 -> 0.23.80.",
       "follow_up": "Continue clawpatch queue review: FileDownloader chunked/streaming bypass; Wayland active-window compositor routing; stderr redirection blocking; TFM mismatch in Common/Platform.Abstractions."
     },
     {
@@ -257,7 +257,7 @@
       "status": "fixed",
       "priority": "Medium",
       "last_outcome": "Fixed LinuxCliToolRunner.RunAsync pipe-drain deadlock. Spawned child process had RedirectStandardError/Output=true but the pipes were never drained, so the OS pipe buffer (~64KB on POSIX) could fill and block the child on its next write, causing WaitForExit to time out and the capture to return a misleading null/failure even though the tool was healthy. Same anti-pattern previously fixed in MacOSClipboardService, LinuxClipboardService, and the MacOS AppleScript helpers. Fix: extracted RunCoreAsync that drains stderr via process.BeginErrorReadLine and stdout via a fire-and-forget ReadToEndAsync continuation; added a bounded process.WaitForExit(1000) after Kill so the async drainers finish reading the (now-broken) pipes before the using block disposes the process. Added internal TestAccessor exposing RunForTestAsync so tests can exercise the run helper without producing a real PNG. Added 4 regression tests: happy path, large-stderr 0-exit, large-stderr non-zero exit, and timeout. Bumped version 0.23.85 -> 0.23.86.",
-      "follow_up": "Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length read/write loop wrapped the entire download and dropped 0-byte response bodies on chunked transfers \u2014 fixed locally in v0.23.84 commit 15a5773a but push deferred from prior run). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
+      "follow_up": "Continue clawpatch queue: FileDownloader chunked/streaming-encoding support (declared-length read/write loop wrapped the entire download and dropped 0-byte response bodies on chunked transfers — fixed locally in v0.23.84 commit 15a5773a but push deferred from prior run). Then continue TFM mismatch in Common/Platform.Abstractions, plugin version pinning, and remaining capture pipeline edge cases."
     },
     {
       "area": "Linux platform / LinuxScreenService / xrandr capture",
@@ -274,7 +274,7 @@
       "status": "fixed",
       "priority": "Medium",
       "source": "follow-up from LinuxScreenService v0.23.91 stderr-drain fix",
-      "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) \u2014 the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
+      "last_outcome": "Fixed LinuxThemeService.TryReadFromGSettings and TryReadGtkThemeDark pipe-fill and timeout-stretching deadlocks. Both set RedirectStandardError=true and used sync StandardOutput.ReadToEnd() + WaitForExit(1000) — the same anti-pattern previously fixed in LinuxCliToolRunner (v0.23.86) and LinuxScreenService (v0.23.91). Extracted RunGsettingsCapture(fileName, arguments, timeoutMs) helper that drains stderr asynchronously (ReadToEndAsync + ContinueWith discard) and bounds stdout wait with Task.WaitAny(stdoutTask, Task.Delay(timeoutMs)). Added internal TestAccessor exposing RunGsettingsCapture. Added 4 regression tests (happy path, 200KB stderr pipe-fill, sleep-with-timeout, non-zero exit). Bumped version 0.23.91 -> 0.23.92.",
       "follow_up": "Continue stderr-drainage audit on remaining helpers found by the same grep: PulseAudioHelper.RunPactl, LinuxInputService, MacOSInputService, and the WaylandCliCapture grim/slurp/grimblast paths. The LinuxScreenService (v0.23.91) and LinuxThemeService (v0.23.92) fixes are the templates. Investigate 3 pre-existing MCP server SQLite 'disk I/O error' failures on CreateHistoryDetailsAsync_* tests (environmental, not a regression)."
     },
     {
@@ -386,7 +386,7 @@
       "commit": "ab5d5e8e",
       "outcome": "reviewed",
       "build_test": "build 0 warnings/0 errors; XerahS.Tests 1125 passed / 3 pre-existing BuildManifest failures / 1 skipped; McpServer.Tests 42 passed / 5 pre-existing SQLite disk I/O error failures (environmental)",
-      "notes": "Top candidate ImmichUploader.CreateOrReuseAlbumShare (lines 220-233): existing shared-link reuse uses AlbumId equality only \u2014 no permission fields to compare. ImmichSharedLink domain model lacks allowDownload/allowUpload/showMetadata/password fields that CreateSharedLinkAsync writes. Real fix requires adding those fields to ImmichSharedLink, ImmichSharedLinkResponse, and MapSharedLink \u2014 a multi-file API model expansion. Already fixed per prior fix; no code change this run. clawpatch findings fnd_sig-feat-library-0cc26b772b and fnd_sig-feat-library-0b7ba58069 ingested into next_candidates from run 20260704T003955-856b35 (prior session). Upstream merged: 2 commits (blog drafts 2026-07-02, 2026-07-03)."
+      "notes": "Top candidate ImmichUploader.CreateOrReuseAlbumShare (lines 220-233): existing shared-link reuse uses AlbumId equality only — no permission fields to compare. ImmichSharedLink domain model lacks allowDownload/allowUpload/showMetadata/password fields that CreateSharedLinkAsync writes. Real fix requires adding those fields to ImmichSharedLink, ImmichSharedLinkResponse, and MapSharedLink — a multi-file API model expansion. Already fixed per prior fix; no code change this run. clawpatch findings fnd_sig-feat-library-0cc26b772b and fnd_sig-feat-library-0b7ba58069 ingested into next_candidates from run 20260704T003955-856b35 (prior session). Upstream merged: 2 commits (blog drafts 2026-07-02, 2026-07-03)."
     },
     {
       "timestamp": "2026-06-24 00:51 AWST",
@@ -465,7 +465,7 @@
         "Directory.Build.props"
       ],
       "summary": "Hardened XerahSMcpRuntime.IsHistorySearchResourceUri against prefix-only paths (e.g. 'xerahs://history/searchfoo') and malformed percent-escapes (e.g. 'q=%E0%A4%A') that were previously treated as valid search URIs. Switched from string StartsWith to a Uri-based parse (Host == 'history' AND AbsolutePath == '/history/search' AND only valid percent-escapes). Made the method public static so tests can call it directly. Added 7 regression tests (3 valid + 4 invalid). Bumped version 0.23.100 -> 0.23.101.",
-      "result": "build 0 warnings/0 errors; XerahS.Tests 1104 passed / 0 failed / 1 skipped (was 1098, +6: tests for IsHistorySearchResourceUri run in the main test project too via the McpServer.Tests internal fixture import? No \u2014 +6 reflects unrelated 6-test additions in earlier runs that hadn't been run; actually net delta vs last run record is 0 unrelated). McpServer.Tests 42 passed / 5 failed (3 pre-existing CreateHistoryDetailsAsync_* SQLite 'disk I/O error' + 2 new IsHistorySearchResourceUri_* tests hitting the same environmental class).",
+      "result": "build 0 warnings/0 errors; XerahS.Tests 1104 passed / 0 failed / 1 skipped (was 1098, +6: tests for IsHistorySearchResourceUri run in the main test project too via the McpServer.Tests internal fixture import? No — +6 reflects unrelated 6-test additions in earlier runs that hadn't been run; actually net delta vs last run record is 0 unrelated). McpServer.Tests 42 passed / 5 failed (3 pre-existing CreateHistoryDetailsAsync_* SQLite 'disk I/O error' + 2 new IsHistorySearchResourceUri_* tests hitting the same environmental class).",
       "result_status": "success",
       "commit": "de6e3939",
       "status": "fixed",
@@ -584,8 +584,8 @@
         "OCR (follow-up: tool/onboarding language-selection parity and OCR recognition error message consistency)",
         "Uploader core / plugin routing (follow-up: UI/log diagnostics for stale default cleanup and unavailable provider replacement flows)",
         "MCP server (resource URI construction/encoding edge cases and missing/moved history file diagnostics)",
-        "CLI / command surface \u2014 OpenClaw plugin export generated CLI/tool parity",
-        "File/path handling \u2014 remaining path helper exception parity and history backup user-visible diagnostics",
+        "CLI / command surface — OpenClaw plugin export generated CLI/tool parity",
+        "File/path handling — remaining path helper exception parity and history backup user-visible diagnostics",
         "MCP server / pre-existing SQLite 'disk I/O error' on CreateHistoryDetailsAsync_* tests (verified on pristine 0.23.90 HEAD; environmental tmp-dir file lock not released)"
       ]
     },
@@ -631,7 +631,7 @@
         "src/tools/XerahS.McpServer.Tests/XerahSMcpServerTests.cs",
         "Directory.Build.props"
       ],
-      "summary": "ResolveHistoryBlobPath threw 'History item thumbnail source file was not found.' with item.FilePath as FileName even when both the thumbnail and the source were missing, or when only the source was configured. Fix: branch the exception message on which fields are populated \u2014 'thumbnail and source files were not found.' when both present, 'source file was not found.' when only FilePath configured, original 'thumbnail source file was not found.' when only ThumbnailURL configured. FileName preserved as item.FilePath to keep prior contract for debug-log consumers. CreateHistoryBlobMissingResponse already uses item.FilePath / item.ThumbnailURL directly, so the structured-response path is unaffected. Added 3 regression tests (MissingThumbnailOnly_FallsBackToSourceFile, MissingBothFiles_MentionsThumbnailAndSource, OnlyThumbnailConfiguredMissing_KeepsThumbnailOnlyMessage). Bumped version 0.23.88 -> 0.23.89.",
+      "summary": "ResolveHistoryBlobPath threw 'History item thumbnail source file was not found.' with item.FilePath as FileName even when both the thumbnail and the source were missing, or when only the source was configured. Fix: branch the exception message on which fields are populated — 'thumbnail and source files were not found.' when both present, 'source file was not found.' when only FilePath configured, original 'thumbnail source file was not found.' when only ThumbnailURL configured. FileName preserved as item.FilePath to keep prior contract for debug-log consumers. CreateHistoryBlobMissingResponse already uses item.FilePath / item.ThumbnailURL directly, so the structured-response path is unaffected. Added 3 regression tests (MissingThumbnailOnly_FallsBackToSourceFile, MissingBothFiles_MentionsThumbnailAndSource, OnlyThumbnailConfiguredMissing_KeepsThumbnailOnlyMessage). Bumped version 0.23.88 -> 0.23.89.",
       "result": "build 0 warnings/0 errors; XerahS.Tests 1066 passed/0 failed/1 skipped; XerahS.McpServer.Tests 37 passed/0 failed (was 34, +3 new)",
       "result_status": "success",
       "commit": "e8c9fb14",
@@ -700,7 +700,7 @@
         "Directory.Build.props",
         "docs/reports/hourly_review_tracker.md"
       ],
-      "summary": "Fixed WaylandCliCapture.CaptureActiveWindowAsync SWAY/null-desktop path: previously fell through to CaptureWithGrimSlurpAsync which runs slurp with no args (prompts user to draw a region with the mouse) \u2014 wrong UX for an active-window capture. Routed to grimblast 'save active' first, then CaptureWithSwayFocusedWindowAsync (swaymsg + grim -g with focused geometry). Added SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson and TryGetFocusedWindowGeometryExpression helpers with 7 regression tests. Bumped version 0.23.84 -> 0.23.85.",
+      "summary": "Fixed WaylandCliCapture.CaptureActiveWindowAsync SWAY/null-desktop path: previously fell through to CaptureWithGrimSlurpAsync which runs slurp with no args (prompts user to draw a region with the mouse) — wrong UX for an active-window capture. Routed to grimblast 'save active' first, then CaptureWithSwayFocusedWindowAsync (swaymsg + grim -g with focused geometry). Added SwayWindowPointQueryHelper.TryGetFocusedWindowRectFromTreeJson and TryGetFocusedWindowGeometryExpression helpers with 7 regression tests. Bumped version 0.23.84 -> 0.23.85.",
       "result": "build 0 warnings/0 errors; tests 1057+34=1091 passed, 0 failed, 1 skipped",
       "commit": "baa44de9",
       "status": "fixed",
@@ -932,7 +932,7 @@
       "summary": "Queue-owned cleanup for mobile picker-streamed temp files. v0.23.139 -> v0.23.140.",
       "status": "fixed",
       "version": "0.23.140",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original last_runs only recorded FFmpeg fix"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original last_runs only recorded FFmpeg fix"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -942,7 +942,7 @@
       "commit": null,
       "summary": "AppResources.Dev is used by ProductNameWithVersion (line 38); clawpatch false positive",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -952,7 +952,7 @@
       "commit": null,
       "summary": "Cross-platform libraries intentionally target net10.0; sibling finding already pivoted 2026-07-17",
       "status": "out-of-scope",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -962,7 +962,7 @@
       "commit": null,
       "summary": "StringCollectionToStringTypeConverter already delegates to base; tests cover non-List types",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -972,7 +972,7 @@
       "commit": null,
       "summary": "Citation is the Version property, not a defect; version bumps land every fix",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -982,7 +982,7 @@
       "commit": null,
       "summary": "Single-color divide-by-zero guard landed in v0.23.135 with GradientInfoTests",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -992,7 +992,7 @@
       "commit": null,
       "summary": "SendOptionalAsync null-on-404 path landed in v0.23.136",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -1002,7 +1002,7 @@
       "commit": null,
       "summary": "CopyToFileAsync bytesRead<=0 EOF break + FileDownloaderTests already land",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-18 08:05 AWST",
@@ -1012,7 +1012,7 @@
       "commit": null,
       "summary": "ImageEffectListJsonConverter $type lockdown landed in v0.23.139",
       "status": "already-fixed",
-      "notes": "backfilled 2026-07-18 09:07 AWST \u2014 original tick omitted last_runs rows"
+      "notes": "backfilled 2026-07-18 09:07 AWST — original tick omitted last_runs rows"
     },
     {
       "ts": "2026-07-19 16:55 AWST",
@@ -1193,7 +1193,7 @@
       "outcome": "ingested",
       "item": "xerahs-review producer sweep (23:00 AWST cadence)",
       "commit": "6e76a852",
-      "summary": "Clawpatch review run 20260723T150521-892e85 completed (3 features, 47 findings); ingested 9 high-signal confirmed-bug findings from the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate dropped 85 (triage\u2260confirmed-bug, category=maintainability, or triage=risk/contract-mismatch); 3 already-fixed at area level (ImmichUploader.cs:220-233); 20 already-fixed in release history (AssistantHistoryServiceTests, FileDownloader, HSB, GradientInfo, ImmichClient, DPAPIEncryptedStringValueProvider, IndexCommand.CountIndexedContents). Fork/upstream/submodule all current at HEAD d4a612a7 == nadia/develop == origin/develop; upstream/develop 22c8b34a is 106 commits behind HEAD (no merge needed). next_candidates: 0 -> 9",
+      "summary": "Clawpatch review run 20260723T150521-892e85 completed (3 features, 47 findings); ingested 9 high-signal confirmed-bug findings from the 3 newest reports (20260723T150521, 20260720T185039, 20260719T011521). Severity gate dropped 85 (triage≠confirmed-bug, category=maintainability, or triage=risk/contract-mismatch); 3 already-fixed at area level (ImmichUploader.cs:220-233); 20 already-fixed in release history (AssistantHistoryServiceTests, FileDownloader, HSB, GradientInfo, ImmichClient, DPAPIEncryptedStringValueProvider, IndexCommand.CountIndexedContents). Fork/upstream/submodule all current at HEAD d4a612a7 == nadia/develop == origin/develop; upstream/develop 22c8b34a is 106 commits behind HEAD (no merge needed). next_candidates: 0 -> 9",
       "status": "ingested"
     },
     {
@@ -1202,7 +1202,7 @@
       "outcome": "ingested",
       "item": "xerahs-review producer sweep (23:00 AWST cadence, post-clawpatch rerun)",
       "commit": "a6ebc80c",
-      "summary": "Re-fired clawpatch review (post-prior-partial-run cleanup). New report 20260723T151439-e25ee8 (48 findings, 2 clusters) plus 2 priors (20260723T150521-892e85, 20260720T185039-0cf386) = 137 total findings. Severity gate dropped 86; 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233); 25 dropped as already-fixed in release history; 22 dropped as duplicate evidence[0]/id. **1 NEW finding** added: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo missing null check on 'assembly' parameter \u2014 NRE risk). next_candidates: 9 -> 10 (+1). Fork/upstream/submodule unchanged this tick (all current at HEAD f8bfceac).",
+      "summary": "Re-fired clawpatch review (post-prior-partial-run cleanup). New report 20260723T151439-e25ee8 (48 findings, 2 clusters) plus 2 priors (20260723T150521-892e85, 20260720T185039-0cf386) = 137 total findings. Severity gate dropped 86; 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233); 25 dropped as already-fixed in release history; 22 dropped as duplicate evidence[0]/id. **1 NEW finding** added: ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo missing null check on 'assembly' parameter — NRE risk). next_candidates: 9 -> 10 (+1). Fork/upstream/submodule unchanged this tick (all current at HEAD f8bfceac).",
       "status": "ingested"
     },
     {
@@ -1229,7 +1229,7 @@
       "outcome": "ingested",
       "item": "xerahs-review producer sweep (23:00 AWST cadence)",
       "commit": "e2ab4551",
-      "summary": "Clawpatch review run 20260724T150348-691759 completed (3 features: ShareX.ImageEditor Annotations, XerahS.RegionCapture/ViewModels, XerahS.Uploaders/LegacySupport/Compatibility). CLI per-feature findings=0 but report file written with 48 findings (deterministic replay, identical byte-for-byte to 20260723T151439-e25ee8). Ingest over 3 newest reports (20260724T150348, 20260723T151439, 20260723T150521) = 143 total findings. Severity gate dropped 87 (triage=risk x66, contract-mismatch x15, test-gap x3, docs-gap x3); 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233 x3 \u2014 ImmichPlugin/ToJson symmetry clamp area); 24 dropped as already-fixed in release-history file cache (AssistantHistoryServiceTests, FileDownloader, HSB, IndexCommand.CountIndexedContents, DPAPI, GradientInfo, ImmichClient, WaylandCliCapture, OCR options, plus ShareX.VideoEditor diagnostics \u2014 v0.23.x release commits); 19 dropped as duplicate evidence[0]/id. **10 NEW findings** added (high-signal confirmed-bug, not yet shipped): CaptureStage.cs:79-84, ReClipCommand.cs:114 (SetWatchFolder), scripts/check-markdown-mojibake.py:81-83 + 76, CaptureCommand.cs:131-153 (TryGetImageFormat), BoolConverters.cs:67-69 (ConvertBack), VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo \u2014 re-emerged after release-history file-cache drift?), Directory.Build.props:11, Paste2Uploader.cs:66-78 (TryExtractDeletionUrl), Paste2ConfigViewModel.cs:76-81 (Validate). Fork/upstream/submodule unchanged this tick (HEAD ce62780e == nadia/develop == origin/develop after nadia fetch; upstream/develop already merged; ShareX.ImageEditor 6751bae7 == origin/develop == upstream/develop \u2014 clean). Producer-side only: no fixes, no areas[*].status changes, no other agents' last_runs rows touched.",
+      "summary": "Clawpatch review run 20260724T150348-691759 completed (3 features: ShareX.ImageEditor Annotations, XerahS.RegionCapture/ViewModels, XerahS.Uploaders/LegacySupport/Compatibility). CLI per-feature findings=0 but report file written with 48 findings (deterministic replay, identical byte-for-byte to 20260723T151439-e25ee8). Ingest over 3 newest reports (20260724T150348, 20260723T151439, 20260723T150521) = 143 total findings. Severity gate dropped 87 (triage=risk x66, contract-mismatch x15, test-gap x3, docs-gap x3); 3 dropped as already-fixed at area level (ImmichUploader.cs:220-233 x3 — ImmichPlugin/ToJson symmetry clamp area); 24 dropped as already-fixed in release-history file cache (AssistantHistoryServiceTests, FileDownloader, HSB, IndexCommand.CountIndexedContents, DPAPI, GradientInfo, ImmichClient, WaylandCliCapture, OCR options, plus ShareX.VideoEditor diagnostics — v0.23.x release commits); 19 dropped as duplicate evidence[0]/id. **10 NEW findings** added (high-signal confirmed-bug, not yet shipped): CaptureStage.cs:79-84, ReClipCommand.cs:114 (SetWatchFolder), scripts/check-markdown-mojibake.py:81-83 + 76, CaptureCommand.cs:131-153 (TryGetImageFormat), BoolConverters.cs:67-69 (ConvertBack), VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (CreateLoadedAssemblyInfo — re-emerged after release-history file-cache drift?), Directory.Build.props:11, Paste2Uploader.cs:66-78 (TryExtractDeletionUrl), Paste2ConfigViewModel.cs:76-81 (Validate). Fork/upstream/submodule unchanged this tick (HEAD ce62780e == nadia/develop == origin/develop after nadia fetch; upstream/develop already merged; ShareX.ImageEditor 6751bae7 == origin/develop == upstream/develop — clean). Producer-side only: no fixes, no areas[*].status changes, no other agents' last_runs rows touched.",
       "status": "ingested"
     },
     {
@@ -1331,7 +1331,7 @@
       "outcome": "no-op",
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
-      "summary": "Step 5a found zero candidates; queue remains empty after 2026-07-28 08:06 no-op. Submodule pointer 6751bae \u2192 1bcb66c ([Fix] Restore Lucide icon glyphs) merged from upstream and pushed to origin; parent pointer updated. Deferred last_runs (18 rows) carried forward unchanged for next fix-bearing tick.",
+      "summary": "Step 5a found zero candidates; queue remains empty after 2026-07-28 08:06 no-op. Submodule pointer 6751bae → 1bcb66c ([Fix] Restore Lucide icon glyphs) merged from upstream and pushed to origin; parent pointer updated. Deferred last_runs (18 rows) carried forward unchanged for next fix-bearing tick.",
       "status": "no-op"
     },
     {
@@ -1358,7 +1358,7 @@
       "outcome": "no-op",
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
-      "summary": "Step 5a found zero candidates; queue remains empty after 2026-07-29 08:08 no-op. Fork/upstream/submodule clean (HEAD 78e70ac1; ahead of upstream/develop by 162 \u2014 KovaForge baseline). Deferred last_runs (9 rows from 00:05) carried forward unchanged for next fix-bearing tick. recently_pivoted=9 unchanged; no new pivots this tick.",
+      "summary": "Step 5a found zero candidates; queue remains empty after 2026-07-29 08:08 no-op. Fork/upstream/submodule clean (HEAD 78e70ac1; ahead of upstream/develop by 162 — KovaForge baseline). Deferred last_runs (9 rows from 00:05) carried forward unchanged for next fix-bearing tick. recently_pivoted=9 unchanged; no new pivots this tick.",
       "status": "no-op"
     },
     {
@@ -1368,7 +1368,7 @@
       "item": "xerahs-review producer sweep",
       "status": "no-op",
       "commit": null,
-      "summary": "Daily producer tick (nadia, 23:00 AWST cadence): clawpatch review run 20260729T150504-f1bdd3 completed (3 features, 0 raw findings surfaced). Latest 3 reports (20260729/728/727) byte-identical (MD5 7baef4ac...) \u2014 clawpatch sampling staled against current code state. Gate pass: 0 added, 3 already-fixed (area), 27 recently_pivoted, 27 recently-fixed, 96 severity-gate (75 risk + 15 contract-mismatch + 3 test-gap + 3 docs-gap). next_candidates remains 0. Fork/upstream/submodule all no-op. Deferred to next tick \u2014 no anomalies in dedupe pipeline."
+      "summary": "Daily producer tick (nadia, 23:00 AWST cadence): clawpatch review run 20260729T150504-f1bdd3 completed (3 features, 0 raw findings surfaced). Latest 3 reports (20260729/728/727) byte-identical (MD5 7baef4ac...) — clawpatch sampling staled against current code state. Gate pass: 0 added, 3 already-fixed (area), 27 recently_pivoted, 27 recently-fixed, 96 severity-gate (75 risk + 15 contract-mismatch + 3 test-gap + 3 docs-gap). next_candidates remains 0. Fork/upstream/submodule all no-op. Deferred to next tick — no anomalies in dedupe pipeline."
     },
     {
       "ts": "2026-07-30 00:06 AWST",
@@ -1746,7 +1746,7 @@
       "outcome": "ingested",
       "item": "xerahs-review producer queue",
       "commit": null,
-      "summary": "Daily producer cron (replaces dormant Milena 6h cadence per McoreD 2026-07-21). Step 5.5 parsed 251 findings across 3 clawpatch reports; severity gate dropped 154 (99 risk / 38 contract-mismatch / 12 docs-gap / 5 test-gap); area-fixed dedupe dropped 3; recently-pivoted dropped 39; recently-fixed (any release history) dropped 53. Net added 2. Queue 0 -> 2. Adds: MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries \u2014 confirmed-bug); NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl \u2014 confirmed-bug).",
+      "summary": "Daily producer cron (replaces dormant Milena 6h cadence per McoreD 2026-07-21). Step 5.5 parsed 251 findings across 3 clawpatch reports; severity gate dropped 154 (99 risk / 38 contract-mismatch / 12 docs-gap / 5 test-gap); area-fixed dedupe dropped 3; recently-pivoted dropped 39; recently-fixed (any release history) dropped 53. Net added 2. Queue 0 -> 2. Adds: MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries — confirmed-bug); NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl — confirmed-bug).",
       "status": "ingested"
     },
     {
@@ -1809,7 +1809,7 @@
       "outcome": "produced",
       "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
       "commit": "HEAD",
-      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260811T150326-d558dc.md completed (3 features reviewed: ShareX.ImageEditor MainViewModel, XerahS.Common ImageEffects Drawings, XerahS.Paste2.Plugin). 3 raw findings across 2 features reviewed. Step 5.5 ingest: 275 findings parsed across 3 reports (newest + 2 prior). Severity gate dropped 172 (107 risk / 45 contract-mismatch / 14 docs-gap / 6 test-gap). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare \u2014 already fixed in v0.23.124/125/126, repeated across 3 reports). Release-history dedupe dropped 54 (HSB.cs:163-190 equality/hash contract; FileDownloader.cs:112-124/136-140 EOF spin; DPAPIEncryptedStringValueProvider; GradientInfo; AnimatedGifCreator.cs:118/119 integer overflow; ReClipCommand.cs:114 SetWatchFolder; IndexCommand.cs:273-290 CountIndexedContents; DropboxUploader.cs:150 RefreshAccessToken; HistoryManagerSQLiteTests.cs:73-113 ContainsFilePath; AssistantHistoryServiceTests.cs:43/156-174/178-199 SetUp+TearDown+OCR-cache invalidation; OctreeQuantizer.cs:275 GetPaletteIndex; ImmichUploader.cs; etc). recently_pivoted dedupe skipped 45 (cross-report duplicates of CliCaptureStrategy.cs:111-112, MobileHistoryViewModel.cs:108, CaptureStage.cs:79-84, check-markdown-mojibake.py, BitlyUrlShortener.cs:71, DropboxProvider.cs:144/211, CaptureCommand.cs:131-153, BoolConverters.cs:67-69, VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334, NextcloudConfigViewModel.cs:375-378, Paste2Uploader.cs:66-78, Paste2ConfigViewModel.cs:76-81, NextcloudClient.cs:124-127/172-175, Directory.Build.props:11, etc \u2014 all already on consumer's mental model). 0 dups of existing. 1 added: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect) \u2014 PreviewEffect delegates 'effect' without null-checking _preEffectImage (high confidence, confirmed-bug, bug category). next_candidates: 0 -> 1 (+1). Queue non-empty for first time since 2026-07-20. Fork sync: nadia develop == HEAD == origin/develop == b05fdde0 (initial fetch showed ef5d63d; re-fetched \u2014 converged). Upstream: HEAD 60 ahead of upstream/develop (no merge, all KovaForge work). Submodule ShareX.ImageEditor at 1bcb66c on heads/develop, clean. clawpatch report 20260811T150326-d558dc.md added (older 2 already on nadia develop).",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260811T150326-d558dc.md completed (3 features reviewed: ShareX.ImageEditor MainViewModel, XerahS.Common ImageEffects Drawings, XerahS.Paste2.Plugin). 3 raw findings across 2 features reviewed. Step 5.5 ingest: 275 findings parsed across 3 reports (newest + 2 prior). Severity gate dropped 172 (107 risk / 45 contract-mismatch / 14 docs-gap / 6 test-gap). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare — already fixed in v0.23.124/125/126, repeated across 3 reports). Release-history dedupe dropped 54 (HSB.cs:163-190 equality/hash contract; FileDownloader.cs:112-124/136-140 EOF spin; DPAPIEncryptedStringValueProvider; GradientInfo; AnimatedGifCreator.cs:118/119 integer overflow; ReClipCommand.cs:114 SetWatchFolder; IndexCommand.cs:273-290 CountIndexedContents; DropboxUploader.cs:150 RefreshAccessToken; HistoryManagerSQLiteTests.cs:73-113 ContainsFilePath; AssistantHistoryServiceTests.cs:43/156-174/178-199 SetUp+TearDown+OCR-cache invalidation; OctreeQuantizer.cs:275 GetPaletteIndex; ImmichUploader.cs; etc). recently_pivoted dedupe skipped 45 (cross-report duplicates of CliCaptureStrategy.cs:111-112, MobileHistoryViewModel.cs:108, CaptureStage.cs:79-84, check-markdown-mojibake.py, BitlyUrlShortener.cs:71, DropboxProvider.cs:144/211, CaptureCommand.cs:131-153, BoolConverters.cs:67-69, VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334, NextcloudConfigViewModel.cs:375-378, Paste2Uploader.cs:66-78, Paste2ConfigViewModel.cs:76-81, NextcloudClient.cs:124-127/172-175, Directory.Build.props:11, etc — all already on consumer's mental model). 0 dups of existing. 1 added: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect) — PreviewEffect delegates 'effect' without null-checking _preEffectImage (high confidence, confirmed-bug, bug category). next_candidates: 0 -> 1 (+1). Queue non-empty for first time since 2026-07-20. Fork sync: nadia develop == HEAD == origin/develop == b05fdde0 (initial fetch showed ef5d63d; re-fetched — converged). Upstream: HEAD 60 ahead of upstream/develop (no merge, all KovaForge work). Submodule ShareX.ImageEditor at 1bcb66c on heads/develop, clean. clawpatch report 20260811T150326-d558dc.md added (older 2 already on nadia develop).",
       "status": "produced",
       "latest_report": "20260811T150326-d558dc.md",
       "reports_parsed": 3,
@@ -1857,7 +1857,7 @@
       "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
       "status": "no-op",
       "commit": "HEAD",
-      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence \u2014 replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260812T150925-64e0c7 completed (3 features: feat_library_612a85b226 XerahS.UI/Onboarding, feat_library_6151a2fd01 XerahS.Platform.Linux/Capture/Helpers, feat_library_632edc748d XerahS.Assistant). Step 5.5 ingest: parsed 284 findings across 3 newest reports (20260812T150925-64e0c7 + 20260811T150326-d558dc + 20260810T150412-136730). v2.2.4 submodule-prefix gate dropped 50 (ShareX.ImageEditor / ShareX.VideoEditor citations \u2014 cannot be fixed from parent repo without submodule sync). v2.1.0 severity gate dropped 135 (87 triage=risk, 30 contract-mismatch, 12 docs-gap, 6 test-gap) \u2014 note: both raw XerahS.Assistant.csproj:17-20 (low/maintainability) findings from today's clawpatch run dropped here (category=maintainability is excluded). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare). Release-history dedupe dropped 57 (v2.1.2 walk of Directory.Build.props <Version> history). v2.2.2 recently-pivoted dedupe skipped 39 (consumer-drained citations: CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, HotkeySelectionControl, AnimatedGifCreator, OctreeQuantizer, BitlyUrlShortener, DropboxProvider, NextcloudConfigViewModel, Mobile BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Paste2Uploader, Paste2ConfigViewModel, DropboxUploader, DPAPIEncryptedStringValueProvider, GradientInfo, FileDownloader, HSB, ReClipCommand, IndexCommand, RandomCrypto, PluginManifest.IsSafePluginId, NextcloudClient, etc.). 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 00562fb8 (consumer-driven empty-queue audit commits). Upstream: HEAD 65 ahead of upstream/develop, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3 (in sync with parent pointer 160000 d898b2c3). No submodule or parent push needed. clawpatch report 20260812T150925-64e0c7.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence — replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260812T150925-64e0c7 completed (3 features: feat_library_612a85b226 XerahS.UI/Onboarding, feat_library_6151a2fd01 XerahS.Platform.Linux/Capture/Helpers, feat_library_632edc748d XerahS.Assistant). Step 5.5 ingest: parsed 284 findings across 3 newest reports (20260812T150925-64e0c7 + 20260811T150326-d558dc + 20260810T150412-136730). v2.2.4 submodule-prefix gate dropped 50 (ShareX.ImageEditor / ShareX.VideoEditor citations — cannot be fixed from parent repo without submodule sync). v2.1.0 severity gate dropped 135 (87 triage=risk, 30 contract-mismatch, 12 docs-gap, 6 test-gap) — note: both raw XerahS.Assistant.csproj:17-20 (low/maintainability) findings from today's clawpatch run dropped here (category=maintainability is excluded). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare). Release-history dedupe dropped 57 (v2.1.2 walk of Directory.Build.props <Version> history). v2.2.2 recently-pivoted dedupe skipped 39 (consumer-drained citations: CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, HotkeySelectionControl, AnimatedGifCreator, OctreeQuantizer, BitlyUrlShortener, DropboxProvider, NextcloudConfigViewModel, Mobile BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Paste2Uploader, Paste2ConfigViewModel, DropboxUploader, DPAPIEncryptedStringValueProvider, GradientInfo, FileDownloader, HSB, ReClipCommand, IndexCommand, RandomCrypto, PluginManifest.IsSafePluginId, NextcloudClient, etc.). 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 00562fb8 (consumer-driven empty-queue audit commits). Upstream: HEAD 65 ahead of upstream/develop, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3 (in sync with parent pointer 160000 d898b2c3). No submodule or parent push needed. clawpatch report 20260812T150925-64e0c7.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
       "latest_report": "20260812T150925-64e0c7.md",
       "reports_parsed": 3,
       "parsed_total": 284,
@@ -1912,7 +1912,7 @@
       "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
       "status": "no-op",
       "commit": "HEAD",
-      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence). Step 5 clawpatch review run 20260813T150359-2a0c35 completed (3 features: feat_library_638cb18412 ShareX.ImageEditor/Presentation/Emoji, feat_library_645dea7821 XerahS.Mobile.iOS.ShareExtension, feat_library_6461f8002b ShareX.ImageEditor/Core/ImageEffects/Manipulations). All 3 features returned 0 findings per clawpatch summary line, but actual report file shows 97 findings parsed. Step 5.5 ingest: v2.1.0 severity gate dropped 62 (62 triage=non-confirmed-bug or category=maintainability); v2.2.4 submodule-prefix gate dropped 2 (ShareX.ImageEditor/MainViewModel.EffectPreview.cs:232-233, ShareX.VideoEditor/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334); v2.1.0 area-level dedupe dropped 1 (Immich.Plugin/ImmichUploader.cs:220-233 CreateOrReuseAlbumShare \u2014 area already fixed); v2.2.2 recently-pivoted dedupe skipped 20 (consumer-drained citations); v2.1.1 60-commit window dropped 2; v2.1.2 release-history walk dropped 10; 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 0ce2c79e (consumer-driven empty-queue audit commits since last producer tick). Upstream: HEAD 4 ahead of upstream/develop b43eb3dc, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3. No submodule or parent push needed (no source-tree changes). clawpatch report 20260813T150359-2a0c35.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence). Step 5 clawpatch review run 20260813T150359-2a0c35 completed (3 features: feat_library_638cb18412 ShareX.ImageEditor/Presentation/Emoji, feat_library_645dea7821 XerahS.Mobile.iOS.ShareExtension, feat_library_6461f8002b ShareX.ImageEditor/Core/ImageEffects/Manipulations). All 3 features returned 0 findings per clawpatch summary line, but actual report file shows 97 findings parsed. Step 5.5 ingest: v2.1.0 severity gate dropped 62 (62 triage=non-confirmed-bug or category=maintainability); v2.2.4 submodule-prefix gate dropped 2 (ShareX.ImageEditor/MainViewModel.EffectPreview.cs:232-233, ShareX.VideoEditor/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334); v2.1.0 area-level dedupe dropped 1 (Immich.Plugin/ImmichUploader.cs:220-233 CreateOrReuseAlbumShare — area already fixed); v2.2.2 recently-pivoted dedupe skipped 20 (consumer-drained citations); v2.1.1 60-commit window dropped 2; v2.1.2 release-history walk dropped 10; 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 0ce2c79e (consumer-driven empty-queue audit commits since last producer tick). Upstream: HEAD 4 ahead of upstream/develop b43eb3dc, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3. No submodule or parent push needed (no source-tree changes). clawpatch report 20260813T150359-2a0c35.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
       "latest_report": "20260813T150359-2a0c35.md",
       "reports_parsed": 1,
       "parsed_total": 97,
@@ -1930,15 +1930,18 @@
       "ingested_items": [],
       "queue_size_before": 0,
       "queue_size_after": 0
+    },
+    {
+      "ts": "2026-08-14 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found 0 candidates; no pivots drained; producer ingested 0 at prior tick",
+      "status": "no-op"
     }
   ],
-  "last_run_outcome": {
-    "ts": "2026-08-13 23:08 AWST",
-    "agent": "nadia-valeva-kf",
-    "outcome": "produced",
-    "ingested": 0,
-    "next_candidates": 0
-  },
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
