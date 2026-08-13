@@ -4987,3 +4987,14 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 summary only; no self-referential backfill)
 - Follow-up: wait for xerahs-review producer to refill next_candidates; keep recently_pivoted seed
 - Skill: xerahs-bugfix/SKILL.md v1.1.21 — no patch this run (no efficiency blockers)
+
+### 2026-08-13 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after producer Nadia 23:07 AWST no-op ingest (0 added). Fork/upstream/submodule already synced. recently_pivoted=22. No deferred-last-runs files.
+- Status: No-op audit
+- Build/test: n/a (empty queue)
+- Commit: null (audit commit SHA in run summary only; leave last_runs.commit null per v1.1.12)
+- Follow-up: await next xerahs-review producer ingest into next_candidates
+- Skill: none this tick
