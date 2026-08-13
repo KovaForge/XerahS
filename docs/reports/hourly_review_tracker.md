@@ -5009,3 +5009,19 @@ Added candidates (8):
 - Commit: null (audit only; SHA in delivery summary)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.21 — no Step 10 patch this run
+
+### 2026-08-13 23:08 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 1 (20260813T150359-2a0c35)
+- v2.1.0 severity gate drops: 62 (triage=non-confirmed-bug or category=maintainability)
+- v2.2.4 submodule-prefix drops: 2
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [bug/confirmed-bug] ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagnosticsCollector.CreateLoadedAssemblyInfo)
+- Findings dropped as already-fixed (area-level dedupe): 1
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- v2.1.1 60-commit release drops: 2
+- v2.1.2 release-history drops: 10
+- v2.2.2 recently-pivoted skips: 20
+- Skipped as duplicate of existing: 0
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
