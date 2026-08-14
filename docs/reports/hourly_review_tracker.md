@@ -5057,3 +5057,59 @@ Added candidates (8):
 - Build/test: n/a (empty-queue audit)
 - Commit: null (audit commit SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
+
+### 2026-08-14 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+  - 20260814T150443-7a3334.md
+  - 20260813T150359-2a0c35.md
+  - 20260812T150925-64e0c7.md
+- v2.2.4 submodule-prefix drops: 55
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [build-release/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+  - [data-loss/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/Filters/RemoveBackgroundImageEffect.cs:54-232 (RemoveBackgro
+  - [build-release/risk] Directory.Packages.props:7-57 (PackageVersion)
+  - [api-contract/contract-mismatch] Directory.Packages.props:8-19
+  - ... and 50 more
+- Findings dropped at severity gate: 139
+  - triage=risk: 91
+  - triage=contract-mismatch: 30
+  - triage=docs-gap: 12
+  - triage=test-gap: 6
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed (release-history): 54
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 44 more
+- Skipped as recently-pivoted (v2.2.2): 42
+- Skipped as duplicate of existing: 0
+- Ingested: 1
+  + src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-14 23:08 AWST - xerahs-review producer tick (Nadia, daily 23:00 AWST)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Producer-only ingest. nadia remote HEAD in sync with origin/develop (be856af65). Submodule ShareX.ImageEditor clean (1bcb66c4). No upstream delta.
+- clawpatch review: 3 features, 3 raw findings (1 VideoEditor Capture, 0 ImageEditor Helpers, 2 iOS ShareExtension).
+- clawpatch reports parsed: 3 latest (.clawpatch/reports/20260814T150443-7a3334.md, ...20260813, ...20260812).
+- v2.2.4 submodule-prefix drops: 55 (ShareX.ImageEditor / ShareX.VideoEditor).
+- Severity gate drops: 139 (triage=risk:91, contract-mismatch:30, test-gap:6, docs-gap:12).
+- Already-fixed area-level drops: 3.
+- Recently-fixed (release-history) drops: 54.
+- Recently-pivoted skips (v2.2.2): 42.
+- Duplicate-of-existing skips: 0.
+- **Ingested: 1** -> src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)
+- `next_candidates` delta: 1 -> 1 (+1). Breaks empty queue streak since 2026-07-20T18:50:39.
+- Files updated: hourly_review_state.json, hourly_review_tracker.md

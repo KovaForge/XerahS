@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-14 16:09 AWST",
+  "last_updated": "2026-08-14 23:08 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,9 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1957,9 +1959,52 @@
       "commit": null,
       "summary": "Step 5a found zero candidates and zero pivots; empty-queue audit only",
       "status": "no-op"
+    },
+    {
+      "timestamp": "2026-08-14 23:08 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260814T150443-7a3334.md",
+        ".clawpatch/reports/20260813T150359-2a0c35.md",
+        ".clawpatch/reports/20260812T150925-64e0c7.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 features, 3 findings (1 VideoEditor Capture, 0 ImageEditor Helpers, 2 iOS ShareExtension); ingest: 1 added to next_candidates (ShareViewController.cs:124-169 ProcessAttachmentAsync)",
+      "notes": "Producer-only tick (Nadia Valeva). nadia remote HEAD: be856af65 in sync with origin/develop be856af65 and upstream/develop b43eb3dc (no upstream delta). Submodule ShareX.ImageEditor clean at 1bcb66c4 (no delta). clawpatch reports parsed: 3 (latest 20260814T150443-7a3334). Findings dropped at severity gate: 139 (triage=risk:91, contract-mismatch:30, test-gap:6, docs-gap:12). v2.2.4 submodule-prefix drops: 55. Dropped as already-fixed (area-level): 3. Dropped as recently-fixed (release-history): 54. Skipped as recently-pivoted (v2.2.2): 42. Skipped as duplicate of existing: 0. next_candidates delta: 1 -> 1 (+1) [empties broken on first ingest in 25 days].",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 1,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 1,
+        "queue_added": [
+          "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 91,
+          "triage=contract-mismatch": 30,
+          "triage=test-gap": 6,
+          "triage=docs-gap": 12
+        },
+        "submodule_prefix_drops": 55,
+        "recently_fixed_drops": 54,
+        "recently_pivoted_skips": 42,
+        "already_fixed_drops": 3,
+        "clawpatch_reports_parsed": [
+          "20260814T150443-7a3334.md",
+          "20260813T150359-2a0c35.md",
+          "20260812T150925-64e0c7.md"
+        ]
+      }
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "reviewed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
