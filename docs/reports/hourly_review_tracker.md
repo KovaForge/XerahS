@@ -5036,3 +5036,14 @@ Added candidates (8):
 - Commit: null (audit commit SHA in Step 9 summary only)
 - Follow-up: wait for next xerahs-review producer ingest; re-check at next 8h tick
 - Skill: xerahs-bugfix/SKILL.md v1.1.21 unchanged (no efficiency blockers this run)
+
+### 2026-08-14 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates and zero pivots after fork/upstream/submodule sync
+- Status: No-op
+- Build/test: n/a (no code changes)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md — no patch this run
