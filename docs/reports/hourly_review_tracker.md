@@ -5113,3 +5113,60 @@ Added candidates (8):
 - **Ingested: 1** -> src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)
 - `next_candidates` delta: 1 -> 1 (+1). Breaks empty queue streak since 2026-07-20T18:50:39.
 - Files updated: hourly_review_state.json, hourly_review_tracker.md
+
+### 2026-08-15 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+  - 20260815T150317-2acd67.md
+  - 20260814T150443-7a3334.md
+  - 20260813T150359-2a0c35.md
+- v2.2.4 submodule-prefix drops: 56
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [build-release/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+  - [data-loss/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/Filters/RemoveBackgroundImageEffect.cs:54-232 (RemoveBackgro
+  - [build-release/risk] Directory.Packages.props:7-57 (PackageVersion)
+  - [api-contract/contract-mismatch] Directory.Packages.props:8-19
+  - ... and 51 more
+- Findings dropped at severity gate: 141
+  - triage=risk: 92
+  - triage=contract-mismatch: 31
+  - triage=docs-gap: 12
+  - triage=test-gap: 6
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- v2.1.1 60-commit release drops: 18
+- v2.1.2 release-history drops: 39
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [bug/confirmed-bug] src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:162-163 (_viewModel)
+  - [concurrency/confirmed-bug] Directory.Build.props:11
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)
+  - [concurrency/confirmed-bug] src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:46-57 (_debugLog)
+  - [security/confirmed-bug] src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)
+  - [bug/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:73-113 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [bug/confirmed-bug] src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:162-163 (_viewModel)
+  - [concurrency/confirmed-bug] Directory.Build.props:11
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)
+  - ... and 47 more
+- v2.2.2 recently-pivoted skips: 39
+- Skipped as duplicate of existing: 2
+- Ingested: 0
+- next_candidates delta: +0 (total 1)
+
+### 2026-08-15 23:05 AWST - xerahs-review producer tick (Nadia, daily 23:00 AWST)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Producer-only ingest. nadia remote HEAD in sync with origin/develop (2974f5bc, no upstream delta). Submodule ShareX.ImageEditor clean (1bcb66c4, no delta on develop).
+- clawpatch review: 3 features (AmazonS3 VM, Auto.Plugin, ShareX.Ftp.Plugin), 1 raw finding (Auto.Plugin).
+- clawpatch reports parsed: 3 latest (.clawpatch/reports/20260815T150317-2acd67.md, ...20260814, ...20260813).
+- v2.2.4 submodule-prefix drops: 56 (ShareX.ImageEditor / ShareX.VideoEditor).
+- Severity gate drops: 141 (triage=risk:92, contract-mismatch:31, test-gap:6, docs-gap:12).
+- Already-fixed area-level drops: 3.
+- v2.1.1 60-commit release drops: 18.
+- v2.1.2 release-history drops: 39.
+- Recently-pivoted skips (v2.2.2): 39.
+- Duplicate-of-existing skips: 2 (matches the iOS ShareExtension queue entry).
+- **Ingested: 0**. Queue saturated by the existing iOS ShareExtension item from 2026-08-14 23:08; nothing new survived the dedupe stack.
+- `next_candidates` delta: 1 -> 1 (+0).
+- Files updated: hourly_review_state.json (last_runs[] appended for this tick, last_updated + last_run_outcome refreshed), hourly_review_tracker.md
