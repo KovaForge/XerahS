@@ -10,6 +10,24 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.24.25
+
+### Security
+- **Core**: Bump `SSH.NET` 2025.1.0 → 2026.0.0 to address CVE-2026-48798 / [GHSA-q939-rpr3-3284](https://github.com/advisories/GHSA-q939-rpr3-3284) (ScpClient arbitrary file write via server-controlled filenames in recursive directory download). Affects `XerahS.Uploaders` (SFTP/SCP) and `Ftp.Plugin` via central package management.
+
+### Fixes
+- **Core**: Honor minimized Windows startup; Notify on macOS capture denial; Preflight macOS screenshot permission
+
+### Performance
+- **Core**: Optimize searchable screenshot indexing
+
+### Changed
+- **KFIP0018**: x-twitter screen capture user needs research
+- **Xerahs Bugfix**: drain stale submodule citation (queue 1 -> 0); empty-queue audit (00:05 AWST); and related changes
+- **Xerahs Review**: backfill producer commit pointer (c40f60cd); daily producer tick (Nadia, 23:05 AWST); and related changes
+
+---
+
 ## v0.24.23
 
 ### Features
