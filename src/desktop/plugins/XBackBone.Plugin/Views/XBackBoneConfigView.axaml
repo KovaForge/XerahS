@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShareX.XBackBone.Plugin.ViewModels"
+             x:Class="ShareX.XBackBone.Plugin.Views.XBackBoneConfigView"
+             x:DataType="vm:XBackBoneConfigViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.heroCard">
+            <Setter Property="Background" Value="{DynamicResource LayerFillColorDefaultBrush}"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.helper">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18">
+            <Border Classes="heroCard">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="XBackBone Native Destination"
+                               FontSize="24"
+                               FontWeight="Bold"/>
+                    <TextBlock Text="Upload images, text, and files through XBackBone's native API. Successful share links use XerahS's existing after-upload clipboard workflow."
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               MaxWidth="680"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="Connection"
+                               FontSize="16"
+                               FontWeight="SemiBold"/>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="fieldLabel" Text="Instance URL *"/>
+                        <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="https://uploads.example.com or https://example.com/xbackbone"/>
+                        <TextBlock Classes="helper"
+                                   Text="Enter the public instance root. Application subpaths are preserved; upload endpoints are selected automatically from the API generation."/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="fieldLabel" Text="API Generation *"/>
+                        <ComboBox ItemsSource="{Binding ApiGenerations}"
+                                  SelectedIndex="{Binding ApiGenerationIndex}"/>
+                        <TextBlock Classes="helper"
+                                   Text="Use XBackBone 3.x for stable releases. Choose API v1 only for a next-generation deployment."/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="fieldLabel" Text="API Token *"/>
+                        <TextBox Text="{Binding ApiToken, UpdateSourceTrigger=PropertyChanged}"
+                                 PasswordChar="*"
+                                 PlaceholderText="Stored securely in the secret store"/>
+                        <TextBlock Classes="helper" Text="{Binding TokenSummary}"/>
+                    </StackPanel>
+
+                    <Button Content="Clear Stored Token"
+                            Command="{Binding ClearStoredTokenCommand}"
+                            HorizontalAlignment="Left"/>
+
+                    <Border Background="{DynamicResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="12">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Status" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

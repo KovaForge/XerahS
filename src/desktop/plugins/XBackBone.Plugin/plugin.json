@@ -1,0 +1,15 @@
+{
+  "pluginId": "xbackbone",
+  "name": "XBackBone",
+  "version": "1.0.0",
+  "author": "ShareX Team",
+  "description": "Upload images, text, and files to XBackBone using its native upload API",
+  "apiVersion": "1.0",
+  "entryPoint": "ShareX.XBackBone.Plugin.XBackBoneProvider",
+  "assemblyFileName": "XerahS.XBackBone.Plugin.dll",
+  "supportedCategories": ["Image", "Text", "File"],
+  "supportsExplorer": false,
+  "configViewId": "xbackbone",
+  "dependencies": [],
+  "homepageUrl": "https://xbackbone.app/"
+}

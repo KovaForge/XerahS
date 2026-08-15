@@ -58,6 +58,7 @@
     <ProjectReference Include="..\..\src\desktop\plugins\Imgur.Plugin\XerahS.Imgur.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Immich.Plugin\XerahS.Immich.Plugin.csproj" />
     <ProjectReference Include="..\..\src\desktop\plugins\Nextcloud.Plugin\XerahS.Nextcloud.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\desktop\plugins\XBackBone.Plugin\XerahS.XBackBone.Plugin.csproj" />
     <ProjectReference Include="..\..\src\mobile-experimental\XerahS.Mobile.Core\XerahS.Mobile.Core.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.UI\XerahS.UI.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
