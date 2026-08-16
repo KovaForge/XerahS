@@ -361,135 +361,103 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         bool isCaptureJob = category == EnumExtensions.WorkflowType_Category_ScreenCapture ||
                             category == EnumExtensions.WorkflowType_Category_ScreenRecord;
 
-        // For capture workflows, hide the main window before capture and restore it after.
-        // This prevents the main window from briefly appearing when a hotkey is pressed,
-        // regardless of whether the hotkey is triggered while the app is in the foreground
-        // or running in SilentRun mode with a hidden window.
-        bool shouldHideMainWindow = isCaptureJob &&
-            Core.WorkflowCatalog.RequiresHideMainWindowForCapture(settings.Job);
-
-        try
+        // Hotkey/palette-triggered captures deliberately do NOT hide the main window.
+        // The caller pressed a hotkey because they wanted to grab what was on screen,
+        // which frequently includes the XerahS window itself. Navbar/toolbar clicks
+        // still hide via TaskHelpers.ExecuteJob(hideMainWindow: true); tray left/double/
+        // middle click still hides via TrayIconHelper -> ExecuteWorkflow(hideMainWindow: true).
+        // SilentRun callers already have the window hidden, and HideMainWindowAsync
+        // no-ops on a hidden window.
+        if (!isCaptureJob && _desktop?.MainWindow is MainWindow immediateMainWindow)
         {
-            if (shouldHideMainWindow)
-            {
-                try
-                {
-                    await PlatformServices.UI.HideMainWindowAsync();
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.WriteException(ex, "Failed to hide main window before hotkey capture");
-                }
-            }
+            bool isWindowVisible = immediateMainWindow.IsVisible &&
+                                   immediateMainWindow.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   immediateMainWindow.ShowInTaskbar &&
+                                   !SettingsManager.Settings.SilentRun;
 
-            if (!isCaptureJob && _desktop?.MainWindow is MainWindow immediateMainWindow)
+            if (isWindowVisible)
             {
-                bool isWindowVisible = immediateMainWindow.IsVisible &&
-                                       immediateMainWindow.WindowState != Avalonia.Controls.WindowState.Minimized &&
-                                       immediateMainWindow.ShowInTaskbar &&
+                immediateMainWindow.NavigateToEditor();
+            }
+        }
+
+        void HandleTaskCompleted(object? s, Core.Tasks.WorkerTask task)
+        {
+            _taskManager.TaskCompleted -= HandleTaskCompleted;
+            OnTaskCompleted(task, EventArgs.Empty);
+
+            bool isScreenRecord = category == EnumExtensions.WorkflowType_Category_ScreenRecord;
+
+            if (isCaptureJob && !isScreenRecord && task.IsSuccessful && _desktop?.MainWindow is MainWindow mainWindowAfterCapture)
+            {
+                bool isWindowVisible = mainWindowAfterCapture.IsVisible &&
+                                       mainWindowAfterCapture.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                       mainWindowAfterCapture.ShowInTaskbar &&
                                        !SettingsManager.Settings.SilentRun;
 
                 if (isWindowVisible)
                 {
-                    immediateMainWindow.NavigateToEditor();
+                    mainWindowAfterCapture.NavigateToEditor();
                 }
             }
-
-            void HandleTaskCompleted(object? s, Core.Tasks.WorkerTask task)
-            {
-                _taskManager.TaskCompleted -= HandleTaskCompleted;
-                OnTaskCompleted(task, EventArgs.Empty);
-
-                bool isScreenRecord = category == EnumExtensions.WorkflowType_Category_ScreenRecord;
-
-                if (isCaptureJob && !isScreenRecord && task.IsSuccessful && _desktop?.MainWindow is MainWindow mainWindowAfterCapture)
-                {
-                    bool isWindowVisible = mainWindowAfterCapture.IsVisible &&
-                                           mainWindowAfterCapture.WindowState != Avalonia.Controls.WindowState.Minimized &&
-                                           mainWindowAfterCapture.ShowInTaskbar &&
-                                           !SettingsManager.Settings.SilentRun;
-
-                    if (isWindowVisible)
-                    {
-                        mainWindowAfterCapture.NavigateToEditor();
-                    }
-                }
-            }
-
-            _taskManager.TaskCompleted += HandleTaskCompleted;
-
-            if (settings.Job == Core.WorkflowType.CustomWindow)
-            {
-                DebugHelper.WriteLine($"[DEBUG] Hotkey triggered for CustomWindow. Configured title: '{settings.TaskSettings?.CaptureSettings?.CaptureCustomWindow}'");
-            }
-
-            bool isRecordingHotkey = settings.Job == Core.WorkflowType.ScreenRecorder ||
-                                     settings.Job == Core.WorkflowType.ScreenRecorderActiveWindow ||
-                                     settings.Job == Core.WorkflowType.ScreenRecorderCustomRegion ||
-                                     settings.Job == Core.WorkflowType.StopScreenRecording ||
-                                     settings.Job == Core.WorkflowType.StartScreenRecorder ||
-                                     settings.Job == Core.WorkflowType.ScreenRecorderGIF ||
-                                     settings.Job == Core.WorkflowType.ScreenRecorderGIFActiveWindow ||
-                                     settings.Job == Core.WorkflowType.ScreenRecorderGIFCustomRegion ||
-                                     settings.Job == Core.WorkflowType.StartScreenRecorderGIF;
-
-            if (settings.Job == Core.WorkflowType.PauseScreenRecording &&
-                (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
-            {
-                if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
-                {
-                    DebugHelper.WriteLine("Pause/Resume hotkey ignored because the active recording backend does not support pause/resume safely.");
-                    return;
-                }
-
-                DebugHelper.WriteLine("Pause/Resume hotkey triggered - toggling recording pause state...");
-                await _screenRecordingCoordinator.TogglePauseResumeAsync();
-                return;
-            }
-
-            if (settings.Job == Core.WorkflowType.AbortScreenRecording &&
-                (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
-            {
-                DebugHelper.WriteLine("Abort hotkey triggered - aborting recording...");
-                await _screenRecordingCoordinator.AbortRecordingAsync();
-                return;
-            }
-
-            if (isRecordingHotkey && (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
-            {
-                DebugHelper.WriteLine("Screen Recording active - flagging Stop Signal to existing task...");
-                _screenRecordingCoordinator.SignalStop();
-                return;
-            }
-
-            // Scrolling capture: same hotkey stops an in-progress capture
-            if (settings.Job == Core.WorkflowType.ScrollingCapture &&
-                ScrollingCaptureToolService.CurrentCapture?.IsCapturing == true)
-            {
-                DebugHelper.WriteLine("Scrolling Capture active - stopping capture.");
-                ScrollingCaptureToolService.StopCurrentCapture();
-                return;
-            }
-
-            await Core.Helpers.TaskHelpers.ExecuteWorkflow(settings, settings.Id);
         }
-        finally
+
+        _taskManager.TaskCompleted += HandleTaskCompleted;
+
+        if (settings.Job == Core.WorkflowType.CustomWindow)
         {
-            // Restore the main window after capture if we hid it.
-            // For screen recordings the portal must stay active so the window stays hidden.
-            bool isScreenRecord = category == EnumExtensions.WorkflowType_Category_ScreenRecord;
-            if (shouldHideMainWindow && !isScreenRecord)
-            {
-                try
-                {
-                    await PlatformServices.UI.RestoreMainWindowAsync();
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.WriteException(ex, "Failed to restore main window after hotkey capture");
-                }
-            }
+            DebugHelper.WriteLine($"[DEBUG] Hotkey triggered for CustomWindow. Configured title: '{settings.TaskSettings?.CaptureSettings?.CaptureCustomWindow}'");
         }
+
+        bool isRecordingHotkey = settings.Job == Core.WorkflowType.ScreenRecorder ||
+                                 settings.Job == Core.WorkflowType.ScreenRecorderActiveWindow ||
+                                 settings.Job == Core.WorkflowType.ScreenRecorderCustomRegion ||
+                                 settings.Job == Core.WorkflowType.StopScreenRecording ||
+                                 settings.Job == Core.WorkflowType.StartScreenRecorder ||
+                                 settings.Job == Core.WorkflowType.ScreenRecorderGIF ||
+                                 settings.Job == Core.WorkflowType.ScreenRecorderGIFActiveWindow ||
+                                 settings.Job == Core.WorkflowType.ScreenRecorderGIFCustomRegion ||
+                                 settings.Job == Core.WorkflowType.StartScreenRecorderGIF;
+
+        if (settings.Job == Core.WorkflowType.PauseScreenRecording &&
+            (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
+        {
+            if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+            {
+                DebugHelper.WriteLine("Pause/Resume hotkey ignored because the active recording backend does not support pause/resume safely.");
+                return;
+            }
+
+            DebugHelper.WriteLine("Pause/Resume hotkey triggered - toggling recording pause state...");
+            await _screenRecordingCoordinator.TogglePauseResumeAsync();
+            return;
+        }
+
+        if (settings.Job == Core.WorkflowType.AbortScreenRecording &&
+            (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
+        {
+            DebugHelper.WriteLine("Abort hotkey triggered - aborting recording...");
+            await _screenRecordingCoordinator.AbortRecordingAsync();
+            return;
+        }
+
+        if (isRecordingHotkey && (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
+        {
+            DebugHelper.WriteLine("Screen Recording active - flagging Stop Signal to existing task...");
+            _screenRecordingCoordinator.SignalStop();
+            return;
+        }
+
+        // Scrolling capture: same hotkey stops an in-progress capture
+        if (settings.Job == Core.WorkflowType.ScrollingCapture &&
+            ScrollingCaptureToolService.CurrentCapture?.IsCapturing == true)
+        {
+            DebugHelper.WriteLine("Scrolling Capture active - stopping capture.");
+            ScrollingCaptureToolService.StopCurrentCapture();
+            return;
+        }
+
+        await Core.Helpers.TaskHelpers.ExecuteWorkflow(settings, settings.Id);
     }
 
     private void OnWorkflowTaskCompleted(object? sender, Core.Tasks.WorkerTask task)
