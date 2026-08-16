@@ -120,6 +120,76 @@ public class VideoEditorExportAutomationTests
     }
 
     [Test]
+    public void ArgumentBuilder_ImageWatermark_UsesOverlay()
+    {
+        string imagePath = Path.Combine(Path.GetTempPath(), "xerahs-wm-" + Guid.NewGuid().ToString("N") + ".png");
+        File.WriteAllBytes(imagePath, [0x89, 0x50, 0x4E, 0x47]);
+
+        try
+        {
+            string args = FfmpegArgumentBuilder.Build(new VideoExportOptions
+            {
+                InputPath = @"C:\in.mp4",
+                OutputPath = @"C:\out.mp4",
+                WatermarkText = "Logo",
+                Watermark = new WatermarkSettings
+                {
+                    Enabled = true,
+                    Text = "Logo",
+                    ImagePath = imagePath,
+                    Opacity = 0.6,
+                    PositionX = 0.1,
+                    PositionY = 0.2
+                }
+            });
+
+            Assert.That(args, Does.Contain("-filter_complex"));
+            Assert.That(args, Does.Contain("overlay=x=(main_w-overlay_w)*0.1"));
+            Assert.That(args, Does.Contain("colorchannelmixer=aa=0.6"));
+            Assert.That(args, Does.Contain("drawtext=text='Logo'"));
+            Assert.That(args, Does.Contain("-map [vout]"));
+        }
+        finally
+        {
+            try { File.Delete(imagePath); } catch { }
+        }
+    }
+
+    [Test]
+    public void CapabilityProbe_ParseEncoderList_MapsAdvertisedFormats()
+    {
+        const string listing =
+            "Encoders:\n" +
+            " V..... libx264             H.264 / AVC\n" +
+            " V..... libvpx-vp9          Google VP9\n" +
+            " V..... libwebp_anim        WebP animation\n" +
+            " V..... gif                 GIF\n";
+
+        FfmpegCapabilitySnapshot snapshot = FfmpegCapabilityProbe.ParseEncoderList(listing);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Supports("MP4"), Is.True);
+            Assert.That(snapshot.Supports("WebM"), Is.True);
+            Assert.That(snapshot.Supports("GIF"), Is.True);
+            Assert.That(snapshot.Supports("WebP"), Is.True);
+            Assert.That(snapshot.ResolveWebMCodec(), Is.EqualTo("libvpx-vp9"));
+            Assert.That(snapshot.AvailableFormats, Is.EquivalentTo(new[] { "MP4", "WebM", "GIF", "WebP" }));
+        });
+    }
+
+    [Test]
+    public void CapabilityProbe_ParseEncoderList_FallsBackToVp8()
+    {
+        FfmpegCapabilitySnapshot snapshot = FfmpegCapabilityProbe.ParseEncoderList(
+            " V..... libx264\n V..... libvpx              Google VP8\n");
+
+        Assert.That(snapshot.Supports("WebM"), Is.True);
+        Assert.That(snapshot.HasVp9, Is.False);
+        Assert.That(snapshot.ResolveWebMCodec(), Is.EqualTo("libvpx"));
+    }
+
+    [Test]
     public async Task AutomationService_AdvertisedOperations_ExportWhenFfmpegAvailable()
     {
         string? ffmpegPath = ResolveFfmpegPath();

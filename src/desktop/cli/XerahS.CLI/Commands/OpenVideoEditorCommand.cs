@@ -82,6 +82,11 @@ public static class OpenVideoEditorCommand
             Description = "Headless text watermark to burn into the export."
         };
 
+        var watermarkImageOption = new Option<string?>("--watermark-image")
+        {
+            Description = "Headless image watermark path to overlay during export."
+        };
+
         cmd.Add(videoOption);
         cmd.Add(ffmpegOption);
         cmd.Add(headlessOption);
@@ -91,6 +96,7 @@ public static class OpenVideoEditorCommand
         cmd.Add(formatOption);
         cmd.Add(cropOption);
         cmd.Add(watermarkOption);
+        cmd.Add(watermarkImageOption);
 
         cmd.SetAction(parseResult =>
         {
@@ -103,9 +109,10 @@ public static class OpenVideoEditorCommand
             string? format = parseResult.GetValue(formatOption);
             string? crop = parseResult.GetValue(cropOption);
             string? watermark = parseResult.GetValue(watermarkOption);
+            string? watermarkImage = parseResult.GetValue(watermarkImageOption);
 
             Environment.ExitCode = headless
-                ? RunHeadlessAsync(videoPath, ffmpegPath, trimStart, trimEndOffset, output, format, crop, watermark)
+                ? RunHeadlessAsync(videoPath, ffmpegPath, trimStart, trimEndOffset, output, format, crop, watermark, watermarkImage)
                     .GetAwaiter().GetResult()
                 : RunAsync(videoPath, ffmpegPath).GetAwaiter().GetResult();
         });
@@ -177,7 +184,8 @@ public static class OpenVideoEditorCommand
         string? outputPath,
         string? format,
         string? crop,
-        string? watermark)
+        string? watermark,
+        string? watermarkImage)
     {
         try
         {
@@ -205,7 +213,8 @@ public static class OpenVideoEditorCommand
             bool useGeneralExport =
                 !string.IsNullOrWhiteSpace(format) ||
                 !string.IsNullOrWhiteSpace(crop) ||
-                !string.IsNullOrWhiteSpace(watermark);
+                !string.IsNullOrWhiteSpace(watermark) ||
+                !string.IsNullOrWhiteSpace(watermarkImage);
 
             if (useGeneralExport)
             {
@@ -216,6 +225,7 @@ public static class OpenVideoEditorCommand
                     format,
                     crop,
                     watermark,
+                    watermarkImage,
                     trimStartSeconds,
                     trimEndOffsetSeconds);
             }
@@ -280,12 +290,19 @@ public static class OpenVideoEditorCommand
         string? format,
         string? crop,
         string? watermark,
+        string? watermarkImage,
         double trimStartSeconds,
         double trimEndOffsetSeconds)
     {
         if (!TryParseCrop(crop, out int cropX, out int cropY, out int cropWidth, out int cropHeight, out string? cropError))
         {
             Console.Error.WriteLine(cropError);
+            return 2;
+        }
+
+        if (!string.IsNullOrWhiteSpace(watermarkImage) && !File.Exists(watermarkImage))
+        {
+            Console.Error.WriteLine($"Watermark image does not exist: {watermarkImage}");
             return 2;
         }
 
@@ -299,6 +316,7 @@ public static class OpenVideoEditorCommand
             trimEnd = duration - TimeSpan.FromSeconds(trimEndOffsetSeconds);
         }
 
+        bool watermarkEnabled = !string.IsNullOrWhiteSpace(watermark) || !string.IsNullOrWhiteSpace(watermarkImage);
         var exportRequest = new VideoEditorExportRequest
         {
             InputPath = videoPath,
@@ -312,8 +330,16 @@ public static class OpenVideoEditorCommand
             CropY = cropY,
             CropWidth = cropWidth,
             CropHeight = cropHeight,
-            WatermarkEnabled = !string.IsNullOrWhiteSpace(watermark),
+            WatermarkEnabled = watermarkEnabled,
             WatermarkText = watermark ?? string.Empty,
+            Watermark = watermarkEnabled
+                ? new WatermarkSettings
+                {
+                    Enabled = true,
+                    Text = watermark ?? string.Empty,
+                    ImagePath = watermarkImage ?? string.Empty
+                }
+                : null,
             QualityScale = 1.0
         };
 
@@ -321,7 +347,7 @@ public static class OpenVideoEditorCommand
         Console.WriteLine($"Input    : {videoPath}");
         Console.WriteLine($"Format   : {outputFormat}");
         Console.WriteLine($"Crop     : {(exportRequest.IsCropActive ? $"{cropX},{cropY},{cropWidth},{cropHeight}" : "(none)")}");
-        Console.WriteLine($"Watermark: {(exportRequest.WatermarkEnabled ? watermark : "(none)")}");
+        Console.WriteLine($"Watermark: {(exportRequest.WatermarkEnabled ? watermark ?? "(image)" : "(none)")}");
 
         Console.Write("Encoding");
         VideoEditorExportResult result = await service.ExportAsync(

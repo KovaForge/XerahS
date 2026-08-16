@@ -298,6 +298,7 @@ namespace XerahS.UI.Services
                         FFprobePath = ffprobePath,
                         WindowTitle = AppResources.AppName,
                         Theme = ResolveTheme(),
+                        WatermarkSettings = VideoEditorWatermarkMapper.FromDefaultTaskSettings(),
                         EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };
 
