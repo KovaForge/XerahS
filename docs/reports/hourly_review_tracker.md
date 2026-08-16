@@ -5212,3 +5212,23 @@ Added candidates (8):
 - `next_candidates` delta: 0 -> 2 (+2).
 - Files updated: hourly_review_state.json (next_candidates[] += 2, last_runs[] appended for this tick, last_updated/last_run_outcome refreshed), hourly_review_tracker.md
 - Skill: xerahs-review/SKILL.md v2.2.4
+
+### 2026-08-17 00:08 AWST - GitHubGist Plugin / Reject invalid CustomURLAPI hosts
+
+- Area: GitHub Gist CustomURLAPI host validation
+- Files: src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs, src/desktop/plugins/GitHubGist.Plugin/Properties/AssemblyInfo.cs, tests/XerahS.Tests/Uploaders/GitHubGistUploaderTests.cs, tests/XerahS.Tests/XerahS.Tests.csproj, Directory.Build.props
+- Findings: UploadText concatenated a non-empty CustomURLAPI into the Gist POST URL with no scheme/host check. Empty still falls back to https://api.github.com. Non-empty values must now be an absolute http/https URL with a host; otherwise the upload returns a user-visible error and does not POST.
+- Status: Fixed
+- Build/test: plugin Release 0/0; tests project Release 0 errors; GitHubGistUploaderTests 10/10 passed. logs: /tmp/xerahs-bugfix/build-20260817-000854.log, /tmp/xerahs-bugfix/build-20260817-000854.log.tests, /tmp/xerahs-bugfix/test-20260817-000854.log
+- Commit: 895b16f6
+- Follow-up: wait for next xerahs-review producer ingest; do not re-queue CustomURLAPI unless source regresses
+
+### 2026-08-17 00:08 AWST - Pivot / false-positive
+
+- Area: src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)
+- Files: (none — pivot, no code change)
+- Findings: SecretKey is the documented per-instance ISecretStore lookup key (developers/destination-plugins/README.md), not a credential. Guid.NewGuid default matches XBackBone/Imgur/Nextcloud; actual clientId/clientSecret/oauthToken live in ISecretStore.
+- Status: Pivot (false-positive)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses; seeded recently_pivoted

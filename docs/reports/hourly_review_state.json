@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-16 23:08 AWST",
+  "last_updated": "2026-08-17 00:08 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,10 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)",
-    "src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs:120 (CustomURLAPI)"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -2059,9 +2056,18 @@
       "agent": "nadia",
       "outcome": "reviewed",
       "commit": "HEAD"
+    },
+    {
+      "ts": "2026-08-17 00:08 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs:120 (CustomURLAPI)",
+      "commit": "895b16f6",
+      "summary": "Reject invalid GitHub Gist CustomURLAPI hosts (http/https + host required; empty falls back to api.github.com).",
+      "status": "fixed"
     }
   ],
-  "last_run_outcome": "reviewed",
+  "last_run_outcome": "fixed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
@@ -2085,6 +2091,7 @@
     "src/mobile-experimental/XerahS.Mobile.Maui/ViewModels/MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries())",
     "src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl)",
     "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)",
-    "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)"
+    "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)",
+    "src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)"
   ]
 }
