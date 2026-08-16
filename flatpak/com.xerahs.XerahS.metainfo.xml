@@ -42,6 +42,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.25.0" date="2026-08-16">
+      <description>
+        <p>See CHANGELOG.md for details.</p>
+      </description>
+    </release>
     <release version="0.24.24" date="2026-08-08">
       <description>
         <p>See CHANGELOG.md for details.</p>

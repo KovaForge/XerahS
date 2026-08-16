@@ -10,6 +10,14 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.25.0
+
+### Features
+- **Core**: Add native XBackBone destination
+- **Video Editor**: Seed watermarks from host image effects; close the advertised export path from the host; use the XerahS video editor title
+
+---
+
 ## v0.24.25
 
 ### Security

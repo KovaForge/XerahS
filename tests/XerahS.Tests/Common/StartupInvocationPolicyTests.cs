@@ -25,7 +25,9 @@
 
 using NUnit.Framework;
 using XerahS.Common;
+#if WINDOWS
 using XerahS.Platform.Windows.Services;
+#endif
 
 namespace XerahS.Tests.Common;
 
@@ -53,6 +55,7 @@ public class StartupInvocationPolicyTests
             Is.False);
     }
 
+    #if WINDOWS
     [Test]
     public void WindowsStartupCommand_UsesPassiveStartupMarker()
     {
@@ -70,4 +73,5 @@ public class StartupInvocationPolicyTests
     {
         Assert.That(WindowsStartupService.IsXerahSProcess(processPath), Is.EqualTo(expected));
     }
+#endif
 }
