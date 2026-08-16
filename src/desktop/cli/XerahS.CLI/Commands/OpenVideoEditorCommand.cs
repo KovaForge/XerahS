@@ -64,7 +64,22 @@ public static class OpenVideoEditorCommand
 
         var outputOption = new Option<string?>("--output")
         {
-            Description = "Output path for the trimmed file (headless mode only). Defaults to <input>_trimmed.mp4 next to the input."
+            Description = "Output path for the exported file (headless mode only). Defaults next to the input."
+        };
+
+        var formatOption = new Option<string?>("--format")
+        {
+            Description = "Headless output format: MP4, WebM, GIF, or WebP. When set with crop/watermark, uses the general export pipeline."
+        };
+
+        var cropOption = new Option<string?>("--crop")
+        {
+            Description = "Headless crop rectangle as x,y,width,height in source pixels."
+        };
+
+        var watermarkOption = new Option<string?>("--watermark")
+        {
+            Description = "Headless text watermark to burn into the export."
         };
 
         cmd.Add(videoOption);
@@ -73,6 +88,9 @@ public static class OpenVideoEditorCommand
         cmd.Add(trimStartOption);
         cmd.Add(trimEndOffsetOption);
         cmd.Add(outputOption);
+        cmd.Add(formatOption);
+        cmd.Add(cropOption);
+        cmd.Add(watermarkOption);
 
         cmd.SetAction(parseResult =>
         {
@@ -82,9 +100,13 @@ public static class OpenVideoEditorCommand
             double trimStart = parseResult.GetValue(trimStartOption);
             double trimEndOffset = parseResult.GetValue(trimEndOffsetOption);
             string? output = parseResult.GetValue(outputOption);
+            string? format = parseResult.GetValue(formatOption);
+            string? crop = parseResult.GetValue(cropOption);
+            string? watermark = parseResult.GetValue(watermarkOption);
 
             Environment.ExitCode = headless
-                ? RunHeadlessAsync(videoPath, ffmpegPath, trimStart, trimEndOffset, output).GetAwaiter().GetResult()
+                ? RunHeadlessAsync(videoPath, ffmpegPath, trimStart, trimEndOffset, output, format, crop, watermark)
+                    .GetAwaiter().GetResult()
                 : RunAsync(videoPath, ffmpegPath).GetAwaiter().GetResult();
         });
 
@@ -152,7 +174,10 @@ public static class OpenVideoEditorCommand
         string? ffmpegOverride,
         double trimStartSeconds,
         double trimEndOffsetSeconds,
-        string? outputPath)
+        string? outputPath,
+        string? format,
+        string? crop,
+        string? watermark)
     {
         try
         {
@@ -175,12 +200,31 @@ public static class OpenVideoEditorCommand
             string ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
                 resolution.ConfiguredPath,
                 Console.WriteLine);
+            var service = new VideoEditorAutomationService(resolution.ConfiguredPath, ffprobePath);
+
+            bool useGeneralExport =
+                !string.IsNullOrWhiteSpace(format) ||
+                !string.IsNullOrWhiteSpace(crop) ||
+                !string.IsNullOrWhiteSpace(watermark);
+
+            if (useGeneralExport)
+            {
+                return await RunHeadlessExportAsync(
+                    service,
+                    videoPath,
+                    outputPath,
+                    format,
+                    crop,
+                    watermark,
+                    trimStartSeconds,
+                    trimEndOffsetSeconds);
+            }
+
             string resolvedOutputPath = !string.IsNullOrWhiteSpace(outputPath)
                 ? Path.GetFullPath(outputPath)
                 : Path.Combine(
                     Path.GetDirectoryName(videoPath) ?? ".",
                     $"{Path.GetFileNameWithoutExtension(videoPath)}_trimmed.mp4");
-            var trimService = new VideoEditorAutomationService(resolution.ConfiguredPath, ffprobePath);
             var trimRequest = new VideoEditorTrimRequest
             {
                 InputPath = videoPath,
@@ -199,7 +243,7 @@ public static class OpenVideoEditorCommand
             Console.WriteLine($"FFprobe  : {ffprobePath}");
 
             Console.Write("Encoding");
-            VideoEditorTrimResult result = await trimService.TrimAsync(
+            VideoEditorTrimResult result = await service.TrimAsync(
                 trimRequest,
                 progress =>
                 {
@@ -224,9 +268,113 @@ public static class OpenVideoEditorCommand
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"\nHeadless trim failed: {ex.Message}");
+            Console.Error.WriteLine($"\nHeadless export failed: {ex.Message}");
             return 2;
         }
+    }
+
+    private static async Task<int> RunHeadlessExportAsync(
+        VideoEditorAutomationService service,
+        string videoPath,
+        string? outputPath,
+        string? format,
+        string? crop,
+        string? watermark,
+        double trimStartSeconds,
+        double trimEndOffsetSeconds)
+    {
+        if (!TryParseCrop(crop, out int cropX, out int cropY, out int cropWidth, out int cropHeight, out string? cropError))
+        {
+            Console.Error.WriteLine(cropError);
+            return 2;
+        }
+
+        string outputFormat = string.IsNullOrWhiteSpace(format) ? "MP4" : format.Trim();
+        bool isTrimActive = trimStartSeconds > 0 || trimEndOffsetSeconds > 0;
+        TimeSpan trimEnd = TimeSpan.Zero;
+
+        if (isTrimActive && trimEndOffsetSeconds > 0)
+        {
+            TimeSpan duration = await service.ProbeDurationAsync(videoPath);
+            trimEnd = duration - TimeSpan.FromSeconds(trimEndOffsetSeconds);
+        }
+
+        var exportRequest = new VideoEditorExportRequest
+        {
+            InputPath = videoPath,
+            OutputPath = outputPath,
+            OutputFormat = outputFormat,
+            IsTrimActive = isTrimActive,
+            TrimStart = TimeSpan.FromSeconds(Math.Max(0, trimStartSeconds)),
+            TrimEnd = trimEnd,
+            IsCropActive = cropWidth > 0 && cropHeight > 0,
+            CropX = cropX,
+            CropY = cropY,
+            CropWidth = cropWidth,
+            CropHeight = cropHeight,
+            WatermarkEnabled = !string.IsNullOrWhiteSpace(watermark),
+            WatermarkText = watermark ?? string.Empty,
+            QualityScale = 1.0
+        };
+
+        Console.WriteLine("=== Open Video Editor (headless export) ===");
+        Console.WriteLine($"Input    : {videoPath}");
+        Console.WriteLine($"Format   : {outputFormat}");
+        Console.WriteLine($"Crop     : {(exportRequest.IsCropActive ? $"{cropX},{cropY},{cropWidth},{cropHeight}" : "(none)")}");
+        Console.WriteLine($"Watermark: {(exportRequest.WatermarkEnabled ? watermark : "(none)")}");
+
+        Console.Write("Encoding");
+        VideoEditorExportResult result = await service.ExportAsync(
+            exportRequest,
+            progress =>
+            {
+                string speed = progress.Speed > 0 ? $"{progress.Speed:F1}x" : "-";
+                Console.Write(
+                    $"\rEncoding {progress.ProgressPercent:F0}%  {progress.CurrentTime:hh\\:mm\\:ss\\.ff}  {speed,-6}");
+            });
+        Console.WriteLine();
+
+        if (!File.Exists(result.OutputPath))
+        {
+            Console.Error.WriteLine("Export completed but output file not found.");
+            return 2;
+        }
+
+        var info = new FileInfo(result.OutputPath);
+        Console.WriteLine($"Done. Output: {result.OutputPath}  ({info.Length / 1024:N0} KB)");
+        return 0;
+    }
+
+    private static bool TryParseCrop(
+        string? crop,
+        out int x,
+        out int y,
+        out int width,
+        out int height,
+        out string? error)
+    {
+        x = y = width = height = 0;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(crop))
+        {
+            return true;
+        }
+
+        string[] parts = crop.Split(',', StringSplitOptions.TrimEntries);
+        if (parts.Length != 4 ||
+            !int.TryParse(parts[0], out x) ||
+            !int.TryParse(parts[1], out y) ||
+            !int.TryParse(parts[2], out width) ||
+            !int.TryParse(parts[3], out height) ||
+            width <= 0 ||
+            height <= 0)
+        {
+            error = "Crop must be x,y,width,height with positive width and height.";
+            return false;
+        }
+
+        return true;
     }
 
 }

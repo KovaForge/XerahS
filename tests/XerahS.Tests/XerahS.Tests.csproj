@@ -70,6 +70,9 @@
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Uploaders\XerahS.Uploaders.csproj" />
     <ProjectReference Include="..\..\src\tools\XerahS.McpServer\XerahS.McpServer.csproj" />
     <ProjectReference Include="..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
+    <ProjectReference Include="..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
+                      GlobalPropertiesToRemove="OS"
+                      AdditionalProperties="BuildWebUI=false" />
   </ItemGroup>
 
   <!--
