@@ -296,6 +296,7 @@ namespace XerahS.UI.Services
                         VideoPath = videoPath,
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
                         FFprobePath = ffprobePath,
+                        WindowTitle = AppResources.AppName,
                         Theme = ResolveTheme(),
                         EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };

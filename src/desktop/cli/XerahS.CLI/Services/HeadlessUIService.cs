@@ -102,6 +102,7 @@ namespace XerahS.CLI.Services
                         VideoPath = resolvedVideoPath,
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
                         FFprobePath = ffprobePath,
+                        WindowTitle = AppResources.AppName,
                         Theme = ResolveTheme(),
                         EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };
