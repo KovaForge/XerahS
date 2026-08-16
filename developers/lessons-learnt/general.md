@@ -190,6 +190,7 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never pair `.WithDeveloperTools()` with `AttachDeveloperTools()` in XerahS DEBUG startup; always keep exactly one developer-tools attachment path in the application layer because Avalonia 12 throws when DevTools are attached twice.
 - Never call `UseSkia()` in an Avalonia 12 headless/test host without also configuring `Avalonia.HarfBuzz` and `.UseHarfBuzz()` because Skia-only builders no longer get text shaping automatically.
 - Never pin managed `SkiaSharp` to a major version higher than the corresponding `SkiaSharp.NativeAssets.*` transitive; always pin every `SkiaSharp.NativeAssets.<rid>` package consumed (Linux at minimum, plus Win32/macOS/WASM if used) in `Directory.Packages.props` so the native `libSkiaSharp.so` matches the managed assembly's expected native range, otherwise Avalonia's transitives will pull the older 3.x native and crash with `SkiaSharpVersion.CheckNativeLibraryCompatible` at startup (XIP-0081).
+- Never assume Photino `file://` video playback works with default web security, FFmpeg `drawtext` works without a `fontfile` on Windows, or UI export always preserves source FPS; always disable Photino web security for local recordings, inject a resolved system font into watermark filters, treat `OutputFps <= 0` as preserve-source, and drive advertised trim/crop/convert/watermark through `VideoEditorAutomationService` before adding new Photino launch tests.
 
 ---
 
