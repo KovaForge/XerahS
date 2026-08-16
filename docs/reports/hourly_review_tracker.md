@@ -5170,3 +5170,14 @@ Added candidates (8):
 - **Ingested: 0**. Queue saturated by the existing iOS ShareExtension item from 2026-08-14 23:08; nothing new survived the dedupe stack.
 - `next_candidates` delta: 1 -> 1 (+0).
 - Files updated: hourly_review_state.json (last_runs[] appended for this tick, last_updated + last_run_outcome refreshed), hourly_review_tracker.md
+
+### 2026-08-16 08:06 AWST - Pivot / out-of-scope
+
+- Area: src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)
+- Files: (none — pivot, no code change)
+- Findings: mobile code (requires Android SDK 36 / Xcode 26.2 — out of scope for bugfix cron)
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.21 (no patch this tick; v1.1.8 mobile skip already covered)
