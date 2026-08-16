@@ -5192,3 +5192,23 @@ Added candidates (8):
 - Commit: null (audit commit SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md — no patch this run
+
+### 2026-08-16 23:08 AWST - xerahs-review producer tick (Nadia, daily 23:00 AWST)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Producer-only ingest. HEAD d3df647bb756654de22c179e1f492ada1b4ece69 in sync with nadia/develop and origin/develop; upstream/develop already-merged (12a8579f Flatpak docs). ShareX.ImageEditor develop clean at 1bcb66c441cccc6b1a38c5b07c31a433403bf13b (no delta).
+- clawpatch review: 3 features, 2 raw findings on src/desktop/plugins/GitHubGist.Plugin (high/confirmed-bug each).
+- clawpatch reports parsed: 1 latest (.clawpatch/reports/20260816T150521-cbb7f8.md).
+- v2.2.4 submodule-prefix drops: 19 (ShareX.ImageEditor / ShareX.VideoEditor).
+- Severity gate drops: 48 (triage=risk:24, contract-mismatch:13, test-gap:3, docs-gap:8; confidence allow widened to {high,medium,low} because queue=0).
+- v2.2.2 recently-pivoted skips: 21 (BufferNotifyIcon, WaylandCliCapture, HSB, AnimatedGifCreator, FileDownloader, etc. — exact citation match).
+- Area-level already-fixed drops: 1 (Hsb.cs pinned to "HSB struct" fixed area).
+- v2.1.2 release-history drops: 11 (AssistantHistoryServiceTests, ReClipCommand, FileDownloader, HSB.cs, IndexCommand, DropboxUploader, HistoryManagerSQLiteTests, GradientInfo, ImmichUploader — already shipped via prior release-commit fix).
+- v2.1.1 60-commit window drops: 1 (CatchAll: single source file overlap).
+- Duplicate-of-existing skips: 0.
+- **Ingested: 2**.
+  - `src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)` — high/confirmed-bug, SecretKey property default-initialized to `Guid.NewGuid().ToString("N")` risks leakage via serialization/log capture; GitHubGist plugin area was not previously a tracked fix area.
+  - `src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs:120 (CustomURLAPI)` — high/confirmed-bug, CustomURLAPI host string accepted without URL/host whitelist validation.
+- `next_candidates` delta: 0 -> 2 (+2).
+- Files updated: hourly_review_state.json (next_candidates[] += 2, last_runs[] appended for this tick, last_updated/last_run_outcome refreshed), hourly_review_tracker.md
+- Skill: xerahs-review/SKILL.md v2.2.4
