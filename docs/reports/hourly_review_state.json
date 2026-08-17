@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-17 00:08 AWST",
+  "last_updated": "2026-08-17 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2065,9 +2065,18 @@
       "commit": "895b16f6",
       "summary": "Reject invalid GitHub Gist CustomURLAPI hosts (http/https + host required; empty falls back to api.github.com).",
       "status": "fixed"
+    },
+    {
+      "ts": "2026-08-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. Deleted stale deferred-last-runs-20260817-000854.json (prior 00:08 AWST SecretKey pivot already in tracker + recently_pivoted; no fix commit to fold under XIP0077 +0/+1).",
+      "status": "no-op"
     }
   ],
-  "last_run_outcome": "fixed",
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
