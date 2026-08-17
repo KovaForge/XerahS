@@ -5254,3 +5254,25 @@ Added candidates (8):
 - Commit: null (audit commit SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md — no patch this run
+
+### 2026-08-17 23:07 AWST - xerahs-review producer tick (nadia-daily)
+
+- Agent: nadia (nadia-valeva-kf / nadia@kovaforge)
+- Producer-only ingest. HEAD 357edcf181d18a5c7dd89836182ed2397cba4c5b in sync with nadia/develop and origin/develop; ahead of upstream/develop b4f117838 by 96 commits (no upstream delta). ShareX.ImageEditor develop clean at 1bcb66c441cccc6b1a38c5b07c31a433403bf13b (no delta, HEAD == origin == upstream).
+- clawpatch review: 3 features, 106 raw findings (1 GitHubGist v0.25.2 leftover, 1 Immich AlbumShare, 1 Tests OCR test hardening).
+- clawpatch reports parsed: 3 latest (.clawpatch/reports/20260817T150322-d2fc7d.md, 20260816T150521-cbb7f8.md, 20260815T150317-2acd67.md).
+- v2.2.4 submodule-prefix drops: 57 (ShareX.ImageEditor / ShareX.VideoEditor).
+- Severity gate drops: 146 (triage=risk:95, contract-mismatch:33, test-gap:6, docs-gap:12).
+- v2.2.2 recently-pivoted skips: 65 (multiplied across 3 reports; base pivot set is 24 entries).
+- Area-level already-fixed drops: 3.
+- v2.1.2 release-history drops: 39 (AssistantHistoryServiceTests, ReClipCommand, FileDownloader, HSB.cs, IndexCommand, DropboxUploader, HistoryManagerSQLiteTests, GradientInfo, ImmichUploader, AnimatedGifCreator, DPAPIEncryptedStringValueProvider, TaskSettingsOptions — already shipped via prior release-commit fix).
+- Duplicate-of-existing skips: 0.
+- 3 raw findings from feat_library_6c042ce5fd Indexer/Properties were:
+  - fnd_sig-feat-library-6c042ce5fd-0b03 (data-loss/high/confirmed-bug, HistoryManagerSQLiteTests.cs:284-285 — pinned by release-history gate via Assistant test bundle).
+  - fnd_sig-feat-library-6c042ce5fd-6186 (security/medium/risk — dropped at severity gate).
+  - fnd_sig-feat-library-6c042ce5fd-2b80 (maintainability/high/risk — dropped at severity gate).
+- **Ingested: 0**.
+- `next_candidates` delta: 0 -> 0 (+0). Queue remains empty — 00:06 AWST consumer drain will be another no-op audit unless clawpatch surfaces a fresh high-signal finding.
+- Files updated: hourly_review_state.json (next_candidates unchanged, last_runs[] appended for this tick, last_updated/last_run_outcome refreshed), hourly_review_tracker.md
+- Skill: xerahs-review/SKILL.md v2.2.4
+

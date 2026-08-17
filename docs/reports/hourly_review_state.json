@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-17 16:06 AWST",
+  "last_updated": "2026-08-17 23:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2083,9 +2083,50 @@
       "commit": null,
       "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD already equals declan/develop and origin/develop. upstream/develop already merged. ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files to delete.",
       "status": "no-op"
+    },
+    {
+      "timestamp": "2026-08-17 23:07 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260817T150322-d2fc7d.md",
+        ".clawpatch/reports/20260816T150521-cbb7f8.md",
+        ".clawpatch/reports/20260815T150317-2acd67.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 features, 106 raw findings (1 GitHubGist v0.25.2 leftover, 1 Immich AlbumShare, 1 Tests OCR test hardening); ingest: 0 added to next_candidates (queue saturated empty, all eligible candidates pinned to v0.23.95+ release-history / already-pivoted / area-fixed)",
+      "notes": "Producer-only tick (Nadia Valeva). nadia remote HEAD: 357edcf181d18a5c7dd89836182ed2397cba4c5b in sync with origin/develop 357edcf1 and nadia/develop 357edcf1; ahead of upstream/develop b4f117838 by 96 commits (no upstream delta). Submodule ShareX.ImageEditor clean at 1bcb66c441cccc6b1a38c5b07c31a433403bf13b (no delta, HEAD == origin == upstream). clawpatch reports parsed: 3 (latest 20260817T150322-d2fc7d). Findings dropped at severity gate: 146 (triage=risk:95, contract-mismatch:33, test-gap:6, docs-gap:12). v2.2.4 submodule-prefix drops: 57. Dropped as already-fixed (area-level): 3. Dropped v2.1.1 (60-commit) + v2.1.2 (release-history): 39 (AssistantHistoryServiceTests, ReClipCommand, FileDownloader, HSB.cs, IndexCommand, DropboxUploader, HistoryManagerSQLiteTests, GradientInfo, ImmichUploader, AnimatedGifCreator, DPAPIEncryptedStringValueProvider, TaskSettingsOptions — already shipped via prior release-commit fix). Skipped as recently-pivoted (v2.2.2): 65 (multiplied across 3 reports; base pivot set is 24 entries — BufferNotifyIcon, WaylandCliCapture, HSB, AnimatedGifCreator, FileDownloader, etc.). Skipped as duplicate of existing: 0. The 3 raw findings from feat_library_6c042ce5fd Indexer/Properties were: fnd_sig-...-0b03 (data-loss/high/confirmed-bug, HistoryManagerSQLiteTests.cs:284-285 — pinned by release-history gate via Assistant test bundle); fnd_sig-...-6186 (security/medium/risk — dropped at severity gate); fnd_sig-...-2b80 (maintainability/high/risk — dropped at severity gate). Net new actionable findings: 0. next_candidates delta: 0 -> 0 (+0). next_candidates remains empty — 00:06 AWST consumer drain will be another no-op audit unless clawpatch surfaces a fresh high-signal finding.",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 0,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 0,
+        "queue_added": [],
+        "gate_breakdown": {
+          "triage=risk": 95,
+          "triage=contract-mismatch": 33,
+          "triage=test-gap": 6,
+          "triage=docs-gap": 12
+        },
+        "submodule_prefix_drops": 57,
+        "recently_fixed_drops": 39,
+        "recently_pivoted_skips": 65,
+        "already_fixed_drops": 3,
+        "clawpatch_reports_parsed": [
+          "20260817T150322-d2fc7d.md",
+          "20260816T150521-cbb7f8.md",
+          "20260815T150317-2acd67.md"
+        ]
+      }
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "reviewed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
