@@ -5276,3 +5276,14 @@ Added candidates (8):
 - Files updated: hourly_review_state.json (next_candidates unchanged, last_runs[] appended for this tick, last_updated/last_run_outcome refreshed), hourly_review_tracker.md
 - Skill: xerahs-review/SKILL.md v2.2.4
 
+
+### 2026-08-18 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD 42eb004f already equals declan/develop and origin/develop. upstream/develop already merged (ours ahead by 97). ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files present.
+- Status: No-op
+- Build/test: n/a (empty-queue audit)
+- Commit: null (audit commit SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md — no patch this run
