@@ -2160,7 +2160,7 @@
       "agent": "nadia",
       "outcome": "pushed",
       "item": "xerahs-review producer run",
-      "commit": "fabeb886",
+      "commit": "cb8b89dc",
       "summary": "Fork sync (nadia) advanced remote to 07e12416. Upstream merge created conflict on docs/CHANGELOG.md; combined v0.25.2 ImageEditor port + GitHub Gist CustomURLAPI fix and retained v0.25.3 (any-source update). Submodule pointer preserved at McoreD v0.25.2 commit d4f4029b (local-only on KovaForge/ShareX.ImageEditor fork develop; not yet pushed). Clawpatch review (MiniMax-Text-01) parsed 3 reports (262 findings after submodule drop); gates filtered 150 by triage/category, 3 already-fixed areas, 59 release-history, 48 recently-pivoted; ingested 2 platform-services findings. Push complete: nadia/develop -> d97d382b; submodule branch nadia-v0.25.2-port pushed to d4f4029b.",
       "status": "ok",
       "clawpatch_report": "20260818T150844-8d31ce.md",
@@ -2169,12 +2169,19 @@
         "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)"
       ],
       "next_candidates_size": 2,
-      "nadia_remote_sha": "fabeb88683d459c86bb19ccb2d95c371d8e6a0c6",
+      "nadia_remote_sha": "cb8b89dcffe7998c421066edc7143aac88db7788",
       "submodule_pushed": {
         "branch": "nadia-v0.25.2-port",
         "sha": "d4f4029b654c259315c5bd48d212dcb76ea10d31",
         "remote": "github-nadia:KovaForge/ShareX.ImageEditor.git"
-      }
+      },
+      "commit_chain": [
+        "c4db2eb4",
+        "d97d382b",
+        "fabeb886",
+        "87bbbf72",
+        "cb8b89dc"
+      ]
     }
   ],
   "last_run_outcome": "no-op",
