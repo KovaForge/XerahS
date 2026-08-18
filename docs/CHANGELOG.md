@@ -10,6 +10,11 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.25.2
+
+### Features
+- **Image Editor**: Localize editor UI (28 languages); smart-eraser edge-matching fills; extract built-in toolbars and host toolbar chrome from ShareX through `ebcee2a63`
+
 ## v0.25.1
 
 - Keep the main window visible during hotkey and command-palette screenshots so XerahS itself can be captured. Navbar and tray captures still hide the window.

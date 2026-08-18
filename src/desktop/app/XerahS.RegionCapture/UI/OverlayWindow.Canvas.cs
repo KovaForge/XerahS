@@ -126,14 +126,12 @@ public partial class OverlayWindow
 
             ApplyToolbarDefaultsToAnnotation(_currentAnnotation);
 
-            // Reuse the shared editor sampling path first, then fall back to monitor-specific sources.
             if (_currentAnnotation is SmartEraserAnnotation smartEraserAnn)
             {
-                var sampledColor = ResolveSmartEraserColor(skPoint);
-                if (!string.IsNullOrWhiteSpace(sampledColor))
+                SKBitmap? sourceImage = _viewModel.EditorCore.SourceImage;
+                if (sourceImage != null)
                 {
-                    smartEraserAnn.StrokeColor = sampledColor;
-                    smartEraserAnn.FillColor = sampledColor;
+                    smartEraserAnn.ConfigureFill(sourceImage);
                 }
             }
 
@@ -244,6 +242,14 @@ public partial class OverlayWindow
         if (_currentAnnotation is SpotlightAnnotation spotlight)
         {
             spotlight.CanvasSize = new SKSize((float)Math.Max(1, Width), (float)Math.Max(1, Height));
+        }
+        else if (_currentAnnotation is SmartEraserAnnotation smartEraser)
+        {
+            SKBitmap? sourceImage = _viewModel.EditorCore.SourceImage;
+            if (sourceImage != null)
+            {
+                smartEraser.ConfigureFill(sourceImage);
+            }
         }
     }
 
