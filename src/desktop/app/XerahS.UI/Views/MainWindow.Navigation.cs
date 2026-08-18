@@ -399,6 +399,11 @@ namespace XerahS.UI.Views
                 HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
             }
 
+            if (!SilentRunStartupPolicy.ShouldActivateWindowOnNavigate(_suppressWindowActivation))
+            {
+                return;
+            }
+
             if (!this.IsVisible)
             {
                 this.Show();

@@ -230,12 +230,11 @@ public partial class App : Application
             Services.MainViewModelHelper.WireSaveAsRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
             Services.MainViewModelHelper.WirePinRequested(mainViewModel, getEmbeddedSnapshot);
 
-            // Prepare for Silent Run
-            bool silentRun = XerahS.Core.SettingsManager.Settings.SilentRun;
-#if DEBUG
-            // In DEBUG builds always show main window at startup for easier development.
-            silentRun = false;
-#endif
+            // Prepare for Silent Run ("Start minimized to tray"). Honor the setting in
+            // Debug and Release — Debug used to force the main window visible, which made
+            // the Application Settings checkbox look broken when running from the IDE.
+            bool silentRun = Helpers.SilentRunStartupPolicy.ShouldHideMainWindowToTray(
+                XerahS.Core.SettingsManager.Settings.SilentRun, IsExiting, alreadyApplied: false);
 
             if (silentRun)
             {
@@ -270,8 +269,12 @@ public partial class App : Application
             // Apply window state based on SilentRun.
             // We avoid starting minimized because some Windows setups can leave a minimized
             // thumbnail/button at the bottom-left instead of staying tray-only.
+            // Hide synchronously on Opened and again at Send priority: Avalonia's lifetime
+            // Show() can complete after Opened on some Windows setups, so one Hide() is
+            // not always enough. MainWindow.OnWindowOpened also applies this once.
             if (silentRun)
             {
+                desktop.MainWindow.ShowActivated = false;
                 desktop.MainWindow.ShowInTaskbar = false;
 
                 EventHandler? hideOnFirstOpen = null;
@@ -282,14 +285,11 @@ public partial class App : Application
                         desktop.MainWindow.Opened -= hideOnFirstOpen;
                     }
 
+                    HideMainWindowToTray(desktop.MainWindow);
+
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        if (desktop.MainWindow != null && XerahS.Core.SettingsManager.Settings.SilentRun && !IsExiting)
-                        {
-                            desktop.MainWindow.Hide();
-                            desktop.MainWindow.ShowInTaskbar = false;
-                            Common.DebugHelper.WriteLine("SilentRun startup: main window hidden to tray.");
-                        }
+                        HideMainWindowToTray(desktop.MainWindow);
                     }, Avalonia.Threading.DispatcherPriority.Send);
                 };
 
@@ -408,6 +408,21 @@ public partial class App : Application
     /// </summary>
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator?.WorkflowManager;
+
+    private static void HideMainWindowToTray(Window? window)
+    {
+        if (window == null || IsExiting || !SettingsManager.Settings.SilentRun)
+        {
+            return;
+        }
+
+        bool wasVisible = window.IsVisible;
+        Helpers.SilentRunStartupPolicy.ApplyHiddenToTray(window);
+        if (wasVisible)
+        {
+            Common.DebugHelper.WriteLine("SilentRun startup: main window hidden to tray.");
+        }
+    }
 
     public static void ApplyMenuBarOnlyModeFromSettings()
     {
