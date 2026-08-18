@@ -2169,7 +2169,6 @@
         "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)"
       ],
       "next_candidates_size": 2,
-      "nadia_remote_sha": "2b23b5a276d20b1e31d32706a38ebc8a1d09b743",
       "submodule_pushed": {
         "branch": "nadia-v0.25.2-port",
         "sha": "d4f4029b654c259315c5bd48d212dcb76ea10d31",
