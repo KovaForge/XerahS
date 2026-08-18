@@ -5352,3 +5352,8 @@ Added candidates (8):
 - nadia_remote_sha: pending push
 - Anomalies:
   - submodule commit d4f4029b is local-only in KovaForge/ShareX.ImageEditor fork (4 commits ahead of origin/develop; not on any tracked branch); pushed submodule will require this commit to land on a branch first
+
+- Push complete: nadia/develop -> 87bbbf72 (4-commit chain: c4db2eb4 merge, d97d382b state, fabeb886 post-push metadata, 87bbbf72 SHA pin)
+- Submodule: nadia/nadia-v0.25.2-port -> d4f4029b pushed to github-nadia:KovaForge/ShareX.ImageEditor.git
+- Final SHA on nadia: 87bbbf72
+- Commit-chain anomaly: 4 commits to land producer state; future runs should batch state update + post-push metadata into one commit to avoid SHA-churn
