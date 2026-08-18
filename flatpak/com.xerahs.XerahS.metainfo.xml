@@ -42,6 +42,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.25.4" date="2026-08-19">
+      <description>
+        <p>Honor Start minimized to tray on launch so the main window stays in the tray.</p>
+      </description>
+    </release>
     <release version="0.25.3" date="2026-08-18">
       <description>
         <p>See CHANGELOG.md for details.</p>
