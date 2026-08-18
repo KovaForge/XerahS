@@ -313,6 +313,8 @@ namespace XerahS.Platform.Abstractions
             _themeService = null;
             _scrollingCaptureService = null;
             _ocrService = null;
+            _uiService = null;
+            _imageEncoderService = null;
             NativeWindowHandleProvider = null;
         }
 
