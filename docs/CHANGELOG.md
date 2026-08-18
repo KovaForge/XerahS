@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to XerahS will be documented in this file.
 
@@ -7,6 +7,20 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **MAJOR** (x): Breaking changes (0 while unreleased)
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
+
+---
+
+## v0.25.3
+
+### Features
+- **Updates**: Add an **Any source** option under Pre-release source. When selected, XerahS checks both ShareX and KovaForge and installs the newest usable pre-release.
+
+---
+
+## v0.25.2
+
+### Fixes
+- **GitHub Gist**: Reject invalid CustomURLAPI hosts so a crafted gist destination cannot point the uploader at an unexpected API.
 
 ---
 
