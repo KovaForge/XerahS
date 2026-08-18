@@ -5309,3 +5309,46 @@ Added candidates (8):
 - Commit: null (audit commit SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md — no patch this run
+
+### 2026-08-18 23:09 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+- Submodule-prefix drops (v2.2.4): 59
+- Findings dropped at severity gate: 150
+  - triage=risk: 98
+  - triage=contract-mismatch: 34
+  - triage=docs-gap: 12
+  - triage=test-gap: 6
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed (v2.1.2 release-history): 59
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/IndexCommand.cs:273-290 (CountIndexedContents)
+  - [bug/confirmed-bug] src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)
+  - ... and 49 more
+- Ingested: 2
+- next_candidates delta: +2 (total 2)
+
+### 2026-08-18 23:02 AWST - xerahs-review producer run
+
+- Agent: nadia
+- Commit: c4db2eb4 (local merge of upstream/develop, pre-push)
+- Fork sync: nadia remote advanced to 07e12416 (already at parent)
+- Upstream: merged dac48c1d (v0.25.3) + retained 07e12416 (v0.25.2 ImageEditor port)
+- CHANGELOG conflict: combined v0.25.2 ImageEditor port + GitHub Gist CustomURLAPI fix; retained v0.25.3
+- Submodule: ShareX.ImageEditor preserved at McoreD v0.25.2 commit d4f4029b (not on KovaForge fork origin/develop; pending push)
+- Clawpatch: provider=minimax, model=MiniMax-Text-01, reports=3 (262 findings after submodule drop)
+- Ingest: +2 (gates: 150 triage/category, 3 already-fixed, 59 release-history, 48 recently-pivoted)
+- next_candidates delta: 0 → 2 (+2)
+- nadia_remote_sha: pending push
+- Anomalies:
+  - submodule commit d4f4029b is local-only in KovaForge/ShareX.ImageEditor fork (4 commits ahead of origin/develop; not on any tracked branch); pushed submodule will require this commit to land on a branch first

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-18 16:08 AWST",
+  "last_updated": "2026-08-18 23:02 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,10 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)",
+    "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -2151,6 +2154,22 @@
       "commit": null,
       "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD already equals declan/develop and origin/develop. upstream/develop already merged. ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files to delete.",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-18 23:02 AWST",
+      "agent": "nadia",
+      "outcome": "pushed",
+      "item": "xerahs-review producer run",
+      "commit": "c4db2eb4",
+      "summary": "Fork sync (nadia) advanced remote to 07e12416. Upstream merge created conflict on docs/CHANGELOG.md; combined v0.25.2 ImageEditor port + GitHub Gist CustomURLAPI fix and retained v0.25.3 (any-source update). Submodule pointer preserved at McoreD v0.25.2 commit d4f4029b (local-only on KovaForge/ShareX.ImageEditor fork develop; not yet pushed). Clawpatch review (MiniMax-Text-01) parsed 3 reports (262 findings after submodule drop); gates filtered 150 by triage/category, 3 already-fixed areas, 59 release-history, 48 recently-pivoted; ingested 2 platform-services findings.",
+      "status": "ok",
+      "clawpatch_report": "20260818T150844-8d31ce.md",
+      "ingest_added": [
+        "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)",
+        "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)"
+      ],
+      "next_candidates_size": 2,
+      "nadia_remote_sha": null
     }
   ],
   "last_run_outcome": "no-op",
