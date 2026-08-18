@@ -58,13 +58,15 @@ internal static class NativeWindowService
     /// </summary>
     public static void RemoveExcludedHandle(nint handle) => ExcludedHandles.Remove(handle);
 
+    private const int MaxControlsPerWindow = 256;
+
     /// <summary>
     /// Gets the window at the specified physical point.
     /// Uses Z-order from EnumWindows (topmost first) for correct layering.
     /// </summary>
-    public static WindowInfo? GetWindowAtPoint(PixelPoint point)
+    public static WindowInfo? GetWindowAtPoint(PixelPoint point, bool includeControls = true)
     {
-        var windows = EnumerateVisibleWindows();
+        var windows = EnumerateVisibleWindows(includeControls);
 
         // EnumWindows returns windows in Z-order (topmost first)
         // so the first window containing the point is the topmost one
@@ -82,8 +84,11 @@ internal static class NativeWindowService
     /// <summary>
     /// Enumerates all visible windows with their visual bounds.
     /// Windows are returned in Z-order (topmost first) as provided by EnumWindows.
+    /// When <paramref name="includeControls"/> is true, child controls and the
+    /// client rectangle are inserted before each parent so first-match hover
+    /// prefers the smallest visible target.
     /// </summary>
-    public static IReadOnlyList<WindowInfo> EnumerateVisibleWindows()
+    public static IReadOnlyList<WindowInfo> EnumerateVisibleWindows(bool includeControls = true)
     {
         var windows = new List<WindowInfo>();
         var zOrder = 0;
@@ -94,12 +99,7 @@ internal static class NativeWindowService
             if (ExcludedHandles.Contains((nint)hWnd))
                 return true;
 
-            var info = GetWindowInfo(hWnd, zOrder);
-            if (info is not null)
-            {
-                windows.Add(info);
-                zOrder++;
-            }
+            AppendWindowInfos(hWnd, windows, ref zOrder, includeControls);
 
             return true;
         }, 0);
@@ -124,7 +124,7 @@ internal static class NativeWindowService
             style,
             exStyle);
 
-    private static WindowInfo? GetWindowInfo(HWND hWnd, int zOrder)
+    private static void AppendWindowInfos(HWND hWnd, List<WindowInfo> windows, ref int zOrder, bool includeControls)
     {
         bool isVisible = PInvoke.IsWindowVisible(hWnd);
         bool isMinimized = PInvoke.IsIconic(hWnd);
@@ -135,35 +135,127 @@ internal static class NativeWindowService
         string className = GetWindowClassName(hWnd);
 
         if (!ShouldIncludeWindowForCapture(isVisible, isMinimized, isCloaked, title, className, style, exStyle))
-            return null;
+            return;
 
-        // Get standard window rect
         if (!PInvoke.GetWindowRect(hWnd, out var windowRect))
-            return null;
+            return;
 
-        var bounds = new PixelRect(
-            windowRect.X,
-            windowRect.Y,
-            windowRect.Width,
-            windowRect.Height);
-
+        var bounds = ToPixelRect(windowRect);
         if (bounds.Width <= 1 || bounds.Height <= 1)
-            return null;
+            return;
 
-        // Get visual bounds using DWM (excludes shadow/invisible borders)
         var visualBounds = GetDwmFrameBounds(hWnd) ?? bounds;
         if (visualBounds.Width <= 1 || visualBounds.Height <= 1)
-            return null;
+            return;
 
-        return new WindowInfo(
+        if (includeControls)
+        {
+            foreach (var child in EnumerateChildControls(hWnd, visualBounds))
+            {
+                windows.Add(child with { ZOrder = zOrder++ });
+            }
+
+            var clientBounds = GetClientBounds(hWnd);
+            if (clientBounds is { } client &&
+                client.Width > 1 &&
+                client.Height > 1 &&
+                !AreBoundsEquivalent(client, visualBounds))
+            {
+                windows.Add(new WindowInfo(
+                    Handle: (nint)hWnd,
+                    Title: title,
+                    ClassName: className,
+                    Bounds: client,
+                    VisualBounds: client,
+                    IsMinimized: false,
+                    ZOrder: zOrder++,
+                    IsClientArea: true));
+            }
+        }
+
+        windows.Add(new WindowInfo(
             Handle: (nint)hWnd,
             Title: title,
             ClassName: className,
             Bounds: bounds,
             VisualBounds: visualBounds,
             IsMinimized: PInvoke.IsIconic(hWnd),
-            ZOrder: zOrder);
+            ZOrder: zOrder++));
     }
+
+    private static IReadOnlyList<WindowInfo> EnumerateChildControls(HWND parent, PixelRect parentBounds)
+    {
+        var children = new List<WindowInfo>();
+
+        PInvoke.EnumChildWindows(parent, (hWnd, _) =>
+        {
+            if (children.Count >= MaxControlsPerWindow)
+                return false;
+
+            if (ExcludedHandles.Contains((nint)hWnd))
+                return true;
+
+            bool isVisible = PInvoke.IsWindowVisible(hWnd);
+            bool isMinimized = PInvoke.IsIconic(hWnd);
+            var style = GetWindowLongAuto(hWnd, GWL_STYLE);
+            string className = GetWindowClassName(hWnd);
+
+            if (!NativeWindowCaptureFilter.ShouldIncludeControlForCapture(isVisible, isMinimized, className, style))
+                return true;
+
+            if (!PInvoke.GetWindowRect(hWnd, out var childRect))
+                return true;
+
+            var bounds = ToPixelRect(childRect).Intersect(parentBounds);
+            if (bounds.Width <= 1 || bounds.Height <= 1)
+                return true;
+
+            children.Add(new WindowInfo(
+                Handle: (nint)hWnd,
+                Title: GetWindowTitle(hWnd),
+                ClassName: className,
+                Bounds: bounds,
+                VisualBounds: bounds,
+                IsMinimized: false,
+                ZOrder: 0,
+                IsControl: true));
+
+            return true;
+        }, 0);
+
+        return children;
+    }
+
+    private static PixelRect? GetClientBounds(HWND hWnd)
+    {
+        if (!PInvoke.GetClientRect(hWnd, out var clientRect))
+            return null;
+
+        var topLeft = new NativePoint { X = clientRect.X, Y = clientRect.Y };
+        if (!ClientToScreen(hWnd, ref topLeft))
+            return null;
+
+        return new PixelRect(topLeft.X, topLeft.Y, clientRect.Width, clientRect.Height);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool ClientToScreen(HWND hWnd, ref NativePoint lpPoint);
+
+    private static PixelRect ToPixelRect(RECT rect) =>
+        new(rect.X, rect.Y, rect.Width, rect.Height);
+
+    private static bool AreBoundsEquivalent(PixelRect left, PixelRect right) =>
+        Math.Abs(left.X - right.X) < 1 &&
+        Math.Abs(left.Y - right.Y) < 1 &&
+        Math.Abs(left.Width - right.Width) < 1 &&
+        Math.Abs(left.Height - right.Height) < 1;
 
     private static unsafe string GetWindowTitle(HWND hWnd)
     {

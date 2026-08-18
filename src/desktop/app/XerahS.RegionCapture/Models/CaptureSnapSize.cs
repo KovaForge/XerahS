@@ -25,38 +25,18 @@
 namespace XerahS.RegionCapture.Models;
 
 /// <summary>
-/// Represents information about a visible window for snapping.
+/// A named region-size preset used while dragging a capture rectangle.
 /// </summary>
-public sealed record WindowInfo(
-    nint Handle,
-    string Title,
-    string ClassName,
-    PixelRect Bounds,
-    PixelRect VisualBounds,
-    bool IsMinimized,
-    int ZOrder,
-    bool IsControl = false,
-    bool IsClientArea = false)
+public readonly record struct CaptureSnapSize(int Width, int Height)
 {
-    /// <summary>
-    /// The visual bounds (excluding shadow/DWM frame) for accurate snapping.
-    /// </summary>
-    public PixelRect SnapBounds => VisualBounds.IsEmpty ? Bounds : VisualBounds;
+    public static IReadOnlyList<CaptureSnapSize> DefaultPresets { get; } =
+    [
+        new(426, 240),
+        new(640, 360),
+        new(854, 480),
+        new(1280, 720),
+        new(1920, 1080)
+    ];
 
-    /// <summary>
-    /// Title shown in the hover overlay. Child controls often have empty titles.
-    /// </summary>
-    public string DisplayTitle
-    {
-        get
-        {
-            if (!string.IsNullOrWhiteSpace(Title))
-                return Title;
-
-            if (IsClientArea)
-                return "Client area";
-
-            return string.IsNullOrWhiteSpace(ClassName) ? "Control" : ClassName;
-        }
-    }
+    public override string ToString() => $"{Width}x{Height}";
 }

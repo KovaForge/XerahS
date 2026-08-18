@@ -7,7 +7,9 @@ EnumDisplayMonitors
 GetMonitorInfo
 MONITORINFOEXW
 EnumWindows
+EnumChildWindows
 GetWindowRect
+GetClientRect
 GetWindowLong
 IsWindowVisible
 IsIconic

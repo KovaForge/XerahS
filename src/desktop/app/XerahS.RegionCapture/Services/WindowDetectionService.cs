@@ -79,8 +79,8 @@ public sealed class WindowDetectionService
     private WindowInfo? _lastDirectQueryWindow;
     private PixelPoint _lastDirectQueryPoint;
 
-    public WindowDetectionService()
-        : this(EnumerateVisibleWindows, TryGetDirectWindowAtPoint)
+    public WindowDetectionService(bool detectControls = true)
+        : this(() => EnumerateVisibleWindows(detectControls), TryGetDirectWindowAtPoint)
     {
     }
 
@@ -257,11 +257,12 @@ public sealed class WindowDetectionService
             directCapability?.UserMessage ?? "Wayland session: native window snapping helper is unavailable on this compositor.");
     }
 
-    internal static IReadOnlyList<WindowInfo> EnumerateVisibleWindows()
+    internal static IReadOnlyList<WindowInfo> EnumerateVisibleWindows(bool includeControls = true)
     {
 #if WINDOWS
-        return FilterExcludedWindows(Platform.Windows.NativeWindowService.EnumerateVisibleWindows());
+        return FilterExcludedWindows(Platform.Windows.NativeWindowService.EnumerateVisibleWindows(includeControls));
 #else
+        _ = includeControls;
         try
         {
             return ConvertPlatformWindows(XerahS.Platform.Abstractions.PlatformServices.Window.GetAllWindows());

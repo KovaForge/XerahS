@@ -127,10 +127,13 @@ public sealed class RegionCaptureControl : UserControl
         _physicalViewportBounds = monitor.PhysicalBounds;
         _ghostCursor = ghostCursor;
         _coordinateService = new CoordinateTranslationService();
-        _windowService = new WindowDetectionService();
+        _windowService = new WindowDetectionService(options.DetectControls);
 
         // Initialize state machine
-        _stateMachine = new SelectionStateMachine();
+        _stateMachine = new SelectionStateMachine(
+            options.QuickCrop,
+            options.SnapSizes,
+            options.SnapDistance);
         _stateMachine.SelectionConfirmed += OnSelectionConfirmed;
         _stateMachine.SelectionCancelled += OnSelectionCancelled;
         _stateMachine.StateChanged += _ => InvalidateVisual();
@@ -264,6 +267,14 @@ public sealed class RegionCaptureControl : UserControl
         InvalidateVisual();
     }
 
+    public bool TryConfirmCurrentSelection() => _stateMachine.TryConfirm();
+
+    private double GetPhysicalHandleSize()
+    {
+        double logical = _useLightResizeNodes ? 6.0 : 8.0;
+        return Math.Max(8, logical * Math.Max(1, _monitor.ScaleFactor));
+    }
+
     private void OnSelectionConfirmed(RegionSelectionResult result)
     {
         if (_sessionStartUtc is { } start)
@@ -297,6 +308,26 @@ public sealed class RegionCaptureControl : UserControl
                 _stateMachine.ConfirmPoint(physicalPoint);
                 e.Handled = true;
                 return;
+            }
+
+            if (_state == CaptureState.Selected && !_selectionRect.IsEmpty)
+            {
+                var handle = SelectionSnapHelper.HitTest(_selectionRect, physicalPoint, GetPhysicalHandleSize());
+                if (handle is not SelectionHandle.None and not SelectionHandle.Body)
+                {
+                    _stateMachine.BeginResize(handle, physicalPoint);
+                    e.Pointer.Capture(this);
+                    InvalidateVisual();
+                    return;
+                }
+
+                if (handle == SelectionHandle.Body)
+                {
+                    _stateMachine.BeginMove(physicalPoint);
+                    e.Pointer.Capture(this);
+                    InvalidateVisual();
+                    return;
+                }
             }
 
             // Always start dragging/interaction
@@ -394,9 +425,8 @@ public sealed class RegionCaptureControl : UserControl
                 break;
 
             case Key.Enter:
-                if (_state == CaptureState.Selected || (_state == CaptureState.Hovering && _hoveredWindow is not null))
+                if (TryConfirmCurrentSelection())
                 {
-                    _stateMachine.SnapToWindow();
                     e.Handled = true;
                 }
                 break;
@@ -574,7 +604,7 @@ public sealed class RegionCaptureControl : UserControl
                 context.DrawRectangle(null, WindowSnapPen, rect);
 
                 // Draw window title
-                DrawWindowTitle(context, rect, _hoveredWindow.Title);
+                DrawWindowTitle(context, rect, _hoveredWindow.DisplayTitle);
             }
         }
         else
@@ -672,19 +702,23 @@ public sealed class RegionCaptureControl : UserControl
             ? new Pen(new SolidColorBrush(Color.FromArgb(150, 0, 0, 0)), 1)  // Lighter border
             : new Pen(Brushes.Black, 1);
 
-        var corners = new[]
+        var handles = new[]
         {
             new Point(rect.Left, rect.Top),
             new Point(rect.Right, rect.Top),
             new Point(rect.Left, rect.Bottom),
-            new Point(rect.Right, rect.Bottom)
+            new Point(rect.Right, rect.Bottom),
+            new Point(rect.Left + rect.Width / 2, rect.Top),
+            new Point(rect.Left + rect.Width / 2, rect.Bottom),
+            new Point(rect.Left, rect.Top + rect.Height / 2),
+            new Point(rect.Right, rect.Top + rect.Height / 2)
         };
 
-        foreach (var corner in corners)
+        foreach (var handle in handles)
         {
             var handleRect = new Rect(
-                corner.X - handleSize / 2,
-                corner.Y - handleSize / 2,
+                handle.X - handleSize / 2,
+                handle.Y - handleSize / 2,
                 handleSize,
                 handleSize);
 
@@ -1106,14 +1140,18 @@ public sealed class RegionCaptureControl : UserControl
             return "Drag to measure distance and area | Arrow keys: adjust | Enter: finish | Esc: cancel";
         }
 
+        string confirmHint = _quickCrop
+            ? "Enter: finish | Esc: cancel"
+            : "resize handles | Enter: confirm | Esc: cancel";
+
         if (_enableWindowSnapping)
         {
             return _windowPreselectionCapability.Level == WindowPreselectionSupportLevel.Partial
-                ? "Drag to select region | Click to snap supported windows | Ctrl: toggle mode | Enter: finish | Esc: cancel"
-                : "Drag to select region | Click to snap window | Ctrl: toggle mode | Enter: finish | Esc: cancel";
+                ? $"Drag to select region | Click to snap supported windows | Ctrl: toggle mode | {confirmHint}"
+                : $"Drag to select region | Click to snap window | Ctrl: toggle mode | {confirmHint}";
         }
 
-        return "Drag to select region | Ctrl: toggle mode | Enter: finish | Esc: cancel";
+        return $"Drag to select region | Ctrl: toggle mode | {confirmHint}";
     }
 
     private string? GetCapabilityMessage()

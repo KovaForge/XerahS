@@ -329,8 +329,7 @@ namespace XerahS.Platform.Windows
                     {
                         try
                         {
-                            // Duplicate output
-                            var duplication = output.DuplicateOutput(device);
+                            var duplication = DxgiOutputDuplicationHelper.Create(output, device);
                             activeDuplications.Add((duplication, device, bounds, rotation, deviceName, dxgiRotation));
                         }
                         catch (Exception ex)
@@ -401,24 +400,46 @@ namespace XerahS.Platform.Windows
                                 var dataBox = device.ImmediateContext.Map(staging, 0, MapMode.Read);
                                 try
                                 {
-                                    // Draw to combined bitmap, applying output rotation correction.
-                                    DrawMappedTextureToCanvas(
-                                        dataBox,
-                                        (int)sourceDesc.Width,
-                                        (int)sourceDesc.Height,
-                                        bounds.Left - minX,
-                                        bounds.Top - minY,
-                                        bounds.Width,
-                                        bounds.Height,
-                                        rotation,
-                                        canvas);
+                                    if (DxgiHdrToneMapper.IsHdrFormat(sourceDesc.Format))
+                                    {
+                                        using var toneMapped = DxgiHdrToneMapper.TryConvertToBgra(dataBox, sourceDesc);
+                                        if (toneMapped == null)
+                                        {
+                                            XerahS.Common.DebugHelper.WriteLine(
+                                                $"CaptureFullScreenDxgi: HDR tone-map failed for {deviceName} ({sourceDesc.Format}).");
+                                        }
+                                        else
+                                        {
+                                            DrawSkBitmapToCanvas(
+                                                toneMapped,
+                                                bounds.Left - minX,
+                                                bounds.Top - minY,
+                                                bounds.Width,
+                                                bounds.Height,
+                                                rotation,
+                                                canvas);
+                                            capturedOutputCount++;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        DrawMappedTextureToCanvas(
+                                            dataBox,
+                                            (int)sourceDesc.Width,
+                                            (int)sourceDesc.Height,
+                                            bounds.Left - minX,
+                                            bounds.Top - minY,
+                                            bounds.Width,
+                                            bounds.Height,
+                                            rotation,
+                                            canvas);
+                                        capturedOutputCount++;
+                                    }
                                 }
                                 finally
                                 {
                                     device.ImmediateContext.Unmap(staging, 0);
                                 }
-
-                                capturedOutputCount++;
                             }
                         }
                         else
@@ -509,6 +530,20 @@ namespace XerahS.Platform.Windows
             {
                 // Ignore frame release failures during cleanup.
             }
+        }
+
+        private void DrawSkBitmapToCanvas(
+            SKBitmap sourceBitmap,
+            int destX,
+            int destY,
+            int destWidth,
+            int destHeight,
+            ModeRotation rotation,
+            SKCanvas canvas)
+        {
+            using SKBitmap bitmapToDraw = RotateBitmapForDesktop(sourceBitmap, rotation);
+            var destRect = new SKRect(destX, destY, destX + destWidth, destY + destHeight);
+            canvas.DrawBitmap(bitmapToDraw, destRect, SKSamplingOptions.Default);
         }
 
         private void DrawMappedTextureToCanvas(

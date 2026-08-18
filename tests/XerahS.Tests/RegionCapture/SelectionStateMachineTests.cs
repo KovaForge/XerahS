@@ -48,4 +48,93 @@ public class SelectionStateMachineTests
 
         Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(0, 0, 10, 20)));
     }
+
+    [Test]
+    public void EndDrag_WhenQuickCropDisabled_StaysSelectedInsteadOfConfirming()
+    {
+        var stateMachine = new SelectionStateMachine(quickCrop: false);
+        bool confirmed = false;
+        stateMachine.SelectionConfirmed += _ => confirmed = true;
+
+        stateMachine.BeginDrag(new PixelPoint(0, 0));
+        stateMachine.UpdateCursorPosition(new PixelPoint(40, 30));
+        stateMachine.EndDrag();
+
+        Assert.That(confirmed, Is.False);
+        Assert.That(stateMachine.CurrentState, Is.EqualTo(CaptureState.Selected));
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(0, 0, 40, 30)));
+    }
+
+    [Test]
+    public void TryConfirm_WhenSelected_RaisesSelectionConfirmed()
+    {
+        var stateMachine = new SelectionStateMachine(quickCrop: false);
+        RegionSelectionResult? result = null;
+        stateMachine.SelectionConfirmed += value => result = value;
+
+        stateMachine.BeginDrag(new PixelPoint(10, 20));
+        stateMachine.UpdateCursorPosition(new PixelPoint(50, 80));
+        stateMachine.EndDrag();
+
+        Assert.That(stateMachine.TryConfirm(), Is.True);
+        Assert.That(stateMachine.CurrentState, Is.EqualTo(CaptureState.Confirmed));
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Value.Region, Is.EqualTo(new PixelRect(10, 20, 40, 60)));
+    }
+
+    [Test]
+    public void UpdateCursorPosition_WhenNearSnapSize_SnapsDragRectangle()
+    {
+        var stateMachine = new SelectionStateMachine(
+            quickCrop: false,
+            snapSizes: [new CaptureSnapSize(100, 50)],
+            snapDistance: 30);
+
+        stateMachine.BeginDrag(new PixelPoint(0, 0));
+        stateMachine.UpdateCursorPosition(new PixelPoint(90, 40));
+
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(0, 0, 99, 49)));
+    }
+
+    [Test]
+    public void UpdateCursorPosition_WhenAspectLocked_DoesNotApplySizeSnap()
+    {
+        var stateMachine = new SelectionStateMachine(
+            quickCrop: false,
+            snapSizes: [new CaptureSnapSize(100, 50)],
+            snapDistance: 30);
+
+        stateMachine.BeginDrag(new PixelPoint(0, 0));
+        stateMachine.SetModifiers(SelectionModifier.LockAspectRatio);
+        stateMachine.UpdateCursorPosition(new PixelPoint(90, 40));
+
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(0, 0, 90, 90)));
+    }
+
+    [Test]
+    public void BeginResize_UpdatesOppositeEdge()
+    {
+        var stateMachine = new SelectionStateMachine(quickCrop: false);
+        stateMachine.BeginDrag(new PixelPoint(10, 10));
+        stateMachine.UpdateCursorPosition(new PixelPoint(50, 40));
+        stateMachine.EndDrag();
+
+        stateMachine.BeginResize(SelectionHandle.BottomRight, new PixelPoint(50, 40));
+        stateMachine.UpdateCursorPosition(new PixelPoint(80, 70));
+        stateMachine.EndDrag();
+
+        Assert.That(stateMachine.CurrentState, Is.EqualTo(CaptureState.Selected));
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(10, 10, 70, 60)));
+    }
+
+    [Test]
+    public void HitTest_ReturnsHandleForCornerAndBody()
+    {
+        var selection = new PixelRect(10, 20, 100, 80);
+
+        Assert.That(SelectionSnapHelper.HitTest(selection, new PixelPoint(10, 20), 8), Is.EqualTo(SelectionHandle.TopLeft));
+        Assert.That(SelectionSnapHelper.HitTest(selection, new PixelPoint(110, 100), 8), Is.EqualTo(SelectionHandle.BottomRight));
+        Assert.That(SelectionSnapHelper.HitTest(selection, new PixelPoint(60, 60), 8), Is.EqualTo(SelectionHandle.Body));
+        Assert.That(SelectionSnapHelper.HitTest(selection, new PixelPoint(200, 200), 8), Is.EqualTo(SelectionHandle.None));
+    }
 }

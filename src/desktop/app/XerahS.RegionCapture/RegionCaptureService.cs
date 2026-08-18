@@ -148,6 +148,22 @@ public sealed record RegionCaptureOptions
     public bool QuickCrop { get; init; } = true;
 
     /// <summary>
+    /// When true, enumerate child controls and client rectangles for hover snap.
+    /// Windows only. Default: true
+    /// </summary>
+    public bool DetectControls { get; init; } = true;
+
+    /// <summary>
+    /// Size presets that the drag rectangle snaps to when within <see cref="SnapDistance"/>.
+    /// </summary>
+    public IReadOnlyList<CaptureSnapSize> SnapSizes { get; init; } = CaptureSnapSize.DefaultPresets;
+
+    /// <summary>
+    /// Maximum Euclidean distance in physical pixels for size-preset snapping.
+    /// </summary>
+    public double SnapDistance { get; init; } = 30;
+
+    /// <summary>
     /// When true, resize handles are rendered with lighter/simpler styling.
     /// Used for Ruler mode to reduce visual clutter.
     /// Default: false

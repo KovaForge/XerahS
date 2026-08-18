@@ -438,6 +438,12 @@ public partial class OverlayWindow : Window
         }
         else if (e.Key == Key.Enter)
         {
+            if (_captureControl.TryConfirmCurrentSelection() || _completionSource.Task.IsCompleted)
+            {
+                e.Handled = true;
+                return;
+            }
+
             // XIP-0023: ENTER confirms capture with annotations
             ConfirmCaptureWithAnnotations();
             e.Handled = true;

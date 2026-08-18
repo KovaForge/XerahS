@@ -32,13 +32,43 @@ namespace XerahS.RegionCapture.Services;
 /// </summary>
 public sealed class SelectionStateMachine
 {
+    private enum InteractionKind
+    {
+        None,
+        Creating,
+        Moving,
+        Resizing
+    }
+
+    private readonly bool _quickCrop;
+    private readonly IReadOnlyList<CaptureSnapSize> _snapSizes;
+    private readonly double _snapDistance;
+
     private CaptureState _currentState = CaptureState.Hovering;
     private PixelPoint _startPoint;
     private PixelPoint _currentPoint;
     private PixelRect _selectionRect;
+    private PixelRect _interactionOriginRect;
     private WindowInfo? _hoveredWindow;
     private SelectionModifier _modifiers = SelectionModifier.None;
     private double _aspectRatio = 1.0;
+    private InteractionKind _interaction = InteractionKind.None;
+    private SelectionHandle _resizeHandle = SelectionHandle.None;
+
+    public SelectionStateMachine()
+        : this(quickCrop: true, snapSizes: CaptureSnapSize.DefaultPresets, snapDistance: 30)
+    {
+    }
+
+    public SelectionStateMachine(
+        bool quickCrop,
+        IReadOnlyList<CaptureSnapSize>? snapSizes = null,
+        double snapDistance = 30)
+    {
+        _quickCrop = quickCrop;
+        _snapSizes = snapSizes ?? CaptureSnapSize.DefaultPresets;
+        _snapDistance = snapDistance;
+    }
 
     /// <summary>
     /// Gets the current capture state.
@@ -127,14 +157,44 @@ public sealed class SelectionStateMachine
     /// </summary>
     public void BeginDrag(PixelPoint startPoint)
     {
-        if (_currentState != CaptureState.Hovering)
+        if (_currentState is not CaptureState.Hovering and not CaptureState.Selected)
             return;
 
         _startPoint = startPoint;
         _currentPoint = startPoint;
+        _interaction = InteractionKind.Creating;
+        _resizeHandle = SelectionHandle.None;
         SetSelectionRect(new PixelRect(startPoint.X, startPoint.Y, 0, 0));
         _aspectRatio = 1.0;
 
+        TransitionTo(CaptureState.Dragging);
+    }
+
+    public void BeginMove(PixelPoint point)
+    {
+        if (_currentState != CaptureState.Selected || _selectionRect.IsEmpty)
+            return;
+
+        _interaction = InteractionKind.Moving;
+        _resizeHandle = SelectionHandle.Body;
+        _startPoint = point;
+        _currentPoint = point;
+        _interactionOriginRect = _selectionRect.Normalize();
+        TransitionTo(CaptureState.Dragging);
+    }
+
+    public void BeginResize(SelectionHandle handle, PixelPoint point)
+    {
+        if (_currentState != CaptureState.Selected ||
+            _selectionRect.IsEmpty ||
+            handle is SelectionHandle.None or SelectionHandle.Body)
+            return;
+
+        _interaction = InteractionKind.Resizing;
+        _resizeHandle = handle;
+        _startPoint = point;
+        _currentPoint = point;
+        _interactionOriginRect = _selectionRect.Normalize();
         TransitionTo(CaptureState.Dragging);
     }
 
@@ -157,13 +217,22 @@ public sealed class SelectionStateMachine
         if (_currentState != CaptureState.Dragging)
             return;
 
+        if (_interaction is InteractionKind.Moving or InteractionKind.Resizing)
+        {
+            SetSelectionRect(_selectionRect.Normalize());
+            _interaction = InteractionKind.None;
+            _resizeHandle = SelectionHandle.None;
+            FinishSelection(confirmImmediately: _quickCrop);
+            return;
+        }
+
         SetSelectionRect(_selectionRect.Normalize());
+        _interaction = InteractionKind.None;
 
         // Check if selection is large enough to be considered a drag
         if (_selectionRect.Width > 3 && _selectionRect.Height > 3)
         {
-            TransitionTo(CaptureState.Selected);
-            ConfirmSelection();
+            FinishSelection(confirmImmediately: _quickCrop);
         }
         else
         {
@@ -172,8 +241,7 @@ public sealed class SelectionStateMachine
             if (_hoveredWindow != null)
             {
                 SetSelectionRect(_hoveredWindow.SnapBounds);
-                TransitionTo(CaptureState.Selected);
-                ConfirmSelection();
+                FinishSelection(confirmImmediately: _quickCrop);
             }
             else
             {
@@ -185,6 +253,27 @@ public sealed class SelectionStateMachine
     }
 
     /// <summary>
+    /// Confirms the current selected or hovered region.
+    /// </summary>
+    public bool TryConfirm()
+    {
+        if (_currentState == CaptureState.Selected && !_selectionRect.IsEmpty)
+        {
+            ConfirmSelection();
+            return true;
+        }
+
+        if (_currentState == CaptureState.Hovering && _hoveredWindow is not null)
+        {
+            SetSelectionRect(_hoveredWindow.SnapBounds);
+            ConfirmSelection();
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Snaps to the currently hovered window.
     /// </summary>
     public void SnapToWindow()
@@ -193,7 +282,6 @@ public sealed class SelectionStateMachine
             return;
 
         SetSelectionRect(_hoveredWindow.SnapBounds);
-        TransitionTo(CaptureState.Selected);
         ConfirmSelection();
     }
 
@@ -242,6 +330,20 @@ public sealed class SelectionStateMachine
 
     private void UpdateSelectionRect()
     {
+        if (_interaction == InteractionKind.Moving)
+        {
+            var dx = _currentPoint.X - _startPoint.X;
+            var dy = _currentPoint.Y - _startPoint.Y;
+            SetSelectionRect(_interactionOriginRect.Offset(dx, dy));
+            return;
+        }
+
+        if (_interaction == InteractionKind.Resizing)
+        {
+            SetSelectionRect(ResizeFromHandle(_interactionOriginRect, _resizeHandle, _currentPoint));
+            return;
+        }
+
         PixelRect newRect;
         var endPoint = _currentPoint;
 
@@ -249,6 +351,10 @@ public sealed class SelectionStateMachine
         if (_modifiers.HasFlag(SelectionModifier.LockAspectRatio) && _aspectRatio > 0)
         {
             endPoint = ApplyAspectRatioLock(_startPoint, _currentPoint, _aspectRatio);
+        }
+        else if (_snapSizes.Count > 0)
+        {
+            endPoint = SelectionSnapHelper.SnapEndPoint(_startPoint, _currentPoint, _snapSizes, _snapDistance);
         }
 
         // Apply center expansion if Alt is held
@@ -269,6 +375,57 @@ public sealed class SelectionStateMachine
         }
 
         SetSelectionRect(newRect);
+    }
+
+    internal static PixelRect ResizeFromHandle(PixelRect original, SelectionHandle handle, PixelPoint current)
+    {
+        double left = original.Left;
+        double top = original.Top;
+        double right = original.Right;
+        double bottom = original.Bottom;
+
+        switch (handle)
+        {
+            case SelectionHandle.TopLeft:
+                left = current.X;
+                top = current.Y;
+                break;
+            case SelectionHandle.Top:
+                top = current.Y;
+                break;
+            case SelectionHandle.TopRight:
+                right = current.X;
+                top = current.Y;
+                break;
+            case SelectionHandle.Right:
+                right = current.X;
+                break;
+            case SelectionHandle.BottomRight:
+                right = current.X;
+                bottom = current.Y;
+                break;
+            case SelectionHandle.Bottom:
+                bottom = current.Y;
+                break;
+            case SelectionHandle.BottomLeft:
+                left = current.X;
+                bottom = current.Y;
+                break;
+            case SelectionHandle.Left:
+                left = current.X;
+                break;
+        }
+
+        return PixelRect.FromCorners(new PixelPoint(left, top), new PixelPoint(right, bottom));
+    }
+
+    private void FinishSelection(bool confirmImmediately)
+    {
+        TransitionTo(CaptureState.Selected);
+        if (confirmImmediately)
+        {
+            ConfirmSelection();
+        }
     }
 
     private static PixelPoint ApplyAspectRatioLock(PixelPoint start, PixelPoint end, double ratio)

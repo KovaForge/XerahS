@@ -27,6 +27,7 @@ using System.Diagnostics;
 using System.Drawing;
 using SkiaSharp;
 using XerahS.Common;
+using XerahS.Core.Capture;
 using XerahS.Core.Helpers;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
@@ -378,8 +379,8 @@ namespace XerahS.Core.Tasks.Pipeline
                     {
                         return PipelineStageResult.Stop;
                     }
-                    var lastRegionRect = taskSettings!.CaptureSettings.CaptureCustomRegion;
-                    if (TryCreateConfiguredCaptureRect(lastRegionRect, out var lastRegionCaptureRect))
+                    if (LastRegionStore.TryGet(out var lastRegionRect) &&
+                        TryCreateConfiguredCaptureRect(lastRegionRect, out var lastRegionCaptureRect))
                     {
                         image = await PlatformServices.ScreenCapture.CaptureRectAsync(lastRegionCaptureRect, captureOptions);
                     }

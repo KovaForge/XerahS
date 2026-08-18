@@ -110,4 +110,58 @@ public class NativeWindowServiceTests
 
         Assert.That(result, Is.True);
     }
+
+    [Test]
+    public void ShouldIncludeWindowForCapture_RejectsNvidiaOverlayClass()
+    {
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
+            isVisible: true,
+            isMinimized: false,
+            isCloaked: false,
+            title: "NVIDIA GeForce Overlay",
+            className: "CEF-OSC-WIDGET",
+            style: VisibleStyle,
+            exStyle: AppWindowExStyle);
+
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void ShouldIncludeWindowForCapture_RejectsEmptyTitleForTopLevelWindows()
+    {
+        bool result = NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
+            isVisible: true,
+            isMinimized: false,
+            isCloaked: false,
+            title: "",
+            className: "NormalWindow",
+            style: VisibleStyle,
+            exStyle: AppWindowExStyle);
+
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void ShouldIncludeControlForCapture_AllowsUntitledVisibleControl()
+    {
+        bool result = NativeWindowCaptureFilter.ShouldIncludeControlForCapture(
+            isVisible: true,
+            isMinimized: false,
+            className: "Edit",
+            style: VisibleStyle);
+
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public void ShouldIncludeControlForCapture_RejectsNvidiaOverlayClass()
+    {
+        bool result = NativeWindowCaptureFilter.ShouldIncludeControlForCapture(
+            isVisible: true,
+            isMinimized: false,
+            className: "CEF-OSC-WIDGET",
+            style: VisibleStyle);
+
+        Assert.That(result, Is.False);
+    }
 }

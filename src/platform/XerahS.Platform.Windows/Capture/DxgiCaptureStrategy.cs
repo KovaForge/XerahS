@@ -202,15 +202,15 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
                 (int)textureDesc.Height);
             int sourceWidth = DxgiRotationHelper.GetSourceWidth(sourceBox);
             int sourceHeight = DxgiRotationHelper.GetSourceHeight(sourceBox);
+            bool isHdr = DxgiHdrToneMapper.IsHdrFormat(textureDesc.Format);
 
-            // Create staging texture for CPU readback
             var stagingDesc = new Texture2DDescription
             {
-                Width = (uint)sourceWidth,
-                Height = (uint)sourceHeight,
+                Width = isHdr ? textureDesc.Width : (uint)sourceWidth,
+                Height = isHdr ? textureDesc.Height : (uint)sourceHeight,
                 MipLevels = 1,
                 ArraySize = 1,
-                Format = Format.B8G8R8A8_UNorm,
+                Format = isHdr ? textureDesc.Format : Format.B8G8R8A8_UNorm,
                 SampleDescription = new SampleDescription(1, 0),
                 Usage = ResourceUsage.Staging,
                 BindFlags = BindFlags.None,
@@ -219,40 +219,56 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 
             using var staging = device.CreateTexture2D(stagingDesc);
 
-            context.ImmediateContext.CopySubresourceRegion(
-                staging,
-                0,
-                0, 0, 0,
-                texture,
-                0,
-                sourceBox);
+            if (isHdr)
+            {
+                context.ImmediateContext.CopyResource(staging, texture);
+            }
+            else
+            {
+                context.ImmediateContext.CopySubresourceRegion(
+                    staging,
+                    0,
+                    0, 0, 0,
+                    texture,
+                    0,
+                    sourceBox);
+            }
 
-            // Map staging texture to CPU memory
             var mapped = context.ImmediateContext.Map(staging, 0, MapMode.Read);
 
             try
             {
-                // Create SKBitmap from mapped data
-                using var sourceBitmap = new SKBitmap(
-                    sourceWidth,
-                    sourceHeight,
-                    SKColorType.Bgra8888,
-                    SKAlphaType.Premul);
+                SKBitmap sourceBitmap;
+                if (isHdr)
+                {
+                    using var toneMapped = DxgiHdrToneMapper.TryConvertToBgra(mapped, textureDesc)
+                        ?? throw new InvalidOperationException($"Failed to tone-map HDR DXGI frame ({textureDesc.Format}).");
+                    var crop = new SKRectI(sourceBox.Left, sourceBox.Top, sourceBox.Right, sourceBox.Bottom);
+                    sourceBitmap = CropBitmap(toneMapped, crop);
+                }
+                else
+                {
+                    sourceBitmap = new SKBitmap(
+                        sourceWidth,
+                        sourceHeight,
+                        SKColorType.Bgra8888,
+                        SKAlphaType.Premul);
 
-                var info = sourceBitmap.Info;
-                var rowBytes = info.RowBytes;
+                    BgraRowCopyHelper.CopyRows(
+                        mapped.DataPointer,
+                        (int)mapped.RowPitch,
+                        sourceBitmap.GetPixels(),
+                        sourceBitmap.RowBytes,
+                        sourceWidth * 4,
+                        sourceHeight);
+                }
 
-                BgraRowCopyHelper.CopyRows(
-                    mapped.DataPointer,
-                    (int)mapped.RowPitch,
-                    sourceBitmap.GetPixels(),
-                    rowBytes,
-                    sourceWidth * 4,
-                    sourceHeight);
-
-                SKBitmap bitmap = BitmapRotationHelper.RotateClockwise(sourceBitmap, monitor.Rotation);
-                TryCompositeCursor(bitmap, captureRegion, options);
-                return new CapturedBitmap(bitmap, captureRegion, monitor.ScaleFactor);
+                using (sourceBitmap)
+                {
+                    SKBitmap bitmap = BitmapRotationHelper.RotateClockwise(sourceBitmap, monitor.Rotation);
+                    TryCompositeCursor(bitmap, captureRegion, options);
+                    return new CapturedBitmap(bitmap, captureRegion, monitor.ScaleFactor);
+                }
             }
             finally
             {
@@ -312,8 +328,7 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
             if (result.Failure || device == null)
                 throw new InvalidOperationException($"Failed to create D3D11 device: {result}");
 
-            // Create output duplication
-            var duplication = output1.DuplicateOutput(device);
+            var duplication = DxgiOutputDuplicationHelper.Create(output, device);
             var context = new DxgiMonitorContext
             {
                 Device = device,
@@ -369,6 +384,18 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
 
         // Fallback: return monitor bounds
         return default;
+    }
+
+    private static SKBitmap CropBitmap(SKBitmap source, SKRectI crop)
+    {
+        crop = SKRectI.Intersect(crop, new SKRectI(0, 0, source.Width, source.Height));
+        if (crop.Width <= 0 || crop.Height <= 0)
+            throw new InvalidOperationException("HDR crop rectangle is empty.");
+
+        var cropped = new SKBitmap(crop.Width, crop.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        using var canvas = new SKCanvas(cropped);
+        canvas.DrawBitmap(source, crop, new SKRect(0, 0, crop.Width, crop.Height), SKSamplingOptions.Default);
+        return cropped;
     }
 
     private static int ConvertRotation(Vortice.DXGI.ModeRotation rotation)

@@ -39,8 +39,12 @@ internal static class NativeWindowCaptureFilter
         "Button",
         "Shell_TrayWnd",
         "Shell_SecondaryTrayWnd",
-        "Windows.UI.Core.CoreWindow"
+        "Windows.UI.Core.CoreWindow",
+        "CEF-OSC-WIDGET" // NVIDIA GeForce Overlay
     };
+
+    public static bool IsIgnoredWindowClass(string className)
+        => !string.IsNullOrEmpty(className) && IgnoredWindowClasses.Contains(className);
 
     public static bool ShouldIncludeWindowForCapture(
         bool isVisible,
@@ -50,6 +54,25 @@ internal static class NativeWindowCaptureFilter
         string className,
         nint style,
         nint exStyle)
+        => ShouldIncludeWindowForCapture(
+            isVisible,
+            isMinimized,
+            isCloaked,
+            title,
+            className,
+            style,
+            exStyle,
+            requireTitle: true);
+
+    public static bool ShouldIncludeWindowForCapture(
+        bool isVisible,
+        bool isMinimized,
+        bool isCloaked,
+        string title,
+        string className,
+        nint style,
+        nint exStyle,
+        bool requireTitle)
     {
         if (!isVisible || isMinimized || isCloaked)
             return false;
@@ -63,9 +86,24 @@ internal static class NativeWindowCaptureFilter
         if ((exStyle & (nint)WsExNoActivate) != 0 && (exStyle & (nint)WsExAppWindow) == 0)
             return false;
 
-        if (string.IsNullOrWhiteSpace(title))
+        if (requireTitle && string.IsNullOrWhiteSpace(title))
             return false;
 
-        return !IgnoredWindowClasses.Contains(className);
+        return !IsIgnoredWindowClass(className);
+    }
+
+    public static bool ShouldIncludeControlForCapture(
+        bool isVisible,
+        bool isMinimized,
+        string className,
+        nint style)
+    {
+        if (!isVisible || isMinimized)
+            return false;
+
+        if ((style & (nint)WsVisible) == 0 || (style & (nint)WsDisabled) != 0)
+            return false;
+
+        return !IsIgnoredWindowClass(className);
     }
 }

@@ -22,41 +22,44 @@
 */
 
 #endregion License Information (GPL v3)
-namespace XerahS.RegionCapture.Models;
+using System.Drawing;
+
+namespace XerahS.Core.Capture;
 
 /// <summary>
-/// Represents information about a visible window for snapping.
+/// Process-lifetime store for the last confirmed region-capture rectangle.
+/// Independent of <c>CaptureCustomRegion</c>, which is a user-configured preset.
 /// </summary>
-public sealed record WindowInfo(
-    nint Handle,
-    string Title,
-    string ClassName,
-    PixelRect Bounds,
-    PixelRect VisualBounds,
-    bool IsMinimized,
-    int ZOrder,
-    bool IsControl = false,
-    bool IsClientArea = false)
+public static class LastRegionStore
 {
-    /// <summary>
-    /// The visual bounds (excluding shadow/DWM frame) for accurate snapping.
-    /// </summary>
-    public PixelRect SnapBounds => VisualBounds.IsEmpty ? Bounds : VisualBounds;
+    private static readonly object Gate = new();
+    private static Rectangle _region;
 
-    /// <summary>
-    /// Title shown in the hover overlay. Child controls often have empty titles.
-    /// </summary>
-    public string DisplayTitle
+    public static void Set(int x, int y, int width, int height)
+        => Set(new Rectangle(x, y, width, height));
+
+    public static void Set(Rectangle region)
     {
-        get
+        lock (Gate)
         {
-            if (!string.IsNullOrWhiteSpace(Title))
-                return Title;
+            _region = region;
+        }
+    }
 
-            if (IsClientArea)
-                return "Client area";
+    public static void Clear()
+    {
+        lock (Gate)
+        {
+            _region = Rectangle.Empty;
+        }
+    }
 
-            return string.IsNullOrWhiteSpace(ClassName) ? "Control" : ClassName;
+    public static bool TryGet(out Rectangle region)
+    {
+        lock (Gate)
+        {
+            region = _region;
+            return region.Width > 0 && region.Height > 0;
         }
     }
 }

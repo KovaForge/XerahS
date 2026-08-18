@@ -22,41 +22,44 @@
 */
 
 #endregion License Information (GPL v3)
-namespace XerahS.RegionCapture.Models;
 
-/// <summary>
-/// Represents information about a visible window for snapping.
-/// </summary>
-public sealed record WindowInfo(
-    nint Handle,
-    string Title,
-    string ClassName,
-    PixelRect Bounds,
-    PixelRect VisualBounds,
-    bool IsMinimized,
-    int ZOrder,
-    bool IsControl = false,
-    bool IsClientArea = false)
+using System.Drawing;
+using NUnit.Framework;
+using XerahS.Core.Capture;
+
+namespace XerahS.Tests.Capture;
+
+[TestFixture]
+public class LastRegionStoreTests
 {
-    /// <summary>
-    /// The visual bounds (excluding shadow/DWM frame) for accurate snapping.
-    /// </summary>
-    public PixelRect SnapBounds => VisualBounds.IsEmpty ? Bounds : VisualBounds;
+    [SetUp]
+    public void SetUp() => LastRegionStore.Clear();
 
-    /// <summary>
-    /// Title shown in the hover overlay. Child controls often have empty titles.
-    /// </summary>
-    public string DisplayTitle
+    [TearDown]
+    public void TearDown() => LastRegionStore.Clear();
+
+    [Test]
+    public void TryGet_WhenEmpty_ReturnsFalse()
     {
-        get
-        {
-            if (!string.IsNullOrWhiteSpace(Title))
-                return Title;
+        Assert.That(LastRegionStore.TryGet(out var region), Is.False);
+        Assert.That(region, Is.EqualTo(Rectangle.Empty));
+    }
 
-            if (IsClientArea)
-                return "Client area";
+    [Test]
+    public void Set_ThenTryGet_ReturnsStoredRectangle()
+    {
+        LastRegionStore.Set(12, 34, 56, 78);
 
-            return string.IsNullOrWhiteSpace(ClassName) ? "Control" : ClassName;
-        }
+        Assert.That(LastRegionStore.TryGet(out var region), Is.True);
+        Assert.That(region, Is.EqualTo(new Rectangle(12, 34, 56, 78)));
+    }
+
+    [Test]
+    public void Set_DoesNotUseCustomRegionSemantics()
+    {
+        LastRegionStore.Set(new Rectangle(1, 2, 3, 4));
+        LastRegionStore.Set(new Rectangle(0, 0, 0, 0));
+
+        Assert.That(LastRegionStore.TryGet(out _), Is.False);
     }
 }

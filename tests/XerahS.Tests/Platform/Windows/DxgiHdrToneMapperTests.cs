@@ -22,41 +22,28 @@
 */
 
 #endregion License Information (GPL v3)
-namespace XerahS.RegionCapture.Models;
 
-/// <summary>
-/// Represents information about a visible window for snapping.
-/// </summary>
-public sealed record WindowInfo(
-    nint Handle,
-    string Title,
-    string ClassName,
-    PixelRect Bounds,
-    PixelRect VisualBounds,
-    bool IsMinimized,
-    int ZOrder,
-    bool IsControl = false,
-    bool IsClientArea = false)
+using NUnit.Framework;
+using Vortice.DXGI;
+using XerahS.Platform.Windows.Capture;
+
+namespace XerahS.Tests.Platform.Windows;
+
+[TestFixture]
+public class DxgiHdrToneMapperTests
 {
-    /// <summary>
-    /// The visual bounds (excluding shadow/DWM frame) for accurate snapping.
-    /// </summary>
-    public PixelRect SnapBounds => VisualBounds.IsEmpty ? Bounds : VisualBounds;
-
-    /// <summary>
-    /// Title shown in the hover overlay. Child controls often have empty titles.
-    /// </summary>
-    public string DisplayTitle
+    [Test]
+    public void IsHdrFormat_DetectsFloatAndHdr10()
     {
-        get
-        {
-            if (!string.IsNullOrWhiteSpace(Title))
-                return Title;
+        Assert.That(DxgiHdrToneMapper.IsHdrFormat(Format.R16G16B16A16_Float), Is.True);
+        Assert.That(DxgiHdrToneMapper.IsHdrFormat(Format.R10G10B10A2_UNorm), Is.True);
+        Assert.That(DxgiHdrToneMapper.IsHdrFormat(Format.B8G8R8A8_UNorm), Is.False);
+    }
 
-            if (IsClientArea)
-                return "Client area";
-
-            return string.IsNullOrWhiteSpace(ClassName) ? "Control" : ClassName;
-        }
+    [Test]
+    public void LinearToSrgbByte_MapsZeroAndOne()
+    {
+        Assert.That(DxgiHdrToneMapper.LinearToSrgbByte(0f), Is.EqualTo(0));
+        Assert.That(DxgiHdrToneMapper.LinearToSrgbByte(1f), Is.EqualTo(255));
     }
 }

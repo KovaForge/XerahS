@@ -109,6 +109,7 @@
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ClipboardDibCodec.cs"
              Link="Platform\Windows\WindowsSources\ClipboardDibCodec.cs" />
     <Compile Remove="Platform\Windows\WinRTCaptureStrategyTests.cs" />
+    <Compile Remove="Platform\Windows\DxgiHdrToneMapperTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

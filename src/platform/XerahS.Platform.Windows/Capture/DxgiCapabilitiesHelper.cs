@@ -26,7 +26,7 @@ internal static class DxgiCapabilitiesHelper
             Version = "1.2+",
             SupportsHardwareAcceleration = true,
             SupportsCursorCapture = true,
-            SupportsHDR = false,
+            SupportsHDR = true,
             SupportsPerMonitorDpi = true,
             SupportsMonitorHotplug = true,
             MaxCaptureResolution = 16384,
