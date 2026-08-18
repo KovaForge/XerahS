@@ -44,11 +44,13 @@ submodule):
 
 1. Path the user named
 2. `git rev-parse --show-toplevel` from any path under a XerahS checkout
-3. `C:\Users\Public\source\repos\KovaForge\XerahS`
-4. `C:\Users\liveu\source\repos\ShareX Team\XerahS`
-5. `/Users/mike/Projects/ShareX Team/XerahS`
+3. `C:\Users\Public\source\repos\KovaForge\XerahS` (KovaForge workstation)
+4. `C:\Users\Public\source\repos\ShareX Team\XerahS` (ShareX Team workstation)
+5. `C:\Users\liveu\source\repos\ShareX Team\XerahS`
+6. `/Users/mike/Projects/ShareX Team/XerahS`
 
-Do not force XerahS work onto a ShareX Team sibling just because ShareX lives there.
+Both Public checkouts are first-class. Prefer the one the user named, otherwise the
+one that exists and is a git work tree. Do not assume XerahS is a sibling of ShareX.
 
 ### Cloud/CI fallback (no local ShareX checkout)
 
