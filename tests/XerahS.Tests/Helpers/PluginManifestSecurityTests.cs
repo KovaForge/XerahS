@@ -50,6 +50,57 @@ public class PluginManifestSecurityTests
         });
     }
 
+    [TestCase("оtherplugin")] // Cyrillic 'о' looks like Latin 'o'
+    [TestCase("\uFF21plugin")] // fullwidth Latin capital A
+    [TestCase("plugin id")]
+    [TestCase("plugin/id")]
+    [TestCase("plugin\\id")]
+    [TestCase(".")]
+    [TestCase("..")]
+    public void IsValid_RejectsNonAsciiOrUnsafePluginId(string pluginId)
+    {
+        var manifest = CreateValidManifest();
+        manifest.PluginId = pluginId;
+
+        bool valid = manifest.IsValid(out string? error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Does.Contain("PluginId"));
+        });
+    }
+
+    [Test]
+    public void IsValid_RejectsOversizedPluginId()
+    {
+        var manifest = CreateValidManifest();
+        manifest.PluginId = new string('a', 129);
+
+        bool valid = manifest.IsValid(out string? error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Does.Contain("PluginId"));
+        });
+    }
+
+    [Test]
+    public void IsValid_AcceptsAsciiPluginIdWhitelist()
+    {
+        var manifest = CreateValidManifest();
+        manifest.PluginId = "Sample_Plugin-1.0";
+
+        bool valid = manifest.IsValid(out string? error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(error, Is.Null);
+        });
+    }
+
     [Test]
     public void IsValid_RejectsAssemblyFileNamePathTraversal()
     {

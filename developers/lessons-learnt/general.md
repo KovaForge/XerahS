@@ -158,6 +158,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 
 ## Build & Configuration
 
+- Never register Windows autostart in both the installer Startup folder and the runtime Run key; keep one authoritative entry, migrate the legacy entry, and treat its single-instance relay as passive because duplicate login launches can otherwise restore a window that startup just hid to the tray.
 - Never keep the existing patch/minor version when implementing a brand-new product feature that did not previously exist; always bump the app minor version in root `Directory.Build.props` first and use that bumped version in the commit prefix because new feature surfaces should start a new minor release line.
 - Never infer the GitHub release target with bare `gh repo view` on a KovaForge fork checkout; always resolve from the `origin` remote URL (including `git@github-<alias>:Owner/Repo.git`) or pass `--repo owner/name`, because `gh` often returns upstream `ShareX/XerahS` instead of `KovaForge/XerahS`.
 - Never apply one release-channel policy to both remotes; always treat `ShareX/XerahS` as pre-release and `KovaForge/XerahS` as full latest unless an explicit `--set-prerelease` / `--no-prerelease` override is requested.
@@ -189,6 +190,8 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never pair `.WithDeveloperTools()` with `AttachDeveloperTools()` in XerahS DEBUG startup; always keep exactly one developer-tools attachment path in the application layer because Avalonia 12 throws when DevTools are attached twice.
 - Never call `UseSkia()` in an Avalonia 12 headless/test host without also configuring `Avalonia.HarfBuzz` and `.UseHarfBuzz()` because Skia-only builders no longer get text shaping automatically.
 - Never pin managed `SkiaSharp` to a major version higher than the corresponding `SkiaSharp.NativeAssets.*` transitive; always pin every `SkiaSharp.NativeAssets.<rid>` package consumed (Linux at minimum, plus Win32/macOS/WASM if used) in `Directory.Packages.props` so the native `libSkiaSharp.so` matches the managed assembly's expected native range, otherwise Avalonia's transitives will pull the older 3.x native and crash with `SkiaSharpVersion.CheckNativeLibraryCompatible` at startup (XIP-0081).
+- Never assume Photino `file://` video playback works with default web security, FFmpeg `drawtext` works without a `fontfile` on Windows, or UI export always preserves source FPS; always disable Photino web security for local recordings, inject a resolved system font into watermark filters, treat `OutputFps <= 0` as preserve-source, and drive advertised trim/crop/convert/watermark through `VideoEditorAutomationService` before adding new Photino launch tests.
+- Never drop FFmpeg stderr or advertise WebM/GIF/WebP without probing encoders; always keep a short stderr tail in export failures, probe `-encoders` once per FFmpeg path, fall back WebM from `libvpx-vp9` to `libvpx`, and burn image watermarks with `-filter_complex` overlay rather than leaving `WatermarkSettings.ImagePath` unused.
 
 ---
 
@@ -315,3 +318,8 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: Issue #270 — the Flatpak build crashed ~1 second after startup on KDE Plasma (Bazzite) while the same binary ran fine unsandboxed. Avalonia's `DBusTrayIconImpl` owns `org.kde.StatusNotifierItem-{pid}-{id}` before registering with `org.kde.StatusNotifierWatcher`; the Flatpak session-bus proxy denied `RequestName` (manifest only granted `--talk-name`), and the `DBusErrorReplyException` from the resulting `async void` continuation crashed the process. GNOME validation VMs never caught it because without a StatusNotifierWatcher on the bus the tray code path never runs.
 
 **Lesson**: Avalonia's dispatcher swallows an exception only when `UnhandledExceptionFilter` sets `RequestCatch = true` AND an `UnhandledException` handler sets `Handled = true`; subscribing to the filter alone is a no-op. Treat Linux desktop-integration failures (Tmds.DBus exceptions, `Avalonia.FreeDesktop` frames) as non-fatal log-and-continue. Reproduce Flatpak issues against a session bus that actually has a StatusNotifierWatcher (KDE/XFCE) — its absence silently disables the failing code path. Also never classify a startup exception as a "display error" by matching `Avalonia.X11` in the stack trace: every UI-thread exception unwinds through those frames.
+
+### Compile New NUnit Tests Before Broad Verification
+
+- Never assume NUnit attributes are globally imported in `XerahS.Tests`; always include `using NUnit.Framework;` in a new test file and run its focused filter first because otherwise the full dependency build finishes before revealing a trivial test-compilation error.
+- Never run a `--no-restore` solution build after pulling central package-version changes; always restore the solution first because stale project assets can mix incompatible managed assembly versions and produce misleading compiler failures.

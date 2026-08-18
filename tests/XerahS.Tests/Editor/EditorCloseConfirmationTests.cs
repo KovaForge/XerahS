@@ -25,12 +25,15 @@
 
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.ImageEffects.Filters;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
+using XerahS.Platform.Abstractions;
 using XerahS.Tests.Xip0052;
+using XerahS.UI.Services;
 using EmbeddedEditorView = ShareX.ImageEditor.Presentation.Views.EditorView;
 using HostEditorWindow = XerahS.UI.Views.EditorWindow;
 using MainWindow = XerahS.UI.Views.MainWindow;
@@ -38,8 +41,27 @@ using MainWindow = XerahS.UI.Views.MainWindow;
 namespace XerahS.Tests.Editor;
 
 [TestFixture]
+[NonParallelizable]
 public class EditorCloseConfirmationTests
 {
+    [SetUp]
+    public void SetUp()
+    {
+        // ApplicationSettingsView (instantiated during NavigateToSettings) requires a
+        // registered IUiViewModelFactory. Tests in this fixture navigate to the settings
+        // page to exercise the shell modal overlay logic, so we install a fake factory
+        // before each test and reset platform services afterwards. NonParallelizable
+        // keeps the static PlatformServices state from racing other fixtures.
+        var services = new ServiceCollection();
+        services.AddSingleton<IUiViewModelFactory, FakeUiViewModelFactory>();
+        PlatformServices.SetRootProvider(services.BuildServiceProvider());
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        PlatformServices.Reset();
+    }
     [Test]
     public void RequestClose_DoesNotCreateDuplicateConfirmation_WhenModalAlreadyOpen()
     {

@@ -60,17 +60,22 @@ public class PluginManifest
 
     private static bool IsSafePluginId(string pluginId)
     {
-        if (pluginId is "." or "..")
+        // ASCII-only whitelist: Unicode letters (e.g. Cyrillic/fullwidth) pass
+        // char.IsLetterOrDigit and can become spoofable assembly/file names via
+        // GetAssemblyFileName() when AssemblyFileName is omitted.
+        if (pluginId is "." or ".." || pluginId.Length is 0 or > 128)
         {
             return false;
         }
 
         foreach (char c in pluginId)
         {
-            if (!char.IsLetterOrDigit(c) && c is not ('.' or '_' or '-'))
+            if (c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '.' or '_' or '-')
             {
-                return false;
+                continue;
             }
+
+            return false;
         }
 
         return true;

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-01 16:05 AWST",
+  "last_updated": "2026-08-18 16:08 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -313,6 +313,45 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-08-02 23:02 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260802T150427-966688.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 5 findings (1 .NET project Ava, 0 CLI, 3 Dropbox.Plugin); ingest: 3 added to next_candidates (DropboxUploader.RefreshAccessToken, BitlyUrlShortener.ShortenURL, DropboxProvider.GetThumbnailAsync)",
+      "notes": "Producer-only tick. nadia remote HEAD: 69f2b95f (in sync with upstream/develop b43eb3dc; origin 2 behind on fb2074ed, expected). Submodule ShareX.ImageEditor clean. clawpatch reports parsed: 3 (latest 20260802T150427-966688). Findings dropped at severity gate: 99. Dropped as already-fixed (area-level): 3. Dropped as recently-pivoted: 30. Dropped as recently-fixed (release-history v2.1.2): 33. Skipped as duplicate: 1. next_candidates delta: 3 -> 3 (+3).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 3,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 3,
+        "queue_size_after": 3,
+        "queue_added": [
+          "src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)",
+          "src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)",
+          "src/desktop/plugins/Dropbox.Plugin/DropboxProvider.cs:211 (GetThumbnailAsync)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 77,
+          "triage=contract-mismatch": 16,
+          "triage=test-gap": 3,
+          "triage=docs-gap": 3
+        },
+        "clawpatch_reports_parsed": [
+          "20260802T150427-966688.md",
+          "20260801T150459-763172.md",
+          "20260731T150358-7c432f.md"
+        ]
+      }
+    },
     {
       "timestamp": "2026-07-05 21:10 AWST",
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -1420,6 +1459,698 @@
       "commit": null,
       "summary": "Step 5a found zero candidates; empty-queue audit. No deferred last_runs files to clean.",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-01 23:10 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "clawpatch findings -> next_candidates",
+      "commit": "6bfd8340e2",
+      "summary": "xerahs-review daily-producer tick (Nadia, 23:00 AWST cadence). Step 5 clawpatch review run 20260801T150459-763172 produced 55 findings across 3 features (feat_library_49a3ae3944 UploaderPluginSdk, feat_library_49cbf3ebc1 Bitly.Plugin, feat_library_4b88d6d423 Assistant UI); 1 finding from Bitly.Plugin. Step 5.5 parsed 160 findings across 3 newest reports (20260801T150459, 20260731T150358, 20260729T150504); gate dropped 96 (risk/contract/test/docs); 3 area-level (ImmichUploader), 31 release-fixed (v2.1.2), 29 recently-pivoted (v2.2.2); ingested 1 (BitlyPlugin SendRequest missing error handling). Fork sync pulled nadia remote 9f2e6dc9..HEAD (consumer fix AnnotateToolbar); upstream fast-forward merged 4d6d8b8a (PR #278 'Fix empty queue audit and update AnnotateToolbar icons'); pushed to nadia. next_candidates: 0 -> 1.",
+      "status": "ok"
+    },
+    {
+      "ts": "2026-08-02 00:06 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)",
+      "commit": "2436bbb620dc",
+      "summary": "Bitly ShortenURL surfaces network/parse failures on UploadResult (IsURLExpected=false)",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-08-02 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit. No deferred last_runs files to clean.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-02 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found 0 candidates; upstream develop merged; deferred files cleared; no code fix this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-03 00:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/plugins/Dropbox.Plugin/DropboxUploader.cs:150 (RefreshAccessToken)",
+      "commit": "1436cdb5",
+      "summary": "NeedsRefresh no longer forces refresh on bare refresh_token; soft-fail when access token still usable",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-08-03 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; deleted stale deferred-last-runs-20260803-000527.json (2 already-fixed rows; tracker markdown remains durable ledger)",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-03 16:08 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-04 00:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only. No deferred-last-runs files to clean.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-04 08:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates."
+    },
+    {
+      "ts": "2026-08-04 16:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates."
+    },
+    {
+      "ts": "2026-08-04 23:06 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "no-op",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "clawpatch review ran (20260804T150355-87bb09.md); parsed 178 findings across 3 reports, dropped 105 at severity gate ({'triage=risk': 81, 'triage=contract-mismatch': 18, 'triage=test-gap': 3, 'triage=docs-gap': 3}), 3 area-level-fixed, 35 release-history-fixed (v2.1.2), 35 recently-pivoted; ingested 0. Fork/upstream/submodule already in sync.",
+      "status": "no-op",
+      "latest_report": "20260804T150355-87bb09.md",
+      "reports_parsed": 3,
+      "parsed_total": 178,
+      "dropped_gate": 105,
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 35,
+      "skipped_recently_pivoted": 35,
+      "ingested": 0
+    },
+    {
+      "ts": "2026-08-05 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates. Producer tick 2026-08-04 23:06 AWST (nadia-valeva-kf) parsed 178 findings, dropped 105 at severity gate + 3 area-fixed + 35 release-fixed (v2.1.2) + 35 recently-pivoted; ingested 0. HEAD == declan/develop == origin/develop (c388b85c). Upstream behind 20 expected. Submodule ShareX.ImageEditor clean."
+    },
+    {
+      "ts": "2026-08-05 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; queue remains drained from prior tick (44c424e0). No deferred-last-runs files present; cleaned none.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-05 16:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; queue checked, no action. Producer 2026-08-04 23:06 AWST ingested 0 findings. No deferred files."
+    },
+    {
+      "ts": "2026-08-05 23:06 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "clawpatch review ran (20260805T150502-1ccffd.md); parsed 192 findings across 3 reports, dropped 116 at severity gate ({'triage=risk': 87, 'triage=contract-mismatch': 22, 'triage=docs-gap': 4, 'triage=test-gap': 3}), 3 area-level-fixed, 36 release-history-fixed (v2.1.2), 36 recently-pivoted; ingested 1 (src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)). Fork/upstream/submodule already in sync.",
+      "status": "produced",
+      "latest_report": "20260805T150502-1ccffd.md",
+      "reports_parsed": 3,
+      "parsed_total": 192,
+      "dropped_gate": 116,
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 36,
+      "skipped_recently_pivoted": 36,
+      "ingested": 1
+    },
+    {
+      "ts": "2026-08-05 23:12 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "clawpatch review ran (20260805T151014-a3a066.md); parsed 203 findings across 3 reports, dropped 125 at severity gate ({'triage=risk': 91, 'triage=contract-mismatch': 25, 'triage=docs-gap': 6, 'triage=test-gap': 3}), 3 area-level-fixed, 36 release-history-fixed (v2.1.2), 36 recently-pivoted, 2 dedup-against-existing; ingested 1 (src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)). Fork/upstream/submodule already in sync at top of tick.",
+      "status": "produced",
+      "latest_report": "20260805T151014-a3a066.md",
+      "reports_parsed": 3,
+      "parsed_total": 203,
+      "dropped_gate": 125,
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 36,
+      "skipped_recently_pivoted": 36,
+      "skipped_dup": 2,
+      "ingested": 1
+    },
+    {
+      "ts": "2026-08-06 00:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)",
+      "commit": "34387b80",
+      "summary": "RandomCrypto Next inclusive range int.MaxValue overflow (v0.24.21)",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-08-06 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; producer/queue idle since prior 00:05 AWST fix tick. Deleted stale deferred-last-runs-20260806-000517.json per v1.1.16 (no fix commit available to fold under XIP0077 +0/+1).",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-06 16:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; no picks or pivots this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-07 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found 0 candidates; no fixes/pivots. Deleted stale deferred-last-runs-20260807-000601.json per v1.1.16 (tracker already holds CliCaptureStrategy pivot ledger).",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-07 16:08 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; queue remains empty after producer lag / prior drains"
+    },
+    {
+      "ts": "2026-08-07 23:10 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "Step 6 clawpatch review parsed 224 findings across 3 reports; severity gate dropped 137 (3 area-fixed dedupe, 44 release-history); appended 2 net new candidates (HotkeySelectionControl _viewModel / _debugLog). Queue: 0 -> 2.",
+      "status": "ingested"
+    },
+    {
+      "ts": "2026-08-08 00:05 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:46-57 (_debugLog)",
+      "commit": "b04999a9",
+      "summary": "Synchronize static _debugLog/_debugMessages with lock; concurrent regression tests",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-08-08 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; deleted stale deferred-last-runs-20260808-000533.json from prior tick (v1.1.16); last_runs growth-only 128-> 129",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-08 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; consecutive empty-queue tick after 08:06 AWST audit; no deferred-last-runs files; last_runs growth-only no cap",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-08 23:08 AWST",
+      "agent": "nadia",
+      "outcome": "no-op",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "Step 5.5 parsed 237 findings across 3 clawpatch reports; severity gate dropped 145 (96 risk / 34 contract-mismatch / 11 docs-gap / 4 test-gap); area-fixed dedupe dropped 3; recently-pivoted dropped 33; recently-fixed (60 commits + any release history) dropped 56. Net added 0. Queue 0 -> 0 (consecutive producer no-op).",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-09 00:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; deferred-last-runs cleaned (none present); fork/upstream/submodule already synced"
+    },
+    {
+      "ts": "2026-08-09 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; fork/upstream/submodule clean; no deferred last_runs files",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-09 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates and zero pivots; producer last ingest left queue empty; deferred files cleaned",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-09 23:05 AWST",
+      "agent": "nadia",
+      "outcome": "ingested",
+      "item": "xerahs-review producer queue",
+      "commit": null,
+      "summary": "Daily producer cron (replaces dormant Milena 6h cadence per McoreD 2026-07-21). Step 5.5 parsed 251 findings across 3 clawpatch reports; severity gate dropped 154 (99 risk / 38 contract-mismatch / 12 docs-gap / 5 test-gap); area-fixed dedupe dropped 3; recently-pivoted dropped 39; recently-fixed (any release history) dropped 53. Net added 2. Queue 0 -> 2. Adds: MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries — confirmed-bug); NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl — confirmed-bug).",
+      "status": "ingested"
+    },
+    {
+      "ts": "2026-08-10 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; deleted stale deferred-last-runs-20260810-000608.json (v1.1.16 consecutive no-op deferred cleanup). Queue remains empty.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-10 16:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit. No deferred files to clean. Fork/upstream/submodule already in sync.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-10 23:06 AWST",
+      "agent": "nadia",
+      "outcome": "no-op",
+      "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
+      "commit": "c40f60cdbb80249d22d78453a5099a33f2f52f29",
+      "summary": "Clawpatch review run 20260810T150412-136730 completed (3 features, 92 findings). Severity gate dropped 164 (triage=risk: 103, contract-mismatch: 42, docs-gap: 13, test-gap: 6). After gate 34 eligible; 1 dropped at area-level (ImmichUploader.cs:220-233 fixed in v0.23.124/125/126), 54 dropped by release-history dedupe (HSB.cs v0.23.77, FileDownloader.cs v0.23.76/78/84/137, DPAPIEncryptedStringValueProvider.cs v0.23.138, GradientInfo v0.23.135, ImmichUploader.cs, AnimatedGifCreator.cs:118, CliCaptureStrategy, etc.), 21 skipped as recently-pivoted (consumer drained these in prior bugfix ticks: MacOS CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, AnimatedGifCreator, OctreeQuantizer, check-markdown-mojibake, BitlyUrlShortener, DropboxProvider.GetThumbnailAsync, CaptureCommand.TryGetImageFormat, MobileMaui BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, AnimatedGifCreator.Finish, HotkeySelectionControl.axaml.cs:162, NextcloudConfigViewModel.TryNormalizeServerUrl, HotkeySelectionControl.axaml.cs:46, ImageEditor.RemoveBackgroundImageEffect, NextcloudClient.cs:124/172, DropboxProvider.cs:144, etc.). Net added: 0. next_candidates: 0 -> 0. Fork/upstream/submodule all current; nadia/develop == HEAD 5a8e5ccc.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-11 00:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; producer last tick 2026-08-10 23:06 AWST left queue empty; deferred-last-runs cleanup n/a",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-11 08:08 AWST",
+      "agent": "mikhail",
+      "outcome": "fixed",
+      "item": "ScreenCapture permission preflight (macOS region selector gate)",
+      "commit": "4e76d1718ba19ac226b1ae1bb4abe83d8e36672e",
+      "summary": "Concurrent commit landed on Declan-owned develop between cron preflight reads (Sibling cron drift). Introduces IScreenCapturePermissionService, EnsurePlatformCaptureAccess gate on macOS region selector path, renames EnsureScreenRecordingAccess to EnsureScreenCaptureAccess on MacOSScreenCaptureKitService. Adds MacOSScreenCapturePermissionGateTests (4 cases, all passing). Version bump 0.24.24 -> 0.24.25. Verified: XerahS.Platform.Abstractions, XerahS.Platform.MacOS, XerahS.UI all build clean (0 new warnings). Full XerahS.Tests 1260 tests (1257 passed, 1 unrelated failure in EditorCloseConfirmationTests UiViewModelFactoryAccessor setup, 2 skipped). Commit already on declan/develop (HEAD == declan/develop == 4e76d171).",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-08-11 16:12 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates (queue still empty after producer tick 2026-08-10 23:06 AWST and Mikhail's concurrent fix at 2026-08-11 08:08 AWST). No pivots; no deferred last_runs files to clean. Fork sync clean: HEAD == declan/develop == origin/develop == 5ce22c8c (Mikhail's macOS capture notify). Upstream 59 ahead, no merge needed. Submodule ShareX.ImageEditor clean at 1bcb66c4. No code change this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-11 23:05 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
+      "commit": "HEAD",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260811T150326-d558dc.md completed (3 features reviewed: ShareX.ImageEditor MainViewModel, XerahS.Common ImageEffects Drawings, XerahS.Paste2.Plugin). 3 raw findings across 2 features reviewed. Step 5.5 ingest: 275 findings parsed across 3 reports (newest + 2 prior). Severity gate dropped 172 (107 risk / 45 contract-mismatch / 14 docs-gap / 6 test-gap). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare — already fixed in v0.23.124/125/126, repeated across 3 reports). Release-history dedupe dropped 54 (HSB.cs:163-190 equality/hash contract; FileDownloader.cs:112-124/136-140 EOF spin; DPAPIEncryptedStringValueProvider; GradientInfo; AnimatedGifCreator.cs:118/119 integer overflow; ReClipCommand.cs:114 SetWatchFolder; IndexCommand.cs:273-290 CountIndexedContents; DropboxUploader.cs:150 RefreshAccessToken; HistoryManagerSQLiteTests.cs:73-113 ContainsFilePath; AssistantHistoryServiceTests.cs:43/156-174/178-199 SetUp+TearDown+OCR-cache invalidation; OctreeQuantizer.cs:275 GetPaletteIndex; ImmichUploader.cs; etc). recently_pivoted dedupe skipped 45 (cross-report duplicates of CliCaptureStrategy.cs:111-112, MobileHistoryViewModel.cs:108, CaptureStage.cs:79-84, check-markdown-mojibake.py, BitlyUrlShortener.cs:71, DropboxProvider.cs:144/211, CaptureCommand.cs:131-153, BoolConverters.cs:67-69, VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334, NextcloudConfigViewModel.cs:375-378, Paste2Uploader.cs:66-78, Paste2ConfigViewModel.cs:76-81, NextcloudClient.cs:124-127/172-175, Directory.Build.props:11, etc — all already on consumer's mental model). 0 dups of existing. 1 added: ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect) — PreviewEffect delegates 'effect' without null-checking _preEffectImage (high confidence, confirmed-bug, bug category). next_candidates: 0 -> 1 (+1). Queue non-empty for first time since 2026-07-20. Fork sync: nadia develop == HEAD == origin/develop == b05fdde0 (initial fetch showed ef5d63d; re-fetched — converged). Upstream: HEAD 60 ahead of upstream/develop (no merge, all KovaForge work). Submodule ShareX.ImageEditor at 1bcb66c on heads/develop, clean. clawpatch report 20260811T150326-d558dc.md added (older 2 already on nadia develop).",
+      "status": "produced",
+      "latest_report": "20260811T150326-d558dc.md",
+      "reports_parsed": 3,
+      "parsed_total": 275,
+      "dropped_gate": 172,
+      "dropped_gate_breakdown": {
+        "triage=risk": 107,
+        "triage=contract-mismatch": 45,
+        "triage=docs-gap": 14,
+        "triage=test-gap": 6
+      },
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 54,
+      "skipped_recently_pivoted": 45,
+      "skipped_dup": 0,
+      "ingested": 1,
+      "ingested_items": [
+        "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)"
+      ],
+      "queue_size_before": 0,
+      "queue_size_after": 1
+    },
+    {
+      "ts": "2026-08-12 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; cleaned stale deferred-last-runs from prior pivot-only tick",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-12 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only. No deferred-last-runs files present.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-12 23:17 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
+      "status": "no-op",
+      "commit": "HEAD",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence — replaces dormant Milena 6h per McoreD 2026-07-21). Step 5 clawpatch review run 20260812T150925-64e0c7 completed (3 features: feat_library_612a85b226 XerahS.UI/Onboarding, feat_library_6151a2fd01 XerahS.Platform.Linux/Capture/Helpers, feat_library_632edc748d XerahS.Assistant). Step 5.5 ingest: parsed 284 findings across 3 newest reports (20260812T150925-64e0c7 + 20260811T150326-d558dc + 20260810T150412-136730). v2.2.4 submodule-prefix gate dropped 50 (ShareX.ImageEditor / ShareX.VideoEditor citations — cannot be fixed from parent repo without submodule sync). v2.1.0 severity gate dropped 135 (87 triage=risk, 30 contract-mismatch, 12 docs-gap, 6 test-gap) — note: both raw XerahS.Assistant.csproj:17-20 (low/maintainability) findings from today's clawpatch run dropped here (category=maintainability is excluded). Area-level dedupe dropped 3 (ImmichUploader.cs:220-233 CreateOrReuseAlbumShare). Release-history dedupe dropped 57 (v2.1.2 walk of Directory.Build.props <Version> history). v2.2.2 recently-pivoted dedupe skipped 39 (consumer-drained citations: CliCaptureStrategy, MobileHistoryViewModel, CaptureStage, HotkeySelectionControl, AnimatedGifCreator, OctreeQuantizer, BitlyUrlShortener, DropboxProvider, NextcloudConfigViewModel, Mobile BoolConverters, VideoEditorRuntimeDiagnosticsSnapshot, Paste2Uploader, Paste2ConfigViewModel, DropboxUploader, DPAPIEncryptedStringValueProvider, GradientInfo, FileDownloader, HSB, ReClipCommand, IndexCommand, RandomCrypto, PluginManifest.IsSafePluginId, NextcloudClient, etc.). 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 00562fb8 (consumer-driven empty-queue audit commits). Upstream: HEAD 65 ahead of upstream/develop, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3 (in sync with parent pointer 160000 d898b2c3). No submodule or parent push needed. clawpatch report 20260812T150925-64e0c7.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
+      "latest_report": "20260812T150925-64e0c7.md",
+      "reports_parsed": 3,
+      "parsed_total": 284,
+      "dropped_submodule_prefix": 50,
+      "dropped_gate": 135,
+      "dropped_gate_breakdown": {
+        "triage=risk": 87,
+        "triage=contract-mismatch": 30,
+        "triage=docs-gap": 12,
+        "triage=test-gap": 6
+      },
+      "dropped_area_fixed": 3,
+      "dropped_release_fixed": 57,
+      "skipped_recently_pivoted": 39,
+      "skipped_dup": 0,
+      "ingested": 0,
+      "ingested_items": [],
+      "queue_size_before": 0,
+      "queue_size_after": 0
+    },
+    {
+      "ts": "2026-08-13 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-13 08:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only. recently_pivoted=22. No deferred-last-runs files present. Fork/upstream/submodule already in sync at c5a3a509 / ImageEditor 1bcb66c4.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-13 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-13 23:08 AWST",
+      "agent": "nadia-valeva-kf",
+      "outcome": "produced",
+      "item": "xerahs-review producer sweep (23:00 AWST daily cadence)",
+      "status": "no-op",
+      "commit": "HEAD",
+      "summary": "Daily producer cron (Nadia, nadia-valeva-kf, 23:00 AWST cadence). Step 5 clawpatch review run 20260813T150359-2a0c35 completed (3 features: feat_library_638cb18412 ShareX.ImageEditor/Presentation/Emoji, feat_library_645dea7821 XerahS.Mobile.iOS.ShareExtension, feat_library_6461f8002b ShareX.ImageEditor/Core/ImageEffects/Manipulations). All 3 features returned 0 findings per clawpatch summary line, but actual report file shows 97 findings parsed. Step 5.5 ingest: v2.1.0 severity gate dropped 62 (62 triage=non-confirmed-bug or category=maintainability); v2.2.4 submodule-prefix gate dropped 2 (ShareX.ImageEditor/MainViewModel.EffectPreview.cs:232-233, ShareX.VideoEditor/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334); v2.1.0 area-level dedupe dropped 1 (Immich.Plugin/ImmichUploader.cs:220-233 CreateOrReuseAlbumShare — area already fixed); v2.2.2 recently-pivoted dedupe skipped 20 (consumer-drained citations); v2.1.1 60-commit window dropped 2; v2.1.2 release-history walk dropped 10; 0 dup of existing. Net added: 0. next_candidates: 0 -> 0. Fork sync: HEAD == nadia/develop == origin/develop == 0ce2c79e (consumer-driven empty-queue audit commits since last producer tick). Upstream: HEAD 4 ahead of upstream/develop b43eb3dc, no merge needed (KovaForge baseline ahead). Submodule ShareX.ImageEditor at 1bcb66c4 on heads/develop (in sync with parent pointer 160000 1bcb66c4); ShareX.VideoEditor at d898b2c3. No submodule or parent push needed (no source-tree changes). clawpatch report 20260813T150359-2a0c35.md added to .clawpatch/reports/ for future ticks. Producer no-op (added 0).",
+      "latest_report": "20260813T150359-2a0c35.md",
+      "reports_parsed": 1,
+      "parsed_total": 97,
+      "dropped_submodule_prefix": 2,
+      "dropped_gate": 62,
+      "dropped_gate_breakdown": {
+        "triage=non-confirmed-bug": 62
+      },
+      "dropped_area_fixed": 1,
+      "dropped_release_fixed": 10,
+      "dropped_recent_release_fixed": 2,
+      "skipped_recently_pivoted": 20,
+      "skipped_dup": 0,
+      "ingested": 0,
+      "ingested_items": [],
+      "queue_size_before": 0,
+      "queue_size_after": 0
+    },
+    {
+      "ts": "2026-08-14 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found 0 candidates; no pivots drained; producer ingested 0 at prior tick",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-14 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates and zero pivots; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-14 16:09 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates and zero pivots; empty-queue audit only",
+      "status": "no-op"
+    },
+    {
+      "timestamp": "2026-08-14 23:08 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260814T150443-7a3334.md",
+        ".clawpatch/reports/20260813T150359-2a0c35.md",
+        ".clawpatch/reports/20260812T150925-64e0c7.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 features, 3 findings (1 VideoEditor Capture, 0 ImageEditor Helpers, 2 iOS ShareExtension); ingest: 1 added to next_candidates (ShareViewController.cs:124-169 ProcessAttachmentAsync)",
+      "notes": "Producer-only tick (Nadia Valeva). nadia remote HEAD: be856af65 in sync with origin/develop be856af65 and upstream/develop b43eb3dc (no upstream delta). Submodule ShareX.ImageEditor clean at 1bcb66c4 (no delta). clawpatch reports parsed: 3 (latest 20260814T150443-7a3334). Findings dropped at severity gate: 139 (triage=risk:91, contract-mismatch:30, test-gap:6, docs-gap:12). v2.2.4 submodule-prefix drops: 55. Dropped as already-fixed (area-level): 3. Dropped as recently-fixed (release-history): 54. Skipped as recently-pivoted (v2.2.2): 42. Skipped as duplicate of existing: 0. next_candidates delta: 1 -> 1 (+1) [empties broken on first ingest in 25 days].",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 1,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 1,
+        "queue_added": [
+          "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 91,
+          "triage=contract-mismatch": 30,
+          "triage=test-gap": 6,
+          "triage=docs-gap": 12
+        },
+        "submodule_prefix_drops": 55,
+        "recently_fixed_drops": 54,
+        "recently_pivoted_skips": 42,
+        "already_fixed_drops": 3,
+        "clawpatch_reports_parsed": [
+          "20260814T150443-7a3334.md",
+          "20260813T150359-2a0c35.md",
+          "20260812T150925-64e0c7.md"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-08-15 23:05 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260815T150317-2acd67.md",
+        ".clawpatch/reports/20260814T150443-7a3334.md",
+        ".clawpatch/reports/20260813T150359-2a0c35.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 features (1 AmazonS3 VM, 1 Auto.Plugin, 1 ShareX.Ftp.Plugin) -> 1 raw finding (Auto.Plugin); ingest: 0 added to next_candidates (queue saturated by existing iOS ShareExtension item)",
+      "notes": "Producer-only tick (Nadia Valeva). nadia remote HEAD: 2974f5bc in sync with origin/develop 2974f5bc and ahead of upstream/develop b43eb3dc by ~7 commits (no upstream delta). Submodule ShareX.ImageEditor clean at 1bcb66c4 (no delta, HEAD == origin == upstream). clawpatch reports parsed: 3 (latest 20260815T150317-2acd67). Findings dropped at severity gate: 141 (triage=risk:92, contract-mismatch:31, test-gap:6, docs-gap:12). v2.2.4 submodule-prefix drops: 56. Dropped as already-fixed (area-level): 3. Dropped v2.1.1 (60-commit): 18; v2.1.2 (release-history): 39. Skipped as recently-pivoted (v2.2.2): 39. Skipped as duplicate of existing: 2. next_candidates delta: 1 -> 1 (+0). Queue holds 1 iOS ShareExtension item from 2026-08-14 23:08 producer tick; 00:06 AWST consumer drain will pick it.",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 1,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 1,
+        "queue_size_after": 1,
+        "queue_added": [],
+        "gate_breakdown": {
+          "triage=risk": 92,
+          "triage=contract-mismatch": 31,
+          "triage=test-gap": 6,
+          "triage=docs-gap": 12
+        },
+        "submodule_prefix_drops": 56,
+        "recently_fixed_drops": 57,
+        "recently_pivoted_skips": 39,
+        "already_fixed_drops": 3,
+        "clawpatch_reports_parsed": [
+          "20260815T150317-2acd67.md",
+          "20260814T150443-7a3334.md",
+          "20260813T150359-2a0c35.md"
+        ]
+      }
+    },
+    {
+      "ts": "2026-08-16 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots. Deleted stale deferred-last-runs-20260816-080609.json (ShareViewController iOS pivot already in tracker markdown + recently_pivoted; no fix commit to fold under XIP0077 +0/+1). Merged upstream/develop Flatpak docs (12a8579f).",
+      "status": "no-op"
+    },
+    {
+      "timestamp": "2026-08-16 23:08 AWST",
+      "agent": "nadia",
+      "outcome": "reviewed",
+      "commit": "HEAD"
+    },
+    {
+      "ts": "2026-08-17 00:08 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs:120 (CustomURLAPI)",
+      "commit": "895b16f6",
+      "summary": "Reject invalid GitHub Gist CustomURLAPI hosts (http/https + host required; empty falls back to api.github.com).",
+      "status": "fixed"
+    },
+    {
+      "ts": "2026-08-17 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. Deleted stale deferred-last-runs-20260817-000854.json (prior 00:08 AWST SecretKey pivot already in tracker + recently_pivoted; no fix commit to fold under XIP0077 +0/+1).",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-17 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD already equals declan/develop and origin/develop. upstream/develop already merged. ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files to delete.",
+      "status": "no-op"
+    },
+    {
+      "timestamp": "2026-08-17 23:07 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260817T150322-d2fc7d.md",
+        ".clawpatch/reports/20260816T150521-cbb7f8.md",
+        ".clawpatch/reports/20260815T150317-2acd67.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "HEAD",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 features, 106 raw findings (1 GitHubGist v0.25.2 leftover, 1 Immich AlbumShare, 1 Tests OCR test hardening); ingest: 0 added to next_candidates (queue saturated empty, all eligible candidates pinned to v0.23.95+ release-history / already-pivoted / area-fixed)",
+      "notes": "Producer-only tick (Nadia Valeva). nadia remote HEAD: 357edcf181d18a5c7dd89836182ed2397cba4c5b in sync with origin/develop 357edcf1 and nadia/develop 357edcf1; ahead of upstream/develop b4f117838 by 96 commits (no upstream delta). Submodule ShareX.ImageEditor clean at 1bcb66c441cccc6b1a38c5b07c31a433403bf13b (no delta, HEAD == origin == upstream). clawpatch reports parsed: 3 (latest 20260817T150322-d2fc7d). Findings dropped at severity gate: 146 (triage=risk:95, contract-mismatch:33, test-gap:6, docs-gap:12). v2.2.4 submodule-prefix drops: 57. Dropped as already-fixed (area-level): 3. Dropped v2.1.1 (60-commit) + v2.1.2 (release-history): 39 (AssistantHistoryServiceTests, ReClipCommand, FileDownloader, HSB.cs, IndexCommand, DropboxUploader, HistoryManagerSQLiteTests, GradientInfo, ImmichUploader, AnimatedGifCreator, DPAPIEncryptedStringValueProvider, TaskSettingsOptions — already shipped via prior release-commit fix). Skipped as recently-pivoted (v2.2.2): 65 (multiplied across 3 reports; base pivot set is 24 entries — BufferNotifyIcon, WaylandCliCapture, HSB, AnimatedGifCreator, FileDownloader, etc.). Skipped as duplicate of existing: 0. The 3 raw findings from feat_library_6c042ce5fd Indexer/Properties were: fnd_sig-...-0b03 (data-loss/high/confirmed-bug, HistoryManagerSQLiteTests.cs:284-285 — pinned by release-history gate via Assistant test bundle); fnd_sig-...-6186 (security/medium/risk — dropped at severity gate); fnd_sig-...-2b80 (maintainability/high/risk — dropped at severity gate). Net new actionable findings: 0. next_candidates delta: 0 -> 0 (+0). next_candidates remains empty — 00:06 AWST consumer drain will be another no-op audit unless clawpatch surfaces a fresh high-signal finding.",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 0,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 0,
+        "queue_added": [],
+        "gate_breakdown": {
+          "triage=risk": 95,
+          "triage=contract-mismatch": 33,
+          "triage=test-gap": 6,
+          "triage=docs-gap": 12
+        },
+        "submodule_prefix_drops": 57,
+        "recently_fixed_drops": 39,
+        "recently_pivoted_skips": 65,
+        "already_fixed_drops": 3,
+        "clawpatch_reports_parsed": [
+          "20260817T150322-d2fc7d.md",
+          "20260816T150521-cbb7f8.md",
+          "20260815T150317-2acd67.md"
+        ]
+      }
+    },
+    {
+      "ts": "2026-08-18 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD already equals declan/develop and origin/develop. upstream/develop already merged. ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files to delete.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-18 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD already equals declan/develop. upstream/develop already merged. ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files to delete.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-18 16:08 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates and zero new pivots after fork/upstream fetch. HEAD already equals declan/develop and origin/develop. upstream/develop already merged. ShareX.ImageEditor clean on develop at 1bcb66c4. No deferred-last-runs files to delete.",
+      "status": "no-op"
     }
   ],
   "last_run_outcome": "no-op",
@@ -1435,6 +2166,18 @@
     "src/desktop/plugins/Paste2.Plugin/ViewModels/Paste2ConfigViewModel.cs:76-81 (Validate)",
     "src/desktop/core/XerahS.Common/GIF/OctreeQuantizer.cs:275 (GetPaletteIndex)",
     "src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:84 (Finish)",
-    "src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)"
+    "src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)",
+    "src/desktop/plugins/Bitly.Plugin/BitlyUrlShortener.cs:71 (BitlyUrlShortener.ShortenURL)",
+    "src/desktop/plugins/Dropbox.Plugin/DropboxProvider.cs:211 (GetThumbnailAsync)",
+    "src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)",
+    "src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)",
+    "src/platform/XerahS.Platform.MacOS/Capture/CliCaptureStrategy.cs:111-112",
+    "src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:162-163 (_viewModel)",
+    "src/desktop/app/XerahS.UI/Views/Controls/HotkeySelectionControl.axaml.cs:46-57 (_debugLog)",
+    "src/mobile-experimental/XerahS.Mobile.Maui/ViewModels/MobileHistoryViewModel.cs:108 (UploadHistoryService.ClearEntries())",
+    "src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl)",
+    "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)",
+    "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)",
+    "src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)"
   ]
 }

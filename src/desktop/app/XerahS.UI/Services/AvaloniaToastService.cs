@@ -54,10 +54,9 @@ public class AvaloniaToastService : IToastService
             return;
         }
 
-        // Global master switch (issue #252): when the user has disabled the
-        // notification window in Application Settings, skip the popup entirely
-        // so the capture/upload flow does not surface any toast.
-        if (SettingsManager.Settings?.DisableToastNotification == true)
+        // Global master switch (issue #252): suppress ordinary toasts when disabled,
+        // but keep critical action-required guidance visible.
+        if (ShouldSuppressToast(config, SettingsManager.Settings?.DisableToastNotification == true))
         {
             DebugHelper.WriteLine("Toast notification window disabled by global setting; skipping toast display.");
             return;
@@ -95,6 +94,11 @@ public class AvaloniaToastService : IToastService
         {
             DebugHelper.WriteException(ex, "Failed to show toast notification");
         }
+    }
+
+    internal static bool ShouldSuppressToast(ToastConfig config, bool toastNotificationsDisabled)
+    {
+        return toastNotificationsDisabled && !config.IgnoreGlobalDisable;
     }
 
     /// <summary>

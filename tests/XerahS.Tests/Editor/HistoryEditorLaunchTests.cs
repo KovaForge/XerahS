@@ -538,10 +538,10 @@ public class HistoryEditorLaunchTests
 
         public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
 
-        public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+        public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
             AfterCaptureTasks afterCapture,
-            AfterUploadTasks afterUpload) => Task.FromResult((afterCapture, afterUpload, false));
+            AfterUploadTasks afterUpload) => Task.FromResult((afterCapture, afterUpload, false, AfterCaptureQuickAction.None));
 
         public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info) => Task.CompletedTask;
 

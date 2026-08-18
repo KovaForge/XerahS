@@ -799,6 +799,12 @@ namespace XerahS.App
         {
             XerahS.Common.DebugHelper.WriteLine($"Arguments received from another instance: {string.Join(" ", args)}");
 
+            if (AppContracts.Cli.IsPassiveStartupInvocation(args))
+            {
+                XerahS.Common.DebugHelper.WriteLine("Ignoring passive startup relay from a secondary instance.");
+                return;
+            }
+
             // Process the arguments on the UI thread to handle any UI-related actions
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {

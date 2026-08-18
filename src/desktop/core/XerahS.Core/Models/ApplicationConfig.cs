@@ -114,7 +114,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool CaptureCommandPaletteEnabled { get; set; } = true;
     public HotkeyInfo CaptureCommandPaletteHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Alt);
     public bool AssistantPromptHistoryEnabled { get; set; }
-    public bool ScreenshotContentSearchEnabled { get; set; }
+    public bool ScreenshotContentSearchEnabled { get; set; } = true;
     public string AssistantActiveProviderId { get; set; } = string.Empty;
     public List<AssistantProviderConfig> AssistantProviders { get; set; } = new();
 

@@ -10,6 +10,59 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.25.1
+
+- Keep the main window visible during hotkey and command-palette screenshots so XerahS itself can be captured. Navbar and tray captures still hide the window.
+
+## v0.25.0
+
+### Features
+- **Core**: Add native XBackBone destination
+- **Video Editor**: Seed watermarks from host image effects; close the advertised export path from the host; use the XerahS video editor title
+
+---
+
+## v0.24.25
+
+### Security
+- **Core**: Bump `SSH.NET` 2025.1.0 → 2026.0.0 to address CVE-2026-48798 / [GHSA-q939-rpr3-3284](https://github.com/advisories/GHSA-q939-rpr3-3284) (ScpClient arbitrary file write via server-controlled filenames in recursive directory download). Affects `XerahS.Uploaders` (SFTP/SCP) and `Ftp.Plugin` via central package management.
+
+### Fixes
+- **Core**: Honor minimized Windows startup; Notify on macOS capture denial; Preflight macOS screenshot permission
+
+### Performance
+- **Core**: Optimize searchable screenshot indexing
+
+### Changed
+- **KFIP0018**: x-twitter screen capture user needs research
+- **Xerahs Bugfix**: drain stale submodule citation (queue 1 -> 0); empty-queue audit (00:05 AWST); and related changes
+- **Xerahs Review**: backfill producer commit pointer (c40f60cd); daily producer tick (Nadia, 23:05 AWST); and related changes
+
+---
+
+## v0.24.23
+
+### Features
+- **Core**: Add Copy image / Copy file path quick actions in After Capture; Add global 'Disable notification window' checkbox (issue #252); and related changes
+
+### Fixes
+- **Core**: Bitly shortener surfaces network errors on UploadResult; Don't surface .deb / .rpm update assets inside a Flatpak sandbox; Synchronize HotkeySelectionControl static debug log
+- **Dropbox OAuth**: stop forced refresh on bare refresh_token
+- **PluginManifest**: ASCII-only PluginId whitelist
+- **RandomCrypto**: prevent int.MaxValue overflow in Next range
+
+### Documentation
+- **Core**: Document fallback to plain git push when wrapper is missing
+
+### Changed
+- **Core**: [Fix] Suppress main window on SilentRun startup — raise Dispatcher priority to Send; [Nadia] xerahs-review producer tick 2026-08-01 23:10 AWST: ingest Bitly Plugin SendRequest error handling; and related changes
+- **KFIP0017**: X/Twitter Capture Mode Suite — scroll capture, video clips & GIF conversion
+- **Source Build Manifest**: Wayland-first finish-args, absolute OUTPUT_PATH
+- **Xerahs Bugfix**: audit empty consumer queue; drain CliCaptureStrategy temp cleanup false-positive; and related changes
+- **Xerahs Review**: fill in producer-tick commit SHA on tracker; fill in producer-tick commit SHA on tracker (23:11 AWST); and related changes
+
+---
+
 ## [v0.24.12](https://github.com/ShareX/XerahS/releases/tag/v0.24.12)
 
 ### Changed

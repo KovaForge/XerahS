@@ -996,7 +996,7 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         string? fileHash = null;
         int? width = null;
         int? height = null;
-        string? ocrText = new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).GetText(item.Id);
+        string? ocrText = TryGetIndexedOcrText(item.Id);
 
         // Track whether the source capture file is on disk so the MCP response can surface
         // a clear stale-path diagnostic. The previous implementation silently produced null
@@ -1066,6 +1066,24 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
             ["host"] = item.Host,
             ["type"] = item.Type
         };
+    }
+
+    private static string? TryGetIndexedOcrText(long historyItemId)
+    {
+        // The OCR index lives in the main History.db SQLite database. When the desktop
+        // XerahS app is running (or a backup is being written), the file may be locked
+        // and throw Microsoft.Data.Sqlite.SqliteException with SQLite Error 10 (disk
+        // I/O error). The OCR text is best-effort metadata for the MCP response and is
+        // not required to render history detail; degrade gracefully so callers can
+        // still receive file_exists / file_missing_path diagnostics and the upload_url.
+        try
+        {
+            return new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).GetText(historyItemId);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+        {
+            return null;
+        }
     }
 
     internal static string ResolveHistoryBlobPath(HistoryItem item)
@@ -1177,9 +1195,11 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
         {
             if (Path.IsPathRooted(value))
             {
-                // Path.GetFullPath strips trailing whitespace from the final path component,
-                // which destroys files whose names legitimately end with spaces. Capture any
-                // trailing whitespace on the input and re-attach it after canonicalisation.
+                // Path.GetFullPath historically stripped trailing whitespace from the final
+                // path component on some platforms, which destroys files whose names
+                // legitimately end with spaces. Modern .NET (net6+) preserves trailing
+                // whitespace, so capture it on the input and only re-attach any whitespace
+                // that Path.GetFullPath actually removed.
                 int trailingWhitespace = 0;
                 while (trailingWhitespace < value.Length && char.IsWhiteSpace(value[value.Length - 1 - trailingWhitespace]))
                 {
@@ -1188,7 +1208,15 @@ public sealed class XerahSMcpRuntime : IXerahSMcpRuntime
                 path = Path.GetFullPath(value);
                 if (trailingWhitespace > 0)
                 {
-                    path += new string(' ', trailingWhitespace);
+                    int preservedTrailingWhitespace = 0;
+                    while (preservedTrailingWhitespace < path.Length && char.IsWhiteSpace(path[path.Length - 1 - preservedTrailingWhitespace]))
+                    {
+                        preservedTrailingWhitespace++;
+                    }
+                    if (preservedTrailingWhitespace < trailingWhitespace)
+                    {
+                        path += new string(' ', trailingWhitespace - preservedTrailingWhitespace);
+                    }
                 }
                 return true;
             }

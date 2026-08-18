@@ -51,6 +51,12 @@ public static class AppContracts
     /// </summary>
     public static class Cli
     {
+        /// <summary>
+        /// Legacy marker used by Windows startup registrations. A secondary invocation containing
+        /// only this marker is passive and must not surface an already-running instance.
+        /// </summary>
+        public const string SilentStartupFlag = "-silent";
+
         /// <summary>Flag used by helper processes (e.g. screen capture helpers) to forward a capture back to the running instance.</summary>
         public const string SendToFlag = "--send-to";
 
@@ -68,6 +74,12 @@ public static class AppContracts
         /// This is the built-in "Screen recording" workflow shipped with XerahS.
         /// </summary>
         public const string DefaultRecordingWorkflowId = "67f116dc";
+
+        public static bool IsPassiveStartupInvocation(IReadOnlyCollection<string>? args)
+        {
+            return args is { Count: > 0 } &&
+                args.All(arg => arg.Equals(SilentStartupFlag, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     /// <summary>

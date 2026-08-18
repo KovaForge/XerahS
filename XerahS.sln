@@ -115,6 +115,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XerahS.Mobile.Core", "src\m
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XerahS.Platform.Mobile", "src\platform\XerahS.Platform.Mobile\XerahS.Platform.Mobile.csproj", "{1271E0E9-FE5B-44AB-9D29-EF01A571AC17}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XerahS.XBackBone.Plugin", "src\desktop\plugins\XBackBone.Plugin\XerahS.XBackBone.Plugin.csproj", "{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -617,6 +619,18 @@ Global
 		{1271E0E9-FE5B-44AB-9D29-EF01A571AC17}.Release|x64.Build.0 = Release|Any CPU
 		{1271E0E9-FE5B-44AB-9D29-EF01A571AC17}.Release|x86.ActiveCfg = Release|Any CPU
 		{1271E0E9-FE5B-44AB-9D29-EF01A571AC17}.Release|x86.Build.0 = Release|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Debug|x64.Build.0 = Debug|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Debug|x86.Build.0 = Debug|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Release|x64.ActiveCfg = Release|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Release|x64.Build.0 = Release|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Release|x86.ActiveCfg = Release|Any CPU
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -673,6 +687,7 @@ Global
 		{3BD4BDAC-A1DC-1235-7AD2-C40F902F2017} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{C18FD980-8BFD-4006-90C6-3A516812C6A2} = {3BD4BDAC-A1DC-1235-7AD2-C40F902F2017}
 		{1271E0E9-FE5B-44AB-9D29-EF01A571AC17} = {4DF80442-A1E5-CC28-AE7B-27B5F9BFE52B}
+		{77FC0D3A-2DC5-42CE-A162-96CAE2C934B3} = {07D57EEB-2F50-60C4-C011-FE4FA775C9A8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F0A091F-7E5D-481D-8E95-59D51B437C9B}

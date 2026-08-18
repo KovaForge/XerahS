@@ -199,9 +199,21 @@
 
     <!-- Action Bar -->
     <Border Grid.Row="2" Classes="card" Padding="{StaticResource CardPaddingCompact}">
-      <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpaceM}" VerticalAlignment="Center">
-        <TextBlock Text="You can adjust these later in task settings." Classes="caption" AutomationProperties.Name="After Capture Footer Note"/>
-        <StackPanel Grid.Column="1"
+      <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="{StaticResource SpaceM}" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal"
+                    Spacing="{StaticResource SpaceS}">
+          <Button Content="Copy image"
+                  Command="{Binding CopyImageCommand}"
+                  AutomationProperties.Name="Copy Image"/>
+          <Button Content="Copy file path"
+                  Command="{Binding CopyFilePathCommand}"
+                  AutomationProperties.Name="Copy File Path"/>
+        </StackPanel>
+        <TextBlock Grid.Column="1"
+                   Text="Quick actions finish the workflow without a notification."
+                   Classes="caption"
+                   AutomationProperties.Name="After Capture Footer Note"/>
+        <StackPanel Grid.Column="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="{StaticResource SpaceS}">

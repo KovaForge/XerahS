@@ -39,6 +39,7 @@ public class TaskInfo
 
     public string Status { get; set; } = "";
     public TaskJob Job { get; set; }
+    public bool SuppressCompletionNotification { get; set; }
 
     public bool IsUploadJob
     {
