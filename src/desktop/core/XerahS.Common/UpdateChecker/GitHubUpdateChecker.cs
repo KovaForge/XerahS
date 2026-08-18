@@ -47,8 +47,8 @@ namespace XerahS.Common
             Linux
         }
 
-        public string Owner { get; private set; }
-        public string Repo { get; private set; }
+        public string Owner { get; protected set; }
+        public string Repo { get; protected set; }
         public bool IncludePreRelease { get; set; }
         public bool IsPreRelease { get; protected set; }
 

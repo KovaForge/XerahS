@@ -88,7 +88,13 @@
                                                       SelectedItem="{Binding PreReleaseUpdateSource}"
                                                       IsEnabled="{Binding AutoCheckUpdate}"
                                                       HorizontalAlignment="Stretch" MinWidth="160"
-                                                      AutomationProperties.Name="Pre-release Source"/>
+                                                      AutomationProperties.Name="Pre-release Source">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="x:Object">
+                                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
                                         </Grid>
 
                                         <Grid Grid.Column="2" Grid.Row="2"
