@@ -32,6 +32,7 @@ namespace XerahS.Common
         public TimeSpan UpdateCheckInterval { get; private set; } = TimeSpan.FromHours(1);
         public string GitHubOwner { get; set; }
         public string GitHubRepo { get; set; }
+        public IReadOnlyList<(string Owner, string Repo)> GitHubRepositories { get; set; } = [];
         public bool IsPortable { get; set; } // If current build is portable then download URL will be opened in browser instead of downloading it
         public bool IncludePreRelease { get; set; }
 
@@ -113,11 +114,32 @@ namespace XerahS.Common
 
         public virtual GitHubUpdateChecker CreateUpdateChecker()
         {
-            return new GitHubUpdateChecker(GitHubOwner, GitHubRepo)
+            IReadOnlyList<(string Owner, string Repo)> repositories = GetEffectiveRepositories();
+            if (repositories.Count > 1)
+            {
+                return new MultiRepoGitHubUpdateChecker(repositories)
+                {
+                    IsPortable = IsPortable,
+                    IncludePreRelease = IncludePreRelease
+                };
+            }
+
+            (string owner, string repo) = repositories[0];
+            return new GitHubUpdateChecker(owner, repo)
             {
                 IsPortable = IsPortable,
-                IncludePreRelease = this.IncludePreRelease
+                IncludePreRelease = IncludePreRelease
             };
+        }
+
+        private IReadOnlyList<(string Owner, string Repo)> GetEffectiveRepositories()
+        {
+            if (GitHubRepositories is { Count: > 0 })
+            {
+                return GitHubRepositories;
+            }
+
+            return [(GitHubOwner, GitHubRepo)];
         }
 
         public void Dispose()

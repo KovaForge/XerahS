@@ -47,7 +47,9 @@ public enum PreReleaseUpdateSource // Localized
 {
     ShareX,
     KovaForge,
-    Custom
+    Custom,
+    [Description("Any source")]
+    Any
 }
 
 public enum SupportedLanguage

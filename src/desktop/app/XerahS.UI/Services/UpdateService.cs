@@ -114,10 +114,12 @@ public class UpdateService : IDisposable
 
         var settings = SettingsManager.Settings;
         bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
-        var updateRepository = ResolveUpdateRepository(settings);
+        IReadOnlyList<(string Owner, string Repo)> updateRepositories = ResolveUpdateRepositories(settings);
+        var updateRepository = updateRepositories[0];
 
         _updateManager = new GitHubUpdateManager(updateRepository.Owner, updateRepository.Repo)
         {
+            GitHubRepositories = updateRepositories,
             IsPortable = IsPortableBuild(),
             IncludePreRelease = includePreRelease,
             AllowAutoUpdate = settings.AutoCheckUpdate
@@ -147,9 +149,11 @@ public class UpdateService : IDisposable
         }
 
         var settings = SettingsManager.Settings;
-        var updateRepository = ResolveUpdateRepository(settings);
+        IReadOnlyList<(string Owner, string Repo)> updateRepositories = ResolveUpdateRepositories(settings);
+        var updateRepository = updateRepositories[0];
         bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
 
+        _updateManager.GitHubRepositories = updateRepositories;
         _updateManager.GitHubOwner = updateRepository.Owner;
         _updateManager.GitHubRepo = updateRepository.Repo;
         _updateManager.IncludePreRelease = includePreRelease;
@@ -159,16 +163,26 @@ public class UpdateService : IDisposable
 
     public static (string Owner, string Repo) ResolveUpdateRepository(ApplicationConfig settings)
     {
+        return ResolveUpdateRepositories(settings)[0];
+    }
+
+    public static IReadOnlyList<(string Owner, string Repo)> ResolveUpdateRepositories(ApplicationConfig settings)
+    {
         if (settings.UpdateChannel != UpdateChannel.PreRelease)
         {
-            return (DefaultReleaseOwner, DefaultRepo);
+            return [(DefaultReleaseOwner, DefaultRepo)];
         }
 
         return settings.PreReleaseUpdateSource switch
         {
-            PreReleaseUpdateSource.ShareX => (DefaultReleaseOwner, DefaultRepo),
-            PreReleaseUpdateSource.Custom => ResolveCustomPreReleaseRepository(settings.CustomPreReleaseUpdateSource),
-            _ => (DefaultPreReleaseOwner, DefaultRepo)
+            PreReleaseUpdateSource.ShareX => [(DefaultReleaseOwner, DefaultRepo)],
+            PreReleaseUpdateSource.Custom => [ResolveCustomPreReleaseRepository(settings.CustomPreReleaseUpdateSource)],
+            PreReleaseUpdateSource.Any =>
+            [
+                (DefaultReleaseOwner, DefaultRepo),
+                (DefaultPreReleaseOwner, DefaultRepo)
+            ],
+            _ => [(DefaultPreReleaseOwner, DefaultRepo)]
         };
     }
 

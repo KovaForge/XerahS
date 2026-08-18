@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to XerahS will be documented in this file.
 
@@ -10,10 +10,22 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.25.3
+
+### Features
+- **Updates**: Add an **Any source** option under Pre-release source. When selected, XerahS checks both ShareX and KovaForge and installs the newest usable pre-release.
+
+---
+
 ## v0.25.2
 
 ### Features
 - **Image Editor**: Localize editor UI (28 languages); smart-eraser edge-matching fills; extract built-in toolbars and host toolbar chrome from ShareX through `ebcee2a63`
+
+### Fixes
+- **GitHub Gist**: Reject invalid CustomURLAPI hosts so a crafted gist destination cannot point the uploader at an unexpected API.
+
+---
 
 ## v0.25.1
 
