@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-18 23:02 AWST",
+  "last_updated": "2026-08-19 00:29 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,10 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)",
-    "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -2183,9 +2180,18 @@
         "2b23b5a2"
       ],
       "sha_churn_note": "5 follow-up commits after the producer work were SHA-pin iterations. Future runs should commit producer state + post-push metadata in a single commit to avoid this chain."
+    },
+    {
+      "ts": "2026-08-19 00:29 AWST",
+      "agent": "declan",
+      "outcome": "fixed",
+      "item": "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)",
+      "commit": "7659afd2",
+      "summary": "Reset() now clears _uiService and _imageEncoderService; NativeWindowHandleProvider citation drained as out-of-scope speculative sanitization.",
+      "status": "fixed"
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "fixed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
@@ -2210,6 +2216,8 @@
     "src/desktop/plugins/Nextcloud.Plugin/ViewModels/NextcloudConfigViewModel.cs:375-378 (TryNormalizeServerUrl)",
     "ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)",
     "src/mobile-experimental/XerahS.Mobile.iOS.ShareExtension/ShareViewController.cs:124-169 (ProcessAttachmentAsync)",
-    "src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)"
+    "src/desktop/plugins/GitHubGist.Plugin/GitHubGistConfigModel.cs:35 (SecretKey)",
+    "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)",
+    "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)"
   ]
 }

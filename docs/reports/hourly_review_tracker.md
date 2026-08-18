@@ -5357,3 +5357,24 @@ Added candidates (8):
 - Submodule: nadia/nadia-v0.25.2-port -> d4f4029b pushed to github-nadia:KovaForge/ShareX.ImageEditor.git
 - Final SHA on nadia: 87bbbf72
 - Commit-chain anomaly: 4 commits to land producer state; future runs should batch state update + post-push metadata into one commit to avoid SHA-churn
+
+### 2026-08-19 00:29 AWST - PlatformServices.Reset leak
+
+- Area: PlatformServices.Reset
+- Files: src/platform/XerahS.Platform.Abstractions/PlatformServices.cs, tests/XerahS.Tests/Platform/PlatformServicesResetTests.cs, Directory.Build.props
+- Findings: Reset() nulled most static services but left _uiService and _imageEncoderService populated, so tests calling Reset() between cases could leak stale UI/encoder registrations. Cleared both fields. NativeWindowHandleProvider already nulled.
+- Status: Fixed
+- Build/test: Platform.Abstractions Release 0/0; XerahS.Tests Release 3 warnings 0 errors; PlatformServicesResetTests 2/2 passed. Logs: /tmp/xerahs-bugfix/build-20260819-000709.log, /tmp/xerahs-bugfix/build-20260819-000709.tests.log, /tmp/xerahs-bugfix/test-20260819-000709.log
+- Commit: 7659afd2
+- Follow-up: do not re-queue unless Reset regresses
+- Skill: xerahs-bugfix/SKILL.md — no patch this run
+
+### 2026-08-19 00:29 AWST - Pivot / out-of-scope
+
+- Area: src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)
+- Files: (none — pivot, no code change)
+- Findings: speculative portal-string sanitization; Func is consumed as-is by Linux portal D-Bus callers — not a parent-repo defect
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
