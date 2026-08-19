@@ -5429,3 +5429,24 @@ Added candidates (8):
   - ... and 55 more
 - Ingested: 0
 - next_candidates delta: +0 (total 0)
+
+### 2026-08-19 23:22 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3 (20260819T151646-58c364 newest, 20260819T150456-70afff, 20260817T150322-d2fc7d)
+- Submodule-prefix drops (v2.2.4): 1
+  - [api-contract/contract-mismatch] src/platform/XerahS.Platform.Mobile/XerahS.Platform.Mobile.csproj:14 (SkiaSharp) [merged into single drop]
+- Findings dropped at severity gate (nadia producer scope = 5 new): 3
+  - triage=risk: 1 (fnd_sig-feat-library-77e0aca762-d27a Inconsistent .NET Target Framework)
+  - triage=contract-mismatch: 2 (AssistantService OCR caching, SkiaSharp version mismatch)
+- Findings dropped as already-fixed (area-level): 0
+- Findings dropped as recently-pivoted: 0
+- Findings dropped as release-history (v2.1.2): 0 (fixed_files_cache size 0)
+- **Ingested: 2**
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85 (AssistantPrivacyGuardTests)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:384-387 (HistoryManagerSQLite.Delete)
+- next_candidates delta: +2 (total 2)
+- Fork sync: nadia/develop == HEAD == origin/develop == c0de5abb (origin fast-forwarded 1 commit from declan)
+- Upstream sync: ce4de31d already in HEAD history (no merge needed)
+- ShareX.ImageEditor submodule: d4f4029b on nadia-v0.25.2-port branch (no change)
+- clawpatch report 20260819T151646-58c364.md added (newer than 20260819T150456-70afff)
+- Skill: xerahs-review/SKILL.md — added new pitfall for SHA-pin lag pattern
