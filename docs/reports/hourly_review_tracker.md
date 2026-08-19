@@ -5450,3 +5450,25 @@ Added candidates (8):
 - ShareX.ImageEditor submodule: d4f4029b on nadia-v0.25.2-port branch (no change)
 - clawpatch report 20260819T151646-58c364.md added (newer than 20260819T150456-70afff)
 - Skill: xerahs-review/SKILL.md — added new pitfall for SHA-pin lag pattern
+
+### 2026-08-20 00:06 AWST - Pivot / already-fixed
+
+- Area: tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85
+- Files: (none — pivot, no code change)
+- Findings: UnknownTool_IsBlocked already asserts Allowed=false; production Evaluate blocks unknown tools before any scope branch
+- Status: Pivot (already-fixed)
+- Build/test: n/a (production already correct; cited tests already cover the case)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.22 unchanged (no Step 10 patch)
+
+### 2026-08-20 00:06 AWST - Pivot / already-fixed
+
+- Area: tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:384-387
+- Files: (none — pivot, no code change)
+- Findings: Delete_Noop_WhenNoOcrIndexRowsExist already asserts DoesNotThrow plus GetText(1) is null; production Delete commits when OCR index has no matching rows
+- Status: Pivot (already-fixed)
+- Build/test: n/a (production already correct; cited tests already cover the case)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.22 unchanged (no Step 10 patch)
