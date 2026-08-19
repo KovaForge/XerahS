@@ -2213,7 +2213,7 @@
       "agent": "nadia",
       "outcome": "pushed",
       "item": "xerahs-review producer run",
-      "commit": "PENDING",
+      "commit": "c00521be",
       "summary": "Fork sync (nadia/develop) == HEAD at 0cd1e330. Upstream already merged (ce4de31d is in HEAD history). ShareX.ImageEditor gitlink stable at d4f4029b (nadia-v0.25.2-port branch, already on nadia remote). Clawpatch review (MiniMax-Text-01) parsed 3 newest reports (116 eligible after severity gate); gates filtered 3 already-fixed (area-level), 65 recently-fixed (release-history), 48 recently-pivoted; ingested 0 (queue empty after filter). Push complete: nadia/develop -> <sha>.",
       "status": "ok",
       "clawpatch_report": "20260819T150456-70afff.md"
