@@ -5400,3 +5400,32 @@ Added candidates (8):
 - Commit: none (empty-queue audit; commit SHA recorded in Step 9 only)
 - Follow-up: wait for xerahs-review producer ingest
 - Skill: xerahs-bugfix/SKILL.md — none (no efficiency blockers this run)
+
+### 2026-08-19 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+- Submodule-prefix drops (v2.2.4): 61
+- Findings dropped at severity gate: 157
+  - triage=risk: 102
+  - triage=contract-mismatch: 36
+  - triage=docs-gap: 12
+  - triage=test-gap: 7
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-pivoted: 48
+- Findings dropped as recently fixed (release-history): 65
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - ... and 55 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
