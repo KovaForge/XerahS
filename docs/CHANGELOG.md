@@ -10,6 +10,20 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.25.5
+
+### Fixes
+- **Linux ARM64 packaging**: Publish destination plugins one at a time so parallel `dotnet publish` races no longer drop plugin assemblies (Bitly failed the v0.25.4 arm64 build).
+
+---
+
+## v0.25.4
+
+### Fixes
+- **Start minimized to tray**: Honor the Application Settings checkbox on launch, including Debug builds. The main window no longer opens normally when **Start minimized to tray** is enabled.
+
+---
+
 ## v0.25.3
 
 ### Features

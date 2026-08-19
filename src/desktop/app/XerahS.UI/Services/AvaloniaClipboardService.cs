@@ -99,7 +99,7 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
                 return null;
 
             using var stream = new MemoryStream();
-            bitmap.Save(stream);
+            bitmap.Save(stream, PngBitmapEncoderOptions.Default);
             stream.Position = 0;
             return SKBitmap.Decode(stream);
         });
@@ -162,7 +162,7 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
                 return null;
 
             using var stream = new MemoryStream();
-            bitmap.Save(stream);
+            bitmap.Save(stream, PngBitmapEncoderOptions.Default);
             stream.Position = 0;
             return SKBitmap.Decode(stream);
         });

@@ -138,7 +138,7 @@
                     BorderThickness="0,0,1,0">
                 <Grid Margin="12" RowDefinitions="Auto,*" RowSpacing="8">
                     <TextBox Name="NavigationSearchBox"
-                             Watermark="Search"
+                             PlaceholderText="Search"
                              MinHeight="32"
                              TextChanged="OnNavigationSearchTextChanged"
                              AutomationProperties.Name="Navigation Search"/>
