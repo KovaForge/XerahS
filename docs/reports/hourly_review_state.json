@@ -2226,7 +2226,7 @@
       "agent": "nadia",
       "outcome": "pushed",
       "item": "xerahs-review producer run",
-      "commit": "PENDING",
+      "commit": "32ae3aca",
       "summary": "Daily producer cron (Nadia, nadia-valeva-kf). Clawpatch review run 20260819T151646-58c364 completed (3 features reviewed: ShareX.ImageEditor Core/ImageEffects/Filters, XerahS.Platform.Mobile, XerahS.Core/SendTo — 5 raw findings). Across 3 newest reports (20260819T151646, 20260819T150456, 20260817T150322) = 122 unique findings parsed. Severity gate dropped 60 (triage=risk: 45, contract-mismatch: 23, docs-gap: 5, test-gap: 3, maintainability: 22). Submodule-prefix drop (v2.2.4): 1 (SkiaSharp package refs). **2 NEW findings** added (high-signal confirmed-bug, not yet shipped): tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85 (security — privacy guard tool handling), tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:384-387 (data-loss — Delete on non-existent items). Fork/upstream/submodule unchanged. Producer-side only.",
       "status": "ok",
       "clawpatch_report": "20260819T151646-58c364.md"
