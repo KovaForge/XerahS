@@ -2253,7 +2253,7 @@
       "agent": "nadia",
       "outcome": "pushed",
       "item": "xerahs-review producer run",
-      "commit": "PENDING",
+      "commit": "f95c523d",
       "summary": "Daily producer cron (Nadia, nadia-valeva-kf). Clawpatch review run 20260820T150428-2a043b completed (3 features reviewed: Windows Recording/WindowsGraphicsCaptureSource, Mobile Maui Views, ShareX.Pastebin.Plugin — 2 findings on feature 1, 0 on others). Across 3 newest reports (20260820T150428, 20260819T151646, 20260819T150456) = 295 unique findings parsed. v2.2.4 submodule-prefix drops: 65. Severity gate dropped 170 (triage=risk: 108, contract-mismatch: 41, docs-gap: 12, test-gap: 9). Recently-pivoted skip (v2.2.2): 44. Recently-fixed (v2.1.1 + v2.1.2): 77. Already-fixed (area-level): 3. **1 NEW finding** added (high-signal confirmed-bug, concurrency, not yet shipped): src/platform/XerahS.Platform.Windows/Recording/WindowsGraphicsCaptureSource.cs:107 (_dispatcherQueue). Fork/upstream/submodule unchanged. Producer-side only.",
       "status": "ok",
       "clawpatch_report": "20260820T150428-2a043b.md"
