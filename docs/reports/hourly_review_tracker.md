@@ -5472,3 +5472,14 @@ Added candidates (8):
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
 - Skill: xerahs-bugfix/SKILL.md v1.1.22 unchanged (no Step 10 patch)
+
+### 2026-08-20 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Deleted stale /tmp/xerahs-bugfix/deferred-last-runs-20260820-000625.json (2 already-fixed rows from 00:06 AWST; tracker markdown remains the durable ledger).
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: null (record SHA in Step 9 only; do not self-reference)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
