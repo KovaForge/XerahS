@@ -5494,3 +5494,59 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 only; do not self-reference)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
+
+### 2026-08-20 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+  - 20260820T150428-2a043b.md
+  - 20260819T151646-58c364.md
+  - 20260819T150456-70afff.md
+- Submodule-prefix drops (v2.2.4): 65
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [build-release/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+  - [data-loss/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/Filters/RemoveBackgroundImageEffect.cs:54-232 (RemoveBackgro
+  - [build-release/risk] Directory.Packages.props:7-57 (PackageVersion)
+  - [api-contract/contract-mismatch] Directory.Packages.props:8-19
+  - [bug/confirmed-bug] ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+  - [data-loss/confirmed-bug] ShareX.VideoEditor/backend/Core/ThumbnailExtractor.cs:96
+  - [maintainability/risk] Directory.Packages.props:4 (ManagePackageVersionsCentrally)
+  - [api-contract/contract-mismatch] Directory.Packages.props:40-42
+  - [api-contract/contract-mismatch] Directory.Packages.props:7-57
+  - ... and 55 more
+- Findings dropped at severity gate: 170
+  - triage=risk: 108
+  - triage=contract-mismatch: 41
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed: 77 (combined v2.1.1 60-commit + v2.1.2 release-history)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - ... and 67 more
+- Ingested: 1
+
+### 2026-08-20 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3 (20260820T150428-2a043b newest, 20260819T151646-58c364, 20260819T150456-70afff)
+- 295 unique findings parsed across 3 reports (123 in newest)
+- Submodule-prefix drops (v2.2.4): 65 (ShareX.ImageEditor / ShareX.VideoEditor — parent repo cannot edit submodule source)
+- Severity gate drops: 170 (triage=risk: 108, contract-mismatch: 41, docs-gap: 12, test-gap: 9)
+- Already-fixed (area-level): 3
+- Recently-pivoted skip (v2.2.2): 44
+- Recently-fixed (v2.1.1 + v2.1.2 release-history): 77
+- Ingested: 1
+  - [concurrency/confirmed-bug/high] fnd_sig-feat-library-7a3e365ec4-9691_3f3573e45f
+    evidence: src/platform/XerahS.Platform.Windows/Recording/WindowsGraphicsCaptureSource.cs:107 (_dispatcherQueue)
+    source report: 20260820T150428-2a043b.md
+- next_candidates delta: +1 (total 1)
