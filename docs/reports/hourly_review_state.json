@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-20 23:06:37 AWST",
+  "last_updated": "2026-08-21 00:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,9 +10,7 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [
-    "src/platform/XerahS.Platform.Windows/Recording/WindowsGraphicsCaptureSource.cs:107 (_dispatcherQueue)"
-  ],
+  "next_candidates": [],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -2259,7 +2257,7 @@
       "clawpatch_report": "20260820T150428-2a043b.md"
     }
   ],
-  "last_run_outcome": "ok",
+  "last_run_outcome": "pivot",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
@@ -2288,6 +2286,7 @@
     "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:325 (NativeWindowHandleProvider)",
     "src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)",
     "tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85",
-    "tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:384-387"
+    "tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:384-387",
+    "src/platform/XerahS.Platform.Windows/Recording/WindowsGraphicsCaptureSource.cs:107 (_dispatcherQueue)"
   ]
 }

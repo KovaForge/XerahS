@@ -5550,3 +5550,14 @@ Added candidates (8):
     evidence: src/platform/XerahS.Platform.Windows/Recording/WindowsGraphicsCaptureSource.cs:107 (_dispatcherQueue)
     source report: 20260820T150428-2a043b.md
 - next_candidates delta: +1 (total 1)
+
+### 2026-08-21 00:05 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Windows/Recording/WindowsGraphicsCaptureSource.cs:107 (_dispatcherQueue)
+- Files: (none — pivot, no code change)
+- Findings: clawpatch misidentifies the L107 guard as missing; RunOnCaptureThread/Async/AndWait already throw InvalidOperationException when _dispatcherQueue is null (L107, L121, L145) before TryEnqueue. Clawpatch 20260820T150428-2a043b (fnd_sig-feat-library-7a3e365ec4-9691_3f3573e45f) claimed RunOnCaptureThreadAsync lacked the check; live source already guards all three enqueue helpers. Dispose() also skips async cleanup when the queue is null (L578).
+- Status: Pivot (already-fixed)
+- Build/test: n/a (production already correct; Windows-only WinRT type, no code change this tick)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
