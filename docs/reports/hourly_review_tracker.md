@@ -5583,3 +5583,26 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 only; do not self-reference)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
+
+### 2026-08-21 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.2/v2.2.4)
+
+- Reports parsed: 3 (20260821T150529-4a20ca newest, 20260820T150428-2a043b, 20260819T151646-58c364)
+- 367 unique findings parsed across 3 reports (123 in newest, 123 in 20260820, 121 in 20260819)
+- Submodule-prefix drops (v2.2.4): 66 (ShareX.ImageEditor / ShareX.VideoEditor — parent repo cannot edit submodule source)
+- Severity gate drops: 173 (triage=risk: 110, contract-mismatch: 42, docs-gap: 12, test-gap: 9)
+- Already-fixed (area-level): 3
+- Recently-fixed (v2.1.1 + v2.1.2 release-history): 72
+- Recently-pivoted skip (v2.2.2): 53
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-21 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, .clawpatch/reports/20260821T150529-4a20ca.md
+- Findings: Daily cron run at 23:04 AWST (offset 1h before 00:06 AWST consumer drain). Fork sync: nadia/develop == HEAD (already synced with Declan's 16:06 AWST consumer tick f8b30980). Upstream sync: 30 commits ahead of ShareX/XerahS upstream (no merge needed; upstream at v0.25.5 / local v0.26.0). Submodule sync: ShareX.ImageEditor HEAD == upstream tip (d4f4029); 4 commits ahead of origin == Mikhail's WIP, left untouched per prior consumer. Clawpatch review: 3 features reviewed, 0 findings on each (feature 2 had a malformed-output retry). All 53 post-gate eligible items hit the recently-pivoted skip — consumer verified them as already-fixed-in-source during 00:05/08:05/16:06 AWST drains (the WindowsGraphicsCaptureSource.cs:107 dispatcher null-check pivot from 2026-08-20 23:06, plus the cluster of items the consumer swept up in the area-level dedupe sweep). Producer-side only.
+- Status: ok (no-op ingest is the correct outcome given the consumer's recent pivot activity)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Follow-up: 00:06 AWST consumer drain will read this empty queue; producer next fires 23:00 AWST on 2026-08-22
+- Skill: xerahs-review/SKILL.md v2.2.4 (no patch this tick)
