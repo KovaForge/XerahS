@@ -332,7 +332,7 @@ namespace XerahS.Common
                     $"-macos-{archToken}.zip"
                 ],
                 RuntimePlatform.Linux => isPortable
-                    ? [ $"-linux-{archToken}.tar.gz" ]
+                    ? [ $"-linux-{archToken}.tar.gz", $"-linux-{archToken}.AppImage" ]
                     : [ $"-linux-{archToken}.deb", $"-linux-{archToken}.tar.gz", $"-linux-{archToken}.rpm" ],
                 _ => []
             };

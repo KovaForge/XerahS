@@ -143,6 +143,10 @@ The `build/windows` directory also contains resources for submitting XerahS to p
 │     │   RPM Package   │ XerahS-{version}-linux-x64.rpm           │     │
 │     │   (.rpm)        │ For Fedora/RHEL/CentOS/SUSE              │     │
 │     │                 │ Requires rpmbuild tool                   │     │
+│     ├─────────────────┼──────────────────────────────────────────┤     │
+│     │   AppImage      │ XerahS-{version}-linux-x64.AppImage      │     │
+│     │                 │ Portable, chmod +x and run               │     │
+│     │                 │ Also built for linux-arm64               │     │
 │     └─────────────────┴──────────────────────────────────────────┘     │
 │                              ↓                                          │
 │  5. Individual plugin .zip files also created                           │
@@ -398,6 +402,7 @@ dist/
 │   ├── XerahS-0.14.3-linux-x64.tar.gz
 │   ├── XerahS-0.14.3-linux-x64.deb
 │   ├── XerahS-0.14.3-linux-x64.rpm
+│   ├── XerahS-0.14.3-linux-x64.AppImage
 │   ├── amazons3-0.14.3-linux-x64.zip
 │   ├── auto-0.14.3-linux-x64.zip
 │   ├── gist-0.14.3-linux-x64.zip

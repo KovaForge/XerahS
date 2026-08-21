@@ -128,6 +128,31 @@ class Program
         {
             Console.WriteLine("Skipped RPM package (rpmbuild not available or build failed).");
         }
+
+        // 4. Create AppImage (portable, no install). Does not replace Flatpak.
+        if (string.Equals(Environment.GetEnvironmentVariable("XERAHS_SKIP_APPIMAGE"), "1", StringComparison.Ordinal))
+        {
+            Console.WriteLine("Skipped AppImage (XERAHS_SKIP_APPIMAGE=1).");
+        }
+        else
+        {
+            string appImageName = $"XerahS-{version}-{arch}.AppImage";
+            string appImagePath = Path.Combine(outputDir, appImageName);
+            string? iconSource = FindIconFile(publishDir);
+            if (XerahS.Packaging.AppImagePackager.TryCreate(publishDir, appImagePath, version, arch, iconSource, out string? appImageError))
+            {
+                Console.WriteLine($"Created AppImage: {appImageName}");
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                Console.WriteLine($"Error: AppImage packaging failed: {appImageError}");
+                Environment.Exit(1);
+            }
+            else
+            {
+                Console.WriteLine($"Skipped AppImage: {appImageError}");
+            }
+        }
     }
 
     static string? DetectVersionFromProps(string searchStartPath)
@@ -986,6 +1011,10 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
 
     static string? FindIconFile(string publishDir)
     {
+        // Prefer the 512px app icon for AppImage / desktop pixmaps, then Logo.png.
+        string inPublish512 = Path.Combine(publishDir, "ShareX.iconset", "icon_512x512.png");
+        if (File.Exists(inPublish512)) return inPublish512;
+
         // Look for Logo.png in various locations
         // 1. Check if it's in the publish directory
         string inPublish = Path.Combine(publishDir, "Logo.png");
@@ -995,6 +1024,10 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         // The packaging tool is in build/linux/XerahS.Packaging, icon is in src/desktop/app/XerahS.UI/Assets/Logo.png
         string[] searchPaths =
         {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
+            Path.Combine(Environment.CurrentDirectory, "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
+            Path.Combine(Environment.CurrentDirectory, "..", "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png"),
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png"),
             Path.Combine(Environment.CurrentDirectory, "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png"),
@@ -1014,11 +1047,24 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         DirectoryInfo? dir = new DirectoryInfo(publishDir);
         while (dir != null)
         {
-            string candidate = Path.Combine(dir.FullName, "src", "XerahS.UI", "Assets", "Logo.png");
+            string candidate512 = Path.Combine(dir.FullName, "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png");
+            if (File.Exists(candidate512))
+            {
+                return candidate512;
+            }
+
+            string candidate = Path.Combine(dir.FullName, "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png");
             if (File.Exists(candidate))
             {
                 return candidate;
             }
+
+            string legacyCandidate = Path.Combine(dir.FullName, "src", "XerahS.UI", "Assets", "Logo.png");
+            if (File.Exists(legacyCandidate))
+            {
+                return legacyCandidate;
+            }
+
             dir = dir.Parent;
         }
 

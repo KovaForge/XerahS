@@ -41,9 +41,11 @@ public class GitHubUpdateCheckerAssetSelectionTests
         "XerahS-1.2.3-linux-x64.tar.gz",
         "XerahS-1.2.3-linux-x64.deb",
         "XerahS-1.2.3-linux-x64.rpm",
+        "XerahS-1.2.3-linux-x64.AppImage",
         "XerahS-1.2.3-linux-arm64.tar.gz",
         "XerahS-1.2.3-linux-arm64.deb",
-        "XerahS-1.2.3-linux-arm64.rpm"
+        "XerahS-1.2.3-linux-arm64.rpm",
+        "XerahS-1.2.3-linux-arm64.AppImage"
     ];
 
     [TestCase("windows", Architecture.X64, "XerahS-1.2.3-win-x64.exe")]
@@ -107,6 +109,22 @@ public class GitHubUpdateCheckerAssetSelectionTests
 
         Assert.That(resolved, Is.True);
         Assert.That(checker.FileName, Is.EqualTo("XerahS-1.2.3-linux-arm64.tar.gz"));
+    }
+
+    [Test]
+    public void UpdateReleaseInfo_OnLinuxPortable_FallsBackToAppImageWhenTarballMissing()
+    {
+        var checker = new TestGitHubUpdateChecker("linux", Architecture.X64);
+        string[] assets =
+        [
+            "XerahS-1.2.3-linux-x64.deb",
+            "XerahS-1.2.3-linux-x64.AppImage"
+        ];
+
+        bool resolved = checker.TryResolveAssets(assets, isPortable: true);
+
+        Assert.That(resolved, Is.True);
+        Assert.That(checker.FileName, Is.EqualTo("XerahS-1.2.3-linux-x64.AppImage"));
     }
 
     private sealed class TestGitHubUpdateChecker(string runtimePlatform, Architecture architecture) : GitHubUpdateChecker("ShareX", "XerahS")

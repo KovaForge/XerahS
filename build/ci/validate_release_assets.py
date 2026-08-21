@@ -20,9 +20,11 @@ EXPECTED_ASSETS = [
     ("linux", "x64", "tar.gz"),
     ("linux", "x64", "deb"),
     ("linux", "x64", "rpm"),
+    ("linux", "x64", "AppImage"),
     ("linux", "arm64", "tar.gz"),
     ("linux", "arm64", "deb"),
     ("linux", "arm64", "rpm"),
+    ("linux", "arm64", "AppImage"),
 ]
 
 
